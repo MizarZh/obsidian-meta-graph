@@ -1,8 +1,223 @@
-/*
+.knowledge-workspace-view,
+.knowledge-workspace {
+	width: 100%;
+	height: 100%;
+	min-height: 0;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.knowledge-workspace-tabs {
+	display: flex;
+	gap: var(--size-4-1);
+	padding: var(--size-4-2) var(--size-4-3) 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+}
 
-If your plugin does not need CSS, delete this file.
+.knowledge-workspace-tabs button {
+	margin: 0;
+	padding: var(--size-4-2) var(--size-4-3);
+	border: 0;
+	border-bottom: 2px solid transparent;
+	border-radius: var(--radius-s) var(--radius-s) 0 0;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-muted);
+}
 
-*/
+.knowledge-workspace-tabs button.active {
+	border-bottom-color: var(--interactive-accent);
+	color: var(--text-normal);
+}
+
+.knowledge-workspace-hidden {
+	display: none;
+}
+
+.knowledge-workspace-color-probe {
+	position: absolute;
+	visibility: hidden;
+}
+
+.knowledge-workspace {
+	display: flex;
+	flex-direction: column;
+	background: var(--background-primary);
+	color: var(--text-normal);
+}
+
+.knowledge-workspace-toolbar {
+	display: flex;
+	gap: var(--size-4-2);
+	align-items: center;
+	padding: var(--size-4-2);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.knowledge-workspace-toolbar button {
+	margin: 0;
+}
+
+.knowledge-workspace-segmented {
+	display: flex;
+}
+
+.knowledge-workspace-segmented button {
+	border-radius: 0;
+}
+
+.knowledge-workspace-segmented button:first-child {
+	border-radius: var(--button-radius) 0 0 var(--button-radius);
+}
+
+.knowledge-workspace-segmented button:last-child {
+	border-radius: 0 var(--button-radius) var(--button-radius) 0;
+}
+
+.knowledge-workspace-segmented button.active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.knowledge-workspace-body {
+	display: grid;
+	grid-template-columns: minmax(170px, 220px) minmax(0, 1fr);
+	flex: 1;
+	min-height: 0;
+}
+
+.knowledge-workspace-filters {
+	overflow: auto;
+	padding: var(--size-4-3);
+	border-right: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+}
+
+.knowledge-workspace-filters h3 {
+	margin-top: 0;
+}
+
+.knowledge-workspace-filters > label,
+.knowledge-workspace-filters fieldset {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-1);
+	margin: 0 0 var(--size-4-4);
+}
+
+.knowledge-workspace-filters fieldset {
+	padding: 0;
+	border: 0;
+}
+
+.knowledge-workspace-filters legend {
+	margin-bottom: var(--size-4-1);
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold);
+}
+
+.knowledge-workspace-filters .checkbox {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--size-4-2);
+}
+
+.knowledge-workspace-main {
+	position: relative;
+	min-width: 0;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.knowledge-workspace-canvas {
+	position: absolute;
+	inset: 0;
+}
+
+.knowledge-workspace-empty {
+	position: absolute;
+	inset: 50% auto auto 50%;
+	transform: translate(-50%, -50%);
+	color: var(--text-muted);
+	pointer-events: none;
+}
+
+.knowledge-workspace-inspector {
+	position: absolute;
+	right: var(--size-4-3);
+	bottom: var(--size-4-3);
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-1);
+	max-width: min(360px, 60%);
+	padding: var(--size-4-3);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-primary-alt);
+	box-shadow: var(--shadow-s);
+	font-size: var(--font-ui-small);
+}
+
+.knowledge-workspace-inspector span {
+	overflow: hidden;
+	color: var(--text-muted);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.knowledge-workspace-debug {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	padding: var(--size-4-4);
+}
+
+.knowledge-workspace-debug > header {
+	display: flex;
+	gap: var(--size-4-4);
+	align-items: flex-start;
+	justify-content: space-between;
+	margin-bottom: var(--size-4-4);
+}
+
+.knowledge-workspace-debug h2,
+.knowledge-workspace-debug p {
+	margin: 0;
+}
+
+.knowledge-workspace-debug p {
+	margin-top: var(--size-4-1);
+	color: var(--text-muted);
+}
+
+.knowledge-workspace-debug-actions {
+	display: flex;
+	gap: var(--size-4-2);
+}
+
+.knowledge-workspace-debug details {
+	margin-bottom: var(--size-4-3);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-secondary);
+}
+
+.knowledge-workspace-debug summary {
+	padding: var(--size-4-3);
+	cursor: pointer;
+	font-weight: var(--font-semibold);
+}
+
+.knowledge-workspace-debug pre {
+	max-height: 55vh;
+	margin: 0;
+	overflow: auto;
+	padding: var(--size-4-3);
+	border-top: 1px solid var(--background-modifier-border);
+	border-radius: 0;
+	background: var(--background-primary);
+	font-size: var(--font-smaller);
+	white-space: pre-wrap;
+	word-break: break-word;
+}

@@ -1,92 +1,86 @@
-# Obsidian Sample Plugin
+# Knowledge Workspace
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Knowledge Workspace is a read-only, two-dimensional view of semantic
+relationships stored in Obsidian note properties. It builds a local graph around
+the active note without changing vault files.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Metadata
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
+Add any of the supported properties to note frontmatter. Each property accepts a
+single string or an array.
 
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and outputs a Notice on click.
-- Registers a global interval which logs 'setInterval' to the console.
+```yaml
+---
+domain:
+  - astronomy
+type: concept
 
-## First time developing plugins?
+prerequisites:
+  - "[[Hydrostatic equilibrium]]"
 
-Quick starting guide for new plugin devs:
+leads_to:
+  - "[[Stellar evolution]]"
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `src/main.ts` to `main.js`.
-- Make changes to `src/main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
-
-## Releasing new releases
-
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
-
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
-
-## Adding your plugin to the community plugin list
-
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
-
-## How to use
-
-- Clone this repo.
-- Make sure your NodeJS is at least v18 (`node --version`).
-- `npm i` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
-
-## Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-## Improve code quality with eslint
-
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code.
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
-
-## Funding URL
-
-You can include funding URLs where people who use your plugin can financially support it.
-
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
-
-```json
-{
-	"fundingUrl": "https://buymeacoffee.com"
-}
+related:
+  - "[[Hertzsprung–Russell diagram]]"
+---
 ```
 
-If you have multiple URLs, you can also do:
+Relationship directions are:
 
-```json
-{
-	"fundingUrl": {
-		"Buy Me a Coffee": "https://buymeacoffee.com",
-		"GitHub Sponsor": "https://github.com/sponsors",
-		"Patreon": "https://www.patreon.com/"
-	}
-}
+- `prerequisites`: linked note → current note
+- `leads_to`: current note → linked note
+- `related`: undirected
+
+Unresolved links are ignored. Enable **Debug unresolved links** in the plugin
+settings to report them in the developer console.
+
+## Usage
+
+1. Enable **Knowledge Workspace** in **Settings → Community plugins**.
+2. Open a note containing supported metadata.
+3. Run **Open knowledge workspace** from the command palette.
+4. Select **Graph** for a ForceAtlas2 layout or **Flow** for an ELK layered
+   layout.
+5. Filter the graph by domain, folder, or relation.
+6. Select a node to open its note in a new tab.
+7. Select **Debug** to inspect or copy the current query, projection,
+   canonical index, adjacency maps, and unresolved links as JSON.
+
+The current demo displays all matching relationship components in the vault.
+The active note is only used by **Current note** focus. Isolated notes are
+omitted when no matching relationship remains. Flow mode omits undirected
+`related` edges.
+
+## Development
+
+This project uses pnpm, TypeScript, Svelte, Sigma.js, Graphology, ForceAtlas2,
+ELK.js, esbuild, and Vitest.
+
+```bash
+pnpm install
+pnpm typecheck
+pnpm test
+pnpm lint
+pnpm build
 ```
 
-## API Documentation
+`pnpm dev` runs the esbuild watcher. The production build writes `main.js` at
+the plugin root; generated build artifacts are not committed.
 
-See https://docs.obsidian.md
+## Architecture
+
+```text
+Obsidian MetadataCache
+  -> MetadataIndexer
+  -> KnowledgeIndex
+  -> GraphQueryEngine
+  -> GraphProjection
+  -> GraphologyAdapter
+  -> LayoutEngine
+  -> SigmaRenderer
+```
+
+The canonical knowledge model uses plain TypeScript maps and sets. Graphology is
+created from each projection and is only the runtime container used by the
+layout and rendering layers.

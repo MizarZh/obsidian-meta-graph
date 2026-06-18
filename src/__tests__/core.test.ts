@@ -1,0 +1,341 @@
+import { describe, expect, it, vi } from 'vitest';
+import {
+	addEdge,
+	addNode,
+	createEdgeId,
+	createKnowledgeIndex,
+} from '../core/knowledge-index';
+import type { LinkResolver } from '../core/link-resolver';
+import { parseRelations, toStringArray } from '../core/relation-parser';
+import type {
+	DirectionMode,
+	GraphQuery,
+	KnowledgeEdge,
+	KnowledgeIndex,
+	KnowledgeNode,
+	RelationType,
+} from '../core/types';
+import { GraphQueryEngine } from '../query/neighborhood';
+
+const resolver: LinkResolver = {
+	resolve(linkText) {
+		return {
+			A: 'A.md',
+			B: 'B.md',
+			C: 'C.md',
+			D: 'D.md',
+		}[linkText];
+	},
+};
+
+describe('metadata relation parsing', () => {
+	it('parses scalar and array metadata', () => {
+		expect(toStringArray(' astronomy ')).toEqual(['astronomy']);
+		expect(toStringArray(['astronomy', 'physics'])).toEqual([
+			'astronomy',
+			'physics',
+		]);
+		expect(
+			parseRelations(
+				{ leads_to: '[[B]]', related: ['[[C]]', '[[D]]'] },
+				'A.md',
+				resolver,
+			),
+		).toHaveLength(3);
+	});
+
+	it('reverses prerequisite direction', () => {
+		const [edge] = parseRelations(
+			{ prerequisites: '[[B]]' },
+			'A.md',
+			resolver,
+		);
+		expect(edge).toMatchObject({
+			source: 'B.md',
+			target: 'A.md',
+			relation: 'prerequisite',
+			directed: true,
+		});
+	});
+
+	it('keeps leads-to direction', () => {
+		const [edge] = parseRelations({ leads_to: '[[B]]' }, 'A.md', resolver);
+		expect(edge).toMatchObject({
+			source: 'A.md',
+			target: 'B.md',
+			relation: 'leads-to',
+			directed: true,
+		});
+	});
+
+	it('supports common relation property aliases', () => {
+		expect(
+			parseRelations(
+				{
+					prerequisite: '[[B]]',
+					'leads-to': '[[C]]',
+				},
+				'A.md',
+				resolver,
+			),
+		).toHaveLength(2);
+	});
+
+	it('uses cached frontmatter links when property values are unavailable', () => {
+		const [edge] = parseRelations(
+			{ related: null },
+			'A.md',
+			resolver,
+			undefined,
+			[{ key: 'related.0', link: 'B' }],
+		);
+		expect(edge).toMatchObject({
+			source: 'A.md',
+			target: 'B.md',
+			relation: 'related',
+		});
+	});
+
+	it('creates an undirected related relation', () => {
+		const [edge] = parseRelations({ related: '[[B]]' }, 'A.md', resolver);
+		expect(edge).toMatchObject({
+			source: 'A.md',
+			target: 'B.md',
+			relation: 'related',
+			directed: false,
+		});
+	});
+
+	it('eliminates duplicate relationships', () => {
+		const edges = parseRelations(
+			{ related: ['[[B]]', '[[B]]'] },
+			'A.md',
+			resolver,
+		);
+		expect(edges).toHaveLength(1);
+
+		const index = createKnowledgeIndex();
+		addEdge(index, edges[0] as KnowledgeEdge);
+		const reverse = parseRelations({ related: '[[A]]' }, 'B.md', resolver);
+		addEdge(index, reverse[0] as KnowledgeEdge);
+		expect(index.edges).toHaveLength(1);
+	});
+
+	it('ignores missing links and reports them', () => {
+		const onUnresolved = vi.fn();
+		const edges = parseRelations(
+			{ leads_to: '[[Missing]]' },
+			'A.md',
+			resolver,
+			onUnresolved,
+		);
+		expect(edges).toEqual([]);
+		expect(onUnresolved).toHaveBeenCalledWith('Missing', 'A.md');
+	});
+});
+
+describe('breadth-first neighborhood query', () => {
+	it('projects all connected components when roots are empty', () => {
+		const index = buildIndex(
+			[node('A'), node('B'), node('C'), node('D'), node('E')],
+			[
+				edge('A', 'B'),
+				edge('C', 'D'),
+			],
+		);
+		expect(projectIds(index, query({ roots: [] }))).toEqual([
+			'A',
+			'B',
+			'C',
+			'D',
+		]);
+	});
+
+	it('applies node filters to global projections', () => {
+		const index = buildIndex(
+			[
+				node('A', 'one'),
+				node('B', 'one'),
+				node('C', 'two'),
+				node('D', 'two'),
+			],
+			[edge('A', 'B'), edge('C', 'D')],
+		);
+		expect(
+			projectIds(index, query({ roots: [], folders: ['two'] })),
+		).toEqual(['C', 'D']);
+	});
+
+	it('caps global projections at maxNodes without orphan edges', () => {
+		const index = buildIndex(
+			[node('A'), node('B'), node('C'), node('D')],
+			[edge('A', 'B'), edge('C', 'D')],
+		);
+		const projection = new GraphQueryEngine().project(
+			index,
+			query({ roots: [], maxNodes: 2 }),
+		);
+		expect(projection.nodes.map((item) => item.id).sort()).toEqual(['A', 'B']);
+		expect(projection.edges).toHaveLength(1);
+	});
+
+	it('omits an isolated root when there are no relationships', () => {
+		const index = buildIndex([node('A')], []);
+		const projection = new GraphQueryEngine().project(index, query());
+
+		expect(projection.nodes).toEqual([]);
+		expect(projection.edges).toEqual([]);
+		expect(projection.rootIds.size).toBe(0);
+	});
+
+	it('omits nodes when relation filters remove every edge', () => {
+		const index = buildIndex(
+			[node('A'), node('B')],
+			[edge('A', 'B', 'leads-to')],
+		);
+		const projection = new GraphQueryEngine().project(
+			index,
+			query({ relations: ['related'] }),
+		);
+
+		expect(projection.nodes).toEqual([]);
+		expect(projection.edges).toEqual([]);
+	});
+
+	it('honors BFS depth', () => {
+		const index = buildIndex(
+			[node('A'), node('B'), node('C'), node('D')],
+			[
+				edge('A', 'B'),
+				edge('B', 'C'),
+				edge('C', 'D'),
+			],
+		);
+		expect(projectIds(index, query({ depth: 2 }))).toEqual(['A', 'B', 'C']);
+	});
+
+	it('handles cycles without repeating nodes', () => {
+		const index = buildIndex(
+			[node('A'), node('B'), node('C')],
+			[edge('A', 'B'), edge('B', 'C'), edge('C', 'A')],
+		);
+		expect(projectIds(index, query({ depth: 10 }))).toEqual(['A', 'B', 'C']);
+	});
+
+	it.each<[DirectionMode, string[]]>([
+		['outgoing', ['A', 'B']],
+		['incoming', ['A', 'C']],
+		['both', ['A', 'B', 'C']],
+	])('supports %s traversal', (direction, expected) => {
+		const index = buildIndex(
+			[node('A'), node('B'), node('C')],
+			[edge('A', 'B'), edge('C', 'A')],
+		);
+		expect(projectIds(index, query({ direction, depth: 1 }))).toEqual(expected);
+	});
+
+	it('applies folder filters while retaining the root', () => {
+		const index = buildIndex(
+			[
+				node('A', 'root'),
+				node('B', 'included'),
+				node('C', 'excluded'),
+			],
+			[edge('A', 'B'), edge('A', 'C')],
+		);
+		expect(projectIds(index, query({ folders: ['included'] }))).toEqual([
+			'A',
+			'B',
+		]);
+	});
+
+	it('applies domain filters', () => {
+		const index = buildIndex(
+			[
+				node('A'),
+				node('B', '', ['astronomy']),
+				node('C', '', ['biology']),
+			],
+			[edge('A', 'B'), edge('A', 'C')],
+		);
+		expect(projectIds(index, query({ domains: ['astronomy'] }))).toEqual([
+			'A',
+			'B',
+		]);
+	});
+
+	it('applies relation filters', () => {
+		const index = buildIndex(
+			[node('A'), node('B'), node('C')],
+			[
+				edge('A', 'B', 'leads-to'),
+				edge('A', 'C', 'related', false),
+			],
+		);
+		expect(
+			projectIds(index, query({ relations: ['related'] })),
+		).toEqual(['A', 'C']);
+	});
+});
+
+function node(
+	id: string,
+	folder = '',
+	domains: string[] = [],
+): KnowledgeNode {
+	return {
+		id,
+		path: id,
+		title: id,
+		folder,
+		domains,
+		tags: [],
+	};
+}
+
+function edge(
+	source: string,
+	target: string,
+	relation: RelationType = 'leads-to',
+	directed = true,
+): KnowledgeEdge {
+	return {
+		id: createEdgeId(source, relation, target, directed),
+		source,
+		target,
+		relation,
+		directed,
+		sourcePath: source,
+		sourceField: relation,
+	};
+}
+
+function buildIndex(
+	nodes: KnowledgeNode[],
+	edges: KnowledgeEdge[],
+): KnowledgeIndex {
+	const index = createKnowledgeIndex();
+	nodes.forEach((item) => addNode(index, item));
+	edges.forEach((item) => addEdge(index, item));
+	return index;
+}
+
+function query(overrides: Partial<GraphQuery> = {}): GraphQuery {
+	return {
+		roots: ['A'],
+		folders: [],
+		domains: [],
+		relations: ['prerequisite', 'leads-to', 'related'],
+		depth: 2,
+		direction: 'both',
+		maxNodes: 200,
+		...overrides,
+	};
+}
+
+function projectIds(index: KnowledgeIndex, graphQuery: GraphQuery): string[] {
+	return new GraphQueryEngine()
+		.project(index, graphQuery)
+		.nodes.map((item) => item.id)
+		.sort();
+}
