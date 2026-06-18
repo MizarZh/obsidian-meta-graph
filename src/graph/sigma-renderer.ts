@@ -79,7 +79,10 @@ export class SigmaRenderer {
 	}
 
 	resize(): void {
-		this.instance.resize();
+		// Sigma's resize() updates canvas dimensions, which clears the drawing
+		// buffers. scheduleRefresh() coalesces resize events into one frame and
+		// repaints without changing graph coordinates or camera state.
+		this.instance.scheduleRefresh({ layoutUnchange: true });
 	}
 
 	kill(): void {
