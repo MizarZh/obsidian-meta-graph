@@ -1,10 +1,7 @@
-import type { RelationType } from '../core/types';
-
 export interface GraphPalette {
 	node: string;
 	selected: string;
 	edge: string;
-	relatedEdge: string;
 	mutedNode: string;
 	mutedEdge: string;
 	label: string;
@@ -24,7 +21,6 @@ export function readGraphPalette(container: HTMLElement): GraphPalette {
 		node: read('--interactive-accent', '#7c6ff0'),
 		selected: read('--color-orange', '#e08b36'),
 		edge: read('--text-muted', '#888888'),
-		relatedEdge: read('--color-cyan', '#3aa6b9'),
 		mutedNode: read('--background-modifier-border', '#555555'),
 		mutedEdge: read('--background-modifier-border', '#555555'),
 		label: read('--text-normal', '#dddddd'),
@@ -33,13 +29,6 @@ export function readGraphPalette(container: HTMLElement): GraphPalette {
 			0.82,
 		),
 	};
-}
-
-export function relationColor(
-	relation: RelationType,
-	palette: GraphPalette,
-): string {
-	return relation === 'related' ? palette.relatedEdge : palette.edge;
 }
 
 function normalizeCssColor(

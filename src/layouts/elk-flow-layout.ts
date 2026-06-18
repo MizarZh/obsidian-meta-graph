@@ -7,8 +7,11 @@ import type { FlowDirection, FlowEdgeStyle } from '../core/types';
 import type { RuntimeGraph } from '../graph/graphology-adapter';
 import type { LayoutEngine } from './layout-engine';
 
+export type OrthogonalRouteMap = Map<string, ElkPoint[]>;
+
 export class ElkFlowLayout implements LayoutEngine {
 	private readonly elk = new ELK();
+	private orthogonalRoutes: OrthogonalRouteMap = new Map();
 
 	constructor(
 		private readonly edgeStyle: FlowEdgeStyle = 'orthogonal',
@@ -36,9 +39,7 @@ export class ElkFlowLayout implements LayoutEngine {
 
 		graph.forEachEdge(
 			(edge, attributes, source, target, sourceAttributes, targetAttributes) => {
-				const related = attributes.relation === 'related';
-				graph.setEdgeAttribute(edge, 'hidden', related);
-				if (!related) {
+				if (!attributes.hidden) {
 					elkGraph.edges?.push({
 						id: edge,
 						sources: [source],
@@ -60,8 +61,13 @@ export class ElkFlowLayout implements LayoutEngine {
 			}
 		}
 		if (this.edgeStyle === 'orthogonal') {
-			applyElkOrthogonalRoutes(graph, result.edges ?? []);
+			this.orthogonalRoutes = extractElkOrthogonalRoutes(result.edges ?? []);
+			applyOrthogonalFlowEdges(graph, this.orthogonalRoutes);
 		}
+	}
+
+	getOrthogonalRoutes(): OrthogonalRouteMap {
+		return cloneOrthogonalRoutes(this.orthogonalRoutes);
 	}
 }
 
@@ -84,7 +90,13 @@ export function applyElkOrthogonalRoutes(
 	graph: RuntimeGraph,
 	elkEdges: ElkExtendedEdge[],
 ): void {
-	const routes = new Map(
+	applyOrthogonalFlowEdges(graph, extractElkOrthogonalRoutes(elkEdges));
+}
+
+export function extractElkOrthogonalRoutes(
+	elkEdges: ElkExtendedEdge[],
+): OrthogonalRouteMap {
+	return new Map(
 		elkEdges.map((edge) => [
 			edge.id,
 			edge.sections?.flatMap((section) => [
@@ -94,24 +106,31 @@ export function applyElkOrthogonalRoutes(
 			]) ?? [],
 		]),
 	);
-	applyOrthogonalFlowEdges(graph, routes);
+}
+
+export function cloneOrthogonalRoutes(
+	routes: ReadonlyMap<string, ElkPoint[]>,
+): OrthogonalRouteMap {
+	return new Map(
+		[...routes].map(([edgeId, points]) => [
+			edgeId,
+			points.map((point) => ({ ...point })),
+		]),
+	);
 }
 
 export function applyOrthogonalFlowEdges(
 	graph: RuntimeGraph,
 	routes: ReadonlyMap<string, ElkPoint[]> = new Map(),
 ): void {
-	const directedEdges = graph
+	const logicalEdges = graph
 		.edges()
-		.filter(
-			(edge) =>
-				graph.isDirected(edge) &&
-				graph.getEdgeAttribute(edge, 'relation') !== 'related',
-		);
+		.filter((edge) => !graph.getEdgeAttribute(edge, 'hidden'));
 
-	for (const edge of directedEdges) {
+	for (const edge of logicalEdges) {
 		const source = graph.source(edge);
 		const target = graph.target(edge);
+		const directed = graph.isDirected(edge);
 		const sourceAttributes = graph.getNodeAttributes(source);
 		const targetAttributes = graph.getNodeAttributes(target);
 		const attributes = graph.getEdgeAttributes(edge);
@@ -134,6 +153,7 @@ export function applyOrthogonalFlowEdges(
 		const segmentAttributes = {
 			...attributes,
 			type: 'line',
+			label: '',
 			logicalEdgeId: edge,
 			logicalSource: source,
 			logicalTarget: target,
@@ -153,15 +173,28 @@ export function applyOrthogonalFlowEdges(
 				continue;
 			}
 			const lastSegment = index === pathNodes.length - 2;
-			graph.addDirectedEdgeWithKey(
-				`${edge}__segment_${index + 1}`,
-				segmentSource,
-				segmentTarget,
-				{
-					...segmentAttributes,
-					type: lastSegment ? 'arrow' : 'line',
-				},
-			);
+			const labelSegment = Math.floor((pathNodes.length - 2) / 2);
+			const segmentKey = `${edge}__segment_${index + 1}`;
+			const styledSegment = {
+				...segmentAttributes,
+				type: directed && lastSegment ? 'arrow' : 'line',
+				label: index === labelSegment ? attributes.label : '',
+			};
+			if (directed) {
+				graph.addDirectedEdgeWithKey(
+					segmentKey,
+					segmentSource,
+					segmentTarget,
+					styledSegment,
+				);
+			} else {
+				graph.addUndirectedEdgeWithKey(
+					segmentKey,
+					segmentSource,
+					segmentTarget,
+					styledSegment,
+				);
+			}
 		}
 	}
 }
@@ -203,6 +236,7 @@ function createBendNode(x: number, y: number) {
 		path: '',
 		folder: '',
 		domains: [],
+		tags: [],
 		fixed: true,
 		isBend: true,
 	};

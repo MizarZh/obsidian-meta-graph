@@ -12,7 +12,31 @@ export function createWorkspaceState(maxNodes: number): WorkspaceState {
 			relations: [...DEFAULT_GRAPH_QUERY.relations],
 			maxNodes,
 		},
+		nodeStyleRules: [],
+		graphLinkStyleRules: [
+			{
+				id: 'default-graph-related',
+				field: 'relation',
+				value: 'related',
+				color: '#3aa6b9',
+				size: 1.5,
+				label: '',
+				hidden: false,
+			},
+		],
+		flowLinkStyleRules: [
+			{
+				id: 'default-flow-related',
+				field: 'relation',
+				value: 'related',
+				color: '#888888',
+				size: 1,
+				label: '',
+				hidden: true,
+			},
+		],
 		availableFolders: [],
+		availableTags: [],
 		availableDomains: [],
 	};
 }

@@ -27,8 +27,6 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 		);
 		this.addCommand({
 			id: 'open-knowledge-workspace',
-			// The product requirement specifies this exact command label.
-			// eslint-disable-next-line obsidianmd/commands/no-plugin-name-in-command-name
 			name: 'Open knowledge workspace',
 			callback: () => void this.activateView(),
 		});

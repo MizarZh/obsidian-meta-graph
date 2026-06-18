@@ -80,7 +80,7 @@
 
 .knowledge-workspace-body {
 	display: grid;
-	grid-template-columns: minmax(170px, 220px) minmax(0, 1fr);
+	grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
 	flex: 1;
 	min-height: 0;
 }
@@ -94,6 +94,27 @@
 
 .knowledge-workspace-filters h3 {
 	margin-top: 0;
+}
+
+.knowledge-workspace-filters section {
+	margin-bottom: var(--size-4-5);
+}
+
+.knowledge-workspace-filters section > header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--size-4-2);
+}
+
+.knowledge-workspace-filters section > header h3 {
+	margin: 0;
+}
+
+.knowledge-workspace-filters section > header button {
+	width: 28px;
+	height: 28px;
+	padding: 0;
 }
 
 .knowledge-workspace-filters > label,
@@ -121,6 +142,61 @@
 	flex-direction: row;
 	align-items: center;
 	gap: var(--size-4-2);
+}
+
+.knowledge-workspace-rule {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-2);
+	margin-bottom: var(--size-4-3);
+	padding: var(--size-4-2);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+}
+
+.knowledge-workspace-rule-row {
+	display: grid;
+	grid-template-columns: minmax(80px, 0.8fr) minmax(90px, 1fr) auto;
+	gap: var(--size-4-1);
+	align-items: center;
+}
+
+.knowledge-workspace-rule-row.compact {
+	grid-template-columns: 1fr 1fr;
+}
+
+.knowledge-workspace-rule-row.filter {
+	grid-template-columns: minmax(60px, 0.6fr) minmax(70px, 0.7fr) minmax(90px, 1fr) auto;
+}
+
+.knowledge-workspace-rule-row.compact label,
+.knowledge-workspace-rule-label {
+	display: flex;
+	gap: var(--size-4-1);
+	align-items: center;
+}
+
+.knowledge-workspace-rule-row input,
+.knowledge-workspace-rule-row select,
+.knowledge-workspace-rule-label input {
+	min-width: 0;
+	width: 100%;
+}
+
+.knowledge-workspace-rule-row input[type='color'] {
+	width: 36px;
+	height: 28px;
+	padding: 2px;
+}
+
+.knowledge-workspace-rule-row button {
+	padding: var(--size-2-1) var(--size-4-2);
+}
+
+.knowledge-workspace-rule-hint {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
 }
 
 .knowledge-workspace-main {

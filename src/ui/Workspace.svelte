@@ -12,6 +12,7 @@
 	import {
 		applyOrthogonalFlowEdges,
 		ElkFlowLayout,
+		type OrthogonalRouteMap,
 	} from '../layouts/elk-flow-layout';
 	import { ForceAtlasLayout } from '../layouts/force-layout';
 	import type { WorkspaceController } from '../workspace/workspace-controller';
@@ -31,8 +32,20 @@
 	let lastFlowEdgeStyle: WorkspaceState['flowEdgeStyle'] | undefined;
 	let lastFlowDirection: WorkspaceState['flowDirection'] | undefined;
 	let lastLayoutRevision: number | undefined;
+	let lastNodeStyleRules: WorkspaceState['nodeStyleRules'] | undefined;
+	let lastGraphLinkStyleRules:
+		| WorkspaceState['graphLinkStyleRules']
+		| undefined;
+	let lastFlowLinkStyleRules:
+		| WorkspaceState['flowLinkStyleRules']
+		| undefined;
 	let activeTab: 'workspace' | 'debug' = $state('workspace');
-	const positionsByLayout = new Map<string, Map<string, GraphPosition>>();
+	interface LayoutSnapshot {
+		positions: Map<string, GraphPosition>;
+		edgeIds: Set<string>;
+		orthogonalRoutes: OrthogonalRouteMap;
+	}
+	const layoutSnapshots = new Map<string, LayoutSnapshot>();
 
 	function getInitialState(): WorkspaceState {
 		return controller.snapshot;
@@ -63,12 +76,17 @@
 			const layoutRevisionChanged =
 				lastLayoutRevision !== undefined &&
 				nextState.layoutRevision !== lastLayoutRevision;
+			const styleRulesChanged =
+				nextState.nodeStyleRules !== lastNodeStyleRules ||
+				nextState.graphLinkStyleRules !== lastGraphLinkStyleRules ||
+				nextState.flowLinkStyleRules !== lastFlowLinkStyleRules;
 			const shouldRebuild =
 				nextState.projection !== lastProjection ||
 				nextState.mode !== lastMode ||
 				nextState.flowEdgeStyle !== lastFlowEdgeStyle ||
 				nextState.flowDirection !== lastFlowDirection ||
-				nextState.layoutRevision !== lastLayoutRevision;
+				nextState.layoutRevision !== lastLayoutRevision ||
+				styleRulesChanged;
 			workspaceState = nextState;
 			if (shouldRebuild) {
 				lastProjection = nextState.projection;
@@ -76,6 +94,9 @@
 				lastFlowEdgeStyle = nextState.flowEdgeStyle;
 				lastFlowDirection = nextState.flowDirection;
 				lastLayoutRevision = nextState.layoutRevision;
+				lastNodeStyleRules = nextState.nodeStyleRules;
+				lastGraphLinkStyleRules = nextState.graphLinkStyleRules;
+				lastFlowLinkStyleRules = nextState.flowLinkStyleRules;
 				void rebuildGraph(
 					modeChanged ||
 						flowStyleChanged ||
@@ -142,11 +163,13 @@
 		}
 
 		const palette = readGraphPalette(canvas);
-		const positions = getPositionCache();
-		const graph = new GraphologyAdapter(palette).fromProjection(
-			workspaceState.projection,
-			positions,
-		);
+		const layoutSnapshot = getLayoutSnapshot();
+		const positions = layoutSnapshot.positions;
+		const graph = new GraphologyAdapter(
+			palette,
+			workspaceState.nodeStyleRules,
+			getActiveLinkStyleRules(),
+		).fromProjection(workspaceState.projection, positions);
 		const newNodeIds = graph
 			.nodes()
 			.filter((nodeId) => !positions.has(nodeId));
@@ -156,7 +179,12 @@
 			container: readContainerSize(),
 			runtimeGraph: serializeRuntimeGraph(graph),
 		});
-		await applyStableLayout(graph, positions, newNodeIds, forceLayout);
+		await applyStableLayout(
+			graph,
+			layoutSnapshot,
+			newNodeIds,
+			forceLayout,
+		);
 		if (version !== renderVersion) {
 			return;
 		}
@@ -224,34 +252,45 @@
 
 	async function applyStableLayout(
 		graph: RuntimeGraph,
-		positions: Map<string, GraphPosition>,
+		snapshot: LayoutSnapshot,
 		newNodeIds: string[],
 		forceLayout: boolean,
 	): Promise<void> {
+		const positions = snapshot.positions;
 		const firstLayout = positions.size === 0;
+		const currentEdgeIds = getLogicalFlowEdgeIds(graph);
+		const flowEdgesChanged =
+			workspaceState.mode === 'flow' &&
+			!setsEqual(currentEdgeIds, snapshot.edgeIds);
+		const missingOrthogonalRoute =
+			workspaceState.mode === 'flow' &&
+			workspaceState.flowEdgeStyle === 'orthogonal' &&
+			[...currentEdgeIds].some(
+				(edgeId) => !snapshot.orthogonalRoutes.has(edgeId),
+			);
 		const needsLayout =
-			forceLayout || firstLayout || newNodeIds.length > 0;
+			forceLayout ||
+			firstLayout ||
+			newNodeIds.length > 0 ||
+			flowEdgesChanged ||
+			missingOrthogonalRoute;
 
 		if (workspaceState.mode === 'flow') {
-			graph.forEachEdge((edge, attributes) => {
-				graph.setEdgeAttribute(
-					edge,
-					'hidden',
-					attributes.relation === 'related',
-				);
-			});
 			if (needsLayout) {
-				await new ElkFlowLayout(
+				const layout = new ElkFlowLayout(
 					workspaceState.flowEdgeStyle,
 					workspaceState.flowDirection,
-				).apply(graph);
+				);
+				await layout.apply(graph);
+				snapshot.edgeIds = currentEdgeIds;
+				snapshot.orthogonalRoutes =
+					workspaceState.flowEdgeStyle === 'orthogonal'
+						? layout.getOrthogonalRoutes()
+						: new Map();
 			} else if (workspaceState.flowEdgeStyle === 'orthogonal') {
-				applyOrthogonalFlowEdges(graph);
+				applyOrthogonalFlowEdges(graph, snapshot.orthogonalRoutes);
 			}
 		} else {
-			graph.forEachEdge((edge) =>
-				graph.setEdgeAttribute(edge, 'hidden', false),
-			);
 			if (needsLayout) {
 				await new ForceAtlasLayout().apply(graph);
 			}
@@ -265,17 +304,42 @@
 		});
 	}
 
-	function getPositionCache(): Map<string, GraphPosition> {
+	function getLayoutSnapshot(): LayoutSnapshot {
 		const key =
 			workspaceState.mode === 'graph'
 				? 'graph'
 				: `flow-${workspaceState.flowEdgeStyle}-${workspaceState.flowDirection}`;
-		let positions = positionsByLayout.get(key);
-		if (!positions) {
-			positions = new Map();
-			positionsByLayout.set(key, positions);
+		let snapshot = layoutSnapshots.get(key);
+		if (!snapshot) {
+			snapshot = {
+				positions: new Map(),
+				edgeIds: new Set(),
+				orthogonalRoutes: new Map(),
+			};
+			layoutSnapshots.set(key, snapshot);
 		}
-		return positions;
+		return snapshot;
+	}
+
+	function getLogicalFlowEdgeIds(graph: RuntimeGraph): Set<string> {
+		return new Set(
+			graph
+				.edges()
+				.filter((edge) => !graph.getEdgeAttribute(edge, 'hidden')),
+		);
+	}
+
+	function getActiveLinkStyleRules() {
+		return workspaceState.mode === 'graph'
+			? workspaceState.graphLinkStyleRules
+			: workspaceState.flowLinkStyleRules;
+	}
+
+	function setsEqual(left: Set<string>, right: Set<string>): boolean {
+		return (
+			left.size === right.size &&
+			[...left].every((value) => right.has(value))
+		);
 	}
 
 	function serializeRuntimeGraph(graph: RuntimeGraph) {
@@ -336,8 +400,15 @@
 		<FilterPanel
 			query={workspaceState.query}
 			folders={workspaceState.availableFolders}
-			domains={workspaceState.availableDomains}
+			tags={workspaceState.availableTags}
+			nodeStyleRules={workspaceState.nodeStyleRules}
+			linkStyleRules={getActiveLinkStyleRules()}
+			linkStyleMode={workspaceState.mode}
 			onChange={(patch) => controller.updateQuery(patch)}
+			onNodeStyleRulesChange={(rules) =>
+				controller.setNodeStyleRules(rules)}
+			onLinkStyleRulesChange={(rules) =>
+				controller.setLinkStyleRules(workspaceState.mode, rules)}
 		/>
 		<main class="knowledge-workspace-main">
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>

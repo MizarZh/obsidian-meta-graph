@@ -7,8 +7,10 @@ import type {
 	FlowEdgeStyle,
 	GraphQuery,
 	KnowledgeIndex,
+	LinkStyleRule,
 	MetadataDebugEntry,
 	NodeId,
+	NodeStyleRule,
 	RendererDebugState,
 	UnresolvedLink,
 	ViewMode,
@@ -106,6 +108,9 @@ export class WorkspaceController {
 					.map((node) => node.folder)
 					.filter(Boolean),
 			),
+			availableTags: uniqueSorted(
+				[...this.index.nodes.values()].flatMap((node) => node.tags),
+			),
 			availableDomains: uniqueSorted(
 				[...this.index.nodes.values()].flatMap((node) => node.domains),
 			),
@@ -146,6 +151,22 @@ export class WorkspaceController {
 			query: { ...this.state.query, ...patch },
 		};
 		this.runQuery();
+	}
+
+	setNodeStyleRules(nodeStyleRules: NodeStyleRule[]): void {
+		this.state = { ...this.state, nodeStyleRules };
+		this.emit();
+	}
+
+	setLinkStyleRules(
+		mode: ViewMode,
+		linkStyleRules: LinkStyleRule[],
+	): void {
+		this.state =
+			mode === 'graph'
+				? { ...this.state, graphLinkStyleRules: linkStyleRules }
+				: { ...this.state, flowLinkStyleRules: linkStyleRules };
+		this.emit();
 	}
 
 	selectNode(selectedNodeId?: NodeId): void {

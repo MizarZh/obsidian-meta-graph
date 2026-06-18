@@ -1,90 +1,339 @@
 <script lang="ts">
-	import type { GraphQuery, RelationType } from '../core/types';
+	import type {
+		GraphQuery,
+		LinkStyleField,
+		LinkStyleRule,
+		NodeFilterAction,
+		NodeFilterField,
+		NodeFilterRule,
+		NodeStyleField,
+		NodeStyleRule,
+	} from '../core/types';
 
 	let {
 		query,
 		folders,
-		domains,
+		tags,
+		nodeStyleRules,
+		linkStyleRules,
+		linkStyleMode,
 		onChange,
+		onNodeStyleRulesChange,
+		onLinkStyleRulesChange,
 	}: {
 		query: GraphQuery;
 		folders: string[];
-		domains: string[];
+		tags: string[];
+		nodeStyleRules: NodeStyleRule[];
+		linkStyleRules: LinkStyleRule[];
+		linkStyleMode: 'graph' | 'flow';
 		onChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
+		onNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
+		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 	} = $props();
 
-	const relations: Array<{ value: RelationType; label: string }> = [
-		{ value: 'prerequisite', label: 'Prerequisite' },
-		{ value: 'leads-to', label: 'Leads to' },
-		{ value: 'related', label: 'Related' },
-	];
+	function addNodeRule(): void {
+		onNodeStyleRulesChange([
+			...nodeStyleRules,
+			{
+				id: createRuleId(),
+				field: 'tag',
+				value: '',
+				color: '#7c6ff0',
+				size: 7,
+			},
+		]);
+	}
 
-	function toggle(
-		key: 'folders' | 'domains' | 'relations',
-		value: string,
-		checked: boolean,
+	function updateNodeRule(
+		id: string,
+		patch: Partial<NodeStyleRule>,
 	): void {
-		const current = query[key] as string[];
-		const next = checked
-			? [...current, value]
-			: current.filter((item) => item !== value);
-		onChange({ [key]: next });
+		onNodeStyleRulesChange(
+			nodeStyleRules.map((rule) =>
+				rule.id === id ? { ...rule, ...patch } : rule,
+			),
+		);
+	}
+
+	function addLinkRule(): void {
+		onLinkStyleRulesChange([
+			...linkStyleRules,
+			{
+				id: createRuleId(),
+				field: 'relation',
+				value: 'leads-to',
+				color: '#888888',
+				size: 1.5,
+				label: '',
+				hidden: false,
+			},
+		]);
+	}
+
+	function updateLinkRule(
+		id: string,
+		patch: Partial<LinkStyleRule>,
+	): void {
+		onLinkStyleRulesChange(
+			linkStyleRules.map((rule) =>
+				rule.id === id ? { ...rule, ...patch } : rule,
+			),
+		);
+	}
+
+	function addFilterRule(): void {
+		onChange({
+			hiddenNodeRules: [
+				...query.hiddenNodeRules,
+				{
+					id: createRuleId(),
+					action: 'hide',
+					field: 'folder',
+					value: '',
+				},
+			],
+		});
+	}
+
+	function updateFilterRule(
+		id: string,
+		patch: Partial<NodeFilterRule>,
+	): void {
+		onChange({
+			hiddenNodeRules: query.hiddenNodeRules.map((rule) =>
+				rule.id === id ? { ...rule, ...patch } : rule,
+			),
+		});
+	}
+
+	function createRuleId(): string {
+		return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 	}
 </script>
 
 <aside class="knowledge-workspace-filters">
-	<h3>Filters</h3>
-
-	<fieldset>
-		<legend>Relations</legend>
-		{#each relations as relation}
-			<label class="checkbox">
-				<input
-					type="checkbox"
-					checked={query.relations.includes(relation.value)}
-					onchange={(event) =>
-						toggle(
-							'relations',
-							relation.value,
-							event.currentTarget.checked,
-						)}
-				/>
-				<span>{relation.label}</span>
-			</label>
+	<section>
+		<header>
+			<h3>Node styles</h3>
+			<button aria-label="Add node style rule" onclick={addNodeRule}>+</button>
+		</header>
+		{#each nodeStyleRules as rule (rule.id)}
+			<div class="knowledge-workspace-rule">
+				<div class="knowledge-workspace-rule-row">
+					<select
+						value={rule.field}
+						onchange={(event) =>
+							updateNodeRule(rule.id, {
+								field: event.currentTarget.value as NodeStyleField,
+							})}
+					>
+						<option value="folder">Folder</option>
+						<option value="tag">Tag</option>
+						<option value="domain">Domain</option>
+						<option value="type">Type</option>
+						<option value="title">Title</option>
+					</select>
+					<input
+						type="text"
+						placeholder="Match value"
+						value={rule.value}
+						oninput={(event) =>
+							updateNodeRule(rule.id, {
+								value: event.currentTarget.value,
+							})}
+					/>
+					<button
+						aria-label="Remove node style rule"
+						onclick={() =>
+							onNodeStyleRulesChange(
+								nodeStyleRules.filter((item) => item.id !== rule.id),
+							)}>×</button
+					>
+				</div>
+				<div class="knowledge-workspace-rule-row compact">
+					<label>
+						<span>Color</span>
+						<input
+							type="color"
+							value={rule.color}
+							oninput={(event) =>
+								updateNodeRule(rule.id, {
+									color: event.currentTarget.value,
+								})}
+						/>
+					</label>
+					<label>
+						<span>Size</span>
+						<input
+							type="number"
+							min="1"
+							max="30"
+							step="0.5"
+							value={rule.size}
+							onchange={(event) =>
+								updateNodeRule(rule.id, {
+									size: Number(event.currentTarget.value),
+								})}
+						/>
+					</label>
+				</div>
+			</div>
 		{/each}
-	</fieldset>
+	</section>
 
-	{#if domains.length > 0}
-		<fieldset>
-			<legend>Domains</legend>
-			{#each domains as domain}
+	<section>
+		<header>
+			<h3>Link styles · {linkStyleMode === 'graph' ? 'Graph' : 'Flow'}</h3>
+			<button aria-label="Add link style rule" onclick={addLinkRule}>+</button>
+		</header>
+		{#each linkStyleRules as rule (rule.id)}
+			<div class="knowledge-workspace-rule">
+				<div class="knowledge-workspace-rule-row">
+					<select
+						value={rule.field}
+						onchange={(event) =>
+							updateLinkRule(rule.id, {
+								field: event.currentTarget.value as LinkStyleField,
+							})}
+					>
+						<option value="relation">Relation</option>
+						<option value="source-field">Frontmatter field</option>
+					</select>
+					<input
+						type="text"
+						placeholder="Match value"
+						value={rule.value}
+						oninput={(event) =>
+							updateLinkRule(rule.id, {
+								value: event.currentTarget.value,
+							})}
+					/>
+					<button
+						aria-label="Remove link style rule"
+						onclick={() =>
+							onLinkStyleRulesChange(
+								linkStyleRules.filter((item) => item.id !== rule.id),
+							)}>×</button
+					>
+				</div>
+				<div class="knowledge-workspace-rule-row compact">
+					<label>
+						<span>Color</span>
+						<input
+							type="color"
+							value={rule.color}
+							oninput={(event) =>
+								updateLinkRule(rule.id, {
+									color: event.currentTarget.value,
+								})}
+						/>
+					</label>
+					<label>
+						<span>Width</span>
+						<input
+							type="number"
+							min="0.5"
+							max="10"
+							step="0.5"
+							value={rule.size}
+							onchange={(event) =>
+								updateLinkRule(rule.id, {
+									size: Number(event.currentTarget.value),
+								})}
+						/>
+					</label>
+				</div>
+				<label class="knowledge-workspace-rule-label">
+					<span>Label</span>
+					<input
+						type="text"
+						placeholder="Optional edge label"
+						value={rule.label}
+						oninput={(event) =>
+							updateLinkRule(rule.id, {
+								label: event.currentTarget.value,
+							})}
+					/>
+				</label>
 				<label class="checkbox">
 					<input
 						type="checkbox"
-						checked={query.domains.includes(domain)}
+						checked={rule.hidden}
 						onchange={(event) =>
-							toggle('domains', domain, event.currentTarget.checked)}
+							updateLinkRule(rule.id, {
+								hidden: event.currentTarget.checked,
+							})}
 					/>
-					<span>{domain}</span>
+					<span>Hidden</span>
 				</label>
-			{/each}
-		</fieldset>
-	{/if}
+			</div>
+		{/each}
+	</section>
 
-	{#if folders.length > 0}
-		<fieldset>
-			<legend>Folders</legend>
-			{#each folders as folder}
-				<label class="checkbox">
-					<input
-						type="checkbox"
-						checked={query.folders.includes(folder)}
+	<section>
+		<header>
+			<h3>Filters</h3>
+			<button aria-label="Add filter rule" onclick={addFilterRule}>+</button>
+		</header>
+		{#each query.hiddenNodeRules as rule (rule.id)}
+			<div class="knowledge-workspace-rule">
+				<div class="knowledge-workspace-rule-row filter">
+					<select
+						aria-label="Filter action"
+						value={rule.action}
 						onchange={(event) =>
-							toggle('folders', folder, event.currentTarget.checked)}
+							updateFilterRule(rule.id, {
+								action: event.currentTarget.value as NodeFilterAction,
+							})}
+					>
+						<option value="hide">Hide</option>
+						<option value="show">Show</option>
+					</select>
+					<select
+						value={rule.field}
+						onchange={(event) =>
+							updateFilterRule(rule.id, {
+								field: event.currentTarget.value as NodeFilterField,
+							})}
+					>
+						<option value="folder">Folder</option>
+						<option value="tag">Tag</option>
+					</select>
+					<input
+						type="text"
+						list={rule.field === 'folder'
+							? 'knowledge-workspace-folder-options'
+							: 'knowledge-workspace-tag-options'}
+						placeholder={`${rule.action === 'show' ? 'Show' : 'Hide'} matching value`}
+						value={rule.value}
+						oninput={(event) =>
+							updateFilterRule(rule.id, {
+								value: event.currentTarget.value,
+							})}
 					/>
-					<span>{folder}</span>
-				</label>
-			{/each}
-		</fieldset>
-	{/if}
+					<button
+						aria-label="Remove filter rule"
+						onclick={() =>
+							onChange({
+								hiddenNodeRules: query.hiddenNodeRules.filter(
+									(item) => item.id !== rule.id,
+								),
+							})}>×</button
+					>
+				</div>
+				<span class="knowledge-workspace-rule-hint">
+					{rule.action === 'show'
+						? 'Show matching nodes'
+						: 'Hide matching nodes'}
+				</span>
+			</div>
+		{/each}
+		<datalist id="knowledge-workspace-folder-options">
+			{#each folders as folder}<option value={folder}></option>{/each}
+		</datalist>
+		<datalist id="knowledge-workspace-tag-options">
+			{#each tags as tag}<option value={tag}></option>{/each}
+		</datalist>
+	</section>
 </aside>

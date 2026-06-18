@@ -73,10 +73,21 @@ export interface RendererDebugState {
 }
 
 export type DirectionMode = 'incoming' | 'outgoing' | 'both';
+export type NodeFilterField = 'folder' | 'tag';
+export type NodeFilterAction = 'show' | 'hide';
+
+export interface NodeFilterRule {
+	id: string;
+	action: NodeFilterAction;
+	field: NodeFilterField;
+	value: string;
+}
 
 export interface GraphQuery {
 	roots: NodeId[];
 	folders: string[];
+	tags: string[];
+	hiddenNodeRules: NodeFilterRule[];
 	domains: string[];
 	relations: RelationType[];
 	depth: number;
@@ -93,6 +104,26 @@ export interface GraphProjection {
 export type ViewMode = 'graph' | 'flow';
 export type FlowEdgeStyle = 'straight' | 'orthogonal';
 export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
+export type NodeStyleField = 'folder' | 'tag' | 'domain' | 'type' | 'title';
+export type LinkStyleField = 'relation' | 'source-field';
+
+export interface NodeStyleRule {
+	id: string;
+	field: NodeStyleField;
+	value: string;
+	color: string;
+	size: number;
+}
+
+export interface LinkStyleRule {
+	id: string;
+	field: LinkStyleField;
+	value: string;
+	color: string;
+	size: number;
+	label: string;
+	hidden: boolean;
+}
 
 export interface WorkspaceState {
 	mode: ViewMode;
@@ -103,8 +134,12 @@ export interface WorkspaceState {
 	selectedNodeId?: NodeId;
 	hoveredNodeId?: NodeId;
 	query: GraphQuery;
+	nodeStyleRules: NodeStyleRule[];
+	graphLinkStyleRules: LinkStyleRule[];
+	flowLinkStyleRules: LinkStyleRule[];
 	projection?: GraphProjection;
 	availableFolders: string[];
+	availableTags: string[];
 	availableDomains: string[];
 }
 

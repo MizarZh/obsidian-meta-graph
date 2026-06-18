@@ -264,6 +264,140 @@ describe('breadth-first neighborhood query', () => {
 		]);
 	});
 
+	it('applies tag filters', () => {
+		const taggedNode = node('B');
+		taggedNode.tags = ['important'];
+		const otherNode = node('C');
+		otherNode.tags = ['other'];
+		const index = buildIndex(
+			[node('A'), taggedNode, otherNode],
+			[edge('A', 'B'), edge('A', 'C')],
+		);
+		expect(projectIds(index, query({ tags: ['important'] }))).toEqual([
+			'A',
+			'B',
+		]);
+	});
+
+	it('hides folders through filter rules', () => {
+		const index = buildIndex(
+			[
+				node('A', 'one'),
+				node('B', 'one'),
+				node('C', 'hidden'),
+				node('D', 'hidden/nested'),
+			],
+			[edge('A', 'B'), edge('C', 'D')],
+		);
+		expect(
+			projectIds(
+				index,
+				query({
+					roots: [],
+					hiddenNodeRules: [
+						{
+							id: 'hide-folder',
+							action: 'hide',
+							field: 'folder',
+							value: 'hidden',
+						},
+					],
+				}),
+			),
+		).toEqual(['A', 'B']);
+	});
+
+	it('hides tags through filter rules', () => {
+		const visibleA = node('A');
+		const visibleB = node('B');
+		const hiddenC = node('C');
+		const hiddenD = node('D');
+		hiddenC.tags = ['private'];
+		hiddenD.tags = ['private'];
+		const index = buildIndex(
+			[visibleA, visibleB, hiddenC, hiddenD],
+			[edge('A', 'B'), edge('C', 'D')],
+		);
+		expect(
+			projectIds(
+				index,
+				query({
+					roots: [],
+					hiddenNodeRules: [
+						{
+							id: 'hide-tag',
+							action: 'hide',
+							field: 'tag',
+							value: 'private',
+						},
+					],
+				}),
+			),
+		).toEqual(['A', 'B']);
+	});
+
+	it('shows nodes matching any show rule', () => {
+		const taggedA = node('A', 'one');
+		const taggedB = node('B', 'one');
+		taggedA.tags = ['public'];
+		taggedB.tags = ['public'];
+		const index = buildIndex(
+			[taggedA, taggedB, node('C', 'private'), node('D', 'private')],
+			[edge('A', 'B'), edge('C', 'D')],
+		);
+		expect(
+			projectIds(
+				index,
+				query({
+					roots: [],
+					hiddenNodeRules: [
+						{
+							id: 'show-public',
+							action: 'show',
+							field: 'tag',
+							value: 'public',
+						},
+					],
+				}),
+			),
+		).toEqual(['A', 'B']);
+	});
+
+	it('gives hide rules priority over show rules', () => {
+		const visibleA = node('A', 'one');
+		const hiddenB = node('B', 'one');
+		const hiddenC = node('C', 'one');
+		visibleA.tags = ['public'];
+		hiddenB.tags = ['public', 'private'];
+		hiddenC.tags = ['private'];
+		const index = buildIndex(
+			[visibleA, hiddenB, hiddenC],
+			[edge('A', 'B'), edge('A', 'C')],
+		);
+		const projection = new GraphQueryEngine().project(
+			index,
+			query({
+				roots: [],
+				hiddenNodeRules: [
+					{
+						id: 'show-folder',
+						action: 'show',
+						field: 'folder',
+						value: 'one',
+					},
+					{
+						id: 'hide-private',
+						action: 'hide',
+						field: 'tag',
+						value: 'private',
+					},
+				],
+			}),
+		);
+		expect(projection.nodes).toEqual([]);
+		expect(projection.edges).toEqual([]);
+	});
+
 	it('applies relation filters', () => {
 		const index = buildIndex(
 			[node('A'), node('B'), node('C')],
@@ -324,6 +458,8 @@ function query(overrides: Partial<GraphQuery> = {}): GraphQuery {
 	return {
 		roots: ['A'],
 		folders: [],
+		tags: [],
+		hiddenNodeRules: [],
 		domains: [],
 		relations: ['prerequisite', 'leads-to', 'related'],
 		depth: 2,

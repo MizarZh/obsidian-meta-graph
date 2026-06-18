@@ -36,7 +36,7 @@ export class SigmaRenderer {
 				nodeReducer: (node, data) => this.reduceNode(node, data),
 				edgeReducer: (edge, data) => this.reduceEdge(edge, data),
 				defaultDrawNodeLabel: createNodeLabelDrawer(palette),
-				renderEdgeLabels: false,
+				renderEdgeLabels: true,
 				labelColor: { color: palette.label },
 				labelDensity: 0.8,
 				labelRenderedSizeThreshold: 7,

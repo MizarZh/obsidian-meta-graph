@@ -1,6 +1,12 @@
 import Graph from 'graphology';
-import type { GraphProjection, RelationType } from '../core/types';
-import { relationColor, type GraphPalette } from './graph-styles';
+import type {
+	GraphProjection,
+	LinkStyleRule,
+	NodeStyleRule,
+	RelationType,
+} from '../core/types';
+import type { GraphPalette } from './graph-styles';
+import { resolveLinkStyle, resolveNodeStyle } from './style-rules';
 
 export interface GraphPosition {
 	x: number;
@@ -16,6 +22,8 @@ export interface RuntimeNodeAttributes {
 	path: string;
 	folder: string;
 	domains: string[];
+	tags: string[];
+	noteType?: string;
 	fixed?: boolean;
 	isBend?: boolean;
 }
@@ -26,6 +34,7 @@ export interface RuntimeEdgeAttributes {
 	size: number;
 	color: string;
 	hidden: boolean;
+	label: string;
 	logicalEdgeId?: string;
 	logicalSource?: string;
 	logicalTarget?: string;
@@ -38,7 +47,11 @@ export type RuntimeGraph = Graph<
 >;
 
 export class GraphologyAdapter {
-	constructor(private readonly palette: GraphPalette) {}
+	constructor(
+		private readonly palette: GraphPalette,
+		private readonly nodeStyleRules: NodeStyleRule[] = [],
+		private readonly linkStyleRules: LinkStyleRule[] = [],
+	) {}
 
 	fromProjection(
 		projection: GraphProjection,
@@ -51,6 +64,10 @@ export class GraphologyAdapter {
 		>({ multi: true, type: 'mixed' });
 
 		for (const node of projection.nodes) {
+			const style = resolveNodeStyle(node, this.nodeStyleRules, {
+				color: this.palette.node,
+				size: 7,
+			});
 			const position =
 				positions.get(node.id) ??
 				createInitialPosition(node.id, projection, positions);
@@ -58,22 +75,31 @@ export class GraphologyAdapter {
 				label: node.title,
 				x: position.x,
 				y: position.y,
-				size: 7,
-				color: this.palette.node,
+				size: style.size,
+				color: style.color,
 				path: node.path,
 				folder: node.folder,
 				domains: node.domains,
+				tags: node.tags,
+				noteType: node.noteType,
 				fixed: positions.has(node.id),
 			});
 		}
 
 		for (const edge of projection.edges) {
+			const style = resolveLinkStyle(edge, this.linkStyleRules, {
+				color: this.palette.edge,
+				size: edge.directed ? 1.5 : 1,
+				label: '',
+				hidden: false,
+			});
 			const attributes: RuntimeEdgeAttributes = {
 				relation: edge.relation,
 				type: edge.directed ? 'arrow' : 'line',
-				size: edge.directed ? 1.5 : 1,
-				color: relationColor(edge.relation, this.palette),
-				hidden: false,
+				size: style.size,
+				color: style.color,
+				label: style.label,
+				hidden: style.hidden,
 			};
 			if (edge.directed) {
 				graph.addDirectedEdgeWithKey(
