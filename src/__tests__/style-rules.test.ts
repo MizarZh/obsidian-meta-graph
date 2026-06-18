@@ -77,7 +77,9 @@ describe('style rules', () => {
 				value: 'leads-to',
 				color: '#333333',
 				size: 2,
+				lineStyle: 'dashed',
 				label: 'Next',
+				showLabel: true,
 				hidden: false,
 			},
 			{
@@ -86,7 +88,9 @@ describe('style rules', () => {
 				value: 'leads-to',
 				color: '#444444',
 				size: 3,
+				lineStyle: 'dotted',
 				label: 'Flow',
+				showLabel: true,
 				hidden: true,
 			},
 		];
@@ -94,12 +98,14 @@ describe('style rules', () => {
 			resolveLinkStyle(edge, rules, {
 				color: '#000000',
 				size: 1,
+				lineStyle: 'solid',
 				label: '',
 				hidden: false,
 			}),
 		).toEqual({
 			color: '#444444',
 			size: 3,
+			lineStyle: 'dotted',
 			label: 'Flow',
 			hidden: true,
 		});
@@ -113,10 +119,39 @@ describe('style rules', () => {
 		const defaults = {
 			color: '#888888',
 			size: 1.5,
+			lineStyle: 'solid' as const,
 			label: '',
 			hidden: false,
 		};
 		expect(resolveLinkStyle(edge, [], defaults)).toEqual(defaults);
 		expect(resolveLinkStyle(prerequisiteEdge, [], defaults)).toEqual(defaults);
+	});
+
+	it('uses the relation as the visible label when custom text is empty', () => {
+		expect(
+			resolveLinkStyle(
+				edge,
+				[
+					{
+						id: 'label',
+						field: 'relation',
+						value: 'leads-to',
+						color: '#888888',
+						size: 1,
+						lineStyle: 'solid',
+						label: '',
+						showLabel: true,
+						hidden: false,
+					},
+				],
+				{
+					color: '#888888',
+					size: 1,
+					lineStyle: 'solid',
+					label: '',
+					hidden: false,
+				},
+			),
+		).toMatchObject({ label: 'leads-to' });
 	});
 });

@@ -198,7 +198,9 @@ describe('GraphologyAdapter positions', () => {
 				value: 'leads-to',
 				color: '#ff0000',
 				size: 4,
+				lineStyle: 'dashed',
 				label: 'Styled',
+				showLabel: true,
 				hidden: false,
 			},
 		]).fromProjection(edgeProjection);
@@ -213,8 +215,15 @@ describe('GraphologyAdapter positions', () => {
 		expect(graph.getEdgeAttributes('A-to-B__segment_2')).toMatchObject({
 			color: '#ff0000',
 			size: 4,
+			lineStyle: 'dashed',
 			label: 'Styled',
+			forceLabel: true,
 		});
+		expect(
+			graph
+				.mapEdges((_edge, attributes) => attributes.forceLabel)
+				.filter(Boolean),
+		).toHaveLength(1);
 	});
 
 	it('keeps related edges visible and undirected in orthogonal flow', () => {
@@ -239,7 +248,9 @@ describe('GraphologyAdapter positions', () => {
 				value: 'related',
 				color: '#00ffff',
 				size: 3,
+				lineStyle: 'dotted',
 				label: 'Related',
+				showLabel: true,
 				hidden: false,
 			},
 		]).fromProjection(relatedProjection);
@@ -263,7 +274,7 @@ describe('GraphologyAdapter positions', () => {
 		expect(graph.size).toBeGreaterThan(0);
 		graph.forEachEdge((edge, attributes) => {
 			expect(graph.isUndirected(edge)).toBe(true);
-			expect(attributes.type).toBe('line');
+			expect(attributes.type).toBe('dotted');
 			expect(attributes.hidden).toBe(false);
 			expect(attributes.color).toBe('#00ffff');
 			expect(attributes.size).toBe(3);

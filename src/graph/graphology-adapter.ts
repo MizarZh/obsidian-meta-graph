@@ -1,6 +1,7 @@
 import Graph from 'graphology';
 import type {
 	GraphProjection,
+	LinkLineStyle,
 	LinkStyleRule,
 	NodeStyleRule,
 	RelationType,
@@ -35,6 +36,8 @@ export interface RuntimeEdgeAttributes {
 	color: string;
 	hidden: boolean;
 	label: string;
+	forceLabel: boolean;
+	lineStyle: LinkLineStyle;
 	logicalEdgeId?: string;
 	logicalSource?: string;
 	logicalTarget?: string;
@@ -90,15 +93,18 @@ export class GraphologyAdapter {
 			const style = resolveLinkStyle(edge, this.linkStyleRules, {
 				color: this.palette.edge,
 				size: edge.directed ? 1.5 : 1,
+				lineStyle: 'solid',
 				label: '',
 				hidden: false,
 			});
 			const attributes: RuntimeEdgeAttributes = {
 				relation: edge.relation,
-				type: edge.directed ? 'arrow' : 'line',
+				type: getEdgeType(style.lineStyle, edge.directed),
 				size: style.size,
 				color: style.color,
 				label: style.label,
+				forceLabel: Boolean(style.label),
+				lineStyle: style.lineStyle,
 				hidden: style.hidden,
 			};
 			if (edge.directed) {
@@ -120,6 +126,13 @@ export class GraphologyAdapter {
 
 		return graph;
 	}
+}
+
+function getEdgeType(lineStyle: LinkLineStyle, directed: boolean): string {
+	if (lineStyle === 'solid') {
+		return directed ? 'arrow' : 'line';
+	}
+	return directed ? `${lineStyle}-arrow` : lineStyle;
 }
 
 function createInitialPosition(

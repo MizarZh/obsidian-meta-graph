@@ -9,6 +9,12 @@ import {
 } from './graphology-adapter';
 import { immediateNeighborhood } from './graph-events';
 import type { GraphPalette } from './graph-styles';
+import {
+	DashedArrowEdgeProgram,
+	DashedEdgeProgram,
+	DottedArrowEdgeProgram,
+	DottedEdgeProgram,
+} from './patterned-edge-program';
 
 export class SigmaRenderer {
 	readonly instance: Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>;
@@ -32,6 +38,10 @@ export class SigmaRenderer {
 						RuntimeNodeAttributes,
 						RuntimeEdgeAttributes
 					>(),
+					dashed: DashedEdgeProgram,
+					'dashed-arrow': DashedArrowEdgeProgram,
+					dotted: DottedEdgeProgram,
+					'dotted-arrow': DottedArrowEdgeProgram,
 				},
 				nodeReducer: (node, data) => this.reduceNode(node, data),
 				edgeReducer: (edge, data) => this.reduceEdge(edge, data),

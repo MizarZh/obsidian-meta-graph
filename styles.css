@@ -179,7 +179,8 @@
 
 .knowledge-workspace-rule-row input,
 .knowledge-workspace-rule-row select,
-.knowledge-workspace-rule-label input {
+.knowledge-workspace-rule-label input,
+.knowledge-workspace-rule-label select {
 	min-width: 0;
 	width: 100%;
 }

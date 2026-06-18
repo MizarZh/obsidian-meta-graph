@@ -152,8 +152,9 @@ export function applyOrthogonalFlowEdges(
 		graph.dropEdge(edge);
 		const segmentAttributes = {
 			...attributes,
-			type: 'line',
+			type: attributes.lineStyle === 'solid' ? 'line' : attributes.lineStyle,
 			label: '',
+			forceLabel: false,
 			logicalEdgeId: edge,
 			logicalSource: source,
 			logicalTarget: target,
@@ -177,8 +178,17 @@ export function applyOrthogonalFlowEdges(
 			const segmentKey = `${edge}__segment_${index + 1}`;
 			const styledSegment = {
 				...segmentAttributes,
-				type: directed && lastSegment ? 'arrow' : 'line',
+				type:
+					directed && lastSegment
+						? attributes.lineStyle === 'solid'
+							? 'arrow'
+							: `${attributes.lineStyle}-arrow`
+						: attributes.lineStyle === 'solid'
+							? 'line'
+							: attributes.lineStyle,
 				label: index === labelSegment ? attributes.label : '',
+				forceLabel:
+					index === labelSegment && Boolean(attributes.label),
 			};
 			if (directed) {
 				graph.addDirectedEdgeWithKey(

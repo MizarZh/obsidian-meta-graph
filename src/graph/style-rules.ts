@@ -1,6 +1,7 @@
 import type {
 	KnowledgeEdge,
 	KnowledgeNode,
+	LinkLineStyle,
 	LinkStyleRule,
 	NodeStyleRule,
 } from '../core/types';
@@ -13,6 +14,7 @@ export interface NodeStyle {
 export interface LinkStyle {
 	color: string;
 	size: number;
+	lineStyle: LinkLineStyle;
 	label: string;
 	hidden: boolean;
 }
@@ -42,7 +44,10 @@ export function resolveLinkStyle(
 				? {
 						color: rule.color || style.color,
 						size: rule.size,
-						label: rule.label,
+						lineStyle: rule.lineStyle,
+						label: rule.showLabel
+							? rule.label.trim() || edge.relation
+							: '',
 						hidden: rule.hidden,
 					}
 				: style,

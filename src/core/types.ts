@@ -106,6 +106,7 @@ export type FlowEdgeStyle = 'straight' | 'orthogonal';
 export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
 export type NodeStyleField = 'folder' | 'tag' | 'domain' | 'type' | 'title';
 export type LinkStyleField = 'relation' | 'source-field';
+export type LinkLineStyle = 'solid' | 'dashed' | 'dotted';
 
 export interface NodeStyleRule {
 	id: string;
@@ -121,7 +122,9 @@ export interface LinkStyleRule {
 	value: string;
 	color: string;
 	size: number;
+	lineStyle: LinkLineStyle;
 	label: string;
+	showLabel: boolean;
 	hidden: boolean;
 }
 

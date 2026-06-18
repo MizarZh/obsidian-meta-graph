@@ -2,6 +2,7 @@
 	import type {
 		GraphQuery,
 		LinkStyleField,
+		LinkLineStyle,
 		LinkStyleRule,
 		NodeFilterAction,
 		NodeFilterField,
@@ -65,7 +66,9 @@
 				value: 'leads-to',
 				color: '#888888',
 				size: 1.5,
+				lineStyle: 'solid',
 				label: '',
+				showLabel: false,
 				hidden: false,
 			},
 		]);
@@ -245,6 +248,20 @@
 					</label>
 				</div>
 				<label class="knowledge-workspace-rule-label">
+					<span>Line</span>
+					<select
+						value={rule.lineStyle}
+						onchange={(event) =>
+							updateLinkRule(rule.id, {
+								lineStyle: event.currentTarget.value as LinkLineStyle,
+							})}
+					>
+						<option value="solid">Solid</option>
+						<option value="dashed">Dashed</option>
+						<option value="dotted">Dotted</option>
+					</select>
+				</label>
+				<label class="knowledge-workspace-rule-label">
 					<span>Label</span>
 					<input
 						type="text"
@@ -255,6 +272,17 @@
 								label: event.currentTarget.value,
 							})}
 					/>
+				</label>
+				<label class="checkbox">
+					<input
+						type="checkbox"
+						checked={rule.showLabel}
+						onchange={(event) =>
+							updateLinkRule(rule.id, {
+								showLabel: event.currentTarget.checked,
+							})}
+					/>
+					<span>Show label</span>
 				</label>
 				<label class="checkbox">
 					<input
