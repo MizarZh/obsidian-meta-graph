@@ -1,4 +1,8 @@
-import ELK, { type ElkNode } from 'elkjs/lib/elk.bundled.js';
+import ELK, {
+	type ElkExtendedEdge,
+	type ElkNode,
+	type ElkPoint,
+} from 'elkjs/lib/elk.bundled.js';
 import type { FlowEdgeStyle } from '../core/types';
 import type { RuntimeGraph } from '../graph/graphology-adapter';
 import type { LayoutEngine } from './layout-engine';
@@ -47,15 +51,38 @@ export class ElkFlowLayout implements LayoutEngine {
 		for (const node of result.children ?? []) {
 			if (graph.hasNode(node.id)) {
 				graph.mergeNodeAttributes(node.id, {
-					x: node.x ?? 0,
-					y: node.y ?? 0,
+					x: (node.x ?? 0) + (node.width ?? 0) / 2,
+					y: (node.y ?? 0) + (node.height ?? 0) / 2,
 				});
 			}
+		}
+		if (this.edgeStyle === 'orthogonal') {
+			applyElkOrthogonalRoutes(graph, result.edges ?? []);
 		}
 	}
 }
 
-export function applyOrthogonalFlowEdges(graph: RuntimeGraph): void {
+export function applyElkOrthogonalRoutes(
+	graph: RuntimeGraph,
+	elkEdges: ElkExtendedEdge[],
+): void {
+	const routes = new Map(
+		elkEdges.map((edge) => [
+			edge.id,
+			edge.sections?.flatMap((section) => [
+				section.startPoint,
+				...(section.bendPoints ?? []),
+				section.endPoint,
+			]) ?? [],
+		]),
+	);
+	applyOrthogonalFlowEdges(graph, routes);
+}
+
+export function applyOrthogonalFlowEdges(
+	graph: RuntimeGraph,
+	routes: ReadonlyMap<string, ElkPoint[]> = new Map(),
+): void {
 	const directedEdges = graph
 		.edges()
 		.filter(
@@ -71,23 +98,21 @@ export function applyOrthogonalFlowEdges(graph: RuntimeGraph): void {
 		const targetAttributes = graph.getNodeAttributes(target);
 		const attributes = graph.getEdgeAttributes(edge);
 
-		if (Math.abs(sourceAttributes.y - targetAttributes.y) < 0.001) {
+		const route = routes.get(edge);
+		const points = deduplicatePoints(
+			route && route.length > 0
+				? [
+						{ x: sourceAttributes.x, y: sourceAttributes.y },
+						...route,
+						{ x: targetAttributes.x, y: targetAttributes.y },
+					]
+				: createFallbackRoute(sourceAttributes, targetAttributes),
+		);
+		if (points.length < 2) {
 			continue;
 		}
 
-		const middleX = (sourceAttributes.x + targetAttributes.x) / 2;
-		const bendOne = `__flow-bend__${edge}__1`;
-		const bendTwo = `__flow-bend__${edge}__2`;
 		graph.dropEdge(edge);
-		graph.addNode(
-			bendOne,
-			createBendNode(middleX, sourceAttributes.y),
-		);
-		graph.addNode(
-			bendTwo,
-			createBendNode(middleX, targetAttributes.y),
-		);
-
 		const segmentAttributes = {
 			...attributes,
 			type: 'line',
@@ -95,28 +120,59 @@ export function applyOrthogonalFlowEdges(graph: RuntimeGraph): void {
 			logicalSource: source,
 			logicalTarget: target,
 		};
-		graph.addDirectedEdgeWithKey(
-			`${edge}__segment_1`,
-			source,
-			bendOne,
-			segmentAttributes,
-		);
-		graph.addDirectedEdgeWithKey(
-			`${edge}__segment_2`,
-			bendOne,
-			bendTwo,
-			segmentAttributes,
-		);
-		graph.addDirectedEdgeWithKey(
-			`${edge}__segment_3`,
-			bendTwo,
-			target,
-			{
-				...segmentAttributes,
-				type: 'arrow',
-			},
-		);
+		const pathNodes = [source];
+		for (const [index, point] of points.slice(1, -1).entries()) {
+			const bendNode = `__flow-bend__${edge}__${index + 1}`;
+			graph.addNode(bendNode, createBendNode(point.x, point.y));
+			pathNodes.push(bendNode);
+		}
+		pathNodes.push(target);
+
+		for (let index = 0; index < pathNodes.length - 1; index += 1) {
+			const segmentSource = pathNodes[index];
+			const segmentTarget = pathNodes[index + 1];
+			if (!segmentSource || !segmentTarget) {
+				continue;
+			}
+			const lastSegment = index === pathNodes.length - 2;
+			graph.addDirectedEdgeWithKey(
+				`${edge}__segment_${index + 1}`,
+				segmentSource,
+				segmentTarget,
+				{
+					...segmentAttributes,
+					type: lastSegment ? 'arrow' : 'line',
+				},
+			);
+		}
 	}
+}
+
+function createFallbackRoute(
+	source: { x: number; y: number },
+	target: { x: number; y: number },
+): ElkPoint[] {
+	if (Math.abs(source.y - target.y) < 0.001) {
+		return [source, target];
+	}
+	const middleX = (source.x + target.x) / 2;
+	return [
+		source,
+		{ x: middleX, y: source.y },
+		{ x: middleX, y: target.y },
+		target,
+	];
+}
+
+function deduplicatePoints(points: ElkPoint[]): ElkPoint[] {
+	return points.filter((point, index) => {
+		const previous = points[index - 1];
+		return (
+			!previous ||
+			Math.abs(previous.x - point.x) > 0.001 ||
+			Math.abs(previous.y - point.y) > 0.001
+		);
+	});
 }
 
 function createBendNode(x: number, y: number) {

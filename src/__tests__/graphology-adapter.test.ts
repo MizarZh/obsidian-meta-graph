@@ -5,7 +5,10 @@ import {
 	type GraphPosition,
 } from '../graph/graphology-adapter';
 import type { GraphPalette } from '../graph/graph-styles';
-import { applyOrthogonalFlowEdges } from '../layouts/elk-flow-layout';
+import {
+	applyElkOrthogonalRoutes,
+	applyOrthogonalFlowEdges,
+} from '../layouts/elk-flow-layout';
 
 const palette: GraphPalette = {
 	node: '#111111',
@@ -100,5 +103,50 @@ describe('GraphologyAdapter positions', () => {
 		expect(
 			graph.getNodeAttribute('__flow-bend__A-to-B__1', 'isBend'),
 		).toBe(true);
+	});
+
+	it('uses ELK section points for orthogonal segments', () => {
+		const graph = new GraphologyAdapter(palette).fromProjection({
+			...projection,
+			edges: [
+				{
+					id: 'A-to-B',
+					source: 'A.md',
+					target: 'B.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'leads-to',
+				},
+			],
+		});
+		graph.mergeNodeAttributes('A.md', { x: 0, y: 0 });
+		graph.mergeNodeAttributes('B.md', { x: 200, y: 100 });
+
+		applyElkOrthogonalRoutes(graph, [
+			{
+				id: 'A-to-B',
+				sources: ['A.md'],
+				targets: ['B.md'],
+				sections: [
+					{
+						id: 'section',
+						startPoint: { x: 60, y: 0 },
+						bendPoints: [
+							{ x: 120, y: 0 },
+							{ x: 120, y: 100 },
+						],
+						endPoint: { x: 140, y: 100 },
+					},
+				],
+			},
+		]);
+
+		expect(
+			graph.getNodeAttributes('__flow-bend__A-to-B__2'),
+		).toMatchObject({ x: 120, y: 0 });
+		expect(
+			graph.getNodeAttributes('__flow-bend__A-to-B__3'),
+		).toMatchObject({ x: 120, y: 100 });
 	});
 });

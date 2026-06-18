@@ -30,12 +30,13 @@
 	let lastMode: WorkspaceState['mode'] | undefined;
 	let lastFlowEdgeStyle: WorkspaceState['flowEdgeStyle'] | undefined;
 	let activeTab: 'workspace' | 'debug' = $state('workspace');
-	const positionsByMode: Record<
-		WorkspaceState['mode'],
+	const positionsByLayout: Record<
+		'graph' | 'flow-straight' | 'flow-orthogonal',
 		Map<string, GraphPosition>
 	> = {
 		graph: new Map(),
-		flow: new Map(),
+		'flow-straight': new Map(),
+		'flow-orthogonal': new Map(),
 	};
 
 	function getInitialState(): WorkspaceState {
@@ -58,6 +59,9 @@
 		const unsubscribe = controller.subscribe((nextState) => {
 			const modeChanged =
 				lastMode !== undefined && nextState.mode !== lastMode;
+			const flowStyleChanged =
+				lastFlowEdgeStyle !== undefined &&
+				nextState.flowEdgeStyle !== lastFlowEdgeStyle;
 			const shouldRebuild =
 				nextState.projection !== lastProjection ||
 				nextState.mode !== lastMode ||
@@ -67,12 +71,14 @@
 				lastProjection = nextState.projection;
 				lastMode = nextState.mode;
 				lastFlowEdgeStyle = nextState.flowEdgeStyle;
-				void rebuildGraph(modeChanged).catch((error: unknown) => {
+				void rebuildGraph(modeChanged || flowStyleChanged).catch(
+					(error: unknown) => {
 					controller.setRendererDebugState({
 						status: 'error',
 						error: formatError(error),
 					});
-				});
+					},
+				);
 			} else {
 				renderer?.setSelected(nextState.selectedNodeId);
 				renderer?.setHovered(nextState.hoveredNodeId);
@@ -120,7 +126,7 @@
 		}
 
 		const palette = readGraphPalette(canvas);
-		const positions = positionsByMode[workspaceState.mode];
+		const positions = getPositionCache();
 		const graph = new GraphologyAdapter(palette).fromProjection(
 			workspaceState.projection,
 			positions,
@@ -217,15 +223,8 @@
 				);
 			});
 			if (needsLayout) {
-				const preserved = new Map(positions);
 				await new ElkFlowLayout(workspaceState.flowEdgeStyle).apply(graph);
-				for (const [nodeId, position] of preserved) {
-					if (graph.hasNode(nodeId)) {
-						graph.mergeNodeAttributes(nodeId, position);
-					}
-				}
-			}
-			if (workspaceState.flowEdgeStyle === 'orthogonal') {
+			} else if (workspaceState.flowEdgeStyle === 'orthogonal') {
 				applyOrthogonalFlowEdges(graph);
 			}
 		} else {
@@ -243,6 +242,17 @@
 			}
 			graph.setNodeAttribute(nodeId, 'fixed', false);
 		});
+	}
+
+	function getPositionCache(): Map<string, GraphPosition> {
+		if (workspaceState.mode === 'graph') {
+			return positionsByLayout.graph;
+		}
+		return positionsByLayout[
+			workspaceState.flowEdgeStyle === 'orthogonal'
+				? 'flow-orthogonal'
+				: 'flow-straight'
+		];
 	}
 
 	function serializeRuntimeGraph(graph: RuntimeGraph) {
