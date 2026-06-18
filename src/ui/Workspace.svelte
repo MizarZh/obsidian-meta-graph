@@ -164,12 +164,6 @@
 		});
 	}
 
-	function focusCurrentNote(): void {
-		if (workspaceState.currentNoteId) {
-			renderer?.focusNode(workspaceState.currentNoteId);
-		}
-	}
-
 	const selectedNode = $derived(
 		workspaceState.projection?.nodes.find(
 			(node) => node.id === workspaceState.selectedNodeId,
@@ -295,7 +289,6 @@
 			flowEdgeStyle={workspaceState.flowEdgeStyle}
 			onMode={(mode) => controller.setMode(mode)}
 			onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
-			onCurrentNote={focusCurrentNote}
 			onFit={() => renderer?.fit()}
 			onRefresh={() => controller.refresh()}
 		/>
@@ -312,9 +305,7 @@
 		/>
 		<main class="knowledge-workspace-main">
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
-			{#if !workspaceState.currentNoteId}
-				<div class="knowledge-workspace-empty">Open a note to center the graph.</div>
-			{:else if workspaceState.projection?.nodes.length === 0}
+			{#if workspaceState.projection?.nodes.length === 0}
 				<div class="knowledge-workspace-empty">No matching metadata relationships.</div>
 			{/if}
 			<Inspector node={selectedNode} />

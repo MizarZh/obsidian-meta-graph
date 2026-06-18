@@ -48,9 +48,8 @@ settings to report them in the developer console.
    canonical index, adjacency maps, and unresolved links as JSON.
 
 The current demo displays all matching relationship components in the vault.
-The active note is only used by **Current note** focus. Isolated notes are
-omitted when no matching relationship remains. Flow mode omits undirected
-`related` edges.
+Isolated notes are omitted when no matching relationship remains. Flow mode
+omits undirected `related` edges.
 
 ## Development
 

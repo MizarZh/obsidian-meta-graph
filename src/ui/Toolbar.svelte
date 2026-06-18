@@ -6,7 +6,6 @@
 		flowEdgeStyle,
 		onMode,
 		onFlowEdgeStyle,
-		onCurrentNote,
 		onFit,
 		onRefresh,
 	}: {
@@ -14,7 +13,6 @@
 		flowEdgeStyle: FlowEdgeStyle;
 		onMode: (mode: ViewMode) => void;
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
-		onCurrentNote: () => void;
 		onFit: () => void;
 		onRefresh: () => void;
 	} = $props();
@@ -37,7 +35,6 @@
 			>
 		</div>
 	{/if}
-	<button onclick={onCurrentNote}>Current note</button>
 	<button onclick={onFit}>Fit graph</button>
 	<button onclick={onRefresh}>Refresh</button>
 </div>
