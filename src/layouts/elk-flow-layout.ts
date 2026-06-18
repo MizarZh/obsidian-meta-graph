@@ -3,21 +3,24 @@ import ELK, {
 	type ElkNode,
 	type ElkPoint,
 } from 'elkjs/lib/elk.bundled.js';
-import type { FlowEdgeStyle } from '../core/types';
+import type { FlowDirection, FlowEdgeStyle } from '../core/types';
 import type { RuntimeGraph } from '../graph/graphology-adapter';
 import type { LayoutEngine } from './layout-engine';
 
 export class ElkFlowLayout implements LayoutEngine {
 	private readonly elk = new ELK();
 
-	constructor(private readonly edgeStyle: FlowEdgeStyle = 'orthogonal') {}
+	constructor(
+		private readonly edgeStyle: FlowEdgeStyle = 'orthogonal',
+		private readonly direction: FlowDirection = 'LR',
+	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
 		const elkGraph: ElkNode = {
 			id: 'root',
 			layoutOptions: {
 				'elk.algorithm': 'layered',
-				'elk.direction': 'RIGHT',
+				'elk.direction': toElkDirection(this.direction),
 				'elk.spacing.nodeNode': '60',
 				'elk.layered.spacing.nodeNodeBetweenLayers': '100',
 				'elk.edgeRouting':
@@ -59,6 +62,21 @@ export class ElkFlowLayout implements LayoutEngine {
 		if (this.edgeStyle === 'orthogonal') {
 			applyElkOrthogonalRoutes(graph, result.edges ?? []);
 		}
+	}
+}
+
+export function toElkDirection(
+	direction: FlowDirection,
+): 'RIGHT' | 'LEFT' | 'DOWN' | 'UP' {
+	switch (direction) {
+		case 'LR':
+			return 'RIGHT';
+		case 'RL':
+			return 'LEFT';
+		case 'TD':
+			return 'DOWN';
+		case 'DT':
+			return 'UP';
 	}
 }
 

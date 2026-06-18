@@ -29,16 +29,10 @@
 	let lastProjection: WorkspaceState['projection'];
 	let lastMode: WorkspaceState['mode'] | undefined;
 	let lastFlowEdgeStyle: WorkspaceState['flowEdgeStyle'] | undefined;
+	let lastFlowDirection: WorkspaceState['flowDirection'] | undefined;
 	let lastLayoutRevision: number | undefined;
 	let activeTab: 'workspace' | 'debug' = $state('workspace');
-	const positionsByLayout: Record<
-		'graph' | 'flow-straight' | 'flow-orthogonal',
-		Map<string, GraphPosition>
-	> = {
-		graph: new Map(),
-		'flow-straight': new Map(),
-		'flow-orthogonal': new Map(),
-	};
+	const positionsByLayout = new Map<string, Map<string, GraphPosition>>();
 
 	function getInitialState(): WorkspaceState {
 		return controller.snapshot;
@@ -63,6 +57,9 @@
 			const flowStyleChanged =
 				lastFlowEdgeStyle !== undefined &&
 				nextState.flowEdgeStyle !== lastFlowEdgeStyle;
+			const flowDirectionChanged =
+				lastFlowDirection !== undefined &&
+				nextState.flowDirection !== lastFlowDirection;
 			const layoutRevisionChanged =
 				lastLayoutRevision !== undefined &&
 				nextState.layoutRevision !== lastLayoutRevision;
@@ -70,16 +67,23 @@
 				nextState.projection !== lastProjection ||
 				nextState.mode !== lastMode ||
 				nextState.flowEdgeStyle !== lastFlowEdgeStyle ||
+				nextState.flowDirection !== lastFlowDirection ||
 				nextState.layoutRevision !== lastLayoutRevision;
 			workspaceState = nextState;
 			if (shouldRebuild) {
 				lastProjection = nextState.projection;
 				lastMode = nextState.mode;
 				lastFlowEdgeStyle = nextState.flowEdgeStyle;
+				lastFlowDirection = nextState.flowDirection;
 				lastLayoutRevision = nextState.layoutRevision;
 				void rebuildGraph(
-					modeChanged || flowStyleChanged || layoutRevisionChanged,
-					flowStyleChanged || layoutRevisionChanged,
+					modeChanged ||
+						flowStyleChanged ||
+						flowDirectionChanged ||
+						layoutRevisionChanged,
+					flowStyleChanged ||
+						flowDirectionChanged ||
+						layoutRevisionChanged,
 				).catch(
 					(error: unknown) => {
 					controller.setRendererDebugState({
@@ -237,7 +241,10 @@
 				);
 			});
 			if (needsLayout) {
-				await new ElkFlowLayout(workspaceState.flowEdgeStyle).apply(graph);
+				await new ElkFlowLayout(
+					workspaceState.flowEdgeStyle,
+					workspaceState.flowDirection,
+				).apply(graph);
 			} else if (workspaceState.flowEdgeStyle === 'orthogonal') {
 				applyOrthogonalFlowEdges(graph);
 			}
@@ -259,14 +266,16 @@
 	}
 
 	function getPositionCache(): Map<string, GraphPosition> {
-		if (workspaceState.mode === 'graph') {
-			return positionsByLayout.graph;
+		const key =
+			workspaceState.mode === 'graph'
+				? 'graph'
+				: `flow-${workspaceState.flowEdgeStyle}-${workspaceState.flowDirection}`;
+		let positions = positionsByLayout.get(key);
+		if (!positions) {
+			positions = new Map();
+			positionsByLayout.set(key, positions);
 		}
-		return positionsByLayout[
-			workspaceState.flowEdgeStyle === 'orthogonal'
-				? 'flow-orthogonal'
-				: 'flow-straight'
-		];
+		return positions;
 	}
 
 	function serializeRuntimeGraph(graph: RuntimeGraph) {
@@ -311,8 +320,11 @@
 		<Toolbar
 			mode={workspaceState.mode}
 			flowEdgeStyle={workspaceState.flowEdgeStyle}
+			flowDirection={workspaceState.flowDirection}
 			onMode={(mode) => controller.setMode(mode)}
 			onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
+			onFlowDirection={(direction) =>
+				controller.setFlowDirection(direction)}
 			onFit={() => renderer?.fit()}
 			onRefresh={() => controller.refresh(true)}
 		/>

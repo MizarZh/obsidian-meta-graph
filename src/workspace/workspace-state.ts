@@ -5,6 +5,7 @@ export function createWorkspaceState(maxNodes: number): WorkspaceState {
 	return {
 		mode: 'graph',
 		flowEdgeStyle: 'orthogonal',
+		flowDirection: 'LR',
 		layoutRevision: 0,
 		query: {
 			...DEFAULT_GRAPH_QUERY,

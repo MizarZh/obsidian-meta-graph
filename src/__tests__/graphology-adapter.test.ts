@@ -8,6 +8,7 @@ import type { GraphPalette } from '../graph/graph-styles';
 import {
 	applyElkOrthogonalRoutes,
 	applyOrthogonalFlowEdges,
+	toElkDirection,
 } from '../layouts/elk-flow-layout';
 
 const palette: GraphPalette = {
@@ -45,6 +46,15 @@ const projection: GraphProjection = {
 };
 
 describe('GraphologyAdapter positions', () => {
+	it.each([
+		['LR', 'RIGHT'],
+		['RL', 'LEFT'],
+		['TD', 'DOWN'],
+		['DT', 'UP'],
+	] as const)('maps flow direction %s to ELK %s', (direction, expected) => {
+		expect(toElkDirection(direction)).toBe(expected);
+	});
+
 	it('uses deterministic initial positions', () => {
 		const adapter = new GraphologyAdapter(palette);
 		const first = adapter.fromProjection(projection);

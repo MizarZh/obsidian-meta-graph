@@ -92,10 +92,12 @@ export interface GraphProjection {
 
 export type ViewMode = 'graph' | 'flow';
 export type FlowEdgeStyle = 'straight' | 'orthogonal';
+export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
 
 export interface WorkspaceState {
 	mode: ViewMode;
 	flowEdgeStyle: FlowEdgeStyle;
+	flowDirection: FlowDirection;
 	layoutRevision: number;
 	currentNoteId?: NodeId;
 	selectedNodeId?: NodeId;
