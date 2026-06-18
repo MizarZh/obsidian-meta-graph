@@ -12,6 +12,7 @@ import type {
 	NodeId,
 	NodeStyleRule,
 	RendererDebugState,
+	SavedWorkspaceState,
 	UnresolvedLink,
 	ViewMode,
 	WorkspaceState,
@@ -37,8 +38,9 @@ export class WorkspaceController {
 		maxNodes: number,
 		private readonly debug: boolean,
 		fadeDistance = 1.5,
+		savedState?: SavedWorkspaceState,
 	) {
-		this.state = createWorkspaceState(maxNodes, fadeDistance);
+		this.state = createWorkspaceState(maxNodes, fadeDistance, savedState);
 	}
 
 	get snapshot(): WorkspaceState {
@@ -149,6 +151,23 @@ export class WorkspaceController {
 	setFadeDistance(fadeDistance: number): void {
 		this.state = { ...this.state, fadeDistance };
 		this.emit();
+	}
+
+	restoreWorkspace(savedState: SavedWorkspaceState): void {
+		const restored = createWorkspaceState(
+			this.state.query.maxNodes,
+			savedState.fadeDistance,
+			savedState,
+		);
+		this.state = {
+			...restored,
+			currentNoteId: this.state.currentNoteId,
+			layoutRevision: this.state.layoutRevision + 1,
+			availableFolders: this.state.availableFolders,
+			availableTags: this.state.availableTags,
+			availableDomains: this.state.availableDomains,
+		};
+		this.runQuery();
 	}
 
 	updateQuery(patch: Partial<Omit<GraphQuery, 'roots'>>): void {

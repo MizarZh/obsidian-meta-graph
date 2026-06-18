@@ -128,6 +128,24 @@ export interface LinkStyleRule {
 	hidden: boolean;
 }
 
+export interface SavedWorkspaceState {
+	mode: ViewMode;
+	flowEdgeStyle: FlowEdgeStyle;
+	flowDirection: FlowDirection;
+	fadeDistance: number;
+	query: GraphQuery;
+	nodeStyleRules: NodeStyleRule[];
+	graphLinkStyleRules: LinkStyleRule[];
+	flowLinkStyleRules: LinkStyleRule[];
+}
+
+export interface SavedWorkspace {
+	id: string;
+	name: string;
+	state: SavedWorkspaceState;
+	updatedAt: string;
+}
+
 export interface WorkspaceState {
 	mode: ViewMode;
 	flowEdgeStyle: FlowEdgeStyle;

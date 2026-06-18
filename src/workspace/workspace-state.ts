@@ -1,11 +1,16 @@
-import type { WorkspaceState } from '../core/types';
+import type {
+	SavedWorkspaceState,
+	WorkspaceState,
+} from '../core/types';
 import { DEFAULT_GRAPH_QUERY } from '../query/graph-query';
+import { cloneSerializable } from './workspace-persistence';
 
 export function createWorkspaceState(
 	maxNodes: number,
 	fadeDistance = 1.5,
+	savedState?: SavedWorkspaceState,
 ): WorkspaceState {
-	return {
+	const state: WorkspaceState = {
 		mode: 'graph',
 		flowEdgeStyle: 'orthogonal',
 		flowDirection: 'LR',
@@ -47,4 +52,15 @@ export function createWorkspaceState(
 		availableTags: [],
 		availableDomains: [],
 	};
+	return savedState
+		? {
+				...state,
+				...cloneSerializable(savedState),
+				query: {
+					...state.query,
+					...cloneSerializable(savedState.query),
+					maxNodes,
+				},
+			}
+		: state;
 }

@@ -2,6 +2,7 @@
 	import type {
 		FlowDirection,
 		FlowEdgeStyle,
+		SavedWorkspace,
 		ViewMode,
 	} from '../core/types';
 
@@ -9,24 +10,60 @@
 		mode,
 		flowEdgeStyle,
 		flowDirection,
+		savedWorkspaces,
+		activeWorkspaceId,
 		onMode,
 		onFlowEdgeStyle,
 		onFlowDirection,
 		onFit,
 		onRefresh,
+		onSelectWorkspace,
+		onSaveWorkspace,
+		onSaveWorkspaceAs,
+		onDeleteWorkspace,
 	}: {
 		mode: ViewMode;
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
+		savedWorkspaces: SavedWorkspace[];
+		activeWorkspaceId?: string;
 		onMode: (mode: ViewMode) => void;
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
 		onFit: () => void;
 		onRefresh: () => void;
+		onSelectWorkspace: (id: string) => void;
+		onSaveWorkspace: () => void;
+		onSaveWorkspaceAs: () => void;
+		onDeleteWorkspace: () => void;
 	} = $props();
+
 </script>
 
 <div class="knowledge-workspace-toolbar">
+	<div class="knowledge-workspace-workspace-picker">
+		<select
+			aria-label="Saved workspace"
+			value={activeWorkspaceId ?? ''}
+			onchange={(event) => onSelectWorkspace(event.currentTarget.value)}
+		>
+			<option value="">Last session (autosaved)</option>
+			{#each savedWorkspaces as workspace (workspace.id)}
+				<option
+					value={workspace.id}
+					selected={workspace.id === activeWorkspaceId}
+				>
+					{workspace.name}
+				</option>
+			{/each}
+		</select>
+		<button
+			onclick={() =>
+				activeWorkspaceId ? onSaveWorkspace() : onSaveWorkspaceAs()}>Save</button
+		>
+		<button onclick={onSaveWorkspaceAs}>Save as</button>
+		<button disabled={!activeWorkspaceId} onclick={onDeleteWorkspace}>Delete</button>
+	</div>
 	<div class="knowledge-workspace-segmented" aria-label="Layout mode">
 		<button class:active={mode === 'graph'} onclick={() => onMode('graph')}>Graph</button>
 		<button class:active={mode === 'flow'} onclick={() => onMode('flow')}>Flow</button>

@@ -57,6 +57,18 @@
 	margin: 0;
 }
 
+.knowledge-workspace-workspace-picker {
+	display: flex;
+	gap: var(--size-4-1);
+	align-items: center;
+	margin-right: auto;
+}
+
+.knowledge-workspace-workspace-picker select {
+	min-width: 150px;
+	max-width: 240px;
+}
+
 .knowledge-workspace-segmented {
 	display: flex;
 }
