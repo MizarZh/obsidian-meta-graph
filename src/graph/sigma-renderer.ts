@@ -1,5 +1,6 @@
 import Sigma from 'sigma';
 import { createEdgeArrowProgram } from 'sigma/rendering';
+import type { NodeLabelDrawingFunction } from 'sigma/rendering';
 import type { NodeDisplayData, EdgeDisplayData } from 'sigma/types';
 import {
 	type RuntimeEdgeAttributes,
@@ -13,6 +14,7 @@ export class SigmaRenderer {
 	readonly instance: Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>;
 	private selectedNodeId?: string;
 	private hoveredNodeId?: string;
+	private pinnedNodeId?: string;
 	private hoveredNeighborhood = new Set<string>();
 
 	constructor(
@@ -33,6 +35,7 @@ export class SigmaRenderer {
 				},
 				nodeReducer: (node, data) => this.reduceNode(node, data),
 				edgeReducer: (edge, data) => this.reduceEdge(edge, data),
+				defaultDrawNodeLabel: createNodeLabelDrawer(palette),
 				renderEdgeLabels: false,
 				labelColor: { color: palette.label },
 				labelDensity: 0.8,
@@ -44,7 +47,10 @@ export class SigmaRenderer {
 
 	setGraph(graph: RuntimeGraph): void {
 		this.graph = graph;
-		this.hoveredNeighborhood.clear();
+		if (this.pinnedNodeId && !graph.hasNode(this.pinnedNodeId)) {
+			this.pinnedNodeId = undefined;
+		}
+		this.updateHoveredNeighborhood();
 		this.instance.setGraph(graph);
 	}
 
@@ -55,10 +61,22 @@ export class SigmaRenderer {
 
 	setHovered(nodeId?: string): void {
 		this.hoveredNodeId = nodeId;
-		this.hoveredNeighborhood =
-			nodeId && this.graph.hasNode(nodeId)
-				? immediateNeighborhood(this.graph, nodeId)
-				: new Set();
+		this.updateHoveredNeighborhood();
+		this.instance.refresh();
+	}
+
+	togglePinnedHover(nodeId: string): void {
+		this.pinnedNodeId = this.pinnedNodeId === nodeId ? undefined : nodeId;
+		this.updateHoveredNeighborhood();
+		this.instance.refresh();
+	}
+
+	clearPinnedHover(): void {
+		if (!this.pinnedNodeId) {
+			return;
+		}
+		this.pinnedNodeId = undefined;
+		this.updateHoveredNeighborhood();
 		this.instance.refresh();
 	}
 
@@ -93,6 +111,7 @@ export class SigmaRenderer {
 		node: string,
 		data: RuntimeNodeAttributes,
 	): Partial<NodeDisplayData> {
+		const activeHoverNodeId = this.getActiveHoverNodeId();
 		if (data.isBend) {
 			return {
 				...data,
@@ -102,7 +121,7 @@ export class SigmaRenderer {
 				zIndex: -1,
 			};
 		}
-		if (this.hoveredNodeId && !this.hoveredNeighborhood.has(node)) {
+		if (activeHoverNodeId && !this.hoveredNeighborhood.has(node)) {
 			return {
 				...data,
 				color: this.palette.mutedNode,
@@ -119,7 +138,7 @@ export class SigmaRenderer {
 				zIndex: 3,
 			};
 		}
-		if (node === this.hoveredNodeId) {
+		if (node === activeHoverNodeId) {
 			return {
 				...data,
 				size: data.size + 2,
@@ -134,15 +153,16 @@ export class SigmaRenderer {
 		edge: string,
 		data: RuntimeEdgeAttributes,
 	): Partial<EdgeDisplayData> {
-		if (!this.hoveredNodeId) {
+		const activeHoverNodeId = this.getActiveHoverNodeId();
+		if (!activeHoverNodeId) {
 			return { ...data };
 		}
 		const [source, target] = this.graph.extremities(edge);
 		const connected =
-			source === this.hoveredNodeId ||
-			target === this.hoveredNodeId ||
-			data.logicalSource === this.hoveredNodeId ||
-			data.logicalTarget === this.hoveredNodeId;
+			source === activeHoverNodeId ||
+			target === activeHoverNodeId ||
+			data.logicalSource === activeHoverNodeId ||
+			data.logicalTarget === activeHoverNodeId;
 		return connected
 			? { ...data, size: data.size + 1, zIndex: 2 }
 			: {
@@ -152,4 +172,68 @@ export class SigmaRenderer {
 					zIndex: 0,
 				};
 	}
+
+	private getActiveHoverNodeId(): string | undefined {
+		return this.pinnedNodeId ?? this.hoveredNodeId;
+	}
+
+	private updateHoveredNeighborhood(): void {
+		const nodeId = this.getActiveHoverNodeId();
+		this.hoveredNeighborhood =
+			nodeId && this.graph.hasNode(nodeId)
+				? immediateNeighborhood(this.graph, nodeId)
+				: new Set();
+	}
+}
+
+function createNodeLabelDrawer(
+	palette: GraphPalette,
+): NodeLabelDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
+	return (context, data, settings) => {
+		if (!data.label) {
+			return;
+		}
+
+		const font = `${settings.labelWeight} ${settings.labelSize}px ${settings.labelFont}`;
+		const x = data.x + data.size + 5;
+		const paddingX = 5;
+		const paddingY = 3;
+		context.save();
+		context.font = font;
+		context.textBaseline = 'middle';
+		const textWidth = context.measureText(data.label).width;
+		const width = textWidth + paddingX * 2;
+		const height = settings.labelSize + paddingY * 2;
+		const top = data.y - height / 2;
+
+		context.beginPath();
+		drawRoundedRect(context, x - paddingX, top, width, height, 4);
+		context.fillStyle = palette.labelBackground;
+		context.fill();
+		context.fillStyle = palette.label;
+		context.fillText(data.label, x, data.y);
+		context.restore();
+	};
+}
+
+function drawRoundedRect(
+	context: CanvasRenderingContext2D,
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	radius: number,
+): void {
+	const right = x + width;
+	const bottom = y + height;
+	context.moveTo(x + radius, y);
+	context.lineTo(right - radius, y);
+	context.quadraticCurveTo(right, y, right, y + radius);
+	context.lineTo(right, bottom - radius);
+	context.quadraticCurveTo(right, bottom, right - radius, bottom);
+	context.lineTo(x + radius, bottom);
+	context.quadraticCurveTo(x, bottom, x, bottom - radius);
+	context.lineTo(x, y + radius);
+	context.quadraticCurveTo(x, y, x + radius, y);
+	context.closePath();
 }

@@ -18,6 +18,7 @@ const palette: GraphPalette = {
 	mutedNode: '#555555',
 	mutedEdge: '#666666',
 	label: '#777777',
+	labelBackground: 'rgba(0, 0, 0, 0.8)',
 };
 
 const projection: GraphProjection = {

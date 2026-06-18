@@ -8,6 +8,7 @@ export interface GraphPalette {
 	mutedNode: string;
 	mutedEdge: string;
 	label: string;
+	labelBackground: string;
 }
 
 export function readGraphPalette(container: HTMLElement): GraphPalette {
@@ -27,6 +28,10 @@ export function readGraphPalette(container: HTMLElement): GraphPalette {
 		mutedNode: read('--background-modifier-border', '#555555'),
 		mutedEdge: read('--background-modifier-border', '#555555'),
 		label: read('--text-normal', '#dddddd'),
+		labelBackground: withAlpha(
+			read('--background-primary', '#202020'),
+			0.82,
+		),
 	};
 }
 
@@ -50,4 +55,12 @@ function normalizeCssColor(
 	const normalized = getComputedStyle(probe).color;
 	probe.remove();
 	return normalized || fallback;
+}
+
+function withAlpha(color: string, alpha: number): string {
+	const channels = color.match(/[\d.]+/gu);
+	if (!channels || channels.length < 3) {
+		return `rgba(32, 32, 32, ${alpha})`;
+	}
+	return `rgba(${channels[0]}, ${channels[1]}, ${channels[2]}, ${alpha})`;
 }

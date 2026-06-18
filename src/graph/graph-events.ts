@@ -20,6 +20,28 @@ export function bindGraphEvents(
 		callbacks.onOpen(node);
 	};
 	const clickStage = () => callbacks.onSelect(undefined);
+	const rightClickNode = ({
+		node,
+		event,
+	}: {
+		node: string;
+		event: { original: MouseEvent | TouchEvent; preventSigmaDefault(): void };
+	}) => {
+		event.original.preventDefault();
+		event.preventSigmaDefault();
+		if (!sigma.getGraph().getNodeAttribute(node, 'isBend')) {
+			renderer.togglePinnedHover(node);
+		}
+	};
+	const rightClickStage = ({
+		event,
+	}: {
+		event: { original: MouseEvent | TouchEvent; preventSigmaDefault(): void };
+	}) => {
+		event.original.preventDefault();
+		event.preventSigmaDefault();
+		renderer.clearPinnedHover();
+	};
 	const enterNode = ({ node }: { node: string }) => {
 		if (!sigma.getGraph().getNodeAttribute(node, 'isBend')) {
 			callbacks.onHover(node);
@@ -29,12 +51,16 @@ export function bindGraphEvents(
 
 	sigma.on('clickNode', clickNode);
 	sigma.on('clickStage', clickStage);
+	sigma.on('rightClickNode', rightClickNode);
+	sigma.on('rightClickStage', rightClickStage);
 	sigma.on('enterNode', enterNode);
 	sigma.on('leaveNode', leaveNode);
 
 	return () => {
 		sigma.off('clickNode', clickNode);
 		sigma.off('clickStage', clickStage);
+		sigma.off('rightClickNode', rightClickNode);
+		sigma.off('rightClickStage', rightClickStage);
 		sigma.off('enterNode', enterNode);
 		sigma.off('leaveNode', leaveNode);
 	};
