@@ -96,6 +96,7 @@ export type FlowEdgeStyle = 'straight' | 'orthogonal';
 export interface WorkspaceState {
 	mode: ViewMode;
 	flowEdgeStyle: FlowEdgeStyle;
+	layoutRevision: number;
 	currentNoteId?: NodeId;
 	selectedNodeId?: NodeId;
 	hoveredNodeId?: NodeId;

@@ -85,10 +85,10 @@ export class WorkspaceController {
 
 	scheduleRefresh(): void {
 		window.clearTimeout(this.rebuildTimer);
-		this.rebuildTimer = window.setTimeout(() => this.refresh(), 300);
+		this.rebuildTimer = window.setTimeout(() => this.refresh(false), 300);
 	}
 
-	refresh(): void {
+	refresh(forceLayout = false): void {
 		if (this.destroyed) {
 			return;
 		}
@@ -98,6 +98,8 @@ export class WorkspaceController {
 		this.metadataSources = [...indexer.metadataSources];
 		this.state = {
 			...this.state,
+			layoutRevision:
+				this.state.layoutRevision + (forceLayout ? 1 : 0),
 			availableFolders: uniqueSorted(
 				[...this.index.nodes.values()]
 					.map((node) => node.folder)

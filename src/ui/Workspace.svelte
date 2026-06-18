@@ -29,6 +29,7 @@
 	let lastProjection: WorkspaceState['projection'];
 	let lastMode: WorkspaceState['mode'] | undefined;
 	let lastFlowEdgeStyle: WorkspaceState['flowEdgeStyle'] | undefined;
+	let lastLayoutRevision: number | undefined;
 	let activeTab: 'workspace' | 'debug' = $state('workspace');
 	const positionsByLayout: Record<
 		'graph' | 'flow-straight' | 'flow-orthogonal',
@@ -62,18 +63,23 @@
 			const flowStyleChanged =
 				lastFlowEdgeStyle !== undefined &&
 				nextState.flowEdgeStyle !== lastFlowEdgeStyle;
+			const layoutRevisionChanged =
+				lastLayoutRevision !== undefined &&
+				nextState.layoutRevision !== lastLayoutRevision;
 			const shouldRebuild =
 				nextState.projection !== lastProjection ||
 				nextState.mode !== lastMode ||
-				nextState.flowEdgeStyle !== lastFlowEdgeStyle;
+				nextState.flowEdgeStyle !== lastFlowEdgeStyle ||
+				nextState.layoutRevision !== lastLayoutRevision;
 			workspaceState = nextState;
 			if (shouldRebuild) {
 				lastProjection = nextState.projection;
 				lastMode = nextState.mode;
 				lastFlowEdgeStyle = nextState.flowEdgeStyle;
+				lastLayoutRevision = nextState.layoutRevision;
 				void rebuildGraph(
-					modeChanged || flowStyleChanged,
-					flowStyleChanged,
+					modeChanged || flowStyleChanged || layoutRevisionChanged,
+					flowStyleChanged || layoutRevisionChanged,
 				).catch(
 					(error: unknown) => {
 					controller.setRendererDebugState({
@@ -308,7 +314,7 @@
 			onMode={(mode) => controller.setMode(mode)}
 			onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
 			onFit={() => renderer?.fit()}
-			onRefresh={() => controller.refresh()}
+			onRefresh={() => controller.refresh(true)}
 		/>
 	</div>
 	<div
@@ -330,6 +336,9 @@
 		</main>
 	</div>
 	{#if activeTab === 'debug'}
-		<DebugPanel snapshot={debugSnapshot} onRefresh={() => controller.refresh()} />
+		<DebugPanel
+			snapshot={debugSnapshot}
+			onRefresh={() => controller.refresh(true)}
+		/>
 	{/if}
 </div>
