@@ -1,6 +1,6 @@
 {
 	"id": "obsidian-meta-graph",
-	"name": "Knowledge Workspace",
+	"name": "Meta graph",
 	"version": "1.0.0",
 	"minAppVersion": "1.7.2",
 	"description": "Explore note metadata as a local graph or directed flow.",
