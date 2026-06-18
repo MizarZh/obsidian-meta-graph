@@ -71,7 +71,10 @@
 				lastProjection = nextState.projection;
 				lastMode = nextState.mode;
 				lastFlowEdgeStyle = nextState.flowEdgeStyle;
-				void rebuildGraph(modeChanged || flowStyleChanged).catch(
+				void rebuildGraph(
+					modeChanged || flowStyleChanged,
+					flowStyleChanged,
+				).catch(
 					(error: unknown) => {
 					controller.setRendererDebugState({
 						status: 'error',
@@ -94,7 +97,10 @@
 		};
 	});
 
-	async function rebuildGraph(fitAfterRender = false): Promise<void> {
+	async function rebuildGraph(
+		fitAfterRender = false,
+		forceLayout = false,
+	): Promise<void> {
 		const version = ++renderVersion;
 
 		if (
@@ -140,7 +146,7 @@
 			container: readContainerSize(),
 			runtimeGraph: serializeRuntimeGraph(graph),
 		});
-		await applyStableLayout(graph, positions, newNodeIds);
+		await applyStableLayout(graph, positions, newNodeIds, forceLayout);
 		if (version !== renderVersion) {
 			return;
 		}
@@ -210,9 +216,11 @@
 		graph: RuntimeGraph,
 		positions: Map<string, GraphPosition>,
 		newNodeIds: string[],
+		forceLayout: boolean,
 	): Promise<void> {
 		const firstLayout = positions.size === 0;
-		const needsLayout = firstLayout || newNodeIds.length > 0;
+		const needsLayout =
+			forceLayout || firstLayout || newNodeIds.length > 0;
 
 		if (workspaceState.mode === 'flow') {
 			graph.forEachEdge((edge, attributes) => {
