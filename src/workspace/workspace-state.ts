@@ -1,11 +1,15 @@
 import type { WorkspaceState } from '../core/types';
 import { DEFAULT_GRAPH_QUERY } from '../query/graph-query';
 
-export function createWorkspaceState(maxNodes: number): WorkspaceState {
+export function createWorkspaceState(
+	maxNodes: number,
+	fadeDistance = 1.5,
+): WorkspaceState {
 	return {
 		mode: 'graph',
 		flowEdgeStyle: 'orthogonal',
 		flowDirection: 'LR',
+		fadeDistance,
 		layoutRevision: 0,
 		query: {
 			...DEFAULT_GRAPH_QUERY,

@@ -36,10 +36,17 @@ export class KnowledgeWorkspaceView extends ItemView {
 			this.app,
 			this.plugin.settings.maxNodes,
 			this.plugin.settings.debug,
+			this.plugin.settings.fadeDistance,
 		);
 		this.component = mount(Workspace, {
 			target: this.contentEl,
-			props: { controller: this.controller },
+			props: {
+				controller: this.controller,
+				onFadeDistanceCommit: (fadeDistance: number) => {
+					this.plugin.settings.fadeDistance = fadeDistance;
+					void this.plugin.saveSettings();
+				},
+			},
 		});
 
 		this.registerEvent(
@@ -62,6 +69,10 @@ export class KnowledgeWorkspaceView extends ItemView {
 			),
 		);
 		this.controller.initialize(this.plugin.getLastActiveFile());
+	}
+
+	updateDisplaySettings(): void {
+		this.controller?.setFadeDistance(this.plugin.settings.fadeDistance);
 	}
 
 	async onClose(): Promise<void> {

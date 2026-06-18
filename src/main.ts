@@ -38,6 +38,13 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
+		for (const leaf of this.app.workspace.getLeavesOfType(
+			VIEW_TYPE_KNOWLEDGE_WORKSPACE,
+		)) {
+			if (leaf.view instanceof KnowledgeWorkspaceView) {
+				leaf.view.updateDisplaySettings();
+			}
+		}
 	}
 
 	getLastActiveFile(): TFile | null {
@@ -45,9 +52,13 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 	}
 
 	private async loadSettings(): Promise<void> {
-		this.settings = {
+		const settings = {
 			...DEFAULT_SETTINGS,
 			...((await this.loadData()) as Partial<KnowledgeWorkspaceSettings>),
+		};
+		this.settings = {
+			...settings,
+			fadeDistance: clamp(settings.fadeDistance, 0.25, 4),
 		};
 	}
 
@@ -68,4 +79,10 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 		}
 		await this.app.workspace.revealLeaf(leaf);
 	}
+}
+
+function clamp(value: number, minimum: number, maximum: number): number {
+	return Number.isFinite(value)
+		? Math.min(maximum, Math.max(minimum, value))
+		: minimum;
 }

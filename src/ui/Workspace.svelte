@@ -18,10 +18,17 @@
 	import type { WorkspaceController } from '../workspace/workspace-controller';
 	import FilterPanel from './FilterPanel.svelte';
 	import DebugPanel from './DebugPanel.svelte';
+	import DisplayControls from './DisplayControls.svelte';
 	import Inspector from './Inspector.svelte';
 	import Toolbar from './Toolbar.svelte';
 
-	let { controller }: { controller: WorkspaceController } = $props();
+	let {
+		controller,
+		onFadeDistanceCommit,
+	}: {
+		controller: WorkspaceController;
+		onFadeDistanceCommit: (fadeDistance: number) => void;
+	} = $props();
 	let workspaceState: WorkspaceState = $state(getInitialState());
 	let canvas: HTMLDivElement;
 	let renderer: SigmaRenderer | undefined;
@@ -80,6 +87,8 @@
 				nextState.nodeStyleRules !== lastNodeStyleRules ||
 				nextState.graphLinkStyleRules !== lastGraphLinkStyleRules ||
 				nextState.flowLinkStyleRules !== lastFlowLinkStyleRules;
+			const displaySettingsChanged =
+				nextState.fadeDistance !== workspaceState.fadeDistance;
 			const shouldRebuild =
 				nextState.projection !== lastProjection ||
 				nextState.mode !== lastMode ||
@@ -88,6 +97,9 @@
 				nextState.layoutRevision !== lastLayoutRevision ||
 				styleRulesChanged;
 			workspaceState = nextState;
+			if (displaySettingsChanged) {
+				renderer?.setFadeDistance(nextState.fadeDistance);
+			}
 			if (shouldRebuild) {
 				lastProjection = nextState.projection;
 				lastMode = nextState.mode;
@@ -193,7 +205,12 @@
 		if (renderer) {
 			renderer.setGraph(graph);
 		} else {
-			const nextRenderer = new SigmaRenderer(graph, canvas, palette);
+			const nextRenderer = new SigmaRenderer(
+				graph,
+				canvas,
+				palette,
+				workspaceState.fadeDistance,
+			);
 			renderer = nextRenderer;
 			unbindEvents = bindGraphEvents(nextRenderer, {
 				onSelect: (nodeId) => controller.selectNode(nodeId),
@@ -412,6 +429,11 @@
 		/>
 		<main class="knowledge-workspace-main">
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+			<DisplayControls
+				fadeDistance={workspaceState.fadeDistance}
+				onInput={(value) => controller.setFadeDistance(value)}
+				onCommit={onFadeDistanceCommit}
+			/>
 			{#if workspaceState.projection?.nodes.length === 0}
 				<div class="knowledge-workspace-empty">No matching metadata relationships.</div>
 			{/if}

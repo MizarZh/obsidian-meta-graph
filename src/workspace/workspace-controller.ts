@@ -36,8 +36,9 @@ export class WorkspaceController {
 		private readonly app: App,
 		maxNodes: number,
 		private readonly debug: boolean,
+		fadeDistance = 1.5,
 	) {
-		this.state = createWorkspaceState(maxNodes);
+		this.state = createWorkspaceState(maxNodes, fadeDistance);
 	}
 
 	get snapshot(): WorkspaceState {
@@ -142,6 +143,11 @@ export class WorkspaceController {
 
 	setFlowDirection(flowDirection: FlowDirection): void {
 		this.state = { ...this.state, flowDirection };
+		this.emit();
+	}
+
+	setFadeDistance(fadeDistance: number): void {
+		this.state = { ...this.state, fadeDistance };
 		this.emit();
 	}
 

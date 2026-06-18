@@ -2,7 +2,6 @@ import {
 	EdgeProgram,
 	createEdgeArrowHeadProgram,
 	createEdgeCompoundProgram,
-	drawStraightEdgeLabel,
 } from 'sigma/rendering';
 import type { EdgeDisplayData, NodeDisplayData, RenderParams } from 'sigma/types';
 import { floatColor } from 'sigma/utils';
@@ -84,8 +83,6 @@ void main(void) {
 		RuntimeNodeAttributes,
 		RuntimeEdgeAttributes
 	> {
-		drawLabel = drawStraightEdgeLabel;
-
 		getDefinition() {
 			return {
 				VERTICES: 6,
@@ -196,17 +193,11 @@ const DottedEdgeProgram = createPatternedEdgeProgram(2, 5);
 export const DashedArrowEdgeProgram = createEdgeCompoundProgram<
 	RuntimeNodeAttributes,
 	RuntimeEdgeAttributes
->(
-	[DashedEdgeProgram, createEdgeArrowHeadProgram()],
-	drawStraightEdgeLabel,
-);
+>([DashedEdgeProgram, createEdgeArrowHeadProgram()]);
 
 export const DottedArrowEdgeProgram = createEdgeCompoundProgram<
 	RuntimeNodeAttributes,
 	RuntimeEdgeAttributes
->(
-	[DottedEdgeProgram, createEdgeArrowHeadProgram()],
-	drawStraightEdgeLabel,
-);
+>([DottedEdgeProgram, createEdgeArrowHeadProgram()]);
 
 export { DashedEdgeProgram, DottedEdgeProgram };

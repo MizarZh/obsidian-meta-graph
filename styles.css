@@ -212,6 +212,48 @@
 	inset: 0;
 }
 
+.knowledge-workspace-display-controls {
+	position: absolute;
+	top: var(--size-4-3);
+	right: var(--size-4-3);
+	z-index: 5;
+	width: 220px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-primary-alt);
+	box-shadow: var(--shadow-s);
+}
+
+.knowledge-workspace-display-controls summary {
+	padding: var(--size-4-2) var(--size-4-3);
+	cursor: pointer;
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold);
+}
+
+.knowledge-workspace-display-controls[open] summary {
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.knowledge-workspace-display-controls label {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	gap: var(--size-4-1) var(--size-4-2);
+	align-items: center;
+	padding: var(--size-4-3);
+	font-size: var(--font-ui-small);
+}
+
+.knowledge-workspace-display-controls input {
+	grid-column: 1 / -1;
+	width: 100%;
+}
+
+.knowledge-workspace-display-controls output {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
 .knowledge-workspace-empty {
 	position: absolute;
 	inset: 50% auto auto 50%;

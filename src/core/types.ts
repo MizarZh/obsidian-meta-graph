@@ -132,6 +132,7 @@ export interface WorkspaceState {
 	mode: ViewMode;
 	flowEdgeStyle: FlowEdgeStyle;
 	flowDirection: FlowDirection;
+	fadeDistance: number;
 	layoutRevision: number;
 	currentNoteId?: NodeId;
 	selectedNodeId?: NodeId;

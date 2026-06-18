@@ -1,6 +1,12 @@
 import Sigma from 'sigma';
-import { createEdgeArrowProgram } from 'sigma/rendering';
-import type { NodeLabelDrawingFunction } from 'sigma/rendering';
+import {
+	createEdgeArrowProgram,
+	drawStraightEdgeLabel,
+} from 'sigma/rendering';
+import type {
+	EdgeLabelDrawingFunction,
+	NodeLabelDrawingFunction,
+} from 'sigma/rendering';
 import type { NodeDisplayData, EdgeDisplayData } from 'sigma/types';
 import {
 	type RuntimeEdgeAttributes,
@@ -9,6 +15,7 @@ import {
 } from './graphology-adapter';
 import { immediateNeighborhood } from './graph-events';
 import type { GraphPalette } from './graph-styles';
+import { calculateLabelOpacity } from './label-opacity';
 import {
 	DashedArrowEdgeProgram,
 	DashedEdgeProgram,
@@ -22,12 +29,15 @@ export class SigmaRenderer {
 	private hoveredNodeId?: string;
 	private pinnedNodeId?: string;
 	private hoveredNeighborhood = new Set<string>();
+	private fadeDistance: number;
 
 	constructor(
 		private graph: RuntimeGraph,
 		container: HTMLElement,
 		private readonly palette: GraphPalette,
+		fadeDistance = 1.5,
 	) {
+		this.fadeDistance = fadeDistance;
 		this.instance = new Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>(
 			graph,
 			container,
@@ -45,11 +55,17 @@ export class SigmaRenderer {
 				},
 				nodeReducer: (node, data) => this.reduceNode(node, data),
 				edgeReducer: (edge, data) => this.reduceEdge(edge, data),
-				defaultDrawNodeLabel: createNodeLabelDrawer(palette),
+				defaultDrawNodeLabel: createNodeLabelDrawer(
+					palette,
+					() => this.getCurrentLabelOpacity(),
+				),
+				defaultDrawEdgeLabel: createEdgeLabelDrawer(
+					() => this.getCurrentLabelOpacity(),
+				),
 				renderEdgeLabels: true,
 				labelColor: { color: palette.label },
 				labelDensity: 0.8,
-				labelRenderedSizeThreshold: 7,
+				labelRenderedSizeThreshold: 0,
 				zIndex: true,
 			},
 		);
@@ -72,6 +88,11 @@ export class SigmaRenderer {
 	setHovered(nodeId?: string): void {
 		this.hoveredNodeId = nodeId;
 		this.updateHoveredNeighborhood();
+		this.instance.refresh();
+	}
+
+	setFadeDistance(fadeDistance: number): void {
+		this.fadeDistance = fadeDistance;
 		this.instance.refresh();
 	}
 
@@ -194,10 +215,18 @@ export class SigmaRenderer {
 				? immediateNeighborhood(this.graph, nodeId)
 				: new Set();
 	}
+
+	private getCurrentLabelOpacity(): number {
+		return calculateLabelOpacity(
+			this.fadeDistance,
+			this.instance?.getCamera().getState().ratio ?? 1,
+		);
+	}
 }
 
 function createNodeLabelDrawer(
 	palette: GraphPalette,
+	getOpacity: () => number,
 ): NodeLabelDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
 	return (context, data, settings) => {
 		if (!data.label) {
@@ -215,6 +244,7 @@ function createNodeLabelDrawer(
 		const width = textWidth + paddingX * 2;
 		const height = settings.labelSize + paddingY * 2;
 		const top = data.y - height / 2;
+		context.globalAlpha = getOpacity();
 
 		context.beginPath();
 		drawRoundedRect(context, x - paddingX, top, width, height, 4);
@@ -222,6 +252,23 @@ function createNodeLabelDrawer(
 		context.fill();
 		context.fillStyle = palette.label;
 		context.fillText(data.label, x, data.y);
+		context.restore();
+	};
+}
+
+function createEdgeLabelDrawer(
+	getOpacity: () => number,
+): EdgeLabelDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
+	return (context, edgeData, sourceData, targetData, settings) => {
+		context.save();
+		context.globalAlpha = getOpacity();
+		drawStraightEdgeLabel(
+			context,
+			edgeData,
+			sourceData,
+			targetData,
+			settings,
+		);
 		context.restore();
 	};
 }
