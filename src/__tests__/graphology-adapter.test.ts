@@ -5,6 +5,7 @@ import {
 	type GraphPosition,
 } from '../graph/graphology-adapter';
 import type { GraphPalette } from '../graph/graph-styles';
+import { applyOrthogonalFlowEdges } from '../layouts/elk-flow-layout';
 
 const palette: GraphPalette = {
 	node: '#111111',
@@ -68,5 +69,36 @@ describe('GraphologyAdapter positions', () => {
 			fixed: true,
 		});
 		expect(graph.getNodeAttribute('B.md', 'fixed')).toBe(false);
+	});
+
+	it('splits non-horizontal flow edges into orthogonal segments', () => {
+		const graph = new GraphologyAdapter(palette).fromProjection({
+			...projection,
+			edges: [
+				{
+					id: 'A-to-B',
+					source: 'A.md',
+					target: 'B.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'leads-to',
+				},
+			],
+		});
+		graph.mergeNodeAttributes('A.md', { x: 0, y: 0 });
+		graph.mergeNodeAttributes('B.md', { x: 100, y: 80 });
+
+		applyOrthogonalFlowEdges(graph);
+
+		expect(graph.hasEdge('A-to-B')).toBe(false);
+		expect(graph.order).toBe(4);
+		expect(graph.size).toBe(3);
+		expect(graph.getEdgeAttribute('A-to-B__segment_1', 'type')).toBe('line');
+		expect(graph.getEdgeAttribute('A-to-B__segment_2', 'type')).toBe('line');
+		expect(graph.getEdgeAttribute('A-to-B__segment_3', 'type')).toBe('arrow');
+		expect(
+			graph.getNodeAttribute('__flow-bend__A-to-B__1', 'isBend'),
+		).toBe(true);
 	});
 });

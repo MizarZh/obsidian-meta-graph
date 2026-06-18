@@ -3,6 +3,7 @@ import { MetadataIndexer } from '../core/metadata-indexer';
 import { normalizePath } from '../core/knowledge-index';
 import type {
 	DebugSnapshot,
+	FlowEdgeStyle,
 	GraphQuery,
 	KnowledgeIndex,
 	MetadataDebugEntry,
@@ -123,6 +124,11 @@ export class WorkspaceController {
 
 	setMode(mode: ViewMode): void {
 		this.state = { ...this.state, mode };
+		this.emit();
+	}
+
+	setFlowEdgeStyle(flowEdgeStyle: FlowEdgeStyle): void {
+		this.state = { ...this.state, flowEdgeStyle };
 		this.emit();
 	}
 

@@ -9,7 +9,10 @@
 	} from '../graph/graphology-adapter';
 	import { readGraphPalette } from '../graph/graph-styles';
 	import { SigmaRenderer } from '../graph/sigma-renderer';
-	import { ElkFlowLayout } from '../layouts/elk-flow-layout';
+	import {
+		applyOrthogonalFlowEdges,
+		ElkFlowLayout,
+	} from '../layouts/elk-flow-layout';
 	import { ForceAtlasLayout } from '../layouts/force-layout';
 	import type { WorkspaceController } from '../workspace/workspace-controller';
 	import FilterPanel from './FilterPanel.svelte';
@@ -25,6 +28,7 @@
 	let renderVersion = 0;
 	let lastProjection: WorkspaceState['projection'];
 	let lastMode: WorkspaceState['mode'] | undefined;
+	let lastFlowEdgeStyle: WorkspaceState['flowEdgeStyle'] | undefined;
 	let activeTab: 'workspace' | 'debug' = $state('workspace');
 	const positionsByMode: Record<
 		WorkspaceState['mode'],
@@ -55,11 +59,14 @@
 			const modeChanged =
 				lastMode !== undefined && nextState.mode !== lastMode;
 			const shouldRebuild =
-				nextState.projection !== lastProjection || nextState.mode !== lastMode;
+				nextState.projection !== lastProjection ||
+				nextState.mode !== lastMode ||
+				nextState.flowEdgeStyle !== lastFlowEdgeStyle;
 			workspaceState = nextState;
 			if (shouldRebuild) {
 				lastProjection = nextState.projection;
 				lastMode = nextState.mode;
+				lastFlowEdgeStyle = nextState.flowEdgeStyle;
 				void rebuildGraph(modeChanged).catch((error: unknown) => {
 					controller.setRendererDebugState({
 						status: 'error',
@@ -217,12 +224,15 @@
 			});
 			if (needsLayout) {
 				const preserved = new Map(positions);
-				await new ElkFlowLayout().apply(graph);
+				await new ElkFlowLayout(workspaceState.flowEdgeStyle).apply(graph);
 				for (const [nodeId, position] of preserved) {
 					if (graph.hasNode(nodeId)) {
 						graph.mergeNodeAttributes(nodeId, position);
 					}
 				}
+			}
+			if (workspaceState.flowEdgeStyle === 'orthogonal') {
+				applyOrthogonalFlowEdges(graph);
 			}
 		} else {
 			graph.forEachEdge((edge) =>
@@ -234,7 +244,9 @@
 		}
 
 		graph.forEachNode((nodeId, attributes) => {
-			positions.set(nodeId, { x: attributes.x, y: attributes.y });
+			if (!attributes.isBend) {
+				positions.set(nodeId, { x: attributes.x, y: attributes.y });
+			}
 			graph.setNodeAttribute(nodeId, 'fixed', false);
 		});
 	}
@@ -280,7 +292,9 @@
 	<div class:knowledge-workspace-hidden={activeTab !== 'workspace'}>
 		<Toolbar
 			mode={workspaceState.mode}
+			flowEdgeStyle={workspaceState.flowEdgeStyle}
 			onMode={(mode) => controller.setMode(mode)}
+			onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
 			onCurrentNote={focusCurrentNote}
 			onFit={() => renderer?.fit()}
 			onRefresh={() => controller.refresh()}

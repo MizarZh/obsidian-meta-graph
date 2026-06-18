@@ -93,6 +93,15 @@ export class SigmaRenderer {
 		node: string,
 		data: RuntimeNodeAttributes,
 	): Partial<NodeDisplayData> {
+		if (data.isBend) {
+			return {
+				...data,
+				label: null,
+				size: 0.01,
+				highlighted: false,
+				zIndex: -1,
+			};
+		}
 		if (this.hoveredNodeId && !this.hoveredNeighborhood.has(node)) {
 			return {
 				...data,
@@ -130,7 +139,10 @@ export class SigmaRenderer {
 		}
 		const [source, target] = this.graph.extremities(edge);
 		const connected =
-			source === this.hoveredNodeId || target === this.hoveredNodeId;
+			source === this.hoveredNodeId ||
+			target === this.hoveredNodeId ||
+			data.logicalSource === this.hoveredNodeId ||
+			data.logicalTarget === this.hoveredNodeId;
 		return connected
 			? { ...data, size: data.size + 1, zIndex: 2 }
 			: {

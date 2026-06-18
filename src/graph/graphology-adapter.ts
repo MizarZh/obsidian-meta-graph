@@ -17,6 +17,7 @@ export interface RuntimeNodeAttributes {
 	folder: string;
 	domains: string[];
 	fixed?: boolean;
+	isBend?: boolean;
 }
 
 export interface RuntimeEdgeAttributes {
@@ -25,6 +26,9 @@ export interface RuntimeEdgeAttributes {
 	size: number;
 	color: string;
 	hidden: boolean;
+	logicalEdgeId?: string;
+	logicalSource?: string;
+	logicalTarget?: string;
 }
 
 export type RuntimeGraph = Graph<
