@@ -440,7 +440,9 @@
 			flowEdgeStyle={workspaceState.flowEdgeStyle}
 			flowDirection={workspaceState.flowDirection}
 			onSelectChart={(id) => controller.setActiveChart(id)}
-			onAddChart={(mode) => controller.addChart(mode)}
+			onAddChart={() => controller.addChart()}
+			onRenameChart={(name) => controller.setActiveChartName(name)}
+			onChartType={(mode) => controller.setActiveChartType(mode)}
 			onDeleteChart={() => controller.deleteActiveChart()}
 			onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
 			onFlowDirection={(direction) =>

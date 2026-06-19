@@ -163,9 +163,9 @@ export class WorkspaceController {
 		this.runQuery();
 	}
 
-	addChart(type: ViewMode): void {
+	addChart(): void {
 		const chart = createDefaultChart(
-			type,
+			'graph',
 			this.state.query.maxNodes,
 			this.state.fadeDistance,
 			this.state.charts,
@@ -175,6 +175,36 @@ export class WorkspaceController {
 			charts: [...this.state.charts, chart],
 		};
 		this.setActiveChart(chart.id);
+	}
+
+	setActiveChartName(name: string): void {
+		const normalized = name.trim();
+		if (!normalized) {
+			return;
+		}
+		this.state = this.updateActiveChart({ name: normalized });
+		this.emit();
+	}
+
+	setActiveChartType(type: ViewMode): void {
+		const activeChart = this.getActiveChart();
+		if (activeChart.type === type) {
+			return;
+		}
+		const defaultChart = createDefaultChart(
+			type,
+			this.state.query.maxNodes,
+			this.state.fadeDistance,
+			this.state.charts.filter((chart) => chart.id !== activeChart.id),
+		);
+		this.state = this.updateActiveChart(
+			{
+				type,
+				layout: defaultChart.layout,
+			},
+			true,
+		);
+		this.runQuery();
 	}
 
 	deleteActiveChart(): void {
