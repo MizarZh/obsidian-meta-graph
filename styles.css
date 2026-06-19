@@ -40,19 +40,75 @@
 
 .knowledge-workspace-view-switcher {
 	position: relative;
+	display: flex;
+	flex: 0 1 auto;
+	gap: var(--size-4-1);
+	align-items: center;
+	min-width: 0;
 }
 
 .knowledge-workspace-view-trigger {
-	display: inline-flex;
-	gap: var(--size-4-1);
+	display: inline-grid;
+	grid-template-columns: 18px minmax(0, 1fr) 8px;
+	gap: var(--size-4-2);
 	align-items: center;
-	max-width: 240px;
-	padding-inline: var(--size-4-2);
+	min-width: 96px;
+	max-width: min(260px, 42vw);
+	height: 36px;
+	padding: 0 var(--size-4-3);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary-alt);
+	box-shadow: var(--shadow-s);
+	color: var(--text-normal);
+	font-weight: var(--font-medium, 500);
+	text-align: left;
+	transition:
+		border-color 120ms ease,
+		background-color 120ms ease,
+		box-shadow 120ms ease;
+}
+
+.knowledge-workspace-view-trigger:hover,
+.knowledge-workspace-view-trigger[aria-expanded='true'] {
+	border-color: var(--background-modifier-border-hover, var(--background-modifier-border));
+	background: var(--background-primary);
+	box-shadow: var(--shadow-l, var(--shadow-s));
+}
+
+.knowledge-workspace-view-trigger[aria-expanded='true'] {
+	outline: 2px solid var(--background-modifier-border-focus, var(--interactive-accent));
+	outline-offset: 0;
 }
 
 .knowledge-workspace-view-config-button {
-	width: 28px;
-	padding-inline: 0;
+	display: grid;
+	place-items: center;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary-alt);
+	box-shadow: var(--shadow-s);
+	color: var(--text-muted);
+}
+
+.knowledge-workspace-view-config-button:hover {
+	border-color: var(--background-modifier-border-hover, var(--background-modifier-border));
+	background: var(--background-primary);
+	color: var(--text-normal);
+}
+
+.knowledge-workspace-view-config-button span {
+	position: relative;
+	width: 4px;
+	height: 4px;
+	border-radius: 50%;
+	background: currentColor;
+	box-shadow:
+		-6px 0 0 currentColor,
+		6px 0 0 currentColor;
 }
 
 .knowledge-workspace-view-name {
@@ -62,8 +118,12 @@
 }
 
 .knowledge-workspace-view-caret {
+	width: 7px;
+	height: 7px;
+	border-right: 1.5px solid currentColor;
+	border-bottom: 1.5px solid currentColor;
 	color: var(--text-muted);
-	font-size: var(--font-ui-smaller);
+	transform: rotate(45deg) translateY(-2px);
 }
 
 .knowledge-workspace-view-icon {
@@ -72,7 +132,7 @@
 	flex: 0 0 auto;
 	width: 16px;
 	height: 16px;
-	color: var(--text-muted);
+	color: var(--text-faint);
 }
 
 .knowledge-workspace-view-icon.graph {
@@ -129,23 +189,54 @@
 .knowledge-workspace-view-config {
 	position: absolute;
 	left: 0;
-	top: calc(100% + var(--size-4-1));
+	top: calc(100% + var(--size-4-2));
 	z-index: 20;
-	width: 292px;
+	width: min(360px, calc(100vw - var(--size-4-6, 24px)));
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-m);
 	background: var(--background-primary);
-	box-shadow: var(--shadow-s);
+	box-shadow: var(--shadow-l, var(--shadow-s));
+	overflow: hidden;
 }
 
 .knowledge-workspace-view-search {
+	position: relative;
 	display: block;
-	padding: var(--size-4-2);
+	padding: var(--size-4-3);
 	border-bottom: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+}
+
+.knowledge-workspace-view-search span {
+	position: absolute;
+	left: calc(var(--size-4-3) + 10px);
+	top: 50%;
+	width: 12px;
+	height: 12px;
+	border: 1.5px solid var(--text-faint);
+	border-radius: 50%;
+	transform: translateY(-55%);
+	pointer-events: none;
+}
+
+.knowledge-workspace-view-search span::after {
+	content: "";
+	position: absolute;
+	right: -4px;
+	bottom: -3px;
+	width: 6px;
+	height: 1.5px;
+	border-radius: 999px;
+	background: var(--text-faint);
+	transform: rotate(45deg);
 }
 
 .knowledge-workspace-view-search input {
 	width: 100%;
+	height: 34px;
+	padding-left: 32px;
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
 }
 
 .knowledge-workspace-view-list {
@@ -160,27 +251,43 @@
 	gap: var(--size-4-2);
 	align-items: center;
 	width: 100%;
-	padding: var(--size-4-2) var(--size-4-3);
+	min-height: 38px;
+	padding: var(--size-4-2) var(--size-4-4);
 	border: 0;
 	border-radius: 0;
 	background: transparent;
 	box-shadow: none;
+	color: var(--text-muted);
 	text-align: left;
 }
 
 .knowledge-workspace-add-view:hover {
 	background: var(--background-modifier-hover);
+	color: var(--text-normal);
 }
 
 .knowledge-workspace-view-row {
+	position: relative;
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 28px;
+	grid-template-columns: minmax(0, 1fr) 36px;
 	align-items: center;
+	min-height: 38px;
 }
 
 .knowledge-workspace-view-row:hover,
 .knowledge-workspace-view-row.active {
 	background: var(--background-modifier-hover);
+}
+
+.knowledge-workspace-view-row.active::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 7px;
+	bottom: 7px;
+	width: 3px;
+	border-radius: 0 999px 999px 0;
+	background: var(--interactive-accent);
 }
 
 .knowledge-workspace-view-row button {
@@ -197,7 +304,9 @@
 	gap: var(--size-4-2);
 	align-items: center;
 	min-width: 0;
-	padding: var(--size-4-2) var(--size-4-3);
+	height: 100%;
+	padding: var(--size-4-2) var(--size-4-4);
+	color: var(--text-normal);
 	text-align: left;
 }
 
@@ -208,26 +317,40 @@
 }
 
 .knowledge-workspace-view-row-config {
-	width: 28px;
+	display: grid;
+	place-items: center;
+	width: 36px;
 	height: 100%;
 	color: var(--text-muted);
 }
 
+.knowledge-workspace-view-row-config span {
+	width: 7px;
+	height: 7px;
+	border-right: 1.5px solid currentColor;
+	border-bottom: 1.5px solid currentColor;
+	transform: rotate(-45deg);
+}
+
+.knowledge-workspace-view-row-config:hover {
+	color: var(--text-normal);
+}
+
 .knowledge-workspace-add-view {
 	border-top: 1px solid var(--background-modifier-border);
-	color: var(--text-muted);
 }
 
 .knowledge-workspace-view-config {
-	padding: var(--size-4-2);
+	padding: var(--size-4-3);
+	background: var(--background-primary);
 }
 
 .knowledge-workspace-view-config header {
 	display: grid;
-	grid-template-columns: 28px 1fr 28px;
-	gap: var(--size-4-1);
+	grid-template-columns: 32px 1fr 32px;
+	gap: var(--size-4-2);
 	align-items: center;
-	margin-bottom: var(--size-4-2);
+	margin-bottom: var(--size-4-3);
 	color: var(--text-muted);
 	font-size: var(--font-ui-small);
 }
@@ -237,15 +360,74 @@
 	font-weight: var(--font-semibold);
 }
 
+.knowledge-workspace-icon-button {
+	display: grid;
+	place-items: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary-alt);
+	box-shadow: var(--shadow-s);
+	color: var(--text-muted);
+}
+
+.knowledge-workspace-icon-button:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.knowledge-workspace-icon-button.back span {
+	width: 8px;
+	height: 8px;
+	border-left: 1.5px solid currentColor;
+	border-bottom: 1.5px solid currentColor;
+	transform: rotate(45deg) translateX(1px);
+}
+
+.knowledge-workspace-icon-button.close span {
+	position: relative;
+	width: 12px;
+	height: 12px;
+}
+
+.knowledge-workspace-icon-button.close span::before,
+.knowledge-workspace-icon-button.close span::after {
+	content: "";
+	position: absolute;
+	left: 5px;
+	top: 0;
+	width: 1.5px;
+	height: 12px;
+	border-radius: 999px;
+	background: currentColor;
+}
+
+.knowledge-workspace-icon-button.close span::before {
+	transform: rotate(45deg);
+}
+
+.knowledge-workspace-icon-button.close span::after {
+	transform: rotate(-45deg);
+}
+
 .knowledge-workspace-view-title-input,
 .knowledge-workspace-view-config label,
 .knowledge-workspace-view-config select {
 	width: 100%;
 }
 
+.knowledge-workspace-view-title-input,
+.knowledge-workspace-view-config select {
+	height: 36px;
+	border-radius: var(--radius-s);
+	background: var(--background-primary-alt);
+}
+
 .knowledge-workspace-view-config label {
 	display: grid;
-	gap: var(--size-4-1);
+	gap: var(--size-4-2);
 	margin-top: var(--size-4-3);
 	color: var(--text-muted);
 	font-size: var(--font-ui-small);
@@ -307,12 +489,9 @@
 
 .knowledge-workspace-filters {
 	overflow: auto;
-	padding: var(--size-4-3);
-	background: var(--background-secondary);
-}
-
-.knowledge-workspace-filters {
+	padding: var(--size-4-4);
 	border-right: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
 }
 
 .knowledge-workspace-filters h3 {
@@ -320,24 +499,97 @@
 }
 
 .knowledge-workspace-filters section {
-	margin-bottom: var(--size-4-5);
+	margin-bottom: var(--size-4-6);
+}
+
+.knowledge-workspace-filters section:last-child {
+	margin-bottom: 0;
 }
 
 .knowledge-workspace-filters section > header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-bottom: var(--size-4-2);
+	min-height: 34px;
+	margin-bottom: var(--size-4-3);
 }
 
 .knowledge-workspace-filters section > header h3 {
 	margin: 0;
+	overflow: hidden;
+	color: var(--text-normal);
+	font-size: var(--font-ui-medium);
+	font-weight: var(--font-semibold);
+	line-height: 1.25;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
-.knowledge-workspace-filters section > header button {
-	width: 28px;
-	height: 28px;
+.knowledge-workspace-add-rule-button,
+.knowledge-workspace-remove-rule-button {
+	display: grid;
+	place-items: center;
 	padding: 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+	box-shadow: var(--shadow-s);
+	color: var(--text-muted);
+}
+
+.knowledge-workspace-add-rule-button {
+	width: 32px;
+	height: 32px;
+}
+
+.knowledge-workspace-add-rule-button:hover,
+.knowledge-workspace-remove-rule-button:hover {
+	border-color: var(--background-modifier-border-hover, var(--background-modifier-border));
+	background: var(--background-primary-alt);
+	color: var(--text-normal);
+}
+
+.knowledge-workspace-add-rule-button span,
+.knowledge-workspace-remove-rule-button span {
+	position: relative;
+	width: 12px;
+	height: 12px;
+}
+
+.knowledge-workspace-add-rule-button span::before,
+.knowledge-workspace-add-rule-button span::after,
+.knowledge-workspace-remove-rule-button span::before,
+.knowledge-workspace-remove-rule-button span::after {
+	content: "";
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 12px;
+	height: 1.5px;
+	border-radius: 999px;
+	background: currentColor;
+	transform: translate(-50%, -50%);
+}
+
+.knowledge-workspace-add-rule-button span::after {
+	transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.knowledge-workspace-remove-rule-button {
+	width: 34px;
+	height: 34px;
+}
+
+.knowledge-workspace-remove-rule-button:hover {
+	color: var(--text-error);
+}
+
+.knowledge-workspace-remove-rule-button span::before {
+	transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.knowledge-workspace-remove-rule-button span::after {
+	transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .knowledge-workspace-filters > label,
@@ -365,39 +617,63 @@
 	flex-direction: row;
 	align-items: center;
 	gap: var(--size-4-2);
+	min-height: 26px;
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
 }
 
 .knowledge-workspace-rule {
 	display: flex;
 	flex-direction: column;
-	gap: var(--size-4-2);
+	gap: var(--size-4-3);
 	margin-bottom: var(--size-4-3);
-	padding: var(--size-4-2);
+	padding: var(--size-4-3);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-s);
 	background: var(--background-primary);
+	box-shadow: var(--shadow-s);
 }
 
 .knowledge-workspace-rule-row {
 	display: grid;
-	grid-template-columns: minmax(80px, 0.8fr) minmax(90px, 1fr) auto;
-	gap: var(--size-4-1);
+	grid-template-columns: minmax(88px, 0.8fr) minmax(120px, 1fr) 34px;
+	gap: var(--size-4-2);
 	align-items: center;
 }
 
 .knowledge-workspace-rule-row.compact {
 	grid-template-columns: 1fr 1fr;
+	gap: var(--size-4-4);
 }
 
 .knowledge-workspace-rule-row.filter {
-	grid-template-columns: minmax(60px, 0.6fr) minmax(70px, 0.7fr) minmax(90px, 1fr) auto;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 34px;
+}
+
+.knowledge-workspace-rule-row.filter input {
+	grid-column: 1 / 3;
+}
+
+.knowledge-workspace-rule-row.filter .knowledge-workspace-remove-rule-button {
+	grid-column: 3;
+	grid-row: 1;
 }
 
 .knowledge-workspace-rule-row.compact label,
 .knowledge-workspace-rule-label {
 	display: flex;
-	gap: var(--size-4-1);
+	gap: var(--size-4-2);
 	align-items: center;
+	min-width: 0;
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+}
+
+.knowledge-workspace-rule-row.compact label > span,
+.knowledge-workspace-rule-label > span {
+	flex: 0 0 auto;
+	color: var(--text-normal);
+	font-weight: var(--font-medium, 500);
 }
 
 .knowledge-workspace-rule-row input,
@@ -406,21 +682,64 @@
 .knowledge-workspace-rule-label select {
 	min-width: 0;
 	width: 100%;
+	height: 34px;
+	border-radius: var(--radius-s);
+	background: var(--background-primary-alt);
+	box-shadow: none;
+	font-size: var(--font-ui-small);
 }
 
 .knowledge-workspace-rule-row input[type='color'] {
 	width: 36px;
-	height: 28px;
-	padding: 2px;
+	height: 26px;
+	padding: 0;
+	border: 0;
+	border-radius: 999px;
+	background: transparent;
+	box-shadow: none;
+	cursor: pointer;
 }
 
-.knowledge-workspace-rule-row button {
-	padding: var(--size-2-1) var(--size-4-2);
+.knowledge-workspace-rule-row input[type='color']::-webkit-color-swatch-wrapper {
+	padding: 0;
+}
+
+.knowledge-workspace-rule-row input[type='color']::-webkit-color-swatch {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 999px;
+	box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
+}
+
+.knowledge-workspace-rule-row input[type='color']::-moz-color-swatch {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 999px;
+	box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
+}
+
+.knowledge-workspace-rule-label input,
+.knowledge-workspace-rule-label select {
+	flex: 1 1 auto;
+}
+
+.knowledge-workspace-rule-row select:hover,
+.knowledge-workspace-rule-row input:hover,
+.knowledge-workspace-rule-label select:hover,
+.knowledge-workspace-rule-label input:hover {
+	border-color: var(--background-modifier-border-hover, var(--background-modifier-border));
+}
+
+.knowledge-workspace-rule-row select:focus,
+.knowledge-workspace-rule-row input:focus,
+.knowledge-workspace-rule-label select:focus,
+.knowledge-workspace-rule-label input:focus {
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 20%, transparent);
 }
 
 .knowledge-workspace-rule-hint {
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
+	line-height: 1.3;
 }
 
 .knowledge-workspace-main {

@@ -119,7 +119,13 @@
 	<section>
 		<header>
 			<h3>Node styles</h3>
-			<button aria-label="Add node style rule" onclick={addNodeRule}>+</button>
+			<button
+				class="knowledge-workspace-add-rule-button"
+				aria-label="Add node style rule"
+				onclick={addNodeRule}
+			>
+				<span aria-hidden="true"></span>
+			</button>
 		</header>
 		{#each nodeStyleRules as rule (rule.id)}
 			<div class="knowledge-workspace-rule">
@@ -147,12 +153,15 @@
 							})}
 					/>
 					<button
+						class="knowledge-workspace-remove-rule-button"
 						aria-label="Remove node style rule"
 						onclick={() =>
 							onNodeStyleRulesChange(
 								nodeStyleRules.filter((item) => item.id !== rule.id),
-							)}>×</button
+							)}
 					>
+						<span aria-hidden="true"></span>
+					</button>
 				</div>
 				<div class="knowledge-workspace-rule-row compact">
 					<label>
@@ -188,7 +197,13 @@
 	<section>
 		<header>
 			<h3>Link styles · {linkStyleMode === 'graph' ? 'Graph' : 'Flow'}</h3>
-			<button aria-label="Add link style rule" onclick={addLinkRule}>+</button>
+			<button
+				class="knowledge-workspace-add-rule-button"
+				aria-label="Add link style rule"
+				onclick={addLinkRule}
+			>
+				<span aria-hidden="true"></span>
+			</button>
 		</header>
 		{#each linkStyleRules as rule (rule.id)}
 			<div class="knowledge-workspace-rule">
@@ -213,12 +228,15 @@
 							})}
 					/>
 					<button
+						class="knowledge-workspace-remove-rule-button"
 						aria-label="Remove link style rule"
 						onclick={() =>
 							onLinkStyleRulesChange(
 								linkStyleRules.filter((item) => item.id !== rule.id),
-							)}>×</button
+							)}
 					>
+						<span aria-hidden="true"></span>
+					</button>
 				</div>
 				<div class="knowledge-workspace-rule-row compact">
 					<label>
@@ -302,7 +320,13 @@
 	<section>
 		<header>
 			<h3>Filters</h3>
-			<button aria-label="Add filter rule" onclick={addFilterRule}>+</button>
+			<button
+				class="knowledge-workspace-add-rule-button"
+				aria-label="Add filter rule"
+				onclick={addFilterRule}
+			>
+				<span aria-hidden="true"></span>
+			</button>
 		</header>
 		{#each query.hiddenNodeRules as rule (rule.id)}
 			<div class="knowledge-workspace-rule">
@@ -341,14 +365,17 @@
 							})}
 					/>
 					<button
+						class="knowledge-workspace-remove-rule-button"
 						aria-label="Remove filter rule"
 						onclick={() =>
 							onChange({
 								hiddenNodeRules: query.hiddenNodeRules.filter(
 									(item) => item.id !== rule.id,
 								),
-							})}>×</button
+							})}
 					>
+						<span aria-hidden="true"></span>
+					</button>
 				</div>
 				<span class="knowledge-workspace-rule-hint">
 					{rule.action === 'show'

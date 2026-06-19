@@ -117,7 +117,7 @@
 				aria-hidden="true"
 			></span>
 			<span class="knowledge-workspace-view-name">{activeChart?.name ?? 'View'}</span>
-			<span class="knowledge-workspace-view-caret" aria-hidden="true">v</span>
+			<span class="knowledge-workspace-view-caret" aria-hidden="true"></span>
 		</button>
 		<button
 			class:active={configOpen}
@@ -125,7 +125,7 @@
 			aria-label="Workspace settings"
 			onclick={() => openConfig()}
 		>
-			...
+			<span aria-hidden="true"></span>
 		</button>
 
 		{#if pickerOpen}
@@ -156,7 +156,7 @@
 								aria-label={`Configure ${chart.name}`}
 								onclick={() => configureChart(chart.id)}
 							>
-								&gt;
+								<span aria-hidden="true"></span>
 							</button>
 						</div>
 					{/each}
@@ -175,13 +175,13 @@
 		{#if configOpen}
 			<div class="knowledge-workspace-view-config" role="dialog" aria-label="Configure view">
 				<header>
-					<button aria-label="Back to views" onclick={() => {
+					<button class="knowledge-workspace-icon-button back" aria-label="Back to views" onclick={() => {
 						configOpen = false;
 						creatingView = false;
 						pickerOpen = true;
-					}}>&lt;</button>
+					}}><span aria-hidden="true"></span></button>
 					<span>{creatingView ? 'Create view' : 'Configure view'}</span>
-					<button aria-label="Close" onclick={closeConfig}>x</button>
+					<button class="knowledge-workspace-icon-button close" aria-label="Close" onclick={closeConfig}><span aria-hidden="true"></span></button>
 				</header>
 				<input
 					class="knowledge-workspace-view-title-input"
