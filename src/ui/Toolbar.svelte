@@ -12,6 +12,7 @@
 		flowDirection,
 		savedWorkspaces,
 		activeWorkspaceId,
+		hasUnsavedChanges,
 		onMode,
 		onFlowEdgeStyle,
 		onFlowDirection,
@@ -27,6 +28,7 @@
 		flowDirection: FlowDirection;
 		savedWorkspaces: SavedWorkspace[];
 		activeWorkspaceId?: string;
+		hasUnsavedChanges: boolean;
 		onMode: (mode: ViewMode) => void;
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
@@ -57,6 +59,9 @@
 				</option>
 			{/each}
 		</select>
+		{#if hasUnsavedChanges}
+			<span class="knowledge-workspace-unsaved">Unsaved changes</span>
+		{/if}
 		<button
 			onclick={() =>
 				activeWorkspaceId ? onSaveWorkspace() : onSaveWorkspaceAs()}>Save</button

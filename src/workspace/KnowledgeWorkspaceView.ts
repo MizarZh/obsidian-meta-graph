@@ -11,6 +11,7 @@ import type {
 } from '../core/types';
 import type KnowledgeWorkspacePlugin from '../main';
 import Workspace from '../ui/Workspace.svelte';
+import { ConfirmDeleteWorkspaceModal } from '../ui/ConfirmDeleteWorkspaceModal';
 import { WorkspaceNameModal } from '../ui/WorkspaceNameModal';
 import { WorkspaceController } from './workspace-controller';
 import {
@@ -102,6 +103,8 @@ export class KnowledgeWorkspaceView extends ItemView {
 				) => this.plugin.saveNamedWorkspace(name, state, id),
 				onDeleteWorkspace: (id: string) =>
 					this.plugin.deleteNamedWorkspace(id),
+				onConfirmDeleteWorkspace: (name: string) =>
+					this.confirmDeleteWorkspace(name),
 				onSaveWorkspaceAs: (
 					initialName: string,
 					state: SavedWorkspaceState,
@@ -129,6 +132,28 @@ export class KnowledgeWorkspaceView extends ItemView {
 			),
 		);
 		this.controller.initialize(this.plugin.getLastActiveFile());
+	}
+
+	private confirmDeleteWorkspace(name: string): Promise<boolean> {
+		return new Promise((resolve) => {
+			let confirmed = false;
+			const modal = new ConfirmDeleteWorkspaceModal(
+				this.app,
+				name,
+				() => {
+					confirmed = true;
+					resolve(true);
+				},
+			);
+			const originalClose = modal.onClose.bind(modal);
+			modal.onClose = () => {
+				originalClose();
+				if (!confirmed) {
+					resolve(false);
+				}
+			};
+			modal.open();
+		});
 	}
 
 	private saveWorkspaceAs(

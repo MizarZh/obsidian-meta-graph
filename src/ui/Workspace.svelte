@@ -39,6 +39,7 @@
 		onAutoSave,
 		onSaveWorkspace,
 		onDeleteWorkspace,
+		onConfirmDeleteWorkspace,
 		onSaveWorkspaceAs,
 	}: {
 		controller: WorkspaceController;
@@ -55,6 +56,7 @@
 			id?: string,
 		) => Promise<SavedWorkspace>;
 		onDeleteWorkspace: (id: string) => Promise<void>;
+		onConfirmDeleteWorkspace: (name: string) => Promise<boolean>;
 		onSaveWorkspaceAs: (
 			initialName: string,
 			state: SavedWorkspaceState,
@@ -63,6 +65,7 @@
 	let workspaceState: WorkspaceState = $state(getInitialState());
 	let savedWorkspaces: SavedWorkspace[] = $state([]);
 	let activeWorkspaceId: string | undefined = $state();
+	let hasUnsavedChanges = $state(false);
 	let canvas: HTMLDivElement;
 	let renderer: SigmaRenderer | undefined;
 	let unbindEvents: (() => void) | undefined;
@@ -135,6 +138,7 @@
 				nextState.layoutRevision !== lastLayoutRevision ||
 				styleRulesChanged;
 			workspaceState = nextState;
+			updateUnsavedChanges(nextState);
 			scheduleAutoSave(nextState);
 			if (displaySettingsChanged) {
 				renderer?.setFadeDistance(nextState.fadeDistance);
@@ -206,13 +210,29 @@
 	function selectWorkspace(id: string): void {
 		activeWorkspaceId = id || undefined;
 		if (!id) {
+			hasUnsavedChanges = false;
 			scheduleAutoSave(workspaceState);
 			return;
 		}
 		const workspace = savedWorkspaces.find((item) => item.id === id);
 		if (workspace) {
 			controller.restoreWorkspace(workspace.state);
+			hasUnsavedChanges = false;
 		}
+	}
+
+	function updateUnsavedChanges(state: WorkspaceState): void {
+		if (!activeWorkspaceId) {
+			hasUnsavedChanges = false;
+			return;
+		}
+		const workspace = savedWorkspaces.find(
+			(item) => item.id === activeWorkspaceId,
+		);
+		hasUnsavedChanges = workspace
+			? JSON.stringify(serializeWorkspaceState(state)) !==
+				JSON.stringify(workspace.state)
+			: false;
 	}
 
 	async function saveWorkspace(): Promise<void> {
@@ -230,6 +250,7 @@
 		savedWorkspaces = savedWorkspaces.map((item) =>
 			item.id === saved.id ? saved : item,
 		);
+		hasUnsavedChanges = false;
 	}
 
 	async function saveWorkspaceAs(): Promise<void> {
@@ -245,6 +266,7 @@
 		}
 		savedWorkspaces = [...savedWorkspaces, saved];
 		activeWorkspaceId = saved.id;
+		hasUnsavedChanges = false;
 	}
 
 	async function deleteWorkspace(): Promise<void> {
@@ -252,6 +274,13 @@
 			return;
 		}
 		const id = activeWorkspaceId;
+		const workspace = savedWorkspaces.find((item) => item.id === id);
+		const confirmed = await onConfirmDeleteWorkspace(
+			workspace?.name ?? 'this workspace',
+		);
+		if (!confirmed) {
+			return;
+		}
 		await onDeleteWorkspace(id);
 		savedWorkspaces = savedWorkspaces.filter((item) => item.id !== id);
 		activeWorkspaceId = undefined;
@@ -522,6 +551,7 @@
 			flowDirection={workspaceState.flowDirection}
 			{savedWorkspaces}
 			{activeWorkspaceId}
+			{hasUnsavedChanges}
 			onMode={(mode) => controller.setMode(mode)}
 			onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
 			onFlowDirection={(direction) =>

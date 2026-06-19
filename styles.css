@@ -69,6 +69,12 @@
 	max-width: 240px;
 }
 
+.knowledge-workspace-unsaved {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	white-space: nowrap;
+}
+
 .knowledge-workspace-segmented {
 	display: flex;
 }
