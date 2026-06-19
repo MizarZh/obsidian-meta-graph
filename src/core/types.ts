@@ -133,6 +133,8 @@ export interface SavedWorkspaceState {
 	flowEdgeStyle: FlowEdgeStyle;
 	flowDirection: FlowDirection;
 	fadeDistance: number;
+	graphSpacing: number;
+	flowSpacing: number;
 	query: GraphQuery;
 	nodeStyleRules: NodeStyleRule[];
 	graphLinkStyleRules: LinkStyleRule[];
@@ -151,6 +153,8 @@ export interface WorkspaceState {
 	flowEdgeStyle: FlowEdgeStyle;
 	flowDirection: FlowDirection;
 	fadeDistance: number;
+	graphSpacing: number;
+	flowSpacing: number;
 	layoutRevision: number;
 	currentNoteId?: NodeId;
 	selectedNodeId?: NodeId;

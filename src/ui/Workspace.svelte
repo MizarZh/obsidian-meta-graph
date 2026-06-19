@@ -444,6 +444,7 @@
 				const layout = new ElkFlowLayout(
 					workspaceState.flowEdgeStyle,
 					workspaceState.flowDirection,
+					workspaceState.flowSpacing,
 				);
 				await layout.apply(graph);
 				snapshot.edgeIds = currentEdgeIds;
@@ -456,7 +457,7 @@
 			}
 		} else {
 			if (needsLayout) {
-				await new ForceAtlasLayout().apply(graph);
+				await new ForceAtlasLayout(workspaceState.graphSpacing).apply(graph);
 			}
 		}
 

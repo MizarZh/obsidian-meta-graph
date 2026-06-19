@@ -153,6 +153,24 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	setGraphSpacing(graphSpacing: number): void {
+		this.state = {
+			...this.state,
+			graphSpacing,
+			layoutRevision: this.state.layoutRevision + 1,
+		};
+		this.emit();
+	}
+
+	setFlowSpacing(flowSpacing: number): void {
+		this.state = {
+			...this.state,
+			flowSpacing,
+			layoutRevision: this.state.layoutRevision + 1,
+		};
+		this.emit();
+	}
+
 	restoreWorkspace(savedState: SavedWorkspaceState): void {
 		const restored = createWorkspaceState(
 			this.state.query.maxNodes,

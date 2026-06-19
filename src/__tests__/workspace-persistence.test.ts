@@ -14,6 +14,8 @@ describe('workspace persistence', () => {
 		const saved = serializeWorkspaceState(state);
 
 		expect(saved.fadeDistance).toBe(2);
+		expect(saved.graphSpacing).toBe(1);
+		expect(saved.flowSpacing).toBe(1);
 		expect(saved.query.maxNodes).toBe(200);
 		expect(saved).not.toHaveProperty('selectedNodeId');
 		expect(saved).not.toHaveProperty('projection');
@@ -23,12 +25,16 @@ describe('workspace persistence', () => {
 	it('restores a saved workspace while preserving the current node limit', () => {
 		const saved = serializeWorkspaceState(createWorkspaceState(200, 2));
 		saved.mode = 'flow';
+		saved.graphSpacing = 1.5;
+		saved.flowSpacing = 2;
 		saved.query.maxNodes = 50;
 
 		const restored = createWorkspaceState(300, 1.5, saved);
 
 		expect(restored.mode).toBe('flow');
 		expect(restored.fadeDistance).toBe(2);
+		expect(restored.graphSpacing).toBe(1.5);
+		expect(restored.flowSpacing).toBe(2);
 		expect(restored.query.maxNodes).toBe(300);
 	});
 

@@ -11,6 +11,8 @@ export function serializeWorkspaceState(
 		flowEdgeStyle: state.flowEdgeStyle,
 		flowDirection: state.flowDirection,
 		fadeDistance: state.fadeDistance,
+		graphSpacing: state.graphSpacing,
+		flowSpacing: state.flowSpacing,
 		query: state.query,
 		nodeStyleRules: state.nodeStyleRules,
 		graphLinkStyleRules: state.graphLinkStyleRules,

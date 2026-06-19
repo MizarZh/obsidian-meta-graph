@@ -15,6 +15,8 @@ export function createWorkspaceState(
 		flowEdgeStyle: 'orthogonal',
 		flowDirection: 'LR',
 		fadeDistance,
+		graphSpacing: 1,
+		flowSpacing: 1,
 		layoutRevision: 0,
 		query: {
 			...DEFAULT_GRAPH_QUERY,

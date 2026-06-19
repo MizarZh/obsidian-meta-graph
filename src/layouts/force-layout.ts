@@ -3,8 +3,11 @@ import type { RuntimeGraph } from '../graph/graphology-adapter';
 import type { LayoutEngine } from './layout-engine';
 
 export class ForceAtlasLayout implements LayoutEngine {
+	constructor(private readonly spacing = 1) {}
+
 	async apply(graph: RuntimeGraph): Promise<void> {
 		graph.forEachNode((node, attributes) => {
+			graph.setNodeAttribute(node, 'fixed', false);
 			if (!Number.isFinite(attributes.x) || !Number.isFinite(attributes.y)) {
 				graph.mergeNodeAttributes(node, {
 					x: 0,
@@ -24,7 +27,7 @@ export class ForceAtlasLayout implements LayoutEngine {
 				...forceAtlas2.inferSettings(graph),
 				barnesHutOptimize: graph.order > 80,
 				gravity: 1,
-				scalingRatio: 4,
+				scalingRatio: 4 * this.spacing * this.spacing,
 				slowDown: 2,
 			},
 		});
