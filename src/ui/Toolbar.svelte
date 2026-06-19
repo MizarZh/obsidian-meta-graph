@@ -222,30 +222,32 @@
 	<button class:active={graphSettingsOpen} onclick={onToggleGraphSettings}>
 		{graphSettingsOpen ? 'Collapse settings' : 'Show settings'}
 	</button>
-	{#if mode === 'flow'}
-		<div class="knowledge-workspace-segmented" aria-label="Flow direction">
-			{#each ['LR', 'RL', 'TD', 'DT'] as direction}
+	<div class="knowledge-workspace-graph-actions">
+		{#if mode === 'flow'}
+			<div class="knowledge-workspace-segmented" aria-label="Flow direction">
+				{#each ['LR', 'RL', 'TD', 'DT'] as direction}
+					<button
+						class:active={flowDirection === direction}
+						onclick={() => onFlowDirection(direction as FlowDirection)}
+						>{direction}</button
+					>
+				{/each}
+			</div>
+			<div class="knowledge-workspace-segmented" aria-label="Flow edge style">
 				<button
-					class:active={flowDirection === direction}
-					onclick={() => onFlowDirection(direction as FlowDirection)}
-					>{direction}</button
+					class:active={flowEdgeStyle === 'straight'}
+					onclick={() => onFlowEdgeStyle('straight')}>Straight</button
 				>
-			{/each}
-		</div>
-		<div class="knowledge-workspace-segmented" aria-label="Flow edge style">
-			<button
-				class:active={flowEdgeStyle === 'straight'}
-				onclick={() => onFlowEdgeStyle('straight')}>Straight</button
-			>
-			<button
-				class:active={flowEdgeStyle === 'orthogonal'}
-				onclick={() => onFlowEdgeStyle('orthogonal')}>Orthogonal</button
-			>
-		</div>
-	{/if}
-	<button onclick={onFit}>Fit graph</button>
-	<button onclick={onRefresh}>Refresh</button>
-	{#if showDebugButton}
-		<button class:active={debugOpen} onclick={onToggleDebug}>Debug</button>
-	{/if}
+				<button
+					class:active={flowEdgeStyle === 'orthogonal'}
+					onclick={() => onFlowEdgeStyle('orthogonal')}>Orthogonal</button
+				>
+			</div>
+		{/if}
+		<button onclick={onFit}>Fit graph</button>
+		<button onclick={onRefresh}>Refresh</button>
+		{#if showDebugButton}
+			<button class:active={debugOpen} onclick={onToggleDebug}>Debug</button>
+		{/if}
+	</div>
 </div>

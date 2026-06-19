@@ -270,7 +270,10 @@
 	display: flex;
 }
 
-.knowledge-workspace-view-switcher + button + .knowledge-workspace-segmented {
+.knowledge-workspace-graph-actions {
+	display: flex;
+	gap: var(--size-4-2);
+	align-items: center;
 	margin-left: auto;
 }
 
