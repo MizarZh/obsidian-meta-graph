@@ -41,5 +41,17 @@ export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
+
+		new Setting(this.containerEl)
+			.setName('Show debug button')
+			.setDesc('Show a toolbar button that opens the graph debug panel.')
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showDebugButton)
+					.onChange(async (value) => {
+						this.plugin.settings.showDebugButton = value;
+						await this.plugin.saveSettings();
+					}),
+			);
 	}
 }

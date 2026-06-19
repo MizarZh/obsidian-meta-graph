@@ -21,6 +21,9 @@
 		onFlowDirection,
 		onFit,
 		onRefresh,
+		showDebugButton,
+		debugOpen,
+		onToggleDebug,
 	}: {
 		mode: ViewMode;
 		charts: MetaGraphChart[];
@@ -36,6 +39,9 @@
 		onFlowDirection: (direction: FlowDirection) => void;
 		onFit: () => void;
 		onRefresh: () => void;
+		showDebugButton: boolean;
+		debugOpen: boolean;
+		onToggleDebug: () => void;
 	} = $props();
 
 	let pickerOpen = $state(false);
@@ -231,4 +237,7 @@
 	{/if}
 	<button onclick={onFit}>Fit graph</button>
 	<button onclick={onRefresh}>Refresh</button>
+	{#if showDebugButton}
+		<button class:active={debugOpen} onclick={onToggleDebug}>Debug</button>
+	{/if}
 </div>

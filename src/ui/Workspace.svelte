@@ -30,9 +30,11 @@
 	let {
 		controller,
 		onAutoSave,
+		showDebugButton,
 	}: {
 		controller: WorkspaceController;
 		onAutoSave: (document: MetaGraphDocument) => Promise<void>;
+		showDebugButton: boolean;
 	} = $props();
 	let workspaceState: WorkspaceState = $state(getInitialState());
 	let canvas: HTMLDivElement;
@@ -50,7 +52,7 @@
 	let lastLayoutRevision: number | undefined;
 	let lastNodeStyleRules: WorkspaceState['nodeStyleRules'] | undefined;
 	let lastLinkStyleRules: WorkspaceState['linkStyleRules'] | undefined;
-	let activeTab: 'workspace' | 'debug' = $state('workspace');
+	let debugOpen = $state(false);
 	interface LayoutSnapshot {
 		positions: Map<string, GraphPosition>;
 		edgeIds: Set<string>;
@@ -276,9 +278,9 @@
 		controller.getDebugSnapshot(workspaceState),
 	);
 
-	function setActiveTab(tab: 'workspace' | 'debug'): void {
-		activeTab = tab;
-		if (tab === 'workspace') {
+	function toggleDebug(): void {
+		debugOpen = !debugOpen;
+		if (!debugOpen) {
 			window.requestAnimationFrame(() => renderer?.resize());
 		}
 	}
@@ -422,38 +424,29 @@
 </script>
 
 <div class="knowledge-workspace">
-	<nav class="knowledge-workspace-tabs" aria-label="Knowledge workspace views">
-		<button
-			class:active={activeTab === 'workspace'}
-			onclick={() => setActiveTab('workspace')}>Workspace</button
-		>
-		<button
-			class:active={activeTab === 'debug'}
-			onclick={() => setActiveTab('debug')}>Debug</button
-		>
-	</nav>
-	<div class:knowledge-workspace-hidden={activeTab !== 'workspace'}>
-		<Toolbar
-			mode={workspaceState.mode}
-			charts={workspaceState.charts}
-			activeChartId={workspaceState.activeChartId}
-			flowEdgeStyle={workspaceState.flowEdgeStyle}
-			flowDirection={workspaceState.flowDirection}
-			onSelectChart={(id) => controller.setActiveChart(id)}
-			onAddChart={() => controller.addChart()}
-			onRenameChart={(name) => controller.setActiveChartName(name)}
-			onChartType={(mode) => controller.setActiveChartType(mode)}
-			onDeleteChart={() => controller.deleteActiveChart()}
-			onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
-			onFlowDirection={(direction) =>
-				controller.setFlowDirection(direction)}
-			onFit={() => renderer?.fit()}
-			onRefresh={() => controller.refresh(true)}
-		/>
-	</div>
+	<Toolbar
+		mode={workspaceState.mode}
+		charts={workspaceState.charts}
+		activeChartId={workspaceState.activeChartId}
+		flowEdgeStyle={workspaceState.flowEdgeStyle}
+		flowDirection={workspaceState.flowDirection}
+		onSelectChart={(id) => controller.setActiveChart(id)}
+		onAddChart={() => controller.addChart()}
+		onRenameChart={(name) => controller.setActiveChartName(name)}
+		onChartType={(mode) => controller.setActiveChartType(mode)}
+		onDeleteChart={() => controller.deleteActiveChart()}
+		onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
+		onFlowDirection={(direction) =>
+			controller.setFlowDirection(direction)}
+		onFit={() => renderer?.fit()}
+		onRefresh={() => controller.refresh(true)}
+		{showDebugButton}
+		{debugOpen}
+		onToggleDebug={toggleDebug}
+	/>
 	<div
 		class="knowledge-workspace-body"
-		class:knowledge-workspace-hidden={activeTab !== 'workspace'}
+		class:knowledge-workspace-hidden={debugOpen}
 	>
 		<FilterPanel
 			query={workspaceState.query}
@@ -481,7 +474,7 @@
 			<Inspector node={selectedNode} />
 		</main>
 	</div>
-	{#if activeTab === 'debug'}
+	{#if debugOpen}
 		<DebugPanel
 			snapshot={debugSnapshot}
 			onRefresh={() => controller.refresh(true)}
