@@ -1,31 +1,25 @@
 import {
-	ItemView,
+	TextFileView,
 	type TFile,
 	type ViewStateResult,
 	type WorkspaceLeaf,
 } from 'obsidian';
 import { mount, unmount } from 'svelte';
-import type {
-	SavedWorkspace,
-	SavedWorkspaceState,
-} from '../core/types';
+import type { MetaGraphDocument } from '../core/types';
 import type KnowledgeWorkspacePlugin from '../main';
 import Workspace from '../ui/Workspace.svelte';
-import { ConfirmDeleteWorkspaceModal } from '../ui/ConfirmDeleteWorkspaceModal';
-import { WorkspaceNameModal } from '../ui/WorkspaceNameModal';
-import { WorkspaceController } from './workspace-controller';
 import {
-	cloneSerializable,
-	serializeWorkspaceState,
-} from './workspace-persistence';
+	isMetaGraphMarkdown,
+	parseMetaGraphDocument,
+	stringifyMetaGraphDocument,
+} from './meta-graph-document';
+import { WorkspaceController } from './workspace-controller';
 
-export const VIEW_TYPE_KNOWLEDGE_WORKSPACE = 'knowledge-workspace';
+export const VIEW_TYPE_KNOWLEDGE_WORKSPACE = 'meta-graph';
 
-export class KnowledgeWorkspaceView extends ItemView {
+export class KnowledgeWorkspaceView extends TextFileView {
 	private controller?: WorkspaceController;
 	private component?: ReturnType<typeof mount>;
-	private restoredState?: SavedWorkspaceState;
-	private activeWorkspaceId?: string;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -39,79 +33,43 @@ export class KnowledgeWorkspaceView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return 'Knowledge workspace';
+		return this.file?.basename ?? 'Meta graph';
 	}
 
 	getIcon(): string {
 		return 'git-fork';
 	}
 
-	getState(): Record<string, unknown> {
-		return {
-			workspace:
-				this.controller
-					? serializeWorkspaceState(this.controller.snapshot)
-					: this.restoredState,
-			activeWorkspaceId: this.activeWorkspaceId,
-		};
+	getViewData(): string {
+		return this.data;
+	}
+
+	setViewData(data: string, clear: boolean): void {
+		this.data = data;
+		if (clear) {
+			void this.unmountWorkspace();
+		}
+		if (!isMetaGraphMarkdown(data)) {
+			void this.plugin.setMarkdownView(this.leaf, false);
+			return;
+		}
+		void this.renderWorkspace(data);
+	}
+
+	clear(): void {
+		void this.unmountWorkspace();
 	}
 
 	async setState(
 		state: unknown,
-		_result: ViewStateResult,
+		result: ViewStateResult,
 	): Promise<void> {
-		const persisted = parsePersistedViewState(state);
-		this.restoredState = persisted.workspace;
-		this.activeWorkspaceId = persisted.activeWorkspaceId;
-		if (persisted.workspace) {
-			this.controller?.restoreWorkspace(persisted.workspace);
-		}
+		await super.setState(state, result);
 	}
 
 	async onOpen(): Promise<void> {
 		this.contentEl.empty();
 		this.contentEl.addClass('knowledge-workspace-view');
-		this.controller = new WorkspaceController(
-			this.app,
-			this.plugin.settings.maxNodes,
-			this.plugin.settings.debug,
-			this.plugin.settings.fadeDistance,
-			this.restoredState ?? this.plugin.settings.lastWorkspace,
-		);
-		this.component = mount(Workspace, {
-			target: this.contentEl,
-			props: {
-				controller: this.controller,
-				onFadeDistanceCommit: (fadeDistance: number) => {
-					this.plugin.settings.fadeDistance = fadeDistance;
-					void this.plugin.saveSettings();
-				},
-				initialSavedWorkspaces: cloneSerializable(
-					this.plugin.settings.savedWorkspaces,
-				),
-				initialActiveWorkspaceId:
-					this.activeWorkspaceId ??
-					this.plugin.settings.activeWorkspaceId,
-				onAutoSave: (
-					state: SavedWorkspaceState,
-					activeWorkspaceId?: string,
-				) => this.persistViewState(state, activeWorkspaceId),
-				onSaveWorkspace: (
-					name: string,
-					state: SavedWorkspaceState,
-					id?: string,
-				) => this.plugin.saveNamedWorkspace(name, state, id),
-				onDeleteWorkspace: (id: string) =>
-					this.plugin.deleteNamedWorkspace(id),
-				onConfirmDeleteWorkspace: (name: string) =>
-					this.confirmDeleteWorkspace(name),
-				onSaveWorkspaceAs: (
-					initialName: string,
-					state: SavedWorkspaceState,
-				) => this.saveWorkspaceAs(initialName, state),
-			},
-		});
-
 		this.registerEvent(
 			this.app.metadataCache.on('changed', () =>
 				this.controller?.scheduleRefresh(),
@@ -131,98 +89,72 @@ export class KnowledgeWorkspaceView extends ItemView {
 				this.controller?.setCurrentFile(file),
 			),
 		);
-		this.controller.initialize(this.plugin.getLastActiveFile());
+		if (this.data) {
+			await this.renderWorkspace(this.data);
+		}
 	}
 
-	private confirmDeleteWorkspace(name: string): Promise<boolean> {
-		return new Promise((resolve) => {
-			let confirmed = false;
-			const modal = new ConfirmDeleteWorkspaceModal(
-				this.app,
-				name,
-				() => {
-					confirmed = true;
-					resolve(true);
-				},
-			);
-			const originalClose = modal.onClose.bind(modal);
-			modal.onClose = () => {
-				originalClose();
-				if (!confirmed) {
-					resolve(false);
-				}
-			};
-			modal.open();
-		});
-	}
-
-	private saveWorkspaceAs(
-		initialName: string,
-		state: SavedWorkspaceState,
-	): Promise<SavedWorkspace | undefined> {
-		return new Promise((resolve) => {
-			let saved = false;
-			const modal = new WorkspaceNameModal(
-				this.app,
-				initialName,
-				(name) => this.plugin.saveNamedWorkspace(name, state),
-				(workspace) => {
-					saved = true;
-					resolve(workspace);
-				},
-			);
-			const originalClose = modal.onClose.bind(modal);
-			modal.onClose = () => {
-				originalClose();
-				if (!saved) {
-					resolve(undefined);
-				}
-			};
-			modal.open();
-		});
-	}
-
-	private persistViewState(
-		state: SavedWorkspaceState,
-		activeWorkspaceId?: string,
-	): Promise<void> {
-		this.restoredState = cloneSerializable(state);
-		this.activeWorkspaceId = activeWorkspaceId;
-		this.app.workspace.requestSaveLayout();
-		return Promise.resolve();
+	async onClose(): Promise<void> {
+		await this.unmountWorkspace();
+		this.contentEl.empty();
 	}
 
 	updateDisplaySettings(): void {
 		this.controller?.setFadeDistance(this.plugin.settings.fadeDistance);
 	}
 
-	async onClose(): Promise<void> {
+	private async renderWorkspace(data: string): Promise<void> {
+		await this.unmountWorkspace();
+		this.contentEl.empty();
+		this.contentEl.addClass('knowledge-workspace-view');
+		let document: MetaGraphDocument;
+		try {
+			document = parseMetaGraphDocument(
+				data,
+				this.plugin.settings.maxNodes,
+				this.plugin.settings.fadeDistance,
+			);
+		} catch (error) {
+			this.contentEl.createEl('pre', {
+				cls: 'knowledge-workspace-error',
+				text: formatError(error),
+			});
+			return;
+		}
+		this.controller = new WorkspaceController(
+			this.app,
+			this.plugin.settings.maxNodes,
+			this.plugin.settings.debug,
+			this.plugin.settings.fadeDistance,
+			document,
+		);
+		this.component = mount(Workspace, {
+			target: this.contentEl,
+			props: {
+				controller: this.controller,
+				onAutoSave: (nextDocument: MetaGraphDocument) =>
+					this.persistDocument(nextDocument),
+			},
+		});
+		this.controller.initialize(this.plugin.getLastActiveFile());
+	}
+
+	private persistDocument(document: MetaGraphDocument): Promise<void> {
+		this.data = stringifyMetaGraphDocument(document);
+		this.requestSave();
+		return Promise.resolve();
+	}
+
+	private async unmountWorkspace(): Promise<void> {
 		this.controller?.dispose();
 		this.controller = undefined;
 		if (this.component) {
 			await unmount(this.component);
 			this.component = undefined;
 		}
-		this.contentEl.empty();
 	}
 }
 
-function parsePersistedViewState(state: unknown): {
-	workspace?: SavedWorkspaceState;
-	activeWorkspaceId?: string;
-} {
-	if (!state || typeof state !== 'object') {
-		return {};
-	}
-	const record = state as Record<string, unknown>;
-	return {
-		workspace:
-			record.workspace && typeof record.workspace === 'object'
-				? (record.workspace as SavedWorkspaceState)
-				: undefined,
-		activeWorkspaceId:
-			typeof record.activeWorkspaceId === 'string'
-				? record.activeWorkspaceId
-				: undefined,
-	};
+function formatError(error: unknown): string {
+	return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
 }

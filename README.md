@@ -1,8 +1,9 @@
-# Knowledge Workspace
+# Meta Graph
 
-Knowledge Workspace is a read-only, two-dimensional view of semantic
-relationships stored in Obsidian note properties. It builds a local graph around
-the active note without changing vault files.
+Meta Graph creates Markdown-backed graph workspaces from semantic relationships
+stored in Obsidian note properties. A graph workspace is an ordinary Markdown
+file with `meta-graph: workspace` frontmatter and YAML chart settings in the
+body.
 
 ## Metadata
 
@@ -37,26 +38,53 @@ settings to report them in the developer console.
 
 ## Usage
 
-1. Enable **Knowledge Workspace** in **Settings → Community plugins**.
-2. Open a note containing supported metadata.
-3. Run **Open knowledge workspace** from the command palette.
-4. Select **Graph** for a ForceAtlas2 layout or **Flow** for an ELK layered
-   layout.
-5. Add node style rules by folder, tag, domain, type, or title.
-6. Add link style rules by relation or source frontmatter field.
-7. Add show/hide filter rules by folder or tag.
-8. Select a node to open its note in a new tab.
-9. Select **Debug** to inspect or copy the current query, projection,
+1. Enable **Meta Graph** in **Settings → Community plugins**.
+2. Run **Create graph** from the command palette.
+3. Add or select a chart in the graph toolbar. Graph and Flow charts each keep
+   their own query, layout, display, and style settings.
+4. Add node style rules by folder, tag, domain, type, or title.
+5. Add link style rules by relation or source frontmatter field.
+6. Add show/hide filter rules by folder or tag.
+7. Select a node to open its note in a new tab.
+8. Select **Debug** to inspect or copy the current query, projection,
    canonical index, adjacency maps, and unresolved links as JSON.
 
-The current demo displays all matching relationship components in the vault.
-Isolated notes are omitted when no matching relationship remains. Graph and
-Flow both include directed and undirected relations; Link style rules control
-their visual appearance.
+Markdown files with this frontmatter open as graph workspaces:
 
-Graph and Flow maintain separate link-style rule lists. By default, Graph gives
-`related` links a distinct color, while Flow hides `related` links. These are
-ordinary editable rules rather than renderer-level relation behavior.
+```yaml
+---
+meta-graph: workspace
+meta-graph-version: 1
+---
+
+charts:
+  - id: knowledge-map
+    name: Knowledge map
+    type: graph
+    query:
+      roots: []
+      folders: []
+      tags: []
+      domains: []
+      relations: [prerequisite, leads-to, related]
+      depth: 2
+      direction: both
+      maxNodes: 200
+    layout:
+      engine: force-atlas
+      spacing: 1
+    display:
+      fadeDistance: 1.5
+      showInspector: true
+      showFilters: true
+    style:
+      nodeRules: []
+      linkRules: []
+
+activeChart: knowledge-map
+```
+
+Use **Open graph as Markdown** to edit the backing YAML directly.
 
 ## Development
 

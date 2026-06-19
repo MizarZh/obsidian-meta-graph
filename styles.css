@@ -69,10 +69,19 @@
 	max-width: 240px;
 }
 
-.knowledge-workspace-unsaved {
+.knowledge-workspace-chart-type {
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 	white-space: nowrap;
+}
+
+.knowledge-workspace-error {
+	margin: var(--size-4-4);
+	padding: var(--size-4-3);
+	border: 1px solid var(--background-modifier-error);
+	border-radius: var(--radius-s);
+	color: var(--text-error);
+	white-space: pre-wrap;
 }
 
 .knowledge-workspace-segmented {

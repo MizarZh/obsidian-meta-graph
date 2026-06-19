@@ -2,8 +2,7 @@
 	import { onMount } from 'svelte';
 	import type {
 		DebugSnapshot,
-		SavedWorkspace,
-		SavedWorkspaceState,
+		MetaGraphDocument,
 		WorkspaceState,
 	} from '../core/types';
 	import { bindGraphEvents } from '../graph/graph-events';
@@ -21,10 +20,7 @@
 	} from '../layouts/elk-flow-layout';
 	import { ForceAtlasLayout } from '../layouts/force-layout';
 	import type { WorkspaceController } from '../workspace/workspace-controller';
-	import {
-		cloneSerializable,
-		serializeWorkspaceState,
-	} from '../workspace/workspace-persistence';
+	import { serializeMetaGraphState } from '../workspace/meta-graph-model';
 	import FilterPanel from './FilterPanel.svelte';
 	import DebugPanel from './DebugPanel.svelte';
 	import DisplayControls from './DisplayControls.svelte';
@@ -33,58 +29,27 @@
 
 	let {
 		controller,
-		onFadeDistanceCommit,
-		initialSavedWorkspaces,
-		initialActiveWorkspaceId,
 		onAutoSave,
-		onSaveWorkspace,
-		onDeleteWorkspace,
-		onConfirmDeleteWorkspace,
-		onSaveWorkspaceAs,
 	}: {
 		controller: WorkspaceController;
-		onFadeDistanceCommit: (fadeDistance: number) => void;
-		initialSavedWorkspaces: SavedWorkspace[];
-		initialActiveWorkspaceId?: string;
-		onAutoSave: (
-			state: SavedWorkspaceState,
-			activeWorkspaceId?: string,
-		) => Promise<void>;
-		onSaveWorkspace: (
-			name: string,
-			state: SavedWorkspaceState,
-			id?: string,
-		) => Promise<SavedWorkspace>;
-		onDeleteWorkspace: (id: string) => Promise<void>;
-		onConfirmDeleteWorkspace: (name: string) => Promise<boolean>;
-		onSaveWorkspaceAs: (
-			initialName: string,
-			state: SavedWorkspaceState,
-		) => Promise<SavedWorkspace | undefined>;
+		onAutoSave: (document: MetaGraphDocument) => Promise<void>;
 	} = $props();
 	let workspaceState: WorkspaceState = $state(getInitialState());
-	let savedWorkspaces: SavedWorkspace[] = $state([]);
-	let activeWorkspaceId: string | undefined = $state();
-	let hasUnsavedChanges = $state(false);
 	let canvas: HTMLDivElement;
 	let renderer: SigmaRenderer | undefined;
 	let unbindEvents: (() => void) | undefined;
 	let renderVersion = 0;
 	let autoSaveTimer: number | undefined;
-	let pendingAutoSave: SavedWorkspaceState | undefined;
+	let pendingAutoSave: MetaGraphDocument | undefined;
 	let lastAutoSavedState = '';
 	let lastProjection: WorkspaceState['projection'];
+	let lastActiveChartId: string | undefined;
 	let lastMode: WorkspaceState['mode'] | undefined;
 	let lastFlowEdgeStyle: WorkspaceState['flowEdgeStyle'] | undefined;
 	let lastFlowDirection: WorkspaceState['flowDirection'] | undefined;
 	let lastLayoutRevision: number | undefined;
 	let lastNodeStyleRules: WorkspaceState['nodeStyleRules'] | undefined;
-	let lastGraphLinkStyleRules:
-		| WorkspaceState['graphLinkStyleRules']
-		| undefined;
-	let lastFlowLinkStyleRules:
-		| WorkspaceState['flowLinkStyleRules']
-		| undefined;
+	let lastLinkStyleRules: WorkspaceState['linkStyleRules'] | undefined;
 	let activeTab: 'workspace' | 'debug' = $state('workspace');
 	interface LayoutSnapshot {
 		positions: Map<string, GraphPosition>;
@@ -98,8 +63,9 @@
 	}
 
 	onMount(() => {
-		savedWorkspaces = cloneSerializable(initialSavedWorkspaces);
-		activeWorkspaceId = initialActiveWorkspaceId;
+		lastAutoSavedState = JSON.stringify(
+			serializeMetaGraphState(controller.snapshot),
+		);
 		const resizeObserver = new ResizeObserver((entries) => {
 			const entry = entries[0];
 			if (
@@ -113,6 +79,9 @@
 		resizeObserver.observe(canvas);
 
 		const unsubscribe = controller.subscribe((nextState) => {
+			const activeChartChanged =
+				lastActiveChartId !== undefined &&
+				nextState.activeChartId !== lastActiveChartId;
 			const modeChanged =
 				lastMode !== undefined && nextState.mode !== lastMode;
 			const flowStyleChanged =
@@ -126,11 +95,11 @@
 				nextState.layoutRevision !== lastLayoutRevision;
 			const styleRulesChanged =
 				nextState.nodeStyleRules !== lastNodeStyleRules ||
-				nextState.graphLinkStyleRules !== lastGraphLinkStyleRules ||
-				nextState.flowLinkStyleRules !== lastFlowLinkStyleRules;
+				nextState.linkStyleRules !== lastLinkStyleRules;
 			const displaySettingsChanged =
 				nextState.fadeDistance !== workspaceState.fadeDistance;
 			const shouldRebuild =
+				nextState.activeChartId !== lastActiveChartId ||
 				nextState.projection !== lastProjection ||
 				nextState.mode !== lastMode ||
 				nextState.flowEdgeStyle !== lastFlowEdgeStyle ||
@@ -138,21 +107,21 @@
 				nextState.layoutRevision !== lastLayoutRevision ||
 				styleRulesChanged;
 			workspaceState = nextState;
-			updateUnsavedChanges(nextState);
 			scheduleAutoSave(nextState);
 			if (displaySettingsChanged) {
 				renderer?.setFadeDistance(nextState.fadeDistance);
 			}
 			if (shouldRebuild) {
 				lastProjection = nextState.projection;
+				lastActiveChartId = nextState.activeChartId;
 				lastMode = nextState.mode;
 				lastFlowEdgeStyle = nextState.flowEdgeStyle;
 				lastFlowDirection = nextState.flowDirection;
 				lastLayoutRevision = nextState.layoutRevision;
 				lastNodeStyleRules = nextState.nodeStyleRules;
-				lastGraphLinkStyleRules = nextState.graphLinkStyleRules;
-				lastFlowLinkStyleRules = nextState.flowLinkStyleRules;
+				lastLinkStyleRules = nextState.linkStyleRules;
 				void rebuildGraph(
+					activeChartChanged ||
 					modeChanged ||
 						flowStyleChanged ||
 						flowDirectionChanged ||
@@ -178,7 +147,7 @@
 			renderVersion += 1;
 			window.clearTimeout(autoSaveTimer);
 			if (pendingAutoSave) {
-				void onAutoSave(pendingAutoSave, activeWorkspaceId);
+				void onAutoSave(pendingAutoSave);
 				pendingAutoSave = undefined;
 			}
 			unsubscribe();
@@ -189,102 +158,22 @@
 	});
 
 	function scheduleAutoSave(state: WorkspaceState): void {
-		const savedState = serializeWorkspaceState(state);
-		const serialized = JSON.stringify(savedState);
-		const fingerprint = `${activeWorkspaceId ?? ''}:${serialized}`;
+		const document = serializeMetaGraphState(state);
+		const serialized = JSON.stringify(document);
+		const fingerprint = serialized;
 		if (fingerprint === lastAutoSavedState) {
 			return;
 		}
 		lastAutoSavedState = fingerprint;
-		pendingAutoSave = savedState;
+		pendingAutoSave = document;
 		window.clearTimeout(autoSaveTimer);
 		autoSaveTimer = window.setTimeout(() => {
-			const stateToSave = pendingAutoSave;
+			const documentToSave = pendingAutoSave;
 			pendingAutoSave = undefined;
-			if (stateToSave) {
-				void onAutoSave(stateToSave, activeWorkspaceId);
+			if (documentToSave) {
+				void onAutoSave(documentToSave);
 			}
 		}, 350);
-	}
-
-	function selectWorkspace(id: string): void {
-		activeWorkspaceId = id || undefined;
-		if (!id) {
-			hasUnsavedChanges = false;
-			scheduleAutoSave(workspaceState);
-			return;
-		}
-		const workspace = savedWorkspaces.find((item) => item.id === id);
-		if (workspace) {
-			controller.restoreWorkspace(workspace.state);
-			hasUnsavedChanges = false;
-		}
-	}
-
-	function updateUnsavedChanges(state: WorkspaceState): void {
-		if (!activeWorkspaceId) {
-			hasUnsavedChanges = false;
-			return;
-		}
-		const workspace = savedWorkspaces.find(
-			(item) => item.id === activeWorkspaceId,
-		);
-		hasUnsavedChanges = workspace
-			? JSON.stringify(serializeWorkspaceState(state)) !==
-				JSON.stringify(workspace.state)
-			: false;
-	}
-
-	async function saveWorkspace(): Promise<void> {
-		const workspace = savedWorkspaces.find(
-			(item) => item.id === activeWorkspaceId,
-		);
-		if (!workspace) {
-			return;
-		}
-		const saved = await onSaveWorkspace(
-			workspace.name,
-			serializeWorkspaceState(workspaceState),
-			workspace.id,
-		);
-		savedWorkspaces = savedWorkspaces.map((item) =>
-			item.id === saved.id ? saved : item,
-		);
-		hasUnsavedChanges = false;
-	}
-
-	async function saveWorkspaceAs(): Promise<void> {
-		const currentName =
-			savedWorkspaces.find((item) => item.id === activeWorkspaceId)?.name ??
-			'';
-		const saved = await onSaveWorkspaceAs(
-			currentName,
-			serializeWorkspaceState(workspaceState),
-		);
-		if (!saved) {
-			return;
-		}
-		savedWorkspaces = [...savedWorkspaces, saved];
-		activeWorkspaceId = saved.id;
-		hasUnsavedChanges = false;
-	}
-
-	async function deleteWorkspace(): Promise<void> {
-		if (!activeWorkspaceId) {
-			return;
-		}
-		const id = activeWorkspaceId;
-		const workspace = savedWorkspaces.find((item) => item.id === id);
-		const confirmed = await onConfirmDeleteWorkspace(
-			workspace?.name ?? 'this workspace',
-		);
-		if (!confirmed) {
-			return;
-		}
-		await onDeleteWorkspace(id);
-		savedWorkspaces = savedWorkspaces.filter((item) => item.id !== id);
-		activeWorkspaceId = undefined;
-		scheduleAutoSave(workspaceState);
 	}
 
 	async function rebuildGraph(
@@ -472,8 +361,8 @@
 	function getLayoutSnapshot(): LayoutSnapshot {
 		const key =
 			workspaceState.mode === 'graph'
-				? 'graph'
-				: `flow-${workspaceState.flowEdgeStyle}-${workspaceState.flowDirection}`;
+				? `${workspaceState.activeChartId}-graph`
+				: `${workspaceState.activeChartId}-flow-${workspaceState.flowEdgeStyle}-${workspaceState.flowDirection}`;
 		let snapshot = layoutSnapshots.get(key);
 		if (!snapshot) {
 			snapshot = {
@@ -495,9 +384,7 @@
 	}
 
 	function getActiveLinkStyleRules() {
-		return workspaceState.mode === 'graph'
-			? workspaceState.graphLinkStyleRules
-			: workspaceState.flowLinkStyleRules;
+		return workspaceState.linkStyleRules;
 	}
 
 	function setsEqual(left: Set<string>, right: Set<string>): boolean {
@@ -548,21 +435,18 @@
 	<div class:knowledge-workspace-hidden={activeTab !== 'workspace'}>
 		<Toolbar
 			mode={workspaceState.mode}
+			charts={workspaceState.charts}
+			activeChartId={workspaceState.activeChartId}
 			flowEdgeStyle={workspaceState.flowEdgeStyle}
 			flowDirection={workspaceState.flowDirection}
-			{savedWorkspaces}
-			{activeWorkspaceId}
-			{hasUnsavedChanges}
-			onMode={(mode) => controller.setMode(mode)}
+			onSelectChart={(id) => controller.setActiveChart(id)}
+			onAddChart={(mode) => controller.addChart(mode)}
+			onDeleteChart={() => controller.deleteActiveChart()}
 			onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
 			onFlowDirection={(direction) =>
 				controller.setFlowDirection(direction)}
 			onFit={() => renderer?.fit()}
 			onRefresh={() => controller.refresh(true)}
-			onSelectWorkspace={selectWorkspace}
-			onSaveWorkspace={() => void saveWorkspace()}
-			onSaveWorkspaceAs={() => void saveWorkspaceAs()}
-			onDeleteWorkspace={() => void deleteWorkspace()}
 		/>
 	</div>
 	<div
@@ -580,14 +464,14 @@
 			onNodeStyleRulesChange={(rules) =>
 				controller.setNodeStyleRules(rules)}
 			onLinkStyleRulesChange={(rules) =>
-				controller.setLinkStyleRules(workspaceState.mode, rules)}
+				controller.setLinkStyleRules(rules)}
 		/>
 		<main class="knowledge-workspace-main">
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
 			<DisplayControls
 				fadeDistance={workspaceState.fadeDistance}
 				onInput={(value) => controller.setFadeDistance(value)}
-				onCommit={onFadeDistanceCommit}
+				onCommit={(value) => controller.setFadeDistance(value)}
 			/>
 			{#if workspaceState.projection?.nodes.length === 0}
 				<div class="knowledge-workspace-empty">No matching metadata relationships.</div>

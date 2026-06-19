@@ -1,68 +1,46 @@
 import type {
-	SavedWorkspaceState,
+	MetaGraphDocument,
 	WorkspaceState,
 } from '../core/types';
-import { DEFAULT_GRAPH_QUERY } from '../query/graph-query';
 import { cloneSerializable } from './workspace-persistence';
+import { createDefaultMetaGraphDocument } from './meta-graph-model';
 
 export function createWorkspaceState(
 	maxNodes: number,
 	fadeDistance = 1.5,
-	savedState?: SavedWorkspaceState,
+	document?: MetaGraphDocument,
 ): WorkspaceState {
-	const state: WorkspaceState = {
-		mode: 'graph',
-		flowEdgeStyle: 'orthogonal',
-		flowDirection: 'LR',
-		fadeDistance,
-		graphSpacing: 1,
-		flowSpacing: 1,
-		layoutRevision: 0,
-		query: {
-			...DEFAULT_GRAPH_QUERY,
-			relations: [...DEFAULT_GRAPH_QUERY.relations],
+	const metaGraphDocument =
+		document ?? createDefaultMetaGraphDocument(maxNodes, fadeDistance);
+	const activeChart =
+		metaGraphDocument.charts.find(
+			(chart) => chart.id === metaGraphDocument.activeChart,
+		) ?? metaGraphDocument.charts[0];
+	if (!activeChart) {
+		return createWorkspaceState(
 			maxNodes,
-		},
-		nodeStyleRules: [],
-		graphLinkStyleRules: [
-			{
-				id: 'default-graph-related',
-				field: 'relation',
-				value: 'related',
-				color: '#3aa6b9',
-				size: 1.5,
-				lineStyle: 'solid',
-				label: '',
-				showLabel: false,
-				hidden: false,
-			},
-		],
-		flowLinkStyleRules: [
-			{
-				id: 'default-flow-related',
-				field: 'relation',
-				value: 'related',
-				color: '#888888',
-				size: 1,
-				lineStyle: 'solid',
-				label: '',
-				showLabel: false,
-				hidden: true,
-			},
-		],
+			fadeDistance,
+			createDefaultMetaGraphDocument(maxNodes, fadeDistance),
+		);
+	}
+	const state: WorkspaceState = {
+		charts: cloneSerializable(metaGraphDocument.charts),
+		activeChartId: activeChart.id,
+		mode: activeChart.type,
+		flowEdgeStyle: activeChart.layout.edgeStyle ?? 'orthogonal',
+		flowDirection: activeChart.layout.direction ?? 'LR',
+		fadeDistance: activeChart.display.fadeDistance,
+		graphSpacing:
+			activeChart.type === 'graph' ? activeChart.layout.spacing : 1,
+		flowSpacing:
+			activeChart.type === 'flow' ? activeChart.layout.spacing : 1,
+		layoutRevision: 0,
+		query: cloneSerializable(activeChart.query),
+		nodeStyleRules: cloneSerializable(activeChart.style.nodeRules),
+		linkStyleRules: cloneSerializable(activeChart.style.linkRules),
 		availableFolders: [],
 		availableTags: [],
 		availableDomains: [],
 	};
-	return savedState
-		? {
-				...state,
-				...cloneSerializable(savedState),
-				query: {
-					...state.query,
-					...cloneSerializable(savedState.query),
-					maxNodes,
-				},
-			}
-		: state;
+	return state;
 }

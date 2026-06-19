@@ -8,17 +8,23 @@ import type {
 	GraphQuery,
 	KnowledgeIndex,
 	LinkStyleRule,
+	MetaGraphChart,
+	MetaGraphDocument,
 	MetadataDebugEntry,
 	NodeId,
 	NodeStyleRule,
 	RendererDebugState,
-	SavedWorkspaceState,
 	UnresolvedLink,
 	ViewMode,
 	WorkspaceState,
 } from '../core/types';
 import { GraphQueryEngine } from '../query/neighborhood';
 import { createWorkspaceState } from './workspace-state';
+import {
+	createDefaultChart,
+	serializeMetaGraphState,
+} from './meta-graph-model';
+import { cloneSerializable } from './workspace-persistence';
 
 type StateListener = (state: WorkspaceState) => void;
 
@@ -38,9 +44,9 @@ export class WorkspaceController {
 		maxNodes: number,
 		private readonly debug: boolean,
 		fadeDistance = 1.5,
-		savedState?: SavedWorkspaceState,
+		document?: MetaGraphDocument,
 	) {
-		this.state = createWorkspaceState(maxNodes, fadeDistance, savedState);
+		this.state = createWorkspaceState(maxNodes, fadeDistance, document);
 	}
 
 	get snapshot(): WorkspaceState {
@@ -133,52 +139,21 @@ export class WorkspaceController {
 		this.emit();
 	}
 
-	setMode(mode: ViewMode): void {
-		this.state = { ...this.state, mode };
-		this.emit();
-	}
-
-	setFlowEdgeStyle(flowEdgeStyle: FlowEdgeStyle): void {
-		this.state = { ...this.state, flowEdgeStyle };
-		this.emit();
-	}
-
-	setFlowDirection(flowDirection: FlowDirection): void {
-		this.state = { ...this.state, flowDirection };
-		this.emit();
-	}
-
-	setFadeDistance(fadeDistance: number): void {
-		this.state = { ...this.state, fadeDistance };
-		this.emit();
-	}
-
-	setGraphSpacing(graphSpacing: number): void {
-		this.state = {
-			...this.state,
-			graphSpacing,
-			layoutRevision: this.state.layoutRevision + 1,
-		};
-		this.emit();
-	}
-
-	setFlowSpacing(flowSpacing: number): void {
-		this.state = {
-			...this.state,
-			flowSpacing,
-			layoutRevision: this.state.layoutRevision + 1,
-		};
-		this.emit();
-	}
-
-	restoreWorkspace(savedState: SavedWorkspaceState): void {
-		const restored = createWorkspaceState(
+	setActiveChart(activeChartId: string): void {
+		const chart = this.state.charts.find((item) => item.id === activeChartId);
+		if (!chart || chart.id === this.state.activeChartId) {
+			return;
+		}
+		const nextState = createWorkspaceState(
 			this.state.query.maxNodes,
-			savedState.fadeDistance,
-			savedState,
+			chart.display.fadeDistance,
+			{
+				charts: this.state.charts,
+				activeChart: chart.id,
+			},
 		);
 		this.state = {
-			...restored,
+			...nextState,
 			currentNoteId: this.state.currentNoteId,
 			layoutRevision: this.state.layoutRevision + 1,
 			availableFolders: this.state.availableFolders,
@@ -188,27 +163,122 @@ export class WorkspaceController {
 		this.runQuery();
 	}
 
-	updateQuery(patch: Partial<Omit<GraphQuery, 'roots'>>): void {
+	addChart(type: ViewMode): void {
+		const chart = createDefaultChart(
+			type,
+			this.state.query.maxNodes,
+			this.state.fadeDistance,
+			this.state.charts,
+		);
 		this.state = {
 			...this.state,
-			query: { ...this.state.query, ...patch },
+			charts: [...this.state.charts, chart],
 		};
+		this.setActiveChart(chart.id);
+	}
+
+	deleteActiveChart(): void {
+		if (this.state.charts.length <= 1) {
+			return;
+		}
+		const charts = this.state.charts.filter(
+			(chart) => chart.id !== this.state.activeChartId,
+		);
+		const nextActiveChart = charts[0];
+		if (!nextActiveChart) {
+			return;
+		}
+		this.state = {
+			...this.state,
+			charts,
+		};
+		this.setActiveChart(nextActiveChart.id);
+	}
+
+	setFlowEdgeStyle(flowEdgeStyle: FlowEdgeStyle): void {
+		this.state = this.updateActiveChart({
+			layout: {
+				...this.getActiveChart().layout,
+				edgeStyle: flowEdgeStyle,
+			},
+		});
+		this.emit();
+	}
+
+	setFlowDirection(flowDirection: FlowDirection): void {
+		this.state = this.updateActiveChart({
+			layout: {
+				...this.getActiveChart().layout,
+				direction: flowDirection,
+			},
+		});
+		this.emit();
+	}
+
+	setFadeDistance(fadeDistance: number): void {
+		this.state = this.updateActiveChart({
+			display: {
+				...this.getActiveChart().display,
+				fadeDistance,
+			},
+		});
+		this.emit();
+	}
+
+	setGraphSpacing(graphSpacing: number): void {
+		this.state = this.updateActiveChart(
+			{
+				layout: {
+					...this.getActiveChart().layout,
+					spacing: graphSpacing,
+				},
+			},
+			true,
+		);
+		this.emit();
+	}
+
+	setFlowSpacing(flowSpacing: number): void {
+		this.state = this.updateActiveChart(
+			{
+				layout: {
+					...this.getActiveChart().layout,
+					spacing: flowSpacing,
+				},
+			},
+			true,
+		);
+		this.emit();
+	}
+
+	getDocument(): MetaGraphDocument {
+		return serializeMetaGraphState(this.state);
+	}
+
+	updateQuery(patch: Partial<Omit<GraphQuery, 'roots'>>): void {
+		this.state = this.updateActiveChart({
+			query: { ...this.state.query, ...patch },
+		});
 		this.runQuery();
 	}
 
 	setNodeStyleRules(nodeStyleRules: NodeStyleRule[]): void {
-		this.state = { ...this.state, nodeStyleRules };
+		this.state = this.updateActiveChart({
+			style: {
+				...this.getActiveChart().style,
+				nodeRules: nodeStyleRules,
+			},
+		});
 		this.emit();
 	}
 
-	setLinkStyleRules(
-		mode: ViewMode,
-		linkStyleRules: LinkStyleRule[],
-	): void {
-		this.state =
-			mode === 'graph'
-				? { ...this.state, graphLinkStyleRules: linkStyleRules }
-				: { ...this.state, flowLinkStyleRules: linkStyleRules };
+	setLinkStyleRules(linkStyleRules: LinkStyleRule[]): void {
+		this.state = this.updateActiveChart({
+			style: {
+				...this.getActiveChart().style,
+				linkRules: linkStyleRules,
+			},
+		});
 		this.emit();
 	}
 
@@ -253,6 +323,54 @@ export class WorkspaceController {
 		for (const listener of this.listeners) {
 			listener(this.state);
 		}
+	}
+
+	private getActiveChart(): MetaGraphChart {
+		const chart = this.state.charts.find(
+			(item) => item.id === this.state.activeChartId,
+		);
+		if (!chart) {
+			throw new Error('Active chart is missing from workspace state.');
+		}
+		return chart;
+	}
+
+	private updateActiveChart(
+		patch: Partial<MetaGraphChart>,
+		forceLayout = false,
+	): WorkspaceState {
+		const activeChart = this.getActiveChart();
+		const nextChart = cloneSerializable({
+			...activeChart,
+			...patch,
+			query: patch.query ?? activeChart.query,
+			layout: patch.layout ?? activeChart.layout,
+			display: patch.display ?? activeChart.display,
+			style: patch.style ?? activeChart.style,
+		});
+		return {
+			...this.state,
+			charts: this.state.charts.map((chart) =>
+				chart.id === nextChart.id ? nextChart : chart,
+			),
+			mode: nextChart.type,
+			flowEdgeStyle: nextChart.layout.edgeStyle ?? 'orthogonal',
+			flowDirection: nextChart.layout.direction ?? 'LR',
+			fadeDistance: nextChart.display.fadeDistance,
+			graphSpacing:
+				nextChart.type === 'graph'
+					? nextChart.layout.spacing
+					: this.state.graphSpacing,
+			flowSpacing:
+				nextChart.type === 'flow'
+					? nextChart.layout.spacing
+					: this.state.flowSpacing,
+			query: cloneSerializable(nextChart.query),
+			nodeStyleRules: cloneSerializable(nextChart.style.nodeRules),
+			linkStyleRules: cloneSerializable(nextChart.style.linkRules),
+			layoutRevision:
+				this.state.layoutRevision + (forceLayout ? 1 : 0),
+		};
 	}
 }
 

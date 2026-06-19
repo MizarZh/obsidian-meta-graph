@@ -29,22 +29,10 @@ const edge: KnowledgeEdge = {
 };
 
 describe('style rules', () => {
-	it('defines separate Graph and Flow defaults for related links', () => {
+	it('starts charts without saved link style rules', () => {
 		const state = createWorkspaceState(200);
-		expect(state.graphLinkStyleRules).toEqual([
-			expect.objectContaining({
-				field: 'relation',
-				value: 'related',
-				hidden: false,
-			}),
-		]);
-		expect(state.flowLinkStyleRules).toEqual([
-			expect.objectContaining({
-				field: 'relation',
-				value: 'related',
-				hidden: true,
-			}),
-		]);
+		expect(state.linkStyleRules).toEqual([]);
+		expect(state.charts.map((chart) => chart.type)).toEqual(['graph', 'flow']);
 	});
 
 	it('applies matching node rules in order', () => {

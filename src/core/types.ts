@@ -104,6 +104,7 @@ export interface GraphProjection {
 export type ViewMode = 'graph' | 'flow';
 export type FlowEdgeStyle = 'straight' | 'orthogonal';
 export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
+export type ChartType = ViewMode;
 export type NodeStyleField = 'folder' | 'tag' | 'domain' | 'type' | 'title';
 export type LinkStyleField = 'relation' | 'source-field';
 export type LinkLineStyle = 'solid' | 'dashed' | 'dotted';
@@ -128,27 +129,42 @@ export interface LinkStyleRule {
 	hidden: boolean;
 }
 
-export interface SavedWorkspaceState {
-	mode: ViewMode;
-	flowEdgeStyle: FlowEdgeStyle;
-	flowDirection: FlowDirection;
-	fadeDistance: number;
-	graphSpacing: number;
-	flowSpacing: number;
-	query: GraphQuery;
-	nodeStyleRules: NodeStyleRule[];
-	graphLinkStyleRules: LinkStyleRule[];
-	flowLinkStyleRules: LinkStyleRule[];
+export interface ChartLayoutConfig {
+	engine: 'force-atlas' | 'elk';
+	spacing: number;
+	direction?: FlowDirection;
+	edgeStyle?: FlowEdgeStyle;
 }
 
-export interface SavedWorkspace {
+export interface ChartDisplayConfig {
+	fadeDistance: number;
+	showInspector: boolean;
+	showFilters: boolean;
+}
+
+export interface ChartStyleConfig {
+	nodeRules: NodeStyleRule[];
+	linkRules: LinkStyleRule[];
+}
+
+export interface MetaGraphChart {
 	id: string;
 	name: string;
-	state: SavedWorkspaceState;
-	updatedAt: string;
+	type: ChartType;
+	query: GraphQuery;
+	layout: ChartLayoutConfig;
+	display: ChartDisplayConfig;
+	style: ChartStyleConfig;
+}
+
+export interface MetaGraphDocument {
+	charts: MetaGraphChart[];
+	activeChart: string;
 }
 
 export interface WorkspaceState {
+	charts: MetaGraphChart[];
+	activeChartId: string;
 	mode: ViewMode;
 	flowEdgeStyle: FlowEdgeStyle;
 	flowDirection: FlowDirection;
@@ -161,8 +177,7 @@ export interface WorkspaceState {
 	hoveredNodeId?: NodeId;
 	query: GraphQuery;
 	nodeStyleRules: NodeStyleRule[];
-	graphLinkStyleRules: LinkStyleRule[];
-	flowLinkStyleRules: LinkStyleRule[];
+	linkStyleRules: LinkStyleRule[];
 	projection?: GraphProjection;
 	availableFolders: string[];
 	availableTags: string[];
