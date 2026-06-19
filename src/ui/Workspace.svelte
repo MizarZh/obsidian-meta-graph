@@ -53,6 +53,7 @@
 	let lastNodeStyleRules: WorkspaceState['nodeStyleRules'] | undefined;
 	let lastLinkStyleRules: WorkspaceState['linkStyleRules'] | undefined;
 	let debugOpen = $state(false);
+	let graphSettingsOpen = $state(true);
 	interface LayoutSnapshot {
 		positions: Map<string, GraphPosition>;
 		edgeIds: Set<string>;
@@ -285,6 +286,11 @@
 		}
 	}
 
+	function toggleGraphSettings(): void {
+		graphSettingsOpen = !graphSettingsOpen;
+		window.requestAnimationFrame(() => renderer?.resize());
+	}
+
 	async function waitForCanvasSize(): Promise<boolean> {
 		for (let attempt = 0; attempt < 20; attempt += 1) {
 			const { width, height } = canvas.getBoundingClientRect();
@@ -440,27 +446,32 @@
 			controller.setFlowDirection(direction)}
 		onFit={() => renderer?.fit()}
 		onRefresh={() => controller.refresh(true)}
+		{graphSettingsOpen}
+		onToggleGraphSettings={toggleGraphSettings}
 		{showDebugButton}
 		{debugOpen}
 		onToggleDebug={toggleDebug}
 	/>
 	<div
 		class="knowledge-workspace-body"
+		class:knowledge-workspace-body-no-graph-settings={!graphSettingsOpen}
 		class:knowledge-workspace-hidden={debugOpen}
 	>
-		<FilterPanel
-			query={workspaceState.query}
-			folders={workspaceState.availableFolders}
-			tags={workspaceState.availableTags}
-			nodeStyleRules={workspaceState.nodeStyleRules}
-			linkStyleRules={getActiveLinkStyleRules()}
-			linkStyleMode={workspaceState.mode}
-			onChange={(patch) => controller.updateQuery(patch)}
-			onNodeStyleRulesChange={(rules) =>
-				controller.setNodeStyleRules(rules)}
-			onLinkStyleRulesChange={(rules) =>
-				controller.setLinkStyleRules(rules)}
-		/>
+		{#if graphSettingsOpen}
+			<FilterPanel
+				query={workspaceState.query}
+				folders={workspaceState.availableFolders}
+				tags={workspaceState.availableTags}
+				nodeStyleRules={workspaceState.nodeStyleRules}
+				linkStyleRules={getActiveLinkStyleRules()}
+				linkStyleMode={workspaceState.mode}
+				onChange={(patch) => controller.updateQuery(patch)}
+				onNodeStyleRulesChange={(rules) =>
+					controller.setNodeStyleRules(rules)}
+				onLinkStyleRulesChange={(rules) =>
+					controller.setLinkStyleRules(rules)}
+			/>
+		{/if}
 		<main class="knowledge-workspace-main">
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
 			<DisplayControls

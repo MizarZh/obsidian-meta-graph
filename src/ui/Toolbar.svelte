@@ -21,6 +21,8 @@
 		onFlowDirection,
 		onFit,
 		onRefresh,
+		graphSettingsOpen,
+		onToggleGraphSettings,
 		showDebugButton,
 		debugOpen,
 		onToggleDebug,
@@ -39,6 +41,8 @@
 		onFlowDirection: (direction: FlowDirection) => void;
 		onFit: () => void;
 		onRefresh: () => void;
+		graphSettingsOpen: boolean;
+		onToggleGraphSettings: () => void;
 		showDebugButton: boolean;
 		debugOpen: boolean;
 		onToggleDebug: () => void;
@@ -116,8 +120,9 @@
 			<span class="knowledge-workspace-view-caret" aria-hidden="true">v</span>
 		</button>
 		<button
+			class:active={configOpen}
 			class="knowledge-workspace-view-config-button"
-			aria-label="Configure view"
+			aria-label="Workspace settings"
 			onclick={() => openConfig()}
 		>
 			...
@@ -214,6 +219,9 @@
 			</div>
 		{/if}
 	</div>
+	<button class:active={graphSettingsOpen} onclick={onToggleGraphSettings}>
+		{graphSettingsOpen ? 'Collapse settings' : 'Show settings'}
+	</button>
 	{#if mode === 'flow'}
 		<div class="knowledge-workspace-segmented" aria-label="Flow direction">
 			{#each ['LR', 'RL', 'TD', 'DT'] as direction}

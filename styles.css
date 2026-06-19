@@ -40,7 +40,6 @@
 
 .knowledge-workspace-view-switcher {
 	position: relative;
-	margin-right: auto;
 }
 
 .knowledge-workspace-view-trigger {
@@ -271,6 +270,10 @@
 	display: flex;
 }
 
+.knowledge-workspace-view-switcher + button + .knowledge-workspace-segmented {
+	margin-left: auto;
+}
+
 .knowledge-workspace-segmented button {
 	border-radius: 0;
 }
@@ -295,11 +298,18 @@
 	min-height: 0;
 }
 
+.knowledge-workspace-body-no-graph-settings {
+	grid-template-columns: minmax(0, 1fr);
+}
+
 .knowledge-workspace-filters {
 	overflow: auto;
 	padding: var(--size-4-3);
-	border-right: 1px solid var(--background-modifier-border);
 	background: var(--background-secondary);
+}
+
+.knowledge-workspace-filters {
+	border-right: 1px solid var(--background-modifier-border);
 }
 
 .knowledge-workspace-filters h3 {
