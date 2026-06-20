@@ -1,7 +1,7 @@
-import { scalePoint } from 'd3-scale';
-import type { ArcDirection } from '../core/types';
-import type { RuntimeGraph } from '../graph/graphology-adapter';
-import type { LayoutEngine } from './layout-engine';
+import { scalePoint } from "d3-scale";
+import type { ArcDirection } from "../core/types";
+import type { RuntimeGraph } from "../graph/graphology-adapter";
+import type { LayoutEngine } from "./layout-engine";
 
 export interface ArcPoint {
 	x: number;
@@ -11,7 +11,7 @@ export interface ArcPoint {
 export class ArcLayout implements LayoutEngine {
 	constructor(
 		private readonly spacing = 1,
-		private readonly direction: ArcDirection = 'right',
+		private readonly direction: ArcDirection = "right",
 	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
@@ -42,18 +42,18 @@ function calculateArcStep(
 ): number {
 	const largestNodeSize = Math.max(
 		7,
-		...nodeIds.map((nodeId) => graph.getNodeAttribute(nodeId, 'size')),
+		...nodeIds.map((nodeId) => graph.getNodeAttribute(nodeId, "size")),
 	);
 	return Math.max(72, largestNodeSize * 10) * spacing;
 }
 
 export function applyArcEdges(
 	graph: RuntimeGraph,
-	direction: ArcDirection = 'right',
+	direction: ArcDirection = "right",
 ): void {
 	const logicalEdges = graph
 		.edges()
-		.filter((edge) => !graph.getEdgeAttribute(edge, 'hidden'));
+		.filter((edge) => !graph.getEdgeAttribute(edge, "hidden"));
 
 	for (const edge of logicalEdges) {
 		const source = graph.source(edge);
@@ -77,8 +77,11 @@ export function applyArcEdges(
 		graph.dropEdge(edge);
 		const segmentAttributes = {
 			...attributes,
-			type: attributes.lineStyle === 'solid' ? 'line' : attributes.lineStyle,
-			label: '',
+			type:
+				attributes.lineStyle === "solid"
+					? "line"
+					: attributes.lineStyle,
+			label: "",
 			forceLabel: false,
 			logicalEdgeId: edge,
 			logicalSource: source,
@@ -105,15 +108,14 @@ export function applyArcEdges(
 				...segmentAttributes,
 				type:
 					directed && lastSegment
-						? attributes.lineStyle === 'solid'
-							? 'arrow'
+						? attributes.lineStyle === "solid"
+							? "arrow"
 							: `${attributes.lineStyle}-arrow`
-						: attributes.lineStyle === 'solid'
-							? 'line'
+						: attributes.lineStyle === "solid"
+							? "line"
 							: attributes.lineStyle,
-				label: index === labelSegment ? attributes.label : '',
-				forceLabel:
-					index === labelSegment && Boolean(attributes.label),
+				label: index === labelSegment ? attributes.label : "",
+				forceLabel: index === labelSegment && Boolean(attributes.label),
 			};
 			if (directed) {
 				graph.addDirectedEdgeWithKey(
@@ -138,7 +140,7 @@ export function createArcPoints(
 	sourceAxis: number,
 	targetAxis: number,
 	offset = 0,
-	direction: ArcDirection = 'right',
+	direction: ArcDirection = "right",
 ): ArcPoint[] {
 	const distance = Math.abs(targetAxis - sourceAxis);
 	if (distance < 0.001) {
@@ -148,7 +150,7 @@ export function createArcPoints(
 	const radius = distance / 2;
 	const samples = Math.max(8, Math.min(48, Math.ceil(distance / 16)));
 	const verticalArc = isVerticalArc(direction);
-	const sign = direction === 'left' || direction === 'up' ? -1 : 1;
+	const sign = direction === "left" || direction === "down" ? -1 : 1;
 
 	return Array.from({ length: samples + 1 }, (_, index) => {
 		const t = index / samples;
@@ -161,13 +163,13 @@ export function createArcPoints(
 }
 
 function isVerticalArc(direction: ArcDirection): boolean {
-	return direction === 'right' || direction === 'left';
+	return direction === "right" || direction === "left";
 }
 
 function sortArcNodeIds(graph: RuntimeGraph): string[] {
 	return graph
 		.nodes()
-		.filter((nodeId) => !graph.getNodeAttribute(nodeId, 'isBend'))
+		.filter((nodeId) => !graph.getNodeAttribute(nodeId, "isBend"))
 		.sort((left, right) => {
 			const leftAttributes = graph.getNodeAttributes(left);
 			const rightAttributes = graph.getNodeAttributes(right);
@@ -181,13 +183,13 @@ function sortArcNodeIds(graph: RuntimeGraph): string[] {
 
 function createBendNode(x: number, y: number) {
 	return {
-		label: '',
+		label: "",
 		x,
 		y,
 		size: 0.01,
-		color: 'rgba(0, 0, 0, 0)',
-		path: '',
-		folder: '',
+		color: "rgba(0, 0, 0, 0)",
+		path: "",
+		folder: "",
 		domains: [],
 		tags: [],
 		fixed: true,

@@ -14,6 +14,7 @@ export const META_GRAPH_FRONTMATTER_KEY = 'meta-graph';
 export const META_GRAPH_FRONTMATTER_VALUE = 'workspace';
 export const META_GRAPH_VERSION_KEY = 'meta-graph-version';
 export const META_GRAPH_VERSION = 1;
+export const BASE_STYLE_RULE_ID = 'all';
 
 export function normalizeMetaGraphDocument(
 	value: unknown,
@@ -71,8 +72,8 @@ export function createDefaultChart(
 			showFilters: true,
 		},
 		style: {
-			nodeRules: [],
-			linkRules: [],
+			nodeRules: [createDefaultNodeStyleRule()],
+			linkRules: [createDefaultLinkStyleRule()],
 		},
 	};
 }
@@ -141,14 +142,78 @@ function normalizeChart(
 			),
 		},
 		style: {
-			nodeRules: normalizeArray<NodeStyleRule>(
+			nodeRules: normalizeNodeStyleRules(
 				isRecord(record.style) ? record.style.nodeRules : undefined,
 			),
-			linkRules: normalizeArray<LinkStyleRule>(
+			linkRules: normalizeLinkStyleRules(
 				isRecord(record.style) ? record.style.linkRules : undefined,
 			),
 		},
 	};
+}
+
+export function createDefaultNodeStyleRule(): NodeStyleRule {
+	return {
+		id: BASE_STYLE_RULE_ID,
+		field: 'all',
+		value: '',
+		color: '#7c6ff0',
+		size: 7,
+	};
+}
+
+export function createDefaultLinkStyleRule(): LinkStyleRule {
+	return {
+		id: BASE_STYLE_RULE_ID,
+		field: 'all',
+		value: '',
+		color: '#888888',
+		size: 1.5,
+		lineStyle: 'solid',
+		label: '',
+		showLabel: false,
+		hidden: false,
+	};
+}
+
+export function normalizeNodeStyleRules(value: unknown): NodeStyleRule[] {
+	const allRules = normalizeArray<NodeStyleRule>(value);
+	const base = allRules.find(
+		(rule) => rule.id === BASE_STYLE_RULE_ID || rule.field === 'all',
+	);
+	const rules = allRules.filter(
+		(rule) => rule.id !== BASE_STYLE_RULE_ID && rule.field !== 'all',
+	);
+	return [
+		{
+			...createDefaultNodeStyleRule(),
+			...base,
+			id: BASE_STYLE_RULE_ID,
+			field: 'all',
+			value: '',
+		},
+		...rules,
+	];
+}
+
+export function normalizeLinkStyleRules(value: unknown): LinkStyleRule[] {
+	const allRules = normalizeArray<LinkStyleRule>(value);
+	const base = allRules.find(
+		(rule) => rule.id === BASE_STYLE_RULE_ID || rule.field === 'all',
+	);
+	const rules = allRules.filter(
+		(rule) => rule.id !== BASE_STYLE_RULE_ID && rule.field !== 'all',
+	);
+	return [
+		{
+			...createDefaultLinkStyleRule(),
+			...base,
+			id: BASE_STYLE_RULE_ID,
+			field: 'all',
+			value: '',
+		},
+		...rules,
+	];
 }
 
 function normalizeQuery(

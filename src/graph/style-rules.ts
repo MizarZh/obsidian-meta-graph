@@ -56,6 +56,9 @@ export function resolveLinkStyle(
 }
 
 function matchesNodeRule(node: KnowledgeNode, rule: NodeStyleRule): boolean {
+	if (rule.field === 'all') {
+		return true;
+	}
 	const value = rule.value.trim().toLocaleLowerCase();
 	if (!value) {
 		return false;
@@ -80,6 +83,9 @@ function matchesNodeRule(node: KnowledgeNode, rule: NodeStyleRule): boolean {
 }
 
 function matchesLinkRule(edge: KnowledgeEdge, rule: LinkStyleRule): boolean {
+	if (rule.field === 'all') {
+		return true;
+	}
 	const value = rule.value.trim().toLocaleLowerCase();
 	if (!value) {
 		return false;

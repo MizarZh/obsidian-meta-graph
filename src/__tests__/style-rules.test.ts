@@ -29,14 +29,103 @@ const edge: KnowledgeEdge = {
 };
 
 describe('style rules', () => {
-	it('starts charts without saved link style rules', () => {
+	it('starts charts with base style rules', () => {
 		const state = createWorkspaceState(200);
-		expect(state.linkStyleRules).toEqual([]);
+		expect(state.nodeStyleRules).toEqual([
+			{
+				id: 'all',
+				field: 'all',
+				value: '',
+				color: '#7c6ff0',
+				size: 7,
+			},
+		]);
+		expect(state.linkStyleRules).toEqual([
+			{
+				id: 'all',
+				field: 'all',
+				value: '',
+				color: '#888888',
+				size: 1.5,
+				lineStyle: 'solid',
+				label: '',
+				showLabel: false,
+				hidden: false,
+			},
+		]);
 		expect(state.charts.map((chart) => chart.type)).toEqual([
 			'graph',
 			'flow',
 			'arc',
 		]);
+	});
+
+	it('uses all rules as the base style layer', () => {
+		expect(
+			resolveNodeStyle(
+				node,
+				[
+					{
+						id: 'all',
+						field: 'all',
+						value: '',
+						color: '#111111',
+						size: 8,
+					},
+					{
+						id: 'tag',
+						field: 'tag',
+						value: 'important',
+						color: '#222222',
+						size: 12,
+					},
+				],
+				{ color: '#000000', size: 7 },
+			),
+		).toEqual({ color: '#222222', size: 12 });
+
+		expect(
+			resolveLinkStyle(
+				edge,
+				[
+					{
+						id: 'all',
+						field: 'all',
+						value: '',
+						color: '#111111',
+						size: 2,
+						lineStyle: 'solid',
+						label: '',
+						showLabel: false,
+						hidden: false,
+					},
+					{
+						id: 'relation',
+						field: 'relation',
+						value: 'leads-to',
+						color: '#222222',
+						size: 3,
+						lineStyle: 'dashed',
+						label: 'Next',
+						showLabel: true,
+						hidden: false,
+					},
+				],
+				{
+					color: '#000000',
+					size: 1,
+					lineStyle: 'solid',
+					label: '',
+					hidden: false,
+				},
+			),
+		).toEqual({
+			color: '#222222',
+			size: 3,
+			lineStyle: 'dashed',
+			label: 'Next',
+			hidden: false,
+		});
 	});
 
 	it('applies matching node rules in order', () => {

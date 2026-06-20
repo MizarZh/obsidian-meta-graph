@@ -508,7 +508,6 @@
 				tags={workspaceState.availableTags}
 				nodeStyleRules={workspaceState.nodeStyleRules}
 				linkStyleRules={getActiveLinkStyleRules()}
-				linkStyleMode={workspaceState.mode}
 				onChange={(patch) => controller.updateQuery(patch)}
 				onNodeStyleRulesChange={(rules) =>
 					controller.setNodeStyleRules(rules)}

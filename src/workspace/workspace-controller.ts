@@ -23,6 +23,8 @@ import { GraphQueryEngine } from '../query/neighborhood';
 import { createWorkspaceState } from './workspace-state';
 import {
 	createDefaultChart,
+	normalizeLinkStyleRules,
+	normalizeNodeStyleRules,
 	serializeMetaGraphState,
 } from './meta-graph-model';
 import { cloneSerializable } from './workspace-persistence';
@@ -310,7 +312,7 @@ export class WorkspaceController {
 		this.state = this.updateActiveChart({
 			style: {
 				...this.getActiveChart().style,
-				nodeRules: nodeStyleRules,
+				nodeRules: normalizeNodeStyleRules(nodeStyleRules),
 			},
 		});
 		this.emit();
@@ -320,7 +322,7 @@ export class WorkspaceController {
 		this.state = this.updateActiveChart({
 			style: {
 				...this.getActiveChart().style,
-				linkRules: linkStyleRules,
+				linkRules: normalizeLinkStyleRules(linkStyleRules),
 			},
 		});
 		this.emit();

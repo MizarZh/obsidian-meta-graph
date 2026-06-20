@@ -9,7 +9,6 @@
 		NodeFilterRule,
 		NodeStyleField,
 		NodeStyleRule,
-		ViewMode,
 	} from '../core/types';
 
 	let {
@@ -18,7 +17,6 @@
 		tags,
 		nodeStyleRules,
 		linkStyleRules,
-		linkStyleMode,
 		onChange,
 		onNodeStyleRulesChange,
 		onLinkStyleRulesChange,
@@ -28,7 +26,6 @@
 		tags: string[];
 		nodeStyleRules: NodeStyleRule[];
 		linkStyleRules: LinkStyleRule[];
-		linkStyleMode: ViewMode;
 		onChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
 		onNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
@@ -115,15 +112,8 @@
 		return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 	}
 
-	function formatViewMode(mode: ViewMode): string {
-		switch (mode) {
-			case 'graph':
-				return 'Graph';
-			case 'flow':
-				return 'Flow';
-			case 'arc':
-				return 'Arc diagram';
-		}
+	function isBaseStyleRule(rule: NodeStyleRule | LinkStyleRule): boolean {
+		return rule.id === 'all' || rule.field === 'all';
 	}
 </script>
 
@@ -143,12 +133,16 @@
 			<div class="knowledge-workspace-rule">
 				<div class="knowledge-workspace-rule-row">
 					<select
+						disabled={isBaseStyleRule(rule)}
 						value={rule.field}
 						onchange={(event) =>
 							updateNodeRule(rule.id, {
 								field: event.currentTarget.value as NodeStyleField,
 							})}
 					>
+						{#if isBaseStyleRule(rule)}
+							<option value="all">All</option>
+						{/if}
 						<option value="folder">Folder</option>
 						<option value="tag">Tag</option>
 						<option value="domain">Domain</option>
@@ -157,7 +151,8 @@
 					</select>
 					<input
 						type="text"
-						placeholder="Match value"
+						placeholder={isBaseStyleRule(rule) ? "All nodes" : "Match value"}
+						disabled={isBaseStyleRule(rule)}
 						value={rule.value}
 						oninput={(event) =>
 							updateNodeRule(rule.id, {
@@ -167,6 +162,7 @@
 					<button
 						class="knowledge-workspace-remove-rule-button"
 						aria-label="Remove node style rule"
+						disabled={isBaseStyleRule(rule)}
 						onclick={() =>
 							onNodeStyleRulesChange(
 								nodeStyleRules.filter((item) => item.id !== rule.id),
@@ -208,7 +204,7 @@
 
 	<section>
 		<header>
-			<h3>Link styles · {formatViewMode(linkStyleMode)}</h3>
+			<h3>Link styles</h3>
 			<button
 				class="knowledge-workspace-add-rule-button"
 				aria-label="Add link style rule"
@@ -221,18 +217,23 @@
 			<div class="knowledge-workspace-rule">
 				<div class="knowledge-workspace-rule-row">
 					<select
+						disabled={isBaseStyleRule(rule)}
 						value={rule.field}
 						onchange={(event) =>
 							updateLinkRule(rule.id, {
 								field: event.currentTarget.value as LinkStyleField,
 							})}
 					>
+						{#if isBaseStyleRule(rule)}
+							<option value="all">All</option>
+						{/if}
 						<option value="relation">Relation</option>
 						<option value="source-field">Frontmatter field</option>
 					</select>
 					<input
 						type="text"
-						placeholder="Match value"
+						placeholder={isBaseStyleRule(rule) ? "All links" : "Match value"}
+						disabled={isBaseStyleRule(rule)}
 						value={rule.value}
 						oninput={(event) =>
 							updateLinkRule(rule.id, {
@@ -242,6 +243,7 @@
 					<button
 						class="knowledge-workspace-remove-rule-button"
 						aria-label="Remove link style rule"
+						disabled={isBaseStyleRule(rule)}
 						onclick={() =>
 							onLinkStyleRulesChange(
 								linkStyleRules.filter((item) => item.id !== rule.id),

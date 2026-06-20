@@ -106,8 +106,14 @@ export type FlowEdgeStyle = 'straight' | 'orthogonal';
 export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
 export type ArcDirection = 'right' | 'left' | 'up' | 'down';
 export type ChartType = ViewMode;
-export type NodeStyleField = 'folder' | 'tag' | 'domain' | 'type' | 'title';
-export type LinkStyleField = 'relation' | 'source-field';
+export type NodeStyleField =
+	| 'all'
+	| 'folder'
+	| 'tag'
+	| 'domain'
+	| 'type'
+	| 'title';
+export type LinkStyleField = 'all' | 'relation' | 'source-field';
 export type LinkLineStyle = 'solid' | 'dashed' | 'dotted';
 
 export interface NodeStyleRule {
