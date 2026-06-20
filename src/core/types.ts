@@ -1,7 +1,7 @@
 export type NodeId = string;
 export type EdgeId = string;
 
-export type RelationType = 'prerequisite' | 'leads-to' | 'related';
+export type RelationType = string;
 
 export interface KnowledgeNode {
 	id: NodeId;
@@ -169,6 +169,8 @@ export interface MetaGraphChart {
 export interface MetaGraphDocument {
 	charts: MetaGraphChart[];
 	activeChart: string;
+	connectionFields: string[];
+	activeConnectionField: string;
 }
 
 export interface WorkspaceState {
@@ -189,6 +191,9 @@ export interface WorkspaceState {
 	query: GraphQuery;
 	nodeStyleRules: NodeStyleRule[];
 	linkStyleRules: LinkStyleRule[];
+	connectionFields: string[];
+	activeConnectionField: string;
+	connectionUndoCount: number;
 	projection?: GraphProjection;
 	availableFolders: string[];
 	availableTags: string[];

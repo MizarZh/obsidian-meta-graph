@@ -25,6 +25,7 @@ export class MetadataIndexer {
 	constructor(
 		private readonly app: App,
 		private readonly debug = false,
+		private readonly relationFields: string[] = [],
 	) {}
 
 	build(): KnowledgeIndex {
@@ -51,11 +52,14 @@ export class MetadataIndexer {
 				original: link.original,
 			}));
 			const relationFrontmatterLinks = frontmatterLinks.filter((link) =>
-				isRelationField(link.key.split(/[.[\]]/u)[0] ?? link.key),
+				isRelationField(
+					link.key.split(/[.[\]]/u)[0] ?? link.key,
+					this.relationFields,
+				),
 			);
 			const relationProperties = Object.fromEntries(
 				Object.entries(frontmatter ?? {}).filter(([field]) =>
-					isRelationField(field),
+					isRelationField(field, this.relationFields),
 				),
 			);
 			if (
@@ -81,6 +85,7 @@ export class MetadataIndexer {
 					}
 				},
 				relationFrontmatterLinks,
+				this.relationFields,
 			);
 			for (const edge of edges) {
 				if (filePaths.has(edge.source) && filePaths.has(edge.target)) {

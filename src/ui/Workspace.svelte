@@ -6,7 +6,10 @@
 		MetaGraphDocument,
 		WorkspaceState,
 	} from '../core/types';
-	import { bindGraphEvents } from '../graph/graph-events';
+	import {
+		bindGraphEvents,
+		type ConnectionDragState,
+	} from '../graph/graph-events';
 	import {
 		GraphologyAdapter,
 		type GraphPosition,
@@ -27,6 +30,7 @@
 	import DebugPanel from './DebugPanel.svelte';
 	import DisplayControls from './DisplayControls.svelte';
 	import Inspector from './Inspector.svelte';
+	import ConnectionPanel from './ConnectionPanel.svelte';
 	import { ConfirmDeleteViewModal } from './ConfirmDeleteWorkspaceModal';
 	import Toolbar from './Toolbar.svelte';
 
@@ -42,6 +46,7 @@
 		showDebugButton: boolean;
 	} = $props();
 	let workspaceState: WorkspaceState = $state(getInitialState());
+	let workspaceRoot: HTMLDivElement;
 	let canvas: HTMLDivElement;
 	let renderer: SigmaRenderer | undefined;
 	let unbindEvents: (() => void) | undefined;
@@ -60,6 +65,7 @@
 	let lastLinkStyleRules: WorkspaceState['linkStyleRules'] | undefined;
 	let debugOpen = $state(false);
 	let graphSettingsOpen = $state(true);
+	let connectionDrag = $state<ConnectionDragState | undefined>(undefined);
 	interface LayoutSnapshot {
 		positions: Map<string, GraphPosition>;
 		edgeIds: Set<string>;
@@ -86,6 +92,8 @@
 			}
 		});
 		resizeObserver.observe(canvas);
+		workspaceRoot.addEventListener('keydown', handleWorkspaceKeydown);
+		workspaceRoot.addEventListener('pointerdown', focusWorkspaceForShortcuts);
 
 		const unsubscribe = controller.subscribe((nextState) => {
 			const activeChartChanged =
@@ -168,6 +176,11 @@
 			}
 			unsubscribe();
 			resizeObserver.disconnect();
+			workspaceRoot.removeEventListener('keydown', handleWorkspaceKeydown);
+			workspaceRoot.removeEventListener(
+				'pointerdown',
+				focusWorkspaceForShortcuts,
+			);
 			unbindEvents?.();
 			renderer?.kill();
 		};
@@ -268,6 +281,23 @@
 				onSelect: (nodeId) => controller.selectNode(nodeId),
 				onHover: (nodeId) => controller.hoverNode(nodeId),
 				onOpen: (nodeId) => void controller.openNode(nodeId),
+				onConnectionDrag: (state) => {
+					connectionDrag = state;
+				},
+				onConnect: (sourceNodeId, targetNodeId) => {
+					void controller
+						.connectNodes(
+							sourceNodeId,
+							targetNodeId,
+							workspaceState.activeConnectionField,
+						)
+						.catch((error: unknown) =>
+							controller.setRendererDebugState({
+								status: 'error',
+								error: formatError(error),
+							}),
+						);
+				},
 			});
 		}
 		renderer.setSelected(workspaceState.selectedNodeId);
@@ -475,9 +505,49 @@
 		controller.selectNode(nodeId);
 		window.requestAnimationFrame(() => renderer?.focusNode(nodeId));
 	}
+
+	function focusWorkspaceForShortcuts(event: PointerEvent): void {
+		if (isEditableTarget(event.target)) {
+			return;
+		}
+		workspaceRoot?.focus({ preventScroll: true });
+	}
+
+	function handleWorkspaceKeydown(event: KeyboardEvent): void {
+		if (
+			!(event.ctrlKey || event.metaKey) ||
+			event.altKey ||
+			event.shiftKey ||
+			event.key.toLocaleLowerCase() !== 'z' ||
+			workspaceState.connectionUndoCount === 0 ||
+			isEditableTarget(event.target)
+		) {
+			return;
+		}
+		event.preventDefault();
+		void controller.undoLastConnection().catch((error: unknown) =>
+			controller.setRendererDebugState({
+				status: 'error',
+				error: formatError(error),
+			}),
+		);
+	}
+
+	function isEditableTarget(target: EventTarget | null): boolean {
+		if (!(target instanceof HTMLElement)) {
+			return false;
+		}
+		return Boolean(
+			target.closest('input, textarea, select, button, [contenteditable="true"]'),
+		);
+	}
 </script>
 
-<div class="knowledge-workspace">
+<div
+	class="knowledge-workspace"
+	bind:this={workspaceRoot}
+	tabindex="-1"
+>
 	<Toolbar
 		mode={workspaceState.mode}
 		charts={workspaceState.charts}
@@ -525,6 +595,20 @@
 		{/if}
 		<main class="knowledge-workspace-main">
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+			{#if connectionDrag}
+				<svg
+					class="knowledge-workspace-connection-preview"
+					aria-hidden="true"
+				>
+					<line
+						class:target={Boolean(connectionDrag.targetNodeId)}
+						x1={connectionDrag.x1}
+						y1={connectionDrag.y1}
+						x2={connectionDrag.x2}
+						y2={connectionDrag.y2}
+					/>
+				</svg>
+			{/if}
 			<DisplayControls
 				fadeDistance={workspaceState.fadeDistance}
 				onInput={(value) => controller.setFadeDistance(value)}
@@ -534,6 +618,22 @@
 				<div class="knowledge-workspace-empty">No matching metadata relationships.</div>
 			{/if}
 			<Inspector node={selectedNode} />
+			<ConnectionPanel
+				fields={workspaceState.connectionFields}
+				activeField={workspaceState.activeConnectionField}
+				dragging={Boolean(connectionDrag)}
+				dragTarget={connectionDrag?.targetNodeId}
+				undoCount={workspaceState.connectionUndoCount}
+				onSelectField={(field) => controller.setActiveConnectionField(field)}
+				onAddField={(field) => controller.addConnectionField(field)}
+				onUndo={() =>
+					void controller.undoLastConnection().catch((error: unknown) =>
+						controller.setRendererDebugState({
+							status: 'error',
+							error: formatError(error),
+						}),
+					)}
+			/>
 		</main>
 	</div>
 	{#if debugOpen}

@@ -1,6 +1,7 @@
 import { TFile, type App } from 'obsidian';
 import { MetadataIndexer } from '../core/metadata-indexer';
 import { normalizePath } from '../core/knowledge-index';
+import { extractLinkText } from '../core/link-resolver';
 import type {
 	ArcDirection,
 	DebugSnapshot,
@@ -23,6 +24,7 @@ import { GraphQueryEngine } from '../query/neighborhood';
 import { createWorkspaceState } from './workspace-state';
 import {
 	createDefaultChart,
+	normalizeConnectionFields,
 	normalizeLinkStyleRules,
 	normalizeNodeStyleRules,
 	serializeMetaGraphState,
@@ -30,6 +32,14 @@ import {
 import { cloneSerializable } from './workspace-persistence';
 
 type StateListener = (state: WorkspaceState) => void;
+
+interface ConnectionUndoEntry {
+	sourcePath: string;
+	field: string;
+	link: string;
+	hadField: boolean;
+	previousValue: unknown;
+}
 
 export class WorkspaceController {
 	private state: WorkspaceState;
@@ -40,6 +50,7 @@ export class WorkspaceController {
 	private metadataSources: MetadataDebugEntry[] = [];
 	private rendererDebugState: RendererDebugState = { status: 'idle' };
 	private rebuildTimer?: number;
+	private readonly connectionUndoStack: ConnectionUndoEntry[] = [];
 	private destroyed = false;
 
 	constructor(
@@ -107,7 +118,11 @@ export class WorkspaceController {
 		if (this.destroyed) {
 			return;
 		}
-		const indexer = new MetadataIndexer(this.app, this.debug);
+		const indexer = new MetadataIndexer(
+			this.app,
+			this.debug,
+			this.state.connectionFields,
+		);
 		this.index = indexer.build();
 		this.unresolvedLinks = [...indexer.unresolvedLinks];
 		this.metadataSources = [...indexer.metadataSources];
@@ -153,6 +168,8 @@ export class WorkspaceController {
 			{
 				charts: this.state.charts,
 				activeChart: chart.id,
+				connectionFields: this.state.connectionFields,
+				activeConnectionField: this.state.activeConnectionField,
 			},
 		);
 		this.state = {
@@ -162,6 +179,9 @@ export class WorkspaceController {
 			availableFolders: this.state.availableFolders,
 			availableTags: this.state.availableTags,
 			availableDomains: this.state.availableDomains,
+			connectionFields: this.state.connectionFields,
+			activeConnectionField: this.state.activeConnectionField,
+			connectionUndoCount: this.state.connectionUndoCount,
 		};
 		this.runQuery();
 	}
@@ -328,6 +348,37 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	setActiveConnectionField(field: string): void {
+		const normalized = field.trim();
+		if (!normalized) {
+			return;
+		}
+		const connectionFields = normalizeConnectionFields([
+			...this.state.connectionFields,
+			normalized,
+		]);
+		const activeChart = this.getActiveChart();
+		const relations = activeChart.query.relations.includes(normalized)
+			? activeChart.query.relations
+			: [...activeChart.query.relations, normalized];
+		const nextState = this.updateActiveChart({
+			query: {
+				...activeChart.query,
+				relations,
+			},
+		});
+		this.state = {
+			...nextState,
+			connectionFields,
+			activeConnectionField: normalized,
+		};
+		this.runQuery();
+	}
+
+	addConnectionField(field: string): void {
+		this.setActiveConnectionField(field);
+	}
+
 	selectNode(selectedNodeId?: NodeId): void {
 		this.state = { ...this.state, selectedNodeId };
 		this.emit();
@@ -343,6 +394,102 @@ export class WorkspaceController {
 		if (file instanceof TFile) {
 			await this.app.workspace.getLeaf('tab').openFile(file);
 		}
+	}
+
+	async connectNodes(
+		sourceNodeId: NodeId,
+		targetNodeId: NodeId,
+		field = this.state.activeConnectionField,
+	): Promise<void> {
+		const normalizedField = field.trim();
+		if (!normalizedField || sourceNodeId === targetNodeId) {
+			return;
+		}
+		const sourceFile = this.app.vault.getAbstractFileByPath(sourceNodeId);
+		const targetFile = this.app.vault.getAbstractFileByPath(targetNodeId);
+		if (!(sourceFile instanceof TFile) || !(targetFile instanceof TFile)) {
+			return;
+		}
+
+		this.setActiveConnectionField(normalizedField);
+		const link = this.app.fileManager.generateMarkdownLink(
+			targetFile,
+			sourceFile.path,
+		);
+		let undo: ConnectionUndoEntry | undefined;
+		await this.app.fileManager.processFrontMatter(sourceFile, (frontmatter) => {
+			const hadField = Object.prototype.hasOwnProperty.call(
+				frontmatter,
+				normalizedField,
+			);
+			const currentValue = frontmatter[normalizedField];
+			const currentValues = toFrontmatterArray(currentValue);
+			if (
+				currentValues.some((value) =>
+					this.frontmatterValueLinksToTarget(
+						value,
+						sourceFile.path,
+						targetFile.path,
+					),
+				)
+			) {
+				return;
+			}
+			undo = {
+				sourcePath: sourceFile.path,
+				field: normalizedField,
+				link,
+				hadField,
+				previousValue: cloneFrontmatterValue(currentValue),
+			};
+			frontmatter[normalizedField] = [...currentValues, link];
+		});
+		if (undo) {
+			this.connectionUndoStack.push(undo);
+			this.updateConnectionUndoCount();
+			this.scheduleRefresh();
+		}
+	}
+
+	async undoLastConnection(): Promise<void> {
+		while (this.connectionUndoStack.length > 0) {
+			const undo = this.connectionUndoStack.pop();
+			if (!undo) {
+				break;
+			}
+			const sourceFile = this.app.vault.getAbstractFileByPath(undo.sourcePath);
+			if (!(sourceFile instanceof TFile)) {
+				continue;
+			}
+
+			let changed = false;
+			await this.app.fileManager.processFrontMatter(sourceFile, (frontmatter) => {
+				const currentValue = frontmatter[undo.field];
+				const currentValues = toFrontmatterArray(currentValue);
+				const remainingValues = currentValues.filter(
+					(value) => !frontmatterValueEquals(value, undo.link),
+				);
+				if (remainingValues.length === currentValues.length) {
+					return;
+				}
+
+				const previousValues = toFrontmatterArray(undo.previousValue);
+				if (undo.hadField && valuesEqual(remainingValues, previousValues)) {
+					frontmatter[undo.field] = undo.previousValue;
+				} else if (!undo.hadField && remainingValues.length === 0) {
+					delete frontmatter[undo.field];
+				} else {
+					frontmatter[undo.field] = remainingValues;
+				}
+				changed = true;
+			});
+			this.updateConnectionUndoCount();
+			if (changed) {
+				this.scheduleRefresh();
+				return;
+			}
+		}
+		this.updateConnectionUndoCount();
 	}
 
 	dispose(): void {
@@ -369,6 +516,15 @@ export class WorkspaceController {
 		for (const listener of this.listeners) {
 			listener(this.state);
 		}
+	}
+
+	private updateConnectionUndoCount(): void {
+		const connectionUndoCount = this.connectionUndoStack.length;
+		if (this.state.connectionUndoCount === connectionUndoCount) {
+			return;
+		}
+		this.state = { ...this.state, connectionUndoCount };
+		this.emit();
 	}
 
 	private getActiveChart(): MetaGraphChart {
@@ -423,6 +579,56 @@ export class WorkspaceController {
 				this.state.layoutRevision + (forceLayout ? 1 : 0),
 		};
 	}
+
+	private frontmatterValueLinksToTarget(
+		value: unknown,
+		sourcePath: string,
+		targetPath: string,
+	): boolean {
+		if (typeof value !== 'string') {
+			return false;
+		}
+		const linkText = extractLinkText(value);
+		const resolved = this.app.metadataCache.getFirstLinkpathDest(
+			linkText,
+			sourcePath,
+		);
+		return normalizePath(resolved?.path ?? linkText) === normalizePath(targetPath);
+	}
+}
+
+function toFrontmatterArray(value: unknown): unknown[] {
+	if (Array.isArray(value)) {
+		return value;
+	}
+	return value === undefined || value === null ? [] : [value];
+}
+
+function cloneFrontmatterValue(value: unknown): unknown {
+	if (Array.isArray(value)) {
+		return value.map((item) => cloneFrontmatterValue(item));
+	}
+	if (isRecord(value)) {
+		return Object.fromEntries(
+			Object.entries(value).map(([key, item]) => [
+				key,
+				cloneFrontmatterValue(item),
+			]),
+		);
+	}
+	return value;
+}
+
+function frontmatterValueEquals(value: unknown, expected: string): boolean {
+	return typeof value === 'string' && value.trim() === expected.trim();
+}
+
+function valuesEqual(left: unknown[], right: unknown[]): boolean {
+	return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 function uniqueSorted(values: string[]): string[] {

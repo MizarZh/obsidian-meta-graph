@@ -15,6 +15,8 @@ export const META_GRAPH_FRONTMATTER_VALUE = 'workspace';
 export const META_GRAPH_VERSION_KEY = 'meta-graph-version';
 export const META_GRAPH_VERSION = 1;
 export const BASE_STYLE_RULE_ID = 'all';
+export const DEFAULT_CONNECTION_FIELD = 'leads-to';
+export const DEFAULT_CONNECTION_FIELDS = [DEFAULT_CONNECTION_FIELD];
 
 export function normalizeMetaGraphDocument(
 	value: unknown,
@@ -34,7 +36,13 @@ export function normalizeMetaGraphDocument(
 		charts.some((chart) => chart.id === record.activeChart)
 			? record.activeChart
 			: (charts[0]?.id ?? createChartId('graph'));
-	return { charts, activeChart };
+	const connectionFields = normalizeConnectionFields(record.connectionFields);
+	const activeConnectionField =
+		typeof record.activeConnectionField === 'string' &&
+		connectionFields.includes(record.activeConnectionField.trim())
+			? record.activeConnectionField.trim()
+			: connectionFields[0] ?? DEFAULT_CONNECTION_FIELD;
+	return { charts, activeChart, connectionFields, activeConnectionField };
 }
 
 export function createDefaultMetaGraphDocument(
@@ -45,6 +53,8 @@ export function createDefaultMetaGraphDocument(
 	return {
 		charts,
 		activeChart: charts[0]?.id ?? 'knowledge-map',
+		connectionFields: [...DEFAULT_CONNECTION_FIELDS],
+		activeConnectionField: DEFAULT_CONNECTION_FIELD,
 	};
 }
 
@@ -81,11 +91,25 @@ export function createDefaultChart(
 export function serializeMetaGraphState(state: {
 	charts: MetaGraphChart[];
 	activeChartId: string;
+	connectionFields: string[];
+	activeConnectionField: string;
 }): MetaGraphDocument {
 	return cloneSerializable({
 		charts: state.charts,
 		activeChart: state.activeChartId,
+		connectionFields: state.connectionFields,
+		activeConnectionField: state.activeConnectionField,
 	});
+}
+
+export function normalizeConnectionFields(value: unknown): string[] {
+	const fields = Array.isArray(value)
+		? value
+				.filter((item): item is string => typeof item === 'string')
+				.map((item) => item.trim())
+				.filter(Boolean)
+		: [];
+	return uniqueStrings([...DEFAULT_CONNECTION_FIELDS, ...fields]);
 }
 
 function createDefaultCharts(
@@ -362,6 +386,10 @@ function readFiniteNumber(value: unknown, fallback: number): number {
 
 function readBoolean(value: unknown, fallback: boolean): boolean {
 	return typeof value === 'boolean' ? value : fallback;
+}
+
+function uniqueStrings(values: string[]): string[] {
+	return [...new Set(values)];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

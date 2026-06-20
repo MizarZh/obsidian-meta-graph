@@ -34,6 +34,9 @@ const RELATIONS: RelationDefinition[] = [
 		reverse: false,
 	},
 ];
+const DEFAULT_RELATION_FIELDS = new Set(
+	RELATIONS.flatMap((definition) => definition.fields.map(normalizeFieldName)),
+);
 
 export function toStringArray(value: unknown): string[] {
 	const values = Array.isArray(value) ? value : [value];
@@ -49,6 +52,7 @@ export function parseRelations(
 	resolver: LinkResolver,
 	onUnresolved?: (linkText: string, sourcePath: string) => void,
 	frontmatterLinks: CachedFrontmatterLink[] = [],
+	relationFields: string[] = [],
 ): KnowledgeEdge[] {
 	if (!frontmatter) {
 		return [];
@@ -57,7 +61,7 @@ export function parseRelations(
 	const normalizedCurrentPath = normalizePath(currentPath);
 	const edges = new Map<string, KnowledgeEdge>();
 
-	for (const definition of RELATIONS) {
+	for (const definition of createRelationDefinitions(relationFields)) {
 		const values = getRelationValues(frontmatter, frontmatterLinks, definition);
 		for (const { value, sourceField } of values) {
 			const linkText = extractLinkText(value);
@@ -98,13 +102,40 @@ export function parseRelations(
 	return [...edges.values()];
 }
 
-export function isRelationField(field: string): boolean {
+export function isRelationField(
+	field: string,
+	relationFields: string[] = [],
+): boolean {
 	const normalized = normalizeFieldName(field);
-	return RELATIONS.some((definition) =>
-		definition.fields.some(
+	return (
+		RELATIONS.some((definition) =>
+			definition.fields.some(
+				(candidate) => normalizeFieldName(candidate) === normalized,
+			),
+		) ||
+		relationFields.some(
 			(candidate) => normalizeFieldName(candidate) === normalized,
-		),
+		)
 	);
+}
+
+function createRelationDefinitions(
+	relationFields: string[],
+): RelationDefinition[] {
+	const definitions = [...RELATIONS];
+	for (const field of relationFields) {
+		const trimmed = field.trim();
+		if (!trimmed || DEFAULT_RELATION_FIELDS.has(normalizeFieldName(trimmed))) {
+			continue;
+		}
+		definitions.push({
+			fields: [trimmed],
+			relation: trimmed,
+			directed: true,
+			reverse: false,
+		});
+	}
+	return definitions;
 }
 
 function getRelationValues(
