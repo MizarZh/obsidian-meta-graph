@@ -288,6 +288,7 @@
 			(node) => node.id === workspaceState.selectedNodeId,
 		),
 	);
+	const searchableNodes = $derived(workspaceState.projection?.nodes ?? []);
 	const debugSnapshot: DebugSnapshot = $derived(
 		controller.getDebugSnapshot(workspaceState),
 	);
@@ -469,6 +470,11 @@
 			controller.deleteActiveChart(),
 		).open();
 	}
+
+	function focusNodeFromSearch(nodeId: string): void {
+		controller.selectNode(nodeId);
+		window.requestAnimationFrame(() => renderer?.focusNode(nodeId));
+	}
 </script>
 
 <div class="knowledge-workspace">
@@ -479,6 +485,7 @@
 		flowEdgeStyle={workspaceState.flowEdgeStyle}
 		flowDirection={workspaceState.flowDirection}
 		arcDirection={workspaceState.arcDirection}
+		searchNodes={searchableNodes}
 		onSelectChart={(id) => controller.setActiveChart(id)}
 		onAddChart={() => controller.addChart()}
 		onRenameChart={(name) => controller.setActiveChartName(name)}
@@ -488,6 +495,7 @@
 		onFlowDirection={(direction) =>
 			controller.setFlowDirection(direction)}
 		onArcDirection={(direction) => controller.setArcDirection(direction)}
+		onFocusNode={focusNodeFromSearch}
 		onFit={() => renderer?.fit()}
 		onRefresh={() => controller.refresh(true)}
 		{graphSettingsOpen}

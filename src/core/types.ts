@@ -7,6 +7,7 @@ export interface KnowledgeNode {
 	id: NodeId;
 	path: string;
 	title: string;
+	aliases?: string[];
 	folder: string;
 	domains: string[];
 	tags: string[];

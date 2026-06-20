@@ -100,10 +100,15 @@ export class MetadataIndexer {
 		}
 
 		const id = normalizePath(file.path);
+		const aliases = uniqueStrings([
+			...toStringArray(frontmatter?.aliases),
+			...toStringArray(frontmatter?.alias),
+		]);
 		return {
 			id,
 			path: id,
 			title: file.basename,
+			aliases,
 			folder: file.parent?.path === '/' ? '' : (file.parent?.path ?? ''),
 			domains: toStringArray(frontmatter?.domain),
 			tags: [...tags],
@@ -120,4 +125,8 @@ function asFrontmatter(
 
 function firstString(value: unknown): string | undefined {
 	return toStringArray(value)[0];
+}
+
+function uniqueStrings(values: string[]): string[] {
+	return [...new Set(values)];
 }

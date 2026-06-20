@@ -4,6 +4,7 @@
 		ArcDirection,
 		FlowDirection,
 		FlowEdgeStyle,
+		KnowledgeNode,
 		MetaGraphChart,
 		ViewMode,
 	} from "../core/types";
@@ -15,6 +16,7 @@
 		flowEdgeStyle,
 		flowDirection,
 		arcDirection,
+		searchNodes,
 		onSelectChart,
 		onAddChart,
 		onRenameChart,
@@ -23,6 +25,7 @@
 		onFlowEdgeStyle,
 		onFlowDirection,
 		onArcDirection,
+		onFocusNode,
 		onFit,
 		onRefresh,
 		graphSettingsOpen,
@@ -37,6 +40,7 @@
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
 		arcDirection: ArcDirection;
+		searchNodes: KnowledgeNode[];
 		onSelectChart: (id: string) => void;
 		onAddChart: () => void;
 		onRenameChart: (name: string) => void;
@@ -45,6 +49,7 @@
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
 		onArcDirection: (direction: ArcDirection) => void;
+		onFocusNode: (id: string) => void;
 		onFit: () => void;
 		onRefresh: () => void;
 		graphSettingsOpen: boolean;
@@ -57,7 +62,9 @@
 	let pickerOpen = $state(false);
 	let configOpen = $state(false);
 	let creatingView = $state(false);
-	let search = $state("");
+	let viewSearch = $state("");
+	let nodeSearch = $state("");
+	let nodeSearchOpen = $state(false);
 	let draftName = $state("");
 
 	const activeChart = $derived(
@@ -65,9 +72,10 @@
 	);
 	const filteredCharts = $derived(
 		charts.filter((chart) =>
-			chart.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
+			chart.name.toLocaleLowerCase().includes(viewSearch.toLocaleLowerCase()),
 		),
 	);
+	const filteredSearchNodes = $derived(filterSearchNodes(searchNodes, nodeSearch));
 	const VIEW_ICONS: Record<ViewMode, IconName> = {
 		graph: "chart-scatter",
 		flow: "git-fork",
@@ -92,7 +100,7 @@
 		pickerOpen = !pickerOpen;
 		configOpen = false;
 		creatingView = false;
-		search = "";
+		viewSearch = "";
 	}
 
 	function openConfig(isCreating = false): void {
@@ -126,6 +134,44 @@
 
 	function commitName(): void {
 		onRenameChart(draftName);
+	}
+
+	function filterSearchNodes(
+		nodes: KnowledgeNode[],
+		query: string,
+	): KnowledgeNode[] {
+		const normalized = query.trim().toLocaleLowerCase();
+		if (!normalized) {
+			return [];
+		}
+		return nodes
+			.filter(
+				(node) =>
+					node.title.toLocaleLowerCase().includes(normalized) ||
+					node.path.toLocaleLowerCase().includes(normalized) ||
+					(node.aliases ?? []).some((alias) =>
+						alias.toLocaleLowerCase().includes(normalized),
+					),
+			)
+			.slice(0, 8);
+	}
+
+	function formatNodeSearchDetail(node: KnowledgeNode): string {
+		return node.aliases && node.aliases.length > 0
+			? `${node.path} · ${node.aliases.join(', ')}`
+			: node.path;
+	}
+
+	function focusSearchNode(nodeId: string): void {
+		onFocusNode(nodeId);
+		nodeSearchOpen = false;
+	}
+
+	function focusFirstSearchResult(): void {
+		const first = filteredSearchNodes[0];
+		if (first) {
+			focusSearchNode(first.id);
+		}
 	}
 </script>
 
@@ -164,7 +210,7 @@
 					<input
 						type="search"
 						placeholder="Search views..."
-						bind:value={search}
+						bind:value={viewSearch}
 					/>
 				</label>
 				<div class="knowledge-workspace-view-list">
@@ -271,6 +317,51 @@
 	<button class:active={graphSettingsOpen} onclick={onToggleGraphSettings}>
 		{graphSettingsOpen ? "Collapse settings" : "Show settings"}
 	</button>
+	<div class="knowledge-workspace-node-search">
+		<input
+			type="search"
+			placeholder="Find node..."
+			aria-label="Find node"
+			value={nodeSearch}
+			onfocus={() => {
+				nodeSearchOpen = true;
+			}}
+			onblur={() => {
+				window.setTimeout(() => {
+					nodeSearchOpen = false;
+				}, 120);
+			}}
+			oninput={(event) => {
+				nodeSearch = event.currentTarget.value;
+				nodeSearchOpen = true;
+			}}
+			onkeydown={(event) => {
+				if (event.key === "Enter") {
+					event.preventDefault();
+					focusFirstSearchResult();
+				}
+				if (event.key === "Escape") {
+					nodeSearchOpen = false;
+				}
+			}}
+		/>
+		{#if nodeSearchOpen && filteredSearchNodes.length > 0}
+			<div class="knowledge-workspace-node-search-results" role="listbox">
+				{#each filteredSearchNodes as node (node.id)}
+					<button
+						type="button"
+						role="option"
+						aria-selected="false"
+						onmousedown={(event) => event.preventDefault()}
+						onclick={() => focusSearchNode(node.id)}
+					>
+						<span>{node.title}</span>
+						<small>{formatNodeSearchDetail(node)}</small>
+					</button>
+				{/each}
+			</div>
+		{/if}
+	</div>
 	<div class="knowledge-workspace-graph-actions">
 		{#if mode === "flow"}
 			<div
