@@ -1,10 +1,11 @@
 <script lang="ts">
+	import { setIcon, type IconName } from "obsidian";
 	import type {
 		FlowDirection,
 		FlowEdgeStyle,
 		MetaGraphChart,
 		ViewMode,
-	} from '../core/types';
+	} from "../core/types";
 
 	let {
 		mode,
@@ -51,8 +52,8 @@
 	let pickerOpen = $state(false);
 	let configOpen = $state(false);
 	let creatingView = $state(false);
-	let search = $state('');
-	let draftName = $state('');
+	let search = $state("");
+	let draftName = $state("");
 
 	const activeChart = $derived(
 		charts.find((chart) => chart.id === activeChartId) ?? charts[0],
@@ -62,16 +63,34 @@
 			chart.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
 		),
 	);
+	const VIEW_ICONS: Record<ViewMode, IconName> = {
+		graph: "chart-scatter",
+		flow: "git-fork",
+	};
+
+	function getViewIcon(type: ViewMode | undefined): IconName {
+		return VIEW_ICONS[type ?? "graph"];
+	}
+
+	function obsidianIcon(node: HTMLElement, icon: IconName) {
+		setIcon(node, icon);
+
+		return {
+			update(nextIcon: IconName) {
+				setIcon(node, nextIcon);
+			},
+		};
+	}
 
 	function togglePicker(): void {
 		pickerOpen = !pickerOpen;
 		configOpen = false;
 		creatingView = false;
-		search = '';
+		search = "";
 	}
 
 	function openConfig(isCreating = false): void {
-		draftName = activeChart?.name ?? '';
+		draftName = activeChart?.name ?? "";
 		configOpen = true;
 		creatingView = isCreating;
 		pickerOpen = false;
@@ -113,11 +132,15 @@
 			onclick={togglePicker}
 		>
 			<span
-				class={`knowledge-workspace-view-icon ${activeChart?.type ?? 'graph'}`}
+				class="knowledge-workspace-view-icon"
+				use:obsidianIcon={getViewIcon(activeChart?.type)}
 				aria-hidden="true"
 			></span>
-			<span class="knowledge-workspace-view-name">{activeChart?.name ?? 'View'}</span>
-			<span class="knowledge-workspace-view-caret" aria-hidden="true"></span>
+			<span class="knowledge-workspace-view-name"
+				>{activeChart?.name ?? "View"}</span
+			>
+			<span class="knowledge-workspace-view-caret" aria-hidden="true"
+			></span>
 		</button>
 		<button
 			class:active={configOpen}
@@ -144,9 +167,13 @@
 							class:active={chart.id === activeChartId}
 							class="knowledge-workspace-view-row"
 						>
-							<button role="menuitem" onclick={() => selectChart(chart.id)}>
+							<button
+								role="menuitem"
+								onclick={() => selectChart(chart.id)}
+							>
 								<span
-									class={`knowledge-workspace-view-icon ${chart.type}`}
+									class="knowledge-workspace-view-icon"
+									use:obsidianIcon={getViewIcon(chart.type)}
 									aria-hidden="true"
 								></span>
 								<span>{chart.name}</span>
@@ -173,15 +200,30 @@
 		{/if}
 
 		{#if configOpen}
-			<div class="knowledge-workspace-view-config" role="dialog" aria-label="Configure view">
+			<div
+				class="knowledge-workspace-view-config"
+				role="dialog"
+				aria-label="Configure view"
+			>
 				<header>
-					<button class="knowledge-workspace-icon-button back" aria-label="Back to views" onclick={() => {
-						configOpen = false;
-						creatingView = false;
-						pickerOpen = true;
-					}}><span aria-hidden="true"></span></button>
-					<span>{creatingView ? 'Create view' : 'Configure view'}</span>
-					<button class="knowledge-workspace-icon-button close" aria-label="Close" onclick={closeConfig}><span aria-hidden="true"></span></button>
+					<button
+						class="knowledge-workspace-icon-button back"
+						aria-label="Back to views"
+						onclick={() => {
+							configOpen = false;
+							creatingView = false;
+							pickerOpen = true;
+						}}><span aria-hidden="true"></span></button
+					>
+					<span
+						>{creatingView ? "Create view" : "Configure view"}</span
+					>
+					<button
+						class="knowledge-workspace-icon-button close"
+						aria-label="Close"
+						onclick={closeConfig}
+						><span aria-hidden="true"></span></button
+					>
 				</header>
 				<input
 					class="knowledge-workspace-view-title-input"
@@ -220,34 +262,44 @@
 		{/if}
 	</div>
 	<button class:active={graphSettingsOpen} onclick={onToggleGraphSettings}>
-		{graphSettingsOpen ? 'Collapse settings' : 'Show settings'}
+		{graphSettingsOpen ? "Collapse settings" : "Show settings"}
 	</button>
 	<div class="knowledge-workspace-graph-actions">
-		{#if mode === 'flow'}
-			<div class="knowledge-workspace-segmented" aria-label="Flow direction">
-				{#each ['LR', 'RL', 'TD', 'DT'] as direction}
+		{#if mode === "flow"}
+			<div
+				class="knowledge-workspace-segmented"
+				aria-label="Flow direction"
+			>
+				{#each ["LR", "RL", "TD", "DT"] as direction}
 					<button
 						class:active={flowDirection === direction}
-						onclick={() => onFlowDirection(direction as FlowDirection)}
+						onclick={() =>
+							onFlowDirection(direction as FlowDirection)}
 						>{direction}</button
 					>
 				{/each}
 			</div>
-			<div class="knowledge-workspace-segmented" aria-label="Flow edge style">
+			<div
+				class="knowledge-workspace-segmented"
+				aria-label="Flow edge style"
+			>
 				<button
-					class:active={flowEdgeStyle === 'straight'}
-					onclick={() => onFlowEdgeStyle('straight')}>Straight</button
+					class:active={flowEdgeStyle === "straight"}
+					onclick={() => onFlowEdgeStyle("straight")}>Straight</button
 				>
 				<button
-					class:active={flowEdgeStyle === 'orthogonal'}
-					onclick={() => onFlowEdgeStyle('orthogonal')}>Orthogonal</button
+					class:active={flowEdgeStyle === "orthogonal"}
+					onclick={() => onFlowEdgeStyle("orthogonal")}
+					>Orthogonal</button
 				>
 			</div>
 		{/if}
 		<button onclick={onFit}>Fit graph</button>
 		<button onclick={onRefresh}>Refresh</button>
 		{#if showDebugButton}
-			<button class:active={debugOpen} onclick={onToggleDebug}>Debug</button>
+			<button class:active={debugOpen} onclick={onToggleDebug}
+				>Debug</button
+			>
 		{/if}
 	</div>
 </div>

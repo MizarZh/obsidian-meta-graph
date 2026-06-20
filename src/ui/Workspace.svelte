@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { App } from 'obsidian';
 	import { onMount } from 'svelte';
 	import type {
 		DebugSnapshot,
@@ -25,13 +26,16 @@
 	import DebugPanel from './DebugPanel.svelte';
 	import DisplayControls from './DisplayControls.svelte';
 	import Inspector from './Inspector.svelte';
+	import { ConfirmDeleteViewModal } from './ConfirmDeleteWorkspaceModal';
 	import Toolbar from './Toolbar.svelte';
 
 	let {
+		app,
 		controller,
 		onAutoSave,
 		showDebugButton,
 	}: {
+		app: App;
 		controller: WorkspaceController;
 		onAutoSave: (document: MetaGraphDocument) => Promise<void>;
 		showDebugButton: boolean;
@@ -427,6 +431,21 @@
 			? `${error.name}: ${error.message}\n${error.stack ?? ''}`
 			: String(error);
 	}
+
+	function confirmDeleteActiveChart(): void {
+		if (workspaceState.charts.length <= 1) {
+			return;
+		}
+		const activeChart = workspaceState.charts.find(
+			(chart) => chart.id === workspaceState.activeChartId,
+		);
+		if (!activeChart) {
+			return;
+		}
+		new ConfirmDeleteViewModal(app, activeChart.name, () =>
+			controller.deleteActiveChart(),
+		).open();
+	}
 </script>
 
 <div class="knowledge-workspace">
@@ -440,7 +459,7 @@
 		onAddChart={() => controller.addChart()}
 		onRenameChart={(name) => controller.setActiveChartName(name)}
 		onChartType={(mode) => controller.setActiveChartType(mode)}
-		onDeleteChart={() => controller.deleteActiveChart()}
+		onDeleteChart={confirmDeleteActiveChart}
 		onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
 		onFlowDirection={(direction) =>
 			controller.setFlowDirection(direction)}

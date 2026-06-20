@@ -131,6 +131,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		this.component = mount(Workspace, {
 			target: this.contentEl,
 			props: {
+				app: this.app,
 				controller: this.controller,
 				showDebugButton: this.plugin.settings.showDebugButton,
 				onAutoSave: (nextDocument: MetaGraphDocument) =>

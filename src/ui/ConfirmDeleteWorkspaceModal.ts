@@ -1,18 +1,18 @@
 import { App, Modal, Setting } from 'obsidian';
 
-export class ConfirmDeleteWorkspaceModal extends Modal {
+export class ConfirmDeleteViewModal extends Modal {
 	constructor(
 		app: App,
-		private readonly workspaceName: string,
+		private readonly viewName: string,
 		private readonly onConfirm: () => void,
 	) {
 		super(app);
 	}
 
 	onOpen(): void {
-		this.setTitle('Delete workspace');
+		this.setTitle('Delete view');
 		this.contentEl.createEl('p', {
-			text: `Delete "${this.workspaceName}"? This cannot be undone.`,
+			text: `Delete "${this.viewName}"? This cannot be undone.`,
 		});
 		new Setting(this.contentEl)
 			.addButton((button) =>

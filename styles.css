@@ -127,62 +127,18 @@
 }
 
 .knowledge-workspace-view-icon {
-	position: relative;
-	display: inline-block;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	flex: 0 0 auto;
 	width: 16px;
 	height: 16px;
 	color: var(--text-faint);
 }
 
-.knowledge-workspace-view-icon.graph {
-	border: 1px solid currentColor;
-	border-radius: 50%;
-}
-
-.knowledge-workspace-view-icon.graph::before,
-.knowledge-workspace-view-icon.graph::after {
-	content: "";
-	position: absolute;
-	width: 4px;
-	height: 4px;
-	border-radius: 50%;
-	background: currentColor;
-}
-
-.knowledge-workspace-view-icon.graph::before {
-	left: 3px;
-	top: 3px;
-	box-shadow: 6px 5px 0 currentColor;
-}
-
-.knowledge-workspace-view-icon.graph::after {
-	left: 7px;
-	top: 9px;
-	width: 1px;
-	height: 7px;
-	transform: rotate(-45deg);
-	transform-origin: top;
-}
-
-.knowledge-workspace-view-icon.flow::before {
-	content: "";
-	position: absolute;
-	left: 2px;
-	top: 2px;
-	width: 11px;
-	height: 11px;
-	border-left: 2px solid currentColor;
-	border-bottom: 2px solid currentColor;
-}
-
-.knowledge-workspace-view-icon.flow::after {
-	content: "";
-	position: absolute;
-	right: 1px;
-	bottom: 0;
-	border: 4px solid transparent;
-	border-left-color: currentColor;
+.knowledge-workspace-view-icon svg {
+	width: 16px;
+	height: 16px;
 }
 
 .knowledge-workspace-view-menu,
