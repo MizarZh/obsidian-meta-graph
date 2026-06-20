@@ -2,6 +2,7 @@ import { TFile, type App } from 'obsidian';
 import { MetadataIndexer } from '../core/metadata-indexer';
 import { normalizePath } from '../core/knowledge-index';
 import type {
+	ArcDirection,
 	DebugSnapshot,
 	FlowDirection,
 	FlowEdgeStyle,
@@ -245,6 +246,19 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	setArcDirection(arcDirection: ArcDirection): void {
+		this.state = this.updateActiveChart(
+			{
+				layout: {
+					...this.getActiveChart().layout,
+					arcDirection,
+				},
+			},
+			true,
+		);
+		this.emit();
+	}
+
 	setFadeDistance(fadeDistance: number): void {
 		this.state = this.updateActiveChart({
 			display: {
@@ -386,6 +400,7 @@ export class WorkspaceController {
 			mode: nextChart.type,
 			flowEdgeStyle: nextChart.layout.edgeStyle ?? 'orthogonal',
 			flowDirection: nextChart.layout.direction ?? 'LR',
+			arcDirection: nextChart.layout.arcDirection ?? 'right',
 			fadeDistance: nextChart.display.fadeDistance,
 			graphSpacing:
 				nextChart.type === 'graph'
@@ -395,6 +410,10 @@ export class WorkspaceController {
 				nextChart.type === 'flow'
 					? nextChart.layout.spacing
 					: this.state.flowSpacing,
+			arcSpacing:
+				nextChart.type === 'arc'
+					? nextChart.layout.spacing
+					: this.state.arcSpacing,
 			query: cloneSerializable(nextChart.query),
 			nodeStyleRules: cloneSerializable(nextChart.style.nodeRules),
 			linkStyleRules: cloneSerializable(nextChart.style.linkRules),

@@ -29,11 +29,13 @@ export function createWorkspaceState(
 		mode: activeChart.type,
 		flowEdgeStyle: activeChart.layout.edgeStyle ?? 'orthogonal',
 		flowDirection: activeChart.layout.direction ?? 'LR',
+		arcDirection: activeChart.layout.arcDirection ?? 'right',
 		fadeDistance: activeChart.display.fadeDistance,
 		graphSpacing:
 			activeChart.type === 'graph' ? activeChart.layout.spacing : 1,
 		flowSpacing:
 			activeChart.type === 'flow' ? activeChart.layout.spacing : 1,
+		arcSpacing: activeChart.type === 'arc' ? activeChart.layout.spacing : 1,
 		layoutRevision: 0,
 		query: cloneSerializable(activeChart.query),
 		nodeStyleRules: cloneSerializable(activeChart.style.nodeRules),

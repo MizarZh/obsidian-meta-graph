@@ -53,12 +53,12 @@ export function createDefaultChart(
 	fadeDistance: number,
 	existingCharts: MetaGraphChart[] = [],
 ): MetaGraphChart {
-	const baseId = type === 'graph' ? 'knowledge-map' : 'learning-flow';
+	const baseId = getDefaultChartId(type);
 	const id = createUniqueChartId(baseId, existingCharts);
-	const name =
-		type === 'graph'
-			? createUniqueChartName('Knowledge map', existingCharts)
-			: createUniqueChartName('Learning flow', existingCharts);
+	const name = createUniqueChartName(
+		getDefaultChartName(type),
+		existingCharts,
+	);
 	return {
 		id,
 		name,
@@ -93,7 +93,8 @@ function createDefaultCharts(
 ): MetaGraphChart[] {
 	const graph = createDefaultChart('graph', maxNodes, fadeDistance);
 	const flow = createDefaultChart('flow', maxNodes, fadeDistance, [graph]);
-	return [graph, flow];
+	const arc = createDefaultChart('arc', maxNodes, fadeDistance, [graph, flow]);
+	return [graph, flow, arc];
 }
 
 function normalizeChart(
@@ -103,7 +104,8 @@ function normalizeChart(
 	fadeDistance: number,
 ): MetaGraphChart {
 	const record = isRecord(value) ? value : {};
-	const type = record.type === 'flow' ? 'flow' : 'graph';
+	const type =
+		record.type === 'flow' || record.type === 'arc' ? record.type : 'graph';
 	const fallback = createDefaultChart(type, maxNodes, fadeDistance);
 	const id =
 		typeof record.id === 'string' && record.id.trim()
@@ -169,7 +171,8 @@ function normalizeLayout(
 ): ChartLayoutConfig {
 	const record = isRecord(value) ? value : {};
 	return {
-		engine: type === 'flow' ? 'elk' : 'force-atlas',
+		engine:
+			type === 'flow' ? 'elk' : type === 'arc' ? 'arc' : 'force-atlas',
 		spacing: readFiniteNumber(record.spacing, fallback.spacing),
 		direction:
 			record.direction === 'RL' ||
@@ -177,6 +180,13 @@ function normalizeLayout(
 			record.direction === 'DT'
 				? record.direction
 				: fallback.direction,
+		arcDirection:
+			record.arcDirection === 'right' ||
+			record.arcDirection === 'left' ||
+			record.arcDirection === 'up' ||
+			record.arcDirection === 'down'
+				? record.arcDirection
+				: fallback.arcDirection,
 		edgeStyle:
 			record.edgeStyle === 'straight' || record.edgeStyle === 'orthogonal'
 				? record.edgeStyle
@@ -196,17 +206,26 @@ function createDefaultQuery(maxNodes: number, type: ViewMode): GraphQuery {
 }
 
 function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
-	return type === 'flow'
-		? {
+	switch (type) {
+		case 'flow':
+			return {
 				engine: 'elk',
 				spacing: 1,
 				direction: 'LR',
 				edgeStyle: 'orthogonal',
-			}
-		: {
+			};
+		case 'arc':
+			return {
+				engine: 'arc',
+				spacing: 1,
+				arcDirection: 'right',
+			};
+		case 'graph':
+			return {
 				engine: 'force-atlas',
 				spacing: 1,
 			};
+	}
 }
 
 function createUniqueChartId(
@@ -238,7 +257,29 @@ function createUniqueChartName(
 }
 
 function createChartId(type: ViewMode): string {
-	return type === 'graph' ? 'knowledge-map' : 'learning-flow';
+	return getDefaultChartId(type);
+}
+
+function getDefaultChartId(type: ViewMode): string {
+	switch (type) {
+		case 'graph':
+			return 'knowledge-map';
+		case 'flow':
+			return 'learning-flow';
+		case 'arc':
+			return 'arc-diagram';
+	}
+}
+
+function getDefaultChartName(type: ViewMode): string {
+	switch (type) {
+		case 'graph':
+			return 'Knowledge map';
+		case 'flow':
+			return 'Learning flow';
+		case 'arc':
+			return 'Arc diagram';
+	}
 }
 
 function normalizeArray<T>(value: unknown): T[] {

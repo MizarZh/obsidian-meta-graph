@@ -32,7 +32,11 @@ describe('style rules', () => {
 	it('starts charts without saved link style rules', () => {
 		const state = createWorkspaceState(200);
 		expect(state.linkStyleRules).toEqual([]);
-		expect(state.charts.map((chart) => chart.type)).toEqual(['graph', 'flow']);
+		expect(state.charts.map((chart) => chart.type)).toEqual([
+			'graph',
+			'flow',
+			'arc',
+		]);
 	});
 
 	it('applies matching node rules in order', () => {

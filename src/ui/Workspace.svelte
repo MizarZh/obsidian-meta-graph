@@ -14,6 +14,7 @@
 	} from '../graph/graphology-adapter';
 	import { readGraphPalette } from '../graph/graph-styles';
 	import { SigmaRenderer } from '../graph/sigma-renderer';
+	import { ArcLayout } from '../layouts/arc-layout';
 	import {
 		applyOrthogonalFlowEdges,
 		ElkFlowLayout,
@@ -53,6 +54,7 @@
 	let lastMode: WorkspaceState['mode'] | undefined;
 	let lastFlowEdgeStyle: WorkspaceState['flowEdgeStyle'] | undefined;
 	let lastFlowDirection: WorkspaceState['flowDirection'] | undefined;
+	let lastArcDirection: WorkspaceState['arcDirection'] | undefined;
 	let lastLayoutRevision: number | undefined;
 	let lastNodeStyleRules: WorkspaceState['nodeStyleRules'] | undefined;
 	let lastLinkStyleRules: WorkspaceState['linkStyleRules'] | undefined;
@@ -97,6 +99,9 @@
 			const flowDirectionChanged =
 				lastFlowDirection !== undefined &&
 				nextState.flowDirection !== lastFlowDirection;
+			const arcDirectionChanged =
+				lastArcDirection !== undefined &&
+				nextState.arcDirection !== lastArcDirection;
 			const layoutRevisionChanged =
 				lastLayoutRevision !== undefined &&
 				nextState.layoutRevision !== lastLayoutRevision;
@@ -111,6 +116,7 @@
 				nextState.mode !== lastMode ||
 				nextState.flowEdgeStyle !== lastFlowEdgeStyle ||
 				nextState.flowDirection !== lastFlowDirection ||
+				nextState.arcDirection !== lastArcDirection ||
 				nextState.layoutRevision !== lastLayoutRevision ||
 				styleRulesChanged;
 			workspaceState = nextState;
@@ -124,6 +130,7 @@
 				lastMode = nextState.mode;
 				lastFlowEdgeStyle = nextState.flowEdgeStyle;
 				lastFlowDirection = nextState.flowDirection;
+				lastArcDirection = nextState.arcDirection;
 				lastLayoutRevision = nextState.layoutRevision;
 				lastNodeStyleRules = nextState.nodeStyleRules;
 				lastLinkStyleRules = nextState.linkStyleRules;
@@ -132,9 +139,11 @@
 					modeChanged ||
 						flowStyleChanged ||
 						flowDirectionChanged ||
+						arcDirectionChanged ||
 						layoutRevisionChanged,
 					flowStyleChanged ||
 						flowDirectionChanged ||
+						arcDirectionChanged ||
 						layoutRevisionChanged,
 				).catch(
 					(error: unknown) => {
@@ -323,7 +332,7 @@
 	): Promise<void> {
 		const positions = snapshot.positions;
 		const firstLayout = positions.size === 0;
-		const currentEdgeIds = getLogicalFlowEdgeIds(graph);
+		const currentEdgeIds = getLogicalEdgeIds(graph);
 		const flowEdgesChanged =
 			workspaceState.mode === 'flow' &&
 			!setsEqual(currentEdgeIds, snapshot.edgeIds);
@@ -340,7 +349,14 @@
 			flowEdgesChanged ||
 			missingOrthogonalRoute;
 
-		if (workspaceState.mode === 'flow') {
+		if (workspaceState.mode === 'arc') {
+			await new ArcLayout(
+				workspaceState.arcSpacing,
+				workspaceState.arcDirection,
+			).apply(graph);
+			snapshot.edgeIds = currentEdgeIds;
+			snapshot.orthogonalRoutes = new Map();
+		} else if (workspaceState.mode === 'flow') {
 			if (needsLayout) {
 				const layout = new ElkFlowLayout(
 					workspaceState.flowEdgeStyle,
@@ -371,10 +387,7 @@
 	}
 
 	function getLayoutSnapshot(): LayoutSnapshot {
-		const key =
-			workspaceState.mode === 'graph'
-				? `${workspaceState.activeChartId}-graph`
-				: `${workspaceState.activeChartId}-flow-${workspaceState.flowEdgeStyle}-${workspaceState.flowDirection}`;
+		const key = getLayoutSnapshotKey();
 		let snapshot = layoutSnapshots.get(key);
 		if (!snapshot) {
 			snapshot = {
@@ -387,7 +400,17 @@
 		return snapshot;
 	}
 
-	function getLogicalFlowEdgeIds(graph: RuntimeGraph): Set<string> {
+	function getLayoutSnapshotKey(): string {
+		if (workspaceState.mode === 'graph') {
+			return `${workspaceState.activeChartId}-graph`;
+		}
+		if (workspaceState.mode === 'arc') {
+			return `${workspaceState.activeChartId}-arc-${workspaceState.arcDirection}`;
+		}
+		return `${workspaceState.activeChartId}-flow-${workspaceState.flowEdgeStyle}-${workspaceState.flowDirection}`;
+	}
+
+	function getLogicalEdgeIds(graph: RuntimeGraph): Set<string> {
 		return new Set(
 			graph
 				.edges()
@@ -455,6 +478,7 @@
 		activeChartId={workspaceState.activeChartId}
 		flowEdgeStyle={workspaceState.flowEdgeStyle}
 		flowDirection={workspaceState.flowDirection}
+		arcDirection={workspaceState.arcDirection}
 		onSelectChart={(id) => controller.setActiveChart(id)}
 		onAddChart={() => controller.addChart()}
 		onRenameChart={(name) => controller.setActiveChartName(name)}
@@ -463,6 +487,7 @@
 		onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
 		onFlowDirection={(direction) =>
 			controller.setFlowDirection(direction)}
+		onArcDirection={(direction) => controller.setArcDirection(direction)}
 		onFit={() => renderer?.fit()}
 		onRefresh={() => controller.refresh(true)}
 		{graphSettingsOpen}

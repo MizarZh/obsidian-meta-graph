@@ -101,9 +101,10 @@ export interface GraphProjection {
 	rootIds: Set<NodeId>;
 }
 
-export type ViewMode = 'graph' | 'flow';
+export type ViewMode = 'graph' | 'flow' | 'arc';
 export type FlowEdgeStyle = 'straight' | 'orthogonal';
 export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
+export type ArcDirection = 'right' | 'left' | 'up' | 'down';
 export type ChartType = ViewMode;
 export type NodeStyleField = 'folder' | 'tag' | 'domain' | 'type' | 'title';
 export type LinkStyleField = 'relation' | 'source-field';
@@ -130,9 +131,10 @@ export interface LinkStyleRule {
 }
 
 export interface ChartLayoutConfig {
-	engine: 'force-atlas' | 'elk';
+	engine: 'force-atlas' | 'elk' | 'arc';
 	spacing: number;
 	direction?: FlowDirection;
+	arcDirection?: ArcDirection;
 	edgeStyle?: FlowEdgeStyle;
 }
 
@@ -168,9 +170,11 @@ export interface WorkspaceState {
 	mode: ViewMode;
 	flowEdgeStyle: FlowEdgeStyle;
 	flowDirection: FlowDirection;
+	arcDirection: ArcDirection;
 	fadeDistance: number;
 	graphSpacing: number;
 	flowSpacing: number;
+	arcSpacing: number;
 	layoutRevision: number;
 	currentNoteId?: NodeId;
 	selectedNodeId?: NodeId;

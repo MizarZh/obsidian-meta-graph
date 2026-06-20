@@ -9,6 +9,7 @@
 		NodeFilterRule,
 		NodeStyleField,
 		NodeStyleRule,
+		ViewMode,
 	} from '../core/types';
 
 	let {
@@ -27,7 +28,7 @@
 		tags: string[];
 		nodeStyleRules: NodeStyleRule[];
 		linkStyleRules: LinkStyleRule[];
-		linkStyleMode: 'graph' | 'flow';
+		linkStyleMode: ViewMode;
 		onChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
 		onNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
@@ -113,6 +114,17 @@
 	function createRuleId(): string {
 		return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 	}
+
+	function formatViewMode(mode: ViewMode): string {
+		switch (mode) {
+			case 'graph':
+				return 'Graph';
+			case 'flow':
+				return 'Flow';
+			case 'arc':
+				return 'Arc diagram';
+		}
+	}
 </script>
 
 <aside class="knowledge-workspace-filters">
@@ -196,7 +208,7 @@
 
 	<section>
 		<header>
-			<h3>Link styles · {linkStyleMode === 'graph' ? 'Graph' : 'Flow'}</h3>
+			<h3>Link styles · {formatViewMode(linkStyleMode)}</h3>
 			<button
 				class="knowledge-workspace-add-rule-button"
 				aria-label="Add link style rule"

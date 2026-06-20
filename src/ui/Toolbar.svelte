@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { setIcon, type IconName } from "obsidian";
 	import type {
+		ArcDirection,
 		FlowDirection,
 		FlowEdgeStyle,
 		MetaGraphChart,
@@ -13,6 +14,7 @@
 		activeChartId,
 		flowEdgeStyle,
 		flowDirection,
+		arcDirection,
 		onSelectChart,
 		onAddChart,
 		onRenameChart,
@@ -20,6 +22,7 @@
 		onDeleteChart,
 		onFlowEdgeStyle,
 		onFlowDirection,
+		onArcDirection,
 		onFit,
 		onRefresh,
 		graphSettingsOpen,
@@ -33,6 +36,7 @@
 		activeChartId: string;
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
+		arcDirection: ArcDirection;
 		onSelectChart: (id: string) => void;
 		onAddChart: () => void;
 		onRenameChart: (name: string) => void;
@@ -40,6 +44,7 @@
 		onDeleteChart: () => void;
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
+		onArcDirection: (direction: ArcDirection) => void;
 		onFit: () => void;
 		onRefresh: () => void;
 		graphSettingsOpen: boolean;
@@ -66,6 +71,7 @@
 	const VIEW_ICONS: Record<ViewMode, IconName> = {
 		graph: "chart-scatter",
 		flow: "git-fork",
+		arc: "route",
 	};
 
 	function getViewIcon(type: ViewMode | undefined): IconName {
@@ -244,6 +250,7 @@
 					>
 						<option value="graph">Graph</option>
 						<option value="flow">Flow</option>
+						<option value="arc">Arc diagram</option>
 					</select>
 				</label>
 				{#if !creatingView}
@@ -292,6 +299,21 @@
 					onclick={() => onFlowEdgeStyle("orthogonal")}
 					>Orthogonal</button
 				>
+			</div>
+		{/if}
+		{#if mode === "arc"}
+			<div
+				class="knowledge-workspace-segmented"
+				aria-label="Arc direction"
+			>
+				{#each ["right", "left", "up", "down"] as direction}
+					<button
+						class:active={arcDirection === direction}
+						onclick={() =>
+							onArcDirection(direction as ArcDirection)}
+						>{direction}</button
+					>
+				{/each}
 			</div>
 		{/if}
 		<button onclick={onFit}>Fit graph</button>

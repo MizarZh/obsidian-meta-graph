@@ -44,6 +44,26 @@ describe('workspace persistence', () => {
 		expect(restored.query.maxNodes).toBe(50);
 	});
 
+	it('creates and restores the arc diagram chart', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		const arcChart = document.charts.find(
+			(chart) => chart.id === 'arc-diagram',
+		);
+		if (arcChart) {
+			arcChart.layout.spacing = 1.5;
+			arcChart.layout.arcDirection = 'left';
+			document.activeChart = arcChart.id;
+		}
+
+		const restored = createWorkspaceState(300, 1.5, document);
+
+		expect(arcChart?.name).toBe('Arc diagram');
+		expect(arcChart?.layout.engine).toBe('arc');
+		expect(restored.mode).toBe('arc');
+		expect(restored.arcSpacing).toBe(1.5);
+		expect(restored.arcDirection).toBe('left');
+	});
+
 	it('clones proxy-backed serializable state', () => {
 		const value = new Proxy(
 			{ nested: new Proxy({ value: 1 }, {}) },
