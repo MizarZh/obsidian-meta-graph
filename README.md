@@ -8,7 +8,9 @@ body.
 ## Metadata
 
 Add any of the supported properties to note frontmatter. Each property accepts a
-single string or an array.
+single string or an array. Meta Graph recognizes the built-in relationship
+properties below and any additional connection metadata fields added from the
+workspace connection panel.
 
 ```yaml
 ---
@@ -32,6 +34,7 @@ Relationship directions are:
 - `prerequisites`: linked note → current note
 - `leads_to`: current note → linked note
 - `related`: undirected
+- Custom connection fields: current note → linked note
 
 Unresolved links are ignored. Enable **Debug unresolved links** in the plugin
 settings to report them in the developer console.
@@ -45,8 +48,15 @@ settings to report them in the developer console.
 4. Add node style rules by folder, tag, domain, type, or title.
 5. Add link style rules by relation or source frontmatter field.
 6. Add show/hide filter rules by folder or tag.
-7. Select a node to open its note in a new tab.
-8. Select **Debug** to inspect or copy the current query, projection,
+7. Use the bottom connection panel to select or add the metadata field used for
+   new links.
+8. Hold `Ctrl`, drag from one node to another, and release to add a link to the
+   source note's selected metadata field.
+9. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
+   workspace is focused, to undo connection edits made in the current workspace
+   session.
+10. Select a node to open its note in a new tab.
+11. Select **Debug** to inspect or copy the current query, projection,
    canonical index, adjacency maps, and unresolved links as JSON.
 
 Markdown files with this frontmatter open as graph workspaces:
@@ -82,9 +92,22 @@ charts:
       linkRules: []
 
 activeChart: knowledge-map
+connectionFields:
+  - leads-to
+activeConnectionField: leads-to
 ```
 
 Use **Open graph as Markdown** to edit the backing YAML directly.
+
+## Flow layout behavior
+
+Flow charts use ELK layered layout. By default, adding or undoing connection
+links refreshes the visible edges without relaying out existing nodes. This
+keeps editing stable while you add multiple links. Select **Refresh** to run the
+Flow layout manually.
+
+Enable **Relayout Flow after connecting nodes** in the plugin settings if you
+want Flow charts to rerun layout immediately after each new connection.
 
 ## Development
 

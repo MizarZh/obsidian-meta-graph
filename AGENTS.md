@@ -1,269 +1,149 @@
-# Obsidian community plugin
+# AGENTS.md
 
-## Project overview
+This repository is an Obsidian community plugin named **Meta Graph**.
 
-- Target: Obsidian Community Plugin (TypeScript → bundled JavaScript).
-- Entry point: `src/main.ts` compiled to `main.js` and loaded by Obsidian.
-- Required release artifacts: `main.js`, `manifest.json`, and optional `styles.css`.
+## Project facts
 
-## Environment & tooling
+- Package manager: **pnpm**.
+- Bundler: esbuild.
+- UI framework: Svelte 5.
+- Graph renderer: Sigma.js with Graphology.
+- Layout engines:
+  - Graph: ForceAtlas2.
+  - Flow: ELK layered layout.
+  - Arc: deterministic arc layout.
+- Plugin entry point: `src/main.ts`.
+- Built release artifact: `main.js` at the plugin root.
+- Do not commit generated artifacts such as `main.js`, `node_modules/`, or build output unless explicitly requested.
 
-- Node.js: use current LTS (Node 18+ recommended).
-- **Package manager: npm** (required for this sample - `package.json` defines npm scripts and dependencies).
-- **Bundler: esbuild** (required for this sample - `esbuild.config.mjs` and build scripts depend on it). Alternative bundlers like Rollup or webpack are acceptable for other projects if they bundle all external dependencies into `main.js`.
-- Types: `obsidian` type definitions.
+## Commands
 
-**Note**: This sample project has specific technical dependencies on npm and esbuild. If you're creating a plugin from scratch, you can choose different tools, but you'll need to replace the build configuration accordingly.
-
-### Install
-
-```bash
-npm install
-```
-
-### Dev (watch)
+Use pnpm commands:
 
 ```bash
-npm run dev
+pnpm install
+pnpm exec tsc --noEmit
+pnpm exec svelte-check --tsconfig ./tsconfig.json
+pnpm exec vitest run
+pnpm lint
+pnpm build
 ```
 
-### Production build
+For focused checks during development, prefer:
 
 ```bash
-npm run build
+pnpm exec tsc --noEmit
+pnpm exec svelte-check --tsconfig ./tsconfig.json
+pnpm exec vitest run src/__tests__/core.test.ts src/__tests__/workspace-persistence.test.ts
 ```
 
-## Linting
+Do not run `pnpm dev`, `pnpm build`, or `git diff` if the user explicitly asks not to.
 
-- ESLint is preconfigured with `eslint-plugin-obsidianmd` for Obsidian-specific rules.
-- Run `npm run lint` to lint the project.
-- A GitHub Action automatically lints every commit on all branches.
+## Source map
 
-## File & folder conventions
+- `src/main.ts`: plugin lifecycle, commands, view registration, settings loading.
+- `src/settings/settings.ts`: plugin-wide settings and defaults.
+- `src/settings/SettingsTab.ts`: Obsidian Settings UI.
+- `src/workspace/KnowledgeWorkspaceView.ts`: custom TextFileView for workspace Markdown files.
+- `src/workspace/workspace-controller.ts`: state orchestration, indexing, query refresh, connection editing, undo stack.
+- `src/workspace/meta-graph-model.ts`: workspace document defaults, normalization, serialization.
+- `src/core/relation-parser.ts`: frontmatter relationship parsing.
+- `src/core/metadata-indexer.ts`: Obsidian metadata cache -> canonical knowledge index.
+- `src/query/neighborhood.ts`: query projection.
+- `src/graph/graphology-adapter.ts`: projection -> runtime Graphology graph.
+- `src/graph/graph-events.ts`: Sigma events, node selection, hover, Ctrl-drag connection gesture.
+- `src/graph/sigma-renderer.ts`: Sigma renderer wrapper and visual reducers.
+- `src/ui/Workspace.svelte`: main workspace UI and graph rebuild/layout orchestration.
+- `src/ui/ConnectionPanel.svelte`: bottom connection panel.
+- `src/ui/Toolbar.svelte`: chart switcher, view settings, search, layout controls.
+- `styles.css`: plugin UI styles.
 
-- **Organize code into multiple files**: Split functionality across separate modules rather than putting everything in `main.ts`.
-- Source lives in `src/`. Keep `main.ts` small and focused on plugin lifecycle (loading, unloading, registering commands).
-- **Example file structure**:
-    ```
-    src/
-      main.ts           # Plugin entry point, lifecycle management
-      settings.ts       # Settings interface and defaults
-      commands/         # Command implementations
-        command1.ts
-        command2.ts
-      ui/              # UI components, modals, views
-        modal.ts
-        view.ts
-      utils/           # Utility functions, helpers
-        helpers.ts
-        constants.ts
-      types.ts         # TypeScript interfaces and types
-    ```
-- **Do not commit build artifacts**: Never commit `node_modules/`, `main.js`, or other generated files to version control.
-- Keep the plugin small. Avoid large dependencies. Prefer browser-compatible packages.
-- Generated output should be placed at the plugin root or `dist/` depending on your build setup. Release artifacts must end up at the top level of the plugin folder in the vault (`main.js`, `manifest.json`, `styles.css`).
+## Data model
 
-## Manifest rules (`manifest.json`)
+Workspace Markdown files use:
 
-- Must include (non-exhaustive):
-    - `id` (plugin ID; for local dev it should match the folder name)
-    - `name`
-    - `version` (Semantic Versioning `x.y.z`)
-    - `minAppVersion`
-    - `description`
-    - `isDesktopOnly` (boolean)
-    - Optional: `author`, `authorUrl`, `fundingUrl` (string or map)
-- Never change `id` after release. Treat it as stable API.
-- Keep `minAppVersion` accurate when using newer APIs.
-- Canonical requirements are coded here: https://github.com/obsidianmd/obsidian-releases/blob/master/.github/workflows/validate-plugin-entry.yml
+```yaml
+---
+meta-graph: workspace
+meta-graph-version: 1
+---
 
-## Testing
+charts:
+  - id: knowledge-map
+    type: graph
+    query: ...
+    layout: ...
+    display: ...
+    style: ...
 
-- Manual install for testing: copy `main.js`, `manifest.json`, `styles.css` (if any) to:
-    ```
-    <Vault>/.obsidian/plugins/<plugin-id>/
-    ```
-- Reload Obsidian and enable the plugin in **Settings → Community plugins**.
-
-## Commands & settings
-
-- Any user-facing commands should be added via `this.addCommand(...)`.
-- If the plugin has configuration, provide a settings tab and sensible defaults.
-- Persist settings using `this.loadData()` / `this.saveData()`.
-- Use stable command IDs; avoid renaming once released.
-
-## Versioning & releases
-
-- Bump `version` in `manifest.json` (SemVer) and update `versions.json` to map plugin version → minimum app version.
-- Create a GitHub release whose tag exactly matches `manifest.json`'s `version`. Do not use a leading `v`.
-- Attach `manifest.json`, `main.js`, and `styles.css` (if present) to the release as individual assets.
-- After the initial release, follow the process to add/update your plugin in the community catalog as required.
-
-## Security, privacy, and compliance
-
-Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particular:
-
-- Default to local/offline operation. Only make network requests when essential to the feature.
-- No hidden telemetry. If you collect optional analytics or call third-party services, require explicit opt-in and document clearly in `README.md` and in settings.
-- Never execute remote code, fetch and eval scripts, or auto-update plugin code outside of normal releases.
-- Minimize scope: read/write only what's necessary inside the vault. Do not access files outside the vault.
-- Clearly disclose any external services used, data sent, and risks.
-- Respect user privacy. Do not collect vault contents, filenames, or personal information unless absolutely necessary and explicitly consented.
-- Avoid deceptive patterns, ads, or spammy notifications.
-- Register and clean up all DOM, app, and interval listeners using the provided `register*` helpers so the plugin unloads safely.
-
-## UX & copy guidelines (for UI text, commands, settings)
-
-- Prefer sentence case for headings, buttons, and titles.
-- Use clear, action-oriented imperatives in step-by-step copy.
-- Use **bold** to indicate literal UI labels. Prefer "select" for interactions.
-- Use arrow notation for navigation: **Settings → Community plugins**.
-- Keep in-app strings short, consistent, and free of jargon.
-
-## Performance
-
-- Keep startup light. Defer heavy work until needed.
-- Avoid long-running tasks during `onload`; use lazy initialization.
-- Batch disk access and avoid excessive vault scans.
-- Debounce/throttle expensive operations in response to file system events.
-
-## Coding conventions
-
-- TypeScript with `"strict": true` preferred.
-- **Keep `main.ts` minimal**: Focus only on plugin lifecycle (onload, onunload, addCommand calls). Delegate all feature logic to separate modules.
-- **Split large files**: If any file exceeds ~200-300 lines, consider breaking it into smaller, focused modules.
-- **Use clear module boundaries**: Each file should have a single, well-defined responsibility.
-- Bundle everything into `main.js` (no unbundled runtime deps).
-- Avoid Node/Electron APIs if you want mobile compatibility; set `isDesktopOnly` accordingly.
-- Prefer `async/await` over promise chains; handle errors gracefully.
-
-## Mobile
-
-- Where feasible, test on iOS and Android.
-- Don't assume desktop-only behavior unless `isDesktopOnly` is `true`.
-- Avoid large in-memory structures; be mindful of memory and storage constraints.
-
-## Agent do/don't
-
-**Do**
-
-- Add commands with stable IDs (don't rename once released).
-- Provide defaults and validation in settings.
-- Write idempotent code paths so reload/unload doesn't leak listeners or intervals.
-- Use `this.register*` helpers for everything that needs cleanup.
-
-**Don't**
-
-- Introduce network calls without an obvious user-facing reason and documentation.
-- Ship features that require cloud services without clear disclosure and explicit opt-in.
-- Store or transmit vault contents unless essential and consented.
-
-## Common tasks
-
-### Organize code across multiple files
-
-**main.ts** (minimal, lifecycle only):
-
-```ts
-import { Plugin } from 'obsidian';
-import { MySettings, DEFAULT_SETTINGS } from './settings';
-import { registerCommands } from './commands';
-
-export default class MyPlugin extends Plugin {
-	settings!: MySettings;
-
-	async onload() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			(await this.loadData()) as Partial<MySettings>,
-		);
-		registerCommands(this);
-	}
-}
+activeChart: knowledge-map
+connectionFields:
+  - leads-to
+activeConnectionField: leads-to
 ```
 
-**settings.ts**:
+Built-in metadata relationships:
 
-```ts
-export interface MySettings {
-	enabled: boolean;
-	apiKey: string;
-}
+- `prerequisites` / `prerequisite`: linked note -> current note.
+- `leads_to` / `leads-to` / `leadsTo`: current note -> linked note.
+- `related`: undirected.
 
-export const DEFAULT_SETTINGS: MySettings = {
-	enabled: true,
-	apiKey: '',
-};
-```
+Custom connection fields are stored in the workspace document and are parsed as directed current note -> linked note edges.
 
-**commands/index.ts**:
+## Connection editing behavior
 
-```ts
-import { Plugin } from 'obsidian';
-import { doSomething } from './my-command';
+Users can hold `Ctrl`, drag from one visible node to another, and release to write a link into the source note's active metadata field.
 
-export function registerCommands(plugin: Plugin) {
-	plugin.addCommand({
-		id: 'do-something',
-		name: 'Do something',
-		callback: () => doSomething(plugin),
-	});
-}
-```
+Important details:
 
-### Add a command
+- Connection writes use `app.fileManager.processFrontMatter`.
+- Links are generated with `app.fileManager.generateMarkdownLink`.
+- Duplicate links are skipped.
+- Connection undo is an in-memory stack in `WorkspaceController`.
+- `Ctrl+Z` / `Cmd+Z` is handled in `Workspace.svelte` only when the workspace has focus and the event target is not an editable control.
+- Undo restores the previous frontmatter value shape when possible.
 
-```ts
-this.addCommand({
-	id: 'your-command-id',
-	name: 'Do the thing',
-	callback: () => this.doTheThing(),
-});
-```
+## Flow layout policy
 
-### Persist settings
+Flow charts must remain stable while users create multiple links.
 
-```ts
-interface MySettings { enabled: boolean }
-const DEFAULT_SETTINGS: MySettings = { enabled: true };
+Default behavior:
 
-async onload() {
-  this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MySettings>);
-  await this.saveData(this.settings);
-}
-```
+- Adding or undoing links refreshes the real projection.
+- Edge-only changes do **not** run ELK layout.
+- Existing node positions are preserved.
+- Manual Refresh still forces layout.
 
-### Register listeners safely
+Global plugin setting:
 
-```ts
-this.registerEvent(
-	this.app.workspace.on('file-open', (f) => {
-		/* ... */
-	}),
-);
-this.registerDomEvent(activeWindow, 'resize', () => {
-	/* ... */
-});
-this.registerInterval(
-	window.setInterval(() => {
-		/* ... */
-	}, 1000),
-);
-```
+- `relayoutFlowAfterConnection`
+- UI label: **Relayout Flow after connecting nodes**
+- Default: `false`
+- When `true`, dragging a new Flow connection schedules the next refresh with `forceLayout = true`.
+- Undo does not force relayout through this setting.
 
-## Troubleshooting
+When modifying Flow behavior, avoid temporary renderer-only edges. The graph should stay synchronized with the canonical projection.
 
-- Plugin doesn't load after build: ensure `main.js` and `manifest.json` are at the top level of the plugin folder under `<Vault>/.obsidian/plugins/<plugin-id>/`.
-- Build issues: if `main.js` is missing, run `npm run build` or `npm run dev` to compile your TypeScript source code.
-- Commands not appearing: verify `addCommand` runs after `onload` and IDs are unique.
-- Settings not persisting: ensure `loadData`/`saveData` are awaited and you re-render the UI after changes.
-- Mobile-only issues: confirm you're not using desktop-only APIs; check `isDesktopOnly` and adjust.
+## Coding guidelines
 
-## References
+- Keep `src/main.ts` focused on lifecycle, commands, and view registration.
+- Prefer small modules with clear responsibility.
+- Use Obsidian cleanup helpers (`registerEvent`, `registerDomEvent`, `registerInterval`) when registering long-lived listeners.
+- Keep startup light; defer indexing and layout work until views need it.
+- Avoid network calls unless the feature clearly needs them and the behavior is documented.
+- Do not use Node/Electron-only APIs unless the plugin is intentionally desktop-only.
+- Preserve user data carefully when modifying frontmatter.
+- Avoid unrelated refactors while fixing behavior.
 
-- Obsidian sample plugin: https://github.com/obsidianmd/obsidian-sample-plugin
-- API documentation: https://docs.obsidian.md
-- Developer policies: https://docs.obsidian.md/Developer+policies
-- Plugin guidelines: https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines
-- Style guide: https://help.obsidian.md/style-guide
+## UI copy
+
+- Use sentence case.
+- Keep labels short.
+- Use **Settings -> Community plugins** style arrows in docs.
+- In UI text, prefer direct labels such as **Refresh**, **Undo**, **Debug**.
+
+## Documentation
+
+- `README.md` is user-facing.
+- `design.md` is the current project/design status and should be written in Chinese.
+- Update both when changing major behavior, especially connection editing, undo, metadata parsing, or Flow layout policy.
