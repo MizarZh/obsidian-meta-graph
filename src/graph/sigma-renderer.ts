@@ -124,6 +124,46 @@ export class SigmaRenderer {
 		);
 	}
 
+	getNodeAtViewportPosition(position: { x: number; y: number }): string | undefined {
+		const hitTest = this.instance as unknown as {
+			getNodeAtPosition(position: { x: number; y: number }): string | null;
+		};
+		const nodeId = hitTest.getNodeAtPosition(position);
+		if (!nodeId || !this.graph.hasNode(nodeId)) {
+			return this.getNearestNodeAtViewportPosition(position);
+		}
+		return this.graph.getNodeAttribute(nodeId, 'isBend') ? undefined : nodeId;
+	}
+
+	private getNearestNodeAtViewportPosition(position: {
+		x: number;
+		y: number;
+	}): string | undefined {
+		let closestNodeId: string | undefined;
+		let closestDistance = Number.POSITIVE_INFINITY;
+		const sizeScaler = this.instance as unknown as {
+			scaleSize(size?: number): number;
+		};
+		this.graph.forEachNode((nodeId, attributes) => {
+			if (attributes.isBend) {
+				return;
+			}
+			const viewportPosition = this.instance.graphToViewport({
+				x: attributes.x,
+				y: attributes.y,
+			});
+			const dx = viewportPosition.x - position.x;
+			const dy = viewportPosition.y - position.y;
+			const distance = Math.hypot(dx, dy);
+			const hitRadius = Math.max(14, sizeScaler.scaleSize(attributes.size) + 8);
+			if (distance <= hitRadius && distance < closestDistance) {
+				closestNodeId = nodeId;
+				closestDistance = distance;
+			}
+		});
+		return closestNodeId;
+	}
+
 	fit(): void {
 		void this.instance.getCamera().animatedReset({ duration: 350 });
 	}

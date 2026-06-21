@@ -150,7 +150,7 @@ export function createArcPoints(
 	const radius = distance / 2;
 	const samples = Math.max(8, Math.min(48, Math.ceil(distance / 16)));
 	const verticalArc = isVerticalArc(direction);
-	const sign = direction === "left" || direction === "down" ? -1 : 1;
+	const sign = direction === "left" || direction === "up" ? -1 : 1;
 
 	return Array.from({ length: samples + 1 }, (_, index) => {
 		const t = index / samples;

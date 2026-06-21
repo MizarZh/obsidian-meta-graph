@@ -40,12 +40,13 @@ export function createWorkspaceState(
 		query: cloneSerializable(activeChart.query),
 		nodeStyleRules: cloneSerializable(activeChart.style.nodeRules),
 		linkStyleRules: cloneSerializable(activeChart.style.linkRules),
-		connectionFields: cloneSerializable(metaGraphDocument.connectionFields),
-		activeConnectionField: metaGraphDocument.activeConnectionField,
-		connectionUndoCount: 0,
-		availableFolders: [],
-		availableTags: [],
-		availableDomains: [],
-	};
+			connectionFields: cloneSerializable(metaGraphDocument.connectionFields),
+			activeConnectionField: metaGraphDocument.activeConnectionField,
+			connectionUndoCount: 0,
+			dock: cloneSerializable(metaGraphDocument.dock),
+			availableFolders: [],
+			availableTags: [],
+			availableDomains: [],
+		};
 	return state;
 }

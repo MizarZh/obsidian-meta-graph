@@ -171,6 +171,30 @@ export interface MetaGraphDocument {
 	activeChart: string;
 	connectionFields: string[];
 	activeConnectionField: string;
+	dock: MetaGraphDock;
+}
+
+export type DockConnectionDirection =
+	| 'from-graph-to-dock'
+	| 'from-dock-to-graph';
+
+export interface DockTemplateNode {
+	id: string;
+	label: string;
+	templatePath: string;
+	targetFolder: string;
+	relationField: string;
+	direction: DockConnectionDirection;
+}
+
+export interface DockNoteNode {
+	id: string;
+	path: NodeId;
+}
+
+export interface MetaGraphDock {
+	templates: DockTemplateNode[];
+	notes: DockNoteNode[];
 }
 
 export interface WorkspaceState {
@@ -194,6 +218,7 @@ export interface WorkspaceState {
 	connectionFields: string[];
 	activeConnectionField: string;
 	connectionUndoCount: number;
+	dock: MetaGraphDock;
 	projection?: GraphProjection;
 	availableFolders: string[];
 	availableTags: string[];

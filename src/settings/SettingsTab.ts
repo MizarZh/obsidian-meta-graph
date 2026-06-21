@@ -55,8 +55,8 @@ export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(this.containerEl)
-			.setName('Relayout Flow after connecting nodes')
-			.setDesc('Run the Flow layout after creating a metadata link. Off keeps existing node positions until you refresh manually.')
+			.setName('Relayout flow after connecting nodes')
+			.setDesc('Run the flow layout after creating a metadata link. Off keeps existing node positions until you refresh manually.')
 			.addToggle((toggle) =>
 				toggle
 					.setValue(this.plugin.settings.relayoutFlowAfterConnection)

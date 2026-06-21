@@ -28,21 +28,27 @@
 	import { serializeMetaGraphState } from '../workspace/meta-graph-model';
 	import FilterPanel from './FilterPanel.svelte';
 	import DebugPanel from './DebugPanel.svelte';
+	import DockGraphPanel, {
+		type DockDragPayload,
+	} from './DockGraphPanel.svelte';
 	import DisplayControls from './DisplayControls.svelte';
 	import Inspector from './Inspector.svelte';
 	import ConnectionPanel from './ConnectionPanel.svelte';
 	import { ConfirmDeleteViewModal } from './ConfirmDeleteWorkspaceModal';
+	import { CreateFromTemplateModal } from './CreateFromTemplateModal';
 	import Toolbar from './Toolbar.svelte';
 
 	let {
 		app,
 		controller,
 		onAutoSave,
+		workspaceFilePath,
 		showDebugButton,
 	}: {
 		app: App;
 		controller: WorkspaceController;
 		onAutoSave: (document: MetaGraphDocument) => Promise<void>;
+		workspaceFilePath?: string;
 		showDebugButton: boolean;
 	} = $props();
 	let workspaceState: WorkspaceState = $state(getInitialState());
@@ -66,6 +72,11 @@
 	let debugOpen = $state(false);
 	let graphSettingsOpen = $state(true);
 	let connectionDrag = $state<ConnectionDragState | undefined>(undefined);
+	let graphConnectionTargetNotePath = $state<string | undefined>(undefined);
+	let graphConnectionTargetTemplateId = $state<string | undefined>(undefined);
+	let dockDrag = $state<DockDragPayload | undefined>(undefined);
+	let dockTargetNodeId = $state<string | undefined>(undefined);
+	const DOCK_DRAG_MIME = 'application/x-obsidian-meta-graph-dock-node';
 	interface LayoutSnapshot {
 		positions: Map<string, GraphPosition>;
 		edgeIds: Set<string>;
@@ -94,6 +105,12 @@
 		resizeObserver.observe(canvas);
 		workspaceRoot.addEventListener('keydown', handleWorkspaceKeydown);
 		workspaceRoot.addEventListener('pointerdown', focusWorkspaceForShortcuts);
+		window.addEventListener('mousemove', handleGraphConnectionMouseMove, {
+			capture: true,
+		});
+		window.addEventListener('mouseup', handleGraphConnectionMouseUp, {
+			capture: true,
+		});
 
 		const unsubscribe = controller.subscribe((nextState) => {
 			const activeChartChanged =
@@ -181,6 +198,12 @@
 				'pointerdown',
 				focusWorkspaceForShortcuts,
 			);
+			window.removeEventListener('mousemove', handleGraphConnectionMouseMove, {
+				capture: true,
+			});
+			window.removeEventListener('mouseup', handleGraphConnectionMouseUp, {
+				capture: true,
+			});
 			unbindEvents?.();
 			renderer?.kill();
 		};
@@ -283,6 +306,10 @@
 				onOpen: (nodeId) => void controller.openNode(nodeId),
 				onConnectionDrag: (state) => {
 					connectionDrag = state;
+					if (!state) {
+						graphConnectionTargetNotePath = undefined;
+						graphConnectionTargetTemplateId = undefined;
+					}
 				},
 				onConnect: (sourceNodeId, targetNodeId) => {
 					void controller
@@ -322,6 +349,8 @@
 	const debugSnapshot: DebugSnapshot = $derived(
 		controller.getDebugSnapshot(workspaceState),
 	);
+	const selectedDockNodes = $derived(getSelectedDockNodes(debugSnapshot));
+	const dockNoteCandidates = $derived(getDockNoteCandidates(debugSnapshot));
 
 	function toggleDebug(): void {
 		debugOpen = !debugOpen;
@@ -501,6 +530,331 @@
 		window.requestAnimationFrame(() => renderer?.focusNode(nodeId));
 	}
 
+	function getSelectedDockNodes(snapshot: DebugSnapshot) {
+		const nodesByPath = new Map(snapshot.index.nodes.map((node) => [node.path, node]));
+		return workspaceState.dock.notes
+			.map((note) => nodesByPath.get(note.path))
+			.filter((node) => node !== undefined);
+	}
+
+	function getDockNoteCandidates(snapshot: DebugSnapshot) {
+		const selectedPaths = new Set(
+			workspaceState.dock.notes.map((note) => note.path),
+		);
+		return snapshot.index.nodes
+			.filter(
+				(node) =>
+					node.path !== workspaceFilePath &&
+					!selectedPaths.has(node.path),
+			)
+			.sort((first, second) =>
+				first.title.localeCompare(second.title, undefined, {
+					sensitivity: 'base',
+				}),
+			);
+	}
+
+	function handleDockDragStart(
+		payload: DockDragPayload,
+		event: DragEvent,
+	): void {
+		dockDrag = payload;
+		if (!event.dataTransfer) {
+			return;
+		}
+		event.dataTransfer.effectAllowed = 'link';
+		event.dataTransfer.setData(DOCK_DRAG_MIME, JSON.stringify(payload));
+		event.dataTransfer.setData('text/plain', payload.label);
+	}
+
+	function handleDockDragOver(event: DragEvent): void {
+		const payload = getDockDragPayload(event);
+		if (!payload || !renderer) {
+			return;
+		}
+		if (isGraphOverlayTarget(event.target)) {
+			setDockTarget(undefined);
+			return;
+		}
+		event.preventDefault();
+		if (event.dataTransfer) {
+			event.dataTransfer.dropEffect = 'link';
+		}
+		setDockTarget(readNodeAtDragEvent(event, payload));
+	}
+
+	function handleDockDrop(event: DragEvent): void {
+		const payload = getDockDragPayload(event);
+		if (!payload) {
+			resetDockDrag();
+			return;
+		}
+		if (isGraphOverlayTarget(event.target)) {
+			resetDockDrag();
+			return;
+		}
+		event.preventDefault();
+		const targetNodeId = readNodeAtDragEvent(event, payload);
+		resetDockDrag();
+		if (!targetNodeId) {
+			return;
+		}
+		connectDockPayloadToGraph(payload, targetNodeId);
+	}
+
+	function handleDockDragEnd(event: DragEvent): void {
+		const payload = dockDrag;
+		if (!payload) {
+			return;
+		}
+		const targetNodeId =
+			dockTargetNodeId ?? readNodeAtDragEvent(event, payload);
+		resetDockDrag();
+		if (!targetNodeId) {
+			return;
+		}
+		connectDockPayloadToGraph(payload, targetNodeId);
+	}
+
+	function connectDockPayloadToGraph(
+		payload: DockDragPayload,
+		targetNodeId: string,
+	): void {
+		if (payload.kind === 'template') {
+			openCreateFromTemplateModal(payload, targetNodeId);
+			return;
+		}
+		void controller
+			.connectDockNote(
+				payload.notePath,
+				targetNodeId,
+				payload.direction,
+				payload.relationField,
+			)
+			.catch((error: unknown) =>
+				controller.setRendererDebugState({
+					status: 'error',
+					error: formatError(error),
+				}),
+			);
+	}
+
+	function handleDockDragLeave(event: DragEvent): void {
+		if (
+			event.currentTarget instanceof Node &&
+			event.relatedTarget instanceof Node &&
+			event.currentTarget.contains(event.relatedTarget)
+		) {
+			return;
+		}
+		setDockTarget(undefined);
+	}
+
+	function resetDockDrag(): void {
+		dockDrag = undefined;
+		setDockTarget(undefined);
+	}
+
+	function getDockDragPayload(event: DragEvent): DockDragPayload | undefined {
+		if (dockDrag) {
+			return dockDrag;
+		}
+		const transfer = event.dataTransfer;
+		if (!transfer || !Array.from(transfer.types).includes(DOCK_DRAG_MIME)) {
+			return undefined;
+		}
+		return parseDockDragPayload(transfer.getData(DOCK_DRAG_MIME));
+	}
+
+	function parseDockDragPayload(value: string): DockDragPayload | undefined {
+		try {
+			const parsed = JSON.parse(value) as unknown;
+			if (!parsed || typeof parsed !== 'object') {
+				return undefined;
+			}
+			if (
+				'kind' in parsed &&
+				parsed.kind === 'template' &&
+				'templateId' in parsed &&
+				'label' in parsed &&
+				typeof parsed.templateId === 'string' &&
+				typeof parsed.label === 'string'
+			) {
+				return {
+					kind: 'template',
+					templateId: parsed.templateId,
+					label: parsed.label,
+				};
+			}
+			if (
+				'kind' in parsed &&
+				parsed.kind === 'note' &&
+				'notePath' in parsed &&
+				'label' in parsed &&
+				'direction' in parsed &&
+				'relationField' in parsed &&
+				typeof parsed.notePath === 'string' &&
+				typeof parsed.label === 'string' &&
+				(parsed.direction === 'from-graph-to-dock' ||
+					parsed.direction === 'from-dock-to-graph') &&
+				typeof parsed.relationField === 'string'
+			) {
+				return {
+					kind: 'note',
+					notePath: parsed.notePath,
+					label: parsed.label,
+					direction: parsed.direction,
+					relationField: parsed.relationField,
+				};
+			}
+		} catch {
+			return undefined;
+		}
+		return undefined;
+	}
+
+	function readNodeAtDragEvent(
+		event: DragEvent,
+		payload: DockDragPayload,
+	): string | undefined {
+		if (!canvas || !renderer) {
+			return undefined;
+		}
+		const rect = canvas.getBoundingClientRect();
+		const nodeId = renderer.getNodeAtViewportPosition({
+			x: event.clientX - rect.left,
+			y: event.clientY - rect.top,
+		});
+		if (!nodeId) {
+			return undefined;
+		}
+		return payload.kind === 'note' && payload.notePath === nodeId
+			? undefined
+			: nodeId;
+	}
+
+	function setDockTarget(nodeId?: string): void {
+		if (dockTargetNodeId === nodeId) {
+			return;
+		}
+		dockTargetNodeId = nodeId;
+		renderer?.setHovered(nodeId ?? workspaceState.hoveredNodeId);
+	}
+
+	function handleGraphConnectionMouseMove(event: MouseEvent): void {
+		if (!connectionDrag) {
+			return;
+		}
+		graphConnectionTargetNotePath = readDockNotePathFromTarget(event.target);
+		graphConnectionTargetTemplateId = readDockTemplateIdFromTarget(event.target);
+	}
+
+	function handleGraphConnectionMouseUp(event: MouseEvent): void {
+		if (!connectionDrag) {
+			return;
+		}
+		const templateId =
+			graphConnectionTargetTemplateId ??
+			readDockTemplateIdFromTarget(event.target);
+		if (templateId) {
+			const sourceNodeId = connectionDrag.sourceNodeId;
+			graphConnectionTargetNotePath = undefined;
+			graphConnectionTargetTemplateId = undefined;
+			openCreateFromTemplateId(templateId, sourceNodeId);
+			return;
+		}
+		const notePath =
+			graphConnectionTargetNotePath ?? readDockNotePathFromTarget(event.target);
+		if (!notePath || notePath === connectionDrag.sourceNodeId) {
+			return;
+		}
+		const sourceNodeId = connectionDrag.sourceNodeId;
+		graphConnectionTargetNotePath = undefined;
+		graphConnectionTargetTemplateId = undefined;
+		void controller
+			.connectNodes(
+				sourceNodeId,
+				notePath,
+				workspaceState.activeConnectionField,
+			)
+			.catch((error: unknown) =>
+				controller.setRendererDebugState({
+					status: 'error',
+					error: formatError(error),
+				}),
+			);
+	}
+
+	function readDockNotePathFromTarget(target: EventTarget | null): string | undefined {
+		if (!(target instanceof HTMLElement)) {
+			return undefined;
+		}
+		const noteEl = target.closest<HTMLElement>('[data-dock-note-path]');
+		return noteEl?.dataset.dockNotePath || undefined;
+	}
+
+	function readDockTemplateIdFromTarget(
+		target: EventTarget | null,
+	): string | undefined {
+		if (!(target instanceof HTMLElement)) {
+			return undefined;
+		}
+		const templateEl = target.closest<HTMLElement>('[data-dock-template-id]');
+		return templateEl?.dataset.dockTemplateId || undefined;
+	}
+
+	function openCreateFromTemplateModal(
+		payload: Extract<DockDragPayload, { kind: 'template' }>,
+		targetNodeId: string,
+	): void {
+		openCreateFromTemplateId(payload.templateId, targetNodeId, payload.label);
+	}
+
+	function openCreateFromTemplateId(
+		templateId: string,
+		targetNodeId: string,
+		label = findTemplateLabel(templateId),
+	): void {
+		if (!label) {
+			return;
+		}
+		new CreateFromTemplateModal(
+			app,
+			label,
+			findNodeTitle(targetNodeId),
+			(name) =>
+				controller.createNoteFromTemplate(
+					templateId,
+					targetNodeId,
+					name,
+				),
+		).open();
+	}
+
+	function findTemplateLabel(templateId: string): string | undefined {
+		return workspaceState.dock.templates.find(
+			(template) => template.id === templateId,
+		)?.label;
+	}
+
+	function findNodeTitle(nodeId: string): string {
+		return (
+			debugSnapshot.index.nodes.find((node) => node.id === nodeId)?.title ??
+			nodeId
+		);
+	}
+
+	function isGraphOverlayTarget(target: EventTarget | null): boolean {
+		if (!(target instanceof HTMLElement)) {
+			return false;
+		}
+		return Boolean(
+			target.closest(
+				'.knowledge-workspace-dock-panel, .knowledge-workspace-display-controls, .knowledge-workspace-inspector, .knowledge-workspace-connection-panel',
+			),
+		);
+	}
+
 	function focusWorkspaceForShortcuts(event: PointerEvent): void {
 		if (isEditableTarget(event.target)) {
 			return;
@@ -588,7 +942,13 @@
 					controller.setLinkStyleRules(rules)}
 			/>
 		{/if}
-		<main class="knowledge-workspace-main">
+		<main
+			class="knowledge-workspace-main"
+			class:dock-node-dragging={Boolean(dockDrag)}
+			ondragover={handleDockDragOver}
+			ondrop={handleDockDrop}
+			ondragleave={handleDockDragLeave}
+		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
 			{#if connectionDrag}
 				<svg
@@ -612,6 +972,28 @@
 			{#if workspaceState.projection?.nodes.length === 0}
 				<div class="knowledge-workspace-empty">No matching metadata relationships.</div>
 			{/if}
+			<DockGraphPanel
+				templates={workspaceState.dock.templates}
+				selectedNotes={selectedDockNodes}
+				availableNotes={dockNoteCandidates}
+				activeConnectionField={workspaceState.activeConnectionField}
+				draggingKey={dockDrag
+					? dockDrag.kind === 'template'
+						? `template:${dockDrag.templateId}`
+						: `note:${dockDrag.notePath}`
+					: undefined}
+				targetNodeId={dockTargetNodeId}
+				graphTargetNotePath={graphConnectionTargetNotePath}
+				graphTargetTemplateId={graphConnectionTargetTemplateId}
+				onAddTemplate={(template) => controller.addDockTemplate(template)}
+				onRemoveTemplate={(templateId) =>
+					controller.removeDockTemplate(templateId)}
+				onAddNote={(path) => controller.addDockNote(path)}
+				onRemoveNote={(path) => controller.removeDockNote(path)}
+				onDragStart={handleDockDragStart}
+				onDragEnd={handleDockDragEnd}
+				onOpenNote={(nodeId) => void controller.openNode(nodeId)}
+			/>
 			<Inspector node={selectedNode} />
 			<ConnectionPanel
 				fields={workspaceState.connectionFields}

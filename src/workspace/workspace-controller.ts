@@ -1,4 +1,4 @@
-import { TFile, type App } from 'obsidian';
+import { TFile, TFolder, type App } from 'obsidian';
 import { MetadataIndexer } from '../core/metadata-indexer';
 import { normalizePath } from '../core/knowledge-index';
 import { extractLinkText } from '../core/link-resolver';
@@ -12,6 +12,8 @@ import type {
 	LinkStyleRule,
 	MetaGraphChart,
 	MetaGraphDocument,
+	DockConnectionDirection,
+	DockTemplateNode,
 	MetadataDebugEntry,
 	NodeId,
 	NodeStyleRule,
@@ -25,6 +27,8 @@ import { createWorkspaceState } from './workspace-state';
 import {
 	createDefaultChart,
 	normalizeConnectionFields,
+	normalizeDockNotes,
+	normalizeDockTemplates,
 	normalizeLinkStyleRules,
 	normalizeNodeStyleRules,
 	serializeMetaGraphState,
@@ -176,13 +180,14 @@ export class WorkspaceController {
 		const nextState = createWorkspaceState(
 			this.state.query.maxNodes,
 			chart.display.fadeDistance,
-			{
-				charts: this.state.charts,
-				activeChart: chart.id,
-				connectionFields: this.state.connectionFields,
-				activeConnectionField: this.state.activeConnectionField,
-			},
-		);
+				{
+					charts: this.state.charts,
+					activeChart: chart.id,
+					connectionFields: this.state.connectionFields,
+					activeConnectionField: this.state.activeConnectionField,
+					dock: this.state.dock,
+				},
+			);
 		this.state = {
 			...nextState,
 			currentNoteId: this.state.currentNoteId,
@@ -192,6 +197,7 @@ export class WorkspaceController {
 			availableDomains: this.state.availableDomains,
 			connectionFields: this.state.connectionFields,
 			activeConnectionField: this.state.activeConnectionField,
+			dock: this.state.dock,
 			connectionUndoCount: this.state.connectionUndoCount,
 		};
 		this.runQuery();
@@ -332,6 +338,114 @@ export class WorkspaceController {
 		return serializeMetaGraphState(this.state);
 	}
 
+	addDockTemplate(
+		template: Omit<DockTemplateNode, 'id'> & { id?: string },
+	): void {
+		const templates = normalizeDockTemplates([
+			...this.state.dock.templates,
+			{
+				...template,
+				id: template.id ?? createDockId('template', template.label),
+			},
+		]);
+		this.state = {
+			...this.state,
+			dock: {
+				...this.state.dock,
+				templates,
+			},
+		};
+		this.emit();
+	}
+
+	removeDockTemplate(templateId: string): void {
+		const templates = this.state.dock.templates.filter(
+			(template) => template.id !== templateId,
+		);
+		if (templates.length === this.state.dock.templates.length) {
+			return;
+		}
+		this.state = {
+			...this.state,
+			dock: {
+				...this.state.dock,
+				templates,
+			},
+		};
+		this.emit();
+	}
+
+	addDockNote(path: NodeId): void {
+		const notes = normalizeDockNotes([
+			...this.state.dock.notes,
+			{ id: createDockId('note', path), path },
+		]);
+		this.state = {
+			...this.state,
+			dock: {
+				...this.state.dock,
+				notes,
+			},
+		};
+		this.emit();
+	}
+
+	removeDockNote(path: NodeId): void {
+		const notes = this.state.dock.notes.filter((note) => note.path !== path);
+		if (notes.length === this.state.dock.notes.length) {
+			return;
+		}
+		this.state = {
+			...this.state,
+			dock: {
+				...this.state.dock,
+				notes,
+			},
+		};
+		this.emit();
+	}
+
+	async connectDockNote(
+		notePath: NodeId,
+		targetNodeId: NodeId,
+		direction: DockConnectionDirection = 'from-graph-to-dock',
+		field = this.state.activeConnectionField,
+	): Promise<void> {
+		const [sourceNodeId, targetPath] =
+			direction === 'from-dock-to-graph'
+				? [notePath, targetNodeId]
+				: [targetNodeId, notePath];
+		await this.connectNodes(sourceNodeId, targetPath, field);
+	}
+
+	async createNoteFromTemplate(
+		templateId: string,
+		targetNodeId: NodeId,
+		name: string,
+	): Promise<void> {
+		const template = this.state.dock.templates.find(
+			(item) => item.id === templateId,
+		);
+		if (!template) {
+			throw new Error('Template is missing.');
+		}
+		const title = name.trim();
+		if (!title) {
+			throw new Error('Note name is required.');
+		}
+		const folderPath = normalizePath(template.targetFolder);
+		await this.ensureFolderPath(folderPath);
+		const filePath = this.createAvailableMarkdownPath(folderPath, title);
+		const content = await this.renderTemplateContent(template, title);
+		const file = await this.app.vault.create(filePath, content);
+		await this.connectDockNote(
+			file.path,
+			targetNodeId,
+			template.direction,
+			template.relationField,
+		);
+	}
+
 	updateQuery(patch: Partial<Omit<GraphQuery, 'roots'>>): void {
 		this.state = this.updateActiveChart({
 			query: { ...this.state.query, ...patch },
@@ -429,11 +543,12 @@ export class WorkspaceController {
 		);
 		let undo: ConnectionUndoEntry | undefined;
 		await this.app.fileManager.processFrontMatter(sourceFile, (frontmatter) => {
+			const data = asFrontmatterRecord(frontmatter);
 			const hadField = Object.prototype.hasOwnProperty.call(
-				frontmatter,
+				data,
 				normalizedField,
 			);
-			const currentValue = frontmatter[normalizedField];
+			const currentValue = data[normalizedField];
 			const currentValues = toFrontmatterArray(currentValue);
 			if (
 				currentValues.some((value) =>
@@ -453,7 +568,7 @@ export class WorkspaceController {
 				hadField,
 				previousValue: cloneFrontmatterValue(currentValue),
 			};
-			frontmatter[normalizedField] = [...currentValues, link];
+			data[normalizedField] = [...currentValues, link];
 		});
 		if (undo) {
 			this.connectionUndoStack.push(undo);
@@ -477,7 +592,8 @@ export class WorkspaceController {
 
 			let changed = false;
 			await this.app.fileManager.processFrontMatter(sourceFile, (frontmatter) => {
-				const currentValue = frontmatter[undo.field];
+				const data = asFrontmatterRecord(frontmatter);
+				const currentValue = data[undo.field];
 				const currentValues = toFrontmatterArray(currentValue);
 				const remainingValues = currentValues.filter(
 					(value) => !frontmatterValueEquals(value, undo.link),
@@ -488,11 +604,11 @@ export class WorkspaceController {
 
 				const previousValues = toFrontmatterArray(undo.previousValue);
 				if (undo.hadField && valuesEqual(remainingValues, previousValues)) {
-					frontmatter[undo.field] = undo.previousValue;
+					data[undo.field] = undo.previousValue;
 				} else if (!undo.hadField && remainingValues.length === 0) {
-					delete frontmatter[undo.field];
+					delete data[undo.field];
 				} else {
-					frontmatter[undo.field] = remainingValues;
+					data[undo.field] = remainingValues;
 				}
 				changed = true;
 			});
@@ -608,6 +724,84 @@ export class WorkspaceController {
 		);
 		return normalizePath(resolved?.path ?? linkText) === normalizePath(targetPath);
 	}
+
+	private async renderTemplateContent(
+		template: DockTemplateNode,
+		title: string,
+	): Promise<string> {
+		const templateFile = this.app.vault.getAbstractFileByPath(
+			normalizePath(template.templatePath),
+		);
+		const raw =
+			templateFile instanceof TFile
+				? await this.app.vault.cachedRead(templateFile)
+				: '# {{title}}\n';
+		const rendered = raw
+			.replaceAll('{{title}}', title)
+			.replaceAll('{{name}}', title);
+		return rendered.endsWith('\n') ? rendered : `${rendered}\n`;
+	}
+
+	private async ensureFolderPath(folderPath: string): Promise<void> {
+		const normalized = normalizePath(folderPath);
+		if (!normalized) {
+			return;
+		}
+		let current = '';
+		for (const part of normalized.split('/').filter(Boolean)) {
+			current = current ? `${current}/${part}` : part;
+			const existing = this.app.vault.getAbstractFileByPath(current);
+			if (existing instanceof TFolder) {
+				continue;
+			}
+			if (existing) {
+				throw new Error(`Cannot create folder "${current}". A file exists there.`);
+			}
+			await this.app.vault.createFolder(current);
+		}
+	}
+
+	private createAvailableMarkdownPath(folderPath: string, title: string): string {
+		const baseName = sanitizeFileName(title);
+		const folder = normalizePath(folderPath);
+		let index = 1;
+		while (true) {
+			const suffix = index === 1 ? '' : ` ${index}`;
+			const path = normalizePath(
+				folder
+					? `${folder}/${baseName}${suffix}.md`
+					: `${baseName}${suffix}.md`,
+			);
+			if (!this.app.vault.getAbstractFileByPath(path)) {
+				return path;
+			}
+			index += 1;
+		}
+	}
+}
+
+function createDockId(prefix: string, value: string): string {
+	const slug = value
+		.trim()
+		.toLocaleLowerCase()
+		.replace(/[^a-z0-9]+/gu, '-')
+		.replace(/^-+|-+$/gu, '');
+	return `${prefix}-${slug || Date.now().toString(36)}`;
+}
+
+function sanitizeFileName(value: string): string {
+	const sanitized = value
+		.trim()
+		.replace(/[\\/:*?"<>|#^[\]]/gu, '-')
+		.replace(/\s+/gu, ' ')
+		.replace(/^-+|-+$/gu, '');
+	return sanitized || 'Untitled';
+}
+
+function asFrontmatterRecord(value: unknown): Record<string, unknown> {
+	return value && typeof value === 'object' && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: {};
 }
 
 function toFrontmatterArray(value: unknown): unknown[] {

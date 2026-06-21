@@ -1,9 +1,13 @@
 import type {
 	ChartLayoutConfig,
+	DockConnectionDirection,
+	DockNoteNode,
+	DockTemplateNode,
 	GraphQuery,
 	LinkStyleRule,
 	MetaGraphChart,
 	MetaGraphDocument,
+	MetaGraphDock,
 	NodeStyleRule,
 	ViewMode,
 } from '../core/types';
@@ -17,6 +21,10 @@ export const META_GRAPH_VERSION = 1;
 export const BASE_STYLE_RULE_ID = 'all';
 export const DEFAULT_CONNECTION_FIELD = 'leads-to';
 export const DEFAULT_CONNECTION_FIELDS = [DEFAULT_CONNECTION_FIELD];
+export const DEFAULT_DOCK: MetaGraphDock = {
+	templates: [],
+	notes: [],
+};
 
 export function normalizeMetaGraphDocument(
 	value: unknown,
@@ -42,7 +50,13 @@ export function normalizeMetaGraphDocument(
 		connectionFields.includes(record.activeConnectionField.trim())
 			? record.activeConnectionField.trim()
 			: connectionFields[0] ?? DEFAULT_CONNECTION_FIELD;
-	return { charts, activeChart, connectionFields, activeConnectionField };
+	return {
+		charts,
+		activeChart,
+		connectionFields,
+		activeConnectionField,
+		dock: normalizeDock(record.dock),
+	};
 }
 
 export function createDefaultMetaGraphDocument(
@@ -55,6 +69,7 @@ export function createDefaultMetaGraphDocument(
 		activeChart: charts[0]?.id ?? 'knowledge-map',
 		connectionFields: [...DEFAULT_CONNECTION_FIELDS],
 		activeConnectionField: DEFAULT_CONNECTION_FIELD,
+		dock: cloneSerializable(DEFAULT_DOCK),
 	};
 }
 
@@ -93,12 +108,14 @@ export function serializeMetaGraphState(state: {
 	activeChartId: string;
 	connectionFields: string[];
 	activeConnectionField: string;
+	dock: MetaGraphDock;
 }): MetaGraphDocument {
 	return cloneSerializable({
 		charts: state.charts,
 		activeChart: state.activeChartId,
 		connectionFields: state.connectionFields,
 		activeConnectionField: state.activeConnectionField,
+		dock: state.dock,
 	});
 }
 
@@ -110,6 +127,32 @@ export function normalizeConnectionFields(value: unknown): string[] {
 				.filter(Boolean)
 		: [];
 	return uniqueStrings([...DEFAULT_CONNECTION_FIELDS, ...fields]);
+}
+
+export function normalizeDock(value: unknown): MetaGraphDock {
+	const record = isRecord(value) ? value : {};
+	return {
+		templates: normalizeDockTemplates(record.templates),
+		notes: normalizeDockNotes(record.notes),
+	};
+}
+
+export function normalizeDockTemplates(value: unknown): DockTemplateNode[] {
+	const records = Array.isArray(value) ? value : [];
+	return uniqueById(
+		records
+			.map((item, index) => normalizeDockTemplate(item, index))
+			.filter((item): item is DockTemplateNode => item !== undefined),
+	);
+}
+
+export function normalizeDockNotes(value: unknown): DockNoteNode[] {
+	const records = Array.isArray(value) ? value : [];
+	return uniqueByPath(
+		records
+			.map((item, index) => normalizeDockNote(item, index))
+			.filter((item): item is DockNoteNode => item !== undefined),
+	);
 }
 
 function createDefaultCharts(
@@ -281,6 +324,106 @@ function normalizeLayout(
 				? record.edgeStyle
 				: fallback.edgeStyle,
 	};
+}
+
+function normalizeDockTemplate(
+	value: unknown,
+	index: number,
+): DockTemplateNode | undefined {
+	const record = isRecord(value) ? value : {};
+	const label =
+		typeof record.label === 'string' && record.label.trim()
+			? record.label.trim()
+			: undefined;
+	if (!label) {
+		return undefined;
+	}
+	const id =
+		typeof record.id === 'string' && record.id.trim()
+			? record.id.trim()
+			: createDockId('template', `${label}-${index}`);
+	const direction = normalizeDockDirection(record.direction);
+	return {
+		id,
+		label,
+		templatePath:
+			typeof record.templatePath === 'string'
+				? normalizeTextPath(record.templatePath)
+				: '',
+		targetFolder:
+			typeof record.targetFolder === 'string'
+				? normalizeTextPath(record.targetFolder).replace(/\/$/u, '')
+				: '',
+		relationField:
+			typeof record.relationField === 'string' && record.relationField.trim()
+				? record.relationField.trim()
+				: DEFAULT_CONNECTION_FIELD,
+		direction,
+	};
+}
+
+function normalizeDockNote(
+	value: unknown,
+	index: number,
+): DockNoteNode | undefined {
+	const record = isRecord(value) ? value : {};
+	const path =
+		typeof record.path === 'string' && record.path.trim()
+			? normalizeTextPath(record.path)
+			: undefined;
+	if (!path) {
+		return undefined;
+	}
+	const id =
+		typeof record.id === 'string' && record.id.trim()
+			? record.id.trim()
+			: createDockId('note', `${path}-${index}`);
+	return { id, path };
+}
+
+function normalizeDockDirection(value: unknown): DockConnectionDirection {
+	return value === 'from-dock-to-graph'
+		? 'from-dock-to-graph'
+		: 'from-graph-to-dock';
+}
+
+function normalizeTextPath(value: string): string {
+	return value.trim().replaceAll('\\', '/').replace(/^\/+|\/+$/gu, '');
+}
+
+function createDockId(prefix: string, value: string): string {
+	const slug = value
+		.trim()
+		.toLocaleLowerCase()
+		.replace(/[^a-z0-9]+/gu, '-')
+		.replace(/^-+|-+$/gu, '');
+	return `${prefix}-${slug || Date.now().toString(36)}`;
+}
+
+function uniqueById<T extends { id: string }>(items: T[]): T[] {
+	const seen = new Set<string>();
+	const result: T[] = [];
+	for (const item of items) {
+		if (seen.has(item.id)) {
+			continue;
+		}
+		seen.add(item.id);
+		result.push(item);
+	}
+	return result;
+}
+
+function uniqueByPath<T extends { path: string }>(items: T[]): T[] {
+	const seen = new Set<string>();
+	const result: T[] = [];
+	for (const item of items) {
+		if (seen.has(item.path)) {
+			continue;
+		}
+		seen.add(item.path);
+		result.push(item);
+	}
+	return result;
 }
 
 function createDefaultQuery(maxNodes: number, type: ViewMode): GraphQuery {
