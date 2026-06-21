@@ -367,18 +367,10 @@
 		const flowEdgesChanged =
 			workspaceState.mode === 'flow' &&
 			!setsEqual(currentEdgeIds, snapshot.edgeIds);
-		const missingOrthogonalRoute =
-			workspaceState.mode === 'flow' &&
-			workspaceState.flowEdgeStyle === 'orthogonal' &&
-			[...currentEdgeIds].some(
-				(edgeId) => !snapshot.orthogonalRoutes.has(edgeId),
-			);
 		const needsLayout =
 			forceLayout ||
 			firstLayout ||
-			newNodeIds.length > 0 ||
-			flowEdgesChanged ||
-			missingOrthogonalRoute;
+			newNodeIds.length > 0;
 
 		if (workspaceState.mode === 'arc') {
 			await new ArcLayout(
@@ -402,6 +394,9 @@
 						: new Map();
 			} else if (workspaceState.flowEdgeStyle === 'orthogonal') {
 				applyOrthogonalFlowEdges(graph, snapshot.orthogonalRoutes);
+			}
+			if (flowEdgesChanged) {
+				snapshot.edgeIds = currentEdgeIds;
 			}
 		} else {
 			if (needsLayout) {

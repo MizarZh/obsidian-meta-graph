@@ -50,6 +50,7 @@ export class WorkspaceController {
 	private metadataSources: MetadataDebugEntry[] = [];
 	private rendererDebugState: RendererDebugState = { status: 'idle' };
 	private rebuildTimer?: number;
+	private pendingRefreshForceLayout = false;
 	private readonly connectionUndoStack: ConnectionUndoEntry[] = [];
 	private destroyed = false;
 
@@ -57,6 +58,7 @@ export class WorkspaceController {
 		private readonly app: App,
 		maxNodes: number,
 		private readonly debug: boolean,
+		private relayoutFlowAfterConnection: boolean,
 		fadeDistance = 1.5,
 		document?: MetaGraphDocument,
 	) {
@@ -98,6 +100,10 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	setRelayoutFlowAfterConnection(value: boolean): void {
+		this.relayoutFlowAfterConnection = value;
+	}
+
 	subscribe(listener: StateListener): () => void {
 		this.listeners.add(listener);
 		listener(this.state);
@@ -109,9 +115,14 @@ export class WorkspaceController {
 		this.refresh();
 	}
 
-	scheduleRefresh(): void {
+	scheduleRefresh(forceLayout = false): void {
+		this.pendingRefreshForceLayout ||= forceLayout;
 		window.clearTimeout(this.rebuildTimer);
-		this.rebuildTimer = window.setTimeout(() => this.refresh(false), 300);
+		this.rebuildTimer = window.setTimeout(() => {
+			const shouldForceLayout = this.pendingRefreshForceLayout;
+			this.pendingRefreshForceLayout = false;
+			this.refresh(shouldForceLayout);
+		}, 300);
 	}
 
 	refresh(forceLayout = false): void {
@@ -447,7 +458,9 @@ export class WorkspaceController {
 		if (undo) {
 			this.connectionUndoStack.push(undo);
 			this.updateConnectionUndoCount();
-			this.scheduleRefresh();
+			this.scheduleRefresh(
+				this.state.mode === 'flow' && this.relayoutFlowAfterConnection,
+			);
 		}
 	}
 

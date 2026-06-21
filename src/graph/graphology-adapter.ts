@@ -128,7 +128,7 @@ export class GraphologyAdapter {
 	}
 }
 
-function getEdgeType(lineStyle: LinkLineStyle, directed: boolean): string {
+export function getEdgeType(lineStyle: LinkLineStyle, directed: boolean): string {
 	if (lineStyle === 'solid') {
 		return directed ? 'arrow' : 'line';
 	}

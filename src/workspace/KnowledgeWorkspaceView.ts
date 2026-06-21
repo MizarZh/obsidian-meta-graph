@@ -101,6 +101,9 @@ export class KnowledgeWorkspaceView extends TextFileView {
 
 	updateDisplaySettings(): void {
 		this.controller?.setFadeDistance(this.plugin.settings.fadeDistance);
+		this.controller?.setRelayoutFlowAfterConnection(
+			this.plugin.settings.relayoutFlowAfterConnection,
+		);
 	}
 
 	private async renderWorkspace(data: string): Promise<void> {
@@ -125,6 +128,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 			this.app,
 			this.plugin.settings.maxNodes,
 			this.plugin.settings.debug,
+			this.plugin.settings.relayoutFlowAfterConnection,
 			this.plugin.settings.fadeDistance,
 			document,
 		);

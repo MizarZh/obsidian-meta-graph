@@ -89,6 +89,7 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
+		this.updateOpenViewsSettings();
 	}
 
 	getLastActiveFile(): TFile | null {
@@ -125,6 +126,16 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 			...settings,
 			fadeDistance: clamp(settings.fadeDistance, 0.25, 4),
 		};
+	}
+
+	private updateOpenViewsSettings(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(
+			VIEW_TYPE_KNOWLEDGE_WORKSPACE,
+		)) {
+			if (leaf.view instanceof KnowledgeWorkspaceView) {
+				leaf.view.updateDisplaySettings();
+			}
+		}
 	}
 
 	private async createMetaGraphFile(folder?: TFolder): Promise<void> {
