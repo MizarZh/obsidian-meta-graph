@@ -401,6 +401,9 @@
 	);
 	const selectedDockNodes = $derived(getSelectedDockNodes(debugSnapshot));
 	const dockNoteCandidates = $derived(getDockNoteCandidates(debugSnapshot));
+	const metadataFieldSuggestions = $derived(
+		getMetadataFieldSuggestions(debugSnapshot),
+	);
 
 	function toggleDebug(): void {
 		debugOpen = !debugOpen;
@@ -722,6 +725,16 @@
 					sensitivity: 'base',
 				}),
 			);
+	}
+
+	function getMetadataFieldSuggestions(snapshot: DebugSnapshot): string[] {
+		return [
+			...new Set(
+				snapshot.index.nodes.flatMap((node) => node.metadataFields ?? []),
+			),
+		].sort((first, second) =>
+			first.localeCompare(second, undefined, { sensitivity: 'base' }),
+		);
 	}
 
 	function handleDockDragStart(
@@ -1141,13 +1154,16 @@
 			/>
 			<Inspector node={selectedNode} />
 			<ConnectionPanel
+				{app}
 				fields={workspaceState.connectionFields}
+				{metadataFieldSuggestions}
 				activeField={workspaceState.activeConnectionField}
 				dragging={Boolean(connectionDrag)}
 				dragTarget={connectionDrag?.targetNodeId}
 				undoCount={workspaceState.connectionUndoCount}
 				onSelectField={(field) => controller.setActiveConnectionField(field)}
 				onAddField={(field) => controller.addConnectionField(field)}
+				onRemoveField={(field) => controller.removeConnectionField(field)}
 				onUndo={() =>
 					void controller.undoLastConnection().catch((error: unknown) =>
 						controller.setRendererDebugState({

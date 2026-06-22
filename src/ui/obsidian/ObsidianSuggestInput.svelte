@@ -2,8 +2,6 @@
 	import {
 		AbstractInputSuggest,
 		type App,
-		prepareSimpleSearch,
-		type SearchResult,
 	} from "obsidian";
 	import { onMount } from "svelte";
 	import ObsidianTextInput from "./ObsidianTextInput.svelte";
@@ -40,34 +38,57 @@
 	let inputEl = $state<HTMLInputElement | undefined>(undefined);
 	let suggest: MetaGraphInputSuggest | undefined;
 
-	interface MatchedSuggestion {
+	interface IndexedSuggestion {
 		option: SuggestionOption;
-		match: SearchResult;
+		text: string;
+		label: string;
 	}
 
-	class MetaGraphInputSuggest extends AbstractInputSuggest<MatchedSuggestion> {
+	const indexedOptions = $derived(
+		options.map((option) => ({
+			option,
+			label: option.label.toLocaleLowerCase(),
+			text: (
+				option.searchText ??
+				[option.label, option.detail].filter(Boolean).join(" ")
+			).toLocaleLowerCase(),
+		})),
+	);
+
+	class MetaGraphInputSuggest extends AbstractInputSuggest<IndexedSuggestion> {
 		limit = 12;
 
-		protected getSuggestions(query: string): MatchedSuggestion[] {
-			const normalized = query.trim();
+		protected getSuggestions(query: string): IndexedSuggestion[] {
+			const normalized = query.trim().toLocaleLowerCase();
 			if (!normalized) {
 				return [];
 			}
-			const search = prepareSimpleSearch(normalized);
-			return options
-				.map((option) => {
-					const match = search(
-						option.searchText ??
-							[option.label, option.detail].filter(Boolean).join(" "),
-					);
-					return match ? { option, match } : undefined;
-				})
-				.filter((item): item is MatchedSuggestion => Boolean(item))
-				.sort((left, right) => right.match.score - left.match.score)
-				.slice(0, this.limit);
+			const results: IndexedSuggestion[] = [];
+			const seen = new Set<string>();
+			for (const item of indexedOptions) {
+				if (
+					item.label.startsWith(normalized) ||
+					item.text.startsWith(normalized)
+				) {
+					results.push(item);
+					seen.add(item.option.value);
+					if (results.length >= this.limit) {
+						return results;
+					}
+				}
+			}
+			for (const item of indexedOptions) {
+				if (!seen.has(item.option.value) && item.text.includes(normalized)) {
+					results.push(item);
+					if (results.length >= this.limit) {
+						return results;
+					}
+				}
+			}
+			return results;
 		}
 
-		renderSuggestion(value: MatchedSuggestion, el: HTMLElement): void {
+		renderSuggestion(value: IndexedSuggestion, el: HTMLElement): void {
 			el.addClass("knowledge-workspace-suggest-item");
 			el.createDiv({
 				cls: "knowledge-workspace-suggest-title",
@@ -75,7 +96,7 @@
 			});
 		}
 
-		selectSuggestion(value: MatchedSuggestion): void {
+		selectSuggestion(value: IndexedSuggestion): void {
 			onSelect(value.option);
 			this.close();
 		}

@@ -480,10 +480,6 @@ export class WorkspaceController {
 		if (!normalized) {
 			return;
 		}
-		const connectionFields = normalizeConnectionFields([
-			...this.state.connectionFields,
-			normalized,
-		]);
 		const activeChart = this.getActiveChart();
 		const relations = activeChart.query.relations.includes(normalized)
 			? activeChart.query.relations
@@ -496,14 +492,45 @@ export class WorkspaceController {
 		});
 		this.state = {
 			...nextState,
-			connectionFields,
 			activeConnectionField: normalized,
 		};
 		this.runQuery();
 	}
 
 	addConnectionField(field: string): void {
-		this.setActiveConnectionField(field);
+		const normalized = field.trim();
+		if (!normalized) {
+			return;
+		}
+		const connectionFields = normalizeConnectionFields([
+			...this.state.connectionFields,
+			normalized,
+		]);
+		this.state = {
+			...this.state,
+			connectionFields,
+		};
+		this.setActiveConnectionField(normalized);
+	}
+
+	removeConnectionField(field: string): void {
+		const normalized = field.trim();
+		if (!normalized) {
+			return;
+		}
+		const connectionFields = normalizeConnectionFields(
+			this.state.connectionFields.filter((item) => item !== normalized),
+			);
+			const activeConnectionField =
+				this.state.activeConnectionField === normalized
+					? (connectionFields[0] ?? '')
+					: this.state.activeConnectionField;
+		this.state = {
+			...this.state,
+			connectionFields,
+			activeConnectionField,
+		};
+		this.emit();
 	}
 
 	selectNode(selectedNodeId?: NodeId): void {

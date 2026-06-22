@@ -1,70 +1,110 @@
 <script lang="ts">
+	import type { App } from 'obsidian';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
-	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
+	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
 
 	let {
+		app,
 		fields,
+		metadataFieldSuggestions,
 		activeField,
 		dragging,
 		dragTarget,
 		undoCount,
 		onSelectField,
 		onAddField,
+		onRemoveField,
 		onUndo,
 	}: {
+		app: App;
 		fields: string[];
+		metadataFieldSuggestions: string[];
 		activeField: string;
 		dragging: boolean;
 		dragTarget?: string;
 		undoCount: number;
 		onSelectField: (field: string) => void;
 		onAddField: (field: string) => void;
+		onRemoveField: (field: string) => void;
 		onUndo: () => void;
 	} = $props();
 	let fieldInput = $state('');
-	const fieldOptions = $derived(
-		fields.map((field) => ({ value: field, label: field })),
+	const customField = $derived(fieldInput.trim());
+	const metadataFieldOptions = $derived(
+		metadataFieldSuggestions.map((field) => ({
+			value: field,
+			label: field,
+			searchText: field,
+		})),
 	);
 
 	function addField(): void {
-		const normalized = fieldInput.trim();
-		if (!normalized) {
+		if (!customField) {
 			return;
 		}
-		onAddField(normalized);
+		onAddField(customField);
 		fieldInput = '';
 	}
 </script>
 
 <section class="knowledge-workspace-connection-panel">
-	<div class="knowledge-workspace-connection-field">
-		<span>Connect</span>
-		<ObsidianDropdown
-			ariaLabel="Connection metadata"
-			value={activeField}
-			options={fieldOptions}
-			onChange={onSelectField}
-		/>
+	<div class="knowledge-workspace-connection-picker">
+		<span class="knowledge-workspace-connection-label">Connection</span>
+		<div class="knowledge-workspace-connection-tags" aria-label="Connection metadata fields">
+			{#each fields as field}
+				<span
+					class:active={field === activeField}
+					class="knowledge-workspace-connection-tag"
+				>
+					<button
+						type="button"
+						aria-pressed={field === activeField}
+						onclick={() => onSelectField(field)}
+					>
+						<span>{field}</span>
+					</button>
+					<ObsidianButton
+						icon="x"
+						ariaLabel={`Remove ${field}`}
+						onClick={() => onRemoveField(field)}
+					/>
+				</span>
+			{/each}
+			{#if fields.length === 0}
+				<span class="knowledge-workspace-connection-empty">No metadata</span>
+			{/if}
+		</div>
 	</div>
 	<form
-		class="knowledge-workspace-connection-add"
+		class="knowledge-workspace-connection-custom"
 		onsubmit={(event) => {
 			event.preventDefault();
 			addField();
 		}}
 	>
-		<ObsidianTextInput
+		<ObsidianSuggestInput
+			{app}
 			type="text"
-			placeholder="metadata name"
+			placeholder="Custom metadata"
+			ariaLabel="Custom connection metadata"
 			value={fieldInput}
+			options={metadataFieldOptions}
 			onInput={(value) => {
 				fieldInput = value;
+				const normalized = value.trim();
+				if (normalized) {
+					onSelectField(normalized);
+				}
+			}}
+			onSelect={(option) => {
+				fieldInput = option.value;
+				onSelectField(option.value);
 			}}
 		/>
 		<ObsidianButton
 			icon="plus"
-			ariaLabel="Add metadata field"
+			ariaLabel="Pin metadata field"
+			disabled={!customField}
 			onClick={addField}
 		/>
 	</form>

@@ -99,6 +99,9 @@ export class MetadataIndexer {
 
 	private createNode(file: TFile, cache: CachedMetadata | null): KnowledgeNode {
 		const frontmatter = asFrontmatter(cache?.frontmatter);
+		const metadataFields = Object.keys(frontmatter ?? {}).sort((left, right) =>
+			left.localeCompare(right, undefined, { sensitivity: 'base' }),
+		);
 		const tags = new Set(toStringArray(frontmatter?.tags));
 		for (const tag of cache?.tags ?? []) {
 			tags.add(tag.tag.replace(/^#/, ''));
@@ -118,6 +121,7 @@ export class MetadataIndexer {
 			domains: toStringArray(frontmatter?.domain),
 			tags: [...tags],
 			noteType: firstString(frontmatter?.type),
+			metadataFields,
 		};
 	}
 }

@@ -12,6 +12,7 @@ export interface KnowledgeNode {
 	domains: string[];
 	tags: string[];
 	noteType?: string;
+	metadataFields?: string[];
 }
 
 export interface KnowledgeEdge {

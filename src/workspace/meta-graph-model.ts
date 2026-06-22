@@ -46,10 +46,9 @@ export function normalizeMetaGraphDocument(
 			: (charts[0]?.id ?? createChartId('graph'));
 	const connectionFields = normalizeConnectionFields(record.connectionFields);
 	const activeConnectionField =
-		typeof record.activeConnectionField === 'string' &&
-		connectionFields.includes(record.activeConnectionField.trim())
+		typeof record.activeConnectionField === 'string'
 			? record.activeConnectionField.trim()
-			: connectionFields[0] ?? DEFAULT_CONNECTION_FIELD;
+			: (connectionFields[0] ?? '');
 	return {
 		charts,
 		activeChart,
@@ -126,7 +125,7 @@ export function normalizeConnectionFields(value: unknown): string[] {
 				.map((item) => item.trim())
 				.filter(Boolean)
 		: [];
-	return uniqueStrings([...DEFAULT_CONNECTION_FIELDS, ...fields]);
+	return uniqueStrings(fields);
 }
 
 export function normalizeDock(value: unknown): MetaGraphDock {
