@@ -1,44 +1,44 @@
 <script lang="ts">
-	import type { App } from 'obsidian';
-	import { onMount } from 'svelte';
+	import { type App } from "obsidian";
+	import { onMount } from "svelte";
 	import type {
 		DebugSnapshot,
 		DockConnectionDirection,
 		MetaGraphDocument,
 		SettingsPanelMode,
 		WorkspaceState,
-	} from '../core/types';
+	} from "../core/types";
 	import {
 		bindGraphEvents,
 		type ConnectionDragState,
-	} from '../graph/graph-events';
+	} from "../graph/graph-events";
 	import {
 		GraphologyAdapter,
 		type GraphPosition,
 		type RuntimeGraph,
-	} from '../graph/graphology-adapter';
-	import { readGraphPalette } from '../graph/graph-styles';
-	import { SigmaRenderer } from '../graph/sigma-renderer';
-	import { ArcLayout } from '../layouts/arc-layout';
+	} from "../graph/graphology-adapter";
+	import { readGraphPalette } from "../graph/graph-styles";
+	import { SigmaRenderer } from "../graph/sigma-renderer";
+	import { ArcLayout } from "../layouts/arc-layout";
 	import {
 		applyOrthogonalFlowEdges,
 		ElkFlowLayout,
 		type OrthogonalRouteMap,
-	} from '../layouts/elk-flow-layout';
-	import { ForceAtlasLayout } from '../layouts/force-layout';
-	import type { WorkspaceController } from '../workspace/workspace-controller';
-	import { serializeMetaGraphState } from '../workspace/meta-graph-model';
-	import FilterPanel from './FilterPanel.svelte';
-	import DebugPanel from './DebugPanel.svelte';
+	} from "../layouts/elk-flow-layout";
+	import { ForceAtlasLayout } from "../layouts/force-layout";
+	import type { WorkspaceController } from "../workspace/workspace-controller";
+	import { serializeMetaGraphState } from "../workspace/meta-graph-model";
+	import FilterPanel from "./FilterPanel.svelte";
+	import DebugPanel from "./DebugPanel.svelte";
 	import DockGraphPanel, {
 		type DockDragPayload,
-	} from './DockGraphPanel.svelte';
-	import DisplayControls from './DisplayControls.svelte';
-	import Inspector from './Inspector.svelte';
-	import ConnectionPanel from './ConnectionPanel.svelte';
-	import { ConfirmDeleteViewModal } from './ConfirmDeleteWorkspaceModal';
-	import { CreateFromTemplateModal } from './CreateFromTemplateModal';
-	import Toolbar from './Toolbar.svelte';
+	} from "./DockGraphPanel.svelte";
+	import DisplayControls from "./DisplayControls.svelte";
+	import Inspector from "./Inspector.svelte";
+	import ConnectionPanel from "./ConnectionPanel.svelte";
+	import { ConfirmDeleteViewModal } from "./ConfirmDeleteWorkspaceModal";
+	import { CreateFromTemplateModal } from "./CreateFromTemplateModal";
+	import Toolbar from "./Toolbar.svelte";
 
 	let {
 		app,
@@ -61,22 +61,22 @@
 	let renderVersion = 0;
 	let autoSaveTimer: number | undefined;
 	let pendingAutoSave: MetaGraphDocument | undefined;
-	let lastAutoSavedState = '';
-	let lastProjection: WorkspaceState['projection'];
+	let lastAutoSavedState = "";
+	let lastProjection: WorkspaceState["projection"];
 	let lastActiveChartId: string | undefined;
-	let lastMode: WorkspaceState['mode'] | undefined;
-	let lastFlowEdgeStyle: WorkspaceState['flowEdgeStyle'] | undefined;
-	let lastFlowDirection: WorkspaceState['flowDirection'] | undefined;
-	let lastArcDirection: WorkspaceState['arcDirection'] | undefined;
+	let lastMode: WorkspaceState["mode"] | undefined;
+	let lastFlowEdgeStyle: WorkspaceState["flowEdgeStyle"] | undefined;
+	let lastFlowDirection: WorkspaceState["flowDirection"] | undefined;
+	let lastArcDirection: WorkspaceState["arcDirection"] | undefined;
 	let lastLayoutRevision: number | undefined;
 	let lastGlobalNodeStyleRules:
-		| WorkspaceState['globalNodeStyleRules']
+		| WorkspaceState["globalNodeStyleRules"]
 		| undefined;
 	let lastGlobalLinkStyleRules:
-		| WorkspaceState['globalLinkStyleRules']
+		| WorkspaceState["globalLinkStyleRules"]
 		| undefined;
-	let lastNodeStyleRules: WorkspaceState['nodeStyleRules'] | undefined;
-	let lastLinkStyleRules: WorkspaceState['linkStyleRules'] | undefined;
+	let lastNodeStyleRules: WorkspaceState["nodeStyleRules"] | undefined;
+	let lastLinkStyleRules: WorkspaceState["linkStyleRules"] | undefined;
 	let debugOpen = $state(false);
 	let settingsPanel = $state<SettingsPanelMode | undefined>(undefined);
 	let settingsPopoverLeft = $state(0);
@@ -86,6 +86,7 @@
 	let dockDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockConnectionDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockTargetNodeId = $state<string | undefined>(undefined);
+
 	interface LayoutSnapshot {
 		positions: Map<string, GraphPosition>;
 		edgeIds: Set<string>;
@@ -116,7 +117,7 @@
 				templateId,
 				sourceNodeId,
 				undefined,
-				'from-graph-to-dock',
+				"from-graph-to-dock",
 			);
 			return;
 		}
@@ -136,7 +137,7 @@
 			)
 			.catch((error: unknown) =>
 				controller.setRendererDebugState({
-					status: 'error',
+					status: "error",
 					error: formatError(error),
 				}),
 			);
@@ -161,12 +162,15 @@
 			}
 		});
 		resizeObserver.observe(canvas);
-		workspaceRoot.addEventListener('keydown', handleWorkspaceKeydown);
-		workspaceRoot.addEventListener('pointerdown', focusWorkspaceForShortcuts);
-		window.addEventListener('mousemove', handleGraphConnectionMouseMove, {
+		workspaceRoot.addEventListener("keydown", handleWorkspaceKeydown);
+		workspaceRoot.addEventListener(
+			"pointerdown",
+			focusWorkspaceForShortcuts,
+		);
+		window.addEventListener("mousemove", handleGraphConnectionMouseMove, {
 			capture: true,
 		});
-		window.addEventListener('mouseup', handleGraphConnectionMouseUp, {
+		window.addEventListener("mouseup", handleGraphConnectionMouseUp, {
 			capture: true,
 		});
 
@@ -223,7 +227,7 @@
 				lastLinkStyleRules = nextState.linkStyleRules;
 				void rebuildGraph(
 					activeChartChanged ||
-					modeChanged ||
+						modeChanged ||
 						flowStyleChanged ||
 						flowDirectionChanged ||
 						arcDirectionChanged ||
@@ -232,14 +236,12 @@
 						flowDirectionChanged ||
 						arcDirectionChanged ||
 						layoutRevisionChanged,
-				).catch(
-					(error: unknown) => {
+				).catch((error: unknown) => {
 					controller.setRendererDebugState({
-						status: 'error',
+						status: "error",
 						error: formatError(error),
 					});
-					},
-				);
+				});
 			} else {
 				renderer?.setSelected(nextState.selectedNodeId);
 				renderer?.setHovered(nextState.hoveredNodeId);
@@ -255,17 +257,28 @@
 			}
 			unsubscribe();
 			resizeObserver.disconnect();
-			workspaceRoot.removeEventListener('keydown', handleWorkspaceKeydown);
 			workspaceRoot.removeEventListener(
-				'pointerdown',
+				"keydown",
+				handleWorkspaceKeydown,
+			);
+			workspaceRoot.removeEventListener(
+				"pointerdown",
 				focusWorkspaceForShortcuts,
 			);
-			window.removeEventListener('mousemove', handleGraphConnectionMouseMove, {
-				capture: true,
-			});
-			window.removeEventListener('mouseup', handleGraphConnectionMouseUp, {
-				capture: true,
-			});
+			window.removeEventListener(
+				"mousemove",
+				handleGraphConnectionMouseMove,
+				{
+					capture: true,
+				},
+			);
+			window.removeEventListener(
+				"mouseup",
+				handleGraphConnectionMouseUp,
+				{
+					capture: true,
+				},
+			);
 			resetDockConnectionDrag();
 			unbindEvents?.();
 			renderer?.kill();
@@ -306,12 +319,12 @@
 			unbindEvents = undefined;
 			renderer?.kill();
 			renderer = undefined;
-			controller.setRendererDebugState({ status: 'idle' });
+			controller.setRendererDebugState({ status: "idle" });
 			return;
 		}
 
 		controller.setRendererDebugState({
-			status: 'waiting-for-size',
+			status: "waiting-for-size",
 			mode: workspaceState.mode,
 			container: readContainerSize(),
 		});
@@ -319,7 +332,7 @@
 		if (!hasSize || version !== renderVersion) {
 			if (!hasSize) {
 				throw new Error(
-					'The Sigma container has zero width or height after waiting for layout.',
+					"The Sigma container has zero width or height after waiting for layout.",
 				);
 			}
 			return;
@@ -337,17 +350,12 @@
 			.nodes()
 			.filter((nodeId) => !positions.has(nodeId));
 		controller.setRendererDebugState({
-			status: 'layout',
+			status: "layout",
 			mode: workspaceState.mode,
 			container: readContainerSize(),
 			runtimeGraph: serializeRuntimeGraph(graph),
 		});
-		await applyStableLayout(
-			graph,
-			layoutSnapshot,
-			newNodeIds,
-			forceLayout,
-		);
+		await applyStableLayout(graph, layoutSnapshot, newNodeIds, forceLayout);
 		if (version !== renderVersion) {
 			return;
 		}
@@ -383,7 +391,7 @@
 						)
 						.catch((error: unknown) =>
 							controller.setRendererDebugState({
-								status: 'error',
+								status: "error",
 								error: formatError(error),
 							}),
 						);
@@ -396,7 +404,7 @@
 			renderer.fit();
 		}
 		controller.setRendererDebugState({
-			status: 'rendered',
+			status: "rendered",
 			mode: workspaceState.mode,
 			container: readContainerSize(),
 			runtimeGraph: serializeRuntimeGraph(graph),
@@ -425,7 +433,10 @@
 		}
 	}
 
-	function openSettingsPanel(panel: SettingsPanelMode, event: MouseEvent): void {
+	function openSettingsPanel(
+		panel: SettingsPanelMode,
+		event: MouseEvent,
+	): void {
 		const target = event.currentTarget;
 		if (target instanceof HTMLElement && workspaceRoot) {
 			const targetRect = target.getBoundingClientRect();
@@ -448,7 +459,9 @@
 	}
 
 	function nextAnimationFrame(): Promise<void> {
-		return new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+		return new Promise((resolve) =>
+			window.requestAnimationFrame(() => resolve()),
+		);
 	}
 
 	function readContainerSize(): { width: number; height: number } {
@@ -466,19 +479,19 @@
 		const firstLayout = positions.size === 0;
 		const currentEdgeIds = getLogicalEdgeIds(graph);
 		const flowEdgesChanged =
-			workspaceState.mode === 'flow' &&
+			workspaceState.mode === "flow" &&
 			!setsEqual(currentEdgeIds, snapshot.edgeIds);
 		const needsFlowLayout = forceLayout || firstLayout;
 		const needsGraphLayout = forceLayout || firstLayout;
 
-		if (workspaceState.mode === 'arc') {
+		if (workspaceState.mode === "arc") {
 			await new ArcLayout(
 				workspaceState.arcSpacing,
 				workspaceState.arcDirection,
 			).apply(graph);
 			snapshot.edgeIds = currentEdgeIds;
 			snapshot.orthogonalRoutes = new Map();
-		} else if (workspaceState.mode === 'flow') {
+		} else if (workspaceState.mode === "flow") {
 			if (needsFlowLayout) {
 				const layout = new ElkFlowLayout(
 					workspaceState.flowEdgeStyle,
@@ -488,12 +501,12 @@
 				await layout.apply(graph);
 				snapshot.edgeIds = currentEdgeIds;
 				snapshot.orthogonalRoutes =
-					workspaceState.flowEdgeStyle === 'orthogonal'
+					workspaceState.flowEdgeStyle === "orthogonal"
 						? layout.getOrthogonalRoutes()
 						: new Map();
 			} else {
 				placeNewFlowNodes(graph, positions, newNodeIds);
-				if (workspaceState.flowEdgeStyle === 'orthogonal') {
+				if (workspaceState.flowEdgeStyle === "orthogonal") {
 					applyOrthogonalFlowEdges(graph, snapshot.orthogonalRoutes);
 				}
 			}
@@ -502,7 +515,9 @@
 			}
 		} else {
 			if (needsGraphLayout) {
-				await new ForceAtlasLayout(workspaceState.graphSpacing).apply(graph);
+				await new ForceAtlasLayout(workspaceState.graphSpacing).apply(
+					graph,
+				);
 			}
 		}
 
@@ -510,7 +525,7 @@
 			if (!attributes.isBend) {
 				positions.set(nodeId, { x: attributes.x, y: attributes.y });
 			}
-			graph.setNodeAttribute(nodeId, 'fixed', false);
+			graph.setNodeAttribute(nodeId, "fixed", false);
 		});
 	}
 
@@ -523,10 +538,16 @@
 			return;
 		}
 		const occupied = new Map<string, GraphPosition>(
-			[...positions.entries()].filter(([nodeId]) => graph.hasNode(nodeId)),
+			[...positions.entries()].filter(([nodeId]) =>
+				graph.hasNode(nodeId),
+			),
 		);
 		for (const nodeId of newNodeIds) {
-			const placement = findFlowInsertionPlacement(graph, occupied, nodeId);
+			const placement = findFlowInsertionPlacement(
+				graph,
+				occupied,
+				nodeId,
+			);
 			if (!placement) {
 				continue;
 			}
@@ -560,7 +581,8 @@
 			if (!anchor) {
 				continue;
 			}
-			const newNodeIsAfterAnchor = source === anchorId && target === nodeId;
+			const newNodeIsAfterAnchor =
+				source === anchorId && target === nodeId;
 			return findOpenFlowSlot(anchor, newNodeIsAfterAnchor, occupied);
 		}
 		return undefined;
@@ -592,8 +614,14 @@
 		}
 		const fallbackOffset = crossStep * (attempts.length + 1);
 		return {
-			x: anchor.x + direction.x * layerDistance + direction.crossX * fallbackOffset,
-			y: anchor.y + direction.y * layerDistance + direction.crossY * fallbackOffset,
+			x:
+				anchor.x +
+				direction.x * layerDistance +
+				direction.crossX * fallbackOffset,
+			y:
+				anchor.y +
+				direction.y * layerDistance +
+				direction.crossY * fallbackOffset,
 		};
 	}
 
@@ -604,14 +632,14 @@
 		crossY: number;
 	} {
 		const forward =
-			workspaceState.flowDirection === 'RL' ||
-			workspaceState.flowDirection === 'DT'
+			workspaceState.flowDirection === "RL" ||
+			workspaceState.flowDirection === "DT"
 				? -1
 				: 1;
 		const sign = newNodeIsAfterAnchor ? forward : -forward;
 		if (
-			workspaceState.flowDirection === 'LR' ||
-			workspaceState.flowDirection === 'RL'
+			workspaceState.flowDirection === "LR" ||
+			workspaceState.flowDirection === "RL"
 		) {
 			return { x: sign, y: 0, crossX: 0, crossY: 1 };
 		}
@@ -648,10 +676,10 @@
 	}
 
 	function getLayoutSnapshotKey(): string {
-		if (workspaceState.mode === 'graph') {
+		if (workspaceState.mode === "graph") {
 			return `${workspaceState.activeChartId}-graph`;
 		}
-		if (workspaceState.mode === 'arc') {
+		if (workspaceState.mode === "arc") {
 			return `${workspaceState.activeChartId}-arc-${workspaceState.arcDirection}`;
 		}
 		return `${workspaceState.activeChartId}-flow-${workspaceState.flowEdgeStyle}-${workspaceState.flowDirection}`;
@@ -661,23 +689,31 @@
 		return new Set(
 			graph
 				.edges()
-				.filter((edge) => !graph.getEdgeAttribute(edge, 'hidden')),
+				.filter((edge) => !graph.getEdgeAttribute(edge, "hidden")),
 		);
 	}
 
 	function getActiveLinkStyleRules() {
 		return [
-			...workspaceState.linkStyleRules.filter((rule) => rule.id === 'all'),
+			...workspaceState.linkStyleRules.filter(
+				(rule) => rule.id === "all",
+			),
 			...workspaceState.globalLinkStyleRules,
-			...workspaceState.linkStyleRules.filter((rule) => rule.id !== 'all'),
+			...workspaceState.linkStyleRules.filter(
+				(rule) => rule.id !== "all",
+			),
 		];
 	}
 
 	function getActiveNodeStyleRules() {
 		return [
-			...workspaceState.nodeStyleRules.filter((rule) => rule.id === 'all'),
+			...workspaceState.nodeStyleRules.filter(
+				(rule) => rule.id === "all",
+			),
 			...workspaceState.globalNodeStyleRules,
-			...workspaceState.nodeStyleRules.filter((rule) => rule.id !== 'all'),
+			...workspaceState.nodeStyleRules.filter(
+				(rule) => rule.id !== "all",
+			),
 		];
 	}
 
@@ -710,7 +746,7 @@
 
 	function formatError(error: unknown): string {
 		return error instanceof Error
-			? `${error.name}: ${error.message}\n${error.stack ?? ''}`
+			? `${error.name}: ${error.message}\n${error.stack ?? ""}`
 			: String(error);
 	}
 
@@ -735,7 +771,9 @@
 	}
 
 	function getSelectedDockNodes(snapshot: DebugSnapshot) {
-		const nodesByPath = new Map(snapshot.index.nodes.map((node) => [node.path, node]));
+		const nodesByPath = new Map(
+			snapshot.index.nodes.map((node) => [node.path, node]),
+		);
 		return workspaceState.dock.notes
 			.map((note) => nodesByPath.get(note.path))
 			.filter((node) => node !== undefined);
@@ -753,7 +791,7 @@
 			)
 			.sort((first, second) =>
 				first.title.localeCompare(second.title, undefined, {
-					sensitivity: 'base',
+					sensitivity: "base",
 				}),
 			);
 	}
@@ -761,10 +799,12 @@
 	function getMetadataFieldSuggestions(snapshot: DebugSnapshot): string[] {
 		return [
 			...new Set(
-				snapshot.index.nodes.flatMap((node) => node.metadataFields ?? []),
+				snapshot.index.nodes.flatMap(
+					(node) => node.metadataFields ?? [],
+				),
 			),
 		].sort((first, second) =>
-			first.localeCompare(second, undefined, { sensitivity: 'base' }),
+			first.localeCompare(second, undefined, { sensitivity: "base" }),
 		);
 	}
 
@@ -772,7 +812,11 @@
 		payload: DockDragPayload,
 		event: PointerEvent,
 	): void {
-		if (!canvas || !renderer || !(event.currentTarget instanceof HTMLElement)) {
+		if (
+			!canvas ||
+			!renderer ||
+			!(event.currentTarget instanceof HTMLElement)
+		) {
 			return;
 		}
 		const source = readDockElementViewportPosition(event.currentTarget);
@@ -786,10 +830,10 @@
 			x2: point.x,
 			y2: point.y,
 		};
-		window.addEventListener('pointermove', handleDockLinkPointerMove, {
+		window.addEventListener("pointermove", handleDockLinkPointerMove, {
 			capture: true,
 		});
-		window.addEventListener('pointerup', handleDockLinkPointerUp, {
+		window.addEventListener("pointerup", handleDockLinkPointerUp, {
 			capture: true,
 			once: true,
 		});
@@ -831,10 +875,10 @@
 	}
 
 	function resetDockConnectionDrag(): void {
-		window.removeEventListener('pointermove', handleDockLinkPointerMove, {
+		window.removeEventListener("pointermove", handleDockLinkPointerMove, {
 			capture: true,
 		});
-		window.removeEventListener('pointerup', handleDockLinkPointerUp, {
+		window.removeEventListener("pointerup", handleDockLinkPointerUp, {
 			capture: true,
 		});
 		connectionDrag = undefined;
@@ -846,11 +890,11 @@
 		payload: DockDragPayload,
 		targetNodeId: string,
 	): void {
-		if (payload.kind === 'template') {
+		if (payload.kind === "template") {
 			openCreateFromTemplateModal(
 				payload,
 				targetNodeId,
-				'from-dock-to-graph',
+				"from-dock-to-graph",
 			);
 			return;
 		}
@@ -863,7 +907,7 @@
 			)
 			.catch((error: unknown) =>
 				controller.setRendererDebugState({
-					status: 'error',
+					status: "error",
 					error: formatError(error),
 				}),
 			);
@@ -890,7 +934,7 @@
 		if (!nodeId) {
 			return undefined;
 		}
-		return payload.kind === 'note' && payload.notePath === nodeId
+		return payload.kind === "note" && payload.notePath === nodeId
 			? undefined
 			: nodeId;
 	}
@@ -918,7 +962,7 @@
 	}
 
 	function dragKey(payload: DockDragPayload): string {
-		return payload.kind === 'template'
+		return payload.kind === "template"
 			? `template:${payload.templateId}`
 			: `note:${payload.notePath}`;
 	}
@@ -935,11 +979,13 @@
 		return document.elementFromPoint(event.clientX, event.clientY);
 	}
 
-	function readDockNotePathFromTarget(target: EventTarget | null): string | undefined {
+	function readDockNotePathFromTarget(
+		target: EventTarget | null,
+	): string | undefined {
 		if (!(target instanceof HTMLElement)) {
 			return undefined;
 		}
-		const noteEl = target.closest<HTMLElement>('[data-dock-note-path]');
+		const noteEl = target.closest<HTMLElement>("[data-dock-note-path]");
 		return noteEl?.dataset.dockNotePath || undefined;
 	}
 
@@ -949,12 +995,14 @@
 		if (!(target instanceof HTMLElement)) {
 			return undefined;
 		}
-		const templateEl = target.closest<HTMLElement>('[data-dock-template-id]');
+		const templateEl = target.closest<HTMLElement>(
+			"[data-dock-template-id]",
+		);
 		return templateEl?.dataset.dockTemplateId || undefined;
 	}
 
 	function openCreateFromTemplateModal(
-		payload: Extract<DockDragPayload, { kind: 'template' }>,
+		payload: Extract<DockDragPayload, { kind: "template" }>,
 		targetNodeId: string,
 		direction: DockConnectionDirection,
 	): void {
@@ -970,7 +1018,7 @@
 		templateId: string,
 		targetNodeId: string,
 		label = findTemplateLabel(templateId),
-		direction: DockConnectionDirection = 'from-dock-to-graph',
+		direction: DockConnectionDirection = "from-dock-to-graph",
 	): void {
 		if (!label) {
 			return;
@@ -998,8 +1046,8 @@
 
 	function findNodeTitle(nodeId: string): string {
 		return (
-			debugSnapshot.index.nodes.find((node) => node.id === nodeId)?.title ??
-			nodeId
+			debugSnapshot.index.nodes.find((node) => node.id === nodeId)
+				?.title ?? nodeId
 		);
 	}
 
@@ -1009,7 +1057,7 @@
 		}
 		return Boolean(
 			target.closest(
-				'.knowledge-workspace-dock-panel, .knowledge-workspace-display-controls, .knowledge-workspace-inspector, .knowledge-workspace-connection-panel',
+				".knowledge-workspace-dock-panel, .knowledge-workspace-display-controls, .knowledge-workspace-inspector, .knowledge-workspace-connection-panel",
 			),
 		);
 	}
@@ -1026,7 +1074,7 @@
 			!(event.ctrlKey || event.metaKey) ||
 			event.altKey ||
 			event.shiftKey ||
-			event.key.toLocaleLowerCase() !== 'z' ||
+			event.key.toLocaleLowerCase() !== "z" ||
 			workspaceState.connectionUndoCount === 0 ||
 			isEditableTarget(event.target)
 		) {
@@ -1035,7 +1083,7 @@
 		event.preventDefault();
 		void controller.undoLastConnection().catch((error: unknown) =>
 			controller.setRendererDebugState({
-				status: 'error',
+				status: "error",
 				error: formatError(error),
 			}),
 		);
@@ -1046,16 +1094,14 @@
 			return false;
 		}
 		return Boolean(
-			target.closest('input, textarea, select, button, [contenteditable="true"]'),
+			target.closest(
+				'input, textarea, select, button, [contenteditable="true"]',
+			),
 		);
 	}
 </script>
 
-<div
-	class="knowledge-workspace"
-	bind:this={workspaceRoot}
-	tabindex="-1"
->
+<div class="knowledge-workspace" bind:this={workspaceRoot} tabindex="-1">
 	<Toolbar
 		{app}
 		mode={workspaceState.mode}
@@ -1104,15 +1150,21 @@
 					nodeStyleRules={workspaceState.nodeStyleRules}
 					globalLinkStyleRules={workspaceState.globalLinkStyleRules}
 					linkStyleRules={workspaceState.linkStyleRules}
-					onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
+					onFlowEdgeStyle={(style) =>
+						controller.setFlowEdgeStyle(style)}
 					onFlowDirection={(direction) =>
 						controller.setFlowDirection(direction)}
-					onArcDirection={(direction) => controller.setArcDirection(direction)}
-					onGraphSpacing={(spacing) => controller.setGraphSpacing(spacing)}
-					onFlowSpacing={(spacing) => controller.setFlowSpacing(spacing)}
-					onArcSpacing={(spacing) => controller.setArcSpacing(spacing)}
+					onArcDirection={(direction) =>
+						controller.setArcDirection(direction)}
+					onGraphSpacing={(spacing) =>
+						controller.setGraphSpacing(spacing)}
+					onFlowSpacing={(spacing) =>
+						controller.setFlowSpacing(spacing)}
+					onArcSpacing={(spacing) =>
+						controller.setArcSpacing(spacing)}
 					onChange={(patch) => controller.updateQuery(patch)}
-					onGlobalChange={(patch) => controller.updateGlobalQuery(patch)}
+					onGlobalChange={(patch) =>
+						controller.updateGlobalQuery(patch)}
 					onGlobalNodeStyleRulesChange={(rules) =>
 						controller.setGlobalNodeStyleRules(rules)}
 					onNodeStyleRulesChange={(rules) =>
@@ -1149,7 +1201,9 @@
 				onCommit={(value) => controller.setFadeDistance(value)}
 			/>
 			{#if workspaceState.projection?.nodes.length === 0}
-				<div class="knowledge-workspace-empty">No matching metadata relationships.</div>
+				<div class="knowledge-workspace-empty">
+					No matching metadata relationships.
+				</div>
 			{/if}
 			<DockGraphPanel
 				{app}
@@ -1158,7 +1212,7 @@
 				availableNotes={dockNoteCandidates}
 				activeConnectionField={workspaceState.activeConnectionField}
 				draggingKey={dockDrag
-					? dockDrag.kind === 'template'
+					? dockDrag.kind === "template"
 						? `template:${dockDrag.templateId}`
 						: `note:${dockDrag.notePath}`
 					: undefined}
@@ -1166,7 +1220,8 @@
 				targetNodeId={dockTargetNodeId}
 				graphTargetNotePath={graphConnectionTargetNotePath}
 				graphTargetTemplateId={graphConnectionTargetTemplateId}
-				onAddTemplate={(template) => controller.addDockTemplate(template)}
+				onAddTemplate={(template) =>
+					controller.addDockTemplate(template)}
 				onUpdateTemplate={(templateId, template) =>
 					controller.updateDockTemplate(templateId, template)}
 				onRemoveTemplate={(templateId) =>
@@ -1193,16 +1248,20 @@
 				dragging={Boolean(connectionDrag)}
 				dragTarget={connectionDrag?.targetNodeId}
 				undoCount={workspaceState.connectionUndoCount}
-				onSelectField={(field) => controller.setActiveConnectionField(field)}
+				onSelectField={(field) =>
+					controller.setActiveConnectionField(field)}
 				onAddField={(field) => controller.addConnectionField(field)}
-				onRemoveField={(field) => controller.removeConnectionField(field)}
+				onRemoveField={(field) =>
+					controller.removeConnectionField(field)}
 				onUndo={() =>
-					void controller.undoLastConnection().catch((error: unknown) =>
-						controller.setRendererDebugState({
-							status: 'error',
-							error: formatError(error),
-						}),
-					)}
+					void controller
+						.undoLastConnection()
+						.catch((error: unknown) =>
+							controller.setRendererDebugState({
+								status: "error",
+								error: formatError(error),
+							}),
+						)}
 			/>
 		</main>
 	</div>

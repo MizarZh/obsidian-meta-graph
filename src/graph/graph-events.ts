@@ -69,6 +69,23 @@ export function bindGraphEvents(
 		callbacks.onSelect(undefined);
 	};
 
+	const rightClickNode = ({
+		node,
+		event,
+	}: {
+		node: string;
+		event: {
+			original: MouseEvent | TouchEvent;
+			preventSigmaDefault(): void;
+		};
+	}) => {
+		event.original.preventDefault();
+		event.preventSigmaDefault();
+		if (!sigma.getGraph().getNodeAttribute(node, "isBend")) {
+			callbacks.onSelect(node);
+		}
+	};
+
 	const enterNode = ({ node }: { node: string }) => {
 		if (!sigma.getGraph().getNodeAttribute(node, "isBend")) {
 			if (connectionDrag && node !== connectionDrag.sourceNodeId) {
@@ -174,6 +191,7 @@ export function bindGraphEvents(
 	sigma.on("downNode", downNode);
 	sigma.on("clickNode", clickNode);
 	sigma.on("clickStage", clickStage);
+	sigma.on("rightClickNode", rightClickNode);
 	sigma.on("enterNode", enterNode);
 	sigma.on("leaveNode", leaveNode);
 	sigma.on("upNode", upNode);
@@ -186,6 +204,7 @@ export function bindGraphEvents(
 		sigma.off("downNode", downNode);
 		sigma.off("clickNode", clickNode);
 		sigma.off("clickStage", clickStage);
+		sigma.off("rightClickNode", rightClickNode);
 		sigma.off("enterNode", enterNode);
 		sigma.off("leaveNode", leaveNode);
 		sigma.off("upNode", upNode);

@@ -112,7 +112,7 @@
 		availableNotes.map((node) => ({
 			value: node.path,
 			label:
-				titleCounts[node.title] > 1
+				(titleCounts[node.title] ?? 0) > 1
 					? `${node.folder}/${node.title}`
 					: node.title,
 			detail: node.path,

@@ -1370,6 +1370,31 @@
 	white-space: nowrap;
 }
 
+.knowledge-workspace-inspector hr {
+	margin: var(--size-4-1) 0;
+	border: none;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.knowledge-workspace-inspector-metadata {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: var(--size-4-2);
+}
+
+.knowledge-workspace-inspector-metadata strong {
+	color: var(--text-muted);
+	font-weight: var(--font-medium, 500);
+	white-space: nowrap;
+}
+
+.knowledge-workspace-inspector-metadata span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--text-normal);
+}
+
 .knowledge-workspace-debug {
 	flex: 1;
 	min-height: 0;
@@ -1446,4 +1471,5 @@
 	white-space: nowrap;
 	font-size: var(--font-smaller);
 	color: var(--text-faint);
+	color: var(--text-normal);
 }
