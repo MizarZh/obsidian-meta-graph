@@ -1167,6 +1167,8 @@
 				graphTargetNotePath={graphConnectionTargetNotePath}
 				graphTargetTemplateId={graphConnectionTargetTemplateId}
 				onAddTemplate={(template) => controller.addDockTemplate(template)}
+				onUpdateTemplate={(templateId, template) =>
+					controller.updateDockTemplate(templateId, template)}
 				onRemoveTemplate={(templateId) =>
 					controller.removeDockTemplate(templateId)}
 				onAddNote={(path) => controller.addDockNote(path)}

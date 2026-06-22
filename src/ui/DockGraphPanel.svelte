@@ -1,29 +1,29 @@
 <script lang="ts">
-	import type { App } from 'obsidian';
-	import { onDestroy } from 'svelte';
-	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
-	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
+	import type { App } from "obsidian";
+	import { onDestroy } from "svelte";
+	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
+	import ObsidianSuggestInput from "./obsidian/ObsidianSuggestInput.svelte";
+	import ObsidianTextInput from "./obsidian/ObsidianTextInput.svelte";
 	import type {
 		DockConnectionDirection,
 		DockTemplateNode,
 		KnowledgeNode,
-	} from '../core/types';
+	} from "../core/types";
 
 	export type DockDragPayload =
 		| {
-				kind: 'template';
+				kind: "template";
 				templateId: string;
 				label: string;
 		  }
 		| {
-				kind: 'note';
+				kind: "note";
 				notePath: string;
 				label: string;
 				direction: DockConnectionDirection;
 				relationField: string;
 		  };
-	type ReorderPlacement = 'before' | 'after';
+	type ReorderPlacement = "before" | "after";
 
 	let {
 		app,
@@ -37,6 +37,7 @@
 		graphTargetNotePath,
 		graphTargetTemplateId,
 		onAddTemplate,
+		onUpdateTemplate,
 		onRemoveTemplate,
 		onAddNote,
 		onRemoveNote,
@@ -55,7 +56,11 @@
 		targetNodeId?: string;
 		graphTargetNotePath?: string;
 		graphTargetTemplateId?: string;
-		onAddTemplate: (template: Omit<DockTemplateNode, 'id'>) => void;
+		onAddTemplate: (template: Omit<DockTemplateNode, "id">) => void;
+		onUpdateTemplate: (
+			templateId: string,
+			template: Omit<DockTemplateNode, "id">,
+		) => void;
 		onRemoveTemplate: (templateId: string) => void;
 		onAddNote: (path: string) => void;
 		onRemoveNote: (path: string) => void;
@@ -69,15 +74,19 @@
 			targetPath: string,
 			placement: ReorderPlacement,
 		) => void;
-		onLinkPointerDown: (payload: DockDragPayload, event: PointerEvent) => void;
+		onLinkPointerDown: (
+			payload: DockDragPayload,
+			event: PointerEvent,
+		) => void;
 		onOpenNote: (nodeId: string) => void;
 	} = $props();
 
 	let templateFormOpen = $state(false);
-	let noteSearch = $state('');
-	let templateLabel = $state('');
-	let templatePath = $state('');
-	let targetFolder = $state('');
+	let noteSearch = $state("");
+	let templateLabel = $state("");
+	let templatePath = $state("");
+	let targetFolder = $state("");
+	let editingTemplateId = $state<string | undefined>(undefined);
 	let reorderDrag = $state<
 		| {
 				payload: DockDragPayload;
@@ -88,21 +97,34 @@
 		| undefined
 	>(undefined);
 	const activeDraggingKey = $derived(
-		draggingKey ?? (reorderDrag?.active ? dragKey(reorderDrag.payload) : undefined),
+		draggingKey ??
+			(reorderDrag?.active ? dragKey(reorderDrag.payload) : undefined),
+	);
+
+	const titleCounts = $derived(
+		availableNotes.reduce<Record<string, number>>((acc, node) => {
+			acc[node.title] = (acc[node.title] ?? 0) + 1;
+			return acc;
+		}, {}),
 	);
 
 	const noteOptions = $derived(
 		availableNotes.map((node) => ({
 			value: node.path,
-			label: node.title,
+			label:
+				titleCounts[node.title] > 1
+					? `${node.folder}/${node.title}`
+					: node.title,
 			detail: node.path,
-			searchText: [node.title, node.path, ...(node.aliases ?? [])].join(' '),
+			searchText: [node.title, node.path, ...(node.aliases ?? [])].join(
+				" ",
+			),
 		})),
 	);
 	const targetFolderOptions = $derived(
 		[...new Set(availableNotes.map((node) => node.folder).filter(Boolean))]
 			.sort((left, right) =>
-				left.localeCompare(right, undefined, { sensitivity: 'base' }),
+				left.localeCompare(right, undefined, { sensitivity: "base" }),
 			)
 			.map((folder) => ({
 				value: folder,
@@ -111,23 +133,25 @@
 			})),
 	);
 
-	function addTemplate(): void {
+	function saveTemplate(): void {
 		const label = templateLabel.trim();
 		const path = templatePath.trim();
 		if (!label || !path) {
 			return;
 		}
-		onAddTemplate({
+		const template = {
 			label,
 			templatePath: path,
 			targetFolder: targetFolder.trim(),
 			relationField: activeConnectionField,
-			direction: 'from-dock-to-graph',
-		});
-		templateLabel = '';
-		templatePath = '';
-		targetFolder = '';
-		templateFormOpen = false;
+			direction: "from-dock-to-graph",
+		} satisfies Omit<DockTemplateNode, "id">;
+		if (editingTemplateId) {
+			onUpdateTemplate(editingTemplateId, template);
+		} else {
+			onAddTemplate(template);
+		}
+		closeTemplateForm();
 	}
 
 	function selectTemplateNote(path: string, title: string): void {
@@ -141,9 +165,37 @@
 		targetFolder = folder;
 	}
 
+	function openAddTemplateForm(): void {
+		if (templateFormOpen && !editingTemplateId) {
+			closeTemplateForm();
+			return;
+		}
+		editingTemplateId = undefined;
+		templateLabel = "";
+		templatePath = "";
+		targetFolder = "";
+		templateFormOpen = true;
+	}
+
+	function openEditTemplateForm(template: DockTemplateNode): void {
+		editingTemplateId = template.id;
+		templateLabel = template.label;
+		templatePath = template.templatePath;
+		targetFolder = template.targetFolder;
+		templateFormOpen = true;
+	}
+
+	function closeTemplateForm(): void {
+		templateLabel = "";
+		templatePath = "";
+		targetFolder = "";
+		editingTemplateId = undefined;
+		templateFormOpen = false;
+	}
+
 	function templateDragPayload(template: DockTemplateNode): DockDragPayload {
 		return {
-			kind: 'template',
+			kind: "template",
 			templateId: template.id,
 			label: template.label,
 		};
@@ -151,16 +203,16 @@
 
 	function noteDragPayload(node: KnowledgeNode): DockDragPayload {
 		return {
-			kind: 'note',
+			kind: "note",
 			notePath: node.path,
 			label: node.title,
-			direction: 'from-dock-to-graph',
+			direction: "from-dock-to-graph",
 			relationField: activeConnectionField,
 		};
 	}
 
 	function dragKey(payload: DockDragPayload): string {
-		return payload.kind === 'template'
+		return payload.kind === "template"
 			? `template:${payload.templateId}`
 			: `note:${payload.notePath}`;
 	}
@@ -169,7 +221,10 @@
 		payload: DockDragPayload,
 		event: PointerEvent,
 	): void {
-		if (event.target instanceof HTMLElement && event.target.closest('button')) {
+		if (
+			event.target instanceof HTMLElement &&
+			event.target.closest("button")
+		) {
 			return;
 		}
 		if (event.ctrlKey) {
@@ -186,10 +241,10 @@
 			startY: event.clientY,
 			active: false,
 		};
-		window.addEventListener('pointermove', handleReorderPointerMove, {
+		window.addEventListener("pointermove", handleReorderPointerMove, {
 			capture: true,
 		});
-		window.addEventListener('pointerup', handleReorderPointerUp, {
+		window.addEventListener("pointerup", handleReorderPointerUp, {
 			capture: true,
 			once: true,
 		});
@@ -213,10 +268,10 @@
 
 	function handleReorderPointerUp(): void {
 		reorderDrag = undefined;
-		window.removeEventListener('pointermove', handleReorderPointerMove, {
+		window.removeEventListener("pointermove", handleReorderPointerMove, {
 			capture: true,
 		});
-		window.removeEventListener('pointerup', handleReorderPointerUp, {
+		window.removeEventListener("pointerup", handleReorderPointerUp, {
 			capture: true,
 		});
 	}
@@ -230,10 +285,16 @@
 		if (!(target instanceof HTMLElement)) {
 			return;
 		}
-		if (payload.kind === 'template') {
-			const targetEl = target.closest<HTMLElement>('[data-dock-template-id]');
+		if (payload.kind === "template") {
+			const targetEl = target.closest<HTMLElement>(
+				"[data-dock-template-id]",
+			);
 			const targetTemplateId = targetEl?.dataset.dockTemplateId;
-			if (!targetEl || !targetTemplateId || targetTemplateId === payload.templateId) {
+			if (
+				!targetEl ||
+				!targetTemplateId ||
+				targetTemplateId === payload.templateId
+			) {
 				return;
 			}
 			onReorderTemplate(
@@ -243,7 +304,7 @@
 			);
 			return;
 		}
-		const targetEl = target.closest<HTMLElement>('[data-dock-note-path]');
+		const targetEl = target.closest<HTMLElement>("[data-dock-note-path]");
 		const targetPath = targetEl?.dataset.dockNotePath;
 		if (!targetEl || !targetPath || targetPath === payload.notePath) {
 			return;
@@ -260,9 +321,7 @@
 		clientY: number,
 	): ReorderPlacement {
 		const rect = targetEl.getBoundingClientRect();
-		return clientY > rect.top + rect.height / 2
-			? 'after'
-			: 'before';
+		return clientY > rect.top + rect.height / 2 ? "after" : "before";
 	}
 
 	function handleLinkPointerDown(
@@ -272,7 +331,8 @@
 		if (
 			!event.ctrlKey ||
 			event.button !== 0 ||
-			(event.target instanceof HTMLElement && event.target.closest('button'))
+			(event.target instanceof HTMLElement &&
+				event.target.closest("button"))
 		) {
 			return;
 		}
@@ -291,9 +351,13 @@
 		<header>
 			<h3>Templates</h3>
 			<ObsidianButton
-				icon={templateFormOpen ? 'x' : 'plus'}
-				ariaLabel={templateFormOpen ? 'Close template form' : 'Add template'}
-				onClick={() => (templateFormOpen = !templateFormOpen)}
+				icon={templateFormOpen ? "x" : "plus"}
+				ariaLabel={templateFormOpen
+					? "Close template form"
+					: "Add template"}
+				onClick={templateFormOpen
+					? closeTemplateForm
+					: openAddTemplateForm}
 			/>
 		</header>
 		{#if templateFormOpen}
@@ -301,7 +365,7 @@
 				class="knowledge-workspace-dock-form"
 				onsubmit={(event) => {
 					event.preventDefault();
-					addTemplate();
+					saveTemplate();
 				}}
 			>
 				<ObsidianTextInput
@@ -343,9 +407,9 @@
 					/>
 				</label>
 				<ObsidianButton
-					icon="plus"
-					text="Add template"
-					onClick={addTemplate}
+					icon={editingTemplateId ? "check" : "plus"}
+					text={editingTemplateId ? "Save template" : "Add template"}
+					onClick={saveTemplate}
 				/>
 			</form>
 		{/if}
@@ -363,14 +427,25 @@
 						role="button"
 						tabindex="0"
 						aria-label={template.label}
-						onpointerdown={(event) => handleNodePointerDown(payload, event)}
+						onpointerdown={(event) =>
+							handleNodePointerDown(payload, event)}
 					>
 						<span></span>
 						<strong>{template.label}</strong>
 						<ObsidianButton
+							icon="pencil"
+							ariaLabel={`Edit ${template.label}`}
+							onClick={() => openEditTemplateForm(template)}
+						/>
+						<ObsidianButton
 							icon="x"
 							ariaLabel={`Remove ${template.label}`}
-							onClick={() => onRemoveTemplate(template.id)}
+							onClick={() => {
+								if (editingTemplateId === template.id) {
+									closeTemplateForm();
+								}
+								onRemoveTemplate(template.id);
+							}}
 						/>
 					</div>
 				{/each}
@@ -396,13 +471,15 @@
 				}}
 				onSelect={(option) => {
 					onAddNote(option.value);
-					noteSearch = '';
+					noteSearch = "";
 				}}
 			/>
 		</div>
 		<div class="knowledge-workspace-dock-list">
 			{#if selectedNotes.length === 0}
-				<span class="knowledge-workspace-dock-empty">No selected notes</span>
+				<span class="knowledge-workspace-dock-empty"
+					>No selected notes</span
+				>
 			{:else}
 				{#each selectedNotes as node (node.id)}
 					{@const payload = noteDragPayload(node)}
@@ -414,7 +491,8 @@
 						role="button"
 						tabindex="0"
 						aria-label={node.title}
-						onpointerdown={(event) => handleNodePointerDown(payload, event)}
+						onpointerdown={(event) =>
+							handleNodePointerDown(payload, event)}
 						ondblclick={() => onOpenNote(node.id)}
 					>
 						<span></span>
@@ -432,9 +510,17 @@
 
 	<span
 		class:active={linking}
-		class:target={Boolean(targetNodeId || graphTargetNotePath || graphTargetTemplateId)}
+		class:target={Boolean(
+			targetNodeId || graphTargetNotePath || graphTargetTemplateId,
+		)}
 		class="knowledge-workspace-dock-status"
 	>
-		{targetNodeId || graphTargetNotePath || graphTargetTemplateId ? 'Release to connect' : linking ? 'Choose target' : draggingKey ? 'Drag to reorder' : 'Ready'}
+		{targetNodeId || graphTargetNotePath || graphTargetTemplateId
+			? "Release to connect"
+			: linking
+				? "Choose target"
+				: draggingKey
+					? "Drag to reorder"
+					: "Ready"}
 	</span>
 </aside>

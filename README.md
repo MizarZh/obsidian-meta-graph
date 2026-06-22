@@ -56,8 +56,9 @@ settings to report them in the developer console.
 8. Hold `Ctrl`, drag from one node to another, and release to add a link to the
    source note's selected metadata field.
 9. Use the right dock panel to keep templates and selected notes in a compact
-   vertical list. Drag items in the dock to reorder them; hold `Ctrl` while
-   dragging a dock item to connect it to a graph node.
+   vertical list. Add or edit templates from the dock, drag items in the dock
+   to reorder them, and hold `Ctrl` while dragging a dock item to connect it to
+   a graph node.
 10. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
    workspace is focused, to undo connection edits made in the current workspace
    session.

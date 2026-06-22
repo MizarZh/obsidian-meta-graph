@@ -1,8 +1,5 @@
 <script lang="ts">
-	import {
-		AbstractInputSuggest,
-		type App,
-	} from "obsidian";
+	import { AbstractInputSuggest, type App } from "obsidian";
 	import { onMount } from "svelte";
 	import ObsidianTextInput from "./ObsidianTextInput.svelte";
 
@@ -78,7 +75,10 @@
 				}
 			}
 			for (const item of indexedOptions) {
-				if (!seen.has(item.option.value) && item.text.includes(normalized)) {
+				if (
+					!seen.has(item.option.value) &&
+					item.text.includes(normalized)
+				) {
 					results.push(item);
 					if (results.length >= this.limit) {
 						return results;
@@ -94,6 +94,12 @@
 				cls: "knowledge-workspace-suggest-title",
 				text: value.option.label,
 			});
+			if (value.option.detail) {
+				el.createDiv({
+					cls: "knowledge-workspace-suggest-detail",
+					text: value.option.detail,
+				});
+			}
 		}
 
 		selectSuggestion(value: IndexedSuggestion): void {
@@ -125,7 +131,7 @@
 	{ariaLabel}
 	class={className}
 	{value}
-	onInput={onInput}
+	{onInput}
 	onInputEl={(element) => {
 		inputEl = element;
 	}}

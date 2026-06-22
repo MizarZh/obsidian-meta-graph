@@ -384,6 +384,37 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	updateDockTemplate(
+		templateId: string,
+		patch: Omit<DockTemplateNode, 'id'>,
+	): void {
+		if (!this.state.dock.templates.some((template) => template.id === templateId)) {
+			return;
+		}
+		const templates = normalizeDockTemplates(
+			this.state.dock.templates.map((template) =>
+				template.id === templateId
+					? {
+							...template,
+							...patch,
+							id: template.id,
+						}
+					: template,
+			),
+		);
+		if (templates === this.state.dock.templates) {
+			return;
+		}
+		this.state = {
+			...this.state,
+			dock: {
+				...this.state.dock,
+				templates,
+			},
+		};
+		this.emit();
+	}
+
 	removeDockTemplate(templateId: string): void {
 		const templates = this.state.dock.templates.filter(
 			(template) => template.id !== templateId,
