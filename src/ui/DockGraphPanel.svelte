@@ -30,6 +30,11 @@
 		templates,
 		selectedNotes,
 		availableNotes,
+		nodeColors,
+		dockOpen,
+		onToggleDock,
+		dockWidth,
+		onResizeDock,
 		activeConnectionField,
 		draggingKey,
 		linking,
@@ -50,6 +55,11 @@
 		templates: DockTemplateNode[];
 		selectedNotes: KnowledgeNode[];
 		availableNotes: KnowledgeNode[];
+		nodeColors: Map<string, string>;
+		dockOpen: boolean;
+		onToggleDock: () => void;
+		dockWidth: number;
+		onResizeDock: (width: number) => void;
 		activeConnectionField: string;
 		draggingKey?: string;
 		linking: boolean;
@@ -344,183 +354,229 @@
 	onDestroy(() => {
 		handleReorderPointerUp();
 	});
+
+	function handleResizePointerDown(event: PointerEvent): void {
+		event.preventDefault();
+		const startX = event.clientX;
+		const startWidth = dockWidth;
+		function onMove(e: PointerEvent): void {
+			const newWidth = Math.max(
+				180,
+				Math.min(480, startWidth + startX - e.clientX),
+			);
+			onResizeDock(newWidth);
+		}
+		function onUp(): void {
+			window.removeEventListener("pointermove", onMove);
+			window.removeEventListener("pointerup", onUp);
+		}
+		window.addEventListener("pointermove", onMove);
+		window.addEventListener("pointerup", onUp);
+	}
 </script>
 
-<aside class="knowledge-workspace-dock-panel">
-	<section>
-		<header>
-			<h3>Templates</h3>
-			<ObsidianButton
-				icon={templateFormOpen ? "x" : "plus"}
-				ariaLabel={templateFormOpen
-					? "Close template form"
-					: "Add template"}
-				onClick={templateFormOpen
-					? closeTemplateForm
-					: openAddTemplateForm}
-			/>
-		</header>
-		{#if templateFormOpen}
-			<form
-				class="knowledge-workspace-dock-form"
-				onsubmit={(event) => {
-					event.preventDefault();
-					saveTemplate();
-				}}
-			>
-				<ObsidianTextInput
-					type="text"
-					placeholder="Label"
-					value={templateLabel}
-					onInput={(value) => {
-						templateLabel = value;
-					}}
-				/>
-				<label class="knowledge-workspace-dock-suggest">
-					<ObsidianSuggestInput
-						{app}
-						type="text"
-						placeholder="Template note..."
-						value={templatePath}
-						options={noteOptions}
-						onInput={(value) => {
-							templatePath = value;
-						}}
-						onSelect={(option) => {
-							selectTemplateNote(option.value, option.label);
-						}}
-					/>
-				</label>
-				<label class="knowledge-workspace-dock-suggest">
-					<ObsidianSuggestInput
-						{app}
-						type="text"
-						placeholder="Target folder..."
-						value={targetFolder}
-						options={targetFolderOptions}
-						onInput={(value) => {
-							targetFolder = value;
-						}}
-						onSelect={(option) => {
-							selectTargetFolder(option.value);
-						}}
-					/>
-				</label>
+<aside
+	class="knowledge-workspace-dock-panel"
+	class:knowledge-workspace-dock-panel-collapsed={!dockOpen}
+	style="width: {dockOpen ? `${dockWidth}px` : undefined}"
+>
+	<div
+		class="knowledge-workspace-dock-resize-handle"
+		role="separator"
+		aria-label="Resize dock"
+		onpointerdown={handleResizePointerDown}
+	></div>
+	<ObsidianButton
+		class="knowledge-workspace-dock-toggle"
+		icon={dockOpen ? "panel-right-close" : "panel-right-open"}
+		ariaLabel={dockOpen ? "Close dock" : "Open dock"}
+		onClick={onToggleDock}
+	/>
+	{#if dockOpen}
+		<section>
+			<header>
+				<h3>Templates</h3>
 				<ObsidianButton
-					icon={editingTemplateId ? "check" : "plus"}
-					text={editingTemplateId ? "Save template" : "Add template"}
-					onClick={saveTemplate}
+					icon={templateFormOpen ? "x" : "plus"}
+					ariaLabel={templateFormOpen
+						? "Close template form"
+						: "Add template"}
+					onClick={templateFormOpen
+						? closeTemplateForm
+						: openAddTemplateForm}
 				/>
-			</form>
-		{/if}
-		<div class="knowledge-workspace-dock-list">
-			{#if templates.length === 0}
-				<span class="knowledge-workspace-dock-empty">No templates</span>
-			{:else}
-				{#each templates as template (template.id)}
-					{@const payload = templateDragPayload(template)}
-					<div
-						class:dragging={activeDraggingKey === dragKey(payload)}
-						class:target={graphTargetTemplateId === template.id}
-						class="knowledge-workspace-dock-node template"
-						data-dock-template-id={template.id}
-						role="button"
-						tabindex="0"
-						aria-label={template.label}
-						onpointerdown={(event) =>
-							handleNodePointerDown(payload, event)}
-					>
-						<span></span>
-						<strong>{template.label}</strong>
-						<ObsidianButton
-							icon="pencil"
-							ariaLabel={`Edit ${template.label}`}
-							onClick={() => openEditTemplateForm(template)}
-						/>
-						<ObsidianButton
-							icon="x"
-							ariaLabel={`Remove ${template.label}`}
-							onClick={() => {
-								if (editingTemplateId === template.id) {
-									closeTemplateForm();
-								}
-								onRemoveTemplate(template.id);
+			</header>
+			{#if templateFormOpen}
+				<form
+					class="knowledge-workspace-dock-form"
+					onsubmit={(event) => {
+						event.preventDefault();
+						saveTemplate();
+					}}
+				>
+					<ObsidianTextInput
+						type="text"
+						placeholder="Label"
+						value={templateLabel}
+						onInput={(value) => {
+							templateLabel = value;
+						}}
+					/>
+					<label class="knowledge-workspace-dock-suggest">
+						<ObsidianSuggestInput
+							{app}
+							type="text"
+							placeholder="Template note..."
+							value={templatePath}
+							options={noteOptions}
+							onInput={(value) => {
+								templatePath = value;
+							}}
+							onSelect={(option) => {
+								selectTemplateNote(option.value, option.label);
 							}}
 						/>
-					</div>
-				{/each}
-			{/if}
-		</div>
-	</section>
-
-	<section>
-		<header>
-			<h3>Selected notes</h3>
-			<span>{selectedNotes.length}</span>
-		</header>
-		<div class="knowledge-workspace-dock-search">
-			<ObsidianSuggestInput
-				{app}
-				type="search"
-				placeholder="Add note..."
-				ariaLabel="Add selected note"
-				value={noteSearch}
-				options={noteOptions}
-				onInput={(value) => {
-					noteSearch = value;
-				}}
-				onSelect={(option) => {
-					onAddNote(option.value);
-					noteSearch = "";
-				}}
-			/>
-		</div>
-		<div class="knowledge-workspace-dock-list">
-			{#if selectedNotes.length === 0}
-				<span class="knowledge-workspace-dock-empty"
-					>No selected notes</span
-				>
-			{:else}
-				{#each selectedNotes as node (node.id)}
-					{@const payload = noteDragPayload(node)}
-					<div
-						class:dragging={activeDraggingKey === dragKey(payload)}
-						class:target={graphTargetNotePath === node.path}
-						class="knowledge-workspace-dock-node note"
-						data-dock-note-path={node.path}
-						role="button"
-						tabindex="0"
-						aria-label={node.title}
-						onpointerdown={(event) =>
-							handleNodePointerDown(payload, event)}
-						ondblclick={() => onOpenNote(node.id)}
-					>
-						<span></span>
-						<strong>{node.title}</strong>
-						<ObsidianButton
-							icon="x"
-							ariaLabel={`Remove ${node.title}`}
-							onClick={() => onRemoveNote(node.path)}
+					</label>
+					<label class="knowledge-workspace-dock-suggest">
+						<ObsidianSuggestInput
+							{app}
+							type="text"
+							placeholder="Target folder..."
+							value={targetFolder}
+							options={targetFolderOptions}
+							onInput={(value) => {
+								targetFolder = value;
+							}}
+							onSelect={(option) => {
+								selectTargetFolder(option.value);
+							}}
 						/>
-					</div>
-				{/each}
+					</label>
+					<ObsidianButton
+						icon={editingTemplateId ? "check" : "plus"}
+						text={editingTemplateId
+							? "Save template"
+							: "Add template"}
+						onClick={saveTemplate}
+					/>
+				</form>
 			{/if}
-		</div>
-	</section>
+			<div class="knowledge-workspace-dock-list">
+				{#if templates.length === 0}
+					<span class="knowledge-workspace-dock-empty"
+						>No templates</span
+					>
+				{:else}
+					{#each templates as template (template.id)}
+						{@const payload = templateDragPayload(template)}
+						<div
+							class:dragging={activeDraggingKey ===
+								dragKey(payload)}
+							class:target={graphTargetTemplateId === template.id}
+							class="knowledge-workspace-dock-node template"
+							data-dock-template-id={template.id}
+							role="button"
+							tabindex="0"
+							aria-label={template.label}
+							onpointerdown={(event) =>
+								handleNodePointerDown(payload, event)}
+						>
+							<span></span>
+							<strong>{template.label}</strong>
+							<ObsidianButton
+								icon="pencil"
+								ariaLabel={`Edit ${template.label}`}
+								onClick={() => openEditTemplateForm(template)}
+							/>
+							<ObsidianButton
+								icon="x"
+								ariaLabel={`Remove ${template.label}`}
+								onClick={() => {
+									if (editingTemplateId === template.id) {
+										closeTemplateForm();
+									}
+									onRemoveTemplate(template.id);
+								}}
+							/>
+						</div>
+					{/each}
+				{/if}
+			</div>
+		</section>
 
-	<span
-		class:active={linking}
-		class:target={Boolean(
-			targetNodeId || graphTargetNotePath || graphTargetTemplateId,
-		)}
-		class="knowledge-workspace-dock-status"
-	>
-		{targetNodeId || graphTargetNotePath || graphTargetTemplateId
-			? "Release to connect"
-			: linking
-				? "Choose target"
-				: draggingKey
-					? "Drag to reorder"
-					: "Ready"}
-	</span>
+		<section>
+			<header>
+				<h3>Selected notes</h3>
+				<span>{selectedNotes.length}</span>
+			</header>
+			<div class="knowledge-workspace-dock-search">
+				<ObsidianSuggestInput
+					{app}
+					type="search"
+					placeholder="Add note..."
+					ariaLabel="Add selected note"
+					value={noteSearch}
+					options={noteOptions}
+					onInput={(value) => {
+						noteSearch = value;
+					}}
+					onSelect={(option) => {
+						onAddNote(option.value);
+						noteSearch = "";
+					}}
+				/>
+			</div>
+			<div class="knowledge-workspace-dock-list">
+				{#if selectedNotes.length === 0}
+					<span class="knowledge-workspace-dock-empty"
+						>No selected notes</span
+					>
+				{:else}
+					{#each selectedNotes as node (node.id)}
+						{@const payload = noteDragPayload(node)}
+						<div
+							class:dragging={activeDraggingKey ===
+								dragKey(payload)}
+							class:target={graphTargetNotePath === node.path}
+							class="knowledge-workspace-dock-node note"
+							data-dock-note-path={node.path}
+							role="button"
+							tabindex="0"
+							aria-label={node.title}
+							onpointerdown={(event) =>
+								handleNodePointerDown(payload, event)}
+							ondblclick={() => onOpenNote(node.id)}
+						>
+							<span
+								style="background: {nodeColors.get(node.path) ??
+									'var(--color-green, #44a37f)'}"
+							></span>
+							<strong>{node.title}</strong>
+							<ObsidianButton
+								icon="x"
+								ariaLabel={`Remove ${node.title}`}
+								onClick={() => onRemoveNote(node.path)}
+							/>
+						</div>
+					{/each}
+				{/if}
+			</div>
+		</section>
+
+		<span
+			class:active={linking}
+			class:target={Boolean(
+				targetNodeId || graphTargetNotePath || graphTargetTemplateId,
+			)}
+			class="knowledge-workspace-dock-status"
+		>
+			{targetNodeId || graphTargetNotePath || graphTargetTemplateId
+				? "Release to connect"
+				: linking
+					? "Choose target"
+					: draggingKey
+						? "Drag to reorder"
+						: "Ready"}
+		</span>
+	{/if}
 </aside>

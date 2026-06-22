@@ -18,6 +18,7 @@
 		type RuntimeGraph,
 	} from "../graph/graphology-adapter";
 	import { readGraphPalette } from "../graph/graph-styles";
+	import { resolveNodeStyle, type NodeStyle } from "../graph/style-rules";
 	import { SigmaRenderer } from "../graph/sigma-renderer";
 	import { ArcLayout } from "../layouts/arc-layout";
 	import {
@@ -86,6 +87,8 @@
 	let dockDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockConnectionDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockTargetNodeId = $state<string | undefined>(undefined);
+	let dockOpen = $state(true);
+	let dockWidth = $state(280);
 
 	interface LayoutSnapshot {
 		positions: Map<string, GraphPosition>;
@@ -422,6 +425,26 @@
 	);
 	const selectedDockNodes = $derived(getSelectedDockNodes(debugSnapshot));
 	const dockNoteCandidates = $derived(getDockNoteCandidates(debugSnapshot));
+	const nodeColors = $derived.by(() => {
+		const rules = getActiveNodeStyleRules();
+		const defaultColor =
+			getComputedStyle(document.body)
+				.getPropertyValue("--interactive-accent")
+				.trim() || "#7c6ff0";
+		const colors = new Map<string, string>();
+		for (const node of [...selectedDockNodes, ...dockNoteCandidates]) {
+			if (!colors.has(node.path)) {
+				colors.set(
+					node.path,
+					resolveNodeStyle(node, rules, {
+						color: defaultColor,
+						size: 7,
+					}).color,
+				);
+			}
+		}
+		return colors;
+	});
 	const metadataFieldSuggestions = $derived(
 		getMetadataFieldSuggestions(debugSnapshot),
 	);
@@ -1190,6 +1213,7 @@
 		<main
 			class="knowledge-workspace-main"
 			class:dock-node-dragging={Boolean(dockDrag)}
+			style="--dock-panel-width: {dockOpen ? `${dockWidth}px` : '32px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
 			{#if connectionDrag}
@@ -1221,6 +1245,11 @@
 				templates={workspaceState.dock.templates}
 				selectedNotes={selectedDockNodes}
 				availableNotes={dockNoteCandidates}
+				{nodeColors}
+				{dockOpen}
+				onToggleDock={() => (dockOpen = !dockOpen)}
+				{dockWidth}
+				onResizeDock={(w) => (dockWidth = w)}
 				activeConnectionField={workspaceState.activeConnectionField}
 				draggingKey={dockDrag
 					? dockDrag.kind === "template"
