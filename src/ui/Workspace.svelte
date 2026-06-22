@@ -745,17 +745,19 @@
 		if (!connectionDrag) {
 			return;
 		}
-		graphConnectionTargetNotePath = readDockNotePathFromTarget(event.target);
-		graphConnectionTargetTemplateId = readDockTemplateIdFromTarget(event.target);
+		const target = readElementAtMouseEvent(event);
+		graphConnectionTargetNotePath = readDockNotePathFromTarget(target);
+		graphConnectionTargetTemplateId = readDockTemplateIdFromTarget(target);
 	}
 
 	function handleGraphConnectionMouseUp(event: MouseEvent): void {
 		if (!connectionDrag) {
 			return;
 		}
+		const target = readElementAtMouseEvent(event);
 		const templateId =
 			graphConnectionTargetTemplateId ??
-			readDockTemplateIdFromTarget(event.target);
+			readDockTemplateIdFromTarget(target);
 		if (templateId) {
 			const sourceNodeId = connectionDrag.sourceNodeId;
 			graphConnectionTargetNotePath = undefined;
@@ -764,7 +766,7 @@
 			return;
 		}
 		const notePath =
-			graphConnectionTargetNotePath ?? readDockNotePathFromTarget(event.target);
+			graphConnectionTargetNotePath ?? readDockNotePathFromTarget(target);
 		if (!notePath || notePath === connectionDrag.sourceNodeId) {
 			return;
 		}
@@ -783,6 +785,10 @@
 					error: formatError(error),
 				}),
 			);
+	}
+
+	function readElementAtMouseEvent(event: MouseEvent): Element | null {
+		return document.elementFromPoint(event.clientX, event.clientY);
 	}
 
 	function readDockNotePathFromTarget(target: EventTarget | null): string | undefined {
