@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { setIcon, type IconName } from "obsidian";
+	import { setIcon, type App, type IconName } from "obsidian";
+	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
+	import ObsidianDropdown from "./obsidian/ObsidianDropdown.svelte";
+	import ObsidianSuggestInput from "./obsidian/ObsidianSuggestInput.svelte";
+	import ObsidianTextInput from "./obsidian/ObsidianTextInput.svelte";
 	import type {
 		ArcDirection,
 		FlowDirection,
@@ -10,6 +14,7 @@
 	} from "../core/types";
 
 	let {
+		app,
 		mode,
 		charts,
 		activeChartId,
@@ -34,6 +39,7 @@
 		debugOpen,
 		onToggleDebug,
 	}: {
+		app: App;
 		mode: ViewMode;
 		charts: MetaGraphChart[];
 		activeChartId: string;
@@ -64,7 +70,6 @@
 	let creatingView = $state(false);
 	let viewSearch = $state("");
 	let nodeSearch = $state("");
-	let nodeSearchOpen = $state(false);
 	let draftName = $state("");
 
 	const activeChart = $derived(
@@ -75,12 +80,24 @@
 			chart.name.toLocaleLowerCase().includes(viewSearch.toLocaleLowerCase()),
 		),
 	);
-	const filteredSearchNodes = $derived(filterSearchNodes(searchNodes, nodeSearch));
+	const nodeSearchOptions = $derived(
+		searchNodes.map((node) => ({
+			value: node.id,
+			label: node.title,
+			detail: formatNodeSearchDetail(node),
+			searchText: [node.title, node.path, ...(node.aliases ?? [])].join(" "),
+		})),
+	);
 	const VIEW_ICONS: Record<ViewMode, IconName> = {
 		graph: "chart-scatter",
 		flow: "git-fork",
 		arc: "route",
 	};
+	const VIEW_MODE_OPTIONS = [
+		{ value: "graph", label: "Graph" },
+		{ value: "flow", label: "Flow" },
+		{ value: "arc", label: "Arc diagram" },
+	];
 
 	function getViewIcon(type: ViewMode | undefined): IconName {
 		return VIEW_ICONS[type ?? "graph"];
@@ -136,26 +153,6 @@
 		onRenameChart(draftName);
 	}
 
-	function filterSearchNodes(
-		nodes: KnowledgeNode[],
-		query: string,
-	): KnowledgeNode[] {
-		const normalized = query.trim().toLocaleLowerCase();
-		if (!normalized) {
-			return [];
-		}
-		return nodes
-			.filter(
-				(node) =>
-					node.title.toLocaleLowerCase().includes(normalized) ||
-					node.path.toLocaleLowerCase().includes(normalized) ||
-					(node.aliases ?? []).some((alias) =>
-						alias.toLocaleLowerCase().includes(normalized),
-					),
-			)
-			.slice(0, 8);
-	}
-
 	function formatNodeSearchDetail(node: KnowledgeNode): string {
 		return node.aliases && node.aliases.length > 0
 			? `${node.path} · ${node.aliases.join(', ')}`
@@ -164,14 +161,6 @@
 
 	function focusSearchNode(nodeId: string): void {
 		onFocusNode(nodeId);
-		nodeSearchOpen = false;
-	}
-
-	function focusFirstSearchResult(): void {
-		const first = filteredSearchNodes[0];
-		if (first) {
-			focusSearchNode(first.id);
-		}
 	}
 </script>
 
@@ -194,23 +183,25 @@
 			<span class="knowledge-workspace-view-caret" aria-hidden="true"
 			></span>
 		</button>
-		<button
-			class:active={configOpen}
+		<ObsidianButton
 			class="knowledge-workspace-view-config-button"
-			aria-label="Workspace settings"
-			onclick={() => openConfig()}
-		>
-			<span aria-hidden="true"></span>
-		</button>
+			active={configOpen}
+			icon="settings-2"
+			ariaLabel="Workspace settings"
+			onClick={() => openConfig()}
+		/>
 
 		{#if pickerOpen}
 			<div class="knowledge-workspace-view-menu" role="menu">
 				<label class="knowledge-workspace-view-search">
 					<span aria-hidden="true"></span>
-					<input
+					<ObsidianTextInput
 						type="search"
 						placeholder="Search views..."
-						bind:value={viewSearch}
+						value={viewSearch}
+						onInput={(value) => {
+							viewSearch = value;
+						}}
 					/>
 				</label>
 				<div class="knowledge-workspace-view-list">
@@ -230,24 +221,22 @@
 								></span>
 								<span>{chart.name}</span>
 							</button>
-							<button
+							<ObsidianButton
 								class="knowledge-workspace-view-row-config"
-								aria-label={`Configure ${chart.name}`}
-								onclick={() => configureChart(chart.id)}
-							>
-								<span aria-hidden="true"></span>
-							</button>
+								ariaLabel={`Configure ${chart.name}`}
+								icon="chevron-right"
+								onClick={() => configureChart(chart.id)}
+							/>
 						</div>
 					{/each}
 				</div>
-				<button
+				<ObsidianButton
 					class="knowledge-workspace-add-view"
 					role="menuitem"
-					onclick={addChart}
-				>
-					<span aria-hidden="true">+</span>
-					<span>Add view</span>
-				</button>
+					icon="plus"
+					text="Add view"
+					onClick={addChart}
+				/>
 			</div>
 		{/if}
 
@@ -258,109 +247,79 @@
 				aria-label="Configure view"
 			>
 				<header>
-					<button
+					<ObsidianButton
 						class="knowledge-workspace-icon-button back"
-						aria-label="Back to views"
-						onclick={() => {
+						ariaLabel="Back to views"
+						icon="arrow-left"
+						onClick={() => {
 							configOpen = false;
 							creatingView = false;
 							pickerOpen = true;
-						}}><span aria-hidden="true"></span></button
-					>
+						}}
+					/>
 					<span
 						>{creatingView ? "Create view" : "Configure view"}</span
 					>
-					<button
+					<ObsidianButton
 						class="knowledge-workspace-icon-button close"
-						aria-label="Close"
-						onclick={closeConfig}
-						><span aria-hidden="true"></span></button
-					>
+						ariaLabel="Close"
+						icon="x"
+						onClick={closeConfig}
+					/>
 				</header>
-				<input
+				<ObsidianTextInput
 					class="knowledge-workspace-view-title-input"
 					type="text"
 					value={draftName}
-					oninput={(event) => {
-						draftName = event.currentTarget.value;
+					onInput={(value) => {
+						draftName = value;
 					}}
-					onchange={commitName}
-					onblur={commitName}
+					onBlur={commitName}
 				/>
 				<label>
 					<span>Layout</span>
-					<select
+					<ObsidianDropdown
 						value={mode}
-						onchange={(event) =>
-							onChartType(event.currentTarget.value as ViewMode)}
-					>
-						<option value="graph">Graph</option>
-						<option value="flow">Flow</option>
-						<option value="arc">Arc diagram</option>
-					</select>
+						options={VIEW_MODE_OPTIONS}
+						onChange={(value) => onChartType(value as ViewMode)}
+					/>
 				</label>
 				{#if !creatingView}
-					<button
+					<ObsidianButton
 						class="knowledge-workspace-delete-view"
 						disabled={charts.length <= 1}
-						onclick={() => {
+						text="Delete view"
+						destructive={true}
+						onClick={() => {
 							onDeleteChart();
 							closeConfig();
 						}}
-					>
-						Delete view
-					</button>
+					/>
 				{/if}
 			</div>
 		{/if}
 	</div>
-	<button class:active={graphSettingsOpen} onclick={onToggleGraphSettings}>
-		{graphSettingsOpen ? "Collapse settings" : "Show settings"}
-	</button>
+	<ObsidianButton
+		active={graphSettingsOpen}
+		text={graphSettingsOpen ? "Collapse settings" : "Show settings"}
+		onClick={onToggleGraphSettings}
+	/>
 	<div class="knowledge-workspace-node-search">
-		<input
+		<ObsidianSuggestInput
+			{app}
 			type="search"
-			placeholder="Find node..."
-			aria-label="Find node"
+			placeholder="Find note..."
+			ariaLabel="Find note"
 			value={nodeSearch}
-			onfocus={() => {
-				nodeSearchOpen = true;
+			options={nodeSearchOptions}
+			onInput={(value) => {
+				nodeSearch = value;
 			}}
-			onblur={() => {
-				window.setTimeout(() => {
-					nodeSearchOpen = false;
-				}, 120);
-			}}
-			oninput={(event) => {
-				nodeSearch = event.currentTarget.value;
-				nodeSearchOpen = true;
-			}}
-			onkeydown={(event) => {
-				if (event.key === "Enter") {
-					event.preventDefault();
-					focusFirstSearchResult();
-				}
-				if (event.key === "Escape") {
-					nodeSearchOpen = false;
-				}
+			onSelect={(option) => {
+				focusSearchNode(option.value);
+				nodeSearch = "";
 			}}
 		/>
-		{#if nodeSearchOpen && filteredSearchNodes.length > 0}
-			<div class="knowledge-workspace-node-search-results" role="listbox">
-				{#each filteredSearchNodes as node (node.id)}
-					<button
-						type="button"
-						role="option"
-						aria-selected="false"
-						onmousedown={(event) => event.preventDefault()}
-						onclick={() => focusSearchNode(node.id)}
-					>
-						<span>{node.title}</span>
-						<small>{formatNodeSearchDetail(node)}</small>
-					</button>
-				{/each}
-			</div>
-		{/if}
 	</div>
 	<div class="knowledge-workspace-graph-actions">
 		{#if mode === "flow"}
@@ -369,27 +328,28 @@
 				aria-label="Flow direction"
 			>
 				{#each ["LR", "RL", "TD", "DT"] as direction}
-					<button
-						class:active={flowDirection === direction}
-						onclick={() =>
+					<ObsidianButton
+						active={flowDirection === direction}
+						text={direction}
+						onClick={() =>
 							onFlowDirection(direction as FlowDirection)}
-						>{direction}</button
-					>
+					/>
 				{/each}
 			</div>
 			<div
 				class="knowledge-workspace-segmented"
 				aria-label="Flow edge style"
 			>
-				<button
-					class:active={flowEdgeStyle === "straight"}
-					onclick={() => onFlowEdgeStyle("straight")}>Straight</button
-				>
-				<button
-					class:active={flowEdgeStyle === "orthogonal"}
-					onclick={() => onFlowEdgeStyle("orthogonal")}
-					>Orthogonal</button
-				>
+				<ObsidianButton
+					active={flowEdgeStyle === "straight"}
+					text="Straight"
+					onClick={() => onFlowEdgeStyle("straight")}
+				/>
+				<ObsidianButton
+					active={flowEdgeStyle === "orthogonal"}
+					text="Orthogonal"
+					onClick={() => onFlowEdgeStyle("orthogonal")}
+				/>
 			</div>
 		{/if}
 		{#if mode === "arc"}
@@ -398,21 +358,23 @@
 				aria-label="Arc direction"
 			>
 				{#each ["right", "left", "up", "down"] as direction}
-					<button
-						class:active={arcDirection === direction}
-						onclick={() =>
+					<ObsidianButton
+						active={arcDirection === direction}
+						text={direction}
+						onClick={() =>
 							onArcDirection(direction as ArcDirection)}
-						>{direction}</button
-					>
+					/>
 				{/each}
 			</div>
 		{/if}
-		<button onclick={onFit}>Fit graph</button>
-		<button onclick={onRefresh}>Refresh</button>
+		<ObsidianButton text="Fit graph" onClick={onFit} />
+		<ObsidianButton text="Refresh" onClick={onRefresh} />
 		{#if showDebugButton}
-			<button class:active={debugOpen} onclick={onToggleDebug}
-				>Debug</button
-			>
+			<ObsidianButton
+				active={debugOpen}
+				text="Debug"
+				onClick={onToggleDebug}
+			/>
 		{/if}
 	</div>
 </div>

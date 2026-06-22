@@ -1,4 +1,6 @@
 <script lang="ts">
+	import ObsidianSlider from './obsidian/ObsidianSlider.svelte';
+
 	let {
 		fadeDistance,
 		onInput,
@@ -14,15 +16,13 @@
 	<summary>Display</summary>
 	<label>
 		<span>Fade distance</span>
-		<input
-			type="range"
-			min="0.25"
-			max="4"
-			step="0.05"
+		<ObsidianSlider
 			value={fadeDistance}
-			oninput={(event) => onInput(Number(event.currentTarget.value))}
-			onchange={(event) => onCommit(Number(event.currentTarget.value))}
+			min={0.25}
+			max={4}
+			step={0.05}
+			onChange={onInput}
+			onCommit={onCommit}
 		/>
-		<output>{fadeDistance.toFixed(2)}</output>
 	</label>
 </details>

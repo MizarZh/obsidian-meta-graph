@@ -84,6 +84,55 @@
 		orthogonalRoutes: OrthogonalRouteMap;
 	}
 	const layoutSnapshots = new Map<string, LayoutSnapshot>();
+	const handleGraphConnectionMouseMove = (event: MouseEvent): void => {
+		if (!connectionDrag) {
+			return;
+		}
+		const target = readElementAtMouseEvent(event);
+		graphConnectionTargetNotePath = readDockNotePathFromTarget(target);
+		graphConnectionTargetTemplateId = readDockTemplateIdFromTarget(target);
+	};
+	const handleGraphConnectionMouseUp = (event: MouseEvent): void => {
+		if (!connectionDrag) {
+			return;
+		}
+		const target = readElementAtMouseEvent(event);
+		const templateId =
+			graphConnectionTargetTemplateId ??
+			readDockTemplateIdFromTarget(target);
+		if (templateId) {
+			const sourceNodeId = connectionDrag.sourceNodeId;
+			graphConnectionTargetNotePath = undefined;
+			graphConnectionTargetTemplateId = undefined;
+			openCreateFromTemplateId(
+				templateId,
+				sourceNodeId,
+				undefined,
+				'from-graph-to-dock',
+			);
+			return;
+		}
+		const notePath =
+			graphConnectionTargetNotePath ?? readDockNotePathFromTarget(target);
+		if (!notePath || notePath === connectionDrag.sourceNodeId) {
+			return;
+		}
+		const sourceNodeId = connectionDrag.sourceNodeId;
+		graphConnectionTargetNotePath = undefined;
+		graphConnectionTargetTemplateId = undefined;
+		void controller
+			.connectNodes(
+				sourceNodeId,
+				notePath,
+				workspaceState.activeConnectionField,
+			)
+			.catch((error: unknown) =>
+				controller.setRendererDebugState({
+					status: 'error',
+					error: formatError(error),
+				}),
+			);
+	};
 
 	function getInitialState(): WorkspaceState {
 		return controller.snapshot;
@@ -866,57 +915,6 @@
 		renderer?.setHovered(nodeId ?? workspaceState.hoveredNodeId);
 	}
 
-	function handleGraphConnectionMouseMove(event: MouseEvent): void {
-		if (!connectionDrag) {
-			return;
-		}
-		const target = readElementAtMouseEvent(event);
-		graphConnectionTargetNotePath = readDockNotePathFromTarget(target);
-		graphConnectionTargetTemplateId = readDockTemplateIdFromTarget(target);
-	}
-
-	function handleGraphConnectionMouseUp(event: MouseEvent): void {
-		if (!connectionDrag) {
-			return;
-		}
-		const target = readElementAtMouseEvent(event);
-		const templateId =
-			graphConnectionTargetTemplateId ??
-			readDockTemplateIdFromTarget(target);
-		if (templateId) {
-			const sourceNodeId = connectionDrag.sourceNodeId;
-			graphConnectionTargetNotePath = undefined;
-			graphConnectionTargetTemplateId = undefined;
-			openCreateFromTemplateId(
-				templateId,
-				sourceNodeId,
-				undefined,
-				'from-graph-to-dock',
-			);
-			return;
-		}
-		const notePath =
-			graphConnectionTargetNotePath ?? readDockNotePathFromTarget(target);
-		if (!notePath || notePath === connectionDrag.sourceNodeId) {
-			return;
-		}
-		const sourceNodeId = connectionDrag.sourceNodeId;
-		graphConnectionTargetNotePath = undefined;
-		graphConnectionTargetTemplateId = undefined;
-		void controller
-			.connectNodes(
-				sourceNodeId,
-				notePath,
-				workspaceState.activeConnectionField,
-			)
-			.catch((error: unknown) =>
-				controller.setRendererDebugState({
-					status: 'error',
-					error: formatError(error),
-				}),
-			);
-	}
-
 	function readElementAtMouseEvent(event: MouseEvent): Element | null {
 		return document.elementFromPoint(event.clientX, event.clientY);
 	}
@@ -1043,6 +1041,7 @@
 	tabindex="-1"
 >
 	<Toolbar
+		{app}
 		mode={workspaceState.mode}
 		charts={workspaceState.charts}
 		activeChartId={workspaceState.activeChartId}
@@ -1118,6 +1117,7 @@
 				<div class="knowledge-workspace-empty">No matching metadata relationships.</div>
 			{/if}
 			<DockGraphPanel
+				{app}
 				templates={workspaceState.dock.templates}
 				selectedNotes={selectedDockNodes}
 				availableNotes={dockNoteCandidates}

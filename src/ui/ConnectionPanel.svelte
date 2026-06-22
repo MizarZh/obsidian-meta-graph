@@ -1,4 +1,8 @@
 <script lang="ts">
+	import ObsidianButton from './obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
+	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
+
 	let {
 		fields,
 		activeField,
@@ -19,6 +23,9 @@
 		onUndo: () => void;
 	} = $props();
 	let fieldInput = $state('');
+	const fieldOptions = $derived(
+		fields.map((field) => ({ value: field, label: field })),
+	);
 
 	function addField(): void {
 		const normalized = fieldInput.trim();
@@ -33,15 +40,12 @@
 <section class="knowledge-workspace-connection-panel">
 	<div class="knowledge-workspace-connection-field">
 		<span>Connect</span>
-		<select
-			aria-label="Connection metadata"
+		<ObsidianDropdown
+			ariaLabel="Connection metadata"
 			value={activeField}
-			onchange={(event) => onSelectField(event.currentTarget.value)}
-		>
-			{#each fields as field}
-				<option value={field}>{field}</option>
-			{/each}
-		</select>
+			options={fieldOptions}
+			onChange={onSelectField}
+		/>
 	</div>
 	<form
 		class="knowledge-workspace-connection-add"
@@ -50,12 +54,19 @@
 			addField();
 		}}
 	>
-		<input
+		<ObsidianTextInput
 			type="text"
 			placeholder="metadata name"
-			bind:value={fieldInput}
+			value={fieldInput}
+			onInput={(value) => {
+				fieldInput = value;
+			}}
 		/>
-		<button type="submit">Add</button>
+		<ObsidianButton
+			icon="plus"
+			ariaLabel="Add metadata field"
+			onClick={addField}
+		/>
 	</form>
 	<span
 		class:active={dragging}
@@ -64,12 +75,11 @@
 	>
 		{dragTarget ? 'Release to connect' : dragging ? 'Choose target' : 'Ctrl drag'}
 	</span>
-	<button
+	<ObsidianButton
 		class="knowledge-workspace-connection-undo"
 		disabled={undoCount === 0}
-		aria-label="Undo last connection"
-		onclick={onUndo}
-	>
-		Undo{undoCount > 0 ? ` (${undoCount})` : ''}
-	</button>
+		ariaLabel="Undo last connection"
+		text={`Undo${undoCount > 0 ? ` (${undoCount})` : ''}`}
+		onClick={onUndo}
+	/>
 </section>

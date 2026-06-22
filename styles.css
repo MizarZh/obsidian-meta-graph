@@ -9,6 +9,10 @@
 	display: none;
 }
 
+.knowledge-workspace-obsidian-control {
+	display: contents;
+}
+
 .knowledge-workspace-color-probe {
 	position: absolute;
 	visibility: hidden;
@@ -62,44 +66,6 @@
 	border-color: var(--interactive-accent);
 	box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 18%, transparent);
 	outline: none;
-}
-
-.knowledge-workspace-node-search-results {
-	position: absolute;
-	left: 0;
-	top: calc(100% + var(--size-4-1));
-	z-index: 25;
-	width: min(360px, calc(100vw - var(--size-4-6, 24px)));
-	max-height: 280px;
-	overflow: auto;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	background: var(--background-primary);
-	box-shadow: var(--shadow-l, var(--shadow-s));
-}
-
-.knowledge-workspace-node-search-results button {
-	display: grid;
-	width: 100%;
-	min-height: 42px;
-	padding: var(--size-4-2) var(--size-4-3);
-	border: 0;
-	border-radius: 0;
-	background: transparent;
-	box-shadow: none;
-	color: var(--text-normal);
-	text-align: left;
-}
-
-.knowledge-workspace-node-search-results button:hover {
-	background: var(--background-modifier-hover);
-}
-
-.knowledge-workspace-node-search-results small {
-	overflow: hidden;
-	color: var(--text-muted);
-	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 
 .knowledge-workspace-view-switcher {
@@ -164,15 +130,15 @@
 	color: var(--text-normal);
 }
 
-.knowledge-workspace-view-config-button span {
-	position: relative;
-	width: 4px;
-	height: 4px;
-	border-radius: 50%;
-	background: currentColor;
-	box-shadow:
-		-6px 0 0 currentColor,
-		6px 0 0 currentColor;
+.knowledge-workspace-view-config-button svg,
+.knowledge-workspace-view-row-config svg,
+.knowledge-workspace-icon-button svg,
+.knowledge-workspace-add-rule-button svg,
+.knowledge-workspace-remove-rule-button svg,
+.knowledge-workspace-dock-node button svg,
+.knowledge-workspace-connection-add button svg {
+	width: 16px;
+	height: 16px;
 }
 
 .knowledge-workspace-view-name {
@@ -344,14 +310,6 @@
 	color: var(--text-muted);
 }
 
-.knowledge-workspace-view-row-config span {
-	width: 7px;
-	height: 7px;
-	border-right: 1.5px solid currentColor;
-	border-bottom: 1.5px solid currentColor;
-	transform: rotate(-45deg);
-}
-
 .knowledge-workspace-view-row-config:hover {
 	color: var(--text-normal);
 }
@@ -498,7 +456,19 @@
 	border-radius: var(--button-radius) 0 0 var(--button-radius);
 }
 
+.knowledge-workspace-segmented
+	.knowledge-workspace-obsidian-control:first-child
+	button {
+	border-radius: var(--button-radius) 0 0 var(--button-radius);
+}
+
 .knowledge-workspace-segmented button:last-child {
+	border-radius: 0 var(--button-radius) var(--button-radius) 0;
+}
+
+.knowledge-workspace-segmented
+	.knowledge-workspace-obsidian-control:last-child
+	button {
 	border-radius: 0 var(--button-radius) var(--button-radius) 0;
 }
 
@@ -580,32 +550,6 @@
 	color: var(--text-normal);
 }
 
-.knowledge-workspace-add-rule-button span,
-.knowledge-workspace-remove-rule-button span {
-	position: relative;
-	width: 12px;
-	height: 12px;
-}
-
-.knowledge-workspace-add-rule-button span::before,
-.knowledge-workspace-add-rule-button span::after,
-.knowledge-workspace-remove-rule-button span::before,
-.knowledge-workspace-remove-rule-button span::after {
-	content: "";
-	position: absolute;
-	left: 50%;
-	top: 50%;
-	width: 12px;
-	height: 1.5px;
-	border-radius: 999px;
-	background: currentColor;
-	transform: translate(-50%, -50%);
-}
-
-.knowledge-workspace-add-rule-button span::after {
-	transform: translate(-50%, -50%) rotate(90deg);
-}
-
 .knowledge-workspace-remove-rule-button {
 	width: 34px;
 	height: 34px;
@@ -613,14 +557,6 @@
 
 .knowledge-workspace-remove-rule-button:hover {
 	color: var(--text-error);
-}
-
-.knowledge-workspace-remove-rule-button span::before {
-	transform: translate(-50%, -50%) rotate(45deg);
-}
-
-.knowledge-workspace-remove-rule-button span::after {
-	transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .knowledge-workspace-filters > label,
@@ -846,11 +782,6 @@
 	width: 100%;
 }
 
-.knowledge-workspace-display-controls output {
-	color: var(--text-muted);
-	font-variant-numeric: tabular-nums;
-}
-
 .knowledge-workspace-empty {
 	position: absolute;
 	inset: 50% auto auto 50%;
@@ -968,49 +899,6 @@
 
 .knowledge-workspace-dock-suggest input {
 	width: 100%;
-}
-
-.knowledge-workspace-dock-results {
-	position: absolute;
-	left: var(--size-4-2);
-	right: var(--size-4-2);
-	top: calc(100% - var(--size-4-1));
-	z-index: 8;
-	max-height: 190px;
-	overflow: auto;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	background: var(--background-primary);
-	box-shadow: var(--shadow-l, var(--shadow-s));
-}
-
-.knowledge-workspace-dock-suggest .knowledge-workspace-dock-results {
-	left: 0;
-	right: 0;
-	top: calc(100% + var(--size-4-1));
-}
-
-.knowledge-workspace-dock-results button {
-	display: grid;
-	width: 100%;
-	min-height: 38px;
-	padding: var(--size-4-2);
-	border: 0;
-	border-radius: 0;
-	background: transparent;
-	box-shadow: none;
-	text-align: left;
-}
-
-.knowledge-workspace-dock-results button:hover {
-	background: var(--background-modifier-hover);
-}
-
-.knowledge-workspace-dock-results small {
-	overflow: hidden;
-	color: var(--text-muted);
-	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 
 .knowledge-workspace-dock-graph {

@@ -1,4 +1,8 @@
 <script lang="ts">
+	import ObsidianButton from './obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
+	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
+	import ObsidianToggle from './obsidian/ObsidianToggle.svelte';
 	import type {
 		GraphQuery,
 		LinkStyleField,
@@ -30,6 +34,39 @@
 		onNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 	} = $props();
+
+	const NODE_STYLE_FIELD_OPTIONS = [
+		{ value: 'folder', label: 'Folder' },
+		{ value: 'tag', label: 'Tag' },
+		{ value: 'domain', label: 'Domain' },
+		{ value: 'type', label: 'Type' },
+		{ value: 'title', label: 'Title' },
+	];
+	const BASE_NODE_STYLE_FIELD_OPTIONS = [
+		{ value: 'all', label: 'All' },
+		...NODE_STYLE_FIELD_OPTIONS,
+	];
+	const LINK_STYLE_FIELD_OPTIONS = [
+		{ value: 'relation', label: 'Relation' },
+		{ value: 'source-field', label: 'Frontmatter field' },
+	];
+	const BASE_LINK_STYLE_FIELD_OPTIONS = [
+		{ value: 'all', label: 'All' },
+		...LINK_STYLE_FIELD_OPTIONS,
+	];
+	const LINE_STYLE_OPTIONS = [
+		{ value: 'solid', label: 'Solid' },
+		{ value: 'dashed', label: 'Dashed' },
+		{ value: 'dotted', label: 'Dotted' },
+	];
+	const FILTER_ACTION_OPTIONS = [
+		{ value: 'hide', label: 'Hide' },
+		{ value: 'show', label: 'Show' },
+	];
+	const FILTER_FIELD_OPTIONS = [
+		{ value: 'folder', label: 'Folder' },
+		{ value: 'tag', label: 'Tag' },
+	];
 
 	function addNodeRule(): void {
 		onNodeStyleRulesChange([
@@ -121,55 +158,47 @@
 	<section>
 		<header>
 			<h3>Node styles</h3>
-			<button
+			<ObsidianButton
 				class="knowledge-workspace-add-rule-button"
-				aria-label="Add node style rule"
-				onclick={addNodeRule}
-			>
-				<span aria-hidden="true"></span>
-			</button>
+				ariaLabel="Add node style rule"
+				icon="plus"
+				onClick={addNodeRule}
+			/>
 		</header>
 		{#each nodeStyleRules as rule (rule.id)}
 			<div class="knowledge-workspace-rule">
 				<div class="knowledge-workspace-rule-row">
-					<select
+					<ObsidianDropdown
 						disabled={isBaseStyleRule(rule)}
 						value={rule.field}
-						onchange={(event) =>
+						options={isBaseStyleRule(rule)
+							? BASE_NODE_STYLE_FIELD_OPTIONS
+							: NODE_STYLE_FIELD_OPTIONS}
+						onChange={(value) =>
 							updateNodeRule(rule.id, {
-								field: event.currentTarget.value as NodeStyleField,
+								field: value as NodeStyleField,
 							})}
-					>
-						{#if isBaseStyleRule(rule)}
-							<option value="all">All</option>
-						{/if}
-						<option value="folder">Folder</option>
-						<option value="tag">Tag</option>
-						<option value="domain">Domain</option>
-						<option value="type">Type</option>
-						<option value="title">Title</option>
-					</select>
-					<input
+					/>
+					<ObsidianTextInput
 						type="text"
 						placeholder={isBaseStyleRule(rule) ? "All nodes" : "Match value"}
 						disabled={isBaseStyleRule(rule)}
 						value={rule.value}
-						oninput={(event) =>
+						onInput={(value) =>
 							updateNodeRule(rule.id, {
-								value: event.currentTarget.value,
+								value,
 							})}
 					/>
-					<button
+					<ObsidianButton
 						class="knowledge-workspace-remove-rule-button"
-						aria-label="Remove node style rule"
+						ariaLabel="Remove node style rule"
 						disabled={isBaseStyleRule(rule)}
-						onclick={() =>
+						icon="x"
+						onClick={() =>
 							onNodeStyleRulesChange(
 								nodeStyleRules.filter((item) => item.id !== rule.id),
 							)}
-					>
-						<span aria-hidden="true"></span>
-					</button>
+					/>
 				</div>
 				<div class="knowledge-workspace-rule-row compact">
 					<label>
@@ -185,15 +214,15 @@
 					</label>
 					<label>
 						<span>Size</span>
-						<input
+						<ObsidianTextInput
 							type="number"
 							min="1"
 							max="30"
 							step="0.5"
 							value={rule.size}
-							onchange={(event) =>
+							onChange={(value) =>
 								updateNodeRule(rule.id, {
-									size: Number(event.currentTarget.value),
+									size: Number(value),
 								})}
 						/>
 					</label>
@@ -205,52 +234,47 @@
 	<section>
 		<header>
 			<h3>Link styles</h3>
-			<button
+			<ObsidianButton
 				class="knowledge-workspace-add-rule-button"
-				aria-label="Add link style rule"
-				onclick={addLinkRule}
-			>
-				<span aria-hidden="true"></span>
-			</button>
+				ariaLabel="Add link style rule"
+				icon="plus"
+				onClick={addLinkRule}
+			/>
 		</header>
 		{#each linkStyleRules as rule (rule.id)}
 			<div class="knowledge-workspace-rule">
 				<div class="knowledge-workspace-rule-row">
-					<select
+					<ObsidianDropdown
 						disabled={isBaseStyleRule(rule)}
 						value={rule.field}
-						onchange={(event) =>
+						options={isBaseStyleRule(rule)
+							? BASE_LINK_STYLE_FIELD_OPTIONS
+							: LINK_STYLE_FIELD_OPTIONS}
+						onChange={(value) =>
 							updateLinkRule(rule.id, {
-								field: event.currentTarget.value as LinkStyleField,
+								field: value as LinkStyleField,
 							})}
-					>
-						{#if isBaseStyleRule(rule)}
-							<option value="all">All</option>
-						{/if}
-						<option value="relation">Relation</option>
-						<option value="source-field">Frontmatter field</option>
-					</select>
-					<input
+					/>
+					<ObsidianTextInput
 						type="text"
 						placeholder={isBaseStyleRule(rule) ? "All links" : "Match value"}
 						disabled={isBaseStyleRule(rule)}
 						value={rule.value}
-						oninput={(event) =>
+						onInput={(value) =>
 							updateLinkRule(rule.id, {
-								value: event.currentTarget.value,
+								value,
 							})}
 					/>
-					<button
+					<ObsidianButton
 						class="knowledge-workspace-remove-rule-button"
-						aria-label="Remove link style rule"
+						ariaLabel="Remove link style rule"
 						disabled={isBaseStyleRule(rule)}
-						onclick={() =>
+						icon="x"
+						onClick={() =>
 							onLinkStyleRulesChange(
 								linkStyleRules.filter((item) => item.id !== rule.id),
 							)}
-					>
-						<span aria-hidden="true"></span>
-					</button>
+					/>
 				</div>
 				<div class="knowledge-workspace-rule-row compact">
 					<label>
@@ -266,63 +290,58 @@
 					</label>
 					<label>
 						<span>Width</span>
-						<input
+						<ObsidianTextInput
 							type="number"
 							min="0.5"
 							max="10"
 							step="0.5"
 							value={rule.size}
-							onchange={(event) =>
+							onChange={(value) =>
 								updateLinkRule(rule.id, {
-									size: Number(event.currentTarget.value),
+									size: Number(value),
 								})}
 						/>
 					</label>
 				</div>
 				<label class="knowledge-workspace-rule-label">
 					<span>Line</span>
-					<select
+					<ObsidianDropdown
 						value={rule.lineStyle}
-						onchange={(event) =>
+						options={LINE_STYLE_OPTIONS}
+						onChange={(value) =>
 							updateLinkRule(rule.id, {
-								lineStyle: event.currentTarget.value as LinkLineStyle,
+								lineStyle: value as LinkLineStyle,
 							})}
-					>
-						<option value="solid">Solid</option>
-						<option value="dashed">Dashed</option>
-						<option value="dotted">Dotted</option>
-					</select>
+					/>
 				</label>
 				<label class="knowledge-workspace-rule-label">
 					<span>Label</span>
-					<input
+					<ObsidianTextInput
 						type="text"
 						placeholder="Optional edge label"
 						value={rule.label}
-						oninput={(event) =>
+						onInput={(value) =>
 							updateLinkRule(rule.id, {
-								label: event.currentTarget.value,
+								label: value,
 							})}
 					/>
 				</label>
 				<label class="checkbox">
-					<input
-						type="checkbox"
-						checked={rule.showLabel}
-						onchange={(event) =>
+					<ObsidianToggle
+						value={rule.showLabel}
+						onChange={(value) =>
 							updateLinkRule(rule.id, {
-								showLabel: event.currentTarget.checked,
+								showLabel: value,
 							})}
 					/>
 					<span>Show label</span>
 				</label>
 				<label class="checkbox">
-					<input
-						type="checkbox"
-						checked={rule.hidden}
-						onchange={(event) =>
+					<ObsidianToggle
+						value={rule.hidden}
+						onChange={(value) =>
 							updateLinkRule(rule.id, {
-								hidden: event.currentTarget.checked,
+								hidden: value,
 							})}
 					/>
 					<span>Hidden</span>
@@ -334,62 +353,56 @@
 	<section>
 		<header>
 			<h3>Filters</h3>
-			<button
+			<ObsidianButton
 				class="knowledge-workspace-add-rule-button"
-				aria-label="Add filter rule"
-				onclick={addFilterRule}
-			>
-				<span aria-hidden="true"></span>
-			</button>
+				ariaLabel="Add filter rule"
+				icon="plus"
+				onClick={addFilterRule}
+			/>
 		</header>
 		{#each query.hiddenNodeRules as rule (rule.id)}
 			<div class="knowledge-workspace-rule">
 				<div class="knowledge-workspace-rule-row filter">
-					<select
-						aria-label="Filter action"
+					<ObsidianDropdown
+						ariaLabel="Filter action"
 						value={rule.action}
-						onchange={(event) =>
+						options={FILTER_ACTION_OPTIONS}
+						onChange={(value) =>
 							updateFilterRule(rule.id, {
-								action: event.currentTarget.value as NodeFilterAction,
+								action: value as NodeFilterAction,
 							})}
-					>
-						<option value="hide">Hide</option>
-						<option value="show">Show</option>
-					</select>
-					<select
+					/>
+					<ObsidianDropdown
 						value={rule.field}
-						onchange={(event) =>
+						options={FILTER_FIELD_OPTIONS}
+						onChange={(value) =>
 							updateFilterRule(rule.id, {
-								field: event.currentTarget.value as NodeFilterField,
+								field: value as NodeFilterField,
 							})}
-					>
-						<option value="folder">Folder</option>
-						<option value="tag">Tag</option>
-					</select>
-					<input
+					/>
+					<ObsidianTextInput
 						type="text"
 						list={rule.field === 'folder'
 							? 'knowledge-workspace-folder-options'
 							: 'knowledge-workspace-tag-options'}
 						placeholder={`${rule.action === 'show' ? 'Show' : 'Hide'} matching value`}
 						value={rule.value}
-						oninput={(event) =>
+						onInput={(value) =>
 							updateFilterRule(rule.id, {
-								value: event.currentTarget.value,
+								value,
 							})}
 					/>
-					<button
+					<ObsidianButton
 						class="knowledge-workspace-remove-rule-button"
-						aria-label="Remove filter rule"
-						onclick={() =>
+						ariaLabel="Remove filter rule"
+						icon="x"
+						onClick={() =>
 							onChange({
 								hiddenNodeRules: query.hiddenNodeRules.filter(
 									(item) => item.id !== rule.id,
 								),
 							})}
-					>
-						<span aria-hidden="true"></span>
-					</button>
+					/>
 				</div>
 				<span class="knowledge-workspace-rule-hint">
 					{rule.action === 'show'

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import type { DebugSnapshot } from '../core/types';
 
 	let {
@@ -34,8 +35,16 @@
 			</p>
 		</div>
 		<div class="knowledge-workspace-debug-actions">
-			<button onclick={onRefresh}>Refresh index</button>
-			<button onclick={() => void copyJson()}>{copyLabel}</button>
+			<ObsidianButton
+				icon="refresh-cw"
+				text="Refresh index"
+				onClick={onRefresh}
+			/>
+			<ObsidianButton
+				icon="copy"
+				text={copyLabel}
+				onClick={() => void copyJson()}
+			/>
 		</div>
 	</header>
 

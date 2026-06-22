@@ -1,4 +1,8 @@
 <script lang="ts">
+	import type { App } from 'obsidian';
+	import ObsidianButton from './obsidian/ObsidianButton.svelte';
+	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
+	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
 	import type {
 		DockConnectionDirection,
 		DockTemplateNode,
@@ -20,6 +24,7 @@
 		  };
 
 	let {
+		app,
 		templates,
 		selectedNotes,
 		availableNotes,
@@ -36,6 +41,7 @@
 		onDragEnd,
 		onOpenNote,
 	}: {
+		app: App;
 		templates: DockTemplateNode[];
 		selectedNotes: KnowledgeNode[];
 		availableNotes: KnowledgeNode[];
@@ -58,12 +64,26 @@
 	let templateLabel = $state('');
 	let templatePath = $state('');
 	let targetFolder = $state('');
-	let templatePathFocused = $state(false);
-	let targetFolderFocused = $state(false);
 
-	const noteResults = $derived(filterNotes(availableNotes, noteSearch));
-	const templatePathResults = $derived(filterNotes(availableNotes, templatePath));
-	const targetFolderResults = $derived(filterFolders(availableNotes, targetFolder));
+	const noteOptions = $derived(
+		availableNotes.map((node) => ({
+			value: node.path,
+			label: node.title,
+			detail: node.path,
+			searchText: [node.title, node.path, ...(node.aliases ?? [])].join(' '),
+		})),
+	);
+	const targetFolderOptions = $derived(
+		[...new Set(availableNotes.map((node) => node.folder).filter(Boolean))]
+			.sort((left, right) =>
+				left.localeCompare(right, undefined, { sensitivity: 'base' }),
+			)
+			.map((folder) => ({
+				value: folder,
+				label: folder,
+				searchText: folder,
+			})),
+	);
 
 	function addTemplate(): void {
 		const label = templateLabel.trim();
@@ -84,48 +104,15 @@
 		templateFormOpen = false;
 	}
 
-	function filterNotes(nodes: KnowledgeNode[], query: string): KnowledgeNode[] {
-		const normalized = query.trim().toLocaleLowerCase();
-		if (!normalized) {
-			return [];
-		}
-		return nodes
-			.filter(
-				(node) =>
-					node.title.toLocaleLowerCase().includes(normalized) ||
-					node.path.toLocaleLowerCase().includes(normalized) ||
-					(node.aliases ?? []).some((alias) =>
-						alias.toLocaleLowerCase().includes(normalized),
-					),
-			)
-			.slice(0, 6);
-	}
-
-	function filterFolders(nodes: KnowledgeNode[], query: string): string[] {
-		const normalized = query.trim().toLocaleLowerCase();
-		const folders = [...new Set(nodes.map((node) => node.folder).filter(Boolean))]
-			.sort((left, right) =>
-				left.localeCompare(right, undefined, { sensitivity: 'base' }),
-			);
-		return (normalized
-			? folders.filter((folder) =>
-					folder.toLocaleLowerCase().includes(normalized),
-				)
-			: folders
-		).slice(0, 6);
-	}
-
-	function selectTemplateNode(node: KnowledgeNode): void {
-		templatePath = node.path;
+	function selectTemplateNote(path: string, title: string): void {
+		templatePath = path;
 		if (!templateLabel.trim()) {
-			templateLabel = node.title;
+			templateLabel = title;
 		}
-		templatePathFocused = false;
 	}
 
 	function selectTargetFolder(folder: string): void {
 		targetFolder = folder;
-		targetFolderFocused = false;
 	}
 
 	function pointStyle(index: number, total: number): string {
@@ -166,9 +153,11 @@
 	<section>
 		<header>
 			<h3>Templates</h3>
-			<button type="button" onclick={() => (templateFormOpen = !templateFormOpen)}>
-				{templateFormOpen ? 'Close' : 'Add'}
-			</button>
+			<ObsidianButton
+				icon={templateFormOpen ? 'x' : 'plus'}
+				ariaLabel={templateFormOpen ? 'Close template form' : 'Add template'}
+				onClick={() => (templateFormOpen = !templateFormOpen)}
+			/>
 		</header>
 		{#if templateFormOpen}
 			<form
@@ -178,61 +167,49 @@
 					addTemplate();
 				}}
 			>
-				<input type="text" placeholder="Label" bind:value={templateLabel} />
+				<ObsidianTextInput
+					type="text"
+					placeholder="Label"
+					value={templateLabel}
+					onInput={(value) => {
+						templateLabel = value;
+					}}
+				/>
 				<label class="knowledge-workspace-dock-suggest">
-					<input
+					<ObsidianSuggestInput
+						{app}
 						type="text"
 						placeholder="Template note..."
-						bind:value={templatePath}
-						onfocus={() => (templatePathFocused = true)}
-						onblur={() => {
-							window.setTimeout(() => {
-								templatePathFocused = false;
-							}, 120);
+						value={templatePath}
+						options={noteOptions}
+						onInput={(value) => {
+							templatePath = value;
+						}}
+						onSelect={(option) => {
+							selectTemplateNote(option.value, option.label);
 						}}
 					/>
-					{#if templatePathFocused && templatePathResults.length > 0}
-						<div class="knowledge-workspace-dock-results">
-							{#each templatePathResults as node (node.id)}
-								<button
-									type="button"
-									onmousedown={(event) => event.preventDefault()}
-									onclick={() => selectTemplateNode(node)}
-								>
-									<span>{node.title}</span>
-									<small>{node.path}</small>
-								</button>
-							{/each}
-						</div>
-					{/if}
 				</label>
 				<label class="knowledge-workspace-dock-suggest">
-					<input
+					<ObsidianSuggestInput
+						{app}
 						type="text"
 						placeholder="Target folder..."
-						bind:value={targetFolder}
-						onfocus={() => (targetFolderFocused = true)}
-						onblur={() => {
-							window.setTimeout(() => {
-								targetFolderFocused = false;
-							}, 120);
+						value={targetFolder}
+						options={targetFolderOptions}
+						onInput={(value) => {
+							targetFolder = value;
+						}}
+						onSelect={(option) => {
+							selectTargetFolder(option.value);
 						}}
 					/>
-					{#if targetFolderFocused && targetFolderResults.length > 0}
-						<div class="knowledge-workspace-dock-results">
-							{#each targetFolderResults as folder}
-								<button
-									type="button"
-									onmousedown={(event) => event.preventDefault()}
-									onclick={() => selectTargetFolder(folder)}
-								>
-									<span>{folder}</span>
-								</button>
-							{/each}
-						</div>
-					{/if}
 				</label>
-				<button type="submit">Add template</button>
+				<ObsidianButton
+					icon="plus"
+					text="Add template"
+					onClick={addTemplate}
+				/>
 			</form>
 		{/if}
 		<div class="knowledge-workspace-dock-graph">
@@ -256,13 +233,11 @@
 					>
 						<span></span>
 						<strong>{template.label}</strong>
-						<button
-							type="button"
-							aria-label={`Remove ${template.label}`}
-							onclick={() => onRemoveTemplate(template.id)}
-						>
-							x
-						</button>
+						<ObsidianButton
+							icon="x"
+							ariaLabel={`Remove ${template.label}`}
+							onClick={() => onRemoveTemplate(template.id)}
+						/>
 					</div>
 				{/each}
 			{/if}
@@ -275,28 +250,21 @@
 			<span>{selectedNotes.length}</span>
 		</header>
 		<div class="knowledge-workspace-dock-search">
-			<input
+			<ObsidianSuggestInput
+				{app}
 				type="search"
 				placeholder="Add note..."
-				aria-label="Add selected note"
-				bind:value={noteSearch}
+				ariaLabel="Add selected note"
+				value={noteSearch}
+				options={noteOptions}
+				onInput={(value) => {
+					noteSearch = value;
+				}}
+				onSelect={(option) => {
+					onAddNote(option.value);
+					noteSearch = '';
+				}}
 			/>
-			{#if noteResults.length > 0}
-				<div class="knowledge-workspace-dock-results">
-					{#each noteResults as node (node.id)}
-						<button
-							type="button"
-							onclick={() => {
-								onAddNote(node.path);
-								noteSearch = '';
-							}}
-						>
-							<span>{node.title}</span>
-							<small>{node.path}</small>
-						</button>
-					{/each}
-				</div>
-			{/if}
 		</div>
 		<div class="knowledge-workspace-dock-graph">
 			{#if selectedNotes.length === 0}
@@ -320,13 +288,11 @@
 					>
 						<span></span>
 						<strong>{node.title}</strong>
-						<button
-							type="button"
-							aria-label={`Remove ${node.title}`}
-							onclick={() => onRemoveNote(node.path)}
-						>
-							x
-						</button>
+						<ObsidianButton
+							icon="x"
+							ariaLabel={`Remove ${node.title}`}
+							onClick={() => onRemoveNote(node.path)}
+						/>
 					</div>
 				{/each}
 			{/if}
