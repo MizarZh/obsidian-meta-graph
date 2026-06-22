@@ -1049,39 +1049,30 @@
 	width: 100%;
 }
 
-.knowledge-workspace-dock-graph {
-	position: relative;
+.knowledge-workspace-dock-list {
+	display: flex;
 	flex: 1;
+	flex-direction: column;
+	gap: var(--size-4-1);
 	min-height: 0;
-	overflow: hidden;
-}
-
-.knowledge-workspace-dock-graph::before {
-	content: "";
-	position: absolute;
-	inset: 15%;
-	border: 1px dashed var(--background-modifier-border);
-	border-radius: 50%;
-	opacity: 0.75;
-	pointer-events: none;
+	overflow-y: auto;
+	padding: var(--size-4-2);
 }
 
 .knowledge-workspace-dock-node {
-	position: absolute;
 	z-index: 1;
 	display: grid;
 	grid-template-columns: 14px minmax(0, 1fr) 18px;
-	gap: 2px;
+	gap: var(--size-4-1);
 	align-items: center;
-	width: min(130px, 44%);
-	min-height: 30px;
-	padding: 3px 4px;
+	width: 100%;
+	min-height: 32px;
+	padding: 4px 6px;
 	border: 1px solid transparent;
 	border-radius: var(--radius-s);
 	background: var(--background-primary);
 	box-shadow: var(--shadow-s);
 	cursor: grab;
-	transform: translate(-50%, -50%);
 }
 
 .knowledge-workspace-dock-node:hover,
@@ -1094,6 +1085,7 @@
 	border-color: var(--interactive-accent);
 	background: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
 	cursor: grabbing;
+	pointer-events: none;
 }
 
 .knowledge-workspace-dock-node.target {
@@ -1142,13 +1134,13 @@
 }
 
 .knowledge-workspace-dock-empty {
-	position: absolute;
-	left: 50%;
-	top: 50%;
+	display: grid;
+	flex: 1;
+	place-items: center;
+	min-height: 72px;
 	color: var(--text-muted);
 	font-size: var(--font-ui-small);
 	text-align: center;
-	transform: translate(-50%, -50%);
 }
 
 .knowledge-workspace-dock-status {

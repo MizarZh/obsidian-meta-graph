@@ -55,11 +55,14 @@ settings to report them in the developer console.
    new links.
 8. Hold `Ctrl`, drag from one node to another, and release to add a link to the
    source note's selected metadata field.
-9. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
+9. Use the right dock panel to keep templates and selected notes in a compact
+   vertical list. Drag items in the dock to reorder them; hold `Ctrl` while
+   dragging a dock item to connect it to a graph node.
+10. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
    workspace is focused, to undo connection edits made in the current workspace
    session.
-10. Select a node to open its note in a new tab.
-11. Select **Debug** to inspect or copy the current query, projection,
+11. Select a node to open its note in a new tab.
+12. Select **Debug** to inspect or copy the current query, projection,
    canonical index, adjacency maps, and unresolved links as JSON.
 
 Markdown files with this frontmatter open as graph workspaces:

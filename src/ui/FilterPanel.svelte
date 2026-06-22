@@ -563,17 +563,19 @@
 							</label>
 							<label>
 								<span>Size</span>
-								<ObsidianSlider
-									min={1}
-									max={30}
-									step={0.5}
-									value={rule.size}
-									format={(value) => String(value)}
-									onChange={(value) =>
-										updateNodeRule(scope as 'global' | 'current', rule.id, {
-											size: value,
-										})}
-								/>
+								<div class="knowledge-workspace-slider-value">
+									<ObsidianSlider
+										min={1}
+										max={30}
+										step={0.5}
+										value={rule.size}
+										onChange={(value) =>
+											updateNodeRule(scope as 'global' | 'current', rule.id, {
+												size: value,
+											})}
+									/>
+									<span>{rule.size.toFixed(1)}</span>
+								</div>
 							</label>
 						</div>
 					</div>

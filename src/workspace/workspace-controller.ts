@@ -401,6 +401,30 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	reorderDockTemplate(
+		templateId: string,
+		targetTemplateId: string,
+		placement: ReorderPlacement,
+	): void {
+		const templates = moveRelative(
+			this.state.dock.templates,
+			(template) => template.id === templateId,
+			(template) => template.id === targetTemplateId,
+			placement,
+		);
+		if (templates === this.state.dock.templates) {
+			return;
+		}
+		this.state = {
+			...this.state,
+			dock: {
+				...this.state.dock,
+				templates,
+			},
+		};
+		this.emit();
+	}
+
 	addDockNote(path: NodeId): void {
 		const notes = normalizeDockNotes([
 			...this.state.dock.notes,
@@ -419,6 +443,30 @@ export class WorkspaceController {
 	removeDockNote(path: NodeId): void {
 		const notes = this.state.dock.notes.filter((note) => note.path !== path);
 		if (notes.length === this.state.dock.notes.length) {
+			return;
+		}
+		this.state = {
+			...this.state,
+			dock: {
+				...this.state.dock,
+				notes,
+			},
+		};
+		this.emit();
+	}
+
+	reorderDockNote(
+		path: NodeId,
+		targetPath: NodeId,
+		placement: ReorderPlacement,
+	): void {
+		const notes = moveRelative(
+			this.state.dock.notes,
+			(note) => note.path === path,
+			(note) => note.path === targetPath,
+			placement,
+		);
+		if (notes === this.state.dock.notes) {
 			return;
 		}
 		this.state = {
@@ -919,6 +967,32 @@ function frontmatterValueEquals(value: unknown, expected: string): boolean {
 
 function valuesEqual(left: unknown[], right: unknown[]): boolean {
 	return JSON.stringify(left) === JSON.stringify(right);
+}
+
+type ReorderPlacement = 'before' | 'after';
+
+function moveRelative<T>(
+	items: T[],
+	matchMoved: (item: T) => boolean,
+	matchTarget: (item: T) => boolean,
+	placement: ReorderPlacement,
+): T[] {
+	const fromIndex = items.findIndex(matchMoved);
+	const toIndex = items.findIndex(matchTarget);
+	if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
+		return items;
+	}
+	const next = [...items];
+	const [moved] = next.splice(fromIndex, 1) as [T];
+	const targetIndex = next.findIndex(matchTarget);
+	if (targetIndex < 0) {
+		return items;
+	}
+	next.splice(placement === 'after' ? targetIndex + 1 : targetIndex, 0, moved);
+	if (next.every((item, index) => item === items[index])) {
+		return items;
+	}
+	return next;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

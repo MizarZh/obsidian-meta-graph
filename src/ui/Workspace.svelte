@@ -84,8 +84,8 @@
 	let graphConnectionTargetNotePath = $state<string | undefined>(undefined);
 	let graphConnectionTargetTemplateId = $state<string | undefined>(undefined);
 	let dockDrag = $state<DockDragPayload | undefined>(undefined);
+	let dockConnectionDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockTargetNodeId = $state<string | undefined>(undefined);
-	const DOCK_DRAG_MIME = 'application/x-obsidian-meta-graph-dock-node';
 	interface LayoutSnapshot {
 		positions: Map<string, GraphPosition>;
 		edgeIds: Set<string>;
@@ -93,7 +93,7 @@
 	}
 	const layoutSnapshots = new Map<string, LayoutSnapshot>();
 	const handleGraphConnectionMouseMove = (event: MouseEvent): void => {
-		if (!connectionDrag) {
+		if (!connectionDrag || dockConnectionDrag) {
 			return;
 		}
 		const target = readElementAtMouseEvent(event);
@@ -101,7 +101,7 @@
 		graphConnectionTargetTemplateId = readDockTemplateIdFromTarget(target);
 	};
 	const handleGraphConnectionMouseUp = (event: MouseEvent): void => {
-		if (!connectionDrag) {
+		if (!connectionDrag || dockConnectionDrag) {
 			return;
 		}
 		const target = readElementAtMouseEvent(event);
@@ -266,6 +266,7 @@
 			window.removeEventListener('mouseup', handleGraphConnectionMouseUp, {
 				capture: true,
 			});
+			resetDockConnectionDrag();
 			unbindEvents?.();
 			renderer?.kill();
 		};
@@ -767,66 +768,78 @@
 		);
 	}
 
-	function handleDockDragStart(
+	function handleDockLinkPointerDown(
 		payload: DockDragPayload,
-		event: DragEvent,
+		event: PointerEvent,
 	): void {
+		if (!canvas || !renderer || !(event.currentTarget instanceof HTMLElement)) {
+			return;
+		}
+		const source = readDockElementViewportPosition(event.currentTarget);
+		const point = readViewportPoint(event.clientX, event.clientY);
 		dockDrag = payload;
-		if (!event.dataTransfer) {
-			return;
-		}
-		event.dataTransfer.effectAllowed = 'link';
-		event.dataTransfer.setData(DOCK_DRAG_MIME, JSON.stringify(payload));
-		event.dataTransfer.setData('text/plain', payload.label);
+		dockConnectionDrag = payload;
+		connectionDrag = {
+			sourceNodeId: dragKey(payload),
+			x1: source.x,
+			y1: source.y,
+			x2: point.x,
+			y2: point.y,
+		};
+		window.addEventListener('pointermove', handleDockLinkPointerMove, {
+			capture: true,
+		});
+		window.addEventListener('pointerup', handleDockLinkPointerUp, {
+			capture: true,
+			once: true,
+		});
 	}
 
-	function handleDockDragOver(event: DragEvent): void {
-		const payload = getDockDragPayload(event);
-		if (!payload || !renderer) {
-			return;
-		}
-		if (isGraphOverlayTarget(event.target)) {
-			setDockTarget(undefined);
+	function handleDockLinkPointerMove(event: PointerEvent): void {
+		if (!connectionDrag || !dockConnectionDrag) {
 			return;
 		}
 		event.preventDefault();
-		if (event.dataTransfer) {
-			event.dataTransfer.dropEffect = 'link';
-		}
-		setDockTarget(readNodeAtDragEvent(event, payload));
+		const point = readViewportPoint(event.clientX, event.clientY);
+		const targetNodeId = readNodeAtClientPosition(
+			event.clientX,
+			event.clientY,
+			dockConnectionDrag,
+		);
+		setDockTarget(targetNodeId);
+		connectionDrag = {
+			...connectionDrag,
+			targetNodeId,
+			x2: point.x,
+			y2: point.y,
+		};
 	}
 
-	function handleDockDrop(event: DragEvent): void {
-		const payload = getDockDragPayload(event);
-		if (!payload) {
-			resetDockDrag();
+	function handleDockLinkPointerUp(event: PointerEvent): void {
+		if (!dockConnectionDrag) {
 			return;
 		}
-		if (isGraphOverlayTarget(event.target)) {
-			resetDockDrag();
-			return;
-		}
-		event.preventDefault();
-		const targetNodeId = readNodeAtDragEvent(event, payload);
-		resetDockDrag();
-		if (!targetNodeId) {
-			return;
-		}
-		connectDockPayloadToGraph(payload, targetNodeId);
-	}
-
-	function handleDockDragEnd(event: DragEvent): void {
-		const payload = dockDrag;
-		if (!payload) {
-			return;
-		}
+		const payload = dockConnectionDrag;
 		const targetNodeId =
-			dockTargetNodeId ?? readNodeAtDragEvent(event, payload);
-		resetDockDrag();
+			dockTargetNodeId ??
+			readNodeAtClientPosition(event.clientX, event.clientY, payload);
+		resetDockConnectionDrag();
 		if (!targetNodeId) {
 			return;
 		}
 		connectDockPayloadToGraph(payload, targetNodeId);
+	}
+
+	function resetDockConnectionDrag(): void {
+		window.removeEventListener('pointermove', handleDockLinkPointerMove, {
+			capture: true,
+		});
+		window.removeEventListener('pointerup', handleDockLinkPointerUp, {
+			capture: true,
+		});
+		connectionDrag = undefined;
+		dockConnectionDrag = undefined;
+		resetDockDrag();
 	}
 
 	function connectDockPayloadToGraph(
@@ -856,91 +869,23 @@
 			);
 	}
 
-	function handleDockDragLeave(event: DragEvent): void {
-		if (
-			event.currentTarget instanceof Node &&
-			event.relatedTarget instanceof Node &&
-			event.currentTarget.contains(event.relatedTarget)
-		) {
-			return;
-		}
-		setDockTarget(undefined);
-	}
-
 	function resetDockDrag(): void {
 		dockDrag = undefined;
 		setDockTarget(undefined);
 	}
 
-	function getDockDragPayload(event: DragEvent): DockDragPayload | undefined {
-		if (dockDrag) {
-			return dockDrag;
-		}
-		const transfer = event.dataTransfer;
-		if (!transfer || !Array.from(transfer.types).includes(DOCK_DRAG_MIME)) {
-			return undefined;
-		}
-		return parseDockDragPayload(transfer.getData(DOCK_DRAG_MIME));
-	}
-
-	function parseDockDragPayload(value: string): DockDragPayload | undefined {
-		try {
-			const parsed = JSON.parse(value) as unknown;
-			if (!parsed || typeof parsed !== 'object') {
-				return undefined;
-			}
-			if (
-				'kind' in parsed &&
-				parsed.kind === 'template' &&
-				'templateId' in parsed &&
-				'label' in parsed &&
-				typeof parsed.templateId === 'string' &&
-				typeof parsed.label === 'string'
-			) {
-				return {
-					kind: 'template',
-					templateId: parsed.templateId,
-					label: parsed.label,
-				};
-			}
-			if (
-				'kind' in parsed &&
-				parsed.kind === 'note' &&
-				'notePath' in parsed &&
-				'label' in parsed &&
-				'direction' in parsed &&
-				'relationField' in parsed &&
-				typeof parsed.notePath === 'string' &&
-				typeof parsed.label === 'string' &&
-				(parsed.direction === 'from-graph-to-dock' ||
-					parsed.direction === 'from-dock-to-graph') &&
-				typeof parsed.relationField === 'string'
-			) {
-				return {
-					kind: 'note',
-					notePath: parsed.notePath,
-					label: parsed.label,
-					direction: parsed.direction,
-					relationField: parsed.relationField,
-				};
-			}
-		} catch {
-			return undefined;
-		}
-		return undefined;
-	}
-
-	function readNodeAtDragEvent(
-		event: DragEvent,
+	function readNodeAtClientPosition(
+		clientX: number,
+		clientY: number,
 		payload: DockDragPayload,
 	): string | undefined {
 		if (!canvas || !renderer) {
 			return undefined;
 		}
-		const rect = canvas.getBoundingClientRect();
+		const point = readViewportPoint(clientX, clientY);
 		const nodeId = renderer.getNodeAtViewportPosition({
-			x: event.clientX - rect.left,
-			y: event.clientY - rect.top,
+			x: point.x,
+			y: point.y,
 		});
 		if (!nodeId) {
 			return undefined;
@@ -948,6 +893,34 @@
 		return payload.kind === 'note' && payload.notePath === nodeId
 			? undefined
 			: nodeId;
+	}
+
+	function readViewportPoint(
+		clientX: number,
+		clientY: number,
+	): { x: number; y: number } {
+		const rect = canvas.getBoundingClientRect();
+		return {
+			x: clientX - rect.left,
+			y: clientY - rect.top,
+		};
+	}
+
+	function readDockElementViewportPosition(element: HTMLElement): {
+		x: number;
+		y: number;
+	} {
+		const elementRect = element.getBoundingClientRect();
+		return readViewportPoint(
+			elementRect.left + elementRect.width / 2,
+			elementRect.top + elementRect.height / 2,
+		);
+	}
+
+	function dragKey(payload: DockDragPayload): string {
+		return payload.kind === 'template'
+			? `template:${payload.templateId}`
+			: `note:${payload.notePath}`;
 	}
 
 	function setDockTarget(nodeId?: string): void {
@@ -1154,9 +1127,6 @@
 		<main
 			class="knowledge-workspace-main"
 			class:dock-node-dragging={Boolean(dockDrag)}
-			ondragover={handleDockDragOver}
-			ondrop={handleDockDrop}
-			ondragleave={handleDockDragLeave}
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
 			{#if connectionDrag}
@@ -1192,6 +1162,7 @@
 						? `template:${dockDrag.templateId}`
 						: `note:${dockDrag.notePath}`
 					: undefined}
+				linking={Boolean(dockConnectionDrag)}
 				targetNodeId={dockTargetNodeId}
 				graphTargetNotePath={graphConnectionTargetNotePath}
 				graphTargetTemplateId={graphConnectionTargetTemplateId}
@@ -1200,8 +1171,15 @@
 					controller.removeDockTemplate(templateId)}
 				onAddNote={(path) => controller.addDockNote(path)}
 				onRemoveNote={(path) => controller.removeDockNote(path)}
-				onDragStart={handleDockDragStart}
-				onDragEnd={handleDockDragEnd}
+				onReorderTemplate={(templateId, targetTemplateId, placement) =>
+					controller.reorderDockTemplate(
+						templateId,
+						targetTemplateId,
+						placement,
+					)}
+				onReorderNote={(path, targetPath, placement) =>
+					controller.reorderDockNote(path, targetPath, placement)}
+				onLinkPointerDown={handleDockLinkPointerDown}
 				onOpenNote={(nodeId) => void controller.openNode(nodeId)}
 			/>
 			<Inspector node={selectedNode} />

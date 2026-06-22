@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
+	import { onDestroy } from 'svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
 	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
@@ -22,6 +23,7 @@
 				direction: DockConnectionDirection;
 				relationField: string;
 		  };
+	type ReorderPlacement = 'before' | 'after';
 
 	let {
 		app,
@@ -30,6 +32,7 @@
 		availableNotes,
 		activeConnectionField,
 		draggingKey,
+		linking,
 		targetNodeId,
 		graphTargetNotePath,
 		graphTargetTemplateId,
@@ -37,8 +40,9 @@
 		onRemoveTemplate,
 		onAddNote,
 		onRemoveNote,
-		onDragStart,
-		onDragEnd,
+		onReorderTemplate,
+		onReorderNote,
+		onLinkPointerDown,
 		onOpenNote,
 	}: {
 		app: App;
@@ -47,6 +51,7 @@
 		availableNotes: KnowledgeNode[];
 		activeConnectionField: string;
 		draggingKey?: string;
+		linking: boolean;
 		targetNodeId?: string;
 		graphTargetNotePath?: string;
 		graphTargetTemplateId?: string;
@@ -54,8 +59,17 @@
 		onRemoveTemplate: (templateId: string) => void;
 		onAddNote: (path: string) => void;
 		onRemoveNote: (path: string) => void;
-		onDragStart: (payload: DockDragPayload, event: DragEvent) => void;
-		onDragEnd: (event: DragEvent) => void;
+		onReorderTemplate: (
+			templateId: string,
+			targetTemplateId: string,
+			placement: ReorderPlacement,
+		) => void;
+		onReorderNote: (
+			path: string,
+			targetPath: string,
+			placement: ReorderPlacement,
+		) => void;
+		onLinkPointerDown: (payload: DockDragPayload, event: PointerEvent) => void;
 		onOpenNote: (nodeId: string) => void;
 	} = $props();
 
@@ -64,6 +78,18 @@
 	let templateLabel = $state('');
 	let templatePath = $state('');
 	let targetFolder = $state('');
+	let reorderDrag = $state<
+		| {
+				payload: DockDragPayload;
+				startX: number;
+				startY: number;
+				active: boolean;
+		  }
+		| undefined
+	>(undefined);
+	const activeDraggingKey = $derived(
+		draggingKey ?? (reorderDrag?.active ? dragKey(reorderDrag.payload) : undefined),
+	);
 
 	const noteOptions = $derived(
 		availableNotes.map((node) => ({
@@ -115,15 +141,6 @@
 		targetFolder = folder;
 	}
 
-	function pointStyle(index: number, total: number): string {
-		const count = Math.max(total, 1);
-		const angle = (Math.PI * 2 * index) / count - Math.PI / 2;
-		const radius = total <= 1 ? 0 : total <= 4 ? 30 : 38;
-		const x = 50 + Math.cos(angle) * radius;
-		const y = 50 + Math.sin(angle) * radius;
-		return `left: ${x}%; top: ${y}%;`;
-	}
-
 	function templateDragPayload(template: DockTemplateNode): DockDragPayload {
 		return {
 			kind: 'template',
@@ -147,6 +164,126 @@
 			? `template:${payload.templateId}`
 			: `note:${payload.notePath}`;
 	}
+
+	function handleNodePointerDown(
+		payload: DockDragPayload,
+		event: PointerEvent,
+	): void {
+		if (event.target instanceof HTMLElement && event.target.closest('button')) {
+			return;
+		}
+		if (event.ctrlKey) {
+			handleLinkPointerDown(payload, event);
+			return;
+		}
+		if (event.button !== 0) {
+			return;
+		}
+		event.preventDefault();
+		reorderDrag = {
+			payload,
+			startX: event.clientX,
+			startY: event.clientY,
+			active: false,
+		};
+		window.addEventListener('pointermove', handleReorderPointerMove, {
+			capture: true,
+		});
+		window.addEventListener('pointerup', handleReorderPointerUp, {
+			capture: true,
+			once: true,
+		});
+	}
+
+	function handleReorderPointerMove(event: PointerEvent): void {
+		if (!reorderDrag) {
+			return;
+		}
+		const distance = Math.hypot(
+			event.clientX - reorderDrag.startX,
+			event.clientY - reorderDrag.startY,
+		);
+		if (!reorderDrag.active && distance < 4) {
+			return;
+		}
+		event.preventDefault();
+		reorderDrag = { ...reorderDrag, active: true };
+		reorderAtPoint(reorderDrag.payload, event.clientX, event.clientY);
+	}
+
+	function handleReorderPointerUp(): void {
+		reorderDrag = undefined;
+		window.removeEventListener('pointermove', handleReorderPointerMove, {
+			capture: true,
+		});
+		window.removeEventListener('pointerup', handleReorderPointerUp, {
+			capture: true,
+		});
+	}
+
+	function reorderAtPoint(
+		payload: DockDragPayload,
+		clientX: number,
+		clientY: number,
+	): void {
+		const target = document.elementFromPoint(clientX, clientY);
+		if (!(target instanceof HTMLElement)) {
+			return;
+		}
+		if (payload.kind === 'template') {
+			const targetEl = target.closest<HTMLElement>('[data-dock-template-id]');
+			const targetTemplateId = targetEl?.dataset.dockTemplateId;
+			if (!targetEl || !targetTemplateId || targetTemplateId === payload.templateId) {
+				return;
+			}
+			onReorderTemplate(
+				payload.templateId,
+				targetTemplateId,
+				readPointerPlacement(targetEl, clientY),
+			);
+			return;
+		}
+		const targetEl = target.closest<HTMLElement>('[data-dock-note-path]');
+		const targetPath = targetEl?.dataset.dockNotePath;
+		if (!targetEl || !targetPath || targetPath === payload.notePath) {
+			return;
+		}
+		onReorderNote(
+			payload.notePath,
+			targetPath,
+			readPointerPlacement(targetEl, clientY),
+		);
+	}
+
+	function readPointerPlacement(
+		targetEl: HTMLElement,
+		clientY: number,
+	): ReorderPlacement {
+		const rect = targetEl.getBoundingClientRect();
+		return clientY > rect.top + rect.height / 2
+			? 'after'
+			: 'before';
+	}
+
+	function handleLinkPointerDown(
+		payload: DockDragPayload,
+		event: PointerEvent,
+	): void {
+		if (
+			!event.ctrlKey ||
+			event.button !== 0 ||
+			(event.target instanceof HTMLElement && event.target.closest('button'))
+		) {
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		onLinkPointerDown(payload, event);
+	}
+
+	onDestroy(() => {
+		handleReorderPointerUp();
+	});
 </script>
 
 <aside class="knowledge-workspace-dock-panel">
@@ -212,24 +349,21 @@
 				/>
 			</form>
 		{/if}
-		<div class="knowledge-workspace-dock-graph">
+		<div class="knowledge-workspace-dock-list">
 			{#if templates.length === 0}
 				<span class="knowledge-workspace-dock-empty">No templates</span>
 			{:else}
-				{#each templates as template, index (template.id)}
+				{#each templates as template (template.id)}
 					{@const payload = templateDragPayload(template)}
 					<div
-						class:dragging={draggingKey === dragKey(payload)}
+						class:dragging={activeDraggingKey === dragKey(payload)}
 						class:target={graphTargetTemplateId === template.id}
 						class="knowledge-workspace-dock-node template"
 						data-dock-template-id={template.id}
-						style={pointStyle(index, templates.length)}
-						draggable="true"
 						role="button"
 						tabindex="0"
 						aria-label={template.label}
-						ondragstart={(event) => onDragStart(payload, event)}
-						ondragend={(event) => onDragEnd(event)}
+						onpointerdown={(event) => handleNodePointerDown(payload, event)}
 					>
 						<span></span>
 						<strong>{template.label}</strong>
@@ -266,24 +400,21 @@
 				}}
 			/>
 		</div>
-		<div class="knowledge-workspace-dock-graph">
+		<div class="knowledge-workspace-dock-list">
 			{#if selectedNotes.length === 0}
 				<span class="knowledge-workspace-dock-empty">No selected notes</span>
 			{:else}
-				{#each selectedNotes as node, index (node.id)}
+				{#each selectedNotes as node (node.id)}
 					{@const payload = noteDragPayload(node)}
 					<div
-						class:dragging={draggingKey === dragKey(payload)}
+						class:dragging={activeDraggingKey === dragKey(payload)}
 						class:target={graphTargetNotePath === node.path}
 						class="knowledge-workspace-dock-node note"
 						data-dock-note-path={node.path}
-						style={pointStyle(index, selectedNotes.length)}
-						draggable="true"
 						role="button"
 						tabindex="0"
 						aria-label={node.title}
-						ondragstart={(event) => onDragStart(payload, event)}
-						ondragend={(event) => onDragEnd(event)}
+						onpointerdown={(event) => handleNodePointerDown(payload, event)}
 						ondblclick={() => onOpenNote(node.id)}
 					>
 						<span></span>
@@ -300,10 +431,10 @@
 	</section>
 
 	<span
-		class:active={Boolean(draggingKey)}
+		class:active={linking}
 		class:target={Boolean(targetNodeId || graphTargetNotePath || graphTargetTemplateId)}
 		class="knowledge-workspace-dock-status"
 	>
-		{targetNodeId || graphTargetNotePath || graphTargetTemplateId ? 'Release to connect' : draggingKey ? 'Choose target' : 'Ready'}
+		{targetNodeId || graphTargetNotePath || graphTargetTemplateId ? 'Release to connect' : linking ? 'Choose target' : draggingKey ? 'Drag to reorder' : 'Ready'}
 	</span>
 </aside>
