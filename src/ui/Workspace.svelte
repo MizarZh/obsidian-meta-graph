@@ -397,10 +397,8 @@
 		const flowEdgesChanged =
 			workspaceState.mode === 'flow' &&
 			!setsEqual(currentEdgeIds, snapshot.edgeIds);
-		const needsLayout =
-			forceLayout ||
-			firstLayout ||
-			newNodeIds.length > 0;
+		const needsFlowLayout = forceLayout || firstLayout;
+		const needsGraphLayout = forceLayout || firstLayout;
 
 		if (workspaceState.mode === 'arc') {
 			await new ArcLayout(
@@ -410,7 +408,7 @@
 			snapshot.edgeIds = currentEdgeIds;
 			snapshot.orthogonalRoutes = new Map();
 		} else if (workspaceState.mode === 'flow') {
-			if (needsLayout) {
+			if (needsFlowLayout) {
 				const layout = new ElkFlowLayout(
 					workspaceState.flowEdgeStyle,
 					workspaceState.flowDirection,
@@ -422,14 +420,17 @@
 					workspaceState.flowEdgeStyle === 'orthogonal'
 						? layout.getOrthogonalRoutes()
 						: new Map();
-			} else if (workspaceState.flowEdgeStyle === 'orthogonal') {
-				applyOrthogonalFlowEdges(graph, snapshot.orthogonalRoutes);
+			} else {
+				placeNewFlowNodes(graph, positions, newNodeIds);
+				if (workspaceState.flowEdgeStyle === 'orthogonal') {
+					applyOrthogonalFlowEdges(graph, snapshot.orthogonalRoutes);
+				}
 			}
 			if (flowEdgesChanged) {
 				snapshot.edgeIds = currentEdgeIds;
 			}
 		} else {
-			if (needsLayout) {
+			if (needsGraphLayout) {
 				await new ForceAtlasLayout(workspaceState.graphSpacing).apply(graph);
 			}
 		}
@@ -440,6 +441,125 @@
 			}
 			graph.setNodeAttribute(nodeId, 'fixed', false);
 		});
+	}
+
+	function placeNewFlowNodes(
+		graph: RuntimeGraph,
+		positions: ReadonlyMap<string, GraphPosition>,
+		newNodeIds: string[],
+	): void {
+		if (newNodeIds.length === 0) {
+			return;
+		}
+		const occupied = new Map<string, GraphPosition>(
+			[...positions.entries()].filter(([nodeId]) => graph.hasNode(nodeId)),
+		);
+		for (const nodeId of newNodeIds) {
+			const placement = findFlowInsertionPlacement(graph, occupied, nodeId);
+			if (!placement) {
+				continue;
+			}
+			graph.mergeNodeAttributes(nodeId, {
+				x: placement.x,
+				y: placement.y,
+				fixed: true,
+			});
+			occupied.set(nodeId, placement);
+		}
+	}
+
+	function findFlowInsertionPlacement(
+		graph: RuntimeGraph,
+		occupied: ReadonlyMap<string, GraphPosition>,
+		nodeId: string,
+	): GraphPosition | undefined {
+		for (const edge of graph.edges()) {
+			const source = graph.source(edge);
+			const target = graph.target(edge);
+			const anchorId =
+				source === nodeId && occupied.has(target)
+					? target
+					: target === nodeId && occupied.has(source)
+						? source
+						: undefined;
+			if (!anchorId) {
+				continue;
+			}
+			const anchor = occupied.get(anchorId);
+			if (!anchor) {
+				continue;
+			}
+			const newNodeIsAfterAnchor = source === anchorId && target === nodeId;
+			return findOpenFlowSlot(anchor, newNodeIsAfterAnchor, occupied);
+		}
+		return undefined;
+	}
+
+	function findOpenFlowSlot(
+		anchor: GraphPosition,
+		newNodeIsAfterAnchor: boolean,
+		occupied: ReadonlyMap<string, GraphPosition>,
+	): GraphPosition {
+		const direction = getFlowInsertionDirection(newNodeIsAfterAnchor);
+		const layerDistance = 220 * workspaceState.flowSpacing;
+		const crossStep = 90 * workspaceState.flowSpacing;
+		const attempts = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5];
+		for (const attempt of attempts) {
+			const candidate = {
+				x:
+					anchor.x +
+					direction.x * layerDistance +
+					direction.crossX * crossStep * attempt,
+				y:
+					anchor.y +
+					direction.y * layerDistance +
+					direction.crossY * crossStep * attempt,
+			};
+			if (!flowSlotCollides(candidate, occupied)) {
+				return candidate;
+			}
+		}
+		const fallbackOffset = crossStep * (attempts.length + 1);
+		return {
+			x: anchor.x + direction.x * layerDistance + direction.crossX * fallbackOffset,
+			y: anchor.y + direction.y * layerDistance + direction.crossY * fallbackOffset,
+		};
+	}
+
+	function getFlowInsertionDirection(newNodeIsAfterAnchor: boolean): {
+		x: number;
+		y: number;
+		crossX: number;
+		crossY: number;
+	} {
+		const forward =
+			workspaceState.flowDirection === 'RL' ||
+			workspaceState.flowDirection === 'DT'
+				? -1
+				: 1;
+		const sign = newNodeIsAfterAnchor ? forward : -forward;
+		if (
+			workspaceState.flowDirection === 'LR' ||
+			workspaceState.flowDirection === 'RL'
+		) {
+			return { x: sign, y: 0, crossX: 0, crossY: 1 };
+		}
+		return { x: 0, y: sign, crossX: 1, crossY: 0 };
+	}
+
+	function flowSlotCollides(
+		candidate: GraphPosition,
+		occupied: ReadonlyMap<string, GraphPosition>,
+	): boolean {
+		for (const position of occupied.values()) {
+			if (
+				Math.abs(position.x - candidate.x) < 150 &&
+				Math.abs(position.y - candidate.y) < 80
+			) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	function getLayoutSnapshot(): LayoutSnapshot {

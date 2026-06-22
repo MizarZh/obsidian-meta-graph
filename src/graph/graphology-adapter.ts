@@ -140,17 +140,80 @@ function createInitialPosition(
 	projection: GraphProjection,
 	positions: ReadonlyMap<string, GraphPosition>,
 ): GraphPosition {
-	const neighborId = projection.edges
+	const connectedIds = projection.edges
 		.filter((edge) => edge.source === nodeId || edge.target === nodeId)
-		.map((edge) => (edge.source === nodeId ? edge.target : edge.source))
-		.find((candidate) => positions.has(candidate));
+		.map((edge) => (edge.source === nodeId ? edge.target : edge.source));
+	const neighborId = connectedIds.find((candidate) => positions.has(candidate));
 	const anchor = neighborId ? positions.get(neighborId) : undefined;
-	const angle = hashString(nodeId) * Math.PI * 2;
-	const radius = anchor ? 0.15 : 1;
+	if (!neighborId || !anchor) {
+		const angle = hashString(nodeId) * Math.PI * 2;
+		return {
+			x: Math.cos(angle),
+			y: Math.sin(angle),
+		};
+	}
+	const angle = findOpenAngle(nodeId, neighborId, positions);
+	const radius =
+		estimateNeighborRadius(neighborId, projection) +
+		estimateNodeRadius(nodeId, projection) +
+		0.8;
 	return {
-		x: (anchor?.x ?? 0) + Math.cos(angle) * radius,
-		y: (anchor?.y ?? 0) + Math.sin(angle) * radius,
+		x: anchor.x + Math.cos(angle) * radius,
+		y: anchor.y + Math.sin(angle) * radius,
 	};
+}
+
+function findOpenAngle(
+	nodeId: string,
+	anchorId: string,
+	positions: ReadonlyMap<string, GraphPosition>,
+): number {
+	const anchor = positions.get(anchorId);
+	if (!anchor) {
+		return hashString(nodeId) * Math.PI * 2;
+	}
+	const occupiedAngles = [...positions.entries()]
+		.filter(([positionedNodeId]) => positionedNodeId !== anchorId)
+		.map(([, position]) => Math.atan2(position.y - anchor.y, position.x - anchor.x))
+		.sort((left, right) => left - right);
+	if (occupiedAngles.length === 0) {
+		return hashString(nodeId) * Math.PI * 2;
+	}
+
+	let bestAngle = occupiedAngles[0] ?? 0;
+	let bestGap = -1;
+	for (let index = 0; index < occupiedAngles.length; index += 1) {
+		const current = occupiedAngles[index] ?? 0;
+		const next =
+			index === occupiedAngles.length - 1
+				? (occupiedAngles[0] ?? 0) + Math.PI * 2
+				: (occupiedAngles[index + 1] ?? 0);
+		const gap = next - current;
+		if (gap > bestGap) {
+			bestGap = gap;
+			bestAngle = current + gap / 2;
+		}
+	}
+	return bestAngle;
+}
+
+function estimateNeighborRadius(
+	nodeId: string,
+	projection: GraphProjection,
+): number {
+	const edgeCount = projection.edges.filter(
+		(edge) => edge.source === nodeId || edge.target === nodeId,
+	).length;
+	return 0.35 + Math.min(0.7, edgeCount * 0.08);
+}
+
+function estimateNodeRadius(
+	nodeId: string,
+	projection: GraphProjection,
+): number {
+	const node = projection.nodes.find((item) => item.id === nodeId);
+	const titleLength = node?.title.length ?? 8;
+	return 0.35 + Math.min(0.45, titleLength * 0.015);
 }
 
 function hashString(value: string): number {

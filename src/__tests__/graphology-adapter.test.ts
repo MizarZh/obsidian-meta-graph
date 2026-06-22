@@ -85,6 +85,33 @@ describe('GraphologyAdapter positions', () => {
 		expect(graph.getNodeAttribute('B.md', 'fixed')).toBe(false);
 	});
 
+	it('places new connected nodes away from cached neighbors', () => {
+		const positions = new Map<string, GraphPosition>([
+			['A.md', { x: 0, y: 0 }],
+		]);
+		const graph = new GraphologyAdapter(palette).fromProjection(
+			{
+				...projection,
+				edges: [
+					{
+						id: 'A-to-B',
+						source: 'A.md',
+						target: 'B.md',
+						relation: 'leads-to',
+						directed: true,
+						sourcePath: 'A.md',
+						sourceField: 'leads-to',
+					},
+				],
+			},
+			positions,
+		);
+		const created = graph.getNodeAttributes('B.md');
+		const distance = Math.hypot(created.x, created.y);
+
+		expect(distance).toBeGreaterThan(1);
+	});
+
 	it('splits non-horizontal flow edges into orthogonal segments', () => {
 		const graph = new GraphologyAdapter(palette).fromProjection({
 			...projection,
