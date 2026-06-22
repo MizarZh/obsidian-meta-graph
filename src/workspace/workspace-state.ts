@@ -38,6 +38,13 @@ export function createWorkspaceState(
 		arcSpacing: activeChart.type === 'arc' ? activeChart.layout.spacing : 1,
 		layoutRevision: 0,
 		query: cloneSerializable(activeChart.query),
+		globalQuery: cloneSerializable(metaGraphDocument.globalQuery),
+		globalNodeStyleRules: cloneSerializable(
+			metaGraphDocument.globalStyle.nodeRules,
+		),
+		globalLinkStyleRules: cloneSerializable(
+			metaGraphDocument.globalStyle.linkRules,
+		),
 		nodeStyleRules: cloneSerializable(activeChart.style.nodeRules),
 		linkStyleRules: cloneSerializable(activeChart.style.linkRules),
 			connectionFields: cloneSerializable(metaGraphDocument.connectionFields),

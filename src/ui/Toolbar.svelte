@@ -5,11 +5,9 @@
 	import ObsidianSuggestInput from "./obsidian/ObsidianSuggestInput.svelte";
 	import ObsidianTextInput from "./obsidian/ObsidianTextInput.svelte";
 	import type {
-		ArcDirection,
-		FlowDirection,
-		FlowEdgeStyle,
 		KnowledgeNode,
 		MetaGraphChart,
+		SettingsPanelMode,
 		ViewMode,
 	} from "../core/types";
 
@@ -18,23 +16,17 @@
 		mode,
 		charts,
 		activeChartId,
-		flowEdgeStyle,
-		flowDirection,
-		arcDirection,
 		searchNodes,
 		onSelectChart,
 		onAddChart,
 		onRenameChart,
 		onChartType,
 		onDeleteChart,
-		onFlowEdgeStyle,
-		onFlowDirection,
-		onArcDirection,
 		onFocusNode,
 		onFit,
 		onRefresh,
-		graphSettingsOpen,
-		onToggleGraphSettings,
+		settingsPanel,
+		onSettingsPanel,
 		showDebugButton,
 		debugOpen,
 		onToggleDebug,
@@ -43,23 +35,17 @@
 		mode: ViewMode;
 		charts: MetaGraphChart[];
 		activeChartId: string;
-		flowEdgeStyle: FlowEdgeStyle;
-		flowDirection: FlowDirection;
-		arcDirection: ArcDirection;
 		searchNodes: KnowledgeNode[];
 		onSelectChart: (id: string) => void;
 		onAddChart: () => void;
 		onRenameChart: (name: string) => void;
 		onChartType: (mode: ViewMode) => void;
 		onDeleteChart: () => void;
-		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
-		onFlowDirection: (direction: FlowDirection) => void;
-		onArcDirection: (direction: ArcDirection) => void;
 		onFocusNode: (id: string) => void;
 		onFit: () => void;
 		onRefresh: () => void;
-		graphSettingsOpen: boolean;
-		onToggleGraphSettings: () => void;
+		settingsPanel: SettingsPanelMode | undefined;
+		onSettingsPanel: (panel: SettingsPanelMode, event: MouseEvent) => void;
 		showDebugButton: boolean;
 		debugOpen: boolean;
 		onToggleDebug: () => void;
@@ -97,6 +83,16 @@
 		{ value: "graph", label: "Graph" },
 		{ value: "flow", label: "Flow" },
 		{ value: "arc", label: "Arc diagram" },
+	];
+	const SETTINGS_TABS: Array<{
+		mode: SettingsPanelMode;
+		icon: IconName;
+		label: string;
+	}> = [
+		{ mode: "graph", icon: "settings-2", label: "Graph" },
+		{ mode: "filters", icon: "list-filter", label: "Filter" },
+		{ mode: "note-style", icon: "palette", label: "Note style" },
+		{ mode: "link-style", icon: "route", label: "Link style" },
 	];
 
 	function getViewIcon(type: ViewMode | undefined): IconName {
@@ -300,10 +296,20 @@
 		{/if}
 	</div>
 	<ObsidianButton
-		active={graphSettingsOpen}
-		text={graphSettingsOpen ? "Collapse settings" : "Show settings"}
-		onClick={onToggleGraphSettings}
+		icon="plus"
+		text="New view"
+		onClick={addChart}
 	/>
+	<div class="knowledge-workspace-settings-tabs">
+		{#each SETTINGS_TABS as tab}
+			<ObsidianButton
+				active={settingsPanel === tab.mode}
+				icon={tab.icon}
+				text={tab.label}
+				onClick={(event) => onSettingsPanel(tab.mode, event)}
+			/>
+		{/each}
+	</div>
 	<div class="knowledge-workspace-node-search">
 		<ObsidianSuggestInput
 			{app}
@@ -322,51 +328,6 @@
 		/>
 	</div>
 	<div class="knowledge-workspace-graph-actions">
-		{#if mode === "flow"}
-			<div
-				class="knowledge-workspace-segmented"
-				aria-label="Flow direction"
-			>
-				{#each ["LR", "RL", "TD", "DT"] as direction}
-					<ObsidianButton
-						active={flowDirection === direction}
-						text={direction}
-						onClick={() =>
-							onFlowDirection(direction as FlowDirection)}
-					/>
-				{/each}
-			</div>
-			<div
-				class="knowledge-workspace-segmented"
-				aria-label="Flow edge style"
-			>
-				<ObsidianButton
-					active={flowEdgeStyle === "straight"}
-					text="Straight"
-					onClick={() => onFlowEdgeStyle("straight")}
-				/>
-				<ObsidianButton
-					active={flowEdgeStyle === "orthogonal"}
-					text="Orthogonal"
-					onClick={() => onFlowEdgeStyle("orthogonal")}
-				/>
-			</div>
-		{/if}
-		{#if mode === "arc"}
-			<div
-				class="knowledge-workspace-segmented"
-				aria-label="Arc direction"
-			>
-				{#each ["right", "left", "up", "down"] as direction}
-					<ObsidianButton
-						active={arcDirection === direction}
-						text={direction}
-						onClick={() =>
-							onArcDirection(direction as ArcDirection)}
-					/>
-				{/each}
-			</div>
-		{/if}
 		<ObsidianButton text="Fit graph" onClick={onFit} />
 		<ObsidianButton text="Refresh" onClick={onRefresh} />
 		{#if showDebugButton}

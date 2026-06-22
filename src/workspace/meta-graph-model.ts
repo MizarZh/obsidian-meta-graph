@@ -4,6 +4,7 @@ import type {
 	DockNoteNode,
 	DockTemplateNode,
 	GraphQuery,
+	GlobalStyleConfig,
 	LinkStyleRule,
 	MetaGraphChart,
 	MetaGraphDocument,
@@ -50,6 +51,8 @@ export function normalizeMetaGraphDocument(
 			? record.activeConnectionField.trim()
 			: (connectionFields[0] ?? '');
 	return {
+		globalQuery: normalizeQuery(record.globalQuery, createDefaultGlobalQuery(maxNodes), maxNodes),
+		globalStyle: normalizeGlobalStyle(record.globalStyle),
 		charts,
 		activeChart,
 		connectionFields,
@@ -64,6 +67,8 @@ export function createDefaultMetaGraphDocument(
 ): MetaGraphDocument {
 	const charts = createDefaultCharts(maxNodes, fadeDistance);
 	return {
+		globalQuery: createDefaultGlobalQuery(maxNodes),
+		globalStyle: createDefaultGlobalStyle(),
 		charts,
 		activeChart: charts[0]?.id ?? 'knowledge-map',
 		connectionFields: [...DEFAULT_CONNECTION_FIELDS],
@@ -103,6 +108,9 @@ export function createDefaultChart(
 }
 
 export function serializeMetaGraphState(state: {
+	globalQuery: GraphQuery;
+	globalNodeStyleRules: NodeStyleRule[];
+	globalLinkStyleRules: LinkStyleRule[];
 	charts: MetaGraphChart[];
 	activeChartId: string;
 	connectionFields: string[];
@@ -110,6 +118,11 @@ export function serializeMetaGraphState(state: {
 	dock: MetaGraphDock;
 }): MetaGraphDocument {
 	return cloneSerializable({
+		globalQuery: state.globalQuery,
+		globalStyle: {
+			nodeRules: state.globalNodeStyleRules,
+			linkRules: state.globalLinkStyleRules,
+		},
 		charts: state.charts,
 		activeChart: state.activeChartId,
 		connectionFields: state.connectionFields,
@@ -282,6 +295,33 @@ export function normalizeLinkStyleRules(value: unknown): LinkStyleRule[] {
 	];
 }
 
+export function normalizeGlobalNodeStyleRules(value: unknown): NodeStyleRule[] {
+	return normalizeArray<NodeStyleRule>(value).filter(
+		(rule) => rule.id !== BASE_STYLE_RULE_ID,
+	);
+}
+
+export function normalizeGlobalLinkStyleRules(value: unknown): LinkStyleRule[] {
+	return normalizeArray<LinkStyleRule>(value).filter(
+		(rule) => rule.id !== BASE_STYLE_RULE_ID,
+	);
+}
+
+function normalizeGlobalStyle(value: unknown): GlobalStyleConfig {
+	const record = isRecord(value) ? value : {};
+	return {
+		nodeRules: normalizeGlobalNodeStyleRules(record.nodeRules),
+		linkRules: normalizeGlobalLinkStyleRules(record.linkRules),
+	};
+}
+
+function createDefaultGlobalStyle(): GlobalStyleConfig {
+	return {
+		nodeRules: [],
+		linkRules: [],
+	};
+}
+
 function normalizeQuery(
 	value: unknown,
 	fallback: GraphQuery,
@@ -432,6 +472,19 @@ function createDefaultQuery(maxNodes: number, type: ViewMode): GraphQuery {
 			type === 'flow'
 				? ['prerequisite', 'leads-to']
 				: [...DEFAULT_GRAPH_QUERY.relations],
+		maxNodes,
+	};
+}
+
+function createDefaultGlobalQuery(maxNodes: number): GraphQuery {
+	return {
+		...DEFAULT_GRAPH_QUERY,
+		roots: [],
+		folders: [],
+		tags: [],
+		hiddenNodeRules: [],
+		domains: [],
+		relations: [],
 		maxNodes,
 	};
 }

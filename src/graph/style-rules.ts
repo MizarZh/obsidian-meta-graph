@@ -5,6 +5,7 @@ import type {
 	LinkStyleRule,
 	NodeStyleRule,
 } from '../core/types';
+import { matchesNodeCriterion } from '../query/filters';
 
 export interface NodeStyle {
 	color: string;
@@ -60,17 +61,22 @@ function matchesNodeRule(node: KnowledgeNode, rule: NodeStyleRule): boolean {
 		return true;
 	}
 	const value = rule.value.trim().toLocaleLowerCase();
-	if (!value) {
+	const operator = rule.operator ?? 'is';
+	if (!value && operator !== 'has-value' && operator !== 'empty') {
 		return false;
 	}
 	switch (rule.field) {
 		case 'folder':
-			return (
-				node.folder.toLocaleLowerCase() === value ||
-				node.folder.toLocaleLowerCase().startsWith(`${value}/`)
-			);
 		case 'tag':
-			return node.tags.some((tag) => tag.toLocaleLowerCase() === value);
+		case 'file.name':
+		case 'file.basename':
+		case 'file.path':
+		case 'file.folder':
+		case 'file.ext':
+		case 'file.links':
+		case 'file.tags':
+		case 'metadata-field':
+			return matchesNodeCriterion(node, rule.field, operator, rule.value);
 		case 'domain':
 			return node.domains.some(
 				(domain) => domain.toLocaleLowerCase() === value,

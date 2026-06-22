@@ -1,79 +1,192 @@
 <script lang="ts">
+	import type { App } from 'obsidian';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
+	import ObsidianSuggestInput, {
+		type SuggestionOption,
+	} from './obsidian/ObsidianSuggestInput.svelte';
+	import ObsidianSlider from './obsidian/ObsidianSlider.svelte';
 	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
 	import ObsidianToggle from './obsidian/ObsidianToggle.svelte';
 	import type {
+		ArcDirection,
+		FlowDirection,
+		FlowEdgeStyle,
 		GraphQuery,
 		LinkStyleField,
 		LinkLineStyle,
 		LinkStyleRule,
-		NodeFilterAction,
 		NodeFilterField,
+		NodeFilterOperator,
 		NodeFilterRule,
 		NodeStyleField,
 		NodeStyleRule,
+		SettingsPanelMode,
+		ViewMode,
 	} from '../core/types';
 
 	let {
+		app,
+		panel,
+		mode,
+		flowEdgeStyle,
+		flowDirection,
+		arcDirection,
+		graphSpacing,
+		flowSpacing,
+		arcSpacing,
 		query,
+		globalQuery,
 		folders,
 		tags,
+		metadataFieldSuggestions,
+		globalNodeStyleRules,
 		nodeStyleRules,
+		globalLinkStyleRules,
 		linkStyleRules,
+		onFlowEdgeStyle,
+		onFlowDirection,
+		onArcDirection,
+		onGraphSpacing,
+		onFlowSpacing,
+		onArcSpacing,
 		onChange,
+		onGlobalChange,
+		onGlobalNodeStyleRulesChange,
 		onNodeStyleRulesChange,
+		onGlobalLinkStyleRulesChange,
 		onLinkStyleRulesChange,
 	}: {
+		app: App;
+		panel: SettingsPanelMode;
+		mode: ViewMode;
+		flowEdgeStyle: FlowEdgeStyle;
+		flowDirection: FlowDirection;
+		arcDirection: ArcDirection;
+		graphSpacing: number;
+		flowSpacing: number;
+		arcSpacing: number;
 		query: GraphQuery;
+		globalQuery: GraphQuery;
 		folders: string[];
 		tags: string[];
+		metadataFieldSuggestions: string[];
+		globalNodeStyleRules: NodeStyleRule[];
 		nodeStyleRules: NodeStyleRule[];
+		globalLinkStyleRules: LinkStyleRule[];
 		linkStyleRules: LinkStyleRule[];
+		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
+		onFlowDirection: (direction: FlowDirection) => void;
+		onArcDirection: (direction: ArcDirection) => void;
+		onGraphSpacing: (spacing: number) => void;
+		onFlowSpacing: (spacing: number) => void;
+		onArcSpacing: (spacing: number) => void;
 		onChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
+		onGlobalChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
+		onGlobalNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
 		onNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
+		onGlobalLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 	} = $props();
 
+	const FILE_FILTER_FIELD_OPTIONS = [
+		{ value: 'file.name', label: 'File' },
+		{ value: 'file.basename', label: 'Name' },
+		{ value: 'file.path', label: 'Path' },
+		{ value: 'file.folder', label: 'Folder' },
+		{ value: 'file.ext', label: 'Extension' },
+		{ value: 'file.tags', label: 'Tags' },
+		{ value: 'file.links', label: 'Links' },
+		{ value: 'metadata-field', label: 'Property' },
+	];
 	const NODE_STYLE_FIELD_OPTIONS = [
 		{ value: 'folder', label: 'Folder' },
 		{ value: 'tag', label: 'Tag' },
 		{ value: 'domain', label: 'Domain' },
 		{ value: 'type', label: 'Type' },
 		{ value: 'title', label: 'Title' },
+		...FILE_FILTER_FIELD_OPTIONS,
 	];
 	const BASE_NODE_STYLE_FIELD_OPTIONS = [
-		{ value: 'all', label: 'All' },
+		{ value: 'all', label: 'All notes' },
 		...NODE_STYLE_FIELD_OPTIONS,
 	];
 	const LINK_STYLE_FIELD_OPTIONS = [
 		{ value: 'relation', label: 'Relation' },
-		{ value: 'source-field', label: 'Frontmatter field' },
+		{ value: 'source-field', label: 'Metadata field' },
 	];
 	const BASE_LINK_STYLE_FIELD_OPTIONS = [
-		{ value: 'all', label: 'All' },
+		{ value: 'all', label: 'All links' },
 		...LINK_STYLE_FIELD_OPTIONS,
+	];
+	const FILTER_OPERATOR_OPTIONS = [
+		{ value: 'has-value', label: 'has value' },
+		{ value: 'empty', label: 'has no value' },
+		{ value: 'is', label: 'is' },
+		{ value: 'is-not', label: 'is not' },
+		{ value: 'contains', label: 'contains' },
+		{ value: 'does-not-contain', label: 'does not contain' },
 	];
 	const LINE_STYLE_OPTIONS = [
 		{ value: 'solid', label: 'Solid' },
 		{ value: 'dashed', label: 'Dashed' },
 		{ value: 'dotted', label: 'Dotted' },
 	];
-	const FILTER_ACTION_OPTIONS = [
-		{ value: 'hide', label: 'Hide' },
-		{ value: 'show', label: 'Show' },
-	];
-	const FILTER_FIELD_OPTIONS = [
-		{ value: 'folder', label: 'Folder' },
-		{ value: 'tag', label: 'Tag' },
-	];
 
-	function addNodeRule(): void {
-		onNodeStyleRulesChange([
-			...nodeStyleRules,
+	function addFilterRule(
+		scope: 'global' | 'current',
+		action: NodeFilterRule['action'] = 'show',
+	): void {
+		updateFilterRules(scope, [
+			...getFilterRules(scope),
 			{
 				id: createRuleId(),
-				field: 'tag',
+				action,
+				field: 'file.links',
+				operator: 'has-value',
+				value: '',
+			},
+		]);
+	}
+
+	function updateFilterRule(
+		scope: 'global' | 'current',
+		id: string,
+		patch: Partial<NodeFilterRule>,
+	): void {
+		updateFilterRules(
+			scope,
+			getFilterRules(scope).map((rule) =>
+				rule.id === id ? { ...rule, ...patch } : rule,
+			),
+		);
+	}
+
+	function updateFilterRules(
+		scope: 'global' | 'current',
+		rules: NodeFilterRule[],
+	): void {
+		const patch = { hiddenNodeRules: rules };
+		if (scope === 'global') {
+			onGlobalChange(patch);
+		} else {
+			onChange(patch);
+		}
+	}
+
+	function getFilterRules(scope: 'global' | 'current'): NodeFilterRule[] {
+		return scope === 'global'
+			? globalQuery.hiddenNodeRules
+			: query.hiddenNodeRules;
+	}
+
+	function addNodeRule(scope: 'global' | 'current'): void {
+		updateNodeRules(scope, [
+			...getNodeRules(scope),
+			{
+				id: createRuleId(),
+				field: 'metadata-field',
+				operator: 'has-value',
 				value: '',
 				color: '#7c6ff0',
 				size: 7,
@@ -82,22 +195,39 @@
 	}
 
 	function updateNodeRule(
+		scope: 'global' | 'current',
 		id: string,
 		patch: Partial<NodeStyleRule>,
 	): void {
-		onNodeStyleRulesChange(
-			nodeStyleRules.map((rule) =>
+		updateNodeRules(
+			scope,
+			getNodeRules(scope).map((rule) =>
 				rule.id === id ? { ...rule, ...patch } : rule,
 			),
 		);
 	}
 
-	function addLinkRule(): void {
-		onLinkStyleRulesChange([
-			...linkStyleRules,
+	function updateNodeRules(
+		scope: 'global' | 'current',
+		rules: NodeStyleRule[],
+	): void {
+		if (scope === 'global') {
+			onGlobalNodeStyleRulesChange(rules);
+		} else {
+			onNodeStyleRulesChange(rules);
+		}
+	}
+
+	function getNodeRules(scope: 'global' | 'current'): NodeStyleRule[] {
+		return scope === 'global' ? globalNodeStyleRules : nodeStyleRules;
+	}
+
+	function addLinkRule(scope: 'global' | 'current'): void {
+		updateLinkRules(scope, [
+			...getLinkRules(scope),
 			{
 				id: createRuleId(),
-				field: 'relation',
+				field: 'source-field',
 				value: 'leads-to',
 				color: '#888888',
 				size: 1.5,
@@ -110,312 +240,479 @@
 	}
 
 	function updateLinkRule(
+		scope: 'global' | 'current',
 		id: string,
 		patch: Partial<LinkStyleRule>,
 	): void {
-		onLinkStyleRulesChange(
-			linkStyleRules.map((rule) =>
+		updateLinkRules(
+			scope,
+			getLinkRules(scope).map((rule) =>
 				rule.id === id ? { ...rule, ...patch } : rule,
 			),
 		);
 	}
 
-	function addFilterRule(): void {
-		onChange({
-			hiddenNodeRules: [
-				...query.hiddenNodeRules,
-				{
-					id: createRuleId(),
-					action: 'hide',
-					field: 'folder',
-					value: '',
-				},
-			],
-		});
+	function updateLinkRules(
+		scope: 'global' | 'current',
+		rules: LinkStyleRule[],
+	): void {
+		if (scope === 'global') {
+			onGlobalLinkStyleRulesChange(rules);
+		} else {
+			onLinkStyleRulesChange(rules);
+		}
 	}
 
-	function updateFilterRule(
-		id: string,
-		patch: Partial<NodeFilterRule>,
-	): void {
-		onChange({
-			hiddenNodeRules: query.hiddenNodeRules.map((rule) =>
-				rule.id === id ? { ...rule, ...patch } : rule,
-			),
-		});
+	function getLinkRules(scope: 'global' | 'current'): LinkStyleRule[] {
+		return scope === 'global' ? globalLinkStyleRules : linkStyleRules;
+	}
+
+	function removeNodeRule(scope: 'global' | 'current', id: string): void {
+		updateNodeRules(
+			scope,
+			getNodeRules(scope).filter((rule) => rule.id !== id),
+		);
+	}
+
+	function removeLinkRule(scope: 'global' | 'current', id: string): void {
+		updateLinkRules(
+			scope,
+			getLinkRules(scope).filter((rule) => rule.id !== id),
+		);
+	}
+
+	function shouldShowFilterValue(operator: NodeFilterOperator | undefined): boolean {
+		return operator !== 'has-value' && operator !== 'empty';
+	}
+
+	function isBaseStyleRule(rule: NodeStyleRule | LinkStyleRule): boolean {
+		return rule.id === 'all';
 	}
 
 	function createRuleId(): string {
 		return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 	}
 
-	function isBaseStyleRule(rule: NodeStyleRule | LinkStyleRule): boolean {
-		return rule.id === 'all' || rule.field === 'all';
+	function commitSpacing(spacing: number): void {
+		if (mode === 'graph') onGraphSpacing(spacing);
+		if (mode === 'flow') onFlowSpacing(spacing);
+		if (mode === 'arc') onArcSpacing(spacing);
+	}
+
+	function getNodeValueOptions(field: NodeFilterField | NodeStyleField): SuggestionOption[] {
+		if (field === 'folder' || field === 'file.folder') {
+			return folders.map((folder) => ({
+				value: folder,
+				label: folder,
+				searchText: folder,
+			}));
+		}
+		if (field === 'tag' || field === 'file.tags') {
+			return tags.map((tag) => ({
+				value: tag,
+				label: tag,
+				searchText: tag,
+			}));
+		}
+		if (field === 'metadata-field') {
+			return metadataFieldSuggestions.map((field) => ({
+				value: field,
+				label: field,
+				searchText: field,
+			}));
+		}
+		return [];
 	}
 </script>
 
 <aside class="knowledge-workspace-filters">
-	<section>
-		<header>
-			<h3>Node styles</h3>
-			<ObsidianButton
-				class="knowledge-workspace-add-rule-button"
-				ariaLabel="Add node style rule"
-				icon="plus"
-				onClick={addNodeRule}
-			/>
-		</header>
-		{#each nodeStyleRules as rule (rule.id)}
-			<div class="knowledge-workspace-rule">
-				<div class="knowledge-workspace-rule-row">
-					<ObsidianDropdown
-						disabled={isBaseStyleRule(rule)}
-						value={rule.field}
-						options={isBaseStyleRule(rule)
-							? BASE_NODE_STYLE_FIELD_OPTIONS
-							: NODE_STYLE_FIELD_OPTIONS}
-						onChange={(value) =>
-							updateNodeRule(rule.id, {
-								field: value as NodeStyleField,
-							})}
-					/>
-					<ObsidianTextInput
-						type="text"
-						placeholder={isBaseStyleRule(rule) ? "All nodes" : "Match value"}
-						disabled={isBaseStyleRule(rule)}
-						value={rule.value}
-						onInput={(value) =>
-							updateNodeRule(rule.id, {
-								value,
-							})}
-					/>
-					<ObsidianButton
-						class="knowledge-workspace-remove-rule-button"
-						ariaLabel="Remove node style rule"
-						disabled={isBaseStyleRule(rule)}
-						icon="x"
-						onClick={() =>
-							onNodeStyleRulesChange(
-								nodeStyleRules.filter((item) => item.id !== rule.id),
-							)}
-					/>
+	{#if panel === 'graph'}
+		<section>
+			<header><h3>Graph settings</h3></header>
+			<label class="knowledge-workspace-rule-label">
+				<span>Spacing</span>
+				<ObsidianSlider
+					min={0.25}
+					max={4}
+					step={0.25}
+					value={mode === 'graph'
+						? graphSpacing
+						: mode === 'flow'
+							? flowSpacing
+							: arcSpacing}
+					format={(value) => value.toFixed(2).replace(/\.?0+$/u, '')}
+					onChange={commitSpacing}
+					onCommit={commitSpacing}
+				/>
+			</label>
+			{#if mode === 'flow'}
+				<div class="knowledge-workspace-rule-label segmented">
+					<span>Direction</span>
+					<div class="knowledge-workspace-segmented">
+						{#each ['LR', 'RL', 'TD', 'DT'] as direction}
+							<ObsidianButton
+								active={flowDirection === direction}
+								text={direction}
+								onClick={() => onFlowDirection(direction as FlowDirection)}
+							/>
+						{/each}
+					</div>
 				</div>
-				<div class="knowledge-workspace-rule-row compact">
-					<label>
-						<span>Color</span>
-						<input
-							type="color"
-							value={rule.color}
-							oninput={(event) =>
-								updateNodeRule(rule.id, {
-									color: event.currentTarget.value,
-								})}
-						/>
-					</label>
-					<label>
-						<span>Size</span>
-						<ObsidianTextInput
-							type="number"
-							min="1"
-							max="30"
-							step="0.5"
-							value={rule.size}
-							onChange={(value) =>
-								updateNodeRule(rule.id, {
-									size: Number(value),
-								})}
-						/>
-					</label>
-				</div>
-			</div>
-		{/each}
-	</section>
-
-	<section>
-		<header>
-			<h3>Link styles</h3>
-			<ObsidianButton
-				class="knowledge-workspace-add-rule-button"
-				ariaLabel="Add link style rule"
-				icon="plus"
-				onClick={addLinkRule}
-			/>
-		</header>
-		{#each linkStyleRules as rule (rule.id)}
-			<div class="knowledge-workspace-rule">
-				<div class="knowledge-workspace-rule-row">
-					<ObsidianDropdown
-						disabled={isBaseStyleRule(rule)}
-						value={rule.field}
-						options={isBaseStyleRule(rule)
-							? BASE_LINK_STYLE_FIELD_OPTIONS
-							: LINK_STYLE_FIELD_OPTIONS}
-						onChange={(value) =>
-							updateLinkRule(rule.id, {
-								field: value as LinkStyleField,
-							})}
-					/>
-					<ObsidianTextInput
-						type="text"
-						placeholder={isBaseStyleRule(rule) ? "All links" : "Match value"}
-						disabled={isBaseStyleRule(rule)}
-						value={rule.value}
-						onInput={(value) =>
-							updateLinkRule(rule.id, {
-								value,
-							})}
-					/>
-					<ObsidianButton
-						class="knowledge-workspace-remove-rule-button"
-						ariaLabel="Remove link style rule"
-						disabled={isBaseStyleRule(rule)}
-						icon="x"
-						onClick={() =>
-							onLinkStyleRulesChange(
-								linkStyleRules.filter((item) => item.id !== rule.id),
-							)}
-					/>
-				</div>
-				<div class="knowledge-workspace-rule-row compact">
-					<label>
-						<span>Color</span>
-						<input
-							type="color"
-							value={rule.color}
-							oninput={(event) =>
-								updateLinkRule(rule.id, {
-									color: event.currentTarget.value,
-								})}
-						/>
-					</label>
-					<label>
-						<span>Width</span>
-						<ObsidianTextInput
-							type="number"
-							min="0.5"
-							max="10"
-							step="0.5"
-							value={rule.size}
-							onChange={(value) =>
-								updateLinkRule(rule.id, {
-									size: Number(value),
-								})}
-						/>
-					</label>
-				</div>
-				<label class="knowledge-workspace-rule-label">
+				<div class="knowledge-workspace-rule-label segmented">
 					<span>Line</span>
-					<ObsidianDropdown
-						value={rule.lineStyle}
-						options={LINE_STYLE_OPTIONS}
-						onChange={(value) =>
-							updateLinkRule(rule.id, {
-								lineStyle: value as LinkLineStyle,
-							})}
-					/>
-				</label>
-				<label class="knowledge-workspace-rule-label">
-					<span>Label</span>
-					<ObsidianTextInput
-						type="text"
-						placeholder="Optional edge label"
-						value={rule.label}
-						onInput={(value) =>
-							updateLinkRule(rule.id, {
-								label: value,
-							})}
-					/>
-				</label>
-				<label class="checkbox">
-					<ObsidianToggle
-						value={rule.showLabel}
-						onChange={(value) =>
-							updateLinkRule(rule.id, {
-								showLabel: value,
-							})}
-					/>
-					<span>Show label</span>
-				</label>
-				<label class="checkbox">
-					<ObsidianToggle
-						value={rule.hidden}
-						onChange={(value) =>
-							updateLinkRule(rule.id, {
-								hidden: value,
-							})}
-					/>
-					<span>Hidden</span>
-				</label>
-			</div>
-		{/each}
-	</section>
-
-	<section>
-		<header>
-			<h3>Filters</h3>
-			<ObsidianButton
-				class="knowledge-workspace-add-rule-button"
-				ariaLabel="Add filter rule"
-				icon="plus"
-				onClick={addFilterRule}
-			/>
-		</header>
-		{#each query.hiddenNodeRules as rule (rule.id)}
-			<div class="knowledge-workspace-rule">
-				<div class="knowledge-workspace-rule-row filter">
-					<ObsidianDropdown
-						ariaLabel="Filter action"
-						value={rule.action}
-						options={FILTER_ACTION_OPTIONS}
-						onChange={(value) =>
-							updateFilterRule(rule.id, {
-								action: value as NodeFilterAction,
-							})}
-					/>
-					<ObsidianDropdown
-						value={rule.field}
-						options={FILTER_FIELD_OPTIONS}
-						onChange={(value) =>
-							updateFilterRule(rule.id, {
-								field: value as NodeFilterField,
-							})}
-					/>
-					<ObsidianTextInput
-						type="text"
-						list={rule.field === 'folder'
-							? 'knowledge-workspace-folder-options'
-							: 'knowledge-workspace-tag-options'}
-						placeholder={`${rule.action === 'show' ? 'Show' : 'Hide'} matching value`}
-						value={rule.value}
-						onInput={(value) =>
-							updateFilterRule(rule.id, {
-								value,
-							})}
-					/>
-					<ObsidianButton
-						class="knowledge-workspace-remove-rule-button"
-						ariaLabel="Remove filter rule"
-						icon="x"
-						onClick={() =>
-							onChange({
-								hiddenNodeRules: query.hiddenNodeRules.filter(
-									(item) => item.id !== rule.id,
-								),
-							})}
-					/>
+					<div class="knowledge-workspace-segmented">
+						<ObsidianButton
+							active={flowEdgeStyle === 'straight'}
+							text="Straight"
+							onClick={() => onFlowEdgeStyle('straight')}
+						/>
+						<ObsidianButton
+							active={flowEdgeStyle === 'orthogonal'}
+							text="Orthogonal"
+							onClick={() => onFlowEdgeStyle('orthogonal')}
+						/>
+					</div>
 				</div>
+			{:else if mode === 'arc'}
+				<label class="knowledge-workspace-rule-label">
+					<span>Direction</span>
+					<ObsidianDropdown
+						value={arcDirection}
+						options={[
+							{ value: 'right', label: 'Right' },
+							{ value: 'left', label: 'Left' },
+							{ value: 'up', label: 'Up' },
+							{ value: 'down', label: 'Down' },
+						]}
+						onChange={(value) => onArcDirection(value as ArcDirection)}
+					/>
+				</label>
+			{/if}
+		</section>
+	{:else if panel === 'filters'}
+		{#each ['global', 'current'] as scope}
+			<section>
+				<header>
+					<h3>{scope === 'global' ? 'All views' : 'This view'}</h3>
+					<ObsidianButton
+						class="knowledge-workspace-add-rule-button"
+						ariaLabel="Add filter"
+						icon="plus"
+						onClick={() => addFilterRule(scope as 'global' | 'current')}
+					/>
+				</header>
 				<span class="knowledge-workspace-rule-hint">
-					{rule.action === 'show'
-						? 'Show matching nodes'
-						: 'Hide matching nodes'}
+					All conditions below must match.
 				</span>
-			</div>
+				{#each getFilterRules(scope as 'global' | 'current') as rule (rule.id)}
+					<div class="knowledge-workspace-rule">
+						<div class="knowledge-workspace-rule-row filter bases">
+							<ObsidianDropdown
+								value={rule.field}
+								options={FILE_FILTER_FIELD_OPTIONS}
+								onChange={(value) =>
+									updateFilterRule(scope as 'global' | 'current', rule.id, {
+										field: value as NodeFilterField,
+									})}
+							/>
+							<ObsidianDropdown
+								value={rule.operator ?? 'is'}
+								options={FILTER_OPERATOR_OPTIONS}
+								onChange={(value) =>
+									updateFilterRule(scope as 'global' | 'current', rule.id, {
+										operator: value as NodeFilterOperator,
+									})}
+							/>
+							{#if shouldShowFilterValue(rule.operator) && getNodeValueOptions(rule.field).length > 0}
+								<ObsidianSuggestInput
+									{app}
+									type="text"
+									placeholder="Value"
+									value={rule.value}
+									options={getNodeValueOptions(rule.field)}
+									onInput={(value) =>
+										updateFilterRule(scope as 'global' | 'current', rule.id, {
+											value,
+										})}
+									onSelect={(option) =>
+										updateFilterRule(scope as 'global' | 'current', rule.id, {
+											value: option.value,
+										})}
+								/>
+							{:else}
+								<ObsidianTextInput
+									type="text"
+									placeholder={shouldShowFilterValue(rule.operator)
+										? 'Value'
+										: ''}
+									disabled={!shouldShowFilterValue(rule.operator)}
+									value={rule.value}
+									onInput={(value) =>
+										updateFilterRule(scope as 'global' | 'current', rule.id, {
+											value,
+										})}
+								/>
+							{/if}
+							<ObsidianButton
+								class="knowledge-workspace-remove-rule-button"
+								ariaLabel="Remove filter"
+								icon="trash-2"
+								onClick={() =>
+									updateFilterRules(
+										scope as 'global' | 'current',
+										getFilterRules(scope as 'global' | 'current').filter(
+											(item) => item.id !== rule.id,
+										),
+									)}
+							/>
+						</div>
+					</div>
+				{/each}
+			</section>
 		{/each}
-		<datalist id="knowledge-workspace-folder-options">
-			{#each folders as folder}<option value={folder}></option>{/each}
-		</datalist>
-		<datalist id="knowledge-workspace-tag-options">
-			{#each tags as tag}<option value={tag}></option>{/each}
-		</datalist>
-	</section>
+	{:else if panel === 'note-style'}
+		{#each ['global', 'current'] as scope}
+			<section>
+				<header>
+					<h3>{scope === 'global' ? 'All views' : 'This view'}</h3>
+					<ObsidianButton
+						class="knowledge-workspace-add-rule-button"
+						ariaLabel="Add note style rule"
+						icon="plus"
+						onClick={() => addNodeRule(scope as 'global' | 'current')}
+					/>
+				</header>
+				{#each getNodeRules(scope as 'global' | 'current') as rule (rule.id)}
+					<div class="knowledge-workspace-rule">
+						<div class="knowledge-workspace-rule-row style-condition">
+							<ObsidianDropdown
+								disabled={isBaseStyleRule(rule)}
+								value={rule.field}
+								options={isBaseStyleRule(rule)
+									? BASE_NODE_STYLE_FIELD_OPTIONS
+									: scope === 'global'
+										? BASE_NODE_STYLE_FIELD_OPTIONS
+										: NODE_STYLE_FIELD_OPTIONS}
+								onChange={(value) =>
+									updateNodeRule(scope as 'global' | 'current', rule.id, {
+										field: value as NodeStyleField,
+									})}
+							/>
+							{#if rule.field !== 'all'}
+								<ObsidianDropdown
+									value={rule.operator ?? 'is'}
+									options={FILTER_OPERATOR_OPTIONS}
+									onChange={(value) =>
+										updateNodeRule(scope as 'global' | 'current', rule.id, {
+											operator: value as NodeFilterOperator,
+										})}
+								/>
+								{#if shouldShowFilterValue(rule.operator) && getNodeValueOptions(rule.field).length > 0}
+									<ObsidianSuggestInput
+										{app}
+										type="text"
+										placeholder="Value"
+										value={rule.value}
+										options={getNodeValueOptions(rule.field)}
+										onInput={(value) =>
+											updateNodeRule(scope as 'global' | 'current', rule.id, {
+												value,
+											})}
+										onSelect={(option) =>
+											updateNodeRule(scope as 'global' | 'current', rule.id, {
+												value: option.value,
+											})}
+									/>
+								{:else}
+									<ObsidianTextInput
+										type="text"
+										placeholder={shouldShowFilterValue(rule.operator)
+											? 'Value'
+											: ''}
+										disabled={!shouldShowFilterValue(rule.operator)}
+										value={rule.value}
+										onInput={(value) =>
+											updateNodeRule(scope as 'global' | 'current', rule.id, {
+												value,
+											})}
+									/>
+								{/if}
+							{:else}
+								<ObsidianTextInput type="text" disabled={true} value="All notes" />
+							{/if}
+							<ObsidianButton
+								class="knowledge-workspace-remove-rule-button"
+								ariaLabel="Remove note style rule"
+								disabled={isBaseStyleRule(rule)}
+								icon="trash-2"
+								onClick={() =>
+									removeNodeRule(scope as 'global' | 'current', rule.id)}
+							/>
+						</div>
+						<div class="knowledge-workspace-rule-row compact">
+							<label>
+								<span>Color</span>
+								<input
+									type="color"
+									value={rule.color}
+									oninput={(event) =>
+										updateNodeRule(scope as 'global' | 'current', rule.id, {
+											color: event.currentTarget.value,
+										})}
+								/>
+							</label>
+							<label>
+								<span>Size</span>
+								<ObsidianSlider
+									min={1}
+									max={30}
+									step={0.5}
+									value={rule.size}
+									format={(value) => String(value)}
+									onChange={(value) =>
+										updateNodeRule(scope as 'global' | 'current', rule.id, {
+											size: value,
+										})}
+								/>
+							</label>
+						</div>
+					</div>
+				{/each}
+			</section>
+		{/each}
+	{:else}
+		{#each ['global', 'current'] as scope}
+			<section>
+				<header>
+					<h3>{scope === 'global' ? 'All views' : 'This view'}</h3>
+					<ObsidianButton
+						class="knowledge-workspace-add-rule-button"
+						ariaLabel="Add link style rule"
+						icon="plus"
+						onClick={() => addLinkRule(scope as 'global' | 'current')}
+					/>
+				</header>
+				{#each getLinkRules(scope as 'global' | 'current') as rule (rule.id)}
+					<div class="knowledge-workspace-rule">
+						<div class="knowledge-workspace-rule-row">
+							<ObsidianDropdown
+								disabled={isBaseStyleRule(rule)}
+								value={rule.field}
+								options={isBaseStyleRule(rule)
+									? BASE_LINK_STYLE_FIELD_OPTIONS
+									: scope === 'global'
+										? BASE_LINK_STYLE_FIELD_OPTIONS
+										: LINK_STYLE_FIELD_OPTIONS}
+								onChange={(value) =>
+									updateLinkRule(scope as 'global' | 'current', rule.id, {
+										field: value as LinkStyleField,
+									})}
+							/>
+							<ObsidianTextInput
+								type="text"
+								placeholder={isBaseStyleRule(rule)
+									? 'All links'
+									: 'Metadata value'}
+								disabled={isBaseStyleRule(rule)}
+								value={rule.value}
+								onInput={(value) =>
+									updateLinkRule(scope as 'global' | 'current', rule.id, {
+										value,
+									})}
+							/>
+							<ObsidianButton
+								class="knowledge-workspace-remove-rule-button"
+								ariaLabel="Remove link style rule"
+								disabled={isBaseStyleRule(rule)}
+								icon="trash-2"
+								onClick={() =>
+									removeLinkRule(scope as 'global' | 'current', rule.id)}
+							/>
+						</div>
+						<div class="knowledge-workspace-rule-row compact">
+							<label>
+								<span>Color</span>
+								<input
+									type="color"
+									value={rule.color}
+									oninput={(event) =>
+										updateLinkRule(scope as 'global' | 'current', rule.id, {
+											color: event.currentTarget.value,
+										})}
+								/>
+							</label>
+							<label>
+								<span>Width</span>
+								<div class="knowledge-workspace-slider-value">
+									<ObsidianSlider
+										min={0.5}
+										max={10}
+										step={0.5}
+										value={rule.size}
+										format={(value) => value.toFixed(1)}
+										onChange={(value) =>
+											updateLinkRule(scope as 'global' | 'current', rule.id, {
+												size: value,
+											})}
+									/>
+									<span>{rule.size.toFixed(1)}</span>
+								</div>
+							</label>
+						</div>
+						<div class="knowledge-workspace-line-style-row">
+							<span>Line</span>
+							<div class="knowledge-workspace-segmented">
+								{#each LINE_STYLE_OPTIONS as option}
+									<ObsidianButton
+										active={rule.lineStyle === option.value}
+										text={option.label}
+										onClick={() =>
+											updateLinkRule(scope as 'global' | 'current', rule.id, {
+												lineStyle: option.value as LinkLineStyle,
+											})}
+									/>
+								{/each}
+							</div>
+						</div>
+						<div class="knowledge-workspace-rule-row link-line-label">
+							<label class="knowledge-workspace-rule-label">
+								<span>Label</span>
+								<ObsidianTextInput
+									type="text"
+									placeholder="Optional label"
+									value={rule.label}
+									onInput={(value) =>
+										updateLinkRule(scope as 'global' | 'current', rule.id, {
+											label: value,
+										})}
+								/>
+							</label>
+						</div>
+						<div class="knowledge-workspace-toggle-row">
+							<label class="checkbox">
+								<ObsidianToggle
+									value={rule.showLabel}
+									onChange={(value) =>
+										updateLinkRule(scope as 'global' | 'current', rule.id, {
+											showLabel: value,
+										})}
+								/>
+								<span>Show label</span>
+							</label>
+							<label class="checkbox">
+								<ObsidianToggle
+									value={rule.hidden}
+									onChange={(value) =>
+										updateLinkRule(scope as 'global' | 'current', rule.id, {
+											hidden: value,
+										})}
+								/>
+								<span>Hidden</span>
+							</label>
+						</div>
+					</div>
+				{/each}
+			</section>
+		{/each}
+	{/if}
 </aside>

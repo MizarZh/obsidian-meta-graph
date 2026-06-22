@@ -29,6 +29,8 @@ import {
 	normalizeConnectionFields,
 	normalizeDockNotes,
 	normalizeDockTemplates,
+	normalizeGlobalLinkStyleRules,
+	normalizeGlobalNodeStyleRules,
 	normalizeLinkStyleRules,
 	normalizeNodeStyleRules,
 	serializeMetaGraphState,
@@ -182,6 +184,11 @@ export class WorkspaceController {
 			chart.display.fadeDistance,
 				{
 					charts: this.state.charts,
+					globalQuery: this.state.globalQuery,
+					globalStyle: {
+						nodeRules: this.state.globalNodeStyleRules,
+						linkRules: this.state.globalLinkStyleRules,
+					},
 					activeChart: chart.id,
 					connectionFields: this.state.connectionFields,
 					activeConnectionField: this.state.activeConnectionField,
@@ -195,6 +202,9 @@ export class WorkspaceController {
 			availableFolders: this.state.availableFolders,
 			availableTags: this.state.availableTags,
 			availableDomains: this.state.availableDomains,
+			globalQuery: this.state.globalQuery,
+			globalNodeStyleRules: this.state.globalNodeStyleRules,
+			globalLinkStyleRules: this.state.globalLinkStyleRules,
 			connectionFields: this.state.connectionFields,
 			activeConnectionField: this.state.activeConnectionField,
 			dock: this.state.dock,
@@ -309,11 +319,12 @@ export class WorkspaceController {
 	}
 
 	setGraphSpacing(graphSpacing: number): void {
+		const spacing = normalizeSpacing(graphSpacing);
 		this.state = this.updateActiveChart(
 			{
 				layout: {
 					...this.getActiveChart().layout,
-					spacing: graphSpacing,
+					spacing,
 				},
 			},
 			true,
@@ -322,11 +333,26 @@ export class WorkspaceController {
 	}
 
 	setFlowSpacing(flowSpacing: number): void {
+		const spacing = normalizeSpacing(flowSpacing);
 		this.state = this.updateActiveChart(
 			{
 				layout: {
 					...this.getActiveChart().layout,
-					spacing: flowSpacing,
+					spacing,
+				},
+			},
+			true,
+		);
+		this.emit();
+	}
+
+	setArcSpacing(arcSpacing: number): void {
+		const spacing = normalizeSpacing(arcSpacing);
+		this.state = this.updateActiveChart(
+			{
+				layout: {
+					...this.getActiveChart().layout,
+					spacing,
 				},
 			},
 			true,
@@ -453,6 +479,30 @@ export class WorkspaceController {
 			query: { ...this.state.query, ...patch },
 		});
 		this.runQuery();
+	}
+
+	updateGlobalQuery(patch: Partial<Omit<GraphQuery, 'roots'>>): void {
+		this.state = {
+			...this.state,
+			globalQuery: { ...this.state.globalQuery, ...patch, roots: [] },
+		};
+		this.runQuery();
+	}
+
+	setGlobalNodeStyleRules(nodeStyleRules: NodeStyleRule[]): void {
+		this.state = {
+			...this.state,
+			globalNodeStyleRules: normalizeGlobalNodeStyleRules(nodeStyleRules),
+		};
+		this.emit();
+	}
+
+	setGlobalLinkStyleRules(linkStyleRules: LinkStyleRule[]): void {
+		this.state = {
+			...this.state,
+			globalLinkStyleRules: normalizeGlobalLinkStyleRules(linkStyleRules),
+		};
+		this.emit();
 	}
 
 	setNodeStyleRules(nodeStyleRules: NodeStyleRule[]): void {
@@ -660,7 +710,11 @@ export class WorkspaceController {
 		if (!this.index || this.destroyed) {
 			return;
 		}
-		const projection = this.queryEngine.project(this.index, this.state.query);
+		const projection = this.queryEngine.project(
+			this.index,
+			this.state.query,
+			this.state.globalQuery,
+		);
 		const selectedNodeId =
 			this.state.selectedNodeId &&
 			projection.nodes.some((node) => node.id === this.state.selectedNodeId)
@@ -807,6 +861,10 @@ export class WorkspaceController {
 			index += 1;
 		}
 	}
+}
+
+function normalizeSpacing(value: number): number {
+	return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
 function createDockId(prefix: string, value: string): string {

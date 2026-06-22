@@ -43,11 +43,14 @@ settings to report them in the developer console.
 
 1. Enable **Meta Graph** in **Settings → Community plugins**.
 2. Run **Create graph** from the command palette.
-3. Add or select a chart in the graph toolbar. Graph and Flow charts each keep
-   their own query, layout, display, and style settings.
-4. Add node style rules by folder, tag, domain, type, or title.
-5. Add link style rules by relation or source frontmatter field.
-6. Add show/hide filter rules by folder or tag.
+3. Add or select a chart in the graph toolbar. Graph, Flow, and Arc charts
+   each keep their own query, layout, display, and style settings.
+4. Use the toolbar settings buttons to edit graph settings, filters, note
+   styles, and link styles in one panel.
+5. Add filters and style rules for **All views** or **This view**. File
+   filters support file name, path, folder, extension, tags, links, and
+   frontmatter property presence.
+6. Add link style rules by relation or source frontmatter field.
 7. Use the bottom connection panel to select or add the metadata field used for
    new links.
 8. Hold `Ctrl`, drag from one node to another, and release to add a link to the
@@ -91,6 +94,19 @@ charts:
       nodeRules: []
       linkRules: []
 
+globalQuery:
+  roots: []
+  folders: []
+  tags: []
+  domains: []
+  relations: []
+  hiddenNodeRules: []
+  depth: 2
+  direction: both
+  maxNodes: 200
+globalStyle:
+  nodeRules: []
+  linkRules: []
 activeChart: knowledge-map
 connectionFields:
   - leads-to

@@ -7,12 +7,18 @@ export interface KnowledgeNode {
 	id: NodeId;
 	path: string;
 	title: string;
+	fileName?: string;
+	extension?: string;
+	createdTime?: number;
+	modifiedTime?: number;
 	aliases?: string[];
 	folder: string;
 	domains: string[];
 	tags: string[];
+	links?: string[];
 	noteType?: string;
 	metadataFields?: string[];
+	metadata?: Record<string, unknown>;
 }
 
 export interface KnowledgeEdge {
@@ -75,13 +81,31 @@ export interface RendererDebugState {
 }
 
 export type DirectionMode = 'incoming' | 'outgoing' | 'both';
-export type NodeFilterField = 'folder' | 'tag';
+export type NodeFilterField =
+	| 'file.name'
+	| 'file.basename'
+	| 'file.path'
+	| 'file.folder'
+	| 'file.ext'
+	| 'file.links'
+	| 'file.tags'
+	| 'metadata-field'
+	| 'folder'
+	| 'tag';
 export type NodeFilterAction = 'show' | 'hide';
+export type NodeFilterOperator =
+	| 'has-value'
+	| 'empty'
+	| 'is'
+	| 'is-not'
+	| 'contains'
+	| 'does-not-contain';
 
 export interface NodeFilterRule {
 	id: string;
 	action: NodeFilterAction;
 	field: NodeFilterField;
+	operator?: NodeFilterOperator;
 	value: string;
 }
 
@@ -104,6 +128,7 @@ export interface GraphProjection {
 }
 
 export type ViewMode = 'graph' | 'flow' | 'arc';
+export type SettingsPanelMode = 'graph' | 'filters' | 'note-style' | 'link-style';
 export type FlowEdgeStyle = 'straight' | 'orthogonal';
 export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
 export type ArcDirection = 'right' | 'left' | 'up' | 'down';
@@ -112,6 +137,14 @@ export type NodeStyleField =
 	| 'all'
 	| 'folder'
 	| 'tag'
+	| 'file.name'
+	| 'file.basename'
+	| 'file.path'
+	| 'file.folder'
+	| 'file.ext'
+	| 'file.links'
+	| 'file.tags'
+	| 'metadata-field'
 	| 'domain'
 	| 'type'
 	| 'title';
@@ -121,6 +154,7 @@ export type LinkLineStyle = 'solid' | 'dashed' | 'dotted';
 export interface NodeStyleRule {
 	id: string;
 	field: NodeStyleField;
+	operator?: NodeFilterOperator;
 	value: string;
 	color: string;
 	size: number;
@@ -157,6 +191,11 @@ export interface ChartStyleConfig {
 	linkRules: LinkStyleRule[];
 }
 
+export interface GlobalStyleConfig {
+	nodeRules: NodeStyleRule[];
+	linkRules: LinkStyleRule[];
+}
+
 export interface MetaGraphChart {
 	id: string;
 	name: string;
@@ -168,6 +207,8 @@ export interface MetaGraphChart {
 }
 
 export interface MetaGraphDocument {
+	globalQuery: GraphQuery;
+	globalStyle: GlobalStyleConfig;
 	charts: MetaGraphChart[];
 	activeChart: string;
 	connectionFields: string[];
@@ -214,6 +255,9 @@ export interface WorkspaceState {
 	selectedNodeId?: NodeId;
 	hoveredNodeId?: NodeId;
 	query: GraphQuery;
+	globalQuery: GraphQuery;
+	globalNodeStyleRules: NodeStyleRule[];
+	globalLinkStyleRules: LinkStyleRule[];
 	nodeStyleRules: NodeStyleRule[];
 	linkStyleRules: LinkStyleRule[];
 	connectionFields: string[];

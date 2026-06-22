@@ -54,9 +54,16 @@
 		slider.setInstant(instant);
 		slider.setValue(value);
 		slider.setDisabled(disabled);
-		slider.sliderEl.className = className;
-		if (format) {
-			slider.setDisplayFormat(format);
+		if (className) {
+			slider.sliderEl.classList.add(...className.split(/\s+/u).filter(Boolean));
+		}
+		const setDisplayFormat = (
+			slider as unknown as {
+				setDisplayFormat?: (formatter: (value: number) => string) => void;
+			}
+		).setDisplayFormat;
+		if (format && typeof setDisplayFormat === "function") {
+			setDisplayFormat.call(slider, format);
 		}
 	});
 </script>

@@ -448,6 +448,17 @@
 	margin-left: auto;
 }
 
+.knowledge-workspace-settings-tabs {
+	display: flex;
+	gap: var(--size-4-1);
+	align-items: center;
+	min-width: 0;
+}
+
+.knowledge-workspace-settings-tabs button {
+	white-space: nowrap;
+}
+
 .knowledge-workspace-segmented button {
 	border-radius: 0;
 }
@@ -478,20 +489,34 @@
 }
 
 .knowledge-workspace-body {
-	display: grid;
-	grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+	position: relative;
+	display: block;
 	flex: 1;
 	min-height: 0;
 }
 
-.knowledge-workspace-body-no-graph-settings {
-	grid-template-columns: minmax(0, 1fr);
+.knowledge-workspace-settings-popover {
+	position: absolute;
+	top: var(--size-4-2);
+	left: clamp(
+		var(--size-4-3),
+		var(--knowledge-workspace-settings-left, var(--size-4-3)),
+		calc(100% - 532px)
+	);
+	z-index: 20;
+	width: min(520px, calc(100% - var(--size-4-6)));
+	max-height: min(72vh, 560px);
+	overflow: hidden;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-secondary);
+	box-shadow: var(--shadow-l);
 }
 
 .knowledge-workspace-filters {
+	max-height: inherit;
 	overflow: auto;
-	padding: var(--size-4-4);
-	border-right: 1px solid var(--background-modifier-border);
+	padding: var(--size-4-3);
 	background: var(--background-secondary);
 }
 
@@ -500,7 +525,7 @@
 }
 
 .knowledge-workspace-filters section {
-	margin-bottom: var(--size-4-6);
+	margin-bottom: var(--size-4-4);
 }
 
 .knowledge-workspace-filters section:last-child {
@@ -512,7 +537,7 @@
 	align-items: center;
 	justify-content: space-between;
 	min-height: 34px;
-	margin-bottom: var(--size-4-3);
+	margin-bottom: var(--size-4-2);
 }
 
 .knowledge-workspace-filters section > header h3 {
@@ -539,8 +564,8 @@
 }
 
 .knowledge-workspace-add-rule-button {
-	width: 32px;
-	height: 32px;
+	width: 30px;
+	height: 30px;
 }
 
 .knowledge-workspace-add-rule-button:hover,
@@ -551,8 +576,8 @@
 }
 
 .knowledge-workspace-remove-rule-button {
-	width: 34px;
-	height: 34px;
+	width: 30px;
+	height: 30px;
 }
 
 .knowledge-workspace-remove-rule-button:hover {
@@ -592,9 +617,9 @@
 .knowledge-workspace-rule {
 	display: flex;
 	flex-direction: column;
-	gap: var(--size-4-3);
-	margin-bottom: var(--size-4-3);
-	padding: var(--size-4-3);
+	gap: var(--size-4-2);
+	margin-bottom: var(--size-4-2);
+	padding: var(--size-4-2);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-s);
 	background: var(--background-primary);
@@ -603,18 +628,73 @@
 
 .knowledge-workspace-rule-row {
 	display: grid;
-	grid-template-columns: minmax(88px, 0.8fr) minmax(120px, 1fr) 34px;
-	gap: var(--size-4-2);
+	grid-template-columns: minmax(82px, 0.8fr) minmax(108px, 1fr) 30px;
+	gap: var(--size-4-1);
 	align-items: center;
 }
 
 .knowledge-workspace-rule-row.compact {
 	grid-template-columns: 1fr 1fr;
-	gap: var(--size-4-4);
+	gap: var(--size-4-3);
+}
+
+.knowledge-workspace-rule-row.link-line-label {
+	grid-template-columns: 1fr;
+	gap: var(--size-4-1);
+}
+
+.knowledge-workspace-line-style-row {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: var(--size-4-2);
+	align-items: center;
+	min-width: 0;
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+}
+
+.knowledge-workspace-line-style-row > span {
+	font-weight: var(--font-medium, 500);
+}
+
+.knowledge-workspace-line-style-row .knowledge-workspace-segmented {
+	display: flex;
+	min-width: 0;
+	justify-content: flex-start;
+}
+
+.knowledge-workspace-line-style-row button {
+	display: inline-flex;
+	height: 30px;
+	padding-inline: var(--size-4-3);
+	font-size: var(--font-ui-small);
+}
+
+.knowledge-workspace-slider-value {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 34px;
+	gap: var(--size-4-2);
+	align-items: center;
+	min-width: 0;
+	width: 100%;
+}
+
+.knowledge-workspace-slider-value > span {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+	text-align: right;
 }
 
 .knowledge-workspace-rule-row.filter {
 	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 34px;
+}
+
+.knowledge-workspace-rule-row.filter.bases {
+	grid-template-columns:
+		minmax(82px, 1fr)
+		minmax(96px, 1fr)
+		minmax(72px, 1fr)
+		30px;
 }
 
 .knowledge-workspace-rule-row.filter input {
@@ -626,6 +706,23 @@
 	grid-row: 1;
 }
 
+.knowledge-workspace-rule-row.filter.bases input {
+	grid-column: auto;
+}
+
+.knowledge-workspace-rule-row.filter.bases .knowledge-workspace-remove-rule-button {
+	grid-column: auto;
+	grid-row: auto;
+}
+
+.knowledge-workspace-rule-row.style-condition {
+	grid-template-columns:
+		minmax(82px, 1fr)
+		minmax(96px, 1fr)
+		minmax(72px, 1fr)
+		30px;
+}
+
 .knowledge-workspace-rule-row.compact label,
 .knowledge-workspace-rule-label {
 	display: flex;
@@ -634,6 +731,56 @@
 	min-width: 0;
 	color: var(--text-normal);
 	font-size: var(--font-ui-small);
+}
+
+.knowledge-workspace-rule-label.segmented {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	justify-content: normal;
+}
+
+.knowledge-workspace-rule-label.segmented .knowledge-workspace-segmented {
+	display: flex;
+	min-width: 0;
+	justify-content: flex-start;
+}
+
+.knowledge-workspace-rule-label.segmented button {
+	height: 30px;
+	padding-inline: var(--size-4-3);
+	font-size: var(--font-ui-small);
+}
+
+.knowledge-workspace-toggle-row {
+	display: flex;
+	gap: var(--size-4-4);
+	align-items: center;
+}
+
+.knowledge-workspace-rule-label .knowledge-workspace-obsidian-control,
+.knowledge-workspace-rule-row.compact .knowledge-workspace-obsidian-control {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.knowledge-workspace-rule-label input[type='range'],
+.knowledge-workspace-rule-row.compact input[type='range'] {
+	width: 100%;
+	accent-color: var(--interactive-accent);
+}
+
+.knowledge-workspace-rule-label input[type='range']::-webkit-slider-runnable-track,
+.knowledge-workspace-rule-row.compact input[type='range']::-webkit-slider-runnable-track {
+	height: 4px;
+	border-radius: 999px;
+	background: var(--background-modifier-border);
+}
+
+.knowledge-workspace-rule-label input[type='range']::-moz-range-track,
+.knowledge-workspace-rule-row.compact input[type='range']::-moz-range-track {
+	height: 4px;
+	border-radius: 999px;
+	background: var(--background-modifier-border);
 }
 
 .knowledge-workspace-rule-row.compact label > span,
@@ -649,7 +796,7 @@
 .knowledge-workspace-rule-label select {
 	min-width: 0;
 	width: 100%;
-	height: 34px;
+	height: 30px;
 	border-radius: var(--radius-s);
 	background: var(--background-primary-alt);
 	box-shadow: none;
@@ -713,6 +860,7 @@
 	position: relative;
 	--dock-panel-width: clamp(240px, 25vw, 320px);
 	min-width: 0;
+	height: 100%;
 	min-height: 0;
 	overflow: hidden;
 }

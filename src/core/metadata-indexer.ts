@@ -102,6 +102,12 @@ export class MetadataIndexer {
 		const metadataFields = Object.keys(frontmatter ?? {}).sort((left, right) =>
 			left.localeCompare(right, undefined, { sensitivity: 'base' }),
 		);
+		const links = uniqueStrings([
+			...(cache?.links ?? []).map((link) => link.link),
+			...(cache?.frontmatterLinks ?? []).map((link) => link.link),
+		]).sort((left, right) =>
+			left.localeCompare(right, undefined, { sensitivity: 'base' }),
+		);
 		const tags = new Set(toStringArray(frontmatter?.tags));
 		for (const tag of cache?.tags ?? []) {
 			tags.add(tag.tag.replace(/^#/, ''));
@@ -116,12 +122,18 @@ export class MetadataIndexer {
 			id,
 			path: id,
 			title: file.basename,
+			fileName: file.name,
+			extension: file.extension,
+			createdTime: file.stat.ctime,
+			modifiedTime: file.stat.mtime,
 			aliases,
 			folder: file.parent?.path === '/' ? '' : (file.parent?.path ?? ''),
 			domains: toStringArray(frontmatter?.domain),
 			tags: [...tags],
+			links,
 			noteType: firstString(frontmatter?.type),
 			metadataFields,
+			metadata: frontmatter ?? {},
 		};
 	}
 }

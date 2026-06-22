@@ -14,9 +14,13 @@ interface QueueItem {
 }
 
 export class GraphQueryEngine {
-	project(index: KnowledgeIndex, query: GraphQuery): GraphProjection {
+	project(
+		index: KnowledgeIndex,
+		query: GraphQuery,
+		globalQuery?: GraphQuery,
+	): GraphProjection {
 		if (query.roots.length === 0) {
-			return this.projectGlobal(index, query);
+			return this.projectGlobal(index, query, globalQuery);
 		}
 
 		const roots = query.roots.filter((root) => index.nodes.has(root));
@@ -46,12 +50,19 @@ export class GraphQueryEngine {
 				item.nodeId,
 				query,
 			)) {
-				if (!edgeMatchesFilters(edge, query) || visited.has(neighbor)) {
+				if (
+					!edgeMatchesFilters(edge, query, globalQuery) ||
+					visited.has(neighbor)
+				) {
 					continue;
 				}
 				visited.add(neighbor);
 				const node = index.nodes.get(neighbor);
-				if (!node || (!rootIds.has(neighbor) && !nodeMatchesFilters(node, query))) {
+				if (
+					!node ||
+					(!rootIds.has(neighbor) &&
+						!nodeMatchesFilters(node, query, globalQuery))
+				) {
 					continue;
 				}
 				if (included.size >= query.maxNodes) {
@@ -66,7 +77,7 @@ export class GraphQueryEngine {
 			(edge) =>
 				included.has(edge.source) &&
 				included.has(edge.target) &&
-				edgeMatchesFilters(edge, query),
+				edgeMatchesFilters(edge, query, globalQuery),
 		);
 		const connectedNodeIds = new Set<NodeId>();
 		for (const edge of edges) {
@@ -86,12 +97,13 @@ export class GraphQueryEngine {
 	private projectGlobal(
 		index: KnowledgeIndex,
 		query: GraphQuery,
+		globalQuery?: GraphQuery,
 	): GraphProjection {
 		const includedNodeIds = new Set<NodeId>();
 		const edges: KnowledgeEdge[] = [];
 
 		for (const edge of index.edges.values()) {
-			if (!edgeMatchesFilters(edge, query)) {
+			if (!edgeMatchesFilters(edge, query, globalQuery)) {
 				continue;
 			}
 			const source = index.nodes.get(edge.source);
@@ -99,8 +111,8 @@ export class GraphQueryEngine {
 			if (
 				!source ||
 				!target ||
-				!nodeMatchesFilters(source, query) ||
-				!nodeMatchesFilters(target, query)
+				!nodeMatchesFilters(source, query, globalQuery) ||
+				!nodeMatchesFilters(target, query, globalQuery)
 			) {
 				continue;
 			}

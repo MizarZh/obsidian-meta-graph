@@ -5,6 +5,7 @@
 		DebugSnapshot,
 		DockConnectionDirection,
 		MetaGraphDocument,
+		SettingsPanelMode,
 		WorkspaceState,
 	} from '../core/types';
 	import {
@@ -68,10 +69,17 @@
 	let lastFlowDirection: WorkspaceState['flowDirection'] | undefined;
 	let lastArcDirection: WorkspaceState['arcDirection'] | undefined;
 	let lastLayoutRevision: number | undefined;
+	let lastGlobalNodeStyleRules:
+		| WorkspaceState['globalNodeStyleRules']
+		| undefined;
+	let lastGlobalLinkStyleRules:
+		| WorkspaceState['globalLinkStyleRules']
+		| undefined;
 	let lastNodeStyleRules: WorkspaceState['nodeStyleRules'] | undefined;
 	let lastLinkStyleRules: WorkspaceState['linkStyleRules'] | undefined;
 	let debugOpen = $state(false);
-	let graphSettingsOpen = $state(true);
+	let settingsPanel = $state<SettingsPanelMode | undefined>(undefined);
+	let settingsPopoverLeft = $state(0);
 	let connectionDrag = $state<ConnectionDragState | undefined>(undefined);
 	let graphConnectionTargetNotePath = $state<string | undefined>(undefined);
 	let graphConnectionTargetTemplateId = $state<string | undefined>(undefined);
@@ -181,6 +189,8 @@
 				lastLayoutRevision !== undefined &&
 				nextState.layoutRevision !== lastLayoutRevision;
 			const styleRulesChanged =
+				nextState.globalNodeStyleRules !== lastGlobalNodeStyleRules ||
+				nextState.globalLinkStyleRules !== lastGlobalLinkStyleRules ||
 				nextState.nodeStyleRules !== lastNodeStyleRules ||
 				nextState.linkStyleRules !== lastLinkStyleRules;
 			const displaySettingsChanged =
@@ -207,6 +217,8 @@
 				lastFlowDirection = nextState.flowDirection;
 				lastArcDirection = nextState.arcDirection;
 				lastLayoutRevision = nextState.layoutRevision;
+				lastGlobalNodeStyleRules = nextState.globalNodeStyleRules;
+				lastGlobalLinkStyleRules = nextState.globalLinkStyleRules;
 				lastNodeStyleRules = nextState.nodeStyleRules;
 				lastLinkStyleRules = nextState.linkStyleRules;
 				void rebuildGraph(
@@ -317,7 +329,7 @@
 		const positions = layoutSnapshot.positions;
 		const graph = new GraphologyAdapter(
 			palette,
-			workspaceState.nodeStyleRules,
+			getActiveNodeStyleRules(),
 			getActiveLinkStyleRules(),
 		).fromProjection(workspaceState.projection, positions);
 		const newNodeIds = graph
@@ -412,8 +424,14 @@
 		}
 	}
 
-	function toggleGraphSettings(): void {
-		graphSettingsOpen = !graphSettingsOpen;
+	function openSettingsPanel(panel: SettingsPanelMode, event: MouseEvent): void {
+		const target = event.currentTarget;
+		if (target instanceof HTMLElement && workspaceRoot) {
+			const targetRect = target.getBoundingClientRect();
+			const rootRect = workspaceRoot.getBoundingClientRect();
+			settingsPopoverLeft = targetRect.left - rootRect.left;
+		}
+		settingsPanel = settingsPanel === panel ? undefined : panel;
 		window.requestAnimationFrame(() => renderer?.resize());
 	}
 
@@ -647,7 +665,19 @@
 	}
 
 	function getActiveLinkStyleRules() {
-		return workspaceState.linkStyleRules;
+		return [
+			...workspaceState.linkStyleRules.filter((rule) => rule.id === 'all'),
+			...workspaceState.globalLinkStyleRules,
+			...workspaceState.linkStyleRules.filter((rule) => rule.id !== 'all'),
+		];
+	}
+
+	function getActiveNodeStyleRules() {
+		return [
+			...workspaceState.nodeStyleRules.filter((rule) => rule.id === 'all'),
+			...workspaceState.globalNodeStyleRules,
+			...workspaceState.nodeStyleRules.filter((rule) => rule.id !== 'all'),
+		];
 	}
 
 	function setsEqual(left: Set<string>, right: Set<string>): boolean {
@@ -1058,46 +1088,68 @@
 		mode={workspaceState.mode}
 		charts={workspaceState.charts}
 		activeChartId={workspaceState.activeChartId}
-		flowEdgeStyle={workspaceState.flowEdgeStyle}
-		flowDirection={workspaceState.flowDirection}
-		arcDirection={workspaceState.arcDirection}
 		searchNodes={searchableNodes}
 		onSelectChart={(id) => controller.setActiveChart(id)}
 		onAddChart={() => controller.addChart()}
 		onRenameChart={(name) => controller.setActiveChartName(name)}
 		onChartType={(mode) => controller.setActiveChartType(mode)}
 		onDeleteChart={confirmDeleteActiveChart}
-		onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
-		onFlowDirection={(direction) =>
-			controller.setFlowDirection(direction)}
-		onArcDirection={(direction) => controller.setArcDirection(direction)}
 		onFocusNode={focusNodeFromSearch}
 		onFit={() => renderer?.fit()}
 		onRefresh={() => controller.refresh(true)}
-		{graphSettingsOpen}
-		onToggleGraphSettings={toggleGraphSettings}
+		{settingsPanel}
+		onSettingsPanel={openSettingsPanel}
 		{showDebugButton}
 		{debugOpen}
 		onToggleDebug={toggleDebug}
 	/>
 	<div
 		class="knowledge-workspace-body"
-		class:knowledge-workspace-body-no-graph-settings={!graphSettingsOpen}
 		class:knowledge-workspace-hidden={debugOpen}
 	>
-		{#if graphSettingsOpen}
-			<FilterPanel
-				query={workspaceState.query}
-				folders={workspaceState.availableFolders}
-				tags={workspaceState.availableTags}
-				nodeStyleRules={workspaceState.nodeStyleRules}
-				linkStyleRules={getActiveLinkStyleRules()}
-				onChange={(patch) => controller.updateQuery(patch)}
-				onNodeStyleRulesChange={(rules) =>
-					controller.setNodeStyleRules(rules)}
-				onLinkStyleRulesChange={(rules) =>
-					controller.setLinkStyleRules(rules)}
-			/>
+		{#if settingsPanel}
+			<div
+				class="knowledge-workspace-settings-popover"
+				style:--knowledge-workspace-settings-left={`${settingsPopoverLeft}px`}
+			>
+				<FilterPanel
+					{app}
+					panel={settingsPanel}
+					mode={workspaceState.mode}
+					flowEdgeStyle={workspaceState.flowEdgeStyle}
+					flowDirection={workspaceState.flowDirection}
+					arcDirection={workspaceState.arcDirection}
+					graphSpacing={workspaceState.graphSpacing}
+					flowSpacing={workspaceState.flowSpacing}
+					arcSpacing={workspaceState.arcSpacing}
+					query={workspaceState.query}
+					globalQuery={workspaceState.globalQuery}
+					folders={workspaceState.availableFolders}
+					tags={workspaceState.availableTags}
+					{metadataFieldSuggestions}
+					globalNodeStyleRules={workspaceState.globalNodeStyleRules}
+					nodeStyleRules={workspaceState.nodeStyleRules}
+					globalLinkStyleRules={workspaceState.globalLinkStyleRules}
+					linkStyleRules={workspaceState.linkStyleRules}
+					onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
+					onFlowDirection={(direction) =>
+						controller.setFlowDirection(direction)}
+					onArcDirection={(direction) => controller.setArcDirection(direction)}
+					onGraphSpacing={(spacing) => controller.setGraphSpacing(spacing)}
+					onFlowSpacing={(spacing) => controller.setFlowSpacing(spacing)}
+					onArcSpacing={(spacing) => controller.setArcSpacing(spacing)}
+					onChange={(patch) => controller.updateQuery(patch)}
+					onGlobalChange={(patch) => controller.updateGlobalQuery(patch)}
+					onGlobalNodeStyleRulesChange={(rules) =>
+						controller.setGlobalNodeStyleRules(rules)}
+					onNodeStyleRulesChange={(rules) =>
+						controller.setNodeStyleRules(rules)}
+					onGlobalLinkStyleRulesChange={(rules) =>
+						controller.setGlobalLinkStyleRules(rules)}
+					onLinkStyleRulesChange={(rules) =>
+						controller.setLinkStyleRules(rules)}
+				/>
+			</div>
 		{/if}
 		<main
 			class="knowledge-workspace-main"
