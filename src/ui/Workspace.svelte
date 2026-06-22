@@ -1127,6 +1127,17 @@
 		class:knowledge-workspace-hidden={debugOpen}
 	>
 		{#if settingsPanel}
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="knowledge-workspace-settings-backdrop"
+				onpointerdown={() => {
+					settingsPanel = undefined;
+				}}
+				oncontextmenu={(e) => {
+					e.preventDefault();
+					settingsPanel = undefined;
+				}}
+			></div>
 			<div
 				class="knowledge-workspace-settings-popover"
 				style:--knowledge-workspace-settings-left={`${settingsPopoverLeft}px`}

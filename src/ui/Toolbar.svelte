@@ -63,7 +63,9 @@
 	);
 	const filteredCharts = $derived(
 		charts.filter((chart) =>
-			chart.name.toLocaleLowerCase().includes(viewSearch.toLocaleLowerCase()),
+			chart.name
+				.toLocaleLowerCase()
+				.includes(viewSearch.toLocaleLowerCase()),
 		),
 	);
 	const nodeSearchOptions = $derived(
@@ -71,7 +73,9 @@
 			value: node.id,
 			label: node.title,
 			detail: formatNodeSearchDetail(node),
-			searchText: [node.title, node.path, ...(node.aliases ?? [])].join(" "),
+			searchText: [node.title, node.path, ...(node.aliases ?? [])].join(
+				" ",
+			),
 		})),
 	);
 	const VIEW_ICONS: Record<ViewMode, IconName> = {
@@ -151,7 +155,7 @@
 
 	function formatNodeSearchDetail(node: KnowledgeNode): string {
 		return node.aliases && node.aliases.length > 0
-			? `${node.path} · ${node.aliases.join(', ')}`
+			? `${node.path} · ${node.aliases.join(", ")}`
 			: node.path;
 	}
 
@@ -188,6 +192,15 @@
 		/>
 
 		{#if pickerOpen}
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="knowledge-workspace-view-config-backdrop"
+				onpointerdown={togglePicker}
+				oncontextmenu={(e) => {
+					e.preventDefault();
+					togglePicker();
+				}}
+			></div>
 			<div class="knowledge-workspace-view-menu" role="menu">
 				<label class="knowledge-workspace-view-search">
 					<span aria-hidden="true"></span>
@@ -237,6 +250,15 @@
 		{/if}
 
 		{#if configOpen}
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="knowledge-workspace-view-config-backdrop"
+				onpointerdown={closeConfig}
+				oncontextmenu={(e) => {
+					e.preventDefault();
+					closeConfig();
+				}}
+			></div>
 			<div
 				class="knowledge-workspace-view-config"
 				role="dialog"
@@ -253,9 +275,7 @@
 							pickerOpen = true;
 						}}
 					/>
-					<span
-						>{creatingView ? "Create view" : "Configure view"}</span
-					>
+					<div>{creatingView ? "Create view" : "Configure view"}</div>
 					<ObsidianButton
 						class="knowledge-workspace-icon-button close"
 						ariaLabel="Close"
@@ -295,11 +315,6 @@
 			</div>
 		{/if}
 	</div>
-	<ObsidianButton
-		icon="plus"
-		text="New view"
-		onClick={addChart}
-	/>
 	<div class="knowledge-workspace-settings-tabs">
 		{#each SETTINGS_TABS as tab}
 			<ObsidianButton

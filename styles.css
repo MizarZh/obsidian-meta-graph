@@ -179,6 +179,12 @@
 	height: 16px;
 }
 
+.knowledge-workspace-view-config-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 19;
+}
+
 .knowledge-workspace-view-menu,
 .knowledge-workspace-view-config {
 	position: absolute;
@@ -341,7 +347,7 @@
 	font-size: var(--font-ui-small);
 }
 
-.knowledge-workspace-view-config header span {
+.knowledge-workspace-view-config header div {
 	color: var(--text-normal);
 	font-weight: var(--font-semibold);
 }
@@ -421,7 +427,8 @@
 
 .knowledge-workspace-delete-view {
 	width: 100%;
-	margin-top: var(--size-4-3);
+	margin-top: var(--size-4-8);
+	border-top: 1px solid var(--background-modifier-border);
 	color: var(--text-error);
 }
 
@@ -501,6 +508,12 @@
 	display: block;
 	flex: 1;
 	min-height: 0;
+}
+
+.knowledge-workspace-settings-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 19;
 }
 
 .knowledge-workspace-settings-popover {

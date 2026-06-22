@@ -56,4 +56,5 @@
 	});
 </script>
 
-<span class="knowledge-workspace-obsidian-control" bind:this={containerEl}></span>
+<span class="knowledge-workspace-obsidian-control" bind:this={containerEl}
+></span>
