@@ -422,6 +422,8 @@ export class WorkspaceController {
 		templateId: string,
 		targetNodeId: NodeId,
 		name: string,
+		direction: DockConnectionDirection = 'from-dock-to-graph',
+		field = this.state.activeConnectionField,
 	): Promise<void> {
 		const template = this.state.dock.templates.find(
 			(item) => item.id === templateId,
@@ -441,8 +443,8 @@ export class WorkspaceController {
 		await this.connectDockNote(
 			file.path,
 			targetNodeId,
-			template.direction,
-			template.relationField,
+			direction,
+			field,
 		);
 	}
 

@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import type {
 		DebugSnapshot,
+		DockConnectionDirection,
 		MetaGraphDocument,
 		WorkspaceState,
 	} from '../core/types';
@@ -621,7 +622,11 @@
 		targetNodeId: string,
 	): void {
 		if (payload.kind === 'template') {
-			openCreateFromTemplateModal(payload, targetNodeId);
+			openCreateFromTemplateModal(
+				payload,
+				targetNodeId,
+				'from-dock-to-graph',
+			);
 			return;
 		}
 		void controller
@@ -762,7 +767,12 @@
 			const sourceNodeId = connectionDrag.sourceNodeId;
 			graphConnectionTargetNotePath = undefined;
 			graphConnectionTargetTemplateId = undefined;
-			openCreateFromTemplateId(templateId, sourceNodeId);
+			openCreateFromTemplateId(
+				templateId,
+				sourceNodeId,
+				undefined,
+				'from-graph-to-dock',
+			);
 			return;
 		}
 		const notePath =
@@ -812,14 +822,21 @@
 	function openCreateFromTemplateModal(
 		payload: Extract<DockDragPayload, { kind: 'template' }>,
 		targetNodeId: string,
+		direction: DockConnectionDirection,
 	): void {
-		openCreateFromTemplateId(payload.templateId, targetNodeId, payload.label);
+		openCreateFromTemplateId(
+			payload.templateId,
+			targetNodeId,
+			payload.label,
+			direction,
+		);
 	}
 
 	function openCreateFromTemplateId(
 		templateId: string,
 		targetNodeId: string,
 		label = findTemplateLabel(templateId),
+		direction: DockConnectionDirection = 'from-dock-to-graph',
 	): void {
 		if (!label) {
 			return;
@@ -833,6 +850,8 @@
 					templateId,
 					targetNodeId,
 					name,
+					direction,
+					workspaceState.activeConnectionField,
 				),
 		).open();
 	}

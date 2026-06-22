@@ -937,6 +937,11 @@
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 
+.knowledge-workspace-dock-suggest {
+	position: relative;
+	display: block;
+}
+
 .knowledge-workspace-dock-form input,
 .knowledge-workspace-dock-form select,
 .knowledge-workspace-dock-search input {
@@ -961,6 +966,10 @@
 	width: 100%;
 }
 
+.knowledge-workspace-dock-suggest input {
+	width: 100%;
+}
+
 .knowledge-workspace-dock-results {
 	position: absolute;
 	left: var(--size-4-2);
@@ -973,6 +982,12 @@
 	border-radius: var(--radius-s);
 	background: var(--background-primary);
 	box-shadow: var(--shadow-l, var(--shadow-s));
+}
+
+.knowledge-workspace-dock-suggest .knowledge-workspace-dock-results {
+	left: 0;
+	right: 0;
+	top: calc(100% + var(--size-4-1));
 }
 
 .knowledge-workspace-dock-results button {

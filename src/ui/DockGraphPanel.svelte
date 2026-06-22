@@ -58,28 +58,29 @@
 	let templateLabel = $state('');
 	let templatePath = $state('');
 	let targetFolder = $state('');
-	let relationField = $state('');
-	let direction = $state<DockConnectionDirection>('from-graph-to-dock');
+	let templatePathFocused = $state(false);
+	let targetFolderFocused = $state(false);
 
 	const noteResults = $derived(filterNotes(availableNotes, noteSearch));
+	const templatePathResults = $derived(filterNotes(availableNotes, templatePath));
+	const targetFolderResults = $derived(filterFolders(availableNotes, targetFolder));
 
 	function addTemplate(): void {
 		const label = templateLabel.trim();
-		if (!label) {
+		const path = templatePath.trim();
+		if (!label || !path) {
 			return;
 		}
 		onAddTemplate({
 			label,
-			templatePath: templatePath.trim(),
+			templatePath: path,
 			targetFolder: targetFolder.trim(),
-			relationField: relationField.trim() || activeConnectionField,
-			direction,
+			relationField: activeConnectionField,
+			direction: 'from-dock-to-graph',
 		});
 		templateLabel = '';
 		templatePath = '';
 		targetFolder = '';
-		relationField = '';
-		direction = 'from-graph-to-dock';
 		templateFormOpen = false;
 	}
 
@@ -98,6 +99,33 @@
 					),
 			)
 			.slice(0, 6);
+	}
+
+	function filterFolders(nodes: KnowledgeNode[], query: string): string[] {
+		const normalized = query.trim().toLocaleLowerCase();
+		const folders = [...new Set(nodes.map((node) => node.folder).filter(Boolean))]
+			.sort((left, right) =>
+				left.localeCompare(right, undefined, { sensitivity: 'base' }),
+			);
+		return (normalized
+			? folders.filter((folder) =>
+					folder.toLocaleLowerCase().includes(normalized),
+				)
+			: folders
+		).slice(0, 6);
+	}
+
+	function selectTemplateNode(node: KnowledgeNode): void {
+		templatePath = node.path;
+		if (!templateLabel.trim()) {
+			templateLabel = node.title;
+		}
+		templatePathFocused = false;
+	}
+
+	function selectTargetFolder(folder: string): void {
+		targetFolder = folder;
+		targetFolderFocused = false;
 	}
 
 	function pointStyle(index: number, total: number): string {
@@ -151,25 +179,59 @@
 				}}
 			>
 				<input type="text" placeholder="Label" bind:value={templateLabel} />
-				<input
-					type="text"
-					placeholder="Template note path"
-					bind:value={templatePath}
-				/>
-				<input
-					type="text"
-					placeholder="Target folder"
-					bind:value={targetFolder}
-				/>
-				<input
-					type="text"
-					placeholder={activeConnectionField}
-					bind:value={relationField}
-				/>
-				<select bind:value={direction}>
-					<option value="from-graph-to-dock">Graph to new note</option>
-					<option value="from-dock-to-graph">New note to graph</option>
-				</select>
+				<label class="knowledge-workspace-dock-suggest">
+					<input
+						type="text"
+						placeholder="Template note..."
+						bind:value={templatePath}
+						onfocus={() => (templatePathFocused = true)}
+						onblur={() => {
+							window.setTimeout(() => {
+								templatePathFocused = false;
+							}, 120);
+						}}
+					/>
+					{#if templatePathFocused && templatePathResults.length > 0}
+						<div class="knowledge-workspace-dock-results">
+							{#each templatePathResults as node (node.id)}
+								<button
+									type="button"
+									onmousedown={(event) => event.preventDefault()}
+									onclick={() => selectTemplateNode(node)}
+								>
+									<span>{node.title}</span>
+									<small>{node.path}</small>
+								</button>
+							{/each}
+						</div>
+					{/if}
+				</label>
+				<label class="knowledge-workspace-dock-suggest">
+					<input
+						type="text"
+						placeholder="Target folder..."
+						bind:value={targetFolder}
+						onfocus={() => (targetFolderFocused = true)}
+						onblur={() => {
+							window.setTimeout(() => {
+								targetFolderFocused = false;
+							}, 120);
+						}}
+					/>
+					{#if targetFolderFocused && targetFolderResults.length > 0}
+						<div class="knowledge-workspace-dock-results">
+							{#each targetFolderResults as folder}
+								<button
+									type="button"
+									onmousedown={(event) => event.preventDefault()}
+									onclick={() => selectTargetFolder(folder)}
+								>
+									<span>{folder}</span>
+								</button>
+							{/each}
+						</div>
+					{/if}
+				</label>
 				<button type="submit">Add template</button>
 			</form>
 		{/if}
