@@ -124,6 +124,13 @@
 			(reorderDrag?.active ? dragKey(reorderDrag.payload) : undefined),
 	);
 
+	const notesTitleCounts = $derived(
+		notes.reduce<Record<string, number>>((acc, entry) => {
+			acc[entry.title] = (acc[entry.title] ?? 0) + 1;
+			return acc;
+		}, {}),
+	);
+
 	const titleCounts = $derived(
 		availableNotes.reduce<Record<string, number>>((acc, node) => {
 			acc[node.title] = (acc[node.title] ?? 0) + 1;
@@ -601,7 +608,12 @@
 										? undefined
 										: `background: ${entry.color ?? 'var(--color-green, #44a37f)'}`}
 								></span>
-								<strong>{entry.title}</strong>
+								<div class="knowledge-workspace-dock-node-title">
+									<strong>{entry.title}</strong>
+									{#if (notesTitleCounts[entry.title] ?? 0) > 1}
+										<span class="knowledge-workspace-dock-node-path">{entry.path}</span>
+									{/if}
+								</div>
 								<ObsidianButton
 									icon="x"
 									ariaLabel={`Remove ${entry.title}`}

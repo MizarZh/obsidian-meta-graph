@@ -1183,6 +1183,13 @@
 	background: var(--color-green, #44a37f);
 }
 
+.knowledge-workspace-dock-node-title {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	overflow: hidden;
+}
+
 .knowledge-workspace-dock-node strong {
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -1190,6 +1197,15 @@
 	color: var(--text-normal);
 	font-size: var(--font-ui-small);
 	font-weight: var(--font-medium, 500);
+}
+
+.knowledge-workspace-dock-node-path {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--text-muted);
+	font-size: 10px;
+	line-height: 1.2;
 }
 
 .knowledge-workspace-dock-node button {
