@@ -22,13 +22,18 @@
 				label: string;
 				direction: DockConnectionDirection;
 				relationField: string;
+		  }
+		| {
+				kind: "broken-note";
+				notePath: string;
+				label: string;
 		  };
 	type ReorderPlacement = "before" | "after";
 
 	let {
 		app,
 		templates,
-		selectedNotes,
+		notes,
 		availableNotes,
 		nodeColors,
 		dockOpen,
@@ -53,7 +58,13 @@
 	}: {
 		app: App;
 		templates: DockTemplateNode[];
-		selectedNotes: KnowledgeNode[];
+		notes: Array<{
+			id: string;
+			path: string;
+			title: string;
+			broken: boolean;
+			color?: string;
+		}>;
 		availableNotes: KnowledgeNode[];
 		nodeColors: Map<string, string>;
 		dockOpen: boolean;
@@ -213,20 +224,11 @@
 		};
 	}
 
-	function noteDragPayload(node: KnowledgeNode): DockDragPayload {
-		return {
-			kind: "note",
-			notePath: node.path,
-			label: node.title,
-			direction: "from-dock-to-graph",
-			relationField: activeConnectionField,
-		};
-	}
-
 	function dragKey(payload: DockDragPayload): string {
-		return payload.kind === "template"
-			? `template:${payload.templateId}`
-			: `note:${payload.notePath}`;
+		if (payload.kind === "template") {
+			return `template:${payload.templateId}`;
+		}
+		return `note:${payload.notePath}`;
 	}
 
 	function handleNodePointerDown(
@@ -239,7 +241,9 @@
 		) {
 			return;
 		}
-		if (event.ctrlKey) {
+		if (payload.kind === "broken-note") {
+			if (event.ctrlKey) return;
+		} else if (event.ctrlKey) {
 			handleLinkPointerDown(payload, event);
 			return;
 		}
@@ -522,7 +526,7 @@
 			{/if}
 		</section>
 
-		<section class:knowledge-workspace-dock-section-collapsed={!notesOpen}>
+			<section class:knowledge-workspace-dock-section-collapsed={!notesOpen}>
 			<header>
 				<ObsidianButton
 					icon={notesOpen ? "chevron-down" : "chevron-right"}
@@ -530,7 +534,7 @@
 					onClick={() => (notesOpen = !notesOpen)}
 				/>
 				<h3>Selected notes</h3>
-				<span>{selectedNotes.length}</span>
+				<span>{notes.length}</span>
 			</header>
 			{#if notesOpen}
 				<div class="knowledge-workspace-dock-search">
@@ -551,36 +555,57 @@
 					/>
 				</div>
 				<div class="knowledge-workspace-dock-list">
-					{#if selectedNotes.length === 0}
+					{#if notes.length === 0}
 						<span class="knowledge-workspace-dock-empty"
 							>No selected notes</span
 						>
 					{:else}
-						{#each selectedNotes as node (node.id)}
-							{@const payload = noteDragPayload(node)}
+						{#each notes as entry (entry.path)}
+							{@const payload = entry.broken
+								? ({
+										kind: "broken-note",
+										notePath: entry.path,
+										label: entry.title,
+									} satisfies DockDragPayload)
+								: ({
+										kind: "note",
+										notePath: entry.path,
+										label: entry.title,
+										direction: "from-dock-to-graph",
+										relationField: activeConnectionField,
+									} satisfies DockDragPayload)}
 							<div
 								class:dragging={activeDraggingKey ===
 									dragKey(payload)}
-								class:target={graphTargetNotePath === node.path}
+								class:target={!entry.broken &&
+									graphTargetNotePath === entry.path}
 								class="knowledge-workspace-dock-node note"
-								data-dock-note-path={node.path}
+								class:broken={entry.broken}
+								data-dock-note-path={entry.path}
 								role="button"
 								tabindex="0"
-								aria-label={node.title}
+								aria-label={entry.broken
+									? `${entry.title} (file not found)`
+									: entry.title}
+								title={entry.broken
+									? `File not found: ${entry.path}`
+									: undefined}
 								onpointerdown={(event) =>
 									handleNodePointerDown(payload, event)}
-								ondblclick={() => onOpenNote(node.id)}
+								ondblclick={entry.broken
+									? undefined
+									: () => onOpenNote(entry.id)}
 							>
 								<span
-									style="background: {nodeColors.get(
-										node.path,
-									) ?? 'var(--color-green, #44a37f)'}"
+									style={entry.broken
+										? undefined
+										: `background: ${entry.color ?? 'var(--color-green, #44a37f)'}`}
 								></span>
-								<strong>{node.title}</strong>
+								<strong>{entry.title}</strong>
 								<ObsidianButton
 									icon="x"
-									ariaLabel={`Remove ${node.title}`}
-									onClick={() => onRemoveNote(node.path)}
+									ariaLabel={`Remove ${entry.title}`}
+									onClick={() => onRemoveNote(entry.path)}
 								/>
 							</div>
 						{/each}

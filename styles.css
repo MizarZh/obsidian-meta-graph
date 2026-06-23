@@ -1210,6 +1210,30 @@
 	color: var(--text-error);
 }
 
+.knowledge-workspace-dock-node.broken {
+	opacity: 0.35;
+	cursor: default;
+	pointer-events: auto;
+	user-select: none;
+}
+
+.knowledge-workspace-dock-node.broken strong {
+	text-decoration: line-through;
+	color: var(--text-muted);
+}
+
+.knowledge-workspace-dock-node.broken:hover {
+	background: var(--background-primary);
+}
+
+.knowledge-workspace-dock-node.broken button:hover {
+	color: var(--text-error);
+}
+
+.knowledge-workspace-dock-node.broken > span {
+	background: var(--text-muted) !important;
+}
+
 .knowledge-workspace-dock-empty {
 	display: grid;
 	flex: 1;

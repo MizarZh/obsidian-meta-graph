@@ -450,6 +450,32 @@ const atNodeLimit = $derived(
 		}
 		return colors;
 	});
+	const dockNoteEntries = $derived.by(() => {
+		const nodesByPath = new Map(
+			debugSnapshot.index.nodes.map((n) => [n.path, n]),
+		);
+		return workspaceState.dock.notes.map((note) => {
+			const node = nodesByPath.get(note.path);
+			if (node) {
+				return {
+					id: node.id,
+					path: node.path,
+					title: node.title,
+					broken: false,
+					color: nodeColors.get(node.path),
+				};
+			}
+			const name =
+				note.path.split("/").pop()?.replace(/\.md$/u, "") ??
+				note.path;
+			return {
+				id: note.id,
+				path: note.path,
+				title: name,
+				broken: true,
+			};
+		});
+	});
 	const metadataFieldSuggestions = $derived(
 		getMetadataFieldSuggestions(debugSnapshot),
 	);
@@ -926,6 +952,9 @@ const atNodeLimit = $derived(
 			);
 			return;
 		}
+		if (payload.kind === "broken-note") {
+			return;
+		}
 		void controller
 			.connectDockNote(
 				payload.notePath,
@@ -1247,7 +1276,7 @@ const atNodeLimit = $derived(
 			<DockGraphPanel
 				{app}
 				templates={workspaceState.dock.templates}
-				selectedNotes={selectedDockNodes}
+				notes={dockNoteEntries}
 				availableNotes={dockNoteCandidates}
 				{nodeColors}
 				{dockOpen}

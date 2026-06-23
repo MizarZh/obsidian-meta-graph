@@ -479,6 +479,26 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	updateDockNotePath(oldPath: string, newPath: string): boolean {
+		const normalizedOld = normalizePath(oldPath);
+		const normalizedNew = normalizePath(newPath);
+		if (normalizedOld === normalizedNew) {
+			return false;
+		}
+		const notes = this.state.dock.notes.map((note) =>
+			note.path === normalizedOld ? { ...note, path: normalizedNew } : note,
+		);
+		if (notes === this.state.dock.notes) {
+			return false;
+		}
+		this.state = {
+			...this.state,
+			dock: { ...this.state.dock, notes },
+		};
+		this.emit();
+		return true;
+	}
+
 	removeDockNote(path: NodeId): void {
 		const notes = this.state.dock.notes.filter((note) => note.path !== path);
 		if (notes.length === this.state.dock.notes.length) {

@@ -83,7 +83,10 @@ export class KnowledgeWorkspaceView extends TextFileView {
 			this.app.vault.on('delete', () => this.controller?.scheduleRefresh()),
 		);
 		this.registerEvent(
-			this.app.vault.on('rename', () => this.controller?.scheduleRefresh()),
+			this.app.vault.on('rename', (file, oldPath) => {
+				this.controller?.updateDockNotePath(oldPath, file.path);
+				this.controller?.scheduleRefresh();
+			}),
 		);
 		this.registerEvent(
 			this.app.workspace.on('file-open', (file: TFile | null) =>
