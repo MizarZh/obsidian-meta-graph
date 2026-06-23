@@ -88,6 +88,7 @@
 	let dockConnectionDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockTargetNodeId = $state<string | undefined>(undefined);
 	let dockOpen = $state(true);
+	let connectionOpen = $state(true);
 
 	interface LayoutSnapshot {
 		positions: Map<string, GraphPosition>;
@@ -1220,6 +1221,7 @@ const atNodeLimit = $derived(
 		<main
 			class="knowledge-workspace-main"
 			class:dock-node-dragging={Boolean(dockDrag)}
+			class:connection-collapsed={!connectionOpen}
 			style="--dock-panel-width: {dockOpen ? `${workspaceState.dock.dockWidth}px` : '32px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
@@ -1295,6 +1297,8 @@ const atNodeLimit = $derived(
 				dragging={Boolean(connectionDrag)}
 				dragTarget={connectionDrag?.targetNodeId}
 				undoCount={workspaceState.connectionUndoCount}
+				collapsed={!connectionOpen}
+				onToggle={() => (connectionOpen = !connectionOpen)}
 				onSelectField={(field) =>
 					controller.setActiveConnectionField(field)}
 				onAddField={(field) => controller.addConnectionField(field)}

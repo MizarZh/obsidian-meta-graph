@@ -900,6 +900,11 @@
 .knowledge-workspace-canvas {
 	position: absolute;
 	inset: 0;
+	bottom: 54px;
+}
+
+.connection-collapsed .knowledge-workspace-canvas {
+	bottom: 0;
 }
 
 .knowledge-workspace-connection-preview {
@@ -1237,21 +1242,43 @@
 	color: var(--text-on-accent);
 }
 
+.knowledge-workspace-connection-toggle-collapsed {
+	position: absolute;
+	left: 50%;
+	bottom: var(--size-4-3);
+	z-index: 7;
+	translate: -50% 0;
+	border-radius: var(--radius-m);
+	box-shadow: var(--shadow-s);
+	opacity: 0.7;
+}
+
+.knowledge-workspace-connection-toggle-collapsed:hover {
+	opacity: 1;
+}
+
 .knowledge-workspace-connection-panel {
 	position: absolute;
 	left: 0;
 	right: 0;
 	bottom: 0;
 	z-index: 6;
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto auto auto;
-	gap: var(--size-4-3);
+	display: flex;
 	align-items: center;
+	gap: var(--size-4-3);
 	min-height: 54px;
 	padding: var(--size-4-2) var(--size-4-3);
 	border-top: 1px solid var(--background-modifier-border);
 	background: var(--background-primary-alt);
 	box-shadow: 0 -1px 8px rgb(0 0 0 / 8%);
+}
+
+.knowledge-workspace-connection-body {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto auto auto;
+	gap: var(--size-4-3);
+	align-items: center;
+	flex: 1;
 }
 
 .knowledge-workspace-connection-picker {
