@@ -1311,6 +1311,19 @@ const atNodeLimit = $derived(
 					controller.reorderDockNote(path, targetPath, placement)}
 				onLinkPointerDown={handleDockLinkPointerDown}
 				onOpenNote={(nodeId) => void controller.openNode(nodeId)}
+				focusOnSelect={workspaceState.dock.focusOnSelect}
+				onToggleFocusOnSelect={() =>
+					controller.setDockFocusOnSelect(
+						!workspaceState.dock.focusOnSelect,
+					)}
+				onSelectNote={(nodeId) => {
+					controller.selectNode(nodeId);
+					if (workspaceState.dock.focusOnSelect) {
+						window.requestAnimationFrame(() =>
+							renderer?.focusNode(nodeId),
+						);
+					}
+				}}
 			/>
 			<Inspector node={selectedNode} />
 			{#if atNodeLimit}

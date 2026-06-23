@@ -238,6 +238,7 @@ export interface MetaGraphDock {
 	templates: DockTemplateNode[];
 	notes: DockNoteNode[];
 	dockWidth: number;
+	focusOnSelect: boolean;
 }
 
 export interface WorkspaceState {

@@ -26,6 +26,7 @@ export const DEFAULT_DOCK: MetaGraphDock = {
 	templates: [],
 	notes: [],
 	dockWidth: 280,
+	focusOnSelect: true,
 };
 
 export function normalizeMetaGraphDocument(
@@ -148,6 +149,7 @@ export function normalizeDock(value: unknown): MetaGraphDock {
 		templates: normalizeDockTemplates(record.templates),
 		notes: normalizeDockNotes(record.notes),
 		dockWidth: readFiniteNumber(record.dockWidth, 280),
+		focusOnSelect: record.focusOnSelect !== false,
 	};
 }
 

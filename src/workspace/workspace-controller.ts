@@ -479,6 +479,14 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	setDockFocusOnSelect(focusOnSelect: boolean): void {
+		this.state = {
+			...this.state,
+			dock: { ...this.state.dock, focusOnSelect },
+		};
+		this.emit();
+	}
+
 	updateDockNotePath(oldPath: string, newPath: string): boolean {
 		const normalizedOld = normalizePath(oldPath);
 		const normalizedNew = normalizePath(newPath);

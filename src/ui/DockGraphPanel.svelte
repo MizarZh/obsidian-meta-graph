@@ -55,6 +55,9 @@
 		onReorderNote,
 		onLinkPointerDown,
 		onOpenNote,
+		onSelectNote,
+		focusOnSelect,
+		onToggleFocusOnSelect,
 	}: {
 		app: App;
 		templates: DockTemplateNode[];
@@ -100,6 +103,9 @@
 			event: PointerEvent,
 		) => void;
 		onOpenNote: (nodeId: string) => void;
+		onSelectNote: (nodeId: string) => void;
+		focusOnSelect: boolean;
+		onToggleFocusOnSelect: () => void;
 	} = $props();
 
 	let templateFormOpen = $state(false);
@@ -253,6 +259,9 @@
 		} else if (event.ctrlKey) {
 			handleLinkPointerDown(payload, event);
 			return;
+		}
+		if (payload.kind === "note") {
+			onSelectNote(payload.notePath);
 		}
 		if (event.button !== 0) {
 			return;
@@ -542,6 +551,18 @@
 				/>
 				<h3>Selected notes</h3>
 				<span>{notes.length}</span>
+				<ObsidianButton
+					icon="crosshair"
+					active={focusOnSelect}
+					ariaLabel={
+						focusOnSelect
+							? "Auto-focus on click (enabled)"
+							: "Auto-focus on click (disabled)"
+					}
+					tooltip="Auto-focus on click"
+					class="knowledge-workspace-dock-focus-toggle"
+					onClick={onToggleFocusOnSelect}
+				/>
 			</header>
 			{#if notesOpen}
 				<div class="knowledge-workspace-dock-search">

@@ -1082,6 +1082,10 @@
 	font-size: var(--font-ui-smaller);
 }
 
+.knowledge-workspace-dock-focus-toggle.active svg {
+	color: var(--interactive-accent);
+}
+
 .knowledge-workspace-dock-form {
 	display: grid;
 	gap: var(--size-4-2);
