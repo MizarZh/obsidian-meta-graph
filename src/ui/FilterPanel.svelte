@@ -350,6 +350,13 @@
 				/>
 			</label>
 			<label class="knowledge-workspace-rule-label">
+				<span>Show isolated nodes</span>
+				<ObsidianToggle
+					value={query.showIsolatedNodes}
+					onChange={(value) => onChange({ showIsolatedNodes: value })}
+				/>
+			</label>
+			<label class="knowledge-workspace-rule-label">
 				<span>Spacing</span>
 				<div class="knowledge-workspace-slider-value">
 					<ObsidianSlider

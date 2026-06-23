@@ -129,6 +129,20 @@ export class GraphQueryEngine {
 			edges.push(edge);
 		}
 
+		if (query.showIsolatedNodes) {
+			for (const [nodeId, node] of index.nodes) {
+				if (includedNodeIds.size >= query.maxNodes) {
+					break;
+				}
+				if (
+					!includedNodeIds.has(nodeId) &&
+					nodeMatchesFilters(node, query, globalQuery)
+				) {
+					includedNodeIds.add(nodeId);
+				}
+			}
+		}
+
 		const nodes = [...includedNodeIds]
 			.map((nodeId) => index.nodes.get(nodeId))
 			.filter((node) => node !== undefined);

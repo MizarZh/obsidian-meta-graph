@@ -119,6 +119,7 @@ export interface GraphQuery {
 	depth: number;
 	direction: DirectionMode;
 	maxNodes: number;
+	showIsolatedNodes: boolean;
 }
 
 export interface GraphProjection {

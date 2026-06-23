@@ -465,6 +465,7 @@ function query(overrides: Partial<GraphQuery> = {}): GraphQuery {
 		depth: 2,
 		direction: 'both',
 		maxNodes: 200,
+		showIsolatedNodes: false,
 		...overrides,
 	};
 }

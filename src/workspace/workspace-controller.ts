@@ -581,6 +581,43 @@ export class WorkspaceController {
 		const filePath = this.createAvailableMarkdownPath(folderPath, title);
 		const content = await this.renderTemplateContent(template, title);
 		const file = await this.app.vault.create(filePath, content);
+
+		// Process with Templater if available
+		const appRuntime = this.app as unknown as {
+			plugins: { plugins: Record<string, { templater?: Record<string, unknown> } | undefined> };
+		};
+		const templaterPlugin = appRuntime.plugins.plugins['templater-obsidian'];
+		if (templaterPlugin?.templater) {
+			try {
+				const templateFile = this.app.vault.getAbstractFileByPath(
+					normalizePath(template.templatePath),
+				);
+				const templater = templaterPlugin.templater as unknown as {
+					create_running_config(
+						template_file: TFile | undefined,
+						target_file: TFile,
+						run_mode: number,
+					): unknown;
+					parse_template(
+						config: unknown,
+						content: string,
+					): Promise<string>;
+				};
+				const config = templater.create_running_config(
+					templateFile instanceof TFile ? templateFile : undefined,
+					file,
+					2, // RunMode.OverwriteFile
+				);
+				const processed = await templater.parse_template(config, content);
+				await this.app.vault.modify(file, processed);
+			} catch (error) {
+				console.warn(
+					'[Meta Graph] Templater processing failed, using fallback content.',
+					error,
+				);
+			}
+		}
+
 		await this.connectDockNote(
 			file.path,
 			targetNodeId,
@@ -937,7 +974,12 @@ export class WorkspaceController {
 				: '# {{title}}\n';
 		const rendered = raw
 			.replaceAll('{{title}}', title)
-			.replaceAll('{{name}}', title);
+			.replaceAll('{{name}}', title)
+			.replaceAll('{{date}}', window.moment().format('YYYY-MM-DD'))
+			.replaceAll('{{time}}', window.moment().format('HH:mm'))
+			.replace(/\{\{date:(.+?)\}\}/gu, (_, fmt: string) =>
+				window.moment().format(fmt),
+			);
 		return rendered.endsWith('\n') ? rendered : `${rendered}\n`;
 	}
 

@@ -10,4 +10,5 @@ export const DEFAULT_GRAPH_QUERY: GraphQuery = {
 	depth: 2,
 	direction: "both",
 	maxNodes: 500,
+	showIsolatedNodes: false,
 };
