@@ -1,27 +1,28 @@
-import Sigma from 'sigma';
+import Sigma from "sigma";
 import {
 	createEdgeArrowProgram,
 	drawStraightEdgeLabel,
-} from 'sigma/rendering';
+	type NodeHoverDrawingFunction,
+} from "sigma/rendering";
 import type {
 	EdgeLabelDrawingFunction,
 	NodeLabelDrawingFunction,
-} from 'sigma/rendering';
-import type { NodeDisplayData, EdgeDisplayData } from 'sigma/types';
+} from "sigma/rendering";
+import type { NodeDisplayData, EdgeDisplayData } from "sigma/types";
 import {
 	type RuntimeEdgeAttributes,
 	type RuntimeGraph,
 	type RuntimeNodeAttributes,
-} from './graphology-adapter';
-import { immediateNeighborhood } from './graph-events';
-import type { GraphPalette } from './graph-styles';
-import { calculateLabelOpacity } from './label-opacity';
+} from "./graphology-adapter";
+import { immediateNeighborhood } from "./graph-events";
+import type { GraphPalette } from "./graph-styles";
+import { calculateLabelOpacity } from "./label-opacity";
 import {
 	DashedArrowEdgeProgram,
 	DashedEdgeProgram,
 	DottedArrowEdgeProgram,
 	DottedEdgeProgram,
-} from './patterned-edge-program';
+} from "./patterned-edge-program";
 
 export class SigmaRenderer {
 	readonly instance: Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>;
@@ -43,25 +44,27 @@ export class SigmaRenderer {
 			container,
 			{
 				allowInvalidContainer: true,
-				defaultEdgeType: 'line',
+				defaultEdgeType: "line",
 				edgeProgramClasses: {
 					arrow: createEdgeArrowProgram<
 						RuntimeNodeAttributes,
 						RuntimeEdgeAttributes
 					>(),
 					dashed: DashedEdgeProgram,
-					'dashed-arrow': DashedArrowEdgeProgram,
+					"dashed-arrow": DashedArrowEdgeProgram,
 					dotted: DottedEdgeProgram,
-					'dotted-arrow': DottedArrowEdgeProgram,
+					"dotted-arrow": DottedArrowEdgeProgram,
 				},
 				nodeReducer: (node, data) => this.reduceNode(node, data),
 				edgeReducer: (edge, data) => this.reduceEdge(edge, data),
-				defaultDrawNodeLabel: createNodeLabelDrawer(
-					palette,
-					() => this.getCurrentLabelOpacity(),
+				defaultDrawNodeLabel: createNodeLabelDrawer(palette, () =>
+					this.getCurrentLabelOpacity(),
 				),
-				defaultDrawEdgeLabel: createEdgeLabelDrawer(
-					() => this.getCurrentLabelOpacity(),
+				defaultDrawNodeHover: createNodeHoverDrawer(palette, () =>
+					this.getCurrentLabelOpacity(),
+				),
+				defaultDrawEdgeLabel: createEdgeLabelDrawer(() =>
+					this.getCurrentLabelOpacity(),
 				),
 				renderEdgeLabels: true,
 				labelColor: { color: palette.label },
@@ -124,15 +127,23 @@ export class SigmaRenderer {
 		);
 	}
 
-	getNodeAtViewportPosition(position: { x: number; y: number }): string | undefined {
+	getNodeAtViewportPosition(position: {
+		x: number;
+		y: number;
+	}): string | undefined {
 		const hitTest = this.instance as unknown as {
-			getNodeAtPosition(position: { x: number; y: number }): string | null;
+			getNodeAtPosition(position: {
+				x: number;
+				y: number;
+			}): string | null;
 		};
 		const nodeId = hitTest.getNodeAtPosition(position);
 		if (!nodeId || !this.graph.hasNode(nodeId)) {
 			return this.getNearestNodeAtViewportPosition(position);
 		}
-		return this.graph.getNodeAttribute(nodeId, 'isBend') ? undefined : nodeId;
+		return this.graph.getNodeAttribute(nodeId, "isBend")
+			? undefined
+			: nodeId;
 	}
 
 	private getNearestNodeAtViewportPosition(position: {
@@ -155,7 +166,10 @@ export class SigmaRenderer {
 			const dx = viewportPosition.x - position.x;
 			const dy = viewportPosition.y - position.y;
 			const distance = Math.hypot(dx, dy);
-			const hitRadius = Math.max(14, sizeScaler.scaleSize(attributes.size) + 8);
+			const hitRadius = Math.max(
+				14,
+				sizeScaler.scaleSize(attributes.size) + 8,
+			);
 			if (distance <= hitRadius && distance < closestDistance) {
 				closestNodeId = nodeId;
 				closestDistance = distance;
@@ -280,7 +294,7 @@ function createNodeLabelDrawer(
 		const paddingY = 3;
 		context.save();
 		context.font = font;
-		context.textBaseline = 'middle';
+		context.textBaseline = "middle";
 		const textWidth = context.measureText(data.label).width;
 		const width = textWidth + paddingX * 2;
 		const height = settings.labelSize + paddingY * 2;
@@ -293,6 +307,72 @@ function createNodeLabelDrawer(
 		context.fill();
 		context.fillStyle = palette.label;
 		context.fillText(data.label, x, data.y);
+		context.restore();
+	};
+}
+
+function createNodeHoverDrawer(
+	palette: GraphPalette,
+	getOpacity: () => number,
+): NodeHoverDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
+	// Pre-compute dark-mode flag once from the palette's background luminance.
+	const bgChannels = palette.labelBackground.match(/\d+/gu);
+	const isDark =
+		bgChannels && bgChannels.length >= 3
+			? 0.299 * Number(bgChannels[0]) +
+					0.587 * Number(bgChannels[1]) +
+					0.114 * Number(bgChannels[2]) <
+				128
+			: false;
+	const hoverBg = isDark ? "rgba(40, 40, 40, 0.85)" : palette.labelBackground;
+
+	return (context, data, settings) => {
+		if (data.hidden) return;
+
+		const { labelSize: size, labelFont: font, labelWeight: weight } = settings;
+		context.font = `${weight} ${size}px ${font}`;
+
+		const alpha = getOpacity();
+		context.save();
+		context.globalAlpha = alpha;
+		context.fillStyle = hoverBg;
+		context.shadowOffsetX = 0;
+		context.shadowOffsetY = 0;
+		context.shadowBlur = 8;
+		context.shadowColor = "rgba(0,0,0,0.4)";
+
+		const PADDING = 2;
+
+		if (typeof data.label === "string") {
+			const textWidth = context.measureText(data.label).width;
+			const boxWidth = Math.round(textWidth + 5);
+			const boxHeight = Math.round(size + 2 * PADDING);
+			const radius = Math.max(data.size, size / 2) + PADDING;
+			const angleRadian = Math.asin(boxHeight / 2 / radius);
+			const xDeltaCoord = Math.sqrt(
+				Math.abs(radius * radius - (boxHeight / 2) * (boxHeight / 2)),
+			);
+
+			context.beginPath();
+			context.moveTo(data.x + xDeltaCoord, data.y + boxHeight / 2);
+			context.lineTo(data.x + radius + boxWidth, data.y + boxHeight / 2);
+			context.lineTo(data.x + radius + boxWidth, data.y - boxHeight / 2);
+			context.lineTo(data.x + xDeltaCoord, data.y - boxHeight / 2);
+			context.arc(data.x, data.y, radius, angleRadian, -angleRadian);
+			context.closePath();
+			context.fill();
+		} else {
+			context.beginPath();
+			context.arc(data.x, data.y, data.size + PADDING, 0, Math.PI * 2);
+			context.closePath();
+			context.fill();
+		}
+
+		context.shadowBlur = 0;
+		context.fillStyle = palette.label;
+		if (typeof data.label === "string") {
+			context.fillText(data.label, data.x + data.size + 3, data.y + size / 3);
+		}
 		context.restore();
 	};
 }
