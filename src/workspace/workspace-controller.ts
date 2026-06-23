@@ -471,6 +471,14 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	setDockWidth(dockWidth: number): void {
+		this.state = {
+			...this.state,
+			dock: { ...this.state.dock, dockWidth },
+		};
+		this.emit();
+	}
+
 	removeDockNote(path: NodeId): void {
 		const notes = this.state.dock.notes.filter((note) => note.path !== path);
 		if (notes.length === this.state.dock.notes.length) {

@@ -88,7 +88,6 @@
 	let dockConnectionDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockTargetNodeId = $state<string | undefined>(undefined);
 	let dockOpen = $state(true);
-	let dockWidth = $state(280);
 
 	interface LayoutSnapshot {
 		positions: Map<string, GraphPosition>;
@@ -1221,7 +1220,7 @@ const atNodeLimit = $derived(
 		<main
 			class="knowledge-workspace-main"
 			class:dock-node-dragging={Boolean(dockDrag)}
-			style="--dock-panel-width: {dockOpen ? `${dockWidth}px` : '32px'}"
+			style="--dock-panel-width: {dockOpen ? `${workspaceState.dock.dockWidth}px` : '32px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
 			{#if connectionDrag}
@@ -1251,8 +1250,8 @@ const atNodeLimit = $derived(
 				{nodeColors}
 				{dockOpen}
 				onToggleDock={() => (dockOpen = !dockOpen)}
-				{dockWidth}
-				onResizeDock={(w: number) => (dockWidth = w)}
+				dockWidth={workspaceState.dock.dockWidth}
+				onResizeDock={(w: number) => controller.setDockWidth(w)}
 				activeConnectionField={workspaceState.activeConnectionField}
 				draggingKey={dockDrag
 					? dockDrag.kind === "template"

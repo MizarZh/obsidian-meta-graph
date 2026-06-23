@@ -25,6 +25,7 @@ export const DEFAULT_CONNECTION_FIELDS = [DEFAULT_CONNECTION_FIELD];
 export const DEFAULT_DOCK: MetaGraphDock = {
 	templates: [],
 	notes: [],
+	dockWidth: 280,
 };
 
 export function normalizeMetaGraphDocument(
@@ -146,6 +147,7 @@ export function normalizeDock(value: unknown): MetaGraphDock {
 	return {
 		templates: normalizeDockTemplates(record.templates),
 		notes: normalizeDockNotes(record.notes),
+		dockWidth: readFiniteNumber(record.dockWidth, 280),
 	};
 }
 

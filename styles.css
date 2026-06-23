@@ -1003,6 +1003,10 @@
 	overflow: hidden;
 }
 
+.knowledge-workspace-dock-panel-collapsed .knowledge-workspace-dock-resize-handle {
+	display: none;
+}
+
 .knowledge-workspace-dock-panel:not(.knowledge-workspace-dock-panel-collapsed) {
 	gap: var(--size-4-2);
 }
