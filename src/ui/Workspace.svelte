@@ -1249,7 +1249,7 @@
 				{dockOpen}
 				onToggleDock={() => (dockOpen = !dockOpen)}
 				{dockWidth}
-				onResizeDock={(w) => (dockWidth = w)}
+				onResizeDock={(w: number) => (dockWidth = w)}
 				activeConnectionField={workspaceState.activeConnectionField}
 				draggingKey={dockDrag
 					? dockDrag.kind === "template"

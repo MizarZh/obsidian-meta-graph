@@ -1037,6 +1037,11 @@
 	box-shadow: var(--shadow-s);
 }
 
+.knowledge-workspace-dock-section-collapsed {
+	flex: 0 0 auto !important;
+	overflow: hidden;
+}
+
 .knowledge-workspace-dock-panel header {
 	display: flex;
 	align-items: center;
