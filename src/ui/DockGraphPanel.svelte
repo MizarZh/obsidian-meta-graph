@@ -137,20 +137,14 @@
 		}, {}),
 	);
 
-	const availableTemplatePaths = $derived(
-		new Set(availableNotes.map((n) => n.path)),
-	);
-	const availableTemplateFolders = $derived(
-		new Set(availableNotes.map((n) => n.folder).filter(Boolean)),
-	);
 	const templateEntries = $derived(
 		templates.map((t) => ({
 			...t,
 			broken:
 				(t.templatePath !== "" &&
-					!availableTemplatePaths.has(t.templatePath)) ||
+					!app.vault.getAbstractFileByPath(t.templatePath)) ||
 				(t.targetFolder !== "" &&
-					!availableTemplateFolders.has(t.targetFolder)),
+					!app.vault.getAbstractFileByPath(t.targetFolder)),
 		})),
 	);
 
@@ -174,17 +168,25 @@
 			),
 		})),
 	);
-	const targetFolderOptions = $derived(
-		[...new Set(availableNotes.map((node) => node.folder).filter(Boolean))]
+	const targetFolderOptions = $derived.by(() => {
+		// Reference availableNotes so this re-runs when the graph refreshes.
+		void availableNotes;
+		const folderPaths = app.vault
+			.getAllFolders()
+			.map((f) => (f.path === "/" ? "" : f.path))
+			.filter(Boolean)
 			.sort((left, right) =>
 				left.localeCompare(right, undefined, { sensitivity: "base" }),
-			)
-			.map((folder) => ({
-				value: folder,
-				label: folder,
-				searchText: folder,
+			);
+		return [
+			{ value: "", label: "Vault root", searchText: "vault root" },
+			...folderPaths.map((path) => ({
+				value: path,
+				label: path,
+				searchText: path,
 			})),
-	);
+		];
+	});
 
 	function saveTemplate(): void {
 		const label = templateLabel.trim();
