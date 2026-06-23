@@ -2,8 +2,8 @@
 	"id": "obsidian-meta-graph",
 	"name": "Meta graph",
 	"version": "1.0.0",
-	"minAppVersion": "1.7.2",
-	"description": "Explore note metadata as a local graph or directed flow.",
-	"author": "Mizar",
+	"minAppVersion": "1.12.7",
+	"description": "Visualize and edit metadata-linked relationships between notes as an interactive graph.",
+	"author": "MizarZh",
 	"isDesktopOnly": false
 }
