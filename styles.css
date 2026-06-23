@@ -333,6 +333,9 @@
 }
 
 .knowledge-workspace-view-config {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-2);
 	padding: var(--size-4-3);
 	background: var(--background-primary);
 }
@@ -427,7 +430,8 @@
 
 .knowledge-workspace-delete-view {
 	width: 100%;
-	margin-top: var(--size-4-8);
+	margin-top: var(--size-4-3);
+	padding-block: var(--size-4-1);
 	border-top: 1px solid var(--background-modifier-border);
 	color: var(--text-error);
 }
@@ -756,6 +760,7 @@
 	min-width: 0;
 	color: var(--text-normal);
 	font-size: var(--font-ui-small);
+	margin-block: var(--size-4-2);
 }
 
 .knowledge-workspace-rule-label.segmented {
@@ -1008,7 +1013,8 @@
 	overflow: hidden;
 }
 
-.knowledge-workspace-dock-panel-collapsed .knowledge-workspace-dock-resize-handle {
+.knowledge-workspace-dock-panel-collapsed
+	.knowledge-workspace-dock-resize-handle {
 	display: none;
 }
 

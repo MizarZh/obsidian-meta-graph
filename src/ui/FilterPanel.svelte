@@ -439,6 +439,9 @@
 			{/if}
 		</section>
 	{:else if panel === 'filters'}
+		<section>
+			<header><h3>Filters</h3></header>
+		</section>
 		{#each ['global', 'current'] as scope}
 			<section>
 				<header>
@@ -520,6 +523,9 @@
 			</section>
 		{/each}
 	{:else if panel === 'note-style'}
+		<section>
+			<header><h3>Note styles</h3></header>
+		</section>
 		{#each ['global', 'current'] as scope}
 			<section>
 				<header>
@@ -632,6 +638,9 @@
 			</section>
 		{/each}
 	{:else}
+		<section>
+			<header><h3>Link styles</h3></header>
+		</section>
 		{#each ['global', 'current'] as scope}
 			<section>
 				<header>
