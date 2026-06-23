@@ -25,69 +25,73 @@
 		ViewMode,
 	} from '../core/types';
 
-	let {
-		app,
-		panel,
-		mode,
-		flowEdgeStyle,
-		flowDirection,
-		arcDirection,
-		graphSpacing,
-		flowSpacing,
-		arcSpacing,
-		query,
-		globalQuery,
-		folders,
-		tags,
-		metadataFieldSuggestions,
-		globalNodeStyleRules,
-		nodeStyleRules,
-		globalLinkStyleRules,
-		linkStyleRules,
-		onFlowEdgeStyle,
-		onFlowDirection,
-		onArcDirection,
-		onGraphSpacing,
-		onFlowSpacing,
-		onArcSpacing,
-		onChange,
-		onGlobalChange,
-		onGlobalNodeStyleRulesChange,
-		onNodeStyleRulesChange,
-		onGlobalLinkStyleRulesChange,
-		onLinkStyleRulesChange,
-	}: {
-		app: App;
-		panel: SettingsPanelMode;
-		mode: ViewMode;
-		flowEdgeStyle: FlowEdgeStyle;
-		flowDirection: FlowDirection;
-		arcDirection: ArcDirection;
-		graphSpacing: number;
-		flowSpacing: number;
-		arcSpacing: number;
-		query: GraphQuery;
-		globalQuery: GraphQuery;
-		folders: string[];
-		tags: string[];
-		metadataFieldSuggestions: string[];
-		globalNodeStyleRules: NodeStyleRule[];
-		nodeStyleRules: NodeStyleRule[];
-		globalLinkStyleRules: LinkStyleRule[];
-		linkStyleRules: LinkStyleRule[];
-		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
-		onFlowDirection: (direction: FlowDirection) => void;
-		onArcDirection: (direction: ArcDirection) => void;
-		onGraphSpacing: (spacing: number) => void;
-		onFlowSpacing: (spacing: number) => void;
-		onArcSpacing: (spacing: number) => void;
-		onChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
-		onGlobalChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
-		onGlobalNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
-		onNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
-		onGlobalLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
-		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
-	} = $props();
+		let {
+			app,
+			panel,
+			mode,
+			fadeDistance,
+			flowEdgeStyle,
+			flowDirection,
+			arcDirection,
+			graphSpacing,
+			flowSpacing,
+			arcSpacing,
+			query,
+			globalQuery,
+			folders,
+			tags,
+			metadataFieldSuggestions,
+			globalNodeStyleRules,
+			nodeStyleRules,
+			globalLinkStyleRules,
+			linkStyleRules,
+			onFlowEdgeStyle,
+			onFlowDirection,
+			onArcDirection,
+			onFadeDistance,
+			onGraphSpacing,
+			onFlowSpacing,
+			onArcSpacing,
+			onChange,
+			onGlobalChange,
+			onGlobalNodeStyleRulesChange,
+			onNodeStyleRulesChange,
+			onGlobalLinkStyleRulesChange,
+			onLinkStyleRulesChange,
+		}: {
+			app: App;
+			panel: SettingsPanelMode;
+			mode: ViewMode;
+			fadeDistance: number;
+			flowEdgeStyle: FlowEdgeStyle;
+			flowDirection: FlowDirection;
+			arcDirection: ArcDirection;
+			graphSpacing: number;
+			flowSpacing: number;
+			arcSpacing: number;
+			query: GraphQuery;
+			globalQuery: GraphQuery;
+			folders: string[];
+			tags: string[];
+			metadataFieldSuggestions: string[];
+			globalNodeStyleRules: NodeStyleRule[];
+			nodeStyleRules: NodeStyleRule[];
+			globalLinkStyleRules: LinkStyleRule[];
+			linkStyleRules: LinkStyleRule[];
+			onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
+			onFlowDirection: (direction: FlowDirection) => void;
+			onArcDirection: (direction: ArcDirection) => void;
+			onFadeDistance: (value: number) => void;
+			onGraphSpacing: (spacing: number) => void;
+			onFlowSpacing: (spacing: number) => void;
+			onArcSpacing: (spacing: number) => void;
+			onChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
+			onGlobalChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
+			onGlobalNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
+			onNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
+			onGlobalLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
+			onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
+		} = $props();
 
 	const FILE_FILTER_FIELD_OPTIONS = [
 		{ value: 'file.name', label: 'File' },
@@ -330,20 +334,58 @@
 		<section>
 			<header><h3>Graph settings</h3></header>
 			<label class="knowledge-workspace-rule-label">
+				<span>Max nodes</span>
+				<ObsidianTextInput
+					type="number"
+					min="1"
+					max="9999"
+					step="1"
+					value={query.maxNodes}
+					onChange={(value) => {
+						const parsed = Number.parseInt(value, 10);
+						if (Number.isFinite(parsed) && parsed > 0) {
+							onChange({ maxNodes: parsed });
+						}
+					}}
+				/>
+			</label>
+			<label class="knowledge-workspace-rule-label">
 				<span>Spacing</span>
-				<ObsidianSlider
-					min={0.25}
-					max={4}
-					step={0.25}
-					value={mode === 'graph'
+				<div class="knowledge-workspace-slider-value">
+					<ObsidianSlider
+						min={0.25}
+						max={4}
+						step={0.25}
+						value={mode === 'graph'
+							? graphSpacing
+							: mode === 'flow'
+								? flowSpacing
+								: arcSpacing}
+						format={(value) => value.toFixed(2).replace(/\.?0+$/u, '')}
+						onChange={commitSpacing}
+						onCommit={commitSpacing}
+					/>
+					<span>{(mode === 'graph'
 						? graphSpacing
 						: mode === 'flow'
 							? flowSpacing
-							: arcSpacing}
-					format={(value) => value.toFixed(2).replace(/\.?0+$/u, '')}
-					onChange={commitSpacing}
-					onCommit={commitSpacing}
-				/>
+							: arcSpacing).toFixed(2).replace(/\.?0+$/u, '')}</span>
+				</div>
+			</label>
+			<label class="knowledge-workspace-rule-label">
+				<span>Fade distance</span>
+				<div class="knowledge-workspace-slider-value">
+					<ObsidianSlider
+						value={fadeDistance}
+						min={0.25}
+						max={4}
+						step={0.05}
+						format={(value) => value.toFixed(2).replace(/\.?0+$/u, '')}
+						onChange={onFadeDistance}
+						onCommit={onFadeDistance}
+					/>
+					<span>{fadeDistance.toFixed(2).replace(/\.?0+$/u, '')}</span>
+				</div>
 			</label>
 			{#if mode === 'flow'}
 				<div class="knowledge-workspace-rule-label segmented">

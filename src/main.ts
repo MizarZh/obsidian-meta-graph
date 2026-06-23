@@ -15,6 +15,7 @@ import {
 	type KnowledgeWorkspaceSettings,
 } from './settings/settings';
 import { KnowledgeWorkspaceSettingsTab } from './settings/SettingsTab';
+import { DEFAULT_GRAPH_QUERY } from './query/graph-query';
 import {
 	createMetaGraphMarkdown,
 	META_GRAPH_FRONTMATTER_KEY,
@@ -158,7 +159,7 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 		await this.app.vault.modify(
 			file,
 			createMetaGraphMarkdown(
-				this.settings.maxNodes,
+				DEFAULT_GRAPH_QUERY.maxNodes,
 				this.settings.fadeDistance,
 			),
 		);

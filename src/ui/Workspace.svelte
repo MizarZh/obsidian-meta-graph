@@ -34,7 +34,7 @@
 	import DockGraphPanel, {
 		type DockDragPayload,
 	} from "./DockGraphPanel.svelte";
-	import DisplayControls from "./DisplayControls.svelte";
+
 	import Inspector from "./Inspector.svelte";
 	import ConnectionPanel from "./ConnectionPanel.svelte";
 	import { ConfirmDeleteViewModal } from "./ConfirmDeleteWorkspaceModal";
@@ -420,6 +420,11 @@
 		),
 	);
 	const searchableNodes = $derived(workspaceState.projection?.nodes ?? []);
+const atNodeLimit = $derived(
+	workspaceState.projection
+		? workspaceState.projection.nodes.length >= workspaceState.query.maxNodes
+		: false,
+);
 	const debugSnapshot: DebugSnapshot = $derived(
 		controller.getDebugSnapshot(workspaceState),
 	);
@@ -1169,6 +1174,7 @@
 					{app}
 					panel={settingsPanel}
 					mode={workspaceState.mode}
+					fadeDistance={workspaceState.fadeDistance}
 					flowEdgeStyle={workspaceState.flowEdgeStyle}
 					flowDirection={workspaceState.flowDirection}
 					arcDirection={workspaceState.arcDirection}
@@ -1190,6 +1196,8 @@
 						controller.setFlowDirection(direction)}
 					onArcDirection={(direction) =>
 						controller.setArcDirection(direction)}
+					onFadeDistance={(value) =>
+						controller.setFadeDistance(value)}
 					onGraphSpacing={(spacing) =>
 						controller.setGraphSpacing(spacing)}
 					onFlowSpacing={(spacing) =>
@@ -1230,11 +1238,6 @@
 					/>
 				</svg>
 			{/if}
-			<DisplayControls
-				fadeDistance={workspaceState.fadeDistance}
-				onInput={(value) => controller.setFadeDistance(value)}
-				onCommit={(value) => controller.setFadeDistance(value)}
-			/>
 			{#if workspaceState.projection?.nodes.length === 0}
 				<div class="knowledge-workspace-empty">
 					No matching metadata relationships.
@@ -1280,6 +1283,11 @@
 				onOpenNote={(nodeId) => void controller.openNode(nodeId)}
 			/>
 			<Inspector node={selectedNode} />
+			{#if atNodeLimit}
+				<section class="knowledge-workspace-notice">
+					<span>Node limit ({workspaceState.query.maxNodes}) reached. Some notes may be hidden.</span>
+				</section>
+			{/if}
 			<ConnectionPanel
 				{app}
 				fields={workspaceState.connectionFields}

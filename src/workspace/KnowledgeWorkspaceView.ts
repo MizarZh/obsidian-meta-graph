@@ -6,6 +6,7 @@ import {
 } from 'obsidian';
 import { mount, unmount } from 'svelte';
 import type { MetaGraphDocument } from '../core/types';
+import { DEFAULT_GRAPH_QUERY } from '../query/graph-query';
 import type KnowledgeWorkspacePlugin from '../main';
 import Workspace from '../ui/Workspace.svelte';
 import {
@@ -114,7 +115,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		try {
 			document = parseMetaGraphDocument(
 				data,
-				this.plugin.settings.maxNodes,
+				DEFAULT_GRAPH_QUERY.maxNodes,
 				this.plugin.settings.fadeDistance,
 			);
 		} catch (error) {
@@ -126,7 +127,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		}
 		this.controller = new WorkspaceController(
 			this.app,
-			this.plugin.settings.maxNodes,
+			DEFAULT_GRAPH_QUERY.maxNodes,
 			this.plugin.settings.debug,
 			this.plugin.settings.relayoutFlowAfterConnection,
 			this.plugin.settings.fadeDistance,
