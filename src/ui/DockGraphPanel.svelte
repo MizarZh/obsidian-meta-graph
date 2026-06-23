@@ -137,6 +137,23 @@
 		}, {}),
 	);
 
+	const availableTemplatePaths = $derived(
+		new Set(availableNotes.map((n) => n.path)),
+	);
+	const availableTemplateFolders = $derived(
+		new Set(availableNotes.map((n) => n.folder).filter(Boolean)),
+	);
+	const templateEntries = $derived(
+		templates.map((t) => ({
+			...t,
+			broken:
+				(t.templatePath !== "" &&
+					!availableTemplatePaths.has(t.templatePath)) ||
+				(t.targetFolder !== "" &&
+					!availableTemplateFolders.has(t.targetFolder)),
+		})),
+	);
+
 	const titleCounts = $derived(
 		availableNotes.reduce<Record<string, number>>((acc, node) => {
 			acc[node.title] = (acc[node.title] ?? 0) + 1;
@@ -497,25 +514,41 @@
 					</form>
 				{/if}
 				<div class="knowledge-workspace-dock-list">
-					{#if templates.length === 0}
+					{#if templateEntries.length === 0}
 						<span class="knowledge-workspace-dock-empty"
 							>No templates</span
 						>
 					{:else}
-						{#each templates as template (template.id)}
+						{#each templateEntries as template (template.id)}
 							{@const payload = templateDragPayload(template)}
 							<div
 								class:dragging={activeDraggingKey ===
 									dragKey(payload)}
-								class:target={graphTargetTemplateId ===
-									template.id}
+								class:target={!template.broken &&
+									graphTargetTemplateId === template.id}
 								class="knowledge-workspace-dock-node template"
+								class:broken={template.broken}
 								data-dock-template-id={template.id}
+								data-dock-template-broken={template.broken
+									? ""
+									: undefined}
 								role="button"
 								tabindex="0"
-								aria-label={template.label}
-								onpointerdown={(event) =>
-									handleNodePointerDown(payload, event)}
+								aria-label={
+									template.broken
+										? `${template.label} (template note or target folder not found)`
+										: template.label
+								}
+								title={
+									template.broken
+										? `Template note or target folder not found`
+										: undefined
+								}
+								onpointerdown={(event) => {
+									if (template.broken && event.ctrlKey)
+										return;
+									handleNodePointerDown(payload, event);
+								}}
 							>
 								<span></span>
 								<strong>{template.label}</strong>
