@@ -143,6 +143,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 				controller: this.controller,
 				workspaceFilePath: this.file?.path,
 				showDebugButton: this.plugin.settings.showDebugButton,
+				openTemplateNoteInNewTab: this.plugin.settings.openTemplateNoteInNewTab,
 				onAutoSave: (nextDocument: MetaGraphDocument) =>
 					this.persistDocument(nextDocument),
 			},

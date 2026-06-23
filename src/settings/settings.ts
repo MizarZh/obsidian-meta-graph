@@ -3,6 +3,7 @@ export interface KnowledgeWorkspaceSettings {
 	debug: boolean;
 	showDebugButton: boolean;
 	relayoutFlowAfterConnection: boolean;
+	openTemplateNoteInNewTab: boolean;
 }
 
 export const DEFAULT_SETTINGS: KnowledgeWorkspaceSettings = {
@@ -10,4 +11,5 @@ export const DEFAULT_SETTINGS: KnowledgeWorkspaceSettings = {
 	debug: false,
 	showDebugButton: false,
 	relayoutFlowAfterConnection: false,
+	openTemplateNoteInNewTab: true,
 };

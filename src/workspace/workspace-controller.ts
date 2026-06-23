@@ -565,7 +565,7 @@ export class WorkspaceController {
 		name: string,
 		direction: DockConnectionDirection = 'from-dock-to-graph',
 		field = this.state.activeConnectionField,
-	): Promise<void> {
+	): Promise<string> {
 		const template = this.state.dock.templates.find(
 			(item) => item.id === templateId,
 		);
@@ -587,6 +587,7 @@ export class WorkspaceController {
 			direction,
 			field,
 		);
+		return file.path;
 	}
 
 	updateQuery(patch: Partial<Omit<GraphQuery, 'roots'>>): void {

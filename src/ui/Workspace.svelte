@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { type App } from "obsidian";
+	import { TFile, type App } from "obsidian";
 	import { onMount } from "svelte";
 	import type {
 		DebugSnapshot,
@@ -47,12 +47,14 @@
 		onAutoSave,
 		workspaceFilePath,
 		showDebugButton,
+		openTemplateNoteInNewTab,
 	}: {
 		app: App;
 		controller: WorkspaceController;
 		onAutoSave: (document: MetaGraphDocument) => Promise<void>;
 		workspaceFilePath?: string;
 		showDebugButton: boolean;
+		openTemplateNoteInNewTab: boolean;
 	} = $props();
 	let workspaceState: WorkspaceState = $state(getInitialState());
 	let workspaceRoot: HTMLDivElement;
@@ -1071,29 +1073,42 @@ const atNodeLimit = $derived(
 		);
 	}
 
-	function openCreateFromTemplateId(
-		templateId: string,
-		targetNodeId: string,
-		label = findTemplateLabel(templateId),
-		direction: DockConnectionDirection = "from-dock-to-graph",
-	): void {
-		if (!label) {
-			return;
+		async function openCreateFromTemplateId(
+			templateId: string,
+			targetNodeId: string,
+			label = findTemplateLabel(templateId),
+			direction: DockConnectionDirection = "from-dock-to-graph",
+		): Promise<void> {
+			if (!label) {
+				return;
+			}
+			const filePath = await new Promise<string | undefined>(
+				(resolve) => {
+					new CreateFromTemplateModal(
+						app,
+						label,
+						findNodeTitle(targetNodeId),
+						async (name) => {
+							const path =
+								await controller.createNoteFromTemplate(
+									templateId,
+									targetNodeId,
+									name,
+									direction,
+									workspaceState.activeConnectionField,
+								);
+							resolve(path);
+						},
+					).open();
+				},
+			);
+			if (filePath && openTemplateNoteInNewTab) {
+				const file = app.vault.getAbstractFileByPath(filePath);
+				if (file instanceof TFile) {
+					await app.workspace.getLeaf("tab").openFile(file);
+				}
+			}
 		}
-		new CreateFromTemplateModal(
-			app,
-			label,
-			findNodeTitle(targetNodeId),
-			(name) =>
-				controller.createNoteFromTemplate(
-					templateId,
-					targetNodeId,
-					name,
-					direction,
-					workspaceState.activeConnectionField,
-				),
-		).open();
-	}
 
 	function findTemplateLabel(templateId: string): string | undefined {
 		return workspaceState.dock.templates.find(

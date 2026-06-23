@@ -47,5 +47,17 @@ export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
+
+		new Setting(this.containerEl)
+			.setName('Open template notes in new tab')
+			.setDesc('Automatically open notes created from templates in a new tab.')
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.openTemplateNoteInNewTab)
+					.onChange(async (value) => {
+						this.plugin.settings.openTemplateNoteInNewTab = value;
+						await this.plugin.saveSettings();
+					}),
+			);
 	}
 }
