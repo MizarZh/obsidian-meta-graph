@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
+	import { onDestroy } from 'svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
 	import ObsidianSuggestInput, {
@@ -136,6 +137,68 @@
 		{ value: 'dashed', label: 'Dashed' },
 		{ value: 'dotted', label: 'Dotted' },
 	];
+	const COLOR_COMMIT_DELAY_MS = 180;
+	const colorCommitTimers = new Map<string, number>();
+	const lastCommittedColors = new Map<string, string>();
+
+	function scheduleColorCommit(
+		key: string,
+		currentColor: string,
+		nextColor: string,
+		commit: (color: string) => void,
+	): void {
+		clearColorCommit(key);
+		if (shouldSkipColorCommit(key, currentColor, nextColor)) {
+			return;
+		}
+		colorCommitTimers.set(
+			key,
+			window.setTimeout(() => {
+				colorCommitTimers.delete(key);
+				commitColor(key, currentColor, nextColor, commit);
+			}, COLOR_COMMIT_DELAY_MS),
+		);
+	}
+
+	function commitColor(
+		key: string,
+		currentColor: string,
+		nextColor: string,
+		commit: (color: string) => void,
+	): void {
+		clearColorCommit(key);
+		if (shouldSkipColorCommit(key, currentColor, nextColor)) {
+			return;
+		}
+		lastCommittedColors.set(key, nextColor);
+		commit(nextColor);
+	}
+
+	function clearColorCommit(key: string): void {
+		const timer = colorCommitTimers.get(key);
+		if (timer !== undefined) {
+			window.clearTimeout(timer);
+			colorCommitTimers.delete(key);
+		}
+	}
+
+	function shouldSkipColorCommit(
+		key: string,
+		currentColor: string,
+		nextColor: string,
+	): boolean {
+		if (lastCommittedColors.get(key) !== currentColor) {
+			lastCommittedColors.delete(key);
+		}
+		return nextColor === currentColor || lastCommittedColors.get(key) === nextColor;
+	}
+
+	onDestroy(() => {
+		for (const timer of colorCommitTimers.values()) {
+			window.clearTimeout(timer);
+		}
+		colorCommitTimers.clear();
+	});
 
 	function addFilterRule(
 		scope: 'global' | 'current',
@@ -607,14 +670,30 @@
 						<div class="knowledge-workspace-rule-row compact">
 							<label>
 								<span>Color</span>
-								<input
-									type="color"
-									value={rule.color}
-									oninput={(event) =>
-										updateNodeRule(scope as 'global' | 'current', rule.id, {
-											color: event.currentTarget.value,
-										})}
-								/>
+									<input
+										type="color"
+										value={rule.color}
+										oninput={(event) =>
+											scheduleColorCommit(
+												`node:${scope}:${rule.id}`,
+												rule.color,
+												event.currentTarget.value,
+												(color) =>
+													updateNodeRule(scope as 'global' | 'current', rule.id, {
+														color,
+													}),
+											)}
+										onchange={(event) =>
+											commitColor(
+												`node:${scope}:${rule.id}`,
+												rule.color,
+												event.currentTarget.value,
+												(color) =>
+													updateNodeRule(scope as 'global' | 'current', rule.id, {
+														color,
+													}),
+											)}
+									/>
 							</label>
 							<label>
 								<span>Size</span>
@@ -692,14 +771,30 @@
 						<div class="knowledge-workspace-rule-row compact">
 							<label>
 								<span>Color</span>
-								<input
-									type="color"
-									value={rule.color}
-									oninput={(event) =>
-										updateLinkRule(scope as 'global' | 'current', rule.id, {
-											color: event.currentTarget.value,
-										})}
-								/>
+									<input
+										type="color"
+										value={rule.color}
+										oninput={(event) =>
+											scheduleColorCommit(
+												`link:${scope}:${rule.id}`,
+												rule.color,
+												event.currentTarget.value,
+												(color) =>
+													updateLinkRule(scope as 'global' | 'current', rule.id, {
+														color,
+													}),
+											)}
+										onchange={(event) =>
+											commitColor(
+												`link:${scope}:${rule.id}`,
+												rule.color,
+												event.currentTarget.value,
+												(color) =>
+													updateLinkRule(scope as 'global' | 'current', rule.id, {
+														color,
+													}),
+											)}
+									/>
 							</label>
 							<label>
 								<span>Width</span>
