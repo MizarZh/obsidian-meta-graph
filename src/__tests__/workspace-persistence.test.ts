@@ -5,6 +5,11 @@ import {
 	createDefaultMetaGraphDocument,
 	serializeMetaGraphState,
 } from '../workspace/meta-graph-model';
+import {
+	addCuratedFilePaths,
+	removeCuratedFilePaths,
+	renameCuratedFilePath,
+} from '../workspace/curated-workspace';
 
 describe('workspace persistence', () => {
 	it('serializes editable chart configuration without runtime state', () => {
@@ -82,6 +87,64 @@ describe('workspace persistence', () => {
 		expect(restored.curated.files).toEqual([{ path: 'Projects/A.md' }]);
 		expect(saved.charts[0]?.source).toBe('curated');
 		expect(saved.charts[1]?.source).toBe('query');
+	});
+
+	it('updates curated file paths while preserving missing entries', () => {
+		const update = renameCuratedFilePath(
+			{
+				files: [
+					{ path: 'Projects/A.md' },
+					{ path: 'Projects/Missing.md' },
+				],
+				context: {
+					enabled: false,
+					depth: 0,
+					includeOutgoingLinks: true,
+					includeBacklinks: true,
+					includeMetadataRelations: true,
+				},
+			},
+			'Projects/A.md',
+			'Projects/Renamed.md',
+		);
+
+		expect(update.changed).toBe(true);
+		expect(update.curated.files).toEqual([
+			{ path: 'Projects/Renamed.md' },
+			{ path: 'Projects/Missing.md' },
+		]);
+	});
+
+	it('adds and removes curated files in batches with de-duplication', () => {
+		const curated = {
+			files: [{ path: 'Projects/A.md' }],
+			context: {
+				enabled: false,
+				depth: 0,
+				includeOutgoingLinks: true,
+				includeBacklinks: true,
+				includeMetadataRelations: true,
+			},
+		};
+
+		const added = addCuratedFilePaths(curated, [
+			'Projects/A.md',
+			'Projects/B.md',
+			'Projects/C.md',
+		]);
+		const removed = removeCuratedFilePaths(added.curated, [
+			'Projects/A.md',
+			'Projects/C.md',
+		]);
+
+		expect(added.changed).toBe(true);
+		expect(added.curated.files).toEqual([
+			{ path: 'Projects/A.md' },
+			{ path: 'Projects/B.md' },
+			{ path: 'Projects/C.md' },
+		]);
+		expect(removed.changed).toBe(true);
+		expect(removed.curated.files).toEqual([{ path: 'Projects/B.md' }]);
 	});
 
 	it('clones proxy-backed serializable state', () => {

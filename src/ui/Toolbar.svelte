@@ -103,9 +103,9 @@
 		label: string;
 	}>>([
 		{ mode: "graph", icon: "settings-2", label: "Graph" },
-		chartSource === "curated"
-			? { mode: "workspace", icon: "folder-plus", label: "Workspace" }
-			: { mode: "filters", icon: "list-filter", label: "Filter" },
+		...(chartSource === "query"
+			? [{ mode: "filters", icon: "list-filter", label: "Filter" } as const]
+			: []),
 		{ mode: "text-style", icon: "type", label: "Text style" },
 		{ mode: "note-style", icon: "palette", label: "Note style" },
 		{ mode: "link-style", icon: "route", label: "Link style" },

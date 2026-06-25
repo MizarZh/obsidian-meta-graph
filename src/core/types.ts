@@ -276,6 +276,7 @@ export interface MetaGraphDock {
 	templates: DockTemplateNode[];
 	notes: DockNoteNode[];
 	dockWidth: number;
+	curatedPanelWidth: number;
 	focusOnSelect: boolean;
 }
 

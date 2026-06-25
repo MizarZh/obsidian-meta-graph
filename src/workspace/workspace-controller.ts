@@ -27,6 +27,11 @@ import type {
 } from '../core/types';
 import { CuratedProjectionEngine } from '../query/curated';
 import { GraphQueryEngine } from '../query/neighborhood';
+import {
+	addCuratedFilePaths,
+	removeCuratedFilePaths,
+	renameCuratedFilePath,
+} from './curated-workspace';
 import { createWorkspaceState } from './workspace-state';
 import {
 	createDefaultCuratedWorkspace,
@@ -426,35 +431,47 @@ export class WorkspaceController {
 	}
 
 	addCuratedFile(path: NodeId): void {
-		const normalized = normalizePath(path);
-		if (!normalized) {
-			return;
-		}
+		this.addCuratedFiles([path]);
+	}
+
+	addCuratedFiles(paths: NodeId[]): void {
 		const activeChart = this.getActiveChart();
-		const curated = normalizeCuratedWorkspace({
-			...activeChart.curated,
-			files: [...activeChart.curated.files, { path: normalized }],
-		});
-		if (curated.files.length === activeChart.curated.files.length) {
+		const update = addCuratedFilePaths(activeChart.curated, paths);
+		if (!update.changed) {
 			return;
 		}
-		this.state = this.updateActiveChart({ curated }, true);
+		this.state = this.updateActiveChart({ curated: update.curated }, true);
 		this.runQuery();
 	}
 
 	removeCuratedFile(path: NodeId): void {
-		const normalized = normalizePath(path);
+		this.removeCuratedFiles([path]);
+	}
+
+	removeCuratedFiles(paths: NodeId[]): void {
 		const activeChart = this.getActiveChart();
-		const curated = normalizeCuratedWorkspace({
-			...activeChart.curated,
-			files: activeChart.curated.files.filter(
-				(file) => file.path !== normalized,
-			),
-		});
-		if (curated.files.length === activeChart.curated.files.length) {
+		const update = removeCuratedFilePaths(activeChart.curated, paths);
+		if (!update.changed) {
 			return;
 		}
-		this.state = this.updateActiveChart({ curated }, true);
+		this.state = this.updateActiveChart({ curated: update.curated }, true);
+		this.runQuery();
+	}
+
+	clearCuratedFiles(): void {
+		const activeChart = this.getActiveChart();
+		if (activeChart.curated.files.length === 0) {
+			return;
+		}
+		this.state = this.updateActiveChart(
+			{
+				curated: normalizeCuratedWorkspace({
+					...activeChart.curated,
+					files: [],
+				}),
+			},
+			true,
+		);
 		this.runQuery();
 	}
 
@@ -587,6 +604,14 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	setCuratedPanelWidth(curatedPanelWidth: number): void {
+		this.state = {
+			...this.state,
+			dock: { ...this.state.dock, curatedPanelWidth },
+		};
+		this.emit();
+	}
+
 	setDockFocusOnSelect(focusOnSelect: boolean): void {
 		this.state = {
 			...this.state,
@@ -601,15 +626,51 @@ export class WorkspaceController {
 		if (normalizedOld === normalizedNew) {
 			return false;
 		}
-		const notes = this.state.dock.notes.map((note) =>
-			note.path === normalizedOld ? { ...note, path: normalizedNew } : note,
-		);
-		if (notes === this.state.dock.notes) {
+		let changed = false;
+		const notes = this.state.dock.notes.map((note) => {
+			if (note.path !== normalizedOld) {
+				return note;
+			}
+			changed = true;
+			return { ...note, path: normalizedNew };
+		});
+		if (!changed) {
 			return false;
 		}
 		this.state = {
 			...this.state,
 			dock: { ...this.state.dock, notes },
+		};
+		this.emit();
+		return true;
+	}
+
+	updateCuratedFilePath(oldPath: string, newPath: string): boolean {
+		const normalizedOld = normalizePath(oldPath);
+		const normalizedNew = normalizePath(newPath);
+		if (normalizedOld === normalizedNew) {
+			return false;
+		}
+		let changed = false;
+		const charts = this.state.charts.map((chart) => {
+			const update = renameCuratedFilePath(
+				chart.curated,
+				normalizedOld,
+				normalizedNew,
+			);
+			changed ||= update.changed;
+			return update.changed ? { ...chart, curated: update.curated } : chart;
+		});
+		if (!changed) {
+			return false;
+		}
+		const activeChart = charts.find(
+			(chart) => chart.id === this.state.activeChartId,
+		);
+		this.state = {
+			...this.state,
+			charts,
+			curated: cloneSerializable(activeChart?.curated ?? this.state.curated),
 		};
 		this.emit();
 		return true;

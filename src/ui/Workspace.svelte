@@ -92,6 +92,7 @@
 	let dockConnectionDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockTargetNodeId = $state<string | undefined>(undefined);
 	let dockOpen = $state(true);
+	let curatedPanelOpen = $state(true);
 	let connectionOpen = $state(true);
 
 	interface LayoutSnapshot {
@@ -230,15 +231,12 @@
 				styleRulesChanged;
 			workspaceState = nextState;
 			if (
-				nextState.chartSource === "curated" &&
-				settingsPanel === "filters"
+				(nextState.chartSource === "curated" &&
+					settingsPanel === "filters") ||
+				(nextState.chartSource === "query" &&
+					settingsPanel === "workspace")
 			) {
-				settingsPanel = "workspace";
-			} else if (
-				nextState.chartSource === "query" &&
-				settingsPanel === "workspace"
-			) {
-				settingsPanel = "filters";
+				settingsPanel = undefined;
 			}
 			scheduleAutoSave(nextState);
 				if (fadeDistanceChanged) {
@@ -1264,18 +1262,7 @@
 				class="knowledge-workspace-settings-popover"
 				style:--knowledge-workspace-settings-left={`${settingsPopoverLeft}px`}
 			>
-				{#if settingsPanel === "workspace"}
-					<CuratedPanel
-						{app}
-						curated={workspaceState.curated}
-						nodes={debugSnapshot.index.nodes}
-						{workspaceFilePath}
-						onAddFile={(path) => controller.addCuratedFile(path)}
-						onRemoveFile={(path) =>
-							controller.removeCuratedFile(path)}
-					/>
-				{:else}
-					<FilterPanel
+				<FilterPanel
 						{app}
 						panel={settingsPanel}
 						mode={workspaceState.mode}
@@ -1331,16 +1318,50 @@
 					onLinkStyleRulesChange={(rules) =>
 						controller.setLinkStyleRules(rules)}
 					/>
-				{/if}
 			</div>
 		{/if}
 		<main
 			class="knowledge-workspace-main"
 			class:dock-node-dragging={Boolean(dockDrag)}
 			class:connection-collapsed={!connectionOpen}
-			style="--dock-panel-width: {dockOpen ? `${workspaceState.dock.dockWidth}px` : '32px'}"
+			class:curated-panel-visible={workspaceState.chartSource === "curated"}
+			style="--dock-panel-width: {dockOpen
+				? `${workspaceState.dock.dockWidth}px`
+				: '32px'}; --curated-panel-width: {workspaceState.chartSource ===
+				'curated' && curatedPanelOpen
+				? `${workspaceState.dock.curatedPanelWidth}px`
+				: workspaceState.chartSource === 'curated'
+					? '32px'
+					: '0px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+			{#if workspaceState.chartSource === "curated"}
+				<CuratedPanel
+					{app}
+					curated={workspaceState.curated}
+					nodes={debugSnapshot.index.nodes}
+					{nodeColors}
+					{workspaceFilePath}
+					panelOpen={curatedPanelOpen}
+					onTogglePanel={() => (curatedPanelOpen = !curatedPanelOpen)}
+					panelWidth={workspaceState.dock.curatedPanelWidth}
+					onResizePanel={(w: number) =>
+						controller.setCuratedPanelWidth(w)}
+					onAddFile={(path) => controller.addCuratedFile(path)}
+					onAddFiles={(paths) => controller.addCuratedFiles(paths)}
+					onRemoveFile={(path) => controller.removeCuratedFile(path)}
+					onRemoveFiles={(paths) =>
+						controller.removeCuratedFiles(paths)}
+					onClearFiles={() => controller.clearCuratedFiles()}
+					onOpenNote={(path) => void controller.openNode(path)}
+					onSelectNote={(path) => {
+						controller.selectNode(path);
+						window.requestAnimationFrame(() =>
+							renderer?.focusNode(path),
+						);
+					}}
+				/>
+			{/if}
 			{#if connectionDrag}
 				<svg
 					class="knowledge-workspace-connection-preview"

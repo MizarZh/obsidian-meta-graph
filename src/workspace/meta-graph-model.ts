@@ -35,6 +35,7 @@ export const DEFAULT_DOCK: MetaGraphDock = {
 	templates: [],
 	notes: [],
 	dockWidth: 280,
+	curatedPanelWidth: 300,
 	focusOnSelect: true,
 };
 export const DEFAULT_CURATED_CONTEXT: CuratedWorkspaceContext = {
@@ -171,6 +172,7 @@ export function normalizeDock(value: unknown): MetaGraphDock {
 		templates: normalizeDockTemplates(record.templates),
 		notes: normalizeDockNotes(record.notes),
 		dockWidth: readFiniteNumber(record.dockWidth, 280),
+		curatedPanelWidth: readFiniteNumber(record.curatedPanelWidth, 300),
 		focusOnSelect: record.focusOnSelect !== false,
 	};
 }
