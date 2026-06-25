@@ -17,6 +17,8 @@
 		onTogglePanel,
 		panelWidth,
 		onResizePanel,
+		focusOnSelect,
+		onToggleFocusOnSelect,
 		onAddFile,
 		onAddFiles,
 		onRemoveFile,
@@ -34,6 +36,8 @@
 		onTogglePanel: () => void;
 		panelWidth: number;
 		onResizePanel: (width: number) => void;
+		focusOnSelect: boolean;
+		onToggleFocusOnSelect: () => void;
 		onAddFile: (path: string) => void;
 		onAddFiles: (paths: string[]) => void;
 		onRemoveFile: (path: string) => void;
@@ -233,6 +237,16 @@
 			<header>
 				<h3>Workspace files</h3>
 				<span>{selectedFiles.length}</span>
+				<ObsidianButton
+					icon="crosshair"
+					active={focusOnSelect}
+					ariaLabel={focusOnSelect
+						? "Auto-focus on click (enabled)"
+						: "Auto-focus on click (disabled)"}
+					tooltip="Auto-focus on click"
+					class="knowledge-workspace-curated-focus-toggle"
+					onClick={onToggleFocusOnSelect}
+				/>
 			</header>
 			<div class="knowledge-workspace-curated-search">
 				<ObsidianSuggestInput

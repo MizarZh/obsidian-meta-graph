@@ -1347,6 +1347,11 @@
 					panelWidth={workspaceState.dock.curatedPanelWidth}
 					onResizePanel={(w: number) =>
 						controller.setCuratedPanelWidth(w)}
+					focusOnSelect={workspaceState.dock.focusOnSelect}
+					onToggleFocusOnSelect={() =>
+						controller.setDockFocusOnSelect(
+							!workspaceState.dock.focusOnSelect,
+						)}
 					onAddFile={(path) => controller.addCuratedFile(path)}
 					onAddFiles={(paths) => controller.addCuratedFiles(paths)}
 					onRemoveFile={(path) => controller.removeCuratedFile(path)}
@@ -1356,9 +1361,11 @@
 					onOpenNote={(path) => void controller.openNode(path)}
 					onSelectNote={(path) => {
 						controller.selectNode(path);
-						window.requestAnimationFrame(() =>
-							renderer?.focusNode(path),
-						);
+						if (workspaceState.dock.focusOnSelect) {
+							window.requestAnimationFrame(() =>
+								renderer?.focusNode(path),
+							);
+						}
 					}}
 				/>
 			{/if}

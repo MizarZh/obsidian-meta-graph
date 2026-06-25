@@ -1298,6 +1298,7 @@
 
 .knowledge-workspace-dock-panel-collapsed {
 	overflow: hidden;
+	width: 32px;
 }
 
 .knowledge-workspace-dock-panel-collapsed
@@ -1379,6 +1380,7 @@
 	font-size: var(--font-ui-smaller);
 }
 
+.knowledge-workspace-curated-focus-toggle.active svg,
 .knowledge-workspace-dock-focus-toggle.active svg {
 	color: var(--interactive-accent);
 }
