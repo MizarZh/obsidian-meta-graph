@@ -28,10 +28,16 @@
 
 	let containerEl: HTMLSpanElement;
 	let slider: SliderComponent | undefined;
+	let syncing = false;
 
 	onMount(() => {
 		slider = new SliderComponent(containerEl);
-		slider.onChange((nextValue) => onChange(nextValue));
+		slider.onChange((nextValue) => {
+			if (syncing || nextValue === value) {
+				return;
+			}
+			onChange(nextValue);
+		});
 		slider.sliderEl.addEventListener("change", handleCommit);
 
 		return () => {
@@ -52,7 +58,11 @@
 
 		slider.setLimits(min, max, step);
 		slider.setInstant(instant);
-		slider.setValue(value);
+		if (Number(slider.sliderEl.value) !== value) {
+			syncing = true;
+			slider.setValue(value);
+			syncing = false;
+		}
 		slider.setDisabled(disabled);
 		if (className) {
 			slider.sliderEl.classList.add(...className.split(/\s+/u).filter(Boolean));

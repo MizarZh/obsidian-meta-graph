@@ -339,6 +339,9 @@ export class WorkspaceController {
 	}
 
 	setFadeDistance(fadeDistance: number): void {
+		if (this.getActiveChart().display.fadeDistance === fadeDistance) {
+			return;
+		}
 		this.state = this.updateActiveChart({
 			display: {
 				...this.getActiveChart().display,
@@ -349,6 +352,9 @@ export class WorkspaceController {
 	}
 
 	setLabelSize(labelSize: number): void {
+		if (this.getActiveChart().display.labelSize === labelSize) {
+			return;
+		}
 		this.state = this.updateActiveChart({
 			display: {
 				...this.getActiveChart().display,
@@ -379,6 +385,12 @@ export class WorkspaceController {
 	}
 
 	setLabelBackgroundOpacity(labelBackgroundOpacity: number): void {
+		if (
+			this.getActiveChart().display.labelBackgroundOpacity ===
+			labelBackgroundOpacity
+		) {
+			return;
+		}
 		this.state = this.updateActiveChart({
 			display: {
 				...this.getActiveChart().display,
@@ -390,6 +402,9 @@ export class WorkspaceController {
 
 	setGraphSpacing(graphSpacing: number): void {
 		const spacing = normalizeSpacing(graphSpacing);
+		if (this.getActiveChart().layout.spacing === spacing) {
+			return;
+		}
 		this.state = this.updateActiveChart(
 			{
 				layout: {
@@ -404,6 +419,9 @@ export class WorkspaceController {
 
 	setFlowSpacing(flowSpacing: number): void {
 		const spacing = normalizeSpacing(flowSpacing);
+		if (this.getActiveChart().layout.spacing === spacing) {
+			return;
+		}
 		this.state = this.updateActiveChart(
 			{
 				layout: {
@@ -418,6 +436,9 @@ export class WorkspaceController {
 
 	setArcSpacing(arcSpacing: number): void {
 		const spacing = normalizeSpacing(arcSpacing);
+		if (this.getActiveChart().layout.spacing === spacing) {
+			return;
+		}
 		this.state = this.updateActiveChart(
 			{
 				layout: {

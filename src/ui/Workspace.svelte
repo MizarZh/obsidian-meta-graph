@@ -546,7 +546,6 @@
 			settingsPopoverLeft = targetRect.left - rootRect.left;
 		}
 		settingsPanel = settingsPanel === panel ? undefined : panel;
-		window.requestAnimationFrame(() => renderer?.resize());
 	}
 
 	async function waitForCanvasSize(): Promise<boolean> {
