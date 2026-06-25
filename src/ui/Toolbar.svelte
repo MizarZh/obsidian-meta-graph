@@ -95,6 +95,7 @@
 	}> = [
 		{ mode: "graph", icon: "settings-2", label: "Graph" },
 		{ mode: "filters", icon: "list-filter", label: "Filter" },
+		{ mode: "text-style", icon: "type", label: "Text style" },
 		{ mode: "note-style", icon: "palette", label: "Note style" },
 		{ mode: "link-style", icon: "route", label: "Link style" },
 	];

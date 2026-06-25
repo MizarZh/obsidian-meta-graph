@@ -25,6 +25,8 @@ export const DEFAULT_CONNECTION_FIELD = 'leads-to';
 export const DEFAULT_CONNECTION_FIELDS = [DEFAULT_CONNECTION_FIELD];
 export const DEFAULT_LABEL_SIZE = 14;
 export const DEFAULT_LABEL_POSITION: LabelPosition = 'right';
+export const DEFAULT_LABEL_COLOR = '';
+export const DEFAULT_LABEL_BACKGROUND_OPACITY = 0.82;
 export const DEFAULT_DOCK: MetaGraphDock = {
 	templates: [],
 	notes: [],
@@ -104,6 +106,8 @@ export function createDefaultChart(
 				fadeDistance,
 				labelSize: DEFAULT_LABEL_SIZE,
 				labelPosition: DEFAULT_LABEL_POSITION,
+				labelColor: DEFAULT_LABEL_COLOR,
+				labelBackgroundOpacity: DEFAULT_LABEL_BACKGROUND_OPACITY,
 				showInspector: true,
 				showFilters: true,
 			},
@@ -223,6 +227,16 @@ function normalizeChart(
 				labelPosition: readLabelPosition(
 					isRecord(record.display) ? record.display.labelPosition : undefined,
 					fallback.display.labelPosition,
+				),
+				labelColor:
+					isRecord(record.display) && typeof record.display.labelColor === 'string'
+						? record.display.labelColor.trim()
+						: fallback.display.labelColor,
+				labelBackgroundOpacity: readFiniteNumber(
+					isRecord(record.display)
+						? record.display.labelBackgroundOpacity
+						: undefined,
+					fallback.display.labelBackgroundOpacity,
 				),
 				showInspector: readBoolean(
 					isRecord(record.display)

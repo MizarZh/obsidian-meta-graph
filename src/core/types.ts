@@ -129,7 +129,12 @@ export interface GraphProjection {
 }
 
 export type ViewMode = 'graph' | 'flow' | 'arc';
-export type SettingsPanelMode = 'graph' | 'filters' | 'note-style' | 'link-style';
+export type SettingsPanelMode =
+	| 'graph'
+	| 'filters'
+	| 'text-style'
+	| 'note-style'
+	| 'link-style';
 export type FlowEdgeStyle = 'straight' | 'orthogonal';
 export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
 export type ArcDirection = 'right' | 'left' | 'up' | 'down';
@@ -186,6 +191,8 @@ export interface ChartDisplayConfig {
 	fadeDistance: number;
 	labelSize: number;
 	labelPosition: LabelPosition;
+	labelColor: string;
+	labelBackgroundOpacity: number;
 	showInspector: boolean;
 	showFilters: boolean;
 }
@@ -255,6 +262,8 @@ export interface WorkspaceState {
 	fadeDistance: number;
 	labelSize: number;
 	labelPosition: LabelPosition;
+	labelColor: string;
+	labelBackgroundOpacity: number;
 	graphSpacing: number;
 	flowSpacing: number;
 	arcSpacing: number;

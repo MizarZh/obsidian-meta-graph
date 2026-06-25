@@ -339,6 +339,26 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	setLabelColor(labelColor: string): void {
+		this.state = this.updateActiveChart({
+			display: {
+				...this.getActiveChart().display,
+				labelColor,
+			},
+		});
+		this.emit();
+	}
+
+	setLabelBackgroundOpacity(labelBackgroundOpacity: number): void {
+		this.state = this.updateActiveChart({
+			display: {
+				...this.getActiveChart().display,
+				labelBackgroundOpacity,
+			},
+		});
+		this.emit();
+	}
+
 	setGraphSpacing(graphSpacing: number): void {
 		const spacing = normalizeSpacing(graphSpacing);
 		this.state = this.updateActiveChart(
@@ -948,6 +968,8 @@ export class WorkspaceController {
 			fadeDistance: nextChart.display.fadeDistance,
 			labelSize: nextChart.display.labelSize,
 			labelPosition: nextChart.display.labelPosition,
+			labelColor: nextChart.display.labelColor,
+			labelBackgroundOpacity: nextChart.display.labelBackgroundOpacity,
 			graphSpacing:
 				nextChart.type === 'graph'
 					? nextChart.layout.spacing

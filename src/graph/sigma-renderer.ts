@@ -16,7 +16,7 @@ import {
 	type RuntimeNodeAttributes,
 } from "./graphology-adapter";
 import { immediateNeighborhood } from "./graph-events";
-import type { GraphPalette } from "./graph-styles";
+import { withAlpha, type GraphPalette } from "./graph-styles";
 import { calculateLabelOpacity } from "./label-opacity";
 import {
 	DashedArrowEdgeProgram,
@@ -35,6 +35,8 @@ export class SigmaRenderer {
 	private hoveredNeighborhood = new Set<string>();
 	private fadeDistance: number;
 	private labelPosition: LabelPosition;
+	private labelColor: string;
+	private labelBackgroundOpacity: number;
 
 	constructor(
 		private graph: RuntimeGraph,
@@ -43,9 +45,13 @@ export class SigmaRenderer {
 		fadeDistance = 1.5,
 		labelSize = 14,
 		labelPosition: LabelPosition = "right",
+		labelColor = "",
+		labelBackgroundOpacity = 0.82,
 	) {
 		this.fadeDistance = fadeDistance;
 		this.labelPosition = labelPosition;
+		this.labelColor = labelColor;
+		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.instance = new Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>(
 			graph,
 			container,
@@ -68,11 +74,15 @@ export class SigmaRenderer {
 					palette,
 					() => this.getCurrentLabelOpacity(),
 					() => this.labelPosition,
+					() => this.getLabelColor(),
+					() => this.getLabelBackground(),
 				),
 				defaultDrawNodeHover: createNodeHoverDrawer(
 					palette,
 					() => this.getCurrentLabelOpacity(),
 					() => this.labelPosition,
+					() => this.getLabelColor(),
+					() => this.getLabelBackground(),
 				),
 				defaultDrawEdgeLabel: createEdgeLabelDrawer(() =>
 					this.getCurrentLabelOpacity(),
@@ -118,6 +128,16 @@ export class SigmaRenderer {
 
 	setLabelPosition(labelPosition: LabelPosition): void {
 		this.labelPosition = labelPosition;
+		this.instance.refresh();
+	}
+
+	setLabelColor(labelColor: string): void {
+		this.labelColor = labelColor;
+		this.instance.refresh();
+	}
+
+	setLabelBackgroundOpacity(labelBackgroundOpacity: number): void {
+		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.instance.refresh();
 	}
 
@@ -298,12 +318,22 @@ export class SigmaRenderer {
 			this.instance?.getCamera().getState().ratio ?? 1,
 		);
 	}
+
+	private getLabelBackground(): string {
+		return withAlpha(this.palette.labelBackground, this.labelBackgroundOpacity);
+	}
+
+	private getLabelColor(): string {
+		return this.labelColor || this.palette.label;
+	}
 }
 
 function createNodeLabelDrawer(
 	palette: GraphPalette,
 	getOpacity: () => number,
 	getLabelPosition: () => LabelPosition,
+	getLabelColor: () => string,
+	getLabelBackground: () => string,
 ): NodeLabelDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
 	return (context, data, settings) => {
 		if (!data.label) {
@@ -334,9 +364,9 @@ function createNodeLabelDrawer(
 
 		context.beginPath();
 		drawRoundedRect(context, box.x, box.y, width, height, 4);
-		context.fillStyle = palette.labelBackground;
+		context.fillStyle = getLabelBackground();
 		context.fill();
-		context.fillStyle = palette.label;
+		context.fillStyle = getLabelColor();
 		context.fillText(data.label, box.textX, box.textY);
 		context.restore();
 	};
@@ -346,18 +376,9 @@ function createNodeHoverDrawer(
 	palette: GraphPalette,
 	getOpacity: () => number,
 	getLabelPosition: () => LabelPosition,
+	getLabelColor: () => string,
+	getLabelBackground: () => string,
 ): NodeHoverDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
-	// Pre-compute dark-mode flag once from the palette's background luminance.
-	const bgChannels = palette.labelBackground.match(/\d+/gu);
-	const isDark =
-		bgChannels && bgChannels.length >= 3
-			? 0.299 * Number(bgChannels[0]) +
-					0.587 * Number(bgChannels[1]) +
-					0.114 * Number(bgChannels[2]) <
-				128
-			: false;
-	const hoverBg = isDark ? "rgba(40, 40, 40, 0.85)" : palette.labelBackground;
-
 	return (context, data, settings) => {
 		if (data.hidden) return;
 		if (typeof data.label !== "string") return;
@@ -369,7 +390,7 @@ function createNodeHoverDrawer(
 		const alpha = getOpacity();
 		context.save();
 		context.globalAlpha = alpha;
-		context.fillStyle = hoverBg;
+		context.fillStyle = getLabelBackground();
 		context.shadowOffsetX = 0;
 		context.shadowOffsetY = 0;
 		context.shadowBlur = 8;
@@ -397,7 +418,7 @@ function createNodeHoverDrawer(
 		context.fill();
 
 		context.shadowBlur = 0;
-		context.fillStyle = palette.label;
+		context.fillStyle = getLabelColor();
 		context.fillText(data.label, box.textX, box.textY);
 		context.restore();
 	};

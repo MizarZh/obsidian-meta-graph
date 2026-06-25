@@ -208,6 +208,11 @@
 					nextState.labelSize !== workspaceState.labelSize;
 				const labelPositionChanged =
 					nextState.labelPosition !== workspaceState.labelPosition;
+				const labelColorChanged =
+					nextState.labelColor !== workspaceState.labelColor;
+				const labelBackgroundOpacityChanged =
+					nextState.labelBackgroundOpacity !==
+					workspaceState.labelBackgroundOpacity;
 			const shouldRebuild =
 				nextState.activeChartId !== lastActiveChartId ||
 				nextState.projection !== lastProjection ||
@@ -227,6 +232,14 @@
 				}
 				if (labelPositionChanged) {
 					renderer?.setLabelPosition(nextState.labelPosition);
+				}
+				if (labelColorChanged) {
+					renderer?.setLabelColor(nextState.labelColor);
+				}
+				if (labelBackgroundOpacityChanged) {
+					renderer?.setLabelBackgroundOpacity(
+						nextState.labelBackgroundOpacity,
+					);
 				}
 			if (shouldRebuild) {
 				lastProjection = nextState.projection;
@@ -386,6 +399,8 @@
 					workspaceState.fadeDistance,
 					workspaceState.labelSize,
 					workspaceState.labelPosition,
+					workspaceState.labelColor,
+					workspaceState.labelBackgroundOpacity,
 				);
 			renderer = nextRenderer;
 			unbindEvents = bindGraphEvents(nextRenderer, {
@@ -1233,6 +1248,8 @@ const atNodeLimit = $derived(
 							fadeDistance={workspaceState.fadeDistance}
 							labelSize={workspaceState.labelSize}
 							labelPosition={workspaceState.labelPosition}
+							labelColor={workspaceState.labelColor}
+							labelBackgroundOpacity={workspaceState.labelBackgroundOpacity}
 							flowEdgeStyle={workspaceState.flowEdgeStyle}
 					flowDirection={workspaceState.flowDirection}
 					arcDirection={workspaceState.arcDirection}
@@ -1259,6 +1276,9 @@ const atNodeLimit = $derived(
 							onLabelSize={(value) => controller.setLabelSize(value)}
 							onLabelPosition={(position) =>
 								controller.setLabelPosition(position)}
+							onLabelColor={(color) => controller.setLabelColor(color)}
+							onLabelBackgroundOpacity={(value) =>
+								controller.setLabelBackgroundOpacity(value)}
 							onGraphSpacing={(spacing) =>
 							controller.setGraphSpacing(spacing)}
 					onFlowSpacing={(spacing) =>

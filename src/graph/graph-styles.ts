@@ -46,7 +46,7 @@ function normalizeCssColor(
 	return normalized || fallback;
 }
 
-function withAlpha(color: string, alpha: number): string {
+export function withAlpha(color: string, alpha: number): string {
 	const channels = color.match(/[\d.]+/gu);
 	if (!channels || channels.length < 3) {
 		return `rgba(32, 32, 32, ${alpha})`;

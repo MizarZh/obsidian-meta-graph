@@ -33,6 +33,8 @@ export function createWorkspaceState(
 		fadeDistance: activeChart.display.fadeDistance,
 		labelSize: activeChart.display.labelSize,
 		labelPosition: activeChart.display.labelPosition,
+		labelColor: activeChart.display.labelColor,
+		labelBackgroundOpacity: activeChart.display.labelBackgroundOpacity,
 		graphSpacing:
 			activeChart.type === 'graph' ? activeChart.layout.spacing : 1,
 		flowSpacing:

@@ -34,6 +34,8 @@
 		fadeDistance,
 		labelSize,
 		labelPosition,
+		labelColor,
+		labelBackgroundOpacity,
 		flowEdgeStyle,
 		flowDirection,
 		arcDirection,
@@ -55,6 +57,8 @@
 		onFadeDistance,
 		onLabelSize,
 		onLabelPosition,
+		onLabelColor,
+		onLabelBackgroundOpacity,
 		onGraphSpacing,
 		onFlowSpacing,
 		onArcSpacing,
@@ -71,6 +75,8 @@
 		fadeDistance: number;
 		labelSize: number;
 		labelPosition: LabelPosition;
+		labelColor: string;
+		labelBackgroundOpacity: number;
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
 		arcDirection: ArcDirection;
@@ -92,6 +98,8 @@
 		onFadeDistance: (value: number) => void;
 		onLabelSize: (value: number) => void;
 		onLabelPosition: (position: LabelPosition) => void;
+		onLabelColor: (color: string) => void;
+		onLabelBackgroundOpacity: (value: number) => void;
 		onGraphSpacing: (spacing: number) => void;
 		onFlowSpacing: (spacing: number) => void;
 		onArcSpacing: (spacing: number) => void;
@@ -212,6 +220,34 @@
 			nextColor === currentColor ||
 			lastCommittedColors.get(key) === nextColor
 		);
+	}
+
+	function getDefaultLabelColor(): string {
+		return cssColorToHex(
+			getComputedStyle(document.body).getPropertyValue("--text-normal").trim() ||
+				"#000000",
+		);
+	}
+
+	function cssColorToHex(color: string): string {
+		const probe = document.createElement("span");
+		probe.style.color = color;
+		probe.style.display = "none";
+		document.body.appendChild(probe);
+		const normalized = getComputedStyle(probe).color;
+		probe.remove();
+		const channels = normalized.match(/\d+/gu);
+		if (!channels || channels.length < 3) {
+			return "#000000";
+		}
+		return `#${channels
+			.slice(0, 3)
+			.map((channel) =>
+				Math.max(0, Math.min(255, Number(channel)))
+					.toString(16)
+					.padStart(2, "0"),
+			)
+			.join("")}`;
 	}
 
 	onDestroy(() => {
@@ -483,33 +519,6 @@
 				</div>
 			</label>
 				<label class="knowledge-workspace-rule-label">
-					<span>Font size</span>
-					<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						value={labelSize}
-						min={8}
-						max={28}
-						step={0.5}
-						format={(value) => value.toFixed(1)}
-						onChange={onLabelSize}
-						onCommit={onLabelSize}
-					/>
-						<span>{labelSize.toFixed(1)}</span>
-					</div>
-				</label>
-				<div class="knowledge-workspace-rule-label segmented">
-					<span>Text position</span>
-					<div class="knowledge-workspace-segmented">
-						{#each LABEL_POSITION_OPTIONS as option}
-							<ObsidianButton
-								active={labelPosition === option.value}
-								text={option.label}
-								onClick={() => onLabelPosition(option.value)}
-							/>
-						{/each}
-					</div>
-				</div>
-				<label class="knowledge-workspace-rule-label">
 					<span>Fade distance</span>
 				<div class="knowledge-workspace-slider-value">
 					<ObsidianSlider
@@ -571,9 +580,76 @@
 					/>
 				</label>
 			{/if}
-		</section>
-	{:else if panel === "filters"}
-		<section>
+			</section>
+		{:else if panel === "text-style"}
+			<section>
+				<header><h3>Text style</h3></header>
+				<label class="knowledge-workspace-rule-label">
+					<span>Font size</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							value={labelSize}
+							min={8}
+							max={28}
+							step={0.5}
+							format={(value) => value.toFixed(1)}
+							onChange={onLabelSize}
+							onCommit={onLabelSize}
+						/>
+						<span>{labelSize.toFixed(1)}</span>
+					</div>
+				</label>
+				<label class="knowledge-workspace-rule-label">
+					<span>Font color</span>
+					<input
+						type="color"
+						value={labelColor || getDefaultLabelColor()}
+						oninput={(event) =>
+							scheduleColorCommit(
+								"text:label-color",
+								labelColor || getDefaultLabelColor(),
+								event.currentTarget.value,
+								onLabelColor,
+							)}
+						onchange={(event) =>
+							commitColor(
+								"text:label-color",
+								labelColor || getDefaultLabelColor(),
+								event.currentTarget.value,
+								onLabelColor,
+							)}
+					/>
+				</label>
+				<div class="knowledge-workspace-rule-label segmented">
+					<span>Text position</span>
+					<div class="knowledge-workspace-segmented">
+						{#each LABEL_POSITION_OPTIONS as option}
+							<ObsidianButton
+								active={labelPosition === option.value}
+								text={option.label}
+								onClick={() => onLabelPosition(option.value)}
+							/>
+						{/each}
+					</div>
+				</div>
+				<label class="knowledge-workspace-rule-label">
+					<span>Text background</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							value={labelBackgroundOpacity}
+							min={0}
+							max={1}
+							step={0.05}
+							format={(value) => `${Math.round(value * 100)}%`}
+							onChange={onLabelBackgroundOpacity}
+							onCommit={onLabelBackgroundOpacity}
+						/>
+						<span>{Math.round(labelBackgroundOpacity * 100)}%</span>
+					</div>
+				</label>
+			</section>
+		{:else if panel === "filters"}
+			<section>
 			<header><h3>Filters</h3></header>
 		</section>
 		{#each ["global", "current"] as scope}
