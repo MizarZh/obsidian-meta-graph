@@ -202,8 +202,10 @@
 				nextState.globalLinkStyleRules !== lastGlobalLinkStyleRules ||
 				nextState.nodeStyleRules !== lastNodeStyleRules ||
 				nextState.linkStyleRules !== lastLinkStyleRules;
-			const displaySettingsChanged =
-				nextState.fadeDistance !== workspaceState.fadeDistance;
+				const fadeDistanceChanged =
+					nextState.fadeDistance !== workspaceState.fadeDistance;
+				const labelSizeChanged =
+					nextState.labelSize !== workspaceState.labelSize;
 			const shouldRebuild =
 				nextState.activeChartId !== lastActiveChartId ||
 				nextState.projection !== lastProjection ||
@@ -215,9 +217,12 @@
 				styleRulesChanged;
 			workspaceState = nextState;
 			scheduleAutoSave(nextState);
-			if (displaySettingsChanged) {
-				renderer?.setFadeDistance(nextState.fadeDistance);
-			}
+				if (fadeDistanceChanged) {
+					renderer?.setFadeDistance(nextState.fadeDistance);
+				}
+				if (labelSizeChanged) {
+					renderer?.setLabelSize(nextState.labelSize);
+				}
 			if (shouldRebuild) {
 				lastProjection = nextState.projection;
 				lastActiveChartId = nextState.activeChartId;
@@ -371,10 +376,11 @@
 		} else {
 			const nextRenderer = new SigmaRenderer(
 				graph,
-				canvas,
-				palette,
-				workspaceState.fadeDistance,
-			);
+					canvas,
+					palette,
+					workspaceState.fadeDistance,
+					workspaceState.labelSize,
+				);
 			renderer = nextRenderer;
 			unbindEvents = bindGraphEvents(nextRenderer, {
 				onSelect: (nodeId) => controller.selectNode(nodeId),
@@ -1217,9 +1223,10 @@ const atNodeLimit = $derived(
 				<FilterPanel
 					{app}
 					panel={settingsPanel}
-					mode={workspaceState.mode}
-					fadeDistance={workspaceState.fadeDistance}
-					flowEdgeStyle={workspaceState.flowEdgeStyle}
+						mode={workspaceState.mode}
+						fadeDistance={workspaceState.fadeDistance}
+						labelSize={workspaceState.labelSize}
+						flowEdgeStyle={workspaceState.flowEdgeStyle}
 					flowDirection={workspaceState.flowDirection}
 					arcDirection={workspaceState.arcDirection}
 					graphSpacing={workspaceState.graphSpacing}
@@ -1240,10 +1247,11 @@ const atNodeLimit = $derived(
 						controller.setFlowDirection(direction)}
 					onArcDirection={(direction) =>
 						controller.setArcDirection(direction)}
-					onFadeDistance={(value) =>
-						controller.setFadeDistance(value)}
-					onGraphSpacing={(spacing) =>
-						controller.setGraphSpacing(spacing)}
+						onFadeDistance={(value) =>
+							controller.setFadeDistance(value)}
+						onLabelSize={(value) => controller.setLabelSize(value)}
+						onGraphSpacing={(spacing) =>
+							controller.setGraphSpacing(spacing)}
 					onFlowSpacing={(spacing) =>
 						controller.setFlowSpacing(spacing)}
 					onArcSpacing={(spacing) =>

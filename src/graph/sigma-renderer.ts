@@ -24,6 +24,8 @@ import {
 	DottedEdgeProgram,
 } from "./patterned-edge-program";
 
+const DEFAULT_NODE_LABEL_BASE_SIZE = 7;
+
 export class SigmaRenderer {
 	readonly instance: Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>;
 	private selectedNodeId?: string;
@@ -37,6 +39,7 @@ export class SigmaRenderer {
 		container: HTMLElement,
 		private readonly palette: GraphPalette,
 		fadeDistance = 1.5,
+		labelSize = 14,
 	) {
 		this.fadeDistance = fadeDistance;
 		this.instance = new Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>(
@@ -68,6 +71,7 @@ export class SigmaRenderer {
 				),
 				renderEdgeLabels: true,
 				labelColor: { color: palette.label },
+				labelSize,
 				labelDensity: 0.8,
 				labelRenderedSizeThreshold: 0,
 				zIndex: true,
@@ -98,6 +102,10 @@ export class SigmaRenderer {
 	setFadeDistance(fadeDistance: number): void {
 		this.fadeDistance = fadeDistance;
 		this.instance.refresh();
+	}
+
+	setLabelSize(labelSize: number): void {
+		this.instance.setSetting("labelSize", labelSize);
 	}
 
 	togglePinnedHover(nodeId: string): void {
@@ -288,7 +296,8 @@ function createNodeLabelDrawer(
 			return;
 		}
 
-		const font = `${settings.labelWeight} ${settings.labelSize}px ${settings.labelFont}`;
+		const labelSize = getScaledLabelSize(settings.labelSize, data.size);
+		const font = `${settings.labelWeight} ${labelSize}px ${settings.labelFont}`;
 		const x = data.x + data.size + 5;
 		const paddingX = 5;
 		const paddingY = 3;
@@ -297,7 +306,7 @@ function createNodeLabelDrawer(
 		context.textBaseline = "middle";
 		const textWidth = context.measureText(data.label).width;
 		const width = textWidth + paddingX * 2;
-		const height = settings.labelSize + paddingY * 2;
+		const height = labelSize + paddingY * 2;
 		const top = data.y - height / 2;
 		context.globalAlpha = getOpacity();
 
@@ -329,7 +338,8 @@ function createNodeHoverDrawer(
 	return (context, data, settings) => {
 		if (data.hidden) return;
 
-		const { labelSize: size, labelFont: font, labelWeight: weight } = settings;
+		const { labelFont: font, labelWeight: weight } = settings;
+		const size = getScaledLabelSize(settings.labelSize, data.size);
 		context.font = `${weight} ${size}px ${font}`;
 
 		const alpha = getOpacity();
@@ -375,6 +385,10 @@ function createNodeHoverDrawer(
 		}
 		context.restore();
 	};
+}
+
+function getScaledLabelSize(baseLabelSize: number, nodeSize: number): number {
+	return (baseLabelSize * nodeSize) / DEFAULT_NODE_LABEL_BASE_SIZE;
 }
 
 function createEdgeLabelDrawer(

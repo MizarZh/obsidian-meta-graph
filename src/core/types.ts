@@ -183,6 +183,7 @@ export interface ChartLayoutConfig {
 
 export interface ChartDisplayConfig {
 	fadeDistance: number;
+	labelSize: number;
 	showInspector: boolean;
 	showFilters: boolean;
 }
@@ -250,6 +251,7 @@ export interface WorkspaceState {
 	flowDirection: FlowDirection;
 	arcDirection: ArcDirection;
 	fadeDistance: number;
+	labelSize: number;
 	graphSpacing: number;
 	flowSpacing: number;
 	arcSpacing: number;

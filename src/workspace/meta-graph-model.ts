@@ -22,6 +22,7 @@ export const META_GRAPH_VERSION = 1;
 export const BASE_STYLE_RULE_ID = 'all';
 export const DEFAULT_CONNECTION_FIELD = 'leads-to';
 export const DEFAULT_CONNECTION_FIELDS = [DEFAULT_CONNECTION_FIELD];
+export const DEFAULT_LABEL_SIZE = 14;
 export const DEFAULT_DOCK: MetaGraphDock = {
 	templates: [],
 	notes: [],
@@ -99,6 +100,7 @@ export function createDefaultChart(
 		layout: createDefaultLayout(type),
 		display: {
 			fadeDistance,
+			labelSize: DEFAULT_LABEL_SIZE,
 			showInspector: true,
 			showFilters: true,
 		},
@@ -204,16 +206,20 @@ function normalizeChart(
 		type,
 		query: normalizeQuery(record.query, fallback.query, maxNodes),
 		layout: normalizeLayout(record.layout, fallback.layout, type),
-		display: {
-			fadeDistance: readFiniteNumber(
-				isRecord(record.display)
-					? record.display.fadeDistance
-					: undefined,
-				fallback.display.fadeDistance,
-			),
-			showInspector: readBoolean(
-				isRecord(record.display)
-					? record.display.showInspector
+			display: {
+				fadeDistance: readFiniteNumber(
+					isRecord(record.display)
+						? record.display.fadeDistance
+						: undefined,
+					fallback.display.fadeDistance,
+				),
+				labelSize: readFiniteNumber(
+					isRecord(record.display) ? record.display.labelSize : undefined,
+					fallback.display.labelSize,
+				),
+				showInspector: readBoolean(
+					isRecord(record.display)
+						? record.display.showInspector
 					: undefined,
 				true,
 			),

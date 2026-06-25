@@ -318,6 +318,16 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	setLabelSize(labelSize: number): void {
+		this.state = this.updateActiveChart({
+			display: {
+				...this.getActiveChart().display,
+				labelSize,
+			},
+		});
+		this.emit();
+	}
+
 	setGraphSpacing(graphSpacing: number): void {
 		const spacing = normalizeSpacing(graphSpacing);
 		this.state = this.updateActiveChart(
@@ -925,6 +935,7 @@ export class WorkspaceController {
 			flowDirection: nextChart.layout.direction ?? 'LR',
 			arcDirection: nextChart.layout.arcDirection ?? 'right',
 			fadeDistance: nextChart.display.fadeDistance,
+			labelSize: nextChart.display.labelSize,
 			graphSpacing:
 				nextChart.type === 'graph'
 					? nextChart.layout.spacing

@@ -31,6 +31,7 @@ export function createWorkspaceState(
 		flowDirection: activeChart.layout.direction ?? 'LR',
 		arcDirection: activeChart.layout.arcDirection ?? 'right',
 		fadeDistance: activeChart.display.fadeDistance,
+		labelSize: activeChart.display.labelSize,
 		graphSpacing:
 			activeChart.type === 'graph' ? activeChart.layout.spacing : 1,
 		flowSpacing:
