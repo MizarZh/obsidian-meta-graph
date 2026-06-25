@@ -389,16 +389,25 @@
 		if (mode === "arc") onArcSpacing(spacing);
 	}
 
-	function getNodeValueOptions(
-		field: NodeFilterField | NodeStyleField,
-	): SuggestionOption[] {
-		if (field === "folder" || field === "file.folder") {
-			return folders.map((folder) => ({
-				value: folder,
-				label: folder,
-				searchText: folder,
-			}));
-		}
+		function getNodeValueOptions(
+			field: NodeFilterField | NodeStyleField,
+		): SuggestionOption[] {
+			if (field === "folder" || field === "file.folder") {
+				// Reference folders so graph refreshes still invalidate this option list.
+				void folders;
+				return app.vault
+					.getAllFolders()
+					.map((folder) => (folder.path === "/" ? "" : folder.path))
+					.filter(Boolean)
+					.sort((left, right) =>
+						left.localeCompare(right, undefined, { sensitivity: "base" }),
+					)
+					.map((folder) => ({
+						value: folder,
+						label: folder,
+						searchText: folder,
+					}));
+			}
 		if (field === "tag" || field === "file.tags") {
 			return tags.map((tag) => ({
 				value: tag,
