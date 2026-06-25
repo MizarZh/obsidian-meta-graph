@@ -206,6 +206,8 @@
 					nextState.fadeDistance !== workspaceState.fadeDistance;
 				const labelSizeChanged =
 					nextState.labelSize !== workspaceState.labelSize;
+				const labelPositionChanged =
+					nextState.labelPosition !== workspaceState.labelPosition;
 			const shouldRebuild =
 				nextState.activeChartId !== lastActiveChartId ||
 				nextState.projection !== lastProjection ||
@@ -222,6 +224,9 @@
 				}
 				if (labelSizeChanged) {
 					renderer?.setLabelSize(nextState.labelSize);
+				}
+				if (labelPositionChanged) {
+					renderer?.setLabelPosition(nextState.labelPosition);
 				}
 			if (shouldRebuild) {
 				lastProjection = nextState.projection;
@@ -380,6 +385,7 @@
 					palette,
 					workspaceState.fadeDistance,
 					workspaceState.labelSize,
+					workspaceState.labelPosition,
 				);
 			renderer = nextRenderer;
 			unbindEvents = bindGraphEvents(nextRenderer, {
@@ -1224,9 +1230,10 @@ const atNodeLimit = $derived(
 					{app}
 					panel={settingsPanel}
 						mode={workspaceState.mode}
-						fadeDistance={workspaceState.fadeDistance}
-						labelSize={workspaceState.labelSize}
-						flowEdgeStyle={workspaceState.flowEdgeStyle}
+							fadeDistance={workspaceState.fadeDistance}
+							labelSize={workspaceState.labelSize}
+							labelPosition={workspaceState.labelPosition}
+							flowEdgeStyle={workspaceState.flowEdgeStyle}
 					flowDirection={workspaceState.flowDirection}
 					arcDirection={workspaceState.arcDirection}
 					graphSpacing={workspaceState.graphSpacing}
@@ -1249,8 +1256,10 @@ const atNodeLimit = $derived(
 						controller.setArcDirection(direction)}
 						onFadeDistance={(value) =>
 							controller.setFadeDistance(value)}
-						onLabelSize={(value) => controller.setLabelSize(value)}
-						onGraphSpacing={(spacing) =>
+							onLabelSize={(value) => controller.setLabelSize(value)}
+							onLabelPosition={(position) =>
+								controller.setLabelPosition(position)}
+							onGraphSpacing={(spacing) =>
 							controller.setGraphSpacing(spacing)}
 					onFlowSpacing={(spacing) =>
 						controller.setFlowSpacing(spacing)}

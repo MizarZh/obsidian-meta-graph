@@ -133,6 +133,7 @@ export type SettingsPanelMode = 'graph' | 'filters' | 'note-style' | 'link-style
 export type FlowEdgeStyle = 'straight' | 'orthogonal';
 export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
 export type ArcDirection = 'right' | 'left' | 'up' | 'down';
+export type LabelPosition = 'right' | 'left' | 'top' | 'bottom';
 export type ChartType = ViewMode;
 export type NodeStyleField =
 	| 'all'
@@ -184,6 +185,7 @@ export interface ChartLayoutConfig {
 export interface ChartDisplayConfig {
 	fadeDistance: number;
 	labelSize: number;
+	labelPosition: LabelPosition;
 	showInspector: boolean;
 	showFilters: boolean;
 }
@@ -252,6 +254,7 @@ export interface WorkspaceState {
 	arcDirection: ArcDirection;
 	fadeDistance: number;
 	labelSize: number;
+	labelPosition: LabelPosition;
 	graphSpacing: number;
 	flowSpacing: number;
 	arcSpacing: number;

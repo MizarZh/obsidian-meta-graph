@@ -5,6 +5,7 @@ import type {
 	DockTemplateNode,
 	GraphQuery,
 	GlobalStyleConfig,
+	LabelPosition,
 	LinkStyleRule,
 	MetaGraphChart,
 	MetaGraphDocument,
@@ -23,6 +24,7 @@ export const BASE_STYLE_RULE_ID = 'all';
 export const DEFAULT_CONNECTION_FIELD = 'leads-to';
 export const DEFAULT_CONNECTION_FIELDS = [DEFAULT_CONNECTION_FIELD];
 export const DEFAULT_LABEL_SIZE = 14;
+export const DEFAULT_LABEL_POSITION: LabelPosition = 'right';
 export const DEFAULT_DOCK: MetaGraphDock = {
 	templates: [],
 	notes: [],
@@ -98,12 +100,13 @@ export function createDefaultChart(
 		type,
 		query: createDefaultQuery(maxNodes, type),
 		layout: createDefaultLayout(type),
-		display: {
-			fadeDistance,
-			labelSize: DEFAULT_LABEL_SIZE,
-			showInspector: true,
-			showFilters: true,
-		},
+			display: {
+				fadeDistance,
+				labelSize: DEFAULT_LABEL_SIZE,
+				labelPosition: DEFAULT_LABEL_POSITION,
+				showInspector: true,
+				showFilters: true,
+			},
 		style: {
 			nodeRules: [createDefaultNodeStyleRule()],
 			linkRules: [createDefaultLinkStyleRule()],
@@ -216,6 +219,10 @@ function normalizeChart(
 				labelSize: readFiniteNumber(
 					isRecord(record.display) ? record.display.labelSize : undefined,
 					fallback.display.labelSize,
+				),
+				labelPosition: readLabelPosition(
+					isRecord(record.display) ? record.display.labelPosition : undefined,
+					fallback.display.labelPosition,
 				),
 				showInspector: readBoolean(
 					isRecord(record.display)
@@ -591,6 +598,18 @@ function readFiniteNumber(value: unknown, fallback: number): number {
 
 function readBoolean(value: unknown, fallback: boolean): boolean {
 	return typeof value === 'boolean' ? value : fallback;
+}
+
+function readLabelPosition(
+	value: unknown,
+	fallback: LabelPosition,
+): LabelPosition {
+	return value === 'right' ||
+		value === 'left' ||
+		value === 'top' ||
+		value === 'bottom'
+		? value
+		: fallback;
 }
 
 function uniqueStrings(values: string[]): string[] {

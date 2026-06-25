@@ -9,6 +9,7 @@ import type {
 	NodeLabelDrawingFunction,
 } from "sigma/rendering";
 import type { NodeDisplayData, EdgeDisplayData } from "sigma/types";
+import type { LabelPosition } from "../core/types";
 import {
 	type RuntimeEdgeAttributes,
 	type RuntimeGraph,
@@ -33,6 +34,7 @@ export class SigmaRenderer {
 	private pinnedNodeId?: string;
 	private hoveredNeighborhood = new Set<string>();
 	private fadeDistance: number;
+	private labelPosition: LabelPosition;
 
 	constructor(
 		private graph: RuntimeGraph,
@@ -40,8 +42,10 @@ export class SigmaRenderer {
 		private readonly palette: GraphPalette,
 		fadeDistance = 1.5,
 		labelSize = 14,
+		labelPosition: LabelPosition = "right",
 	) {
 		this.fadeDistance = fadeDistance;
+		this.labelPosition = labelPosition;
 		this.instance = new Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>(
 			graph,
 			container,
@@ -60,11 +64,15 @@ export class SigmaRenderer {
 				},
 				nodeReducer: (node, data) => this.reduceNode(node, data),
 				edgeReducer: (edge, data) => this.reduceEdge(edge, data),
-				defaultDrawNodeLabel: createNodeLabelDrawer(palette, () =>
-					this.getCurrentLabelOpacity(),
+				defaultDrawNodeLabel: createNodeLabelDrawer(
+					palette,
+					() => this.getCurrentLabelOpacity(),
+					() => this.labelPosition,
 				),
-				defaultDrawNodeHover: createNodeHoverDrawer(palette, () =>
-					this.getCurrentLabelOpacity(),
+				defaultDrawNodeHover: createNodeHoverDrawer(
+					palette,
+					() => this.getCurrentLabelOpacity(),
+					() => this.labelPosition,
 				),
 				defaultDrawEdgeLabel: createEdgeLabelDrawer(() =>
 					this.getCurrentLabelOpacity(),
@@ -106,6 +114,11 @@ export class SigmaRenderer {
 
 	setLabelSize(labelSize: number): void {
 		this.instance.setSetting("labelSize", labelSize);
+	}
+
+	setLabelPosition(labelPosition: LabelPosition): void {
+		this.labelPosition = labelPosition;
+		this.instance.refresh();
 	}
 
 	togglePinnedHover(nodeId: string): void {
@@ -290,6 +303,7 @@ export class SigmaRenderer {
 function createNodeLabelDrawer(
 	palette: GraphPalette,
 	getOpacity: () => number,
+	getLabelPosition: () => LabelPosition,
 ): NodeLabelDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
 	return (context, data, settings) => {
 		if (!data.label) {
@@ -298,7 +312,6 @@ function createNodeLabelDrawer(
 
 		const labelSize = getScaledLabelSize(settings.labelSize, data.size);
 		const font = `${settings.labelWeight} ${labelSize}px ${settings.labelFont}`;
-		const x = data.x + data.size + 5;
 		const paddingX = 5;
 		const paddingY = 3;
 		context.save();
@@ -307,15 +320,24 @@ function createNodeLabelDrawer(
 		const textWidth = context.measureText(data.label).width;
 		const width = textWidth + paddingX * 2;
 		const height = labelSize + paddingY * 2;
-		const top = data.y - height / 2;
+		const box = getNodeLabelBox(
+			data.x,
+			data.y,
+			data.size,
+			width,
+			height,
+			paddingX,
+			getLabelPosition(),
+		);
 		context.globalAlpha = getOpacity();
+		context.textAlign = box.textAlign;
 
 		context.beginPath();
-		drawRoundedRect(context, x - paddingX, top, width, height, 4);
+		drawRoundedRect(context, box.x, box.y, width, height, 4);
 		context.fillStyle = palette.labelBackground;
 		context.fill();
 		context.fillStyle = palette.label;
-		context.fillText(data.label, x, data.y);
+		context.fillText(data.label, box.textX, box.textY);
 		context.restore();
 	};
 }
@@ -323,6 +345,7 @@ function createNodeLabelDrawer(
 function createNodeHoverDrawer(
 	palette: GraphPalette,
 	getOpacity: () => number,
+	getLabelPosition: () => LabelPosition,
 ): NodeHoverDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
 	// Pre-compute dark-mode flag once from the palette's background luminance.
 	const bgChannels = palette.labelBackground.match(/\d+/gu);
@@ -337,6 +360,7 @@ function createNodeHoverDrawer(
 
 	return (context, data, settings) => {
 		if (data.hidden) return;
+		if (typeof data.label !== "string") return;
 
 		const { labelFont: font, labelWeight: weight } = settings;
 		const size = getScaledLabelSize(settings.labelSize, data.size);
@@ -351,44 +375,92 @@ function createNodeHoverDrawer(
 		context.shadowBlur = 8;
 		context.shadowColor = "rgba(0,0,0,0.4)";
 
-		const PADDING = 2;
+		const paddingX = 5;
+		const paddingY = 3;
+		const textWidth = context.measureText(data.label).width;
+		const width = textWidth + paddingX * 2;
+		const height = size + paddingY * 2;
+		const box = getNodeLabelBox(
+			data.x,
+			data.y,
+			data.size,
+			width,
+			height,
+			paddingX,
+			getLabelPosition(),
+		);
 
-		if (typeof data.label === "string") {
-			const textWidth = context.measureText(data.label).width;
-			const boxWidth = Math.round(textWidth + 5);
-			const boxHeight = Math.round(size + 2 * PADDING);
-			const radius = Math.max(data.size, size / 2) + PADDING;
-			const angleRadian = Math.asin(boxHeight / 2 / radius);
-			const xDeltaCoord = Math.sqrt(
-				Math.abs(radius * radius - (boxHeight / 2) * (boxHeight / 2)),
-			);
-
-			context.beginPath();
-			context.moveTo(data.x + xDeltaCoord, data.y + boxHeight / 2);
-			context.lineTo(data.x + radius + boxWidth, data.y + boxHeight / 2);
-			context.lineTo(data.x + radius + boxWidth, data.y - boxHeight / 2);
-			context.lineTo(data.x + xDeltaCoord, data.y - boxHeight / 2);
-			context.arc(data.x, data.y, radius, angleRadian, -angleRadian);
-			context.closePath();
-			context.fill();
-		} else {
-			context.beginPath();
-			context.arc(data.x, data.y, data.size + PADDING, 0, Math.PI * 2);
-			context.closePath();
-			context.fill();
-		}
+		context.textBaseline = "middle";
+		context.textAlign = box.textAlign;
+		context.beginPath();
+		drawRoundedRect(context, box.x, box.y, width, height, 4);
+		context.fill();
 
 		context.shadowBlur = 0;
 		context.fillStyle = palette.label;
-		if (typeof data.label === "string") {
-			context.fillText(data.label, data.x + data.size + 3, data.y + size / 3);
-		}
+		context.fillText(data.label, box.textX, box.textY);
 		context.restore();
 	};
 }
 
 function getScaledLabelSize(baseLabelSize: number, nodeSize: number): number {
 	return (baseLabelSize * nodeSize) / DEFAULT_NODE_LABEL_BASE_SIZE;
+}
+
+function getNodeLabelBox(
+	nodeX: number,
+	nodeY: number,
+	nodeSize: number,
+	width: number,
+	height: number,
+	paddingX: number,
+	position: LabelPosition,
+): {
+	x: number;
+	y: number;
+	textX: number;
+	textY: number;
+	textAlign: CanvasTextAlign;
+} {
+	const gap = 5;
+	if (position === "left") {
+		const textX = nodeX - nodeSize - gap;
+		return {
+			x: textX - width + paddingX,
+			y: nodeY - height / 2,
+			textX,
+			textY: nodeY,
+			textAlign: "right",
+		};
+	}
+	if (position === "top") {
+		const y = nodeY - nodeSize - gap - height;
+		return {
+			x: nodeX - width / 2,
+			y,
+			textX: nodeX,
+			textY: y + height / 2,
+			textAlign: "center",
+		};
+	}
+	if (position === "bottom") {
+		const y = nodeY + nodeSize + gap;
+		return {
+			x: nodeX - width / 2,
+			y,
+			textX: nodeX,
+			textY: y + height / 2,
+			textAlign: "center",
+		};
+	}
+	const textX = nodeX + nodeSize + gap;
+	return {
+		x: textX - paddingX,
+		y: nodeY - height / 2,
+		textX,
+		textY: nodeY,
+		textAlign: "left",
+	};
 }
 
 function createEdgeLabelDrawer(

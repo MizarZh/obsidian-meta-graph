@@ -9,6 +9,7 @@ import type {
 	FlowEdgeStyle,
 	GraphQuery,
 	KnowledgeIndex,
+	LabelPosition,
 	LinkStyleRule,
 	MetaGraphChart,
 	MetaGraphDocument,
@@ -323,6 +324,16 @@ export class WorkspaceController {
 			display: {
 				...this.getActiveChart().display,
 				labelSize,
+			},
+		});
+		this.emit();
+	}
+
+	setLabelPosition(labelPosition: LabelPosition): void {
+		this.state = this.updateActiveChart({
+			display: {
+				...this.getActiveChart().display,
+				labelPosition,
 			},
 		});
 		this.emit();
@@ -936,6 +947,7 @@ export class WorkspaceController {
 			arcDirection: nextChart.layout.arcDirection ?? 'right',
 			fadeDistance: nextChart.display.fadeDistance,
 			labelSize: nextChart.display.labelSize,
+			labelPosition: nextChart.display.labelPosition,
 			graphSpacing:
 				nextChart.type === 'graph'
 					? nextChart.layout.spacing

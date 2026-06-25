@@ -14,6 +14,7 @@
 		FlowDirection,
 		FlowEdgeStyle,
 		GraphQuery,
+		LabelPosition,
 		LinkStyleField,
 		LinkLineStyle,
 		LinkStyleRule,
@@ -32,6 +33,7 @@
 		mode,
 		fadeDistance,
 		labelSize,
+		labelPosition,
 		flowEdgeStyle,
 		flowDirection,
 		arcDirection,
@@ -52,6 +54,7 @@
 		onArcDirection,
 		onFadeDistance,
 		onLabelSize,
+		onLabelPosition,
 		onGraphSpacing,
 		onFlowSpacing,
 		onArcSpacing,
@@ -67,6 +70,7 @@
 		mode: ViewMode;
 		fadeDistance: number;
 		labelSize: number;
+		labelPosition: LabelPosition;
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
 		arcDirection: ArcDirection;
@@ -87,6 +91,7 @@
 		onArcDirection: (direction: ArcDirection) => void;
 		onFadeDistance: (value: number) => void;
 		onLabelSize: (value: number) => void;
+		onLabelPosition: (position: LabelPosition) => void;
 		onGraphSpacing: (spacing: number) => void;
 		onFlowSpacing: (spacing: number) => void;
 		onArcSpacing: (spacing: number) => void;
@@ -140,6 +145,15 @@
 		{ value: "solid", label: "Solid" },
 		{ value: "dashed", label: "Dashed" },
 		{ value: "dotted", label: "Dotted" },
+	];
+	const LABEL_POSITION_OPTIONS: Array<{
+		value: LabelPosition;
+		label: string;
+	}> = [
+		{ value: "right", label: "Right" },
+		{ value: "left", label: "Left" },
+		{ value: "top", label: "Top" },
+		{ value: "bottom", label: "Bottom" },
 	];
 	const COLOR_COMMIT_DELAY_MS = 180;
 	const colorCommitTimers = new Map<string, number>();
@@ -459,9 +473,9 @@
 					>
 				</div>
 			</label>
-			<label class="knowledge-workspace-rule-label">
-				<span>Font size</span>
-				<div class="knowledge-workspace-slider-value">
+				<label class="knowledge-workspace-rule-label">
+					<span>Font size</span>
+					<div class="knowledge-workspace-slider-value">
 					<ObsidianSlider
 						value={labelSize}
 						min={8}
@@ -471,11 +485,23 @@
 						onChange={onLabelSize}
 						onCommit={onLabelSize}
 					/>
-					<span>{labelSize.toFixed(1)}</span>
+						<span>{labelSize.toFixed(1)}</span>
+					</div>
+				</label>
+				<div class="knowledge-workspace-rule-label segmented">
+					<span>Text position</span>
+					<div class="knowledge-workspace-segmented">
+						{#each LABEL_POSITION_OPTIONS as option}
+							<ObsidianButton
+								active={labelPosition === option.value}
+								text={option.label}
+								onClick={() => onLabelPosition(option.value)}
+							/>
+						{/each}
+					</div>
 				</div>
-			</label>
-			<label class="knowledge-workspace-rule-label">
-				<span>Fade distance</span>
+				<label class="knowledge-workspace-rule-label">
+					<span>Fade distance</span>
 				<div class="knowledge-workspace-slider-value">
 					<ObsidianSlider
 						value={fadeDistance}
