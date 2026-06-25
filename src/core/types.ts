@@ -126,11 +126,15 @@ export interface GraphProjection {
 	nodes: KnowledgeNode[];
 	edges: KnowledgeEdge[];
 	rootIds: Set<NodeId>;
+	primaryIds?: Set<NodeId>;
+	contextIds?: Set<NodeId>;
 }
 
 export type ViewMode = 'graph' | 'flow' | 'arc';
+export type ChartSource = 'query' | 'curated';
 export type SettingsPanelMode =
 	| 'graph'
+	| 'workspace'
 	| 'filters'
 	| 'text-style'
 	| 'note-style'
@@ -207,11 +211,34 @@ export interface GlobalStyleConfig {
 	linkRules: LinkStyleRule[];
 }
 
+export interface CuratedWorkspaceFile {
+	path: NodeId;
+	group?: string;
+	note?: string;
+	x?: number;
+	y?: number;
+}
+
+export interface CuratedWorkspaceContext {
+	enabled: boolean;
+	depth: number;
+	includeOutgoingLinks: boolean;
+	includeBacklinks: boolean;
+	includeMetadataRelations: boolean;
+}
+
+export interface CuratedWorkspaceConfig {
+	files: CuratedWorkspaceFile[];
+	context: CuratedWorkspaceContext;
+}
+
 export interface MetaGraphChart {
 	id: string;
 	name: string;
 	type: ChartType;
+	source: ChartSource;
 	query: GraphQuery;
+	curated: CuratedWorkspaceConfig;
 	layout: ChartLayoutConfig;
 	display: ChartDisplayConfig;
 	style: ChartStyleConfig;
@@ -256,6 +283,7 @@ export interface WorkspaceState {
 	charts: MetaGraphChart[];
 	activeChartId: string;
 	mode: ViewMode;
+	chartSource: ChartSource;
 	flowEdgeStyle: FlowEdgeStyle;
 	flowDirection: FlowDirection;
 	arcDirection: ArcDirection;
@@ -272,6 +300,7 @@ export interface WorkspaceState {
 	selectedNodeId?: NodeId;
 	hoveredNodeId?: NodeId;
 	query: GraphQuery;
+	curated: CuratedWorkspaceConfig;
 	globalQuery: GraphQuery;
 	globalNodeStyleRules: NodeStyleRule[];
 	globalLinkStyleRules: LinkStyleRule[];
@@ -298,8 +327,10 @@ export interface DebugSnapshot {
 		incoming: Record<NodeId, EdgeId[]>;
 	};
 	state: Omit<WorkspaceState, 'projection'> & {
-		projection?: Omit<GraphProjection, 'rootIds'> & {
+		projection?: Omit<GraphProjection, 'rootIds' | 'primaryIds' | 'contextIds'> & {
 			rootIds: NodeId[];
+			primaryIds?: NodeId[];
+			contextIds?: NodeId[];
 		};
 	};
 	unresolvedLinks: UnresolvedLink[];

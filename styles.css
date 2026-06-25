@@ -557,6 +557,96 @@
 	margin-bottom: 0;
 }
 
+.knowledge-workspace-curated {
+	max-height: inherit;
+	overflow: auto;
+	padding: var(--size-4-3);
+	background: var(--background-secondary);
+}
+
+.knowledge-workspace-curated section {
+	margin-bottom: var(--size-4-4);
+}
+
+.knowledge-workspace-curated section:last-child {
+	margin-bottom: 0;
+}
+
+.knowledge-workspace-curated section > header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 34px;
+	margin-bottom: var(--size-4-2);
+}
+
+.knowledge-workspace-curated h3 {
+	margin: 0;
+	color: var(--text-normal);
+	font-size: var(--font-ui-medium);
+	font-weight: var(--font-semibold);
+	line-height: 1.25;
+}
+
+.knowledge-workspace-curated header span,
+.knowledge-workspace-curated-file small,
+.knowledge-workspace-curated-empty {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.knowledge-workspace-curated-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-2);
+}
+
+.knowledge-workspace-curated-file {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 30px;
+	gap: var(--size-4-2);
+	align-items: center;
+	min-height: 46px;
+	padding: var(--size-4-2);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+}
+
+.knowledge-workspace-curated-file.missing {
+	border-color: var(--text-error);
+}
+
+.knowledge-workspace-curated-file > span {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.knowledge-workspace-curated-file strong,
+.knowledge-workspace-curated-file small {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.knowledge-workspace-curated-file button {
+	display: grid;
+	place-items: center;
+	width: 30px;
+	height: 30px;
+	padding: 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary-alt);
+	color: var(--text-muted);
+}
+
+.knowledge-workspace-curated-file button:hover {
+	color: var(--text-error);
+}
+
 .knowledge-workspace-filters section > header {
 	display: flex;
 	align-items: center;

@@ -64,6 +64,26 @@ describe('workspace persistence', () => {
 		expect(restored.arcDirection).toBe('left');
 	});
 
+	it('restores a curated workspace chart without changing query charts', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		const graphChart = document.charts.find(
+			(chart) => chart.id === 'knowledge-map',
+		);
+		if (graphChart) {
+			graphChart.source = 'curated';
+			graphChart.curated.files = [{ path: 'Projects/A.md' }];
+			document.activeChart = graphChart.id;
+		}
+
+		const restored = createWorkspaceState(300, 1.5, document);
+		const saved = serializeMetaGraphState(restored);
+
+		expect(restored.chartSource).toBe('curated');
+		expect(restored.curated.files).toEqual([{ path: 'Projects/A.md' }]);
+		expect(saved.charts[0]?.source).toBe('curated');
+		expect(saved.charts[1]?.source).toBe('query');
+	});
+
 	it('clones proxy-backed serializable state', () => {
 		const value = new Proxy(
 			{ nested: new Proxy({ value: 1 }, {}) },

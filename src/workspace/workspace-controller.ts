@@ -4,6 +4,8 @@ import { normalizePath } from '../core/knowledge-index';
 import { extractLinkText } from '../core/link-resolver';
 import type {
 	ArcDirection,
+	ChartSource,
+	CuratedWorkspaceConfig,
 	DebugSnapshot,
 	FlowDirection,
 	FlowEdgeStyle,
@@ -23,10 +25,13 @@ import type {
 	ViewMode,
 	WorkspaceState,
 } from '../core/types';
+import { CuratedProjectionEngine } from '../query/curated';
 import { GraphQueryEngine } from '../query/neighborhood';
 import { createWorkspaceState } from './workspace-state';
 import {
+	createDefaultCuratedWorkspace,
 	createDefaultChart,
+	normalizeCuratedWorkspace,
 	normalizeConnectionFields,
 	normalizeDockNotes,
 	normalizeDockTemplates,
@@ -52,6 +57,7 @@ export class WorkspaceController {
 	private state: WorkspaceState;
 	private index?: KnowledgeIndex;
 	private readonly queryEngine = new GraphQueryEngine();
+	private readonly curatedEngine = new CuratedProjectionEngine();
 	private readonly listeners = new Set<StateListener>();
 	private unresolvedLinks: UnresolvedLink[] = [];
 	private metadataSources: MetadataDebugEntry[] = [];
@@ -93,6 +99,12 @@ export class WorkspaceController {
 					? {
 							...state.projection,
 							rootIds: [...state.projection.rootIds],
+							primaryIds: state.projection.primaryIds
+								? [...state.projection.primaryIds]
+								: undefined,
+							contextIds: state.projection.contextIds
+								? [...state.projection.contextIds]
+								: undefined,
 						}
 					: undefined,
 			},
@@ -258,6 +270,18 @@ export class WorkspaceController {
 		this.runQuery();
 	}
 
+	setActiveChartSource(source: ChartSource): void {
+		const activeChart = this.getActiveChart();
+		if (activeChart.source === source) {
+			return;
+		}
+		this.state = this.updateActiveChart({
+			source,
+			curated: activeChart.curated ?? createDefaultCuratedWorkspace(),
+		});
+		this.runQuery();
+	}
+
 	deleteActiveChart(): void {
 		if (this.state.charts.length <= 1) {
 			return;
@@ -399,6 +423,49 @@ export class WorkspaceController {
 			true,
 		);
 		this.emit();
+	}
+
+	addCuratedFile(path: NodeId): void {
+		const normalized = normalizePath(path);
+		if (!normalized) {
+			return;
+		}
+		const activeChart = this.getActiveChart();
+		const curated = normalizeCuratedWorkspace({
+			...activeChart.curated,
+			files: [...activeChart.curated.files, { path: normalized }],
+		});
+		if (curated.files.length === activeChart.curated.files.length) {
+			return;
+		}
+		this.state = this.updateActiveChart({ curated }, true);
+		this.runQuery();
+	}
+
+	removeCuratedFile(path: NodeId): void {
+		const normalized = normalizePath(path);
+		const activeChart = this.getActiveChart();
+		const curated = normalizeCuratedWorkspace({
+			...activeChart.curated,
+			files: activeChart.curated.files.filter(
+				(file) => file.path !== normalized,
+			),
+		});
+		if (curated.files.length === activeChart.curated.files.length) {
+			return;
+		}
+		this.state = this.updateActiveChart({ curated }, true);
+		this.runQuery();
+	}
+
+	updateCuratedWorkspace(patch: Partial<CuratedWorkspaceConfig>): void {
+		const activeChart = this.getActiveChart();
+		const curated = normalizeCuratedWorkspace({
+			...activeChart.curated,
+			...patch,
+		});
+		this.state = this.updateActiveChart({ curated }, true);
+		this.runQuery();
 	}
 
 	getDocument(): MetaGraphDocument {
@@ -725,6 +792,14 @@ export class WorkspaceController {
 			return;
 		}
 		const activeChart = this.getActiveChart();
+		if (activeChart.source === 'curated') {
+			this.state = {
+				...this.state,
+				activeConnectionField: normalized,
+			};
+			this.emit();
+			return;
+		}
 		const relations = activeChart.query.relations.includes(normalized)
 			? activeChart.query.relations
 			: [...activeChart.query.relations, normalized];
@@ -904,11 +979,14 @@ export class WorkspaceController {
 		if (!this.index || this.destroyed) {
 			return;
 		}
-		const projection = this.queryEngine.project(
-			this.index,
-			this.state.query,
-			this.state.globalQuery,
-		);
+		const projection =
+			this.state.chartSource === 'curated'
+				? this.curatedEngine.project(this.index, this.state.curated)
+				: this.queryEngine.project(
+						this.index,
+						this.state.query,
+						this.state.globalQuery,
+					);
 		const selectedNodeId =
 			this.state.selectedNodeId &&
 			projection.nodes.some((node) => node.id === this.state.selectedNodeId)
@@ -962,6 +1040,7 @@ export class WorkspaceController {
 				chart.id === nextChart.id ? nextChart : chart,
 			),
 			mode: nextChart.type,
+			chartSource: nextChart.source,
 			flowEdgeStyle: nextChart.layout.edgeStyle ?? 'orthogonal',
 			flowDirection: nextChart.layout.direction ?? 'LR',
 			arcDirection: nextChart.layout.arcDirection ?? 'right',
@@ -983,6 +1062,7 @@ export class WorkspaceController {
 					? nextChart.layout.spacing
 					: this.state.arcSpacing,
 			query: cloneSerializable(nextChart.query),
+			curated: cloneSerializable(nextChart.curated),
 			nodeStyleRules: cloneSerializable(nextChart.style.nodeRules),
 			linkStyleRules: cloneSerializable(nextChart.style.linkRules),
 			layoutRevision:

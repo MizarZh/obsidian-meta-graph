@@ -15,6 +15,7 @@ import type {
 	KnowledgeNode,
 	RelationType,
 } from '../core/types';
+import { CuratedProjectionEngine } from '../query/curated';
 import { GraphQueryEngine } from '../query/neighborhood';
 
 const resolver: LinkResolver = {
@@ -409,6 +410,48 @@ describe('breadth-first neighborhood query', () => {
 		expect(
 			projectIds(index, query({ relations: ['related'] })),
 		).toEqual(['A', 'C']);
+	});
+});
+
+describe('curated workspace projection', () => {
+	it('keeps selected files visible even when they have no edges', () => {
+		const index = buildIndex([node('A'), node('B')], []);
+		const projection = new CuratedProjectionEngine().project(index, {
+			files: [{ path: 'A' }, { path: 'B' }],
+			context: {
+				enabled: false,
+				depth: 0,
+				includeOutgoingLinks: true,
+				includeBacklinks: true,
+				includeMetadataRelations: true,
+			},
+		});
+
+		expect(projection.nodes.map((item) => item.id).sort()).toEqual(['A', 'B']);
+		expect(projection.edges).toEqual([]);
+		expect(projection.primaryIds).toEqual(new Set(['A', 'B']));
+	});
+
+	it('only includes edges between selected files', () => {
+		const index = buildIndex(
+			[node('A'), node('B'), node('C')],
+			[edge('A', 'B'), edge('B', 'C')],
+		);
+		const projection = new CuratedProjectionEngine().project(index, {
+			files: [{ path: 'A' }, { path: 'B' }],
+			context: {
+				enabled: false,
+				depth: 0,
+				includeOutgoingLinks: true,
+				includeBacklinks: true,
+				includeMetadataRelations: true,
+			},
+		});
+
+		expect(projection.nodes.map((item) => item.id).sort()).toEqual(['A', 'B']);
+		expect(projection.edges.map((item) => item.id)).toEqual([
+			createEdgeId('A', 'leads-to', 'B', true),
+		]);
 	});
 });
 

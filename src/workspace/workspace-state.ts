@@ -27,6 +27,7 @@ export function createWorkspaceState(
 		charts: cloneSerializable(metaGraphDocument.charts),
 		activeChartId: activeChart.id,
 		mode: activeChart.type,
+		chartSource: activeChart.source,
 		flowEdgeStyle: activeChart.layout.edgeStyle ?? 'orthogonal',
 		flowDirection: activeChart.layout.direction ?? 'LR',
 		arcDirection: activeChart.layout.arcDirection ?? 'right',
@@ -42,6 +43,7 @@ export function createWorkspaceState(
 		arcSpacing: activeChart.type === 'arc' ? activeChart.layout.spacing : 1,
 		layoutRevision: 0,
 		query: cloneSerializable(activeChart.query),
+		curated: cloneSerializable(activeChart.curated),
 		globalQuery: cloneSerializable(metaGraphDocument.globalQuery),
 		globalNodeStyleRules: cloneSerializable(
 			metaGraphDocument.globalStyle.nodeRules,
@@ -51,13 +53,13 @@ export function createWorkspaceState(
 		),
 		nodeStyleRules: cloneSerializable(activeChart.style.nodeRules),
 		linkStyleRules: cloneSerializable(activeChart.style.linkRules),
-			connectionFields: cloneSerializable(metaGraphDocument.connectionFields),
-			activeConnectionField: metaGraphDocument.activeConnectionField,
-			connectionUndoCount: 0,
-			dock: cloneSerializable(metaGraphDocument.dock),
-			availableFolders: [],
-			availableTags: [],
-			availableDomains: [],
-		};
+		connectionFields: cloneSerializable(metaGraphDocument.connectionFields),
+		activeConnectionField: metaGraphDocument.activeConnectionField,
+		connectionUndoCount: 0,
+		dock: cloneSerializable(metaGraphDocument.dock),
+		availableFolders: [],
+		availableTags: [],
+		availableDomains: [],
+	};
 	return state;
 }

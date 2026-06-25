@@ -25,6 +25,8 @@ export interface RuntimeNodeAttributes {
 	domains: string[];
 	tags: string[];
 	noteType?: string;
+	isPrimary?: boolean;
+	isContext?: boolean;
 	fixed?: boolean;
 	isBend?: boolean;
 }
@@ -67,6 +69,8 @@ export class GraphologyAdapter {
 		>({ multi: true, type: 'mixed' });
 
 		for (const node of projection.nodes) {
+			const isPrimary = projection.primaryIds?.has(node.id) ?? false;
+			const isContext = projection.contextIds?.has(node.id) ?? false;
 			const style = resolveNodeStyle(node, this.nodeStyleRules, {
 				color: this.palette.node,
 				size: 7,
@@ -78,13 +82,15 @@ export class GraphologyAdapter {
 				label: node.title,
 				x: position.x,
 				y: position.y,
-				size: style.size,
+				size: isPrimary ? style.size * 1.2 : style.size,
 				color: style.color,
 				path: node.path,
 				folder: node.folder,
 				domains: node.domains,
 				tags: node.tags,
 				noteType: node.noteType,
+				isPrimary,
+				isContext,
 				fixed: positions.has(node.id),
 			});
 		}

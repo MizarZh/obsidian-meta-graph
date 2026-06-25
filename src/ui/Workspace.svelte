@@ -29,6 +29,7 @@
 	import { ForceAtlasLayout } from "../layouts/force-layout";
 	import type { WorkspaceController } from "../workspace/workspace-controller";
 	import { serializeMetaGraphState } from "../workspace/meta-graph-model";
+	import CuratedPanel from "./CuratedPanel.svelte";
 	import FilterPanel from "./FilterPanel.svelte";
 	import DebugPanel from "./DebugPanel.svelte";
 	import DockGraphPanel, {
@@ -68,6 +69,7 @@
 	let lastProjection: WorkspaceState["projection"];
 	let lastActiveChartId: string | undefined;
 	let lastMode: WorkspaceState["mode"] | undefined;
+	let lastChartSource: WorkspaceState["chartSource"] | undefined;
 	let lastFlowEdgeStyle: WorkspaceState["flowEdgeStyle"] | undefined;
 	let lastFlowDirection: WorkspaceState["flowDirection"] | undefined;
 	let lastArcDirection: WorkspaceState["arcDirection"] | undefined;
@@ -185,6 +187,9 @@
 				nextState.activeChartId !== lastActiveChartId;
 			const modeChanged =
 				lastMode !== undefined && nextState.mode !== lastMode;
+			const chartSourceChanged =
+				lastChartSource !== undefined &&
+				nextState.chartSource !== lastChartSource;
 			const flowStyleChanged =
 				lastFlowEdgeStyle !== undefined &&
 				nextState.flowEdgeStyle !== lastFlowEdgeStyle;
@@ -217,12 +222,24 @@
 				nextState.activeChartId !== lastActiveChartId ||
 				nextState.projection !== lastProjection ||
 				nextState.mode !== lastMode ||
+				nextState.chartSource !== lastChartSource ||
 				nextState.flowEdgeStyle !== lastFlowEdgeStyle ||
 				nextState.flowDirection !== lastFlowDirection ||
 				nextState.arcDirection !== lastArcDirection ||
 				nextState.layoutRevision !== lastLayoutRevision ||
 				styleRulesChanged;
 			workspaceState = nextState;
+			if (
+				nextState.chartSource === "curated" &&
+				settingsPanel === "filters"
+			) {
+				settingsPanel = "workspace";
+			} else if (
+				nextState.chartSource === "query" &&
+				settingsPanel === "workspace"
+			) {
+				settingsPanel = "filters";
+			}
 			scheduleAutoSave(nextState);
 				if (fadeDistanceChanged) {
 					renderer?.setFadeDistance(nextState.fadeDistance);
@@ -245,6 +262,7 @@
 				lastProjection = nextState.projection;
 				lastActiveChartId = nextState.activeChartId;
 				lastMode = nextState.mode;
+				lastChartSource = nextState.chartSource;
 				lastFlowEdgeStyle = nextState.flowEdgeStyle;
 				lastFlowDirection = nextState.flowDirection;
 				lastArcDirection = nextState.arcDirection;
@@ -256,6 +274,7 @@
 				void rebuildGraph(
 					activeChartChanged ||
 						modeChanged ||
+						chartSourceChanged ||
 						flowStyleChanged ||
 						flowDirectionChanged ||
 						arcDirectionChanged ||
@@ -263,7 +282,8 @@
 					flowStyleChanged ||
 						flowDirectionChanged ||
 						arcDirectionChanged ||
-						layoutRevisionChanged,
+						layoutRevisionChanged ||
+						chartSourceChanged,
 				).catch((error: unknown) => {
 					controller.setRendererDebugState({
 						status: "error",
@@ -449,11 +469,12 @@
 		),
 	);
 	const searchableNodes = $derived(workspaceState.projection?.nodes ?? []);
-const atNodeLimit = $derived(
-	workspaceState.projection
-		? workspaceState.projection.nodes.length >= workspaceState.query.maxNodes
-		: false,
-);
+	const atNodeLimit = $derived(
+		workspaceState.chartSource === "query" && workspaceState.projection
+			? workspaceState.projection.nodes.length >=
+				workspaceState.query.maxNodes
+			: false,
+	);
 	const debugSnapshot: DebugSnapshot = $derived(
 		controller.getDebugSnapshot(workspaceState),
 	);
@@ -1204,6 +1225,7 @@ const atNodeLimit = $derived(
 	<Toolbar
 		{app}
 		mode={workspaceState.mode}
+		chartSource={workspaceState.chartSource}
 		charts={workspaceState.charts}
 		activeChartId={workspaceState.activeChartId}
 		searchNodes={searchableNodes}
@@ -1211,6 +1233,7 @@ const atNodeLimit = $derived(
 		onAddChart={() => controller.addChart()}
 		onRenameChart={(name) => controller.setActiveChartName(name)}
 		onChartType={(mode) => controller.setActiveChartType(mode)}
+		onChartSource={(source) => controller.setActiveChartSource(source)}
 		onDeleteChart={confirmDeleteActiveChart}
 		onFocusNode={focusNodeFromSearch}
 		onFit={() => renderer?.fit()}
@@ -1241,9 +1264,20 @@ const atNodeLimit = $derived(
 				class="knowledge-workspace-settings-popover"
 				style:--knowledge-workspace-settings-left={`${settingsPopoverLeft}px`}
 			>
-				<FilterPanel
-					{app}
-					panel={settingsPanel}
+				{#if settingsPanel === "workspace"}
+					<CuratedPanel
+						{app}
+						curated={workspaceState.curated}
+						nodes={debugSnapshot.index.nodes}
+						{workspaceFilePath}
+						onAddFile={(path) => controller.addCuratedFile(path)}
+						onRemoveFile={(path) =>
+							controller.removeCuratedFile(path)}
+					/>
+				{:else}
+					<FilterPanel
+						{app}
+						panel={settingsPanel}
 						mode={workspaceState.mode}
 							fadeDistance={workspaceState.fadeDistance}
 							labelSize={workspaceState.labelSize}
@@ -1296,7 +1330,8 @@ const atNodeLimit = $derived(
 						controller.setGlobalLinkStyleRules(rules)}
 					onLinkStyleRulesChange={(rules) =>
 						controller.setLinkStyleRules(rules)}
-				/>
+					/>
+				{/if}
 			</div>
 		{/if}
 		<main

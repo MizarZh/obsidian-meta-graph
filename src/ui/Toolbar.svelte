@@ -5,6 +5,7 @@
 	import ObsidianSuggestInput from "./obsidian/ObsidianSuggestInput.svelte";
 	import ObsidianTextInput from "./obsidian/ObsidianTextInput.svelte";
 	import type {
+		ChartSource,
 		KnowledgeNode,
 		MetaGraphChart,
 		SettingsPanelMode,
@@ -14,6 +15,7 @@
 	let {
 		app,
 		mode,
+		chartSource,
 		charts,
 		activeChartId,
 		searchNodes,
@@ -21,6 +23,7 @@
 		onAddChart,
 		onRenameChart,
 		onChartType,
+		onChartSource,
 		onDeleteChart,
 		onFocusNode,
 		onFit,
@@ -33,6 +36,7 @@
 	}: {
 		app: App;
 		mode: ViewMode;
+		chartSource: ChartSource;
 		charts: MetaGraphChart[];
 		activeChartId: string;
 		searchNodes: KnowledgeNode[];
@@ -40,6 +44,7 @@
 		onAddChart: () => void;
 		onRenameChart: (name: string) => void;
 		onChartType: (mode: ViewMode) => void;
+		onChartSource: (source: ChartSource) => void;
 		onDeleteChart: () => void;
 		onFocusNode: (id: string) => void;
 		onFit: () => void;
@@ -88,17 +93,23 @@
 		{ value: "flow", label: "Flow" },
 		{ value: "arc", label: "Arc diagram" },
 	];
-	const SETTINGS_TABS: Array<{
+	const SOURCE_OPTIONS = [
+		{ value: "query", label: "Query" },
+		{ value: "curated", label: "Workspace" },
+	];
+	const SETTINGS_TABS = $derived<Array<{
 		mode: SettingsPanelMode;
 		icon: IconName;
 		label: string;
-	}> = [
+	}>>([
 		{ mode: "graph", icon: "settings-2", label: "Graph" },
-		{ mode: "filters", icon: "list-filter", label: "Filter" },
+		chartSource === "curated"
+			? { mode: "workspace", icon: "folder-plus", label: "Workspace" }
+			: { mode: "filters", icon: "list-filter", label: "Filter" },
 		{ mode: "text-style", icon: "type", label: "Text style" },
 		{ mode: "note-style", icon: "palette", label: "Note style" },
 		{ mode: "link-style", icon: "route", label: "Link style" },
-	];
+	]);
 
 	function getViewIcon(type: ViewMode | undefined): IconName {
 		return VIEW_ICONS[type ?? "graph"];
@@ -293,6 +304,15 @@
 					}}
 					onBlur={commitName}
 				/>
+				<label>
+					<span>Source</span>
+					<ObsidianDropdown
+						value={chartSource}
+						options={SOURCE_OPTIONS}
+						onChange={(value) =>
+							onChartSource(value as ChartSource)}
+					/>
+				</label>
 				<label>
 					<span>Layout</span>
 					<ObsidianDropdown
