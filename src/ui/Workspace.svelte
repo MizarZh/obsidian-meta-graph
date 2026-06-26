@@ -26,6 +26,7 @@
 		ElkFlowLayout,
 		type OrthogonalRouteMap,
 	} from "../layouts/elk-flow-layout";
+	import { D3ForceSimulation } from "../layouts/d3-force-simulation";
 	import { ForceAtlasLayout } from "../layouts/force-layout";
 	import type { WorkspaceController } from "../workspace/workspace-controller";
 	import { serializeMetaGraphState } from "../workspace/meta-graph-model";
@@ -100,6 +101,7 @@
 	let dockOpen = $state(true);
 	let curatedPanelOpen = $state(true);
 	let connectionOpen = $state(true);
+	let forceLayoutSimulation: D3ForceSimulation | undefined;
 
 	interface LayoutSnapshot {
 		positions: Map<string, GraphPosition>;
@@ -236,9 +238,11 @@
 					nextState.labelPosition !== workspaceState.labelPosition;
 				const labelColorChanged =
 					nextState.labelColor !== workspaceState.labelColor;
-				const labelBackgroundOpacityChanged =
-					nextState.labelBackgroundOpacity !==
-					workspaceState.labelBackgroundOpacity;
+			const labelBackgroundOpacityChanged =
+				nextState.labelBackgroundOpacity !==
+				workspaceState.labelBackgroundOpacity;
+		const forceLayoutChanged =
+			nextState.enableForceLayout !== workspaceState.enableForceLayout;
 			const shouldRebuild =
 				nextState.activeChartId !== lastActiveChartId ||
 				nextState.projection !== lastProjection ||
@@ -271,11 +275,16 @@
 				if (labelColorChanged) {
 					renderer?.setLabelColor(nextState.labelColor);
 				}
-				if (labelBackgroundOpacityChanged) {
-					renderer?.setLabelBackgroundOpacity(
-						nextState.labelBackgroundOpacity,
-					);
-				}
+			if (labelBackgroundOpacityChanged) {
+				renderer?.setLabelBackgroundOpacity(
+					nextState.labelBackgroundOpacity,
+				);
+			}
+			if (forceLayoutChanged && renderer) {
+				unbindEvents?.();
+				unbindEvents = bindEventsForRenderer(renderer);
+				stopForceLayoutSimulation();
+			}
 			if (shouldRebuild) {
 				lastProjection = nextState.projection;
 				lastActiveChartId = nextState.activeChartId;
@@ -347,6 +356,7 @@
 			);
 			resetDockConnectionDrag();
 			unbindEvents?.();
+			stopForceLayoutSimulation();
 			renderer?.kill();
 		};
 	});
@@ -383,6 +393,7 @@
 		) {
 			unbindEvents?.();
 			unbindEvents = undefined;
+			stopForceLayoutSimulation();
 			renderer?.kill();
 			renderer = undefined;
 			controller.setRendererDebugState({ status: "idle" });
@@ -428,46 +439,23 @@
 
 		const firstRender = !renderer;
 		if (renderer) {
+			unbindEvents?.();
+			stopForceLayoutSimulation();
 			renderer.setGraph(graph);
+			unbindEvents = bindEventsForRenderer(renderer);
 		} else {
 			const nextRenderer = new SigmaRenderer(
 				graph,
-					canvas,
-					palette,
-					workspaceState.fadeDistance,
-					workspaceState.labelSize,
-					workspaceState.labelPosition,
-					workspaceState.labelColor,
-					workspaceState.labelBackgroundOpacity,
-				);
+				canvas,
+				palette,
+				workspaceState.fadeDistance,
+				workspaceState.labelSize,
+				workspaceState.labelPosition,
+				workspaceState.labelColor,
+				workspaceState.labelBackgroundOpacity,
+			);
 			renderer = nextRenderer;
-			unbindEvents = bindGraphEvents(nextRenderer, {
-				onSelect: (nodeId) => controller.selectNode(nodeId),
-				onHover: (nodeId) => controller.hoverNode(nodeId),
-				onOpen: (nodeId) => void controller.openNode(nodeId),
-				onConnectionDrag: (state) => {
-					connectionDrag = state;
-					if (!state) {
-						graphConnectionTargetNotePath = undefined;
-						graphConnectionTargetTemplateId = undefined;
-						graphConnectionTargetCurated = false;
-					}
-				},
-				onConnect: (sourceNodeId, targetNodeId) => {
-					void controller
-						.connectNodes(
-							sourceNodeId,
-							targetNodeId,
-							workspaceState.activeConnectionField,
-						)
-						.catch((error: unknown) =>
-							controller.setRendererDebugState({
-								status: "error",
-								error: formatError(error),
-							}),
-						);
-				},
-			});
+			unbindEvents = bindEventsForRenderer(nextRenderer);
 		}
 		renderer.setSelected(workspaceState.selectedNodeId);
 		renderer.setHovered(workspaceState.hoveredNodeId);
@@ -479,6 +467,81 @@
 			mode: workspaceState.mode,
 			container: readContainerSize(),
 			runtimeGraph: serializeRuntimeGraph(graph),
+		});
+	}
+
+	function bindEventsForRenderer(targetRenderer: SigmaRenderer): () => void {
+		return bindGraphEvents(targetRenderer, {
+			enableForceLayout:
+				workspaceState.mode === "graph" && workspaceState.enableForceLayout,
+			onSelect: (nodeId) => controller.selectNode(nodeId),
+			onHover: (nodeId) => controller.hoverNode(nodeId),
+			onOpen: (nodeId) => void controller.openNode(nodeId),
+			onNodeDrag: (nodeId, position) => {
+				targetRenderer.holdCurrentBounds();
+				getOrCreateForceLayoutSimulation(targetRenderer).drag(
+					nodeId,
+					position,
+				);
+				getLayoutSnapshot().positions.set(nodeId, position);
+				targetRenderer.instance.refresh();
+			},
+			onNodeDragEnd: (nodeId) => {
+				forceLayoutSimulation?.release(nodeId);
+			},
+			onConnectionDrag: (state) => {
+				connectionDrag = state;
+				if (!state) {
+					graphConnectionTargetNotePath = undefined;
+					graphConnectionTargetTemplateId = undefined;
+					graphConnectionTargetCurated = false;
+				}
+			},
+			onConnect: (sourceNodeId, targetNodeId) => {
+				void controller
+					.connectNodes(
+						sourceNodeId,
+						targetNodeId,
+						workspaceState.activeConnectionField,
+					)
+					.catch((error: unknown) =>
+						controller.setRendererDebugState({
+							status: "error",
+							error: formatError(error),
+						}),
+					);
+			},
+		});
+	}
+
+	function getOrCreateForceLayoutSimulation(
+		targetRenderer: SigmaRenderer,
+	): D3ForceSimulation {
+		if (!forceLayoutSimulation) {
+			forceLayoutSimulation = new D3ForceSimulation(
+				targetRenderer.runtimeGraph,
+				targetRenderer,
+				workspaceState.graphSpacing,
+				(nodeId, position) => {
+					getLayoutSnapshot().positions.set(nodeId, position);
+				},
+			);
+		}
+		return forceLayoutSimulation;
+	}
+
+	function stopForceLayoutSimulation(): void {
+		forceLayoutSimulation?.stop();
+		forceLayoutSimulation = undefined;
+		renderer?.clearHeldBounds();
+	}
+
+	function snapshotCurrentGraphPositions(graph: RuntimeGraph): void {
+		const positions = getLayoutSnapshot().positions;
+		graph.forEachNode((nodeId, attributes) => {
+			if (!attributes.isBend) {
+				positions.set(nodeId, { x: attributes.x, y: attributes.y });
+			}
 		});
 	}
 
@@ -1310,6 +1373,7 @@
 							labelPosition={workspaceState.labelPosition}
 							labelColor={workspaceState.labelColor}
 							labelBackgroundOpacity={workspaceState.labelBackgroundOpacity}
+							enableForceLayout={workspaceState.enableForceLayout}
 							flowEdgeStyle={workspaceState.flowEdgeStyle}
 					flowDirection={workspaceState.flowDirection}
 					arcDirection={workspaceState.arcDirection}
@@ -1342,6 +1406,8 @@
 							onLabelColor={(color) => controller.setLabelColor(color)}
 							onLabelBackgroundOpacity={(value) =>
 								controller.setLabelBackgroundOpacity(value)}
+							onEnableForceLayout={(value) =>
+								controller.setEnableForceLayout(value)}
 							onGraphSpacing={(spacing) =>
 							controller.setGraphSpacing(spacing)}
 					onFlowSpacing={(spacing) =>

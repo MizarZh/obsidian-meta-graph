@@ -400,6 +400,19 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	setEnableForceLayout(enableForceLayout: boolean): void {
+		if (this.getActiveChart().display.enableForceLayout === enableForceLayout) {
+			return;
+		}
+		this.state = this.updateActiveChart({
+			display: {
+				...this.getActiveChart().display,
+				enableForceLayout,
+			},
+		});
+		this.emit();
+	}
+
 	setGraphSpacing(graphSpacing: number): void {
 		const spacing = normalizeSpacing(graphSpacing);
 		if (this.getActiveChart().layout.spacing === spacing) {
@@ -1154,6 +1167,7 @@ export class WorkspaceController {
 			labelPosition: nextChart.display.labelPosition,
 			labelColor: nextChart.display.labelColor,
 			labelBackgroundOpacity: nextChart.display.labelBackgroundOpacity,
+			enableForceLayout: nextChart.display.enableForceLayout,
 			graphSpacing:
 				nextChart.type === 'graph'
 					? nextChart.layout.spacing

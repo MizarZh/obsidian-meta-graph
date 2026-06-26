@@ -2,9 +2,12 @@ import type { RuntimeGraph } from "./graphology-adapter";
 import type { SigmaRenderer } from "./sigma-renderer";
 
 export interface GraphEventCallbacks {
+	enableForceLayout?: boolean;
 	onSelect(nodeId?: string): void;
 	onHover(nodeId?: string): void;
 	onOpen(nodeId: string): void;
+	onNodeDrag?(nodeId: string, position: { x: number; y: number }): void;
+	onNodeDragEnd?(nodeId: string): void;
 	onConnectionDrag?(state?: ConnectionDragState): void;
 	onConnect?(sourceNodeId: string, targetNodeId: string): void;
 }
@@ -25,8 +28,12 @@ export function bindGraphEvents(
 	const sigma = renderer.instance;
 	const mouseCaptor = sigma.getMouseCaptor();
 	let connectionDrag: ConnectionDragState | undefined;
+	let draggedNodeId: string | undefined;
+	let draggedNodeStart: { x: number; y: number } | undefined;
+	let hasDraggedNode = false;
 	let suppressNextClick = false;
 	let previousCameraPanning: boolean | undefined;
+	const NODE_DRAG_THRESHOLD_PX = 3;
 	const clickNode = ({
 		node,
 		event,
@@ -115,9 +122,22 @@ export function bindGraphEvents(
 		if (
 			!(event.original instanceof MouseEvent) ||
 			event.original.button !== 0 ||
-			!event.original.ctrlKey ||
 			sigma.getGraph().getNodeAttribute(node, "isBend")
 		) {
+			return;
+		}
+		if (!event.original.ctrlKey && callbacks.enableForceLayout) {
+			event.original.preventDefault();
+			event.preventSigmaDefault();
+			previousCameraPanning = sigma.getSetting("enableCameraPanning");
+			sigma.setSetting("enableCameraPanning", false);
+			draggedNodeId = node;
+			draggedNodeStart = readMouseViewportPosition(event.original);
+			hasDraggedNode = false;
+			callbacks.onSelect(node);
+			return;
+		}
+		if (!event.original.ctrlKey) {
 			return;
 		}
 		event.original.preventDefault();
@@ -141,6 +161,23 @@ export function bindGraphEvents(
 		y: number;
 		preventSigmaDefault(): void;
 	}) => {
+		if (draggedNodeId) {
+			event.preventSigmaDefault();
+			if (
+				!hasDraggedNode &&
+				draggedNodeStart &&
+				Math.hypot(
+					event.x - draggedNodeStart.x,
+					event.y - draggedNodeStart.y,
+				) < NODE_DRAG_THRESHOLD_PX
+			) {
+				return;
+			}
+			hasDraggedNode = true;
+			const position = sigma.viewportToGraph({ x: event.x, y: event.y });
+			callbacks.onNodeDrag?.(draggedNodeId, position);
+			return;
+		}
 		if (!connectionDrag) {
 			return;
 		}
@@ -166,7 +203,32 @@ export function bindGraphEvents(
 		}
 	};
 	const upStage = () => endConnectionDrag();
-	const mouseUp = () => endConnectionDrag();
+	const mouseUp = () => {
+		endNodeDrag();
+		endConnectionDrag();
+	};
+
+	function endNodeDrag(): void {
+		if (!draggedNodeId) {
+			return;
+		}
+		const nodeId = draggedNodeId;
+		sigma.getGraph().setNodeAttribute(draggedNodeId, "fixed", false);
+		draggedNodeId = undefined;
+		draggedNodeStart = undefined;
+		if (previousCameraPanning !== undefined) {
+			sigma.setSetting("enableCameraPanning", previousCameraPanning);
+			previousCameraPanning = undefined;
+		}
+		if (hasDraggedNode) {
+			callbacks.onNodeDragEnd?.(nodeId);
+			suppressNextClick = true;
+			window.setTimeout(() => {
+				suppressNextClick = false;
+			}, 0);
+		}
+		hasDraggedNode = false;
+	}
 
 	function endConnectionDrag(): void {
 		if (!connectionDrag) {
@@ -188,6 +250,14 @@ export function bindGraphEvents(
 		return sigma.graphToViewport({ x: attributes.x, y: attributes.y });
 	}
 
+	function readMouseViewportPosition(event: MouseEvent): { x: number; y: number } {
+		const rect = sigma.getContainer().getBoundingClientRect();
+		return {
+			x: event.clientX - rect.left,
+			y: event.clientY - rect.top,
+		};
+	}
+
 	sigma.on("downNode", downNode);
 	sigma.on("clickNode", clickNode);
 	sigma.on("clickStage", clickStage);
@@ -200,6 +270,7 @@ export function bindGraphEvents(
 	mouseCaptor.on("mouseup", mouseUp);
 
 	return () => {
+		endNodeDrag();
 		endConnectionDrag();
 		sigma.off("downNode", downNode);
 		sigma.off("clickNode", clickNode);

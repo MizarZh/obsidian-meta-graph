@@ -33,10 +33,11 @@ export function createWorkspaceState(
 		arcDirection: activeChart.layout.arcDirection ?? 'right',
 		fadeDistance: activeChart.display.fadeDistance,
 		labelSize: activeChart.display.labelSize,
-		labelPosition: activeChart.display.labelPosition,
-		labelColor: activeChart.display.labelColor,
-		labelBackgroundOpacity: activeChart.display.labelBackgroundOpacity,
-		graphSpacing:
+			labelPosition: activeChart.display.labelPosition,
+			labelColor: activeChart.display.labelColor,
+			labelBackgroundOpacity: activeChart.display.labelBackgroundOpacity,
+			enableForceLayout: activeChart.display.enableForceLayout,
+			graphSpacing:
 			activeChart.type === 'graph' ? activeChart.layout.spacing : 1,
 		flowSpacing:
 			activeChart.type === 'flow' ? activeChart.layout.spacing : 1,

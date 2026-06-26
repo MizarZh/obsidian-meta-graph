@@ -97,6 +97,10 @@ export class SigmaRenderer {
 		);
 	}
 
+	get runtimeGraph(): RuntimeGraph {
+		return this.graph;
+	}
+
 	setGraph(graph: RuntimeGraph): void {
 		this.graph = graph;
 		if (this.pinnedNodeId && !graph.hasNode(this.pinnedNodeId)) {
@@ -228,6 +232,18 @@ export class SigmaRenderer {
 		// buffers. scheduleRefresh() coalesces resize events into one frame and
 		// repaints without changing graph coordinates or camera state.
 		this.instance.scheduleRefresh({ layoutUnchange: true });
+	}
+
+	holdCurrentBounds(): void {
+		if (!this.instance.getCustomBBox()) {
+			this.instance.setCustomBBox(this.instance.getBBox());
+		}
+	}
+
+	clearHeldBounds(): void {
+		if (this.instance.getCustomBBox()) {
+			this.instance.setCustomBBox(null);
+		}
 	}
 
 	kill(): void {

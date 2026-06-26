@@ -49,6 +49,7 @@
 		labelPosition,
 		labelColor,
 		labelBackgroundOpacity,
+		enableForceLayout,
 		flowEdgeStyle,
 		flowDirection,
 		arcDirection,
@@ -75,6 +76,7 @@
 		onLabelPosition,
 		onLabelColor,
 		onLabelBackgroundOpacity,
+		onEnableForceLayout,
 		onGraphSpacing,
 		onFlowSpacing,
 		onArcSpacing,
@@ -93,6 +95,7 @@
 		labelPosition: LabelPosition;
 		labelColor: string;
 		labelBackgroundOpacity: number;
+		enableForceLayout: boolean;
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
 		arcDirection: ArcDirection;
@@ -119,6 +122,7 @@
 		onLabelPosition: (position: LabelPosition) => void;
 		onLabelColor: (color: string) => void;
 		onLabelBackgroundOpacity: (value: number) => void;
+		onEnableForceLayout: (value: boolean) => void;
 		onGraphSpacing: (spacing: number) => void;
 		onFlowSpacing: (spacing: number) => void;
 		onArcSpacing: (spacing: number) => void;
@@ -577,6 +581,15 @@
 					onChange={(value) => onChange({ showIsolatedNodes: value })}
 				/>
 			</label>
+			{#if mode === 'graph'}
+				<label class="knowledge-workspace-rule-label">
+					<span>Force layout</span>
+					<ObsidianToggle
+						value={enableForceLayout}
+						onChange={onEnableForceLayout}
+					/>
+				</label>
+			{/if}
 			<label class="knowledge-workspace-rule-label">
 				<span>Spacing</span>
 				<div class="knowledge-workspace-slider-value">

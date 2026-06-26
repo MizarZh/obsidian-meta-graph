@@ -23,13 +23,18 @@ export class ForceAtlasLayout implements LayoutEngine {
 
 		forceAtlas2.assign(graph, {
 			iterations: graph.order < 50 ? 150 : 250,
-			settings: {
-				...forceAtlas2.inferSettings(graph),
-				barnesHutOptimize: graph.order > 80,
-				gravity: 1,
-				scalingRatio: 4 * this.spacing * this.spacing,
-				slowDown: 2,
-			},
+			settings: getForceAtlasSettings(graph, this.spacing),
 		});
 	}
+
+}
+
+function getForceAtlasSettings(graph: RuntimeGraph, spacing: number) {
+	return {
+		...forceAtlas2.inferSettings(graph),
+		barnesHutOptimize: graph.order > 80,
+		gravity: 1,
+		scalingRatio: 4 * spacing * spacing,
+		slowDown: 2,
+	};
 }

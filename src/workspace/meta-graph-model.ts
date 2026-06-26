@@ -129,6 +129,7 @@ export function createDefaultChart(
 				labelPosition: DEFAULT_LABEL_POSITION,
 				labelColor: DEFAULT_LABEL_COLOR,
 				labelBackgroundOpacity: DEFAULT_LABEL_BACKGROUND_OPACITY,
+				enableForceLayout: false,
 				showInspector: true,
 				showFilters: true,
 			},
@@ -262,6 +263,13 @@ function normalizeChart(
 						? record.display.labelBackgroundOpacity
 						: undefined,
 					fallback.display.labelBackgroundOpacity,
+				),
+				enableForceLayout: readBoolean(
+					isRecord(record.display)
+						? (record.display.enableForceLayout ??
+								record.display.enableNodeDragging)
+						: undefined,
+					fallback.display.enableForceLayout,
 				),
 				showInspector: readBoolean(
 					isRecord(record.display)

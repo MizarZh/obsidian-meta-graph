@@ -259,6 +259,7 @@ export interface ChartDisplayConfig {
 	labelPosition: LabelPosition;
 	labelColor: string;
 	labelBackgroundOpacity: number;
+	enableForceLayout: boolean;
 	showInspector: boolean;
 	showFilters: boolean;
 }
@@ -355,6 +356,7 @@ export interface WorkspaceState {
 	labelPosition: LabelPosition;
 	labelColor: string;
 	labelBackgroundOpacity: number;
+	enableForceLayout: boolean;
 	graphSpacing: number;
 	flowSpacing: number;
 	arcSpacing: number;

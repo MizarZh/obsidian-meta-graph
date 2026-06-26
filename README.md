@@ -58,15 +58,19 @@ settings to report them in the developer console.
    new links.
 9. Hold `Ctrl`, drag from one node to another, and release to add a link to the
    source note's selected metadata field.
-10. Use the right dock panel to keep templates and selected notes in a compact
+10. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
+   through the force-directed layout. Nearby nodes can move with the graph
+   forces, and the layout keeps settling briefly after release. `Ctrl`-drag
+   still creates links.
+11. Use the right dock panel to keep templates and selected notes in a compact
    vertical list. Add or edit templates from the dock, drag items in the dock
    to reorder them, and hold `Ctrl` while dragging a dock item to connect it to
    a graph node.
-11. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
+12. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
    workspace is focused, to undo connection edits made in the current workspace
    session.
-12. Select a node to open its note in a new tab.
-13. Select **Debug** to inspect or copy the current query, projection,
+13. Select a node to open its note in a new tab.
+14. Select **Debug** to inspect or copy the current query, projection,
    canonical index, adjacency maps, and unresolved links as JSON.
 
 Markdown files with this frontmatter open as graph workspaces:
@@ -104,6 +108,7 @@ charts:
       spacing: 1
     display:
       fadeDistance: 1.5
+      enableForceLayout: false
       showInspector: true
       showFilters: true
     style:
