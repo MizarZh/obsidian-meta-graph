@@ -13,6 +13,7 @@
 		type SuggestionOption,
 	} from './obsidian/ObsidianSuggestInput.svelte';
 	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
+	import ObsidianToggle from './obsidian/ObsidianToggle.svelte';
 	import FilterGroupSelf from './FilterGroup.svelte';
 	import PropertyPicker, {
 		type PropertyPickerOption,
@@ -125,34 +126,29 @@
 						<PropertyPicker
 							value={child.field}
 							options={fieldOptions}
-							onSelect={(value) =>
-								onUpdate(child.id, {
-									field: value as NodeFilterField,
-									operator: getDefaultOperator(value as NodeFilterField),
-									value: '',
-								})}
-						/>
+								onSelect={(value) =>
+									onUpdate(child.id, {
+										field: value as NodeFilterField,
+										operator: getDefaultOperator(value as NodeFilterField),
+										value: '',
+									})}
+							/>
 						<ObsidianDropdown
 							value={child.operator ?? getDefaultOperator(child.field)}
 							options={getOperatorOptions(child.field)}
-							onChange={(value) =>
-								onUpdate(child.id, {
-									operator: value as NodeFilterOperator,
-									value: '',
-								})}
-						/>
-						{#if shouldShowFilterValue(child.operator) && getFieldType(child.field) === 'checkbox'}
-							<ObsidianDropdown
-								value={child.value || 'true'}
-								options={[
-									{ value: 'true', label: 'Checked' },
-									{ value: 'false', label: 'Unchecked' },
-								]}
 								onChange={(value) =>
 									onUpdate(child.id, {
-										value,
+										operator: value as NodeFilterOperator,
 									})}
 							/>
+							{#if shouldShowFilterValue(child.operator) && getFieldType(child.field) === 'checkbox'}
+								<ObsidianToggle
+									value={(child.value || 'true') === 'true'}
+									onChange={(value) =>
+										onUpdate(child.id, {
+											value: String(value),
+										})}
+								/>
 						{:else if shouldShowFilterValue(child.operator) && getFieldType(child.field) === 'date'}
 							<ObsidianTextInput
 								type="date"

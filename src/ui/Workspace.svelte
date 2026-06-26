@@ -540,11 +540,14 @@
 			};
 		});
 	});
-	const metadataFieldSuggestions = $derived(
-		getMetadataFieldSuggestions(debugSnapshot),
-	);
-	const metadataFieldTypes = $derived(getMetadataFieldTypes(debugSnapshot));
-	const filePathSuggestions = $derived(getFilePathSuggestions(debugSnapshot));
+		const metadataFieldSuggestions = $derived(
+			getMetadataFieldSuggestions(debugSnapshot),
+		);
+		const metadataFieldTypes = $derived(getMetadataFieldTypes(debugSnapshot));
+		const metadataFieldValueSuggestions = $derived(
+			getMetadataFieldValueSuggestions(debugSnapshot, metadataFieldTypes),
+		);
+		const filePathSuggestions = $derived(getFilePathSuggestions(debugSnapshot));
 
 	function toggleDebug(): void {
 		debugOpen = !debugOpen;
@@ -919,7 +922,10 @@
 		return [
 			...new Set(
 				snapshot.index.nodes.flatMap(
-					(node) => node.metadataFields ?? [],
+					(node) =>
+						(node.metadataFields ?? []).filter(
+							(field) => field !== "aliases",
+						),
 				),
 			),
 		].sort((first, second) =>
@@ -936,6 +942,57 @@
 			}
 		}
 		return types;
+	}
+
+	function getMetadataFieldValueSuggestions(
+		snapshot: DebugSnapshot,
+		fieldTypes: Record<string, string>,
+	): Record<string, string[]> {
+		const values = new Map<string, Set<string>>();
+		for (const node of snapshot.index.nodes) {
+			for (const [field, value] of Object.entries(node.metadata ?? {})) {
+				const type = fieldTypes[field] ?? inferMetadataFieldType(value);
+				if (
+					type === "date" ||
+					type === "datetime" ||
+					type === "number" ||
+					type === "checkbox"
+				) {
+					continue;
+				}
+				const fieldValues = values.get(field) ?? new Set<string>();
+				for (const option of readMetadataValueSuggestions(value)) {
+					fieldValues.add(option);
+				}
+				if (fieldValues.size > 0) {
+					values.set(field, fieldValues);
+				}
+			}
+		}
+		return Object.fromEntries(
+			[...values.entries()].map(([field, fieldValues]) => [
+				field,
+				[...fieldValues].sort((first, second) =>
+					first.localeCompare(second, undefined, { sensitivity: "base" }),
+				),
+			]),
+		);
+	}
+
+	function readMetadataValueSuggestions(value: unknown): string[] {
+		if (Array.isArray(value)) {
+			return value
+				.flatMap((item) => readMetadataValueSuggestions(item))
+				.filter(Boolean);
+		}
+		if (typeof value === "string") {
+			const trimmed = value.trim();
+			return trimmed ? [trimmed] : [];
+		}
+		if (typeof value === "number" || typeof value === "boolean") {
+			return [String(value)];
+		}
+		return [];
 	}
 
 	function getFilePathSuggestions(snapshot: DebugSnapshot): string[] {
@@ -1360,9 +1417,10 @@
 					globalQuery={workspaceState.globalQuery}
 						folders={workspaceState.availableFolders}
 							tags={workspaceState.availableTags}
-							{metadataFieldSuggestions}
-							{metadataFieldTypes}
-							{filePathSuggestions}
+								{metadataFieldSuggestions}
+								{metadataFieldTypes}
+								{metadataFieldValueSuggestions}
+								{filePathSuggestions}
 							globalNodeStyleRules={workspaceState.globalNodeStyleRules}
 					nodeStyleRules={workspaceState.nodeStyleRules}
 					globalLinkStyleRules={workspaceState.globalLinkStyleRules}

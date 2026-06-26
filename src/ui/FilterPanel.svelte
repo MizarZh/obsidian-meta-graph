@@ -49,10 +49,11 @@
 		query,
 		globalQuery,
 		folders,
-		tags,
-		metadataFieldSuggestions,
-		metadataFieldTypes,
-		filePathSuggestions,
+			tags,
+			metadataFieldSuggestions,
+			metadataFieldTypes,
+			metadataFieldValueSuggestions,
+			filePathSuggestions,
 		globalNodeStyleRules,
 		nodeStyleRules,
 		globalLinkStyleRules,
@@ -92,10 +93,11 @@
 		query: GraphQuery;
 		globalQuery: GraphQuery;
 		folders: string[];
-		tags: string[];
-		metadataFieldSuggestions: string[];
-		metadataFieldTypes: Record<string, string>;
-		filePathSuggestions: string[];
+			tags: string[];
+			metadataFieldSuggestions: string[];
+			metadataFieldTypes: Record<string, string>;
+			metadataFieldValueSuggestions: Record<string, string[]>;
+			filePathSuggestions: string[];
 		globalNodeStyleRules: NodeStyleRule[];
 		nodeStyleRules: NodeStyleRule[];
 		globalLinkStyleRules: LinkStyleRule[];
@@ -731,15 +733,18 @@
 				searchText: tag,
 			}));
 		}
-		if (field === 'metadata-field') {
-			return metadataFieldSuggestions.map((field) => ({
-				value: field,
-				label: field,
-				searchText: field,
-			}));
+			if (field === 'metadata-field') {
+				return metadataFieldSuggestions.map((field) => ({
+					value: field,
+					label: field,
+					searchText: field,
+				}));
+			}
+			if (field.startsWith('metadata.')) {
+				return getMetadataValueOptions(field);
+			}
+			return [];
 		}
-		return [];
-	}
 
 	function getSystemMetadataValueOptions(
 		field: NodeFilterField | NodeStyleField,
@@ -763,11 +768,14 @@
 		if (field === 'file.path') {
 			return getFilePathValueOptions();
 		}
-		if (field === 'file.folder') {
-			return getFolderValueOptions();
+			if (field === 'file.folder') {
+				return getFolderValueOptions();
+			}
+			if (field === 'aliases') {
+				return getMetadataValueOptions('metadata.aliases');
+			}
+			return [];
 		}
-		return [];
-	}
 
 	function getFilePathValueOptions(): SuggestionOption[] {
 		return filePathSuggestions.map((path) => ({
@@ -802,14 +810,32 @@
 		}));
 	}
 
-	function getMetadataFieldValueOptions(): SuggestionOption[] {
-		return metadataFieldSuggestions.map((field) => ({
-			value: field,
-			label: field,
-			searchText: field,
-		}));
-	}
-</script>
+		function getMetadataFieldValueOptions(): SuggestionOption[] {
+			return metadataFieldSuggestions.map((field) => ({
+				value: field,
+				label: field,
+				searchText: field,
+			}));
+		}
+
+		function getMetadataValueOptions(field: string): SuggestionOption[] {
+			const metadataField = field.slice('metadata.'.length);
+			const type = metadataFieldTypes[metadataField];
+			if (
+				type === 'date' ||
+				type === 'datetime' ||
+				type === 'number' ||
+				type === 'checkbox'
+			) {
+				return [];
+			}
+			return (metadataFieldValueSuggestions[metadataField] ?? []).map((value) => ({
+				value,
+				label: value,
+				searchText: value,
+			}));
+		}
+	</script>
 
 <aside class="knowledge-workspace-filters">
 	{#if panel === 'graph'}
