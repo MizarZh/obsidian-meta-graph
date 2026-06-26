@@ -543,6 +543,7 @@
 	const metadataFieldSuggestions = $derived(
 		getMetadataFieldSuggestions(debugSnapshot),
 	);
+	const metadataFieldTypes = $derived(getMetadataFieldTypes(debugSnapshot));
 
 	function toggleDebug(): void {
 		debugOpen = !debugOpen;
@@ -923,6 +924,47 @@
 		].sort((first, second) =>
 			first.localeCompare(second, undefined, { sensitivity: "base" }),
 		);
+	}
+
+	function getMetadataFieldTypes(snapshot: DebugSnapshot): Record<string, string> {
+		const types: Record<string, string> = {};
+		for (const node of snapshot.index.nodes) {
+			for (const [field, value] of Object.entries(node.metadata ?? {})) {
+				const nextType = inferMetadataFieldType(value);
+				types[field] = mergeMetadataFieldType(types[field], nextType);
+			}
+		}
+		return types;
+	}
+
+	function inferMetadataFieldType(value: unknown): string {
+		if (typeof value === "boolean") return "checkbox";
+		if (typeof value === "number") return "number";
+		if (Array.isArray(value)) return "list";
+		if (value instanceof Date) return "datetime";
+		if (typeof value === "string") {
+			if (/^\d{4}-\d{2}-\d{2}$/u.test(value)) return "date";
+			if (/^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}/u.test(value)) {
+				return "datetime";
+			}
+		}
+		return "text";
+	}
+
+	function mergeMetadataFieldType(
+		current: string | undefined,
+		next: string,
+	): string {
+		if (!current || current === next) return next;
+		if (current === "list" || next === "list") return "list";
+		if (current === "text" || next === "text") return "text";
+		if (
+			(current === "date" && next === "datetime") ||
+			(current === "datetime" && next === "date")
+		) {
+			return "datetime";
+		}
+		return "text";
 	}
 
 	function handleDockLinkPointerDown(
@@ -1307,10 +1349,11 @@
 					arcSpacing={workspaceState.arcSpacing}
 					query={workspaceState.query}
 					globalQuery={workspaceState.globalQuery}
-					folders={workspaceState.availableFolders}
-					tags={workspaceState.availableTags}
-					{metadataFieldSuggestions}
-					globalNodeStyleRules={workspaceState.globalNodeStyleRules}
+						folders={workspaceState.availableFolders}
+						tags={workspaceState.availableTags}
+						{metadataFieldSuggestions}
+						{metadataFieldTypes}
+						globalNodeStyleRules={workspaceState.globalNodeStyleRules}
 					nodeStyleRules={workspaceState.nodeStyleRules}
 					globalLinkStyleRules={workspaceState.globalLinkStyleRules}
 					linkStyleRules={workspaceState.linkStyleRules}

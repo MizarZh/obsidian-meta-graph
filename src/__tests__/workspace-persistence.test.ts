@@ -3,6 +3,7 @@ import { createWorkspaceState } from '../workspace/workspace-state';
 import { cloneSerializable } from '../workspace/workspace-persistence';
 import {
 	createDefaultMetaGraphDocument,
+	normalizeMetaGraphDocument,
 	serializeMetaGraphState,
 } from '../workspace/meta-graph-model';
 import {
@@ -41,7 +42,8 @@ describe('workspace persistence', () => {
 			flowChart.query.maxNodes = 50;
 		}
 
-		const restored = createWorkspaceState(300, 1.5, document);
+		const restoredDocument = normalizeMetaGraphDocument(document, 300, 1.5);
+		const restored = createWorkspaceState(300, 1.5, restoredDocument);
 
 		expect(restored.mode).toBe('flow');
 		expect(restored.fadeDistance).toBe(2);
@@ -60,7 +62,8 @@ describe('workspace persistence', () => {
 			document.activeChart = arcChart.id;
 		}
 
-		const restored = createWorkspaceState(300, 1.5, document);
+		const restoredDocument = normalizeMetaGraphDocument(document, 300, 1.5);
+		const restored = createWorkspaceState(300, 1.5, restoredDocument);
 
 		expect(arcChart?.name).toBe('Arc diagram');
 		expect(arcChart?.layout.engine).toBe('arc');
@@ -87,6 +90,50 @@ describe('workspace persistence', () => {
 		expect(restored.curated.files).toEqual([{ path: 'Projects/A.md' }]);
 		expect(saved.charts[0]?.source).toBe('curated');
 		expect(saved.charts[1]?.source).toBe('query');
+	});
+
+	it('migrates legacy filter rules into a root filter group', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		const graphChart = document.charts.find(
+			(chart) => chart.id === 'knowledge-map',
+		);
+		if (graphChart) {
+			delete graphChart.query.filterRoot;
+			graphChart.query.hiddenNodeRules = [
+				{
+					id: 'show-tags',
+					action: 'show',
+					field: 'file.tags',
+					operator: 'contains',
+					value: 'project',
+				},
+				{
+					id: 'hide-archive',
+					action: 'hide',
+					field: 'file.folder',
+					operator: 'is',
+					value: 'Archive',
+				},
+			];
+		}
+
+		const legacyRestoredDocument = normalizeMetaGraphDocument(document, 300, 1.5);
+		const restored = createWorkspaceState(300, 1.5, legacyRestoredDocument);
+
+		expect(restored.query.filterRoot).toMatchObject({
+			id: 'root',
+			kind: 'group',
+			mode: 'all',
+		});
+		expect(restored.query.filterRoot?.children).toHaveLength(2);
+		expect(restored.query.filterRoot?.children[0]).toMatchObject({
+			kind: 'group',
+			mode: 'all',
+		});
+		expect(restored.query.filterRoot?.children[1]).toMatchObject({
+			kind: 'group',
+			mode: 'none',
+		});
 	});
 
 	it('updates curated file paths while preserving missing entries', () => {

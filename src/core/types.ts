@@ -9,6 +9,7 @@ export interface KnowledgeNode {
 	title: string;
 	fileName?: string;
 	extension?: string;
+	fileSize?: number;
 	createdTime?: number;
 	modifiedTime?: number;
 	aliases?: string[];
@@ -16,6 +17,7 @@ export interface KnowledgeNode {
 	domains: string[];
 	tags: string[];
 	links?: string[];
+	embeds?: string[];
 	noteType?: string;
 	metadataFields?: string[];
 	metadata?: Record<string, unknown>;
@@ -82,16 +84,24 @@ export interface RendererDebugState {
 
 export type DirectionMode = 'incoming' | 'outgoing' | 'both';
 export type NodeFilterField =
+	| 'file.file'
 	| 'file.name'
 	| 'file.basename'
+	| 'file.fullname'
 	| 'file.path'
 	| 'file.folder'
 	| 'file.ext'
+	| 'file.ctime'
+	| 'file.mtime'
+	| 'file.size'
 	| 'file.links'
+	| 'file.embeds'
 	| 'file.tags'
+	| 'aliases'
 	| 'metadata-field'
 	| 'folder'
-	| 'tag';
+	| 'tag'
+	| `metadata.${string}`;
 export type NodeFilterAction = 'show' | 'hide';
 export type NodeFilterOperator =
 	| 'has-value'
@@ -109,11 +119,31 @@ export interface NodeFilterRule {
 	value: string;
 }
 
+export type NodeFilterGroupMode = 'all' | 'any' | 'none';
+
+export interface NodeFilterCondition {
+	id: string;
+	kind: 'condition';
+	field: NodeFilterField;
+	operator?: NodeFilterOperator;
+	value: string;
+}
+
+export interface NodeFilterGroup {
+	id: string;
+	kind: 'group';
+	mode: NodeFilterGroupMode;
+	children: NodeFilterItem[];
+}
+
+export type NodeFilterItem = NodeFilterCondition | NodeFilterGroup;
+
 export interface GraphQuery {
 	roots: NodeId[];
 	folders: string[];
 	tags: string[];
 	hiddenNodeRules: NodeFilterRule[];
+	filterRoot?: NodeFilterGroup;
 	domains: string[];
 	relations: RelationType[];
 	depth: number;

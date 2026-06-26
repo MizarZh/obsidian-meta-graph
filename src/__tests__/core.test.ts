@@ -167,6 +167,77 @@ describe('breadth-first neighborhood query', () => {
 		).toEqual(['C', 'D']);
 	});
 
+	it('applies recursive node filter groups', () => {
+		const a = {
+			...node('A'),
+			metadata: { status: 'draft', type: 'concept' },
+			metadataFields: ['status', 'type'],
+		};
+		const b = {
+			...node('B'),
+			metadata: { status: 'done', type: 'concept' },
+			metadataFields: ['status', 'type'],
+		};
+		const c = {
+			...node('C'),
+			aliases: ['target'],
+			metadata: { status: 'draft', type: 'note' },
+			metadataFields: ['status', 'type'],
+		};
+		const index = buildIndex([a, b, c], [edge('A', 'B'), edge('A', 'C')]);
+
+		expect(
+			projectIds(
+				index,
+				query({
+					roots: [],
+					filterRoot: {
+						id: 'root',
+						kind: 'group',
+						mode: 'all',
+						children: [
+							{
+								id: 'include',
+								kind: 'group',
+								mode: 'any',
+								children: [
+									{
+										id: 'type',
+										kind: 'condition',
+										field: 'metadata.type',
+										operator: 'is',
+										value: 'concept',
+									},
+									{
+										id: 'alias',
+										kind: 'condition',
+										field: 'aliases',
+										operator: 'contains',
+										value: 'target',
+									},
+								],
+							},
+							{
+								id: 'exclude',
+								kind: 'group',
+								mode: 'none',
+								children: [
+									{
+										id: 'done',
+										kind: 'condition',
+										field: 'metadata.status',
+										operator: 'is',
+										value: 'done',
+									},
+								],
+							},
+						],
+					},
+				}),
+			),
+		).toEqual(['A', 'C']);
+	});
+
 	it('caps global projections at maxNodes without orphan edges', () => {
 		const index = buildIndex(
 			[node('A'), node('B'), node('C'), node('D')],
@@ -503,6 +574,12 @@ function query(overrides: Partial<GraphQuery> = {}): GraphQuery {
 		folders: [],
 		tags: [],
 		hiddenNodeRules: [],
+		filterRoot: {
+			id: 'root',
+			kind: 'group',
+			mode: 'all',
+			children: [],
+		},
 		domains: [],
 		relations: ['prerequisite', 'leads-to', 'related'],
 		depth: 2,

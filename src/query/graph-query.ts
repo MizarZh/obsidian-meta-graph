@@ -5,6 +5,12 @@ export const DEFAULT_GRAPH_QUERY: GraphQuery = {
 	folders: [],
 	tags: [],
 	hiddenNodeRules: [],
+	filterRoot: {
+		id: 'root',
+		kind: 'group',
+		mode: 'all',
+		children: [],
+	},
 	domains: [],
 	relations: ["prerequisite", "leads-to", "related"],
 	depth: 2,

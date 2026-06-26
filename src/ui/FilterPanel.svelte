@@ -1,14 +1,16 @@
 <script lang="ts">
-	import type { App } from "obsidian";
-	import { onDestroy } from "svelte";
-	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
-	import ObsidianDropdown from "./obsidian/ObsidianDropdown.svelte";
+	import type { App, IconName } from 'obsidian';
+	import { onDestroy } from 'svelte';
+	import ObsidianButton from './obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
 	import ObsidianSuggestInput, {
 		type SuggestionOption,
-	} from "./obsidian/ObsidianSuggestInput.svelte";
-	import ObsidianSlider from "./obsidian/ObsidianSlider.svelte";
-	import ObsidianTextInput from "./obsidian/ObsidianTextInput.svelte";
-	import ObsidianToggle from "./obsidian/ObsidianToggle.svelte";
+	} from './obsidian/ObsidianSuggestInput.svelte';
+	import ObsidianSlider from './obsidian/ObsidianSlider.svelte';
+	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
+	import ObsidianToggle from './obsidian/ObsidianToggle.svelte';
+	import FilterGroup from './FilterGroup.svelte';
+	import type { PropertyPickerOption } from './PropertyPicker.svelte';
 	import type {
 		ArcDirection,
 		FlowDirection,
@@ -19,13 +21,15 @@
 		LinkLineStyle,
 		LinkStyleRule,
 		NodeFilterField,
+		NodeFilterGroup,
+		NodeFilterGroupMode,
+		NodeFilterItem,
 		NodeFilterOperator,
-		NodeFilterRule,
 		NodeStyleField,
 		NodeStyleRule,
 		SettingsPanelMode,
 		ViewMode,
-	} from "../core/types";
+	} from '../core/types';
 
 	let {
 		app,
@@ -47,6 +51,7 @@
 		folders,
 		tags,
 		metadataFieldSuggestions,
+		metadataFieldTypes,
 		globalNodeStyleRules,
 		nodeStyleRules,
 		globalLinkStyleRules,
@@ -88,6 +93,7 @@
 		folders: string[];
 		tags: string[];
 		metadataFieldSuggestions: string[];
+		metadataFieldTypes: Record<string, string>;
 		globalNodeStyleRules: NodeStyleRule[];
 		nodeStyleRules: NodeStyleRule[];
 		globalLinkStyleRules: LinkStyleRule[];
@@ -103,65 +109,78 @@
 		onGraphSpacing: (spacing: number) => void;
 		onFlowSpacing: (spacing: number) => void;
 		onArcSpacing: (spacing: number) => void;
-		onChange: (patch: Partial<Omit<GraphQuery, "roots">>) => void;
-		onGlobalChange: (patch: Partial<Omit<GraphQuery, "roots">>) => void;
+		onChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
+		onGlobalChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
 		onGlobalNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
 		onNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
 		onGlobalLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 	} = $props();
 
-	const FILE_FILTER_FIELD_OPTIONS = [
-		{ value: "file.name", label: "File" },
-		{ value: "file.basename", label: "Name" },
-		{ value: "file.path", label: "Path" },
-		{ value: "file.folder", label: "Folder" },
-		{ value: "file.ext", label: "Extension" },
-		{ value: "file.tags", label: "Tags" },
-		{ value: "file.links", label: "Links" },
-		{ value: "metadata-field", label: "Property" },
+	const SYSTEM_FILTER_FIELD_OPTIONS = [
+		{ value: 'file.file', label: 'File', icon: 'file' },
+		{ value: 'file.name', label: 'Name', icon: 'align-left' },
+		{ value: 'file.basename', label: 'File name', icon: 'align-left' },
+		{ value: 'file.fullname', label: 'Full name', icon: 'align-left' },
+		{ value: 'file.path', label: 'Path', icon: 'align-left' },
+		{ value: 'file.folder', label: 'Folder', icon: 'align-left' },
+		{ value: 'file.ext', label: 'Extension', icon: 'align-left' },
+		{ value: 'file.ctime', label: 'Created time', icon: 'clock' },
+		{ value: 'file.mtime', label: 'Modified time', icon: 'clock' },
+		{ value: 'file.size', label: 'File size', icon: 'binary' },
+		{ value: 'file.tags', label: 'Tags', icon: 'tags' },
+		{ value: 'file.links', label: 'Links', icon: 'list' },
+		{ value: 'file.embeds', label: 'Embeds', icon: 'list' },
+		{ value: 'aliases', label: 'Aliases', icon: 'corner-down-right' },
+		{ value: 'metadata-field', label: 'Property', icon: 'braces' },
 	];
+	const FILE_FILTER_FIELD_OPTIONS = SYSTEM_FILTER_FIELD_OPTIONS.map(
+		({ value, label }) => ({
+			value,
+			label,
+		}),
+	);
 	const NODE_STYLE_FIELD_OPTIONS = [
-		{ value: "folder", label: "Folder" },
-		{ value: "tag", label: "Tag" },
-		{ value: "domain", label: "Domain" },
-		{ value: "type", label: "Type" },
-		{ value: "title", label: "Title" },
+		{ value: 'folder', label: 'Folder' },
+		{ value: 'tag', label: 'Tag' },
+		{ value: 'domain', label: 'Domain' },
+		{ value: 'type', label: 'Type' },
+		{ value: 'title', label: 'Title' },
 		...FILE_FILTER_FIELD_OPTIONS,
 	];
 	const BASE_NODE_STYLE_FIELD_OPTIONS = [
-		{ value: "all", label: "All notes" },
+		{ value: 'all', label: 'All notes' },
 		...NODE_STYLE_FIELD_OPTIONS,
 	];
 	const LINK_STYLE_FIELD_OPTIONS = [
-		{ value: "relation", label: "Relation" },
-		{ value: "source-field", label: "Metadata field" },
+		{ value: 'relation', label: 'Relation' },
+		{ value: 'source-field', label: 'Metadata field' },
 	];
 	const BASE_LINK_STYLE_FIELD_OPTIONS = [
-		{ value: "all", label: "All links" },
+		{ value: 'all', label: 'All links' },
 		...LINK_STYLE_FIELD_OPTIONS,
 	];
 	const FILTER_OPERATOR_OPTIONS = [
-		{ value: "has-value", label: "has value" },
-		{ value: "empty", label: "has no value" },
-		{ value: "is", label: "is" },
-		{ value: "is-not", label: "is not" },
-		{ value: "contains", label: "contains" },
-		{ value: "does-not-contain", label: "does not contain" },
+		{ value: 'has-value', label: 'has value' },
+		{ value: 'empty', label: 'has no value' },
+		{ value: 'is', label: 'is' },
+		{ value: 'is-not', label: 'is not' },
+		{ value: 'contains', label: 'contains' },
+		{ value: 'does-not-contain', label: 'does not contain' },
 	];
 	const LINE_STYLE_OPTIONS = [
-		{ value: "solid", label: "Solid" },
-		{ value: "dashed", label: "Dashed" },
-		{ value: "dotted", label: "Dotted" },
+		{ value: 'solid', label: 'Solid' },
+		{ value: 'dashed', label: 'Dashed' },
+		{ value: 'dotted', label: 'Dotted' },
 	];
 	const LABEL_POSITION_OPTIONS: Array<{
 		value: LabelPosition;
 		label: string;
 	}> = [
-		{ value: "right", label: "Right" },
-		{ value: "left", label: "Left" },
-		{ value: "top", label: "Top" },
-		{ value: "bottom", label: "Bottom" },
+		{ value: 'right', label: 'Right' },
+		{ value: 'left', label: 'Left' },
+		{ value: 'top', label: 'Top' },
+		{ value: 'bottom', label: 'Bottom' },
 	];
 	const COLOR_COMMIT_DELAY_MS = 180;
 	const colorCommitTimers = new Map<string, number>();
@@ -224,30 +243,31 @@
 
 	function getDefaultLabelColor(): string {
 		return cssColorToHex(
-			getComputedStyle(document.body).getPropertyValue("--text-normal").trim() ||
-				"#000000",
+			getComputedStyle(document.body)
+				.getPropertyValue('--text-normal')
+				.trim() || '#000000',
 		);
 	}
 
 	function cssColorToHex(color: string): string {
-		const probe = document.createElement("span");
+		const probe = document.createElement('span');
 		probe.style.color = color;
-		probe.style.display = "none";
+		probe.style.display = 'none';
 		document.body.appendChild(probe);
 		const normalized = getComputedStyle(probe).color;
 		probe.remove();
 		const channels = normalized.match(/\d+/gu);
 		if (!channels || channels.length < 3) {
-			return "#000000";
+			return '#000000';
 		}
 		return `#${channels
 			.slice(0, 3)
 			.map((channel) =>
 				Math.max(0, Math.min(255, Number(channel)))
 					.toString(16)
-					.padStart(2, "0"),
+					.padStart(2, '0'),
 			)
-			.join("")}`;
+			.join('')}`;
 	}
 
 	onDestroy(() => {
@@ -257,69 +277,230 @@
 		colorCommitTimers.clear();
 	});
 
-	function addFilterRule(
-		scope: "global" | "current",
-		action: NodeFilterRule["action"] = "show",
+	function updateFilterRoot(
+		scope: 'global' | 'current',
+		filterRoot: NodeFilterGroup,
 	): void {
-		updateFilterRules(scope, [
-			...getFilterRules(scope),
-			{
-				id: createRuleId(),
-				action,
-				field: "file.links",
-				operator: "has-value",
-				value: "",
-			},
-		]);
-	}
-
-	function updateFilterRule(
-		scope: "global" | "current",
-		id: string,
-		patch: Partial<NodeFilterRule>,
-	): void {
-		updateFilterRules(
-			scope,
-			getFilterRules(scope).map((rule) =>
-				rule.id === id ? { ...rule, ...patch } : rule,
-			),
-		);
-	}
-
-	function updateFilterRules(
-		scope: "global" | "current",
-		rules: NodeFilterRule[],
-	): void {
-		const patch = { hiddenNodeRules: rules };
-		if (scope === "global") {
+		const patch = { filterRoot, hiddenNodeRules: [] };
+		if (scope === 'global') {
 			onGlobalChange(patch);
 		} else {
 			onChange(patch);
 		}
 	}
 
-	function getFilterRules(scope: "global" | "current"): NodeFilterRule[] {
-		return scope === "global"
-			? globalQuery.hiddenNodeRules
-			: query.hiddenNodeRules;
+	function getFilterRoot(scope: 'global' | 'current'): NodeFilterGroup {
+		return (
+			(scope === 'global' ? globalQuery.filterRoot : query.filterRoot) ?? {
+				id: 'root',
+				kind: 'group',
+				mode: 'all',
+				children: [],
+			}
+		);
 	}
 
-	function addNodeRule(scope: "global" | "current"): void {
+	function addFilterCondition(
+		scope: 'global' | 'current',
+		groupId: string,
+	): void {
+		updateFilterRoot(
+			scope,
+			updateFilterGroup(getFilterRoot(scope), groupId, (group) => ({
+				...group,
+				children: [
+					...group.children,
+					{
+						id: createRuleId(),
+						kind: 'condition',
+						field: 'file.links',
+						operator: 'has-value',
+						value: '',
+					},
+				],
+			})),
+		);
+	}
+
+	function addFilterGroup(scope: 'global' | 'current', groupId: string): void {
+		updateFilterRoot(
+			scope,
+			updateFilterGroup(getFilterRoot(scope), groupId, (group) => ({
+				...group,
+				children: [
+					...group.children,
+					{
+						id: createRuleId(),
+						kind: 'group',
+						mode: 'all',
+						children: [],
+					},
+				],
+			})),
+		);
+	}
+
+	function updateFilterItem(
+		scope: 'global' | 'current',
+		itemId: string,
+		patch: Partial<NodeFilterItem>,
+	): void {
+		updateFilterRoot(
+			scope,
+			patchFilterItem(getFilterRoot(scope), itemId, patch) as NodeFilterGroup,
+		);
+	}
+
+	function removeFilterItem(scope: 'global' | 'current', itemId: string): void {
+		const root = getFilterRoot(scope);
+		if (itemId === root.id) {
+			return;
+		}
+		updateFilterRoot(scope, removeFilterItemFromGroup(root, itemId));
+	}
+
+	function updateFilterGroup(
+		root: NodeFilterGroup,
+		groupId: string,
+		update: (group: NodeFilterGroup) => NodeFilterGroup,
+	): NodeFilterGroup {
+		if (root.id === groupId) {
+			return update(root);
+		}
+		return {
+			...root,
+			children: root.children.map((child) =>
+				child.kind === 'group'
+					? updateFilterGroup(child, groupId, update)
+					: child,
+			),
+		};
+	}
+
+	function patchFilterItem(
+		item: NodeFilterItem,
+		itemId: string,
+		patch: Partial<NodeFilterItem>,
+	): NodeFilterItem {
+		if (item.id === itemId) {
+			return { ...item, ...patch } as NodeFilterItem;
+		}
+		if (item.kind === 'group') {
+			return {
+				...item,
+				children: item.children.map((child) =>
+					patchFilterItem(child, itemId, patch),
+				),
+			};
+		}
+		return item;
+	}
+
+	function removeFilterItemFromGroup(
+		group: NodeFilterGroup,
+		itemId: string,
+	): NodeFilterGroup {
+		return {
+			...group,
+			children: group.children
+				.filter((child) => child.id !== itemId)
+				.map((child) =>
+					child.kind === 'group'
+						? removeFilterItemFromGroup(child, itemId)
+						: child,
+				),
+		};
+	}
+
+	function getFilterFieldOptions(): PropertyPickerOption[] {
+		return [
+			...SYSTEM_FILTER_FIELD_OPTIONS.map((field) => ({
+				value: field.value,
+				label: field.label,
+				detail: field.value,
+				icon: field.icon as IconName,
+			})),
+			...metadataFieldSuggestions.map((field) => ({
+				value: `metadata.${field}`,
+				label: field,
+				detail: metadataFieldTypeLabel(metadataFieldTypes[field]),
+				icon: metadataFieldIcon(metadataFieldTypes[field]),
+			})),
+		];
+	}
+
+	function metadataFieldIcon(type: string | undefined): IconName {
+		switch (type) {
+			case 'list':
+				return 'list';
+			case 'date':
+			case 'datetime':
+				return 'clock';
+			case 'number':
+				return 'binary';
+			case 'checkbox':
+				return 'square-check';
+			case 'text':
+			default:
+				return 'align-left';
+		}
+	}
+
+	function metadataFieldTypeLabel(type: string | undefined): string {
+		switch (type) {
+			case 'list':
+				return 'List';
+			case 'date':
+				return 'Date';
+			case 'datetime':
+				return 'Date & time';
+			case 'number':
+				return 'Number';
+			case 'checkbox':
+				return 'Checkbox';
+			case 'text':
+			default:
+				return 'Text';
+		}
+	}
+
+	function getFilterGroupModeOptions(): Array<{
+		value: NodeFilterGroupMode;
+		label: string;
+	}> {
+		return [
+			{ value: 'all', label: 'All the following are true' },
+			{ value: 'any', label: 'Any of the following are true' },
+			{ value: 'none', label: 'None of the following are true' },
+		];
+	}
+
+	function getFilterOperatorOptions(): Array<{
+		value: NodeFilterOperator;
+		label: string;
+	}> {
+		return FILTER_OPERATOR_OPTIONS as Array<{
+			value: NodeFilterOperator;
+			label: string;
+		}>;
+	}
+
+	function addNodeRule(scope: 'global' | 'current'): void {
 		updateNodeRules(scope, [
 			...getNodeRules(scope),
 			{
 				id: createRuleId(),
-				field: "metadata-field",
-				operator: "has-value",
-				value: "",
-				color: "#7c6ff0",
+				field: 'metadata-field',
+				operator: 'has-value',
+				value: '',
+				color: '#7c6ff0',
 				size: 7,
 			},
 		]);
 	}
 
 	function updateNodeRule(
-		scope: "global" | "current",
+		scope: 'global' | 'current',
 		id: string,
 		patch: Partial<NodeStyleRule>,
 	): void {
@@ -332,31 +513,31 @@
 	}
 
 	function updateNodeRules(
-		scope: "global" | "current",
+		scope: 'global' | 'current',
 		rules: NodeStyleRule[],
 	): void {
-		if (scope === "global") {
+		if (scope === 'global') {
 			onGlobalNodeStyleRulesChange(rules);
 		} else {
 			onNodeStyleRulesChange(rules);
 		}
 	}
 
-	function getNodeRules(scope: "global" | "current"): NodeStyleRule[] {
-		return scope === "global" ? globalNodeStyleRules : nodeStyleRules;
+	function getNodeRules(scope: 'global' | 'current'): NodeStyleRule[] {
+		return scope === 'global' ? globalNodeStyleRules : nodeStyleRules;
 	}
 
-	function addLinkRule(scope: "global" | "current"): void {
+	function addLinkRule(scope: 'global' | 'current'): void {
 		updateLinkRules(scope, [
 			...getLinkRules(scope),
 			{
 				id: createRuleId(),
-				field: "source-field",
-				value: "leads-to",
-				color: "#888888",
+				field: 'source-field',
+				value: 'leads-to',
+				color: '#888888',
 				size: 1.5,
-				lineStyle: "solid",
-				label: "",
+				lineStyle: 'solid',
+				label: '',
 				showLabel: false,
 				hidden: false,
 			},
@@ -364,7 +545,7 @@
 	}
 
 	function updateLinkRule(
-		scope: "global" | "current",
+		scope: 'global' | 'current',
 		id: string,
 		patch: Partial<LinkStyleRule>,
 	): void {
@@ -377,28 +558,28 @@
 	}
 
 	function updateLinkRules(
-		scope: "global" | "current",
+		scope: 'global' | 'current',
 		rules: LinkStyleRule[],
 	): void {
-		if (scope === "global") {
+		if (scope === 'global') {
 			onGlobalLinkStyleRulesChange(rules);
 		} else {
 			onLinkStyleRulesChange(rules);
 		}
 	}
 
-	function getLinkRules(scope: "global" | "current"): LinkStyleRule[] {
-		return scope === "global" ? globalLinkStyleRules : linkStyleRules;
+	function getLinkRules(scope: 'global' | 'current'): LinkStyleRule[] {
+		return scope === 'global' ? globalLinkStyleRules : linkStyleRules;
 	}
 
-	function removeNodeRule(scope: "global" | "current", id: string): void {
+	function removeNodeRule(scope: 'global' | 'current', id: string): void {
 		updateNodeRules(
 			scope,
 			getNodeRules(scope).filter((rule) => rule.id !== id),
 		);
 	}
 
-	function removeLinkRule(scope: "global" | "current", id: string): void {
+	function removeLinkRule(scope: 'global' | 'current', id: string): void {
 		updateLinkRules(
 			scope,
 			getLinkRules(scope).filter((rule) => rule.id !== id),
@@ -408,11 +589,11 @@
 	function shouldShowFilterValue(
 		operator: NodeFilterOperator | undefined,
 	): boolean {
-		return operator !== "has-value" && operator !== "empty";
+		return operator !== 'has-value' && operator !== 'empty';
 	}
 
 	function isBaseStyleRule(rule: NodeStyleRule | LinkStyleRule): boolean {
-		return rule.id === "all";
+		return rule.id === 'all';
 	}
 
 	function createRuleId(): string {
@@ -420,38 +601,40 @@
 	}
 
 	function commitSpacing(spacing: number): void {
-		if (mode === "graph") onGraphSpacing(spacing);
-		if (mode === "flow") onFlowSpacing(spacing);
-		if (mode === "arc") onArcSpacing(spacing);
+		if (mode === 'graph') onGraphSpacing(spacing);
+		if (mode === 'flow') onFlowSpacing(spacing);
+		if (mode === 'arc') onArcSpacing(spacing);
 	}
 
-		function getNodeValueOptions(
-			field: NodeFilterField | NodeStyleField,
-		): SuggestionOption[] {
-			if (field === "folder" || field === "file.folder") {
-				// Reference folders so graph refreshes still invalidate this option list.
-				void folders;
-				return app.vault
-					.getAllFolders()
-					.map((folder) => (folder.path === "/" ? "" : folder.path))
-					.filter(Boolean)
-					.sort((left, right) =>
-						left.localeCompare(right, undefined, { sensitivity: "base" }),
-					)
-					.map((folder) => ({
-						value: folder,
-						label: folder,
-						searchText: folder,
-					}));
-			}
-		if (field === "tag" || field === "file.tags") {
+	function getNodeValueOptions(
+		field: NodeFilterField | NodeStyleField,
+	): SuggestionOption[] {
+		if (field === 'folder' || field === 'file.folder') {
+			// Reference folders so graph refreshes still invalidate this option list.
+			void folders;
+			return app.vault
+				.getAllFolders()
+				.map((folder) => (folder.path === '/' ? '' : folder.path))
+				.filter(Boolean)
+				.sort((left, right) =>
+					left.localeCompare(right, undefined, {
+						sensitivity: 'base',
+					}),
+				)
+				.map((folder) => ({
+					value: folder,
+					label: folder,
+					searchText: folder,
+				}));
+		}
+		if (field === 'tag' || field === 'file.tags') {
 			return tags.map((tag) => ({
 				value: tag,
 				label: tag,
 				searchText: tag,
 			}));
 		}
-		if (field === "metadata-field") {
+		if (field === 'metadata-field') {
 			return metadataFieldSuggestions.map((field) => ({
 				value: field,
 				label: field,
@@ -463,7 +646,7 @@
 </script>
 
 <aside class="knowledge-workspace-filters">
-	{#if panel === "graph"}
+	{#if panel === 'graph'}
 		<section>
 			<header><h3>Graph settings</h3></header>
 			<label class="knowledge-workspace-rule-label">
@@ -496,30 +679,30 @@
 						min={0.25}
 						max={4}
 						step={0.25}
-						value={mode === "graph"
+						value={mode === 'graph'
 							? graphSpacing
-							: mode === "flow"
+							: mode === 'flow'
 								? flowSpacing
 								: arcSpacing}
 						format={(value) =>
-							value.toFixed(2).replace(/\.?0+$/u, "")}
+							value.toFixed(2).replace(/\.?0+$/u, '')}
 						onChange={commitSpacing}
 						onCommit={commitSpacing}
 					/>
 					<span
-						>{(mode === "graph"
+						>{(mode === 'graph'
 							? graphSpacing
-							: mode === "flow"
+							: mode === 'flow'
 								? flowSpacing
 								: arcSpacing
 						)
 							.toFixed(2)
-							.replace(/\.?0+$/u, "")}</span
+							.replace(/\.?0+$/u, '')}</span
 					>
 				</div>
 			</label>
-				<label class="knowledge-workspace-rule-label">
-					<span>Fade distance</span>
+			<label class="knowledge-workspace-rule-label">
+				<span>Fade distance</span>
 				<div class="knowledge-workspace-slider-value">
 					<ObsidianSlider
 						value={fadeDistance}
@@ -527,19 +710,19 @@
 						max={4}
 						step={0.05}
 						format={(value) =>
-							value.toFixed(2).replace(/\.?0+$/u, "")}
+							value.toFixed(2).replace(/\.?0+$/u, '')}
 						onChange={onFadeDistance}
 						onCommit={onFadeDistance}
 					/>
-					<span>{fadeDistance.toFixed(2).replace(/\.?0+$/u, "")}</span
+					<span>{fadeDistance.toFixed(2).replace(/\.?0+$/u, '')}</span
 					>
 				</div>
 			</label>
-			{#if mode === "flow"}
+			{#if mode === 'flow'}
 				<div class="knowledge-workspace-rule-label segmented">
 					<span>Direction</span>
 					<div class="knowledge-workspace-segmented">
-						{#each ["LR", "RL", "TD", "DT"] as direction}
+						{#each ['LR', 'RL', 'TD', 'DT'] as direction}
 							<ObsidianButton
 								active={flowDirection === direction}
 								text={direction}
@@ -553,228 +736,145 @@
 					<span>Line</span>
 					<div class="knowledge-workspace-segmented">
 						<ObsidianButton
-							active={flowEdgeStyle === "straight"}
+							active={flowEdgeStyle === 'straight'}
 							text="Straight"
-							onClick={() => onFlowEdgeStyle("straight")}
+							onClick={() => onFlowEdgeStyle('straight')}
 						/>
 						<ObsidianButton
-							active={flowEdgeStyle === "orthogonal"}
+							active={flowEdgeStyle === 'orthogonal'}
 							text="Orthogonal"
-							onClick={() => onFlowEdgeStyle("orthogonal")}
+							onClick={() => onFlowEdgeStyle('orthogonal')}
 						/>
 					</div>
 				</div>
-			{:else if mode === "arc"}
+			{:else if mode === 'arc'}
 				<label class="knowledge-workspace-rule-label">
 					<span>Direction</span>
 					<ObsidianDropdown
 						value={arcDirection}
 						options={[
-							{ value: "right", label: "Right" },
-							{ value: "left", label: "Left" },
-							{ value: "up", label: "Up" },
-							{ value: "down", label: "Down" },
+							{ value: 'right', label: 'Right' },
+							{ value: 'left', label: 'Left' },
+							{ value: 'up', label: 'Up' },
+							{ value: 'down', label: 'Down' },
 						]}
 						onChange={(value) =>
 							onArcDirection(value as ArcDirection)}
 					/>
 				</label>
 			{/if}
-			</section>
-		{:else if panel === "text-style"}
-			<section>
-				<header><h3>Text style</h3></header>
-				<label class="knowledge-workspace-rule-label">
-					<span>Font size</span>
-					<div class="knowledge-workspace-slider-value">
-						<ObsidianSlider
-							value={labelSize}
-							min={8}
-							max={28}
-							step={0.5}
-							format={(value) => value.toFixed(1)}
-							onChange={onLabelSize}
-							onCommit={onLabelSize}
-						/>
-						<span>{labelSize.toFixed(1)}</span>
-					</div>
-				</label>
-				<label class="knowledge-workspace-rule-label">
-					<span>Font color</span>
-					<input
-						type="color"
-						value={labelColor || getDefaultLabelColor()}
-						oninput={(event) =>
-							scheduleColorCommit(
-								"text:label-color",
-								labelColor || getDefaultLabelColor(),
-								event.currentTarget.value,
-								onLabelColor,
-							)}
-						onchange={(event) =>
-							commitColor(
-								"text:label-color",
-								labelColor || getDefaultLabelColor(),
-								event.currentTarget.value,
-								onLabelColor,
-							)}
-					/>
-				</label>
-				<div class="knowledge-workspace-rule-label segmented">
-					<span>Text position</span>
-					<div class="knowledge-workspace-segmented">
-						{#each LABEL_POSITION_OPTIONS as option}
-							<ObsidianButton
-								active={labelPosition === option.value}
-								text={option.label}
-								onClick={() => onLabelPosition(option.value)}
-							/>
-						{/each}
-					</div>
-				</div>
-				<label class="knowledge-workspace-rule-label">
-					<span>Text background</span>
-					<div class="knowledge-workspace-slider-value">
-						<ObsidianSlider
-							value={labelBackgroundOpacity}
-							min={0}
-							max={1}
-							step={0.05}
-							format={(value) => `${Math.round(value * 100)}%`}
-							onChange={onLabelBackgroundOpacity}
-							onCommit={onLabelBackgroundOpacity}
-						/>
-						<span>{Math.round(labelBackgroundOpacity * 100)}%</span>
-					</div>
-				</label>
-			</section>
-		{:else if panel === "filters"}
-			<section>
-			<header><h3>Filters</h3></header>
 		</section>
-		{#each ["global", "current"] as scope}
-			<section>
-				<header>
-					<h3>{scope === "global" ? "All views" : "This view"}</h3>
-					<ObsidianButton
-						class="knowledge-workspace-add-rule-button"
-						ariaLabel="Add filter"
-						icon="plus"
-						onClick={() =>
-							addFilterRule(scope as "global" | "current")}
+	{:else if panel === 'text-style'}
+		<section>
+			<header><h3>Text style</h3></header>
+			<label class="knowledge-workspace-rule-label">
+				<span>Font size</span>
+				<div class="knowledge-workspace-slider-value">
+					<ObsidianSlider
+						value={labelSize}
+						min={8}
+						max={28}
+						step={0.5}
+						format={(value) => value.toFixed(1)}
+						onChange={onLabelSize}
+						onCommit={onLabelSize}
 					/>
+					<span>{labelSize.toFixed(1)}</span>
+				</div>
+			</label>
+			<label class="knowledge-workspace-rule-label">
+				<span>Font color</span>
+				<input
+					type="color"
+					value={labelColor || getDefaultLabelColor()}
+					oninput={(event) =>
+						scheduleColorCommit(
+							'text:label-color',
+							labelColor || getDefaultLabelColor(),
+							event.currentTarget.value,
+							onLabelColor,
+						)}
+					onchange={(event) =>
+						commitColor(
+							'text:label-color',
+							labelColor || getDefaultLabelColor(),
+							event.currentTarget.value,
+							onLabelColor,
+						)}
+				/>
+			</label>
+			<div class="knowledge-workspace-rule-label segmented">
+				<span>Text position</span>
+				<div class="knowledge-workspace-segmented">
+					{#each LABEL_POSITION_OPTIONS as option}
+						<ObsidianButton
+							active={labelPosition === option.value}
+							text={option.label}
+							onClick={() => onLabelPosition(option.value)}
+						/>
+					{/each}
+				</div>
+			</div>
+			<label class="knowledge-workspace-rule-label">
+				<span>Text background</span>
+				<div class="knowledge-workspace-slider-value">
+					<ObsidianSlider
+						value={labelBackgroundOpacity}
+						min={0}
+						max={1}
+						step={0.05}
+						format={(value) => `${Math.round(value * 100)}%`}
+						onChange={onLabelBackgroundOpacity}
+						onCommit={onLabelBackgroundOpacity}
+					/>
+					<span>{Math.round(labelBackgroundOpacity * 100)}%</span>
+				</div>
+			</label>
+		</section>
+	{:else if panel === 'filters'}
+		{#each ['global', 'current'] as scope}
+			<section class="knowledge-workspace-filter-scope">
+				<header>
+					<h3>
+						{scope === 'global' ? 'All views' : 'This view'}
+					</h3>
 				</header>
-				<span class="knowledge-workspace-rule-hint">
-					All conditions below must match.
-				</span>
-				{#each getFilterRules(scope as "global" | "current") as rule (rule.id)}
-					<div class="knowledge-workspace-rule">
-						<div class="knowledge-workspace-rule-row filter bases">
-							<ObsidianDropdown
-								value={rule.field}
-								options={FILE_FILTER_FIELD_OPTIONS}
-								onChange={(value) =>
-									updateFilterRule(
-										scope as "global" | "current",
-										rule.id,
-										{
-											field: value as NodeFilterField,
-										},
-									)}
-							/>
-							<ObsidianDropdown
-								value={rule.operator ?? "is"}
-								options={FILTER_OPERATOR_OPTIONS}
-								onChange={(value) =>
-									updateFilterRule(
-										scope as "global" | "current",
-										rule.id,
-										{
-											operator:
-												value as NodeFilterOperator,
-										},
-									)}
-							/>
-							{#if shouldShowFilterValue(rule.operator) && getNodeValueOptions(rule.field).length > 0}
-								<ObsidianSuggestInput
-									{app}
-									type="text"
-									placeholder="Value"
-									value={rule.value}
-									options={getNodeValueOptions(rule.field)}
-									onInput={(value) =>
-										updateFilterRule(
-											scope as "global" | "current",
-											rule.id,
-											{
-												value,
-											},
-										)}
-									onSelect={(option) =>
-										updateFilterRule(
-											scope as "global" | "current",
-											rule.id,
-											{
-												value: option.value,
-											},
-										)}
-								/>
-							{:else}
-								<ObsidianTextInput
-									type="text"
-									placeholder={shouldShowFilterValue(
-										rule.operator,
-									)
-										? "Value"
-										: ""}
-									disabled={!shouldShowFilterValue(
-										rule.operator,
-									)}
-									value={rule.value}
-									onInput={(value) =>
-										updateFilterRule(
-											scope as "global" | "current",
-											rule.id,
-											{
-												value,
-											},
-										)}
-								/>
-							{/if}
-							<ObsidianButton
-								class="knowledge-workspace-remove-rule-button"
-								ariaLabel="Remove filter"
-								icon="trash-2"
-								onClick={() =>
-									updateFilterRules(
-										scope as "global" | "current",
-										getFilterRules(
-											scope as "global" | "current",
-										).filter((item) => item.id !== rule.id),
-									)}
-							/>
-						</div>
-					</div>
-				{/each}
+				<FilterGroup
+					{app}
+					group={getFilterRoot(scope as 'global' | 'current')}
+					root={true}
+					fieldOptions={getFilterFieldOptions()}
+					operatorOptions={getFilterOperatorOptions()}
+					groupModeOptions={getFilterGroupModeOptions()}
+					getValueOptions={getNodeValueOptions}
+					onAddCondition={(groupId) =>
+						addFilterCondition(scope as 'global' | 'current', groupId)}
+					onAddGroup={(groupId) =>
+						addFilterGroup(scope as 'global' | 'current', groupId)}
+					onUpdate={(id, patch) =>
+						updateFilterItem(scope as 'global' | 'current', id, patch)}
+					onRemove={(id) =>
+						removeFilterItem(scope as 'global' | 'current', id)}
+				/>
 			</section>
 		{/each}
-	{:else if panel === "note-style"}
+	{:else if panel === 'note-style'}
 		<section>
 			<header><h3>Note styles</h3></header>
 		</section>
-		{#each ["global", "current"] as scope}
+		{#each ['global', 'current'] as scope}
 			<section>
 				<header>
-					<h3>{scope === "global" ? "All views" : "This view"}</h3>
+					<h3>{scope === 'global' ? 'All views' : 'This view'}</h3>
 					<ObsidianButton
 						class="knowledge-workspace-add-rule-button"
 						ariaLabel="Add note style rule"
 						icon="plus"
 						onClick={() =>
-							addNodeRule(scope as "global" | "current")}
+							addNodeRule(scope as 'global' | 'current')}
 					/>
 				</header>
-				{#each getNodeRules(scope as "global" | "current") as rule (rule.id)}
+				{#each getNodeRules(scope as 'global' | 'current') as rule (rule.id)}
 					<div class="knowledge-workspace-rule">
 						<div
 							class="knowledge-workspace-rule-row style-condition"
@@ -784,25 +884,25 @@
 								value={rule.field}
 								options={isBaseStyleRule(rule)
 									? BASE_NODE_STYLE_FIELD_OPTIONS
-									: scope === "global"
+									: scope === 'global'
 										? BASE_NODE_STYLE_FIELD_OPTIONS
 										: NODE_STYLE_FIELD_OPTIONS}
 								onChange={(value) =>
 									updateNodeRule(
-										scope as "global" | "current",
+										scope as 'global' | 'current',
 										rule.id,
 										{
 											field: value as NodeStyleField,
 										},
 									)}
 							/>
-							{#if rule.field !== "all"}
+							{#if rule.field !== 'all'}
 								<ObsidianDropdown
-									value={rule.operator ?? "is"}
+									value={rule.operator ?? 'is'}
 									options={FILTER_OPERATOR_OPTIONS}
 									onChange={(value) =>
 										updateNodeRule(
-											scope as "global" | "current",
+											scope as 'global' | 'current',
 											rule.id,
 											{
 												operator:
@@ -821,7 +921,7 @@
 										)}
 										onInput={(value) =>
 											updateNodeRule(
-												scope as "global" | "current",
+												scope as 'global' | 'current',
 												rule.id,
 												{
 													value,
@@ -829,7 +929,7 @@
 											)}
 										onSelect={(option) =>
 											updateNodeRule(
-												scope as "global" | "current",
+												scope as 'global' | 'current',
 												rule.id,
 												{
 													value: option.value,
@@ -842,15 +942,15 @@
 										placeholder={shouldShowFilterValue(
 											rule.operator,
 										)
-											? "Value"
-											: ""}
+											? 'Value'
+											: ''}
 										disabled={!shouldShowFilterValue(
 											rule.operator,
 										)}
 										value={rule.value}
 										onInput={(value) =>
 											updateNodeRule(
-												scope as "global" | "current",
+												scope as 'global' | 'current',
 												rule.id,
 												{
 													value,
@@ -872,7 +972,7 @@
 								icon="trash-2"
 								onClick={() =>
 									removeNodeRule(
-										scope as "global" | "current",
+										scope as 'global' | 'current',
 										rule.id,
 									)}
 							/>
@@ -891,8 +991,8 @@
 											(color) =>
 												updateNodeRule(
 													scope as
-														| "global"
-														| "current",
+														| 'global'
+														| 'current',
 													rule.id,
 													{
 														color,
@@ -907,8 +1007,8 @@
 											(color) =>
 												updateNodeRule(
 													scope as
-														| "global"
-														| "current",
+														| 'global'
+														| 'current',
 													rule.id,
 													{
 														color,
@@ -927,7 +1027,7 @@
 										value={rule.size}
 										onChange={(value) =>
 											updateNodeRule(
-												scope as "global" | "current",
+												scope as 'global' | 'current',
 												rule.id,
 												{
 													size: value,
@@ -946,19 +1046,19 @@
 		<section>
 			<header><h3>Link styles</h3></header>
 		</section>
-		{#each ["global", "current"] as scope}
+		{#each ['global', 'current'] as scope}
 			<section>
 				<header>
-					<h3>{scope === "global" ? "All views" : "This view"}</h3>
+					<h3>{scope === 'global' ? 'All views' : 'This view'}</h3>
 					<ObsidianButton
 						class="knowledge-workspace-add-rule-button"
 						ariaLabel="Add link style rule"
 						icon="plus"
 						onClick={() =>
-							addLinkRule(scope as "global" | "current")}
+							addLinkRule(scope as 'global' | 'current')}
 					/>
 				</header>
-				{#each getLinkRules(scope as "global" | "current") as rule (rule.id)}
+				{#each getLinkRules(scope as 'global' | 'current') as rule (rule.id)}
 					<div class="knowledge-workspace-rule">
 						<div class="knowledge-workspace-rule-row">
 							<ObsidianDropdown
@@ -966,12 +1066,12 @@
 								value={rule.field}
 								options={isBaseStyleRule(rule)
 									? BASE_LINK_STYLE_FIELD_OPTIONS
-									: scope === "global"
+									: scope === 'global'
 										? BASE_LINK_STYLE_FIELD_OPTIONS
 										: LINK_STYLE_FIELD_OPTIONS}
 								onChange={(value) =>
 									updateLinkRule(
-										scope as "global" | "current",
+										scope as 'global' | 'current',
 										rule.id,
 										{
 											field: value as LinkStyleField,
@@ -981,13 +1081,13 @@
 							<ObsidianTextInput
 								type="text"
 								placeholder={isBaseStyleRule(rule)
-									? "All links"
-									: "Metadata value"}
+									? 'All links'
+									: 'Metadata value'}
 								disabled={isBaseStyleRule(rule)}
 								value={rule.value}
 								onInput={(value) =>
 									updateLinkRule(
-										scope as "global" | "current",
+										scope as 'global' | 'current',
 										rule.id,
 										{
 											value,
@@ -1001,7 +1101,7 @@
 								icon="trash-2"
 								onClick={() =>
 									removeLinkRule(
-										scope as "global" | "current",
+										scope as 'global' | 'current',
 										rule.id,
 									)}
 							/>
@@ -1020,8 +1120,8 @@
 											(color) =>
 												updateLinkRule(
 													scope as
-														| "global"
-														| "current",
+														| 'global'
+														| 'current',
 													rule.id,
 													{
 														color,
@@ -1036,8 +1136,8 @@
 											(color) =>
 												updateLinkRule(
 													scope as
-														| "global"
-														| "current",
+														| 'global'
+														| 'current',
 													rule.id,
 													{
 														color,
@@ -1057,7 +1157,7 @@
 										format={(value) => value.toFixed(1)}
 										onChange={(value) =>
 											updateLinkRule(
-												scope as "global" | "current",
+												scope as 'global' | 'current',
 												rule.id,
 												{
 													size: value,
@@ -1077,7 +1177,7 @@
 										text={option.label}
 										onClick={() =>
 											updateLinkRule(
-												scope as "global" | "current",
+												scope as 'global' | 'current',
 												rule.id,
 												{
 													lineStyle:
@@ -1099,7 +1199,7 @@
 									value={rule.label}
 									onInput={(value) =>
 										updateLinkRule(
-											scope as "global" | "current",
+											scope as 'global' | 'current',
 											rule.id,
 											{
 												label: value,
@@ -1114,7 +1214,7 @@
 									value={rule.showLabel}
 									onChange={(value) =>
 										updateLinkRule(
-											scope as "global" | "current",
+											scope as 'global' | 'current',
 											rule.id,
 											{
 												showLabel: value,
@@ -1128,7 +1228,7 @@
 									value={rule.hidden}
 									onChange={(value) =>
 										updateLinkRule(
-											scope as "global" | "current",
+											scope as 'global' | 'current',
 											rule.id,
 											{
 												hidden: value,
