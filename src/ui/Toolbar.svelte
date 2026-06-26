@@ -95,7 +95,7 @@
 	];
 	const SOURCE_OPTIONS = [
 		{ value: "query", label: "Query" },
-		{ value: "curated", label: "Workspace" },
+		{ value: "curated", label: "Curated" },
 	];
 	const SETTINGS_TABS = $derived<Array<{
 		mode: SettingsPanelMode;

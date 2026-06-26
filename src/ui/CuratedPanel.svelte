@@ -4,11 +4,37 @@
 	import type {
 		CuratedWorkspaceConfig,
 		KnowledgeNode,
+		NodeFilterField,
+		NodeFilterOperator,
 	} from "../core/types";
+	import { matchesNodeCriterion } from "../query/filters";
 	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
+	import ObsidianDropdown from "./obsidian/ObsidianDropdown.svelte";
 	import ObsidianSuggestInput from "./obsidian/ObsidianSuggestInput.svelte";
+	import ObsidianTextInput from "./obsidian/ObsidianTextInput.svelte";
+	import WorkspaceModal from "./WorkspaceModal.svelte";
 
 	type ReorderPlacement = "before" | "after";
+	type ConditionalMode = "add" | "remove";
+
+	const FILE_FILTER_FIELD_OPTIONS = [
+		{ value: "file.name", label: "File" },
+		{ value: "file.basename", label: "Name" },
+		{ value: "file.path", label: "Path" },
+		{ value: "file.folder", label: "Folder" },
+		{ value: "file.ext", label: "Extension" },
+		{ value: "file.tags", label: "Tags" },
+		{ value: "file.links", label: "Links" },
+		{ value: "metadata-field", label: "Property" },
+	];
+	const FILTER_OPERATOR_OPTIONS = [
+		{ value: "has-value", label: "has value" },
+		{ value: "empty", label: "has no value" },
+		{ value: "is", label: "is" },
+		{ value: "is-not", label: "is not" },
+		{ value: "contains", label: "contains" },
+		{ value: "does-not-contain", label: "does not contain" },
+	];
 
 	let {
 		app,
@@ -61,6 +87,13 @@
 	let fileSearch = $state("");
 	let batchInput = $state("");
 	let batchOpen = $state(false);
+	let conditionModalOpen = $state(false);
+	let conditionMode = $state<ConditionalMode>("add");
+	let conditionField = $state<NodeFilterField>("file.folder");
+	let conditionOperator = $state<NodeFilterOperator>("is");
+	let conditionValue = $state("");
+	let conditionResultSearch = $state("");
+	let selectedMatchPaths = $state<Set<string>>(new Set());
 	let selected = $state<Set<string>>(new Set());
 	let batchStatus = $state("");
 	let reorderDrag = $state<
@@ -143,6 +176,47 @@
 				),
 			})),
 	);
+	const conditionValueOptions = $derived(getConditionValueOptions(conditionField));
+	const conditionalMatches = $derived.by(() => {
+		const pool =
+			conditionMode === "add"
+				? nodes.filter((node) => node.path !== workspaceFilePath)
+				: nodes.filter((node) => selectedPaths.has(node.path));
+		return pool
+			.filter((node) =>
+				matchesNodeCriterion(
+					node,
+					conditionField,
+					conditionOperator,
+					conditionValue,
+				),
+			)
+			.sort((first, second) =>
+				first.title.localeCompare(second.title, undefined, {
+					sensitivity: "base",
+				}),
+			);
+	});
+	const conditionalStatus = $derived(
+		`${conditionalMatches.length} ${conditionMode === "add" ? "matches" : "selected"}`,
+	);
+	const visibleConditionalMatches = $derived.by(() => {
+		const query = conditionResultSearch.trim().toLocaleLowerCase();
+		if (!query) {
+			return conditionalMatches;
+		}
+		return conditionalMatches.filter((node) =>
+			[node.title, node.path, node.folder, ...(node.aliases ?? [])]
+				.join(" ")
+				.toLocaleLowerCase()
+				.includes(query),
+		);
+	});
+	const selectedMatchCount = $derived(
+		conditionalMatches.filter(
+			(node) => selectedMatchPaths.has(node.path) && canApplyConditionTo(node),
+		).length,
+	);
 
 	function formatFileTitle(path: string): string {
 		return path.split("/").pop()?.replace(/\.md$/u, "") ?? path;
@@ -205,6 +279,133 @@
 		if (unresolved.length === 0) {
 			batchInput = "";
 		}
+	}
+
+	function applyConditionalChange(): void {
+		const paths = conditionalMatches
+			.filter(
+				(node) =>
+					selectedMatchPaths.has(node.path) && canApplyConditionTo(node),
+			)
+			.map((node) => node.path);
+		if (paths.length === 0) {
+			return;
+		}
+		if (conditionMode === "add") {
+			onAddFiles(paths);
+		} else {
+			onRemoveFiles(paths);
+			selected = new Set([...selected].filter((path) => !paths.includes(path)));
+		}
+		conditionModalOpen = false;
+		selectedMatchPaths = new Set();
+	}
+
+	function openConditionModal(): void {
+		conditionModalOpen = true;
+		conditionResultSearch = "";
+		resetConditionalSelection();
+	}
+
+	function closeConditionModal(): void {
+		conditionModalOpen = false;
+	}
+
+	function resetConditionalSelection(): void {
+		selectedMatchPaths = new Set(
+			conditionalMatches
+				.filter((node) => canApplyConditionTo(node))
+				.map((node) => node.path),
+		);
+	}
+
+	function canApplyConditionTo(node: KnowledgeNode): boolean {
+		return conditionMode === "add"
+			? !selectedPaths.has(node.path)
+			: selectedPaths.has(node.path);
+	}
+
+	function toggleMatch(path: string): void {
+		const next = new Set(selectedMatchPaths);
+		if (next.has(path)) {
+			next.delete(path);
+		} else {
+			next.add(path);
+		}
+		selectedMatchPaths = next;
+	}
+
+	function selectVisibleMatches(): void {
+		selectedMatchPaths = new Set([
+			...selectedMatchPaths,
+			...visibleConditionalMatches
+				.filter((node) => canApplyConditionTo(node))
+				.map((node) => node.path),
+		]);
+	}
+
+	function clearVisibleMatches(): void {
+		const visiblePaths = new Set(visibleConditionalMatches.map((node) => node.path));
+		selectedMatchPaths = new Set(
+			[...selectedMatchPaths].filter((path) => !visiblePaths.has(path)),
+		);
+	}
+
+	function updateConditionMode(mode: ConditionalMode): void {
+		conditionMode = mode;
+		window.requestAnimationFrame(resetConditionalSelection);
+	}
+
+	function updateConditionField(field: NodeFilterField): void {
+		conditionField = field;
+		conditionValue = "";
+		window.requestAnimationFrame(resetConditionalSelection);
+	}
+
+	function updateConditionOperator(operator: NodeFilterOperator): void {
+		conditionOperator = operator;
+		window.requestAnimationFrame(resetConditionalSelection);
+	}
+
+	function shouldShowConditionValue(operator: NodeFilterOperator): boolean {
+		return operator !== "has-value" && operator !== "empty";
+	}
+
+	function getConditionValueOptions(
+		field: NodeFilterField,
+	): Array<{ value: string; label: string; searchText: string }> {
+		if (field === "file.folder" || field === "folder") {
+			return uniqueSorted(
+				nodes.map((node) => node.folder).filter(Boolean),
+			).map((folder) => ({
+				value: folder,
+				label: folder,
+				searchText: folder,
+			}));
+		}
+		if (field === "file.tags" || field === "tag") {
+			return uniqueSorted(nodes.flatMap((node) => node.tags)).map((tag) => ({
+				value: tag,
+				label: tag,
+				searchText: tag,
+			}));
+		}
+		if (field === "metadata-field") {
+			return uniqueSorted(
+				nodes.flatMap((node) => node.metadataFields ?? []),
+			).map((fieldName) => ({
+				value: fieldName,
+				label: fieldName,
+				searchText: fieldName,
+			}));
+		}
+		return [];
+	}
+
+	function uniqueSorted(values: string[]): string[] {
+		return [...new Set(values.filter(Boolean))].sort((first, second) =>
+			first.localeCompare(second, undefined, { sensitivity: "base" }),
+		);
 	}
 
 	function resolveBatchLine(line: string): string | undefined {
@@ -370,6 +571,11 @@
 			</div>
 			<div class="knowledge-workspace-curated-actions">
 				<ObsidianButton
+					text="Filter files"
+					icon="list-filter"
+					onClick={openConditionModal}
+				/>
+				<ObsidianButton
 					text={`Remove selected${selectedCount ? ` (${selectedCount})` : ""}`}
 					icon="trash-2"
 					disabled={selectedCount === 0}
@@ -479,6 +685,140 @@
 					/>
 				</div>
 			{/if}
-		</section>
-	{/if}
-</aside>
+			</section>
+		{/if}
+		<WorkspaceModal
+			open={conditionModalOpen}
+			title="Filter files"
+			subtitle={conditionalStatus}
+			onClose={closeConditionModal}
+		>
+				<div class="knowledge-workspace-curated-condition">
+					<div class="knowledge-workspace-curated-condition-mode">
+						<ObsidianButton
+							class="knowledge-workspace-condition-mode-button"
+							text="Add to workspace"
+							icon="plus"
+							active={conditionMode === "add"}
+							cta={conditionMode === "add"}
+							onClick={() => updateConditionMode("add")}
+						/>
+						<ObsidianButton
+							class="knowledge-workspace-condition-mode-button"
+							text="Remove from workspace"
+							icon="trash-2"
+							active={conditionMode === "remove"}
+							destructive={conditionMode === "remove"}
+							onClick={() => updateConditionMode("remove")}
+						/>
+					</div>
+					<div class="knowledge-workspace-curated-condition-row">
+						<ObsidianDropdown
+							value={conditionField}
+							options={FILE_FILTER_FIELD_OPTIONS}
+							onChange={(value) =>
+								updateConditionField(value as NodeFilterField)}
+						/>
+						<ObsidianDropdown
+							value={conditionOperator}
+							options={FILTER_OPERATOR_OPTIONS}
+							onChange={(value) =>
+								updateConditionOperator(value as NodeFilterOperator)}
+						/>
+					</div>
+					{#if shouldShowConditionValue(conditionOperator)}
+						{#if conditionValueOptions.length > 0}
+							<ObsidianSuggestInput
+								{app}
+								type="text"
+								placeholder="Value"
+								value={conditionValue}
+								options={conditionValueOptions}
+								onInput={(value) => {
+									conditionValue = value;
+									window.requestAnimationFrame(resetConditionalSelection);
+								}}
+								onSelect={(option) => {
+									conditionValue = option.value;
+									window.requestAnimationFrame(resetConditionalSelection);
+								}}
+							/>
+						{:else}
+							<ObsidianTextInput
+								type="text"
+								placeholder="Value"
+								value={conditionValue}
+								onInput={(value) => {
+									conditionValue = value;
+									window.requestAnimationFrame(resetConditionalSelection);
+								}}
+							/>
+						{/if}
+					{/if}
+				</div>
+				<div class="knowledge-workspace-curated-result-tools">
+					<ObsidianTextInput
+						type="search"
+						placeholder="Search results..."
+						value={conditionResultSearch}
+						onInput={(value) => (conditionResultSearch = value)}
+					/>
+					<span>{selectedMatchCount} selected</span>
+					<ObsidianButton
+						text="Select all"
+						onClick={selectVisibleMatches}
+						disabled={visibleConditionalMatches.length === 0}
+					/>
+					<ObsidianButton
+						text="Clear"
+						onClick={clearVisibleMatches}
+						disabled={selectedMatchCount === 0}
+					/>
+				</div>
+				<div class="knowledge-workspace-curated-result-list">
+					{#each visibleConditionalMatches as node (node.path)}
+						<label
+							class:disabled={!canApplyConditionTo(node)}
+							class="knowledge-workspace-curated-result"
+						>
+							<input
+								type="checkbox"
+								checked={selectedMatchPaths.has(node.path)}
+								disabled={!canApplyConditionTo(node)}
+								onchange={() => toggleMatch(node.path)}
+							/>
+							<span
+								style={`background: ${nodeColors.get(node.path) ?? 'var(--color-green, #44a37f)'}`}
+							></span>
+							<div>
+								<strong>{node.title}</strong>
+								<span>{node.path}</span>
+							</div>
+							<small>
+								{conditionMode === "add"
+									? selectedPaths.has(node.path)
+										? "Added"
+										: "New"
+									: "Selected"}
+							</small>
+						</label>
+					{:else}
+						<span class="knowledge-workspace-curated-empty">
+							No matching files
+						</span>
+					{/each}
+				</div>
+				<div class="knowledge-workspace-curated-modal-actions">
+					<ObsidianButton text="Cancel" onClick={closeConditionModal} />
+					<ObsidianButton
+						text={conditionMode === "add"
+							? `Add ${selectedMatchCount}`
+							: `Remove ${selectedMatchCount}`}
+						icon={conditionMode === "add" ? "plus" : "trash-2"}
+						disabled={selectedMatchCount === 0}
+						destructive={conditionMode === "remove"}
+						onClick={applyConditionalChange}
+					/>
+				</div>
+		</WorkspaceModal>
+	</aside>
