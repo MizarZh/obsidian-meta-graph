@@ -1172,6 +1172,13 @@
 	width: 32px;
 }
 
+.knowledge-workspace-curated-panel.target section {
+	border-color: var(--interactive-accent);
+	box-shadow:
+		0 0 0 2px color-mix(in srgb, var(--interactive-accent) 22%, transparent),
+		var(--shadow-s);
+}
+
 .knowledge-workspace-curated-panel-collapsed
 	.knowledge-workspace-curated-resize-handle {
 	display: none;

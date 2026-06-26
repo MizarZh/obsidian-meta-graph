@@ -88,6 +88,7 @@
 	let connectionDrag = $state<ConnectionDragState | undefined>(undefined);
 	let graphConnectionTargetNotePath = $state<string | undefined>(undefined);
 	let graphConnectionTargetTemplateId = $state<string | undefined>(undefined);
+	let graphConnectionTargetCurated = $state(false);
 	let dockDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockConnectionDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockTargetNodeId = $state<string | undefined>(undefined);
@@ -108,12 +109,21 @@
 		const target = readElementAtMouseEvent(event);
 		graphConnectionTargetNotePath = readDockNotePathFromTarget(target);
 		graphConnectionTargetTemplateId = readDockTemplateIdFromTarget(target);
+		graphConnectionTargetCurated = readCuratedDropTarget(target);
 	};
 	const handleGraphConnectionMouseUp = (event: MouseEvent): void => {
 		if (!connectionDrag || dockConnectionDrag) {
 			return;
 		}
 		const target = readElementAtMouseEvent(event);
+		if (readCuratedDropTarget(target)) {
+			const sourceNodeId = connectionDrag.sourceNodeId;
+			graphConnectionTargetNotePath = undefined;
+			graphConnectionTargetTemplateId = undefined;
+			graphConnectionTargetCurated = false;
+			controller.addCuratedFile(sourceNodeId);
+			return;
+		}
 		const templateId =
 			graphConnectionTargetTemplateId ??
 			readDockTemplateIdFromTarget(target);
@@ -121,6 +131,7 @@
 			const sourceNodeId = connectionDrag.sourceNodeId;
 			graphConnectionTargetNotePath = undefined;
 			graphConnectionTargetTemplateId = undefined;
+			graphConnectionTargetCurated = false;
 			openCreateFromTemplateId(
 				templateId,
 				sourceNodeId,
@@ -137,12 +148,16 @@
 		const sourceNodeId = connectionDrag.sourceNodeId;
 		graphConnectionTargetNotePath = undefined;
 		graphConnectionTargetTemplateId = undefined;
+		graphConnectionTargetCurated = false;
 		void controller
 			.connectNodes(
 				sourceNodeId,
 				notePath,
 				workspaceState.activeConnectionField,
 			)
+			.then(() => {
+				controller.addCuratedFile(notePath);
+			})
 			.catch((error: unknown) =>
 				controller.setRendererDebugState({
 					status: "error",
@@ -430,6 +445,7 @@
 					if (!state) {
 						graphConnectionTargetNotePath = undefined;
 						graphConnectionTargetTemplateId = undefined;
+						graphConnectionTargetCurated = false;
 					}
 				},
 				onConnect: (sourceNodeId, targetNodeId) => {
@@ -1009,6 +1025,9 @@
 				payload.direction,
 				payload.relationField,
 			)
+			.then(() => {
+				controller.addCuratedFile(payload.notePath);
+			})
 			.catch((error: unknown) =>
 				controller.setRendererDebugState({
 					status: "error",
@@ -1105,6 +1124,13 @@
 		return templateEl?.dataset.dockTemplateId || undefined;
 	}
 
+	function readCuratedDropTarget(target: EventTarget | null): boolean {
+		if (!(target instanceof HTMLElement)) {
+			return false;
+		}
+		return Boolean(target.closest("[data-curated-drop-target]"));
+	}
+
 	function openCreateFromTemplateModal(
 		payload: Extract<DockDragPayload, { kind: "template" }>,
 		targetNodeId: string,
@@ -1147,6 +1173,9 @@
 					).open();
 				},
 			);
+			if (filePath) {
+				controller.addCuratedFile(filePath);
+			}
 			if (filePath && openTemplateNoteInNewTab) {
 				const file = app.vault.getAbstractFileByPath(filePath);
 				if (file instanceof TFile) {
@@ -1351,6 +1380,7 @@
 						controller.setDockFocusOnSelect(
 							!workspaceState.dock.focusOnSelect,
 						)}
+					dropTarget={graphConnectionTargetCurated}
 					onAddFile={(path) => controller.addCuratedFile(path)}
 					onAddFiles={(paths) => controller.addCuratedFiles(paths)}
 					onRemoveFile={(path) => controller.removeCuratedFile(path)}
@@ -1380,7 +1410,12 @@
 					aria-hidden="true"
 				>
 					<line
-						class:target={Boolean(connectionDrag.targetNodeId)}
+						class:target={Boolean(
+							connectionDrag.targetNodeId ||
+								graphConnectionTargetNotePath ||
+								graphConnectionTargetTemplateId ||
+								graphConnectionTargetCurated,
+						)}
 						x1={connectionDrag.x1}
 						y1={connectionDrag.y1}
 						x2={connectionDrag.x2}

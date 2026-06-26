@@ -22,6 +22,7 @@
 		onResizePanel,
 		focusOnSelect,
 		onToggleFocusOnSelect,
+		dropTarget,
 		onAddFile,
 		onAddFiles,
 		onRemoveFile,
@@ -42,6 +43,7 @@
 		onResizePanel: (width: number) => void;
 		focusOnSelect: boolean;
 		onToggleFocusOnSelect: () => void;
+		dropTarget: boolean;
 		onAddFile: (path: string) => void;
 		onAddFiles: (paths: string[]) => void;
 		onRemoveFile: (path: string) => void;
@@ -317,6 +319,8 @@
 <aside
 	class="knowledge-workspace-curated-panel"
 	class:knowledge-workspace-curated-panel-collapsed={!panelOpen}
+	class:target={dropTarget}
+	data-curated-drop-target={panelOpen ? "" : undefined}
 	style="width: {panelOpen ? `${panelWidth}px` : undefined}"
 >
 	<div
