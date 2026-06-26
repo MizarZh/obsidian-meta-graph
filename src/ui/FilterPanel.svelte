@@ -160,14 +160,69 @@
 		{ value: 'all', label: 'All links' },
 		...LINK_STYLE_FIELD_OPTIONS,
 	];
-	const FILTER_OPERATOR_OPTIONS = [
-		{ value: 'has-value', label: 'has value' },
-		{ value: 'empty', label: 'has no value' },
+	const FILE_FILTER_OPERATOR_OPTIONS = [
+		{ value: 'links-to', label: 'links to' },
+		{ value: 'in-folder', label: 'in folder' },
+		{ value: 'has-tag', label: 'has tag' },
+		{ value: 'has-property', label: 'has property' },
+		{ value: 'does-not-link-to', label: 'does not link to' },
+		{ value: 'is-not-in-folder', label: 'is not in folder' },
+		{ value: 'does-not-have-tag', label: 'does not have tag' },
+		{ value: 'does-not-have-property', label: 'does not have property' },
+	];
+	const TEXT_FILTER_OPERATOR_OPTIONS = [
 		{ value: 'is', label: 'is' },
 		{ value: 'is-not', label: 'is not' },
+		{ value: 'starts-with', label: 'starts with' },
+		{ value: 'ends-with', label: 'ends with' },
+		{ value: 'is-empty', label: 'is empty' },
+		{ value: 'is-not-empty', label: 'is not empty' },
 		{ value: 'contains', label: 'contains' },
+		{ value: 'contains-any-of', label: 'contains any of' },
+		{ value: 'contains-all-of', label: 'contains all of' },
+		{ value: 'does-not-start-with', label: 'does not start with' },
+		{ value: 'does-not-end-with', label: 'does not end with' },
 		{ value: 'does-not-contain', label: 'does not contain' },
+		{ value: 'does-not-contain-any-of', label: 'does not contain any of' },
+		{ value: 'does-not-contain-all-of', label: 'does not contain all of' },
 	];
+	const DATE_FILTER_OPERATOR_OPTIONS = [
+		{ value: 'on', label: 'on' },
+		{ value: 'not-on', label: 'not on' },
+		{ value: 'before', label: 'before' },
+		{ value: 'on-or-before', label: 'on or before' },
+		{ value: 'after', label: 'after' },
+		{ value: 'on-or-after', label: 'on or after' },
+		{ value: 'is-empty', label: 'is empty' },
+		{ value: 'is-not-empty', label: 'is not empty' },
+	];
+	const NUMBER_FILTER_OPERATOR_OPTIONS = [
+		{ value: 'eq', label: '=' },
+		{ value: 'neq', label: '!=' },
+		{ value: 'lt', label: '<' },
+		{ value: 'lte', label: '<=' },
+		{ value: 'gt', label: '>' },
+		{ value: 'gte', label: '>=' },
+		{ value: 'is-empty', label: 'is empty' },
+		{ value: 'is-not-empty', label: 'is not empty' },
+	];
+	const LIST_FILTER_OPERATOR_OPTIONS = [
+		{ value: 'is-exactly', label: 'is exactly' },
+		{ value: 'is-not-exactly', label: 'is not exactly' },
+		{ value: 'is-empty', label: 'is empty' },
+		{ value: 'contains', label: 'contains' },
+		{ value: 'contains-any-of', label: 'contains any of' },
+		{ value: 'contains-all-of', label: 'contains all of' },
+		{ value: 'is-not-empty', label: 'is not empty' },
+		{ value: 'does-not-contain', label: 'does not contain' },
+		{ value: 'does-not-contain-any-of', label: 'does not contain any of' },
+		{ value: 'does-not-contain-all-of', label: 'does not contain all of' },
+	];
+	const CHECKBOX_FILTER_OPERATOR_OPTIONS = [
+		{ value: 'is', label: 'is' },
+		{ value: 'is-not', label: 'is not' },
+	];
+	const STYLE_FILTER_OPERATOR_OPTIONS = TEXT_FILTER_OPERATOR_OPTIONS;
 	const LINE_STYLE_OPTIONS = [
 		{ value: 'solid', label: 'Solid' },
 		{ value: 'dashed', label: 'Dashed' },
@@ -475,14 +530,49 @@
 		];
 	}
 
-	function getFilterOperatorOptions(): Array<{
+	function getFilterOperatorOptions(field: NodeFilterField): Array<{
 		value: NodeFilterOperator;
 		label: string;
 	}> {
-		return FILTER_OPERATOR_OPTIONS as Array<{
+		const type = getFilterFieldType(field);
+		const options =
+			type === 'file'
+				? FILE_FILTER_OPERATOR_OPTIONS
+				: type === 'date' || type === 'datetime'
+					? DATE_FILTER_OPERATOR_OPTIONS
+					: type === 'number'
+						? NUMBER_FILTER_OPERATOR_OPTIONS
+						: type === 'list'
+							? LIST_FILTER_OPERATOR_OPTIONS
+							: type === 'checkbox'
+								? CHECKBOX_FILTER_OPERATOR_OPTIONS
+								: TEXT_FILTER_OPERATOR_OPTIONS;
+		return options as Array<{
 			value: NodeFilterOperator;
 			label: string;
 		}>;
+	}
+
+	function getDefaultFilterOperator(field: NodeFilterField): NodeFilterOperator {
+		return getFilterOperatorOptions(field)[0]?.value ?? 'is';
+	}
+
+	function getFilterFieldType(field: NodeFilterField): string {
+		if (field === 'file.file') return 'file';
+		if (field === 'file.ctime' || field === 'file.mtime') return 'datetime';
+		if (field === 'file.size') return 'number';
+		if (
+			field === 'file.links' ||
+			field === 'file.embeds' ||
+			field === 'file.tags' ||
+			field === 'aliases'
+		) {
+			return 'list';
+		}
+		if (field.startsWith('metadata.')) {
+			return metadataFieldTypes[field.slice('metadata.'.length)] ?? 'text';
+		}
+		return 'text';
 	}
 
 	function addNodeRule(scope: 'global' | 'current'): void {
@@ -844,7 +934,8 @@
 					group={getFilterRoot(scope as 'global' | 'current')}
 					root={true}
 					fieldOptions={getFilterFieldOptions()}
-					operatorOptions={getFilterOperatorOptions()}
+					getOperatorOptions={getFilterOperatorOptions}
+					getDefaultOperator={getDefaultFilterOperator}
 					groupModeOptions={getFilterGroupModeOptions()}
 					getValueOptions={getNodeValueOptions}
 					onAddCondition={(groupId) =>
@@ -899,7 +990,7 @@
 							{#if rule.field !== 'all'}
 								<ObsidianDropdown
 									value={rule.operator ?? 'is'}
-									options={FILTER_OPERATOR_OPTIONS}
+									options={STYLE_FILTER_OPERATOR_OPTIONS}
 									onChange={(value) =>
 										updateNodeRule(
 											scope as 'global' | 'current',

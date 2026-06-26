@@ -84,7 +84,10 @@ function matchesFilterCondition(
 ): boolean {
 	const value = rule.value.trim().toLocaleLowerCase();
 	const operator = rule.operator ?? 'is';
-	if (!value && operator !== 'has-value' && operator !== 'empty') {
+	if (
+		!value &&
+		!['has-value', 'empty', 'is-empty', 'is-not-empty'].includes(operator)
+	) {
 		return false;
 	}
 	return matchesNodeCriterion(node, rule.field, operator, rule.value);
@@ -113,23 +116,98 @@ export function matchesNodeCriterion(
 	if (operator === 'has-value') {
 		return values.length > 0;
 	}
-	if (operator === 'empty') {
+	if (operator === 'empty' || operator === 'is-empty') {
 		return values.length === 0;
+	}
+	if (operator === 'is-not-empty') {
+		return values.length > 0;
 	}
 	if (!normalizedValue) {
 		return false;
 	}
 	const normalizedValues = values.map((item) => item.toLocaleLowerCase());
+	const expectedValues = splitFilterValues(normalizedValue);
 	switch (operator) {
+		case 'links-to':
+			return getNodeCriterionValues(node, 'file.links').some(
+				(item) => item.toLocaleLowerCase() === normalizedValue,
+			);
+		case 'does-not-link-to':
+			return getNodeCriterionValues(node, 'file.links').every(
+				(item) => item.toLocaleLowerCase() !== normalizedValue,
+			);
+		case 'in-folder':
+			return matchesNodeCriterion(node, 'file.folder', 'is', value);
+		case 'is-not-in-folder':
+			return matchesNodeCriterion(node, 'file.folder', 'is-not', value);
+		case 'has-tag':
+			return matchesNodeCriterion(node, 'file.tags', 'is', value);
+		case 'does-not-have-tag':
+			return matchesNodeCriterion(node, 'file.tags', 'is-not', value);
+		case 'has-property':
+			return matchesNodeCriterion(node, 'metadata-field', 'is', value);
+		case 'does-not-have-property':
+			return matchesNodeCriterion(node, 'metadata-field', 'is-not', value);
 		case 'is':
+		case 'on':
+		case 'eq':
 			return normalizedValues.some((item) => item === normalizedValue);
 		case 'is-not':
+		case 'not-on':
+		case 'neq':
 			return normalizedValues.every((item) => item !== normalizedValue);
+		case 'starts-with':
+			return normalizedValues.some((item) => item.startsWith(normalizedValue));
+		case 'ends-with':
+			return normalizedValues.some((item) => item.endsWith(normalizedValue));
 		case 'contains':
 			return normalizedValues.some((item) => item.includes(normalizedValue));
+		case 'contains-any-of':
+			return expectedValues.some((expected) =>
+				normalizedValues.some((item) => item.includes(expected)),
+			);
+		case 'contains-all-of':
+			return expectedValues.every((expected) =>
+				normalizedValues.some((item) => item.includes(expected)),
+			);
+		case 'does-not-start-with':
+			return normalizedValues.every((item) => !item.startsWith(normalizedValue));
+		case 'does-not-end-with':
+			return normalizedValues.every((item) => !item.endsWith(normalizedValue));
 		case 'does-not-contain':
 			return normalizedValues.every((item) => !item.includes(normalizedValue));
+		case 'does-not-contain-any-of':
+			return expectedValues.every((expected) =>
+				normalizedValues.every((item) => !item.includes(expected)),
+			);
+		case 'does-not-contain-all-of':
+			return !expectedValues.every((expected) =>
+				normalizedValues.some((item) => item.includes(expected)),
+			);
+		case 'before':
+		case 'lt':
+			return normalizedValues.some((item) => Number(item) < Number(normalizedValue));
+		case 'on-or-before':
+		case 'lte':
+			return normalizedValues.some((item) => Number(item) <= Number(normalizedValue));
+		case 'after':
+		case 'gt':
+			return normalizedValues.some((item) => Number(item) > Number(normalizedValue));
+		case 'on-or-after':
+		case 'gte':
+			return normalizedValues.some((item) => Number(item) >= Number(normalizedValue));
+		case 'is-exactly':
+			return normalizedValues.join(',') === expectedValues.join(',');
+		case 'is-not-exactly':
+			return normalizedValues.join(',') !== expectedValues.join(',');
 	}
+}
+
+function splitFilterValues(value: string): string[] {
+	return value
+		.split(',')
+		.map((item) => item.trim())
+		.filter(Boolean);
 }
 
 function getNodeCriterionValues(
