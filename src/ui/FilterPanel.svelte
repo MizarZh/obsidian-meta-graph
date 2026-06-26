@@ -936,6 +936,7 @@
 					fieldOptions={getFilterFieldOptions()}
 					getOperatorOptions={getFilterOperatorOptions}
 					getDefaultOperator={getDefaultFilterOperator}
+					getFieldType={getFilterFieldType}
 					groupModeOptions={getFilterGroupModeOptions()}
 					getValueOptions={getNodeValueOptions}
 					onAddCondition={(groupId) =>

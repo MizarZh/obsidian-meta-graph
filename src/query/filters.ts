@@ -149,13 +149,15 @@ export function matchesNodeCriterion(
 		case 'does-not-have-property':
 			return matchesNodeCriterion(node, 'metadata-field', 'is-not', value);
 		case 'is':
-		case 'on':
 		case 'eq':
 			return normalizedValues.some((item) => item === normalizedValue);
+		case 'on':
+			return normalizedValues.some((item) => sameFilterDate(item, normalizedValue));
 		case 'is-not':
-		case 'not-on':
 		case 'neq':
 			return normalizedValues.every((item) => item !== normalizedValue);
+		case 'not-on':
+			return normalizedValues.every((item) => !sameFilterDate(item, normalizedValue));
 		case 'starts-with':
 			return normalizedValues.some((item) => item.startsWith(normalizedValue));
 		case 'ends-with':
@@ -186,16 +188,16 @@ export function matchesNodeCriterion(
 			);
 		case 'before':
 		case 'lt':
-			return normalizedValues.some((item) => Number(item) < Number(normalizedValue));
+			return normalizedValues.some((item) => compareFilterValues(item, normalizedValue) < 0);
 		case 'on-or-before':
 		case 'lte':
-			return normalizedValues.some((item) => Number(item) <= Number(normalizedValue));
+			return normalizedValues.some((item) => compareFilterValues(item, normalizedValue) <= 0);
 		case 'after':
 		case 'gt':
-			return normalizedValues.some((item) => Number(item) > Number(normalizedValue));
+			return normalizedValues.some((item) => compareFilterValues(item, normalizedValue) > 0);
 		case 'on-or-after':
 		case 'gte':
-			return normalizedValues.some((item) => Number(item) >= Number(normalizedValue));
+			return normalizedValues.some((item) => compareFilterValues(item, normalizedValue) >= 0);
 		case 'is-exactly':
 			return normalizedValues.join(',') === expectedValues.join(',');
 		case 'is-not-exactly':
@@ -208,6 +210,34 @@ function splitFilterValues(value: string): string[] {
 		.split(',')
 		.map((item) => item.trim())
 		.filter(Boolean);
+}
+
+function compareFilterValues(left: string, right: string): number {
+	const leftNumber = parseComparableValue(left);
+	const rightNumber = parseComparableValue(right);
+	return leftNumber - rightNumber;
+}
+
+function parseComparableValue(value: string): number {
+	const numeric = Number(value);
+	if (Number.isFinite(numeric)) {
+		return numeric;
+	}
+	const timestamp = Date.parse(value);
+	return Number.isFinite(timestamp) ? timestamp : Number.NaN;
+}
+
+function sameFilterDate(left: string, right: string): boolean {
+	const leftDate = new Date(parseComparableValue(left));
+	const rightDate = new Date(parseComparableValue(right));
+	if (Number.isNaN(leftDate.getTime()) || Number.isNaN(rightDate.getTime())) {
+		return false;
+	}
+	return (
+		leftDate.getFullYear() === rightDate.getFullYear() &&
+		leftDate.getMonth() === rightDate.getMonth() &&
+		leftDate.getDate() === rightDate.getDate()
+	);
 }
 
 function getNodeCriterionValues(

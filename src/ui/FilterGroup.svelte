@@ -25,6 +25,7 @@
 		fieldOptions,
 		getOperatorOptions,
 		getDefaultOperator,
+		getFieldType,
 		groupModeOptions,
 		getValueOptions,
 		onAddCondition,
@@ -41,6 +42,7 @@
 			label: string;
 		}>;
 		getDefaultOperator: (field: NodeFilterField) => NodeFilterOperator;
+		getFieldType: (field: NodeFilterField) => string;
 		groupModeOptions: Array<{ value: NodeFilterGroupMode; label: string }>;
 		getValueOptions: (field: NodeFilterField) => SuggestionOption[];
 		onAddCondition: (groupId: string) => void;
@@ -106,6 +108,7 @@
 						{fieldOptions}
 						{getOperatorOptions}
 						{getDefaultOperator}
+						{getFieldType}
 						{groupModeOptions}
 					{getValueOptions}
 					{onAddCondition}
@@ -134,7 +137,39 @@
 									operator: value as NodeFilterOperator,
 								})}
 						/>
-						{#if shouldShowFilterValue(child.operator) && getValueOptions(child.field).length > 0}
+						{#if shouldShowFilterValue(child.operator) && getFieldType(child.field) === 'checkbox'}
+							<ObsidianDropdown
+								value={child.value || 'true'}
+								options={[
+									{ value: 'true', label: 'Checked' },
+									{ value: 'false', label: 'Unchecked' },
+								]}
+								onChange={(value) =>
+									onUpdate(child.id, {
+										value,
+									})}
+							/>
+						{:else if shouldShowFilterValue(child.operator) && getFieldType(child.field) === 'date'}
+							<ObsidianTextInput
+								type="date"
+								placeholder="Value"
+								value={child.value}
+								onInput={(value) =>
+									onUpdate(child.id, {
+										value,
+									})}
+							/>
+						{:else if shouldShowFilterValue(child.operator) && getFieldType(child.field) === 'datetime'}
+							<ObsidianTextInput
+								type="datetime-local"
+								placeholder="Value"
+								value={child.value}
+								onInput={(value) =>
+									onUpdate(child.id, {
+										value,
+									})}
+							/>
+						{:else if shouldShowFilterValue(child.operator) && getValueOptions(child.field).length > 0}
 							<ObsidianSuggestInput
 								{app}
 								type="text"
