@@ -185,6 +185,7 @@
 			onclick={togglePicker}
 		>
 			<span
+				class:curated={activeChart?.source === "curated"}
 				class="knowledge-workspace-view-icon"
 				use:obsidianIcon={getViewIcon(activeChart?.type)}
 				aria-hidden="true"
@@ -229,6 +230,7 @@
 					{#each filteredCharts as chart (chart.id)}
 						<div
 							class:active={chart.id === activeChartId}
+							class:curated={chart.source === "curated"}
 							class="knowledge-workspace-view-row"
 						>
 							<button
@@ -236,6 +238,7 @@
 								onclick={() => selectChart(chart.id)}
 							>
 								<span
+									class:curated={chart.source === "curated"}
 									class="knowledge-workspace-view-icon"
 									use:obsidianIcon={getViewIcon(chart.type)}
 									aria-hidden="true"
