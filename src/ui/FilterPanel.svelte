@@ -52,6 +52,7 @@
 		tags,
 		metadataFieldSuggestions,
 		metadataFieldTypes,
+		filePathSuggestions,
 		globalNodeStyleRules,
 		nodeStyleRules,
 		globalLinkStyleRules,
@@ -94,6 +95,7 @@
 		tags: string[];
 		metadataFieldSuggestions: string[];
 		metadataFieldTypes: Record<string, string>;
+		filePathSuggestions: string[];
 		globalNodeStyleRules: NodeStyleRule[];
 		nodeStyleRules: NodeStyleRule[];
 		globalLinkStyleRules: LinkStyleRule[];
@@ -698,7 +700,12 @@
 
 	function getNodeValueOptions(
 		field: NodeFilterField | NodeStyleField,
+		operator?: NodeFilterOperator,
 	): SuggestionOption[] {
+		const systemOptions = getSystemMetadataValueOptions(field, operator);
+		if (systemOptions.length > 0) {
+			return systemOptions;
+		}
 		if (field === 'folder' || field === 'file.folder') {
 			// Reference folders so graph refreshes still invalidate this option list.
 			void folders;
@@ -732,6 +739,75 @@
 			}));
 		}
 		return [];
+	}
+
+	function getSystemMetadataValueOptions(
+		field: NodeFilterField | NodeStyleField,
+		operator?: NodeFilterOperator,
+	): SuggestionOption[] {
+		if (field === 'file.file') {
+			if (operator === 'in-folder' || operator === 'is-not-in-folder') {
+				return getFolderValueOptions();
+			}
+			if (operator === 'has-tag' || operator === 'does-not-have-tag') {
+				return getTagValueOptions();
+			}
+			if (
+				operator === 'has-property' ||
+				operator === 'does-not-have-property'
+			) {
+				return getMetadataFieldValueOptions();
+			}
+			return getFilePathValueOptions();
+		}
+		if (field === 'file.path') {
+			return getFilePathValueOptions();
+		}
+		if (field === 'file.folder') {
+			return getFolderValueOptions();
+		}
+		return [];
+	}
+
+	function getFilePathValueOptions(): SuggestionOption[] {
+		return filePathSuggestions.map((path) => ({
+			value: path,
+			label: path,
+			searchText: path,
+		}));
+	}
+
+	function getFolderValueOptions(): SuggestionOption[] {
+		return app.vault
+			.getAllFolders()
+			.map((folder) => (folder.path === '/' ? '' : folder.path))
+			.filter(Boolean)
+			.sort((left, right) =>
+				left.localeCompare(right, undefined, {
+					sensitivity: 'base',
+				}),
+			)
+			.map((folder) => ({
+				value: folder,
+				label: folder,
+				searchText: folder,
+			}));
+	}
+
+	function getTagValueOptions(): SuggestionOption[] {
+		return tags.map((tag) => ({
+			value: tag,
+			label: tag,
+			searchText: tag,
+		}));
+	}
+
+	function getMetadataFieldValueOptions(): SuggestionOption[] {
+		return metadataFieldSuggestions.map((field) => ({
+			value: field,
+			label: field,
+			searchText: field,
+		}));
 	}
 </script>
 

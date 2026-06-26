@@ -44,7 +44,10 @@
 		getDefaultOperator: (field: NodeFilterField) => NodeFilterOperator;
 		getFieldType: (field: NodeFilterField) => string;
 		groupModeOptions: Array<{ value: NodeFilterGroupMode; label: string }>;
-		getValueOptions: (field: NodeFilterField) => SuggestionOption[];
+		getValueOptions: (
+			field: NodeFilterField,
+			operator: NodeFilterOperator | undefined,
+		) => SuggestionOption[];
 		onAddCondition: (groupId: string) => void;
 		onAddGroup: (groupId: string) => void;
 		onUpdate: (id: string, patch: Partial<NodeFilterItem>) => void;
@@ -135,6 +138,7 @@
 							onChange={(value) =>
 								onUpdate(child.id, {
 									operator: value as NodeFilterOperator,
+									value: '',
 								})}
 						/>
 						{#if shouldShowFilterValue(child.operator) && getFieldType(child.field) === 'checkbox'}
@@ -169,13 +173,14 @@
 										value,
 									})}
 							/>
-						{:else if shouldShowFilterValue(child.operator) && getValueOptions(child.field).length > 0}
+						{:else if shouldShowFilterValue(child.operator) && getValueOptions(child.field, child.operator).length > 0}
 							<ObsidianSuggestInput
 								{app}
 								type="text"
 								placeholder="Value"
 								value={child.value}
-								options={getValueOptions(child.field)}
+								options={getValueOptions(child.field, child.operator)}
+								showOnEmpty={true}
 								onInput={(value) =>
 									onUpdate(child.id, {
 										value,

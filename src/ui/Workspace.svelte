@@ -544,6 +544,7 @@
 		getMetadataFieldSuggestions(debugSnapshot),
 	);
 	const metadataFieldTypes = $derived(getMetadataFieldTypes(debugSnapshot));
+	const filePathSuggestions = $derived(getFilePathSuggestions(debugSnapshot));
 
 	function toggleDebug(): void {
 		debugOpen = !debugOpen;
@@ -935,6 +936,14 @@
 			}
 		}
 		return types;
+	}
+
+	function getFilePathSuggestions(snapshot: DebugSnapshot): string[] {
+		return snapshot.index.nodes
+			.map((node) => node.path)
+			.sort((first, second) =>
+				first.localeCompare(second, undefined, { sensitivity: "base" }),
+			);
 	}
 
 	function inferMetadataFieldType(value: unknown): string {
@@ -1350,10 +1359,11 @@
 					query={workspaceState.query}
 					globalQuery={workspaceState.globalQuery}
 						folders={workspaceState.availableFolders}
-						tags={workspaceState.availableTags}
-						{metadataFieldSuggestions}
-						{metadataFieldTypes}
-						globalNodeStyleRules={workspaceState.globalNodeStyleRules}
+							tags={workspaceState.availableTags}
+							{metadataFieldSuggestions}
+							{metadataFieldTypes}
+							{filePathSuggestions}
+							globalNodeStyleRules={workspaceState.globalNodeStyleRules}
 					nodeStyleRules={workspaceState.nodeStyleRules}
 					globalLinkStyleRules={workspaceState.globalLinkStyleRules}
 					linkStyleRules={workspaceState.linkStyleRules}

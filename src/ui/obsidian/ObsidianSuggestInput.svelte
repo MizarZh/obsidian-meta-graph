@@ -18,6 +18,7 @@
 		placeholder = "",
 		ariaLabel,
 		class: className = "",
+		showOnEmpty = false,
 		onInput,
 		onSelect,
 	}: {
@@ -28,6 +29,7 @@
 		placeholder?: string;
 		ariaLabel?: string;
 		class?: string;
+		showOnEmpty?: boolean;
 		onInput: (value: string) => void;
 		onSelect: (option: SuggestionOption) => void;
 	} = $props();
@@ -55,11 +57,11 @@
 	class MetaGraphInputSuggest extends AbstractInputSuggest<IndexedSuggestion> {
 		limit = 12;
 
-		protected getSuggestions(query: string): IndexedSuggestion[] {
-			const normalized = query.trim().toLocaleLowerCase();
-			if (!normalized) {
-				return [];
-			}
+			protected getSuggestions(query: string): IndexedSuggestion[] {
+				const normalized = query.trim().toLocaleLowerCase();
+				if (!normalized) {
+					return showOnEmpty ? indexedOptions.slice(0, this.limit) : [];
+				}
 			const results: IndexedSuggestion[] = [];
 			const seen = new Set<string>();
 			for (const item of indexedOptions) {
@@ -115,6 +117,12 @@
 		};
 	});
 
+	function openSuggestions(): void {
+		if (showOnEmpty) {
+			inputEl?.dispatchEvent(new Event("input", { bubbles: true }));
+		}
+	}
+
 	$effect(() => {
 		if (!inputEl) {
 			return;
@@ -125,14 +133,15 @@
 	});
 </script>
 
-<ObsidianTextInput
+	<ObsidianTextInput
 	{type}
 	{placeholder}
 	{ariaLabel}
 	class={className}
 	{value}
-	{onInput}
-	onInputEl={(element) => {
+		{onInput}
+		onFocus={openSuggestions}
+		onInputEl={(element) => {
 		inputEl = element;
 	}}
 />
