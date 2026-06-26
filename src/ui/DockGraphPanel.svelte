@@ -140,6 +140,9 @@
 	const templateEntries = $derived(
 		templates.map((t) => ({
 			...t,
+			templateMissing:
+				t.templatePath !== "" &&
+				!app.vault.getAbstractFileByPath(t.templatePath),
 			broken:
 				(t.templatePath !== "" &&
 					!app.vault.getAbstractFileByPath(t.templatePath)) ||
@@ -555,6 +558,16 @@
 								<span></span>
 								<strong>{template.label}</strong>
 								<ObsidianButton
+									icon="file-text"
+									ariaLabel={`Open template note for ${template.label}`}
+									disabled={template.templateMissing}
+									onClick={() => {
+										if (!template.templateMissing) {
+											onOpenNote(template.templatePath);
+										}
+									}}
+								/>
+								<ObsidianButton
 									icon="pencil"
 									ariaLabel={`Edit ${template.label}`}
 									onClick={() =>
@@ -670,6 +683,12 @@
 										<span class="knowledge-workspace-dock-node-path">{entry.path}</span>
 									{/if}
 								</div>
+								<ObsidianButton
+									icon="file-text"
+									ariaLabel={`Open ${entry.title}`}
+									disabled={entry.broken}
+									onClick={() => onOpenNote(entry.path)}
+								/>
 								<ObsidianButton
 									icon="x"
 									ariaLabel={`Remove ${entry.title}`}

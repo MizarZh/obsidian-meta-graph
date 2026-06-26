@@ -680,7 +680,7 @@
 .knowledge-workspace-curated-file {
 	z-index: 1;
 	display: grid;
-	grid-template-columns: 18px 14px minmax(0, 1fr) 18px;
+	grid-template-columns: 18px 14px minmax(0, 1fr) 18px 18px;
 	gap: var(--size-4-1);
 	align-items: center;
 	width: 100%;
@@ -779,6 +779,12 @@
 
 .knowledge-workspace-curated-file
 	> .knowledge-workspace-obsidian-control
+	button:hover {
+	color: var(--interactive-accent);
+}
+
+.knowledge-workspace-curated-file
+	> .knowledge-workspace-obsidian-control:last-child
 	button:hover {
 	color: var(--text-error);
 }
@@ -1452,7 +1458,7 @@
 .knowledge-workspace-dock-node {
 	z-index: 1;
 	display: grid;
-	grid-template-columns: 14px minmax(0, 1fr) 18px 18px;
+	grid-template-columns: 14px minmax(0, 1fr) 18px 18px 18px;
 	gap: var(--size-4-1);
 	align-items: center;
 	width: 100%;
@@ -1466,7 +1472,7 @@
 }
 
 .knowledge-workspace-dock-node.note {
-	grid-template-columns: 14px minmax(0, 1fr) 18px;
+	grid-template-columns: 14px minmax(0, 1fr) 18px 18px;
 }
 
 .knowledge-workspace-dock-node:hover,
@@ -1540,6 +1546,12 @@
 }
 
 .knowledge-workspace-dock-node button:hover {
+	color: var(--interactive-accent);
+}
+
+.knowledge-workspace-dock-node
+	> .knowledge-workspace-obsidian-control:last-child
+	button:hover {
 	color: var(--text-error);
 }
 

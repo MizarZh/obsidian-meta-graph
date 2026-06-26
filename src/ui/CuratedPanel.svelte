@@ -431,6 +431,15 @@
 							{/if}
 						</div>
 						<ObsidianButton
+							ariaLabel={`Open ${file.title}`}
+							icon="file-text"
+							disabled={file.missing}
+							onClick={(event) => {
+								event.stopPropagation();
+								onOpenNote(file.path);
+							}}
+						/>
+						<ObsidianButton
 							ariaLabel={`Remove ${file.title}`}
 							icon="x"
 							onClick={(event) => {
