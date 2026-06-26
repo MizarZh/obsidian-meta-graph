@@ -5,36 +5,33 @@
 		CuratedWorkspaceConfig,
 		KnowledgeNode,
 		NodeFilterField,
+		NodeFilterGroup,
+		NodeFilterItem,
 		NodeFilterOperator,
 	} from "../core/types";
-	import { matchesNodeCriterion } from "../query/filters";
+	import { nodeMatchesFilterGroup } from "../query/filters";
+	import FilterGroup from "./FilterGroup.svelte";
 	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
-	import ObsidianDropdown from "./obsidian/ObsidianDropdown.svelte";
 	import ObsidianSuggestInput from "./obsidian/ObsidianSuggestInput.svelte";
+	import type { SuggestionOption } from "./obsidian/ObsidianSuggestInput.svelte";
 	import ObsidianTextInput from "./obsidian/ObsidianTextInput.svelte";
+	import {
+		getDefaultFilterOperator as resolveDefaultFilterOperator,
+		getFilterFieldOptions as resolveFilterFieldOptions,
+		getFilterFieldType as resolveFilterFieldType,
+		getFilterGroupModeOptions,
+		getFilterOperatorOptions as resolveFilterOperatorOptions,
+		getMetadataFieldSuggestions as resolveMetadataFieldSuggestions,
+		getMetadataFieldTypes as resolveMetadataFieldTypes,
+		getMetadataFieldValueSuggestions as resolveMetadataFieldValueSuggestions,
+		getNodeValueOptions as resolveNodeValueOptions,
+		uniqueSorted,
+	} from "./filter-config";
 	import WorkspaceModal from "./WorkspaceModal.svelte";
 
 	type ReorderPlacement = "before" | "after";
 	type ConditionalMode = "add" | "remove";
 
-	const FILE_FILTER_FIELD_OPTIONS = [
-		{ value: "file.name", label: "File" },
-		{ value: "file.basename", label: "Name" },
-		{ value: "file.path", label: "Path" },
-		{ value: "file.folder", label: "Folder" },
-		{ value: "file.ext", label: "Extension" },
-		{ value: "file.tags", label: "Tags" },
-		{ value: "file.links", label: "Links" },
-		{ value: "metadata-field", label: "Property" },
-	];
-	const FILTER_OPERATOR_OPTIONS = [
-		{ value: "has-value", label: "has value" },
-		{ value: "empty", label: "has no value" },
-		{ value: "is", label: "is" },
-		{ value: "is-not", label: "is not" },
-		{ value: "contains", label: "contains" },
-		{ value: "does-not-contain", label: "does not contain" },
-	];
 
 	let {
 		app,
@@ -89,9 +86,12 @@
 	let batchOpen = $state(false);
 	let conditionModalOpen = $state(false);
 	let conditionMode = $state<ConditionalMode>("add");
-	let conditionField = $state<NodeFilterField>("file.folder");
-	let conditionOperator = $state<NodeFilterOperator>("is");
-	let conditionValue = $state("");
+	let conditionFilterRoot = $state<NodeFilterGroup>({
+		id: "root",
+		kind: "group",
+		mode: "all",
+		children: [],
+	});
 	let conditionResultSearch = $state("");
 	let selectedMatchPaths = $state<Set<string>>(new Set());
 	let selected = $state<Set<string>>(new Set());
@@ -176,21 +176,33 @@
 				),
 			})),
 	);
-	const conditionValueOptions = $derived(getConditionValueOptions(conditionField));
+	const curatedFolderSuggestions = $derived(
+		uniqueSorted(nodes.map((node) => node.folder)),
+	);
+	const curatedTagSuggestions = $derived(
+		uniqueSorted(nodes.flatMap((node) => node.tags)),
+	);
+	const curatedFilePathSuggestions = $derived(
+		nodes
+			.map((node) => node.path)
+			.sort((first, second) =>
+				first.localeCompare(second, undefined, { sensitivity: "base" }),
+			),
+	);
+	const metadataFieldSuggestions = $derived(
+		resolveMetadataFieldSuggestions(nodes),
+	);
+	const metadataFieldTypes = $derived(resolveMetadataFieldTypes(nodes));
+	const metadataFieldValueSuggestions = $derived(
+		resolveMetadataFieldValueSuggestions(nodes, metadataFieldTypes),
+	);
 	const conditionalMatches = $derived.by(() => {
 		const pool =
 			conditionMode === "add"
 				? nodes.filter((node) => node.path !== workspaceFilePath)
 				: nodes.filter((node) => selectedPaths.has(node.path));
 		return pool
-			.filter((node) =>
-				matchesNodeCriterion(
-					node,
-					conditionField,
-					conditionOperator,
-					conditionValue,
-				),
-			)
+			.filter((node) => nodeMatchesFilterGroup(node, conditionFilterRoot))
 			.sort((first, second) =>
 				first.title.localeCompare(second.title, undefined, {
 					sensitivity: "base",
@@ -356,56 +368,147 @@
 		window.requestAnimationFrame(resetConditionalSelection);
 	}
 
-	function updateConditionField(field: NodeFilterField): void {
-		conditionField = field;
-		conditionValue = "";
+	function addFilterCondition(groupId: string): void {
+		conditionFilterRoot = updateFilterGroup(conditionFilterRoot, groupId, (group) => ({
+			...group,
+			children: [
+				...group.children,
+				{
+					id: createRuleId(),
+					kind: "condition",
+					field: "file.file",
+					operator: "links-to",
+					value: "",
+				},
+			],
+		}));
 		window.requestAnimationFrame(resetConditionalSelection);
 	}
 
-	function updateConditionOperator(operator: NodeFilterOperator): void {
-		conditionOperator = operator;
+	function addFilterGroup(groupId: string): void {
+		conditionFilterRoot = updateFilterGroup(conditionFilterRoot, groupId, (group) => ({
+			...group,
+			children: [
+				...group.children,
+				{
+					id: createRuleId(),
+					kind: "group",
+					mode: "all",
+					children: [],
+				},
+			],
+		}));
 		window.requestAnimationFrame(resetConditionalSelection);
 	}
 
-	function shouldShowConditionValue(operator: NodeFilterOperator): boolean {
-		return operator !== "has-value" && operator !== "empty";
+	function updateFilterItem(
+		itemId: string,
+		patch: Partial<NodeFilterItem>,
+	): void {
+		conditionFilterRoot = patchFilterItem(
+			conditionFilterRoot,
+			itemId,
+			patch,
+		) as NodeFilterGroup;
+		window.requestAnimationFrame(resetConditionalSelection);
 	}
 
-	function getConditionValueOptions(
-		field: NodeFilterField,
-	): Array<{ value: string; label: string; searchText: string }> {
-		if (field === "file.folder" || field === "folder") {
-			return uniqueSorted(
-				nodes.map((node) => node.folder).filter(Boolean),
-			).map((folder) => ({
-				value: folder,
-				label: folder,
-				searchText: folder,
-			}));
+	function removeFilterItem(itemId: string): void {
+		if (itemId === conditionFilterRoot.id) {
+			return;
 		}
-		if (field === "file.tags" || field === "tag") {
-			return uniqueSorted(nodes.flatMap((node) => node.tags)).map((tag) => ({
-				value: tag,
-				label: tag,
-				searchText: tag,
-			}));
-		}
-		if (field === "metadata-field") {
-			return uniqueSorted(
-				nodes.flatMap((node) => node.metadataFields ?? []),
-			).map((fieldName) => ({
-				value: fieldName,
-				label: fieldName,
-				searchText: fieldName,
-			}));
-		}
-		return [];
+		conditionFilterRoot = removeFilterItemFromGroup(conditionFilterRoot, itemId);
+		window.requestAnimationFrame(resetConditionalSelection);
 	}
 
-	function uniqueSorted(values: string[]): string[] {
-		return [...new Set(values.filter(Boolean))].sort((first, second) =>
-			first.localeCompare(second, undefined, { sensitivity: "base" }),
+	function updateFilterGroup(
+		root: NodeFilterGroup,
+		groupId: string,
+		update: (group: NodeFilterGroup) => NodeFilterGroup,
+	): NodeFilterGroup {
+		if (root.id === groupId) {
+			return update(root);
+		}
+		return {
+			...root,
+			children: root.children.map((child) =>
+				child.kind === "group"
+					? updateFilterGroup(child, groupId, update)
+					: child,
+			),
+		};
+	}
+
+	function patchFilterItem(
+		item: NodeFilterItem,
+		itemId: string,
+		patch: Partial<NodeFilterItem>,
+	): NodeFilterItem {
+		if (item.id === itemId) {
+			return { ...item, ...patch } as NodeFilterItem;
+		}
+		if (item.kind === "group") {
+			return {
+				...item,
+				children: item.children.map((child) =>
+					patchFilterItem(child, itemId, patch),
+				),
+			};
+		}
+		return item;
+	}
+
+	function removeFilterItemFromGroup(
+		group: NodeFilterGroup,
+		itemId: string,
+	): NodeFilterGroup {
+		return {
+			...group,
+			children: group.children
+				.filter((child) => child.id !== itemId)
+				.map((child) =>
+					child.kind === "group"
+						? removeFilterItemFromGroup(child, itemId)
+						: child,
+				),
+		};
+	}
+
+	function getFilterFieldOptions() {
+		return resolveFilterFieldOptions(
+			metadataFieldSuggestions,
+			metadataFieldTypes,
 		);
+	}
+
+	function getFilterOperatorOptions(field: NodeFilterField) {
+		return resolveFilterOperatorOptions(field, metadataFieldTypes);
+	}
+
+	function getDefaultFilterOperator(field: NodeFilterField): NodeFilterOperator {
+		return resolveDefaultFilterOperator(field, metadataFieldTypes);
+	}
+
+	function getFilterFieldType(field: NodeFilterField): string {
+		return resolveFilterFieldType(field, metadataFieldTypes);
+	}
+
+	function getNodeValueOptions(
+		field: NodeFilterField,
+		operator?: NodeFilterOperator,
+	): SuggestionOption[] {
+		return resolveNodeValueOptions(field, operator, {
+			folders: curatedFolderSuggestions,
+			tags: curatedTagSuggestions,
+			metadataFieldSuggestions,
+			metadataFieldTypes,
+			metadataFieldValueSuggestions,
+			filePathSuggestions: curatedFilePathSuggestions,
+		});
+	}
+
+	function createRuleId(): string {
+		return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 	}
 
 	function resolveBatchLine(line: string): string | undefined {
@@ -693,69 +796,41 @@
 			subtitle={conditionalStatus}
 			onClose={closeConditionModal}
 		>
-				<div class="knowledge-workspace-curated-condition">
-					<div class="knowledge-workspace-curated-condition-mode">
-						<ObsidianButton
-							class="knowledge-workspace-condition-mode-button"
-							text="Add to workspace"
-							icon="plus"
-							active={conditionMode === "add"}
-							cta={conditionMode === "add"}
-							onClick={() => updateConditionMode("add")}
-						/>
-						<ObsidianButton
-							class="knowledge-workspace-condition-mode-button"
-							text="Remove from workspace"
-							icon="trash-2"
-							active={conditionMode === "remove"}
-							destructive={conditionMode === "remove"}
-							onClick={() => updateConditionMode("remove")}
+					<div class="knowledge-workspace-curated-condition">
+						<div class="knowledge-workspace-curated-condition-mode">
+							<ObsidianButton
+								class="knowledge-workspace-condition-mode-button"
+								text="Add to workspace"
+								icon="plus"
+								active={conditionMode === "add"}
+								cta={conditionMode === "add"}
+								onClick={() => updateConditionMode("add")}
+							/>
+							<ObsidianButton
+								class="knowledge-workspace-condition-mode-button"
+								text="Remove from workspace"
+								icon="trash-2"
+								active={conditionMode === "remove"}
+								destructive={conditionMode === "remove"}
+								onClick={() => updateConditionMode("remove")}
+							/>
+						</div>
+						<FilterGroup
+							{app}
+							group={conditionFilterRoot}
+							root={true}
+							fieldOptions={getFilterFieldOptions()}
+							getOperatorOptions={getFilterOperatorOptions}
+							getDefaultOperator={getDefaultFilterOperator}
+							getFieldType={getFilterFieldType}
+							groupModeOptions={getFilterGroupModeOptions()}
+							getValueOptions={getNodeValueOptions}
+							onAddCondition={addFilterCondition}
+							onAddGroup={addFilterGroup}
+							onUpdate={updateFilterItem}
+							onRemove={removeFilterItem}
 						/>
 					</div>
-					<div class="knowledge-workspace-curated-condition-row">
-						<ObsidianDropdown
-							value={conditionField}
-							options={FILE_FILTER_FIELD_OPTIONS}
-							onChange={(value) =>
-								updateConditionField(value as NodeFilterField)}
-						/>
-						<ObsidianDropdown
-							value={conditionOperator}
-							options={FILTER_OPERATOR_OPTIONS}
-							onChange={(value) =>
-								updateConditionOperator(value as NodeFilterOperator)}
-						/>
-					</div>
-					{#if shouldShowConditionValue(conditionOperator)}
-						{#if conditionValueOptions.length > 0}
-							<ObsidianSuggestInput
-								{app}
-								type="text"
-								placeholder="Value"
-								value={conditionValue}
-								options={conditionValueOptions}
-								onInput={(value) => {
-									conditionValue = value;
-									window.requestAnimationFrame(resetConditionalSelection);
-								}}
-								onSelect={(option) => {
-									conditionValue = option.value;
-									window.requestAnimationFrame(resetConditionalSelection);
-								}}
-							/>
-						{:else}
-							<ObsidianTextInput
-								type="text"
-								placeholder="Value"
-								value={conditionValue}
-								onInput={(value) => {
-									conditionValue = value;
-									window.requestAnimationFrame(resetConditionalSelection);
-								}}
-							/>
-						{/if}
-					{/if}
-				</div>
 				<div class="knowledge-workspace-curated-result-tools">
 					<ObsidianTextInput
 						type="search"

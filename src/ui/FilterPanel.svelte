@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { App, IconName } from 'obsidian';
+	import type { App } from 'obsidian';
 	import { onDestroy } from 'svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
@@ -10,7 +10,16 @@
 	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
 	import ObsidianToggle from './obsidian/ObsidianToggle.svelte';
 	import FilterGroup from './FilterGroup.svelte';
-	import type { PropertyPickerOption } from './PropertyPicker.svelte';
+	import {
+		FILE_FILTER_FIELD_OPTIONS,
+		TEXT_FILTER_OPERATOR_OPTIONS,
+		getDefaultFilterOperator as resolveDefaultFilterOperator,
+		getFilterFieldOptions as resolveFilterFieldOptions,
+		getFilterFieldType as resolveFilterFieldType,
+		getFilterGroupModeOptions,
+		getFilterOperatorOptions as resolveFilterOperatorOptions,
+		getNodeValueOptions as resolveNodeValueOptions,
+	} from './filter-config';
 	import type {
 		ArcDirection,
 		FlowDirection,
@@ -121,30 +130,7 @@
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 	} = $props();
 
-	const SYSTEM_FILTER_FIELD_OPTIONS = [
-		{ value: 'file.file', label: 'File', icon: 'file' },
-		{ value: 'file.name', label: 'Name', icon: 'align-left' },
-		{ value: 'file.basename', label: 'File name', icon: 'align-left' },
-		{ value: 'file.fullname', label: 'Full name', icon: 'align-left' },
-		{ value: 'file.path', label: 'Path', icon: 'align-left' },
-		{ value: 'file.folder', label: 'Folder', icon: 'align-left' },
-		{ value: 'file.ext', label: 'Extension', icon: 'align-left' },
-		{ value: 'file.ctime', label: 'Created time', icon: 'clock' },
-		{ value: 'file.mtime', label: 'Modified time', icon: 'clock' },
-		{ value: 'file.size', label: 'File size', icon: 'binary' },
-		{ value: 'file.tags', label: 'Tags', icon: 'tags' },
-		{ value: 'file.links', label: 'Links', icon: 'list' },
-		{ value: 'file.embeds', label: 'Embeds', icon: 'list' },
-		{ value: 'aliases', label: 'Aliases', icon: 'corner-down-right' },
-		{ value: 'metadata-field', label: 'Property', icon: 'braces' },
-	];
-	const FILE_FILTER_FIELD_OPTIONS = SYSTEM_FILTER_FIELD_OPTIONS.map(
-		({ value, label }) => ({
-			value,
-			label,
-		}),
-	);
-	const NODE_STYLE_FIELD_OPTIONS = [
+		const NODE_STYLE_FIELD_OPTIONS = [
 		{ value: 'folder', label: 'Folder' },
 		{ value: 'tag', label: 'Tag' },
 		{ value: 'domain', label: 'Domain' },
@@ -164,69 +150,7 @@
 		{ value: 'all', label: 'All links' },
 		...LINK_STYLE_FIELD_OPTIONS,
 	];
-	const FILE_FILTER_OPERATOR_OPTIONS = [
-		{ value: 'links-to', label: 'links to' },
-		{ value: 'in-folder', label: 'in folder' },
-		{ value: 'has-tag', label: 'has tag' },
-		{ value: 'has-property', label: 'has property' },
-		{ value: 'does-not-link-to', label: 'does not link to' },
-		{ value: 'is-not-in-folder', label: 'is not in folder' },
-		{ value: 'does-not-have-tag', label: 'does not have tag' },
-		{ value: 'does-not-have-property', label: 'does not have property' },
-	];
-	const TEXT_FILTER_OPERATOR_OPTIONS = [
-		{ value: 'is', label: 'is' },
-		{ value: 'is-not', label: 'is not' },
-		{ value: 'starts-with', label: 'starts with' },
-		{ value: 'ends-with', label: 'ends with' },
-		{ value: 'is-empty', label: 'is empty' },
-		{ value: 'is-not-empty', label: 'is not empty' },
-		{ value: 'contains', label: 'contains' },
-		{ value: 'contains-any-of', label: 'contains any of' },
-		{ value: 'contains-all-of', label: 'contains all of' },
-		{ value: 'does-not-start-with', label: 'does not start with' },
-		{ value: 'does-not-end-with', label: 'does not end with' },
-		{ value: 'does-not-contain', label: 'does not contain' },
-		{ value: 'does-not-contain-any-of', label: 'does not contain any of' },
-		{ value: 'does-not-contain-all-of', label: 'does not contain all of' },
-	];
-	const DATE_FILTER_OPERATOR_OPTIONS = [
-		{ value: 'on', label: 'on' },
-		{ value: 'not-on', label: 'not on' },
-		{ value: 'before', label: 'before' },
-		{ value: 'on-or-before', label: 'on or before' },
-		{ value: 'after', label: 'after' },
-		{ value: 'on-or-after', label: 'on or after' },
-		{ value: 'is-empty', label: 'is empty' },
-		{ value: 'is-not-empty', label: 'is not empty' },
-	];
-	const NUMBER_FILTER_OPERATOR_OPTIONS = [
-		{ value: 'eq', label: '=' },
-		{ value: 'neq', label: '!=' },
-		{ value: 'lt', label: '<' },
-		{ value: 'lte', label: '<=' },
-		{ value: 'gt', label: '>' },
-		{ value: 'gte', label: '>=' },
-		{ value: 'is-empty', label: 'is empty' },
-		{ value: 'is-not-empty', label: 'is not empty' },
-	];
-	const LIST_FILTER_OPERATOR_OPTIONS = [
-		{ value: 'is-exactly', label: 'is exactly' },
-		{ value: 'is-not-exactly', label: 'is not exactly' },
-		{ value: 'is-empty', label: 'is empty' },
-		{ value: 'contains', label: 'contains' },
-		{ value: 'contains-any-of', label: 'contains any of' },
-		{ value: 'contains-all-of', label: 'contains all of' },
-		{ value: 'is-not-empty', label: 'is not empty' },
-		{ value: 'does-not-contain', label: 'does not contain' },
-		{ value: 'does-not-contain-any-of', label: 'does not contain any of' },
-		{ value: 'does-not-contain-all-of', label: 'does not contain all of' },
-	];
-	const CHECKBOX_FILTER_OPERATOR_OPTIONS = [
-		{ value: 'is', label: 'is' },
-		{ value: 'is-not', label: 'is not' },
-	];
-	const STYLE_FILTER_OPERATOR_OPTIONS = TEXT_FILTER_OPERATOR_OPTIONS;
+		const STYLE_FILTER_OPERATOR_OPTIONS = TEXT_FILTER_OPERATOR_OPTIONS;
 	const LINE_STYLE_OPTIONS = [
 		{ value: 'solid', label: 'Solid' },
 		{ value: 'dashed', label: 'Dashed' },
@@ -471,113 +395,24 @@
 		};
 	}
 
-	function getFilterFieldOptions(): PropertyPickerOption[] {
-		return [
-			...SYSTEM_FILTER_FIELD_OPTIONS.map((field) => ({
-				value: field.value,
-				label: field.label,
-				detail: field.value,
-				icon: field.icon as IconName,
-			})),
-			...metadataFieldSuggestions.map((field) => ({
-				value: `metadata.${field}`,
-				label: field,
-				detail: metadataFieldTypeLabel(metadataFieldTypes[field]),
-				icon: metadataFieldIcon(metadataFieldTypes[field]),
-			})),
-		];
-	}
-
-	function metadataFieldIcon(type: string | undefined): IconName {
-		switch (type) {
-			case 'list':
-				return 'list';
-			case 'date':
-			case 'datetime':
-				return 'clock';
-			case 'number':
-				return 'binary';
-			case 'checkbox':
-				return 'square-check';
-			case 'text':
-			default:
-				return 'align-left';
+		function getFilterFieldOptions() {
+			return resolveFilterFieldOptions(
+				metadataFieldSuggestions,
+				metadataFieldTypes,
+			);
 		}
-	}
 
-	function metadataFieldTypeLabel(type: string | undefined): string {
-		switch (type) {
-			case 'list':
-				return 'List';
-			case 'date':
-				return 'Date';
-			case 'datetime':
-				return 'Date & time';
-			case 'number':
-				return 'Number';
-			case 'checkbox':
-				return 'Checkbox';
-			case 'text':
-			default:
-				return 'Text';
+		function getFilterOperatorOptions(field: NodeFilterField) {
+			return resolveFilterOperatorOptions(field, metadataFieldTypes);
 		}
-	}
 
-	function getFilterGroupModeOptions(): Array<{
-		value: NodeFilterGroupMode;
-		label: string;
-	}> {
-		return [
-			{ value: 'all', label: 'All the following are true' },
-			{ value: 'any', label: 'Any of the following are true' },
-			{ value: 'none', label: 'None of the following are true' },
-		];
-	}
-
-	function getFilterOperatorOptions(field: NodeFilterField): Array<{
-		value: NodeFilterOperator;
-		label: string;
-	}> {
-		const type = getFilterFieldType(field);
-		const options =
-			type === 'file'
-				? FILE_FILTER_OPERATOR_OPTIONS
-				: type === 'date' || type === 'datetime'
-					? DATE_FILTER_OPERATOR_OPTIONS
-					: type === 'number'
-						? NUMBER_FILTER_OPERATOR_OPTIONS
-						: type === 'list'
-							? LIST_FILTER_OPERATOR_OPTIONS
-							: type === 'checkbox'
-								? CHECKBOX_FILTER_OPERATOR_OPTIONS
-								: TEXT_FILTER_OPERATOR_OPTIONS;
-		return options as Array<{
-			value: NodeFilterOperator;
-			label: string;
-		}>;
-	}
-
-	function getDefaultFilterOperator(field: NodeFilterField): NodeFilterOperator {
-		return getFilterOperatorOptions(field)[0]?.value ?? 'is';
-	}
-
-	function getFilterFieldType(field: NodeFilterField): string {
-		if (field === 'file.file') return 'file';
-		if (field === 'file.ctime' || field === 'file.mtime') return 'datetime';
-		if (field === 'file.size') return 'number';
-		if (
-			field === 'file.links' ||
-			field === 'file.embeds' ||
-			field === 'file.tags' ||
-			field === 'aliases'
-		) {
-			return 'list';
+		function getDefaultFilterOperator(field: NodeFilterField): NodeFilterOperator {
+			return resolveDefaultFilterOperator(field, metadataFieldTypes);
 		}
-		if (field.startsWith('metadata.')) {
-			return metadataFieldTypes[field.slice('metadata.'.length)] ?? 'text';
+
+		function getFilterFieldType(field: NodeFilterField): string {
+			return resolveFilterFieldType(field, metadataFieldTypes);
 		}
-		return 'text';
-	}
 
 	function addNodeRule(scope: 'global' | 'current'): void {
 		updateNodeRules(scope, [
@@ -700,140 +535,18 @@
 		if (mode === 'arc') onArcSpacing(spacing);
 	}
 
-	function getNodeValueOptions(
-		field: NodeFilterField | NodeStyleField,
-		operator?: NodeFilterOperator,
-	): SuggestionOption[] {
-		const systemOptions = getSystemMetadataValueOptions(field, operator);
-		if (systemOptions.length > 0) {
-			return systemOptions;
-		}
-		if (field === 'folder' || field === 'file.folder') {
-			// Reference folders so graph refreshes still invalidate this option list.
-			void folders;
-			return app.vault
-				.getAllFolders()
-				.map((folder) => (folder.path === '/' ? '' : folder.path))
-				.filter(Boolean)
-				.sort((left, right) =>
-					left.localeCompare(right, undefined, {
-						sensitivity: 'base',
-					}),
-				)
-				.map((folder) => ({
-					value: folder,
-					label: folder,
-					searchText: folder,
-				}));
-		}
-		if (field === 'tag' || field === 'file.tags') {
-			return tags.map((tag) => ({
-				value: tag,
-				label: tag,
-				searchText: tag,
-			}));
-		}
-			if (field === 'metadata-field') {
-				return metadataFieldSuggestions.map((field) => ({
-					value: field,
-					label: field,
-					searchText: field,
-				}));
-			}
-			if (field.startsWith('metadata.')) {
-				return getMetadataValueOptions(field);
-			}
-			return [];
-		}
-
-	function getSystemMetadataValueOptions(
-		field: NodeFilterField | NodeStyleField,
-		operator?: NodeFilterOperator,
-	): SuggestionOption[] {
-		if (field === 'file.file') {
-			if (operator === 'in-folder' || operator === 'is-not-in-folder') {
-				return getFolderValueOptions();
-			}
-			if (operator === 'has-tag' || operator === 'does-not-have-tag') {
-				return getTagValueOptions();
-			}
-			if (
-				operator === 'has-property' ||
-				operator === 'does-not-have-property'
-			) {
-				return getMetadataFieldValueOptions();
-			}
-			return getFilePathValueOptions();
-		}
-		if (field === 'file.path') {
-			return getFilePathValueOptions();
-		}
-			if (field === 'file.folder') {
-				return getFolderValueOptions();
-			}
-			if (field === 'aliases') {
-				return getMetadataValueOptions('metadata.aliases');
-			}
-			return [];
-		}
-
-	function getFilePathValueOptions(): SuggestionOption[] {
-		return filePathSuggestions.map((path) => ({
-			value: path,
-			label: path,
-			searchText: path,
-		}));
-	}
-
-	function getFolderValueOptions(): SuggestionOption[] {
-		return app.vault
-			.getAllFolders()
-			.map((folder) => (folder.path === '/' ? '' : folder.path))
-			.filter(Boolean)
-			.sort((left, right) =>
-				left.localeCompare(right, undefined, {
-					sensitivity: 'base',
-				}),
-			)
-			.map((folder) => ({
-				value: folder,
-				label: folder,
-				searchText: folder,
-			}));
-	}
-
-	function getTagValueOptions(): SuggestionOption[] {
-		return tags.map((tag) => ({
-			value: tag,
-			label: tag,
-			searchText: tag,
-		}));
-	}
-
-		function getMetadataFieldValueOptions(): SuggestionOption[] {
-			return metadataFieldSuggestions.map((field) => ({
-				value: field,
-				label: field,
-				searchText: field,
-			}));
-		}
-
-		function getMetadataValueOptions(field: string): SuggestionOption[] {
-			const metadataField = field.slice('metadata.'.length);
-			const type = metadataFieldTypes[metadataField];
-			if (
-				type === 'date' ||
-				type === 'datetime' ||
-				type === 'number' ||
-				type === 'checkbox'
-			) {
-				return [];
-			}
-			return (metadataFieldValueSuggestions[metadataField] ?? []).map((value) => ({
-				value,
-				label: value,
-				searchText: value,
-			}));
+		function getNodeValueOptions(
+			field: NodeFilterField | NodeStyleField,
+			operator?: NodeFilterOperator,
+		): SuggestionOption[] {
+			return resolveNodeValueOptions(field, operator, {
+				folders,
+				tags,
+				metadataFieldSuggestions,
+				metadataFieldTypes,
+				metadataFieldValueSuggestions,
+				filePathSuggestions,
+			});
 		}
 	</script>
 

@@ -65,6 +65,13 @@ function matchesFilterItem(node: KnowledgeNode, item: NodeFilterItem): boolean {
 		: matchesFilterCondition(node, item);
 }
 
+export function nodeMatchesFilterGroup(
+	node: KnowledgeNode,
+	group: NodeFilterGroup,
+): boolean {
+	return matchesFilterGroup(node, group);
+}
+
 function matchesFilterGroup(node: KnowledgeNode, group: NodeFilterGroup): boolean {
 	if (group.children.length === 0) {
 		return true;

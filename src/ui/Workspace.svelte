@@ -35,6 +35,11 @@
 	import DockGraphPanel, {
 		type DockDragPayload,
 	} from "./DockGraphPanel.svelte";
+	import {
+		getMetadataFieldSuggestions,
+		getMetadataFieldTypes,
+		getMetadataFieldValueSuggestions,
+	} from "./filter-config";
 
 	import Inspector from "./Inspector.svelte";
 	import ConnectionPanel from "./ConnectionPanel.svelte";
@@ -541,11 +546,16 @@
 		});
 	});
 		const metadataFieldSuggestions = $derived(
-			getMetadataFieldSuggestions(debugSnapshot),
+			getMetadataFieldSuggestions(debugSnapshot.index.nodes),
 		);
-		const metadataFieldTypes = $derived(getMetadataFieldTypes(debugSnapshot));
+		const metadataFieldTypes = $derived(
+			getMetadataFieldTypes(debugSnapshot.index.nodes),
+		);
 		const metadataFieldValueSuggestions = $derived(
-			getMetadataFieldValueSuggestions(debugSnapshot, metadataFieldTypes),
+			getMetadataFieldValueSuggestions(
+				debugSnapshot.index.nodes,
+				metadataFieldTypes,
+			),
 		);
 		const filePathSuggestions = $derived(getFilePathSuggestions(debugSnapshot));
 
@@ -918,119 +928,12 @@
 			);
 	}
 
-	function getMetadataFieldSuggestions(snapshot: DebugSnapshot): string[] {
-		return [
-			...new Set(
-				snapshot.index.nodes.flatMap(
-					(node) =>
-						(node.metadataFields ?? []).filter(
-							(field) => field !== "aliases",
-						),
-				),
-			),
-		].sort((first, second) =>
-			first.localeCompare(second, undefined, { sensitivity: "base" }),
-		);
-	}
-
-	function getMetadataFieldTypes(snapshot: DebugSnapshot): Record<string, string> {
-		const types: Record<string, string> = {};
-		for (const node of snapshot.index.nodes) {
-			for (const [field, value] of Object.entries(node.metadata ?? {})) {
-				const nextType = inferMetadataFieldType(value);
-				types[field] = mergeMetadataFieldType(types[field], nextType);
-			}
-		}
-		return types;
-	}
-
-	function getMetadataFieldValueSuggestions(
-		snapshot: DebugSnapshot,
-		fieldTypes: Record<string, string>,
-	): Record<string, string[]> {
-		const values = new Map<string, Set<string>>();
-		for (const node of snapshot.index.nodes) {
-			for (const [field, value] of Object.entries(node.metadata ?? {})) {
-				const type = fieldTypes[field] ?? inferMetadataFieldType(value);
-				if (
-					type === "date" ||
-					type === "datetime" ||
-					type === "number" ||
-					type === "checkbox"
-				) {
-					continue;
-				}
-				const fieldValues = values.get(field) ?? new Set<string>();
-				for (const option of readMetadataValueSuggestions(value)) {
-					fieldValues.add(option);
-				}
-				if (fieldValues.size > 0) {
-					values.set(field, fieldValues);
-				}
-			}
-		}
-		return Object.fromEntries(
-			[...values.entries()].map(([field, fieldValues]) => [
-				field,
-				[...fieldValues].sort((first, second) =>
-					first.localeCompare(second, undefined, { sensitivity: "base" }),
-				),
-			]),
-		);
-	}
-
-	function readMetadataValueSuggestions(value: unknown): string[] {
-		if (Array.isArray(value)) {
-			return value
-				.flatMap((item) => readMetadataValueSuggestions(item))
-				.filter(Boolean);
-		}
-		if (typeof value === "string") {
-			const trimmed = value.trim();
-			return trimmed ? [trimmed] : [];
-		}
-		if (typeof value === "number" || typeof value === "boolean") {
-			return [String(value)];
-		}
-		return [];
-	}
-
 	function getFilePathSuggestions(snapshot: DebugSnapshot): string[] {
 		return snapshot.index.nodes
 			.map((node) => node.path)
 			.sort((first, second) =>
 				first.localeCompare(second, undefined, { sensitivity: "base" }),
 			);
-	}
-
-	function inferMetadataFieldType(value: unknown): string {
-		if (typeof value === "boolean") return "checkbox";
-		if (typeof value === "number") return "number";
-		if (Array.isArray(value)) return "list";
-		if (value instanceof Date) return "datetime";
-		if (typeof value === "string") {
-			if (/^\d{4}-\d{2}-\d{2}$/u.test(value)) return "date";
-			if (/^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}/u.test(value)) {
-				return "datetime";
-			}
-		}
-		return "text";
-	}
-
-	function mergeMetadataFieldType(
-		current: string | undefined,
-		next: string,
-	): string {
-		if (!current || current === next) return next;
-		if (current === "list" || next === "list") return "list";
-		if (current === "text" || next === "text") return "text";
-		if (
-			(current === "date" && next === "datetime") ||
-			(current === "datetime" && next === "date")
-		) {
-			return "datetime";
-		}
-		return "text";
 	}
 
 	function handleDockLinkPointerDown(
