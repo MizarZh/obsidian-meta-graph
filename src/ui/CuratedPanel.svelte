@@ -1,11 +1,14 @@
 <script lang="ts">
 	import type { App } from "obsidian";
+	import { onDestroy } from "svelte";
 	import type {
 		CuratedWorkspaceConfig,
 		KnowledgeNode,
 	} from "../core/types";
 	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
 	import ObsidianSuggestInput from "./obsidian/ObsidianSuggestInput.svelte";
+
+	type ReorderPlacement = "before" | "after";
 
 	let {
 		app,
@@ -24,6 +27,7 @@
 		onRemoveFile,
 		onRemoveFiles,
 		onClearFiles,
+		onReorderFile,
 		onOpenNote,
 		onSelectNote,
 	}: {
@@ -43,6 +47,11 @@
 		onRemoveFile: (path: string) => void;
 		onRemoveFiles: (paths: string[]) => void;
 		onClearFiles: () => void;
+		onReorderFile: (
+			path: string,
+			targetPath: string,
+			placement: ReorderPlacement,
+		) => void;
 		onOpenNote: (path: string) => void;
 		onSelectNote: (path: string) => void;
 	} = $props();
@@ -52,6 +61,18 @@
 	let batchOpen = $state(false);
 	let selected = $state<Set<string>>(new Set());
 	let batchStatus = $state("");
+	let reorderDrag = $state<
+		| {
+				path: string;
+				startX: number;
+				startY: number;
+				active: boolean;
+		  }
+		| undefined
+	>(undefined);
+	const activeDraggingPath = $derived(
+		reorderDrag?.active ? reorderDrag.path : undefined,
+	);
 
 	const selectedPaths = $derived(new Set(curated.files.map((file) => file.path)));
 	const nodesByPath = $derived(new Map(nodes.map((node) => [node.path, node])));
@@ -195,6 +216,80 @@
 		return matches.length === 1 ? matches[0]?.path : undefined;
 	}
 
+	function handleFilePointerDown(path: string, event: PointerEvent): void {
+		if (
+			event.target instanceof HTMLElement &&
+			event.target.closest("button, input")
+		) {
+			return;
+		}
+		onSelectNote(path);
+		if (event.button !== 0) {
+			return;
+		}
+		event.preventDefault();
+		reorderDrag = {
+			path,
+			startX: event.clientX,
+			startY: event.clientY,
+			active: false,
+		};
+		window.addEventListener("pointermove", handleReorderPointerMove, {
+			capture: true,
+		});
+		window.addEventListener("pointerup", handleReorderPointerUp, {
+			capture: true,
+			once: true,
+		});
+	}
+
+	function handleReorderPointerMove(event: PointerEvent): void {
+		if (!reorderDrag) {
+			return;
+		}
+		const distance = Math.hypot(
+			event.clientX - reorderDrag.startX,
+			event.clientY - reorderDrag.startY,
+		);
+		if (!reorderDrag.active && distance < 4) {
+			return;
+		}
+		event.preventDefault();
+		reorderDrag = { ...reorderDrag, active: true };
+		reorderAtPoint(reorderDrag.path, event.clientX, event.clientY);
+	}
+
+	function handleReorderPointerUp(): void {
+		reorderDrag = undefined;
+		window.removeEventListener("pointermove", handleReorderPointerMove, {
+			capture: true,
+		});
+		window.removeEventListener("pointerup", handleReorderPointerUp, {
+			capture: true,
+		});
+	}
+
+	function reorderAtPoint(path: string, clientX: number, clientY: number): void {
+		const target = document.elementFromPoint(clientX, clientY);
+		if (!(target instanceof HTMLElement)) {
+			return;
+		}
+		const targetEl = target.closest<HTMLElement>("[data-curated-file-path]");
+		const targetPath = targetEl?.dataset.curatedFilePath;
+		if (!targetEl || !targetPath || targetPath === path) {
+			return;
+		}
+		onReorderFile(path, targetPath, readPointerPlacement(targetEl, clientY));
+	}
+
+	function readPointerPlacement(
+		targetEl: HTMLElement,
+		clientY: number,
+	): ReorderPlacement {
+		const rect = targetEl.getBoundingClientRect();
+		return clientY > rect.top + rect.height / 2 ? "after" : "before";
+	}
+
 	function handleResizePointerDown(event: PointerEvent): void {
 		event.preventDefault();
 		const startX = event.clientX;
@@ -213,6 +308,10 @@
 		window.addEventListener("pointermove", onMove);
 		window.addEventListener("pointerup", onUp);
 	}
+
+	onDestroy(() => {
+		handleReorderPointerUp();
+	});
 </script>
 
 <aside
@@ -285,8 +384,10 @@
 				{#each selectedFiles as file (file.path)}
 					<div
 						class="knowledge-workspace-curated-file"
+						class:dragging={activeDraggingPath === file.path}
 						class:missing={file.missing}
 						class:selected={file.selected}
+						data-curated-file-path={file.path}
 						role="button"
 						tabindex="0"
 						aria-label={file.missing
@@ -295,7 +396,8 @@
 						title={file.missing
 							? `File not found: ${file.path}`
 							: undefined}
-						onclick={() => onSelectNote(file.path)}
+						onpointerdown={(event) =>
+							handleFilePointerDown(file.path, event)}
 						ondblclick={file.missing
 							? undefined
 							: () => onOpenNote(file.path)}

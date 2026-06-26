@@ -479,6 +479,29 @@ export class WorkspaceController {
 		this.runQuery();
 	}
 
+	reorderCuratedFile(
+		path: NodeId,
+		targetPath: NodeId,
+		placement: ReorderPlacement,
+	): void {
+		const activeChart = this.getActiveChart();
+		const files = moveRelative(
+			activeChart.curated.files,
+			(file) => file.path === path,
+			(file) => file.path === targetPath,
+			placement,
+		);
+		if (files === activeChart.curated.files) {
+			return;
+		}
+		const curated = normalizeCuratedWorkspace({
+			...activeChart.curated,
+			files,
+		});
+		this.state = this.updateActiveChart({ curated });
+		this.runQuery();
+	}
+
 	clearCuratedFiles(): void {
 		const activeChart = this.getActiveChart();
 		if (activeChart.curated.files.length === 0) {

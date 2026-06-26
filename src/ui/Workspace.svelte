@@ -1357,6 +1357,12 @@
 					onRemoveFiles={(paths) =>
 						controller.removeCuratedFiles(paths)}
 					onClearFiles={() => controller.clearCuratedFiles()}
+					onReorderFile={(path, targetPath, placement) =>
+						controller.reorderCuratedFile(
+							path,
+							targetPath,
+							placement,
+						)}
 					onOpenNote={(path) => void controller.openNode(path)}
 					onSelectNote={(path) => {
 						controller.selectNode(path);
