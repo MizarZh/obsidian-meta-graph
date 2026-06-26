@@ -366,27 +366,20 @@ function createNodeLabelDrawer(
 		const textWidth = context.measureText(data.label).width;
 		const width = textWidth + paddingX * 2;
 		const height = labelSize + paddingY * 2;
-		const box = getNodeLabelBox(
-			data.x,
-			data.y,
-			data.size,
-			width,
-			height,
-			paddingX,
-			getLabelPosition(),
-		);
-		context.globalAlpha = getOpacity();
-		context.textAlign = box.textAlign;
-
-		context.beginPath();
-		drawRoundedRect(context, box.x, box.y, width, height, 4);
-		context.fillStyle = getLabelBackground();
-		context.fill();
-		context.fillStyle = getLabelColor();
-		context.fillText(data.label, box.textX, box.textY);
-		context.restore();
-	};
-}
+			context.globalAlpha = getOpacity();
+			drawNodeLabel(
+				context,
+				data,
+				width,
+				height,
+				paddingX,
+				getLabelPosition(),
+				getLabelBackground(),
+				getLabelColor(),
+			);
+			context.restore();
+		};
+	}
 
 function createNodeHoverDrawer(
 	palette: GraphPalette,
@@ -417,27 +410,78 @@ function createNodeHoverDrawer(
 		const textWidth = context.measureText(data.label).width;
 		const width = textWidth + paddingX * 2;
 		const height = size + paddingY * 2;
-		const box = getNodeLabelBox(
-			data.x,
-			data.y,
-			data.size,
-			width,
-			height,
-			paddingX,
-			getLabelPosition(),
-		);
+			drawNodeLabel(
+				context,
+				data,
+				width,
+				height,
+				paddingX,
+				getLabelPosition(),
+				getLabelBackground(),
+				getLabelColor(),
+			);
 
+			context.restore();
+		};
+	}
+
+function drawNodeLabel(
+	context: CanvasRenderingContext2D,
+	data: Pick<
+		NodeDisplayData,
+		"x" | "y" | "label" | "size"
+	> & { labelRotation?: number; labelDirection?: 1 | -1 },
+	width: number,
+	height: number,
+	paddingX: number,
+	labelPosition: LabelPosition,
+	labelBackground: string,
+	labelColor: string,
+): void {
+	if (typeof data.label !== "string") {
+		return;
+	}
+	if (typeof data.labelRotation === "number") {
+		const gap = 7;
+		const direction = data.labelDirection ?? 1;
+		const boxX =
+			direction > 0 ? data.size + gap : -data.size - gap - width;
+		const boxY = -height / 2;
+		const textX = direction > 0 ? boxX + paddingX : boxX + width - paddingX;
+		context.save();
+		context.translate(data.x, data.y);
+		context.rotate(data.labelRotation);
 		context.textBaseline = "middle";
-		context.textAlign = box.textAlign;
+		context.textAlign = direction > 0 ? "left" : "right";
 		context.beginPath();
-		drawRoundedRect(context, box.x, box.y, width, height, 4);
+		drawRoundedRect(context, boxX, boxY, width, height, 4);
+		context.fillStyle = labelBackground;
 		context.fill();
-
 		context.shadowBlur = 0;
-		context.fillStyle = getLabelColor();
-		context.fillText(data.label, box.textX, box.textY);
+		context.fillStyle = labelColor;
+		context.fillText(data.label, textX, 0);
 		context.restore();
-	};
+		return;
+	}
+
+	const box = getNodeLabelBox(
+		data.x,
+		data.y,
+		data.size,
+		width,
+		height,
+		paddingX,
+		labelPosition,
+	);
+	context.textBaseline = "middle";
+	context.textAlign = box.textAlign;
+	context.beginPath();
+	drawRoundedRect(context, box.x, box.y, width, height, 4);
+	context.fillStyle = labelBackground;
+	context.fill();
+	context.shadowBlur = 0;
+	context.fillStyle = labelColor;
+	context.fillText(data.label, box.textX, box.textY);
 }
 
 function getScaledLabelSize(baseLabelSize: number, nodeSize: number): number {

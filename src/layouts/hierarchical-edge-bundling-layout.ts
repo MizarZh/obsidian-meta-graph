@@ -45,9 +45,12 @@ export class HierarchicalEdgeBundlingLayout implements LayoutEngine {
 			if (!id) {
 				continue;
 			}
+			const labelPlacement = getRadialLabelPlacement(leaf.x);
 			graph.mergeNodeAttributes(id, {
 				...toCartesian(leaf.x, leaf.y),
 				fixed: true,
+				labelRotation: labelPlacement.rotation,
+				labelDirection: labelPlacement.direction,
 			});
 		}
 
@@ -193,6 +196,18 @@ function toCartesian(angle: number, radius: number): Point {
 	return {
 		x: Math.cos(angle - Math.PI / 2) * radius,
 		y: Math.sin(angle - Math.PI / 2) * radius,
+	};
+}
+
+export function getRadialLabelPlacement(angle: number): {
+	rotation: number;
+	direction: 1 | -1;
+} {
+	const leftSide = angle > Math.PI;
+	const rotation = Math.PI / 2 - angle + (leftSide ? Math.PI : 0);
+	return {
+		rotation,
+		direction: leftSide ? -1 : 1,
 	};
 }
 

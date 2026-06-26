@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { GraphProjection } from '../core/types';
 import { GraphologyAdapter } from '../graph/graphology-adapter';
 import type { GraphPalette } from '../graph/graph-styles';
-import { HierarchicalEdgeBundlingLayout } from '../layouts/hierarchical-edge-bundling-layout';
+import {
+	HierarchicalEdgeBundlingLayout,
+	getRadialLabelPlacement,
+} from '../layouts/hierarchical-edge-bundling-layout';
 
 const palette: GraphPalette = {
 	node: '#111111',
@@ -23,6 +26,12 @@ describe('HierarchicalEdgeBundlingLayout', () => {
 		expect(graph.hasEdge('A-to-B')).toBe(false);
 		expect(graph.getNodeAttribute('Topics/A.md', 'fixed')).toBe(true);
 		expect(graph.getNodeAttribute('Topics/B.md', 'fixed')).toBe(true);
+		expect(graph.getNodeAttribute('Topics/A.md', 'labelRotation')).toEqual(
+			expect.any(Number),
+		);
+		expect(graph.getNodeAttribute('Topics/A.md', 'labelDirection')).toEqual(
+			expect.any(Number),
+		);
 		expect(
 			graph
 				.nodes()
@@ -58,6 +67,25 @@ describe('HierarchicalEdgeBundlingLayout', () => {
 			.filter((item) => item.type === 'arrow');
 
 		expect(arrowSegments.length).toBe(1);
+	});
+
+	it('keeps labels radial and readable around the circle', () => {
+		expect(getRadialLabelPlacement(0)).toMatchObject({
+			rotation: Math.PI / 2,
+			direction: 1,
+		});
+		expect(getRadialLabelPlacement(Math.PI / 2)).toMatchObject({
+			rotation: 0,
+			direction: 1,
+		});
+		expect(getRadialLabelPlacement(Math.PI)).toMatchObject({
+			rotation: -Math.PI / 2,
+			direction: 1,
+		});
+		expect(getRadialLabelPlacement((Math.PI * 3) / 2)).toMatchObject({
+			rotation: 0,
+			direction: -1,
+		});
 	});
 });
 

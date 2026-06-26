@@ -29,6 +29,8 @@ export interface RuntimeNodeAttributes {
 	isContext?: boolean;
 	fixed?: boolean;
 	isBend?: boolean;
+	labelRotation?: number;
+	labelDirection?: 1 | -1;
 }
 
 export interface RuntimeEdgeAttributes {
