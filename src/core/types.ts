@@ -192,7 +192,11 @@ export interface GraphProjection {
 	contextIds?: Set<NodeId>;
 }
 
-export type ViewMode = 'graph' | 'flow' | 'arc';
+export type ViewMode =
+	| 'graph'
+	| 'flow'
+	| 'arc'
+	| 'hierarchical-edge-bundling';
 export type ChartSource = 'query' | 'curated';
 export type SettingsPanelMode =
 	| 'graph'
@@ -246,7 +250,7 @@ export interface LinkStyleRule {
 }
 
 export interface ChartLayoutConfig {
-	engine: 'force-atlas' | 'elk' | 'arc';
+	engine: 'force-atlas' | 'elk' | 'arc' | 'hierarchical-edge-bundling';
 	spacing: number;
 	direction?: FlowDirection;
 	arcDirection?: ArcDirection;

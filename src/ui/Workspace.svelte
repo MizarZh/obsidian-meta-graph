@@ -26,6 +26,7 @@
 		ElkFlowLayout,
 		type OrthogonalRouteMap,
 	} from "../layouts/elk-flow-layout";
+	import { HierarchicalEdgeBundlingLayout } from "../layouts/hierarchical-edge-bundling-layout";
 	import { D3ForceSimulation } from "../layouts/d3-force-simulation";
 	import { ForceAtlasLayout } from "../layouts/force-layout";
 	import type { WorkspaceController } from "../workspace/workspace-controller";
@@ -298,25 +299,25 @@
 				lastGlobalLinkStyleRules = nextState.globalLinkStyleRules;
 				lastNodeStyleRules = nextState.nodeStyleRules;
 				lastLinkStyleRules = nextState.linkStyleRules;
-				void rebuildGraph(
-					activeChartChanged ||
-						modeChanged ||
-						chartSourceChanged ||
+					void rebuildGraph(
+						activeChartChanged ||
+							modeChanged ||
+							chartSourceChanged ||
+							flowStyleChanged ||
+							flowDirectionChanged ||
+							arcDirectionChanged ||
+							layoutRevisionChanged,
 						flowStyleChanged ||
-						flowDirectionChanged ||
-						arcDirectionChanged ||
-						layoutRevisionChanged,
-					flowStyleChanged ||
-						flowDirectionChanged ||
-						arcDirectionChanged ||
-						layoutRevisionChanged ||
-						chartSourceChanged,
-				).catch((error: unknown) => {
-					controller.setRendererDebugState({
-						status: "error",
-						error: formatError(error),
+							flowDirectionChanged ||
+							arcDirectionChanged ||
+							layoutRevisionChanged ||
+							chartSourceChanged,
+					).catch((error: unknown) => {
+						controller.setRendererDebugState({
+							status: "error",
+							error: formatError(error),
+						});
 					});
-				});
 			} else {
 				renderer?.setSelected(nextState.selectedNodeId);
 				renderer?.setHovered(nextState.hoveredNodeId);
@@ -380,7 +381,7 @@
 		}, 350);
 	}
 
-	async function rebuildGraph(
+		async function rebuildGraph(
 		fitAfterRender = false,
 		forceLayout = false,
 	): Promise<void> {
@@ -400,9 +401,9 @@
 			return;
 		}
 
-		controller.setRendererDebugState({
-			status: "waiting-for-size",
-			mode: workspaceState.mode,
+			controller.setRendererDebugState({
+				status: "waiting-for-size",
+				mode: workspaceState.mode,
 			container: readContainerSize(),
 		});
 		const hasSize = await waitForCanvasSize();
@@ -462,15 +463,15 @@
 		if (firstRender || fitAfterRender) {
 			renderer.fit();
 		}
-		controller.setRendererDebugState({
-			status: "rendered",
-			mode: workspaceState.mode,
-			container: readContainerSize(),
-			runtimeGraph: serializeRuntimeGraph(graph),
-		});
-	}
+			controller.setRendererDebugState({
+				status: "rendered",
+				mode: workspaceState.mode,
+				container: readContainerSize(),
+				runtimeGraph: serializeRuntimeGraph(graph),
+			});
+		}
 
-	function bindEventsForRenderer(targetRenderer: SigmaRenderer): () => void {
+		function bindEventsForRenderer(targetRenderer: SigmaRenderer): () => void {
 		return bindGraphEvents(targetRenderer, {
 			enableForceLayout:
 				workspaceState.mode === "graph" && workspaceState.enableForceLayout,
@@ -679,14 +680,18 @@
 		const needsFlowLayout = forceLayout || firstLayout;
 		const needsGraphLayout = forceLayout || firstLayout;
 
-		if (workspaceState.mode === "arc") {
-			await new ArcLayout(
-				workspaceState.arcSpacing,
-				workspaceState.arcDirection,
-			).apply(graph);
-			snapshot.edgeIds = currentEdgeIds;
-			snapshot.orthogonalRoutes = new Map();
-		} else if (workspaceState.mode === "flow") {
+			if (workspaceState.mode === "arc") {
+				await new ArcLayout(
+					workspaceState.arcSpacing,
+					workspaceState.arcDirection,
+				).apply(graph);
+				snapshot.edgeIds = currentEdgeIds;
+				snapshot.orthogonalRoutes = new Map();
+			} else if (workspaceState.mode === "hierarchical-edge-bundling") {
+				await new HierarchicalEdgeBundlingLayout().apply(graph);
+				snapshot.edgeIds = currentEdgeIds;
+				snapshot.orthogonalRoutes = new Map();
+			} else if (workspaceState.mode === "flow") {
 			if (needsFlowLayout) {
 				const layout = new ElkFlowLayout(
 					workspaceState.flowEdgeStyle,
@@ -1442,7 +1447,7 @@
 					? '32px'
 					: '0px'}"
 		>
-			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+				<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
 			{#if workspaceState.chartSource === "curated"}
 				<CuratedPanel
 					{app}

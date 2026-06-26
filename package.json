@@ -17,6 +17,7 @@
 	"license": "0-BSD",
 	"dependencies": {
 		"d3-force": "^3.0.0",
+		"d3-hierarchy": "^3.1.2",
 		"d3-scale": "^4.0.2",
 		"elkjs": "^0.11.0",
 		"graphology": "^0.26.0",
@@ -27,6 +28,7 @@
 	"devDependencies": {
 		"@eslint/js": "^9.39.4",
 		"@types/d3-force": "^3.0.10",
+		"@types/d3-hierarchy": "^3.1.7",
 		"@types/d3-scale": "^4.0.9",
 		"@types/node": "^22.15.17",
 		"esbuild": "0.25.5",

@@ -83,16 +83,21 @@
 			),
 		})),
 	);
-	const VIEW_ICONS: Record<ViewMode, IconName> = {
-		graph: "chart-scatter",
-		flow: "git-fork",
-		arc: "route",
-	};
-	const VIEW_MODE_OPTIONS = [
-		{ value: "graph", label: "Graph" },
-		{ value: "flow", label: "Flow" },
-		{ value: "arc", label: "Arc diagram" },
-	];
+		const VIEW_ICONS: Record<ViewMode, IconName> = {
+			graph: "chart-scatter",
+			flow: "git-fork",
+			arc: "route",
+			"hierarchical-edge-bundling": "git-merge",
+		};
+		const VIEW_MODE_OPTIONS = [
+			{ value: "graph", label: "Graph" },
+			{ value: "flow", label: "Flow" },
+			{ value: "arc", label: "Arc diagram" },
+			{
+				value: "hierarchical-edge-bundling",
+				label: "Hierarchical edge bundling",
+			},
+		];
 	const SOURCE_OPTIONS = [
 		{ value: "query", label: "Query" },
 		{ value: "curated", label: "Curated" },

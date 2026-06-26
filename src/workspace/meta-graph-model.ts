@@ -220,8 +220,7 @@ function normalizeChart(
 	fadeDistance: number,
 ): MetaGraphChart {
 	const record = isRecord(value) ? value : {};
-	const type =
-		record.type === 'flow' || record.type === 'arc' ? record.type : 'graph';
+	const type = readViewMode(record.type);
 	const fallback = createDefaultChart(type, maxNodes, fadeDistance);
 	const source = normalizeChartSource(record.source);
 	const id =
@@ -626,8 +625,7 @@ function normalizeLayout(
 ): ChartLayoutConfig {
 	const record = isRecord(value) ? value : {};
 	return {
-		engine:
-			type === 'flow' ? 'elk' : type === 'arc' ? 'arc' : 'force-atlas',
+			engine: readLayoutEngine(type),
 		spacing: readFiniteNumber(record.spacing, fallback.spacing),
 		direction:
 			record.direction === 'RL' ||
@@ -788,6 +786,11 @@ function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 				spacing: 1,
 				arcDirection: 'right',
 			};
+		case 'hierarchical-edge-bundling':
+			return {
+				engine: 'hierarchical-edge-bundling',
+				spacing: 1,
+			};
 		case 'graph':
 			return {
 				engine: 'force-atlas',
@@ -836,6 +839,8 @@ function getDefaultChartId(type: ViewMode): string {
 			return 'learning-flow';
 		case 'arc':
 			return 'arc-diagram';
+		case 'hierarchical-edge-bundling':
+			return 'hierarchical-edge-bundling';
 	}
 }
 
@@ -847,7 +852,30 @@ function getDefaultChartName(type: ViewMode): string {
 			return 'Learning flow';
 		case 'arc':
 			return 'Arc diagram';
+		case 'hierarchical-edge-bundling':
+			return 'Hierarchical edge bundling';
 	}
+}
+
+function readViewMode(value: unknown): ViewMode {
+	return value === 'flow' ||
+		value === 'arc' ||
+		value === 'hierarchical-edge-bundling'
+		? value
+		: 'graph';
+}
+
+function readLayoutEngine(type: ViewMode): ChartLayoutConfig['engine'] {
+	if (type === 'flow') {
+		return 'elk';
+	}
+	if (type === 'arc') {
+		return 'arc';
+	}
+	if (type === 'hierarchical-edge-bundling') {
+		return 'hierarchical-edge-bundling';
+	}
+	return 'force-atlas';
 }
 
 function normalizeArray<T>(value: unknown): T[] {

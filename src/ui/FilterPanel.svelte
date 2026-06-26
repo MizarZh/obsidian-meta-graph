@@ -590,52 +590,54 @@
 					/>
 				</label>
 			{/if}
-			<label class="knowledge-workspace-rule-label">
-				<span>Spacing</span>
-				<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						min={0.25}
-						max={4}
-						step={0.25}
-						value={mode === 'graph'
-							? graphSpacing
-							: mode === 'flow'
-								? flowSpacing
-								: arcSpacing}
-						format={(value) =>
-							value.toFixed(2).replace(/\.?0+$/u, '')}
-						onChange={commitSpacing}
-						onCommit={commitSpacing}
-					/>
-					<span
-						>{(mode === 'graph'
-							? graphSpacing
-							: mode === 'flow'
-								? flowSpacing
-								: arcSpacing
-						)
-							.toFixed(2)
-							.replace(/\.?0+$/u, '')}</span
-					>
-				</div>
-			</label>
-			<label class="knowledge-workspace-rule-label">
-				<span>Fade distance</span>
-				<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						value={fadeDistance}
-						min={0.25}
-						max={4}
-						step={0.05}
-						format={(value) =>
-							value.toFixed(2).replace(/\.?0+$/u, '')}
-						onChange={onFadeDistance}
-						onCommit={onFadeDistance}
-					/>
-					<span>{fadeDistance.toFixed(2).replace(/\.?0+$/u, '')}</span
-					>
-				</div>
-			</label>
+				{#if mode !== 'hierarchical-edge-bundling'}
+					<label class="knowledge-workspace-rule-label">
+						<span>Spacing</span>
+						<div class="knowledge-workspace-slider-value">
+							<ObsidianSlider
+								min={0.25}
+								max={4}
+								step={0.25}
+								value={mode === 'graph'
+									? graphSpacing
+									: mode === 'flow'
+										? flowSpacing
+										: arcSpacing}
+								format={(value) =>
+									value.toFixed(2).replace(/\.?0+$/u, '')}
+								onChange={commitSpacing}
+								onCommit={commitSpacing}
+							/>
+							<span
+								>{(mode === 'graph'
+									? graphSpacing
+									: mode === 'flow'
+										? flowSpacing
+										: arcSpacing
+								)
+									.toFixed(2)
+									.replace(/\.?0+$/u, '')}</span
+							>
+						</div>
+					</label>
+					<label class="knowledge-workspace-rule-label">
+						<span>Fade distance</span>
+						<div class="knowledge-workspace-slider-value">
+							<ObsidianSlider
+								value={fadeDistance}
+								min={0.25}
+								max={4}
+								step={0.05}
+								format={(value) =>
+									value.toFixed(2).replace(/\.?0+$/u, '')}
+								onChange={onFadeDistance}
+								onCommit={onFadeDistance}
+							/>
+							<span>{fadeDistance.toFixed(2).replace(/\.?0+$/u, '')}</span
+							>
+						</div>
+					</label>
+				{/if}
 			{#if mode === 'flow'}
 				<div class="knowledge-workspace-rule-label segmented">
 					<span>Direction</span>
@@ -721,33 +723,37 @@
 						)}
 				/>
 			</label>
-			<div class="knowledge-workspace-rule-label segmented">
-				<span>Text position</span>
-				<div class="knowledge-workspace-segmented">
-					{#each LABEL_POSITION_OPTIONS as option}
-						<ObsidianButton
-							active={labelPosition === option.value}
-							text={option.label}
-							onClick={() => onLabelPosition(option.value)}
-						/>
-					{/each}
-				</div>
-			</div>
-			<label class="knowledge-workspace-rule-label">
-				<span>Text background</span>
-				<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						value={labelBackgroundOpacity}
-						min={0}
-						max={1}
-						step={0.05}
-						format={(value) => `${Math.round(value * 100)}%`}
-						onChange={onLabelBackgroundOpacity}
-						onCommit={onLabelBackgroundOpacity}
-					/>
-					<span>{Math.round(labelBackgroundOpacity * 100)}%</span>
-				</div>
-			</label>
+				{#if mode !== 'hierarchical-edge-bundling'}
+					<div class="knowledge-workspace-rule-label segmented">
+						<span>Text position</span>
+						<div class="knowledge-workspace-segmented">
+							{#each LABEL_POSITION_OPTIONS as option}
+								<ObsidianButton
+									active={labelPosition === option.value}
+									text={option.label}
+									onClick={() => onLabelPosition(option.value)}
+								/>
+							{/each}
+						</div>
+					</div>
+				{/if}
+				{#if mode !== 'hierarchical-edge-bundling'}
+					<label class="knowledge-workspace-rule-label">
+						<span>Text background</span>
+						<div class="knowledge-workspace-slider-value">
+							<ObsidianSlider
+								value={labelBackgroundOpacity}
+								min={0}
+								max={1}
+								step={0.05}
+								format={(value) => `${Math.round(value * 100)}%`}
+								onChange={onLabelBackgroundOpacity}
+								onCommit={onLabelBackgroundOpacity}
+							/>
+							<span>{Math.round(labelBackgroundOpacity * 100)}%</span>
+						</div>
+					</label>
+				{/if}
 		</section>
 	{:else if panel === 'filters'}
 		{#each ['global', 'current'] as scope}

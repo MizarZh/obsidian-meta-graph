@@ -43,8 +43,9 @@ settings to report them in the developer console.
 
 1. Enable **Meta Graph** in **Settings → Community plugins**.
 2. Run **Create graph** from the command palette.
-3. Add or select a chart in the graph toolbar. Graph, Flow, and Arc layouts
-   each keep their own source, query, layout, display, and style settings.
+3. Add or select a chart in the graph toolbar. Graph, Flow, Arc diagram, and
+   Hierarchical edge bundling layouts each keep their own source, query,
+   layout, display, and style settings.
 4. Use the toolbar settings buttons to edit graph settings, filters, note
    styles, and link styles in one panel.
 5. Use **Source → Query** for filter-driven charts, or **Source → Workspace**
@@ -148,8 +149,8 @@ want Flow charts to rerun layout immediately after each new connection.
 
 ## Development
 
-This project uses pnpm, TypeScript, Svelte, Sigma.js, Graphology, ForceAtlas2,
-ELK.js, esbuild, and Vitest.
+This project uses pnpm, TypeScript, Svelte, Sigma.js, Graphology, D3,
+ForceAtlas2, ELK.js, esbuild, and Vitest.
 
 ```bash
 pnpm install
@@ -177,4 +178,5 @@ Obsidian MetadataCache
 
 The canonical knowledge model uses plain TypeScript maps and sets. Graphology is
 created from each projection and is only the runtime container used by the
-layout and rendering layers.
+layout and rendering layers. Hierarchical edge bundling uses D3 hierarchy for
+layout calculation, then renders the positioned graph through Sigma.js.
