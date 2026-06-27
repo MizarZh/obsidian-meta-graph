@@ -32,8 +32,10 @@ export function bindGraphEvents(
 	let draggedNodeStart: { x: number; y: number } | undefined;
 	let hasDraggedNode = false;
 	let suppressNextClick = false;
+	let suppressClickUntil = 0;
 	let previousCameraPanning: boolean | undefined;
 	const NODE_DRAG_THRESHOLD_PX = 3;
+	const DRAG_CLICK_SUPPRESSION_MS = 500;
 	const clickNode = ({
 		node,
 		event,
@@ -44,8 +46,12 @@ export function bindGraphEvents(
 			preventSigmaDefault(): void;
 		};
 	}) => {
-		if (suppressNextClick) {
-			suppressNextClick = false;
+		if (shouldSuppressClick(event)) {
+			return;
+		}
+		if ("ctrlKey" in event.original && event.original.ctrlKey) {
+			event.original.preventDefault();
+			event.preventSigmaDefault();
 			return;
 		}
 		if (sigma.getGraph().getNodeAttribute(node, "isBend")) {
@@ -68,8 +74,7 @@ export function bindGraphEvents(
 			preventSigmaDefault(): void;
 		};
 	}) => {
-		if (suppressNextClick) {
-			suppressNextClick = false;
+		if (shouldSuppressClick(event)) {
 			return;
 		}
 		renderer.clearPinnedHover();
@@ -152,7 +157,7 @@ export function bindGraphEvents(
 			x2: source.x,
 			y2: source.y,
 		};
-		suppressNextClick = true;
+		startDragClickSuppression();
 		callbacks.onSelect(node);
 		callbacks.onConnectionDrag?.(connectionDrag);
 	};
@@ -222,10 +227,7 @@ export function bindGraphEvents(
 		}
 		if (hasDraggedNode) {
 			callbacks.onNodeDragEnd?.(nodeId);
-			suppressNextClick = true;
-			window.setTimeout(() => {
-				suppressNextClick = false;
-			}, 0);
+			suppressClickForDrag();
 		}
 		hasDraggedNode = false;
 	}
@@ -235,14 +237,43 @@ export function bindGraphEvents(
 			return;
 		}
 		connectionDrag = undefined;
+		suppressClickForDrag();
 		if (previousCameraPanning !== undefined) {
 			sigma.setSetting("enableCameraPanning", previousCameraPanning);
 			previousCameraPanning = undefined;
 		}
+		callbacks.onConnectionDrag?.(undefined);
+	}
+
+	function startDragClickSuppression(): void {
+		suppressNextClick = true;
+		suppressClickUntil = Number.POSITIVE_INFINITY;
+	}
+
+	function suppressClickForDrag(): void {
+		suppressNextClick = true;
+		suppressClickUntil = Date.now() + DRAG_CLICK_SUPPRESSION_MS;
 		window.setTimeout(() => {
 			suppressNextClick = false;
-		}, 0);
-		callbacks.onConnectionDrag?.(undefined);
+		}, DRAG_CLICK_SUPPRESSION_MS);
+	}
+
+	function shouldSuppressClick(event: {
+		original: MouseEvent | TouchEvent;
+		preventSigmaDefault(): void;
+	}): boolean {
+		if (Date.now() < suppressClickUntil) {
+			event.original.preventDefault();
+			event.preventSigmaDefault();
+			return true;
+		}
+		if (suppressNextClick) {
+			suppressNextClick = false;
+			event.original.preventDefault();
+			event.preventSigmaDefault();
+			return true;
+		}
+		return false;
 	}
 
 	function readNodeViewportPosition(node: string): { x: number; y: number } {
