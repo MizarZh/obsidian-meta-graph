@@ -1742,13 +1742,34 @@
 	display: flex;
 	flex-direction: column;
 	gap: var(--size-4-1);
-	max-width: min(360px, 60%);
+	max-width: min(520px, 72%);
+	max-height: min(60vh, 520px);
+	overflow: auto;
 	padding: var(--size-4-3);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-m);
 	background: var(--background-primary-alt);
 	box-shadow: var(--shadow-s);
 	font-size: var(--font-ui-small);
+}
+
+.knowledge-workspace-inspector-header {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	min-width: 0;
+}
+
+.knowledge-workspace-inspector-header > strong {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.knowledge-workspace-inspector-open {
+	flex: 0 0 auto;
 }
 
 .knowledge-workspace-dock-panel {
@@ -2313,6 +2334,7 @@
 	display: grid;
 	grid-template-columns: auto 1fr;
 	gap: var(--size-4-2);
+	align-items: start;
 }
 
 .knowledge-workspace-inspector-metadata strong {
@@ -2322,10 +2344,45 @@
 }
 
 .knowledge-workspace-inspector-metadata span {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	min-width: 0;
+	overflow: visible;
+	white-space: normal;
 	color: var(--text-normal);
+	overflow-wrap: anywhere;
+}
+
+.knowledge-workspace-inspector-metadata-link {
+	display: inline-flex;
+	align-items: center;
+	margin: 0 1px;
+	padding: 1px 4px 0;
+	border: 1.5px solid color-mix(
+		in srgb,
+		var(--knowledge-workspace-node-color, var(--text-accent)) 42%,
+		transparent
+	);
+	border-radius: 2px;
+	background: color-mix(
+		in srgb,
+		var(--knowledge-workspace-node-color, var(--text-accent)) 10%,
+		transparent
+	);
+	color: var(--knowledge-workspace-node-color, var(--text-accent));
+	font: inherit;
+	line-height: 1.15;
+	text-decoration: none;
+	vertical-align: baseline;
+	cursor: var(--cursor);
+}
+
+.knowledge-workspace-inspector-metadata-link:hover,
+.knowledge-workspace-inspector-metadata-link:focus-visible {
+	background: color-mix(
+		in srgb,
+		var(--knowledge-workspace-node-color, var(--text-accent)) 16%,
+		transparent
+	);
+	border-color: var(--knowledge-workspace-node-color, var(--text-accent));
 }
 
 .knowledge-workspace-debug {

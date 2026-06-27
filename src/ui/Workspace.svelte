@@ -29,6 +29,7 @@
 	import { HierarchicalEdgeBundlingLayout } from "../layouts/hierarchical-edge-bundling-layout";
 	import { D3ForceSimulation } from "../layouts/d3-force-simulation";
 	import { ForceAtlasLayout } from "../layouts/force-layout";
+	import { extractLinkText } from "../core/link-resolver";
 	import type { WorkspaceController } from "../workspace/workspace-controller";
 	import { serializeMetaGraphState } from "../workspace/meta-graph-model";
 	import CuratedPanel from "./CuratedPanel.svelte";
@@ -558,12 +559,25 @@
 		});
 	}
 
-	const selectedNode = $derived(
-		workspaceState.projection?.nodes.find(
-			(node) => node.id === workspaceState.selectedNodeId,
-		),
-	);
-	const searchableNodes = $derived(workspaceState.projection?.nodes ?? []);
+		const selectedNode = $derived(
+			workspaceState.projection?.nodes.find(
+				(node) => node.id === workspaceState.selectedNodeId,
+			),
+		);
+		const selectedNodeColor = $derived.by(() => {
+			if (!selectedNode) {
+				return undefined;
+			}
+			const defaultColor =
+				getComputedStyle(document.body)
+					.getPropertyValue("--interactive-accent")
+					.trim() || "#7c6ff0";
+			return resolveNodeStyle(selectedNode, getActiveNodeStyleRules(), {
+				color: defaultColor,
+				size: 7,
+			}).color;
+		});
+		const searchableNodes = $derived(workspaceState.projection?.nodes ?? []);
 	const atNodeLimit = $derived(
 		workspaceState.chartSource === "query" && workspaceState.projection
 			? workspaceState.projection.nodes.length >=
@@ -1281,23 +1295,36 @@
 		)?.label;
 	}
 
-	function findNodeTitle(nodeId: string): string {
-		return (
-			debugSnapshot.index.nodes.find((node) => node.id === nodeId)
-				?.title ?? nodeId
-		);
-	}
-
-	function isGraphOverlayTarget(target: EventTarget | null): boolean {
-		if (!(target instanceof HTMLElement)) {
-			return false;
+		function findNodeTitle(nodeId: string): string {
+			return (
+				debugSnapshot.index.nodes.find((node) => node.id === nodeId)
+					?.title ?? nodeId
+			);
 		}
-		return Boolean(
-			target.closest(
-				".knowledge-workspace-dock-panel, .knowledge-workspace-display-controls, .knowledge-workspace-inspector, .knowledge-workspace-connection-panel",
-			),
-		);
-	}
+
+		async function openMetadataLink(
+			linkText: string,
+			sourcePath: string,
+		): Promise<void> {
+			const target = app.metadataCache.getFirstLinkpathDest(
+				extractLinkText(linkText),
+				sourcePath,
+			);
+			if (target) {
+				await app.workspace.getLeaf("tab").openFile(target);
+			}
+		}
+
+		function isGraphOverlayTarget(target: EventTarget | null): boolean {
+			if (!(target instanceof HTMLElement)) {
+				return false;
+			}
+			return Boolean(
+				target.closest(
+					".knowledge-workspace-dock-panel, .knowledge-workspace-display-controls, .knowledge-workspace-inspector, .knowledge-workspace-connection-panel",
+				),
+			);
+		}
 
 	function focusWorkspaceForShortcuts(event: PointerEvent): void {
 		if (isEditableTarget(event.target)) {
@@ -1581,7 +1608,13 @@
 					}
 				}}
 			/>
-			<Inspector node={selectedNode} />
+			<Inspector
+				node={selectedNode}
+				nodeColor={selectedNodeColor}
+				onOpenNote={(path) => void controller.openNode(path)}
+				onOpenMetadataLink={(linkText, sourcePath) =>
+					void openMetadataLink(linkText, sourcePath)}
+			/>
 			{#if atNodeLimit}
 				<section class="knowledge-workspace-notice">
 					<span>Node limit ({workspaceState.query.maxNodes}) reached. Some notes may be hidden.</span>
