@@ -61,8 +61,12 @@ export class Force3DRenderer {
 		labelDensity = 0.8,
 		enableNodeDrag = false,
 		forceLabels = false,
-	): Promise<Force3DRenderer> {
+		isStale: () => boolean = () => false,
+	): Promise<Force3DRenderer | undefined> {
 		const ForceGraph3D = await loadForceGraph3D();
+		if (isStale()) {
+			return undefined;
+		}
 		const instance = new ForceGraph3D(container, {
 			controlType: "trackball",
 		}) as unknown as ForceGraph3DInstance<Force3DNode, Force3DLink>;
@@ -286,6 +290,7 @@ export class Force3DRenderer {
 		}
 		this.instance.pauseAnimation();
 		this.instance._destructor();
+		this.container.replaceChildren();
 	}
 
 	private scheduleGraphData(graph: RuntimeGraph): void {

@@ -521,6 +521,7 @@
 								workspaceState.labelDensity,
 								workspaceState.enableForceLayout,
 								workspaceState.forceLabels,
+								() => version !== renderVersion,
 							)
 					: new SigmaRenderer(
 							graph,
@@ -534,6 +535,13 @@
 							workspaceState.labelDensity,
 							workspaceState.forceLabels,
 						);
+				if (!nextRenderer) {
+					return;
+				}
+				if (version !== renderVersion) {
+					nextRenderer.kill();
+					return;
+				}
 				renderer = nextRenderer;
 				unbindEvents = bindEventsForRenderer(nextRenderer);
 			}
