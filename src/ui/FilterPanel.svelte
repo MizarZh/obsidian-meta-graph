@@ -523,6 +523,53 @@
 		return scope === 'global' ? globalLinkStyleRules : linkStyleRules;
 	}
 
+	type StyleRuleKind = 'node' | 'link';
+	type StyleRuleScope = 'global' | 'current';
+
+	function moveStyleRule(
+		kind: StyleRuleKind,
+		scope: StyleRuleScope,
+		id: string,
+		direction: -1 | 1,
+	): void {
+		if (kind === 'node') {
+			updateNodeRules(scope, moveRule(getNodeRules(scope), id, direction));
+		} else {
+			updateLinkRules(scope, moveRule(getLinkRules(scope), id, direction));
+		}
+	}
+
+	function canMoveRule<T extends { id: string }>(
+		rules: T[],
+		id: string,
+		direction: -1 | 1,
+	): boolean {
+		const index = rules.findIndex((rule) => rule.id === id);
+		const targetIndex = index + direction;
+		return index >= 0 && targetIndex >= 0 && targetIndex < rules.length;
+	}
+
+	function moveRule<T extends { id: string }>(
+		rules: T[],
+		id: string,
+		direction: -1 | 1,
+	): T[] {
+		const index = rules.findIndex((rule) => rule.id === id);
+		const targetIndex = index + direction;
+		if (index < 0 || targetIndex < 0 || targetIndex >= rules.length) {
+			return rules;
+		}
+		const next = [...rules];
+		const current = next[index];
+		const target = next[targetIndex];
+		if (!current || !target) {
+			return rules;
+		}
+		next[index] = target;
+		next[targetIndex] = current;
+		return next;
+	}
+
 	function updateDefaultNodeStyle(patch: Partial<DefaultNodeStyle>): void {
 		onDefaultNodeStyle({ ...defaultNodeStyle, ...patch });
 	}
@@ -1020,6 +1067,40 @@
 						<div
 							class="knowledge-workspace-rule-row style-condition"
 						>
+								<div class="knowledge-workspace-move-rule-buttons">
+									<ObsidianButton
+										icon="chevron-up"
+										ariaLabel="Move note style rule up"
+										disabled={!canMoveRule(
+											getNodeRules(scope as StyleRuleScope),
+											rule.id,
+											-1,
+										)}
+										onClick={() =>
+											moveStyleRule(
+												'node',
+												scope as StyleRuleScope,
+												rule.id,
+												-1,
+											)}
+									/>
+									<ObsidianButton
+										icon="chevron-down"
+										ariaLabel="Move note style rule down"
+										disabled={!canMoveRule(
+											getNodeRules(scope as StyleRuleScope),
+											rule.id,
+											1,
+										)}
+										onClick={() =>
+											moveStyleRule(
+												'node',
+												scope as StyleRuleScope,
+												rule.id,
+												1,
+											)}
+									/>
+								</div>
 								<ObsidianDropdown
 									value={rule.field}
 									options={NODE_STYLE_FIELD_OPTIONS}
@@ -1378,6 +1459,40 @@
 				{#each getLinkRules(scope as 'global' | 'current') as rule (rule.id)}
 					<div class="knowledge-workspace-rule">
 						<div class="knowledge-workspace-rule-row">
+								<div class="knowledge-workspace-move-rule-buttons">
+									<ObsidianButton
+										icon="chevron-up"
+										ariaLabel="Move link style rule up"
+										disabled={!canMoveRule(
+											getLinkRules(scope as StyleRuleScope),
+											rule.id,
+											-1,
+										)}
+										onClick={() =>
+											moveStyleRule(
+												'link',
+												scope as StyleRuleScope,
+												rule.id,
+												-1,
+											)}
+									/>
+									<ObsidianButton
+										icon="chevron-down"
+										ariaLabel="Move link style rule down"
+										disabled={!canMoveRule(
+											getLinkRules(scope as StyleRuleScope),
+											rule.id,
+											1,
+										)}
+										onClick={() =>
+											moveStyleRule(
+												'link',
+												scope as StyleRuleScope,
+												rule.id,
+												1,
+											)}
+									/>
+								</div>
 								<ObsidianDropdown
 									value={rule.field}
 									options={LINK_STYLE_FIELD_OPTIONS}

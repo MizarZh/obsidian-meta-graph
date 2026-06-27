@@ -1340,7 +1340,7 @@
 
 .knowledge-workspace-rule-row {
 	display: grid;
-	grid-template-columns: minmax(82px, 0.8fr) minmax(108px, 1fr) 30px;
+	grid-template-columns: 52px minmax(82px, 0.8fr) minmax(108px, 1fr) 30px;
 	gap: var(--size-4-1);
 	align-items: center;
 }
@@ -1434,10 +1434,23 @@
 
 .knowledge-workspace-rule-row.style-condition {
 	grid-template-columns:
+		52px
 		minmax(82px, 1fr)
 		minmax(96px, 1fr)
 		minmax(72px, 1fr)
 		30px;
+}
+
+.knowledge-workspace-move-rule-buttons {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 2px;
+}
+
+.knowledge-workspace-move-rule-buttons button {
+	width: 25px;
+	height: 30px;
+	padding: 0;
 }
 
 .knowledge-workspace-rule-row.compact label,
