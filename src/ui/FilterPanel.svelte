@@ -677,7 +677,7 @@
 	}
 
 	function commitSpacing(spacing: number): void {
-		if (mode === 'graph') onGraphSpacing(spacing);
+		if (mode === 'graph' || mode === 'graph-3d') onGraphSpacing(spacing);
 		if (mode === 'flow') onFlowSpacing(spacing);
 		if (mode === 'arc') onArcSpacing(spacing);
 	}
@@ -741,7 +741,7 @@
 								min={0.25}
 								max={4}
 								step={0.25}
-								value={mode === 'graph'
+								value={mode === 'graph' || mode === 'graph-3d'
 									? graphSpacing
 									: mode === 'flow'
 										? flowSpacing
@@ -752,7 +752,7 @@
 								onCommit={commitSpacing}
 							/>
 							<span
-								>{(mode === 'graph'
+								>{(mode === 'graph' || mode === 'graph-3d'
 									? graphSpacing
 									: mode === 'flow'
 										? flowSpacing

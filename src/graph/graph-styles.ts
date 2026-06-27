@@ -6,6 +6,7 @@ export interface GraphPalette {
 	mutedEdge: string;
 	label: string;
 	labelBackground: string;
+	background?: string;
 }
 
 export function readGraphPalette(container: HTMLElement): GraphPalette {
@@ -28,6 +29,7 @@ export function readGraphPalette(container: HTMLElement): GraphPalette {
 			read("--background-primary", "#202020"),
 			0.82,
 		),
+		background: read("--background-primary", "#202020"),
 	};
 }
 

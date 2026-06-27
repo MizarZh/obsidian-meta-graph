@@ -194,6 +194,7 @@ export interface GraphProjection {
 
 export type ViewMode =
 	| 'graph'
+	| 'graph-3d'
 	| 'flow'
 	| 'arc'
 	| 'hierarchical-edge-bundling';
@@ -270,7 +271,12 @@ export interface DefaultLinkStyle {
 }
 
 export interface ChartLayoutConfig {
-	engine: 'force-atlas' | 'elk' | 'arc' | 'hierarchical-edge-bundling';
+	engine:
+		| 'force-atlas'
+		| 'force-3d'
+		| 'elk'
+		| 'arc'
+		| 'hierarchical-edge-bundling';
 	spacing: number;
 	direction?: FlowDirection;
 	arcDirection?: ArcDirection;

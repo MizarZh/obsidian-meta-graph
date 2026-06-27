@@ -1080,6 +1080,11 @@ function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 				engine: 'hierarchical-edge-bundling',
 				spacing: 1,
 			};
+		case 'graph-3d':
+			return {
+				engine: 'force-3d',
+				spacing: 1,
+			};
 		case 'graph':
 			return {
 				engine: 'force-atlas',
@@ -1124,6 +1129,8 @@ function getDefaultChartId(type: ViewMode): string {
 	switch (type) {
 		case 'graph':
 			return 'knowledge-map';
+		case 'graph-3d':
+			return 'knowledge-map-3d';
 		case 'flow':
 			return 'learning-flow';
 		case 'arc':
@@ -1137,6 +1144,8 @@ function getDefaultChartName(type: ViewMode): string {
 	switch (type) {
 		case 'graph':
 			return 'Knowledge map';
+		case 'graph-3d':
+			return '3D graph';
 		case 'flow':
 			return 'Learning flow';
 		case 'arc':
@@ -1148,6 +1157,7 @@ function getDefaultChartName(type: ViewMode): string {
 
 function readViewMode(value: unknown): ViewMode {
 	return value === 'flow' ||
+		value === 'graph-3d' ||
 		value === 'arc' ||
 		value === 'hierarchical-edge-bundling'
 		? value
@@ -1163,6 +1173,9 @@ function readLayoutEngine(type: ViewMode): ChartLayoutConfig['engine'] {
 	}
 	if (type === 'hierarchical-edge-bundling') {
 		return 'hierarchical-edge-bundling';
+	}
+	if (type === 'graph-3d') {
+		return 'force-3d';
 	}
 	return 'force-atlas';
 }

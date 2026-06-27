@@ -40,7 +40,9 @@ export function createWorkspaceState(
 				forceLabels: activeChart.display.forceLabels,
 				enableForceLayout: activeChart.display.enableForceLayout,
 			graphSpacing:
-			activeChart.type === 'graph' ? activeChart.layout.spacing : 1,
+				activeChart.type === 'graph' || activeChart.type === 'graph-3d'
+					? activeChart.layout.spacing
+					: 1,
 		flowSpacing:
 			activeChart.type === 'flow' ? activeChart.layout.spacing : 1,
 		arcSpacing: activeChart.type === 'arc' ? activeChart.layout.spacing : 1,

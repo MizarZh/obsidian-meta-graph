@@ -15,6 +15,10 @@
 		type ConnectionDragState,
 	} from "../graph/graph-events";
 	import {
+		bindForce3DEvents,
+		Force3DRenderer,
+	} from "../graph/force-3d-renderer";
+	import {
 		GraphologyAdapter,
 		type GraphPosition,
 		type RuntimeGraph,
@@ -70,7 +74,8 @@
 	let workspaceState: WorkspaceState = $state(getInitialState());
 	let workspaceRoot: HTMLDivElement;
 	let canvas: HTMLDivElement;
-	let renderer: SigmaRenderer | undefined;
+	type GraphRenderer = SigmaRenderer | Force3DRenderer;
+	let renderer: GraphRenderer | undefined;
 	let unbindEvents: (() => void) | undefined;
 	let renderVersion = 0;
 	let autoSaveTimer: number | undefined;
@@ -453,28 +458,49 @@
 			return;
 		}
 
-		const firstRender = !renderer;
-		if (renderer) {
-			unbindEvents?.();
-			stopForceLayoutSimulation();
-			renderer.setGraph(graph);
-			unbindEvents = bindEventsForRenderer(renderer);
-		} else {
-			const nextRenderer = new SigmaRenderer(
-				graph,
-				canvas,
-				palette,
-				workspaceState.fadeDistance,
-				workspaceState.labelSize,
-				workspaceState.labelPosition,
-					workspaceState.labelColor,
-					workspaceState.labelBackgroundOpacity,
-					workspaceState.labelDensity,
-					workspaceState.forceLabels,
-				);
-			renderer = nextRenderer;
-			unbindEvents = bindEventsForRenderer(nextRenderer);
-		}
+			const wants3DRenderer = workspaceState.mode === "graph-3d";
+			if (renderer && isForce3DRenderer(renderer) !== wants3DRenderer) {
+				unbindEvents?.();
+				unbindEvents = undefined;
+				stopForceLayoutSimulation();
+				renderer.kill();
+				renderer = undefined;
+			}
+			const firstRender = !renderer;
+			if (renderer) {
+				unbindEvents?.();
+				stopForceLayoutSimulation();
+				renderer.setGraph(graph);
+				unbindEvents = bindEventsForRenderer(renderer);
+			} else {
+				const nextRenderer = wants3DRenderer
+					? await Force3DRenderer.create(
+							graph,
+							canvas,
+							palette,
+							workspaceState.fadeDistance,
+							workspaceState.labelSize,
+							workspaceState.labelPosition,
+							workspaceState.labelColor,
+							workspaceState.labelBackgroundOpacity,
+							workspaceState.labelDensity,
+							workspaceState.forceLabels,
+						)
+					: new SigmaRenderer(
+							graph,
+							canvas,
+							palette,
+							workspaceState.fadeDistance,
+							workspaceState.labelSize,
+							workspaceState.labelPosition,
+							workspaceState.labelColor,
+							workspaceState.labelBackgroundOpacity,
+							workspaceState.labelDensity,
+							workspaceState.forceLabels,
+						);
+				renderer = nextRenderer;
+				unbindEvents = bindEventsForRenderer(nextRenderer);
+			}
 		renderer.setSelected(workspaceState.selectedNodeId);
 		renderer.setHovered(workspaceState.hoveredNodeId);
 		if (firstRender || fitAfterRender) {
@@ -488,10 +514,17 @@
 			});
 		}
 
-		function bindEventsForRenderer(targetRenderer: SigmaRenderer): () => void {
-		return bindGraphEvents(targetRenderer, {
-			enableForceLayout:
-				workspaceState.mode === "graph" && workspaceState.enableForceLayout,
+		function bindEventsForRenderer(targetRenderer: GraphRenderer): () => void {
+			if (isForce3DRenderer(targetRenderer)) {
+				return bindForce3DEvents(targetRenderer, {
+					onSelect: (nodeId) => controller.selectNode(nodeId),
+					onHover: (nodeId) => controller.hoverNode(nodeId),
+					onOpen: (nodeId) => void controller.openNode(nodeId),
+				});
+			}
+			return bindGraphEvents(targetRenderer, {
+				enableForceLayout:
+					workspaceState.mode === "graph" && workspaceState.enableForceLayout,
 			onSelect: (nodeId) => controller.selectNode(nodeId),
 			onHover: (nodeId) => controller.hoverNode(nodeId),
 			onOpen: (nodeId) => void controller.openNode(nodeId),
@@ -529,7 +562,13 @@
 						}),
 					);
 			},
-		});
+			});
+		}
+
+	function isForce3DRenderer(
+		targetRenderer: GraphRenderer,
+	): targetRenderer is Force3DRenderer {
+		return targetRenderer instanceof Force3DRenderer;
 	}
 
 	function getOrCreateForceLayoutSimulation(
@@ -741,13 +780,15 @@
 			if (flowEdgesChanged) {
 				snapshot.edgeIds = currentEdgeIds;
 			}
-		} else {
-			if (needsGraphLayout) {
-				await new ForceAtlasLayout(workspaceState.graphSpacing).apply(
-					graph,
-				);
+			} else if (workspaceState.mode === "graph") {
+				if (needsGraphLayout) {
+					await new ForceAtlasLayout(workspaceState.graphSpacing).apply(
+						graph,
+					);
+				}
+			} else if (workspaceState.mode === "graph-3d") {
+				snapshot.edgeIds = currentEdgeIds;
 			}
-		}
 
 		graph.forEachNode((nodeId, attributes) => {
 			if (!attributes.isBend) {
@@ -906,6 +947,9 @@
 	function getLayoutSnapshotKey(): string {
 		if (workspaceState.mode === "graph") {
 			return `${workspaceState.activeChartId}-graph`;
+		}
+		if (workspaceState.mode === "graph-3d") {
+			return `${workspaceState.activeChartId}-graph-3d`;
 		}
 		if (workspaceState.mode === "arc") {
 			return `${workspaceState.activeChartId}-arc-${workspaceState.arcDirection}`;
