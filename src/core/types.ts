@@ -397,6 +397,7 @@ export interface DockTemplateNode {
 	targetFolder: string;
 	relationField: string;
 	direction: DockConnectionDirection;
+	defaultGroupId?: string;
 }
 
 export interface DockNoteNode {

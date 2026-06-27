@@ -9,7 +9,7 @@ import type {
 	NodeLabelDrawingFunction,
 } from "sigma/rendering";
 import type { NodeDisplayData, EdgeDisplayData } from "sigma/types";
-import type { LabelPosition } from "../core/types";
+import type { ChartGroup, LabelPosition } from "../core/types";
 import {
 	type RuntimeEdgeAttributes,
 	type RuntimeGraph,
@@ -27,6 +27,19 @@ import {
 
 const DEFAULT_NODE_LABEL_BASE_SIZE = 7;
 
+export interface GroupGeometry {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
+export interface GroupInteractionCallbacks {
+	onMovePreview?(groupId: string, delta: { x: number; y: number }): void;
+	onMoveCommit?(groupId: string, delta: { x: number; y: number }): void;
+	onResizeCommit?(groupId: string, geometry: GroupGeometry): void;
+}
+
 export class SigmaRenderer {
 	readonly instance: Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>;
 	private selectedNodeId?: string;
@@ -38,6 +51,7 @@ export class SigmaRenderer {
 	private labelColor: string;
 	private labelBackgroundOpacity: number;
 	private forceLabels: boolean;
+	private readonly groupOverlayLayer: GroupOverlayLayer;
 
 	constructor(
 		private graph: RuntimeGraph,
@@ -99,6 +113,7 @@ export class SigmaRenderer {
 				zIndex: true,
 			},
 		);
+		this.groupOverlayLayer = new GroupOverlayLayer(this.instance);
 	}
 
 	get runtimeGraph(): RuntimeGraph {
@@ -112,6 +127,19 @@ export class SigmaRenderer {
 		}
 		this.updateHoveredNeighborhood();
 		this.instance.setGraph(graph);
+		this.groupOverlayLayer.update();
+	}
+
+	setGroups(groups: ChartGroup[], callbacks?: GroupInteractionCallbacks): void {
+		this.groupOverlayLayer.setGroups(groups, callbacks);
+	}
+
+	getGroupAtViewportPosition(position: { x: number; y: number }): string | undefined {
+		return this.groupOverlayLayer.getGroupAtViewportPosition(position);
+	}
+
+	setActiveDropGroup(groupId?: string): void {
+		this.groupOverlayLayer.setActiveDropGroup(groupId);
 	}
 
 	setSelected(nodeId?: string): void {
@@ -260,6 +288,7 @@ export class SigmaRenderer {
 	}
 
 	kill(): void {
+		this.groupOverlayLayer.kill();
 		this.instance.kill();
 	}
 
@@ -357,6 +386,313 @@ export class SigmaRenderer {
 
 	private getLabelColor(): string {
 		return this.labelColor || this.palette.label;
+	}
+}
+
+class GroupOverlayLayer {
+	private readonly layer: HTMLDivElement;
+	private readonly activeDocument: Document;
+	private groups: ChartGroup[] = [];
+	private callbacks: GroupInteractionCallbacks = {};
+	private readonly elements = new Map<string, HTMLDivElement>();
+	private readonly updateBound = () => this.update();
+	private previousCameraPanning: boolean | undefined;
+	private activeDropGroupId: string | undefined;
+	private interaction:
+		| {
+				kind: "move" | "resize";
+				group: ChartGroup;
+				startPointer: { x: number; y: number };
+				lastDelta: { x: number; y: number };
+		  }
+		| undefined;
+
+	constructor(
+		private readonly sigma: Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>,
+	) {
+		const container = sigma.getContainer();
+		this.activeDocument = container.ownerDocument;
+		this.layer = this.activeDocument.createElement("div");
+		this.layer.className = "knowledge-workspace-group-layer";
+		const hoverLayer = container.querySelector(".sigma-hovers");
+		if (hoverLayer) {
+			container.insertBefore(this.layer, hoverLayer);
+		} else {
+			container.appendChild(this.layer);
+		}
+		sigma.on("afterRender", this.updateBound);
+	}
+
+	setGroups(
+		groups: ChartGroup[],
+		callbacks: GroupInteractionCallbacks = this.callbacks,
+	): void {
+		this.groups = groups;
+		this.callbacks = callbacks;
+		const groupIds = new Set(groups.map((group) => group.id));
+		for (const [groupId, element] of this.elements.entries()) {
+			if (!groupIds.has(groupId)) {
+				element.remove();
+				this.elements.delete(groupId);
+			}
+		}
+		for (const group of groups) {
+			this.getOrCreateGroupElement(group);
+		}
+		this.update();
+	}
+
+	getGroupAtViewportPosition(position: { x: number; y: number }): string | undefined {
+		let bestGroup: { id: string; area: number } | undefined;
+		for (const group of this.groups) {
+			if (group.mode !== "manual") {
+				continue;
+			}
+			const rect = this.readGroupViewportRect(group);
+			if (
+				position.x < rect.left ||
+				position.x > rect.left + rect.width ||
+				position.y < rect.top ||
+				position.y > rect.top + rect.height
+			) {
+				continue;
+			}
+			const area = rect.width * rect.height;
+			if (!bestGroup || area < bestGroup.area) {
+				bestGroup = { id: group.id, area };
+			}
+		}
+		return bestGroup?.id;
+	}
+
+	setActiveDropGroup(groupId?: string): void {
+		if (this.activeDropGroupId === groupId) {
+			return;
+		}
+		if (this.activeDropGroupId) {
+			this.elements
+				.get(this.activeDropGroupId)
+				?.classList.remove("drop-target");
+		}
+		this.activeDropGroupId = groupId;
+		if (groupId) {
+			this.elements.get(groupId)?.classList.add("drop-target");
+		}
+	}
+
+	update(): void {
+		if (this.groups.length === 0) {
+			this.layer.hidden = true;
+			return;
+		}
+		this.layer.hidden = false;
+		for (const group of this.groups) {
+			if (this.interaction?.group.id === group.id) {
+				continue;
+			}
+			const element = this.getOrCreateGroupElement(group);
+			const rect = this.readGroupViewportRect(group);
+			element.style.left = `${rect.left}px`;
+			element.style.top = `${rect.top}px`;
+			element.style.width = `${rect.width}px`;
+			element.style.height = `${rect.height}px`;
+			element.style.setProperty(
+				"--knowledge-workspace-group-color",
+				group.color,
+			);
+			const title = element.querySelector<HTMLElement>(
+				".knowledge-workspace-group-title",
+			);
+			if (title) {
+				title.textContent = group.name;
+			}
+		}
+	}
+
+	kill(): void {
+		this.endInteraction();
+		this.sigma.off("afterRender", this.updateBound);
+		this.layer.remove();
+		this.elements.clear();
+	}
+
+	private readGroupViewportRect(group: GroupGeometry): {
+		left: number;
+		top: number;
+		width: number;
+		height: number;
+	} {
+		const first = this.sigma.graphToViewport({
+			x: group.x,
+			y: group.y,
+		});
+		const second = this.sigma.graphToViewport({
+			x: group.x + group.width,
+			y: group.y + group.height,
+		});
+		return {
+			left: Math.min(first.x, second.x),
+			top: Math.min(first.y, second.y),
+			width: Math.abs(second.x - first.x),
+			height: Math.abs(second.y - first.y),
+		};
+	}
+
+	private getOrCreateGroupElement(group: ChartGroup): HTMLDivElement {
+		const existing = this.elements.get(group.id);
+		if (existing) {
+			return existing;
+		}
+		const element = this.activeDocument.createElement("div");
+		element.className = "knowledge-workspace-group-region";
+		const title = this.activeDocument.createElement("span");
+		title.className = "knowledge-workspace-group-title";
+		title.textContent = group.name;
+		title.addEventListener("pointerdown", (event) =>
+			this.startInteraction(event, group.id, "move"),
+		);
+		const resizeHandle = this.activeDocument.createElement("button");
+		resizeHandle.className = "knowledge-workspace-group-resize";
+		resizeHandle.type = "button";
+		resizeHandle.setAttribute("aria-label", `Resize ${group.name}`);
+		resizeHandle.addEventListener("pointerdown", (event) =>
+			this.startInteraction(event, group.id, "resize"),
+		);
+		element.appendChild(title);
+		element.appendChild(resizeHandle);
+		this.layer.appendChild(element);
+		this.elements.set(group.id, element);
+		return element;
+	}
+
+	private startInteraction(
+		event: PointerEvent,
+		groupId: string,
+		kind: "move" | "resize",
+	): void {
+		const group = this.groups.find((item) => item.id === groupId);
+		if (!group) {
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		const target = event.currentTarget;
+		if (target instanceof HTMLElement) {
+			target.setPointerCapture(event.pointerId);
+		}
+		this.interaction = {
+			kind,
+			group: { ...group },
+			startPointer: this.readViewportPoint(event),
+			lastDelta: { x: 0, y: 0 },
+		};
+		this.previousCameraPanning = this.sigma.getSetting("enableCameraPanning");
+		this.sigma.setSetting("enableCameraPanning", false);
+		this.activeDocument.addEventListener("pointermove", this.handlePointerMove);
+		this.activeDocument.addEventListener("pointerup", this.handlePointerUp, {
+			once: true,
+		});
+	}
+
+	private readonly handlePointerMove = (event: PointerEvent): void => {
+		if (!this.interaction) {
+			return;
+		}
+		event.preventDefault();
+		const geometry = this.readInteractionGeometry(event);
+		this.renderGroupGeometry(this.interaction.group.id, geometry);
+		if (this.interaction.kind === "move") {
+			const totalDelta = {
+				x: geometry.x - this.interaction.group.x,
+				y: geometry.y - this.interaction.group.y,
+			};
+			const stepDelta = {
+				x: totalDelta.x - this.interaction.lastDelta.x,
+				y: totalDelta.y - this.interaction.lastDelta.y,
+			};
+			this.interaction.lastDelta = totalDelta;
+			this.callbacks.onMovePreview?.(this.interaction.group.id, stepDelta);
+		}
+	};
+
+	private readonly handlePointerUp = (event: PointerEvent): void => {
+		if (!this.interaction) {
+			return;
+		}
+		event.preventDefault();
+		const interaction = this.interaction;
+		const geometry = this.readInteractionGeometry(event);
+		if (interaction.kind === "move") {
+			this.callbacks.onMoveCommit?.(interaction.group.id, {
+				x: geometry.x - interaction.group.x,
+				y: geometry.y - interaction.group.y,
+			});
+		} else {
+			this.callbacks.onResizeCommit?.(interaction.group.id, geometry);
+		}
+		this.endInteraction();
+	};
+
+	private endInteraction(): void {
+		this.interaction = undefined;
+		if (this.previousCameraPanning !== undefined) {
+			this.sigma.setSetting("enableCameraPanning", this.previousCameraPanning);
+			this.previousCameraPanning = undefined;
+		}
+		this.activeDocument.removeEventListener(
+			"pointermove",
+			this.handlePointerMove,
+		);
+		this.activeDocument.removeEventListener("pointerup", this.handlePointerUp);
+	}
+
+	private readInteractionGeometry(event: PointerEvent): GroupGeometry {
+		const interaction = this.interaction;
+		if (!interaction) {
+			return { x: 0, y: 0, width: 0, height: 0 };
+		}
+		const startGraph = this.sigma.viewportToGraph(interaction.startPointer);
+		const currentGraph = this.sigma.viewportToGraph(this.readViewportPoint(event));
+		const delta = {
+			x: currentGraph.x - startGraph.x,
+			y: currentGraph.y - startGraph.y,
+		};
+		if (interaction.kind === "move") {
+			return {
+				x: interaction.group.x + delta.x,
+				y: interaction.group.y + delta.y,
+				width: interaction.group.width,
+				height: interaction.group.height,
+			};
+		}
+		const top = interaction.group.y + interaction.group.height;
+		const nextHeight = Math.max(0.6, top - currentGraph.y);
+		return {
+			x: interaction.group.x,
+			y: top - nextHeight,
+			width: Math.max(0.8, interaction.group.width + delta.x),
+			height: nextHeight,
+		};
+	}
+
+	private readViewportPoint(event: PointerEvent): { x: number; y: number } {
+		const rect = this.sigma.getContainer().getBoundingClientRect();
+		return {
+			x: event.clientX - rect.left,
+			y: event.clientY - rect.top,
+		};
+	}
+
+	private renderGroupGeometry(groupId: string, geometry: GroupGeometry): void {
+		const element = this.elements.get(groupId);
+		if (!element) {
+			return;
+		}
+		const rect = this.readGroupViewportRect(geometry);
+		element.style.left = `${rect.left}px`;
+		element.style.top = `${rect.top}px`;
+		element.style.width = `${rect.width}px`;
+		element.style.height = `${rect.height}px`;
 	}
 }
 

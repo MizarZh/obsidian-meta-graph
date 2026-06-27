@@ -114,23 +114,13 @@
 		let curatedPanelOpen = $state(true);
 		let connectionOpen = $state(true);
 		let forceLayoutSimulation: D3ForceSimulation | undefined;
-		let unbindGroupCamera: (() => void) | undefined;
-		let groupOverlayRevision = $state(0);
 		let suppressNodeOpenUntil = 0;
+		let activeNodeDropGroupId: string | undefined;
 
 		interface LayoutSnapshot {
 			positions: Map<string, GraphPosition>;
 			edgeIds: Set<string>;
 			orthogonalRoutes: OrthogonalRouteMap;
-		}
-		interface GroupOverlay {
-			id: string;
-			name: string;
-			color: string;
-			left: number;
-			top: number;
-			width: number;
-			height: number;
 		}
 	const layoutSnapshots = new Map<string, LayoutSnapshot>();
 	const handleGraphConnectionMouseMove = (event: MouseEvent): void => {
@@ -303,13 +293,16 @@
 				nextState.projection !== lastProjection ||
 				nextState.mode !== lastMode ||
 				nextState.chartSource !== lastChartSource ||
-				nextState.flowEdgeStyle !== lastFlowEdgeStyle ||
-					nextState.flowDirection !== lastFlowDirection ||
-					nextState.arcDirection !== lastArcDirection ||
-					manualLayoutChanged ||
-					nextState.layoutRevision !== lastLayoutRevision ||
-					styleRulesChanged;
-			workspaceState = nextState;
+					nextState.flowEdgeStyle !== lastFlowEdgeStyle ||
+						nextState.flowDirection !== lastFlowDirection ||
+						nextState.arcDirection !== lastArcDirection ||
+						nextState.layoutRevision !== lastLayoutRevision ||
+						styleRulesChanged;
+				workspaceState = nextState;
+				if (manualLayoutChanged) {
+					lastManualLayout = nextState.manualLayout;
+					syncRendererGroups();
+				}
 			if (
 				(nextState.chartSource === "curated" &&
 					settingsPanel === "filters") ||
@@ -437,7 +430,6 @@
 			);
 				resetDockConnectionDrag();
 				unbindEvents?.();
-				unbindGroupCamera?.();
 				stopForceLayoutSimulation();
 				renderer?.kill();
 		};
@@ -538,26 +530,22 @@
 		}
 
 			const wants3DRenderer = workspaceState.mode === "graph-3d";
-				if (renderer && isForce3DRenderer(renderer) !== wants3DRenderer) {
-					unbindEvents?.();
-					unbindEvents = undefined;
-					unbindGroupCamera?.();
-					unbindGroupCamera = undefined;
-					stopForceLayoutSimulation();
-					renderer.kill();
-					renderer = undefined;
-				}
-				const firstRender = !renderer;
-				if (renderer) {
-					unbindEvents?.();
-					unbindGroupCamera?.();
-					stopForceLayoutSimulation();
+					if (renderer && isForce3DRenderer(renderer) !== wants3DRenderer) {
+						unbindEvents?.();
+						unbindEvents = undefined;
+						stopForceLayoutSimulation();
+						renderer.kill();
+						renderer = undefined;
+					}
+					const firstRender = !renderer;
+					if (renderer) {
+						unbindEvents?.();
+						stopForceLayoutSimulation();
 				if (isForce3DRenderer(renderer)) {
 					renderer.setPalette(palette);
 					}
 					renderer.setGraph(graph);
 					unbindEvents = bindEventsForRenderer(renderer);
-					unbindGroupCamera = bindGroupOverlayCamera(renderer);
 				} else {
 				const nextRenderer = wants3DRenderer
 					? await Force3DRenderer.create(
@@ -595,9 +583,8 @@
 					}
 					renderer = nextRenderer;
 					unbindEvents = bindEventsForRenderer(nextRenderer);
-					unbindGroupCamera = bindGroupOverlayCamera(nextRenderer);
 				}
-				refreshGroupOverlay();
+				syncRendererGroups();
 		renderer.setSelected(workspaceState.selectedNodeId);
 		renderer.setHovered(workspaceState.hoveredNodeId);
 		if (firstRender || fitAfterRender) {
@@ -669,16 +656,28 @@
 						);
 					}
 					getLayoutSnapshot().positions.set(nodeId, position);
+					if (workspaceState.mode === "free") {
+						const viewportPosition =
+							targetRenderer.instance.graphToViewport(position);
+						activeNodeDropGroupId =
+							targetRenderer.getGroupAtViewportPosition(viewportPosition);
+						targetRenderer.setActiveDropGroup(activeNodeDropGroupId);
+					}
 					targetRenderer.instance.refresh();
-					refreshGroupOverlay();
 				},
 				onNodeDragEnd: (nodeId) => {
 					suppressNodeOpenUntil = Date.now() + 700;
 					if (workspaceState.mode === "free") {
 						const position = getLayoutSnapshot().positions.get(nodeId);
 						if (position) {
-							controller.setManualNodePosition(nodeId, position);
+							controller.setManualNodePosition(
+								nodeId,
+								position,
+								activeNodeDropGroupId,
+							);
 						}
+						targetRenderer.setActiveDropGroup(undefined);
+						activeNodeDropGroupId = undefined;
 						return;
 					}
 					forceLayoutSimulation?.release(nodeId);
@@ -708,13 +707,55 @@
 			});
 		}
 
-	function isForce3DRenderer(
-		targetRenderer: GraphRenderer,
-	): targetRenderer is Force3DRenderer {
-		return targetRenderer instanceof Force3DRenderer;
-	}
+		function isForce3DRenderer(
+			targetRenderer: GraphRenderer,
+		): targetRenderer is Force3DRenderer {
+			return targetRenderer instanceof Force3DRenderer;
+		}
 
-	function getOrCreateForceLayoutSimulation(
+		function syncRendererGroups(): void {
+			if (!renderer || isForce3DRenderer(renderer)) {
+				return;
+			}
+			renderer.setGroups(
+				workspaceState.mode === "free" ? workspaceState.manualLayout.groups : [],
+				{
+					onMovePreview: moveRuntimeGroupNodes,
+					onMoveCommit: (groupId, delta) =>
+						controller.moveGroup(groupId, delta),
+					onResizeCommit: (groupId, geometry) =>
+						controller.resizeGroup(groupId, geometry),
+				},
+			);
+		}
+
+		function moveRuntimeGroupNodes(
+			groupId: string,
+			delta: { x: number; y: number },
+		): void {
+			if (!renderer || isForce3DRenderer(renderer)) {
+				return;
+			}
+			const graph = renderer.runtimeGraph;
+			const snapshot = getLayoutSnapshot();
+			for (const [nodeId, placement] of Object.entries(
+				workspaceState.manualLayout.nodes,
+			)) {
+				if (placement.groupId !== groupId || !graph.hasNode(nodeId)) {
+					continue;
+				}
+				const attributes = graph.getNodeAttributes(nodeId);
+				const position = {
+					x: attributes.x + delta.x,
+					y: attributes.y + delta.y,
+				};
+				graph.mergeNodeAttributes(nodeId, position);
+				snapshot.positions.set(nodeId, position);
+			}
+			renderer.instance.refresh();
+		}
+
+		function getOrCreateForceLayoutSimulation(
 		targetRenderer: SigmaRenderer,
 	): D3ForceSimulation {
 		if (!forceLayoutSimulation) {
@@ -734,22 +775,6 @@
 			forceLayoutSimulation?.stop();
 			forceLayoutSimulation = undefined;
 			renderer?.clearHeldBounds();
-		}
-
-		function bindGroupOverlayCamera(
-			targetRenderer: GraphRenderer,
-		): (() => void) | undefined {
-			if (isForce3DRenderer(targetRenderer)) {
-				return undefined;
-			}
-			const camera = targetRenderer.instance.getCamera();
-			const refresh = () => refreshGroupOverlay();
-			camera.on("updated", refresh);
-			return () => camera.removeListener("updated", refresh);
-		}
-
-		function refreshGroupOverlay(): void {
-			groupOverlayRevision += 1;
 		}
 
 		function snapshotCurrentGraphPositions(graph: RuntimeGraph): void {
@@ -788,36 +813,6 @@
 		const debugSnapshot: DebugSnapshot = $derived(
 			controller.getDebugSnapshot(workspaceState),
 		);
-		const groupOverlays = $derived.by(() => {
-			groupOverlayRevision;
-			const currentRenderer = renderer;
-			if (
-				workspaceState.mode !== "free" ||
-				!currentRenderer ||
-				isForce3DRenderer(currentRenderer)
-			) {
-				return [];
-			}
-			return workspaceState.manualLayout.groups.map((group) => {
-				const first = currentRenderer.instance.graphToViewport({
-					x: group.x,
-					y: group.y,
-				});
-				const second = currentRenderer.instance.graphToViewport({
-					x: group.x + group.width,
-					y: group.y + group.height,
-				});
-				return {
-					id: group.id,
-					name: group.name,
-					color: group.color,
-					left: Math.min(first.x, second.x),
-					top: Math.min(first.y, second.y),
-					width: Math.abs(second.x - first.x),
-					height: Math.abs(second.y - first.y),
-				} satisfies GroupOverlay;
-			});
-		});
 		const selectedDockNodes = $derived(getSelectedDockNodes(debugSnapshot));
 	const dockNoteCandidates = $derived(getDockNoteCandidates(debugSnapshot));
 	const nodeColors = $derived.by(() => {
@@ -1789,22 +1784,6 @@
 					: '0px'}"
 		>
 					<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
-					{#if groupOverlays.length > 0}
-						<div class="knowledge-workspace-group-overlay" aria-hidden="true">
-							{#each groupOverlays as group (group.id)}
-								<div
-									class="knowledge-workspace-group-region"
-									style:left={`${group.left}px`}
-									style:top={`${group.top}px`}
-									style:width={`${group.width}px`}
-									style:height={`${group.height}px`}
-									style:--knowledge-workspace-group-color={group.color}
-								>
-									<span>{group.name}</span>
-								</div>
-							{/each}
-						</div>
-					{/if}
 					{#if workspaceState.chartSource === "curated"}
 				<CuratedPanel
 					{app}
@@ -1872,10 +1851,11 @@
 			{/if}
 			<DockGraphPanel
 				{app}
-				templates={workspaceState.dock.templates}
-				notes={dockNoteEntries}
-				availableNotes={dockNoteCandidates}
-				{nodeColors}
+					templates={workspaceState.dock.templates}
+					notes={dockNoteEntries}
+					availableNotes={dockNoteCandidates}
+					groups={workspaceState.manualLayout.groups}
+					{nodeColors}
 				{dockOpen}
 				onToggleDock={() => (dockOpen = !dockOpen)}
 				dockWidth={workspaceState.dock.dockWidth}

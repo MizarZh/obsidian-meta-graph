@@ -78,15 +78,21 @@ settings to report them in the developer console.
 14. In Free views, drag nodes directly to place them by hand. Free views do not
    run an automatic layout after the first placement, and dragged node
    positions are saved in the workspace file.
-15. Use the right dock panel to keep templates and selected notes in a compact
-   vertical list. Add or edit templates from the dock, drag items in the dock
-   to reorder them, and hold `Ctrl` while dragging a dock item to connect it to
-   a graph node.
-16. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
+15. In Free views, drag a group title to move the group. Notes already assigned
+   to that group move with it. Drag the bottom-right group handle to resize the
+   region.
+16. Drag a node into a manual group and release to assign it to that group.
+   Drag it out and release over empty space to remove it from the group.
+17. Use the right dock panel to keep templates and selected notes in a compact
+   vertical list. Add or edit templates from the dock, choose an optional
+   default group for template-created notes, drag items in the dock to reorder
+   them, and hold `Ctrl` while dragging a dock item to connect it to a graph
+   node.
+18. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
    workspace is focused, to undo connection edits made in the current workspace
    session.
-17. Select a node to open its note in a new tab.
-18. Select **Debug** to inspect or copy the current query, projection,
+19. Select a node to open its note in a new tab.
+20. Select **Debug** to inspect or copy the current query, projection,
    canonical index, adjacency maps, and unresolved links as JSON.
 
 Style fallback is field-by-field:

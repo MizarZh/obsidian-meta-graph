@@ -2,9 +2,11 @@
 	import type { App } from "obsidian";
 	import { onDestroy } from "svelte";
 	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
+	import ObsidianDropdown from "./obsidian/ObsidianDropdown.svelte";
 	import ObsidianSuggestInput from "./obsidian/ObsidianSuggestInput.svelte";
 	import ObsidianTextInput from "./obsidian/ObsidianTextInput.svelte";
 	import type {
+		ChartGroup,
 		DockConnectionDirection,
 		DockTemplateNode,
 		KnowledgeNode,
@@ -35,6 +37,7 @@
 		templates,
 		notes,
 		availableNotes,
+		groups,
 		nodeColors,
 		dockOpen,
 		onToggleDock,
@@ -69,6 +72,7 @@
 			color?: string;
 		}>;
 		availableNotes: KnowledgeNode[];
+		groups: ChartGroup[];
 		nodeColors: Map<string, string>;
 		dockOpen: boolean;
 		onToggleDock: () => void;
@@ -115,6 +119,7 @@
 	let templateLabel = $state("");
 	let templatePath = $state("");
 	let targetFolder = $state("");
+	let templateDefaultGroupId = $state("");
 	let editingTemplateId = $state<string | undefined>(undefined);
 	let reorderDrag = $state<
 		| {
@@ -190,6 +195,15 @@
 			})),
 		];
 	});
+	const groupOptions = $derived([
+		{ value: "", label: "No group" },
+		...groups
+			.filter((group) => group.mode === "manual")
+			.map((group) => ({
+				value: group.id,
+				label: group.name,
+			})),
+	]);
 
 	function saveTemplate(): void {
 		const label = templateLabel.trim();
@@ -197,13 +211,14 @@
 		if (!label || !path) {
 			return;
 		}
-		const template = {
-			label,
-			templatePath: path,
-			targetFolder: targetFolder.trim(),
-			relationField: activeConnectionField,
-			direction: "from-dock-to-graph",
-		} satisfies Omit<DockTemplateNode, "id">;
+			const template = {
+				label,
+				templatePath: path,
+				targetFolder: targetFolder.trim(),
+				relationField: activeConnectionField,
+				direction: "from-dock-to-graph",
+				defaultGroupId: templateDefaultGroupId || undefined,
+			} satisfies Omit<DockTemplateNode, "id">;
 		if (editingTemplateId) {
 			onUpdateTemplate(editingTemplateId, template);
 		} else {
@@ -232,6 +247,7 @@
 		templateLabel = "";
 		templatePath = "";
 		targetFolder = "";
+		templateDefaultGroupId = "";
 		templateFormOpen = true;
 	}
 
@@ -240,6 +256,7 @@
 		templateLabel = template.label;
 		templatePath = template.templatePath;
 		targetFolder = template.targetFolder;
+		templateDefaultGroupId = template.defaultGroupId ?? "";
 		templateFormOpen = true;
 	}
 
@@ -247,6 +264,7 @@
 		templateLabel = "";
 		templatePath = "";
 		targetFolder = "";
+		templateDefaultGroupId = "";
 		editingTemplateId = undefined;
 		templateFormOpen = false;
 	}
@@ -494,11 +512,11 @@
 								}}
 							/>
 						</label>
-						<label class="knowledge-workspace-dock-suggest">
-							<ObsidianSuggestInput
-								{app}
-								type="text"
-								placeholder="Target folder..."
+							<label class="knowledge-workspace-dock-suggest">
+								<ObsidianSuggestInput
+									{app}
+									type="text"
+									placeholder="Target folder..."
 								value={targetFolder}
 								options={targetFolderOptions}
 								onInput={(value) => {
@@ -506,11 +524,21 @@
 								}}
 								onSelect={(option) => {
 									selectTargetFolder(option.value);
-								}}
-							/>
-						</label>
-						<ObsidianButton
-							icon={editingTemplateId ? "check" : "plus"}
+									}}
+								/>
+							</label>
+							<label class="knowledge-workspace-dock-field">
+								<span>Default group</span>
+								<ObsidianDropdown
+									value={templateDefaultGroupId}
+									options={groupOptions}
+									onChange={(value) => {
+										templateDefaultGroupId = value;
+									}}
+								/>
+							</label>
+							<ObsidianButton
+								icon={editingTemplateId ? "check" : "plus"}
 							text={editingTemplateId
 								? "Save template"
 								: "Add template"}

@@ -1058,6 +1058,10 @@ function normalizeDockTemplate(
 				? record.relationField.trim()
 				: DEFAULT_CONNECTION_FIELD,
 		direction,
+		defaultGroupId:
+			typeof record.defaultGroupId === 'string' && record.defaultGroupId.trim()
+				? record.defaultGroupId.trim()
+				: undefined,
 	};
 }
 

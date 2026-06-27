@@ -527,6 +527,76 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	moveGroup(groupId: string, delta: { x: number; y: number }): void {
+		if (delta.x === 0 && delta.y === 0) {
+			return;
+		}
+		const activeChart = this.getActiveChart();
+		const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
+		const groups = manual.groups.map((group) =>
+			group.id === groupId
+				? {
+						...group,
+						x: group.x + delta.x,
+						y: group.y + delta.y,
+					}
+				: group,
+		);
+		const nodes = Object.fromEntries(
+			Object.entries(manual.nodes).map(([nodeId, placement]) => [
+				nodeId,
+				placement.groupId === groupId
+					? {
+							...placement,
+							x: placement.x + delta.x,
+							y: placement.y + delta.y,
+						}
+					: placement,
+			]),
+		);
+		this.state = this.updateActiveChart({
+			layout: {
+				...activeChart.layout,
+				manual: {
+					...manual,
+					nodes,
+					groups,
+				},
+			},
+		});
+		this.emit();
+	}
+
+	resizeGroup(
+		groupId: string,
+		geometry: Pick<ChartGroup, 'x' | 'y' | 'width' | 'height'>,
+	): void {
+		this.updateGroup(groupId, geometry);
+	}
+
+	private placeTemplateNoteInDefaultGroup(
+		path: NodeId,
+		groupId?: string,
+	): void {
+		if (!groupId) {
+			return;
+		}
+		const group = this.getActiveChart().layout.manual?.groups.find(
+			(item) => item.id === groupId,
+		);
+		if (!group) {
+			return;
+		}
+		this.setManualNodePosition(
+			path,
+			{
+				x: group.x + group.width / 2,
+				y: group.y + group.height / 2,
+			},
+			group.id,
+		);
+	}
+
 	deleteGroup(groupId: string): void {
 		const activeChart = this.getActiveChart();
 		const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
@@ -983,14 +1053,15 @@ export class WorkspaceController {
 			}
 		}
 
-		await this.connectDockNote(
-			file.path,
-			targetNodeId,
-			direction,
-			field,
-		);
-		return file.path;
-	}
+			await this.connectDockNote(
+				file.path,
+				targetNodeId,
+				direction,
+				field,
+			);
+			this.placeTemplateNoteInDefaultGroup(file.path, template.defaultGroupId);
+			return file.path;
+		}
 
 	updateQuery(patch: Partial<Omit<GraphQuery, 'roots'>>): void {
 		this.state = this.updateActiveChart({
