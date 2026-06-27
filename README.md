@@ -34,7 +34,8 @@ Relationship directions are:
 - `prerequisites`: linked note → current note
 - `leads_to`: current note → linked note
 - `related`: undirected
-- Custom connection fields: current note → linked note
+- Custom connection fields: current note → linked note by default, or both
+  notes when the field is set to two-way in the connection panel
 
 Unresolved links are ignored. Enable **Debug unresolved links** in the plugin
 settings to report them in the developer console.
@@ -59,9 +60,11 @@ settings to report them in the developer console.
    labels while zoomed out. Enable **Always show labels** to force every visible
    note label through Sigma's label grid.
 9. Use the bottom connection panel to select or add the metadata field used for
-   new links.
+   new links. Set the field direction to **One-way** or **Two-way** from the
+   direction dropdown.
 10. Hold `Ctrl`, drag from one node to another, and release to add a link to the
-   source note's selected metadata field.
+   selected metadata field. One-way writes the source note only; two-way writes
+   both notes so each note links to the other.
 11. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
    through the force-directed layout. Nearby nodes can move with the graph
    forces, and the layout keeps settling briefly after release. `Ctrl`-drag
@@ -135,6 +138,16 @@ globalStyle:
 activeChart: knowledge-map
 connectionFields:
   - leads-to
+connectionFieldSpecs:
+  - id: leads-to:directed
+    field: leads-to
+    mode: directed
+  - id: leads-to:bidirectional
+    field: leads-to
+    mode: bidirectional
+connectionFieldModes:
+  leads-to: directed
+activeConnectionFieldSpecId: leads-to:directed
 activeConnectionField: leads-to
 ```
 

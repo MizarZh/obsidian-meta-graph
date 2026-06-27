@@ -1,12 +1,20 @@
 <script lang="ts">
-	import type { App } from 'obsidian';
+	import { setIcon, type App, type IconName } from 'obsidian';
+	import type {
+		ConnectionFieldMode,
+		ConnectionFieldSpec,
+	} from '../core/types';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
 	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
+
+	type ReorderPlacement = 'before' | 'after';
 
 	let {
 		app,
 		fields,
 		metadataFieldSuggestions,
+		activeFieldSpecId,
 		activeField,
 		dragging,
 		dragTarget,
@@ -14,25 +22,43 @@
 		collapsed,
 		onToggle,
 		onSelectField,
+		onFieldMode,
 		onAddField,
 		onRemoveField,
+		onReorderField,
 		onUndo,
 	}: {
 		app: App;
-		fields: string[];
+		fields: ConnectionFieldSpec[];
 		metadataFieldSuggestions: string[];
+		activeFieldSpecId: string;
 		activeField: string;
 		dragging: boolean;
 		dragTarget?: string;
 		undoCount: number;
 		collapsed: boolean;
 		onToggle: () => void;
-		onSelectField: (field: string) => void;
+		onSelectField: (field: string, mode?: ConnectionFieldMode) => void;
+		onFieldMode: (field: string, mode: ConnectionFieldMode) => void;
 		onAddField: (field: string) => void;
 		onRemoveField: (field: string) => void;
+		onReorderField: (
+			id: string,
+			targetId: string,
+			placement: ReorderPlacement,
+		) => void;
 		onUndo: () => void;
 	} = $props();
 	let fieldInput = $state('');
+	let reorderDrag = $state<
+		| {
+				id: string;
+				startX: number;
+				startY: number;
+				active: boolean;
+		  }
+		| undefined
+	>();
 	const customField = $derived(fieldInput.trim());
 	const metadataFieldOptions = $derived(
 		metadataFieldSuggestions.map((field) => ({
@@ -41,6 +67,13 @@
 			searchText: field,
 		})),
 	);
+	const directionOptions = [
+		{ value: 'directed', label: 'One-way' },
+		{ value: 'bidirectional', label: 'Two-way' },
+	];
+	const activeMode = $derived(
+		fields.find((field) => field.id === activeFieldSpecId)?.mode ?? 'directed',
+	);
 
 	function addField(): void {
 		if (!customField) {
@@ -48,6 +81,89 @@
 		}
 		onAddField(customField);
 		fieldInput = '';
+	}
+
+	function directionIcon(mode: ConnectionFieldMode): IconName {
+		return mode === 'bidirectional' ? 'arrow-left-right' : 'arrow-right';
+	}
+
+	function obsidianIcon(node: HTMLElement, icon: IconName) {
+		setIcon(node, icon);
+		return {
+			update(nextIcon: IconName) {
+				setIcon(node, nextIcon);
+			},
+		};
+	}
+
+	function handleFieldPointerDown(id: string, event: PointerEvent): void {
+		if (
+			event.button !== 0 ||
+			(event.target instanceof HTMLElement &&
+				event.target.closest('.knowledge-workspace-obsidian-control button'))
+		) {
+			return;
+		}
+		reorderDrag = {
+			id,
+			startX: event.clientX,
+			startY: event.clientY,
+			active: false,
+		};
+		window.addEventListener('pointermove', handleReorderPointerMove, {
+			capture: true,
+		});
+		window.addEventListener('pointerup', handleReorderPointerUp, {
+			capture: true,
+			once: true,
+		});
+	}
+
+	function handleReorderPointerMove(event: PointerEvent): void {
+		if (!reorderDrag) {
+			return;
+		}
+		const distance = Math.hypot(
+			event.clientX - reorderDrag.startX,
+			event.clientY - reorderDrag.startY,
+		);
+		if (!reorderDrag.active && distance < 4) {
+			return;
+		}
+		event.preventDefault();
+		reorderDrag = { ...reorderDrag, active: true };
+		reorderAtPoint(reorderDrag.id, event.clientX, event.clientY);
+	}
+
+	function handleReorderPointerUp(): void {
+		reorderDrag = undefined;
+		window.removeEventListener('pointermove', handleReorderPointerMove, {
+			capture: true,
+		});
+		window.removeEventListener('pointerup', handleReorderPointerUp, {
+			capture: true,
+		});
+	}
+
+	function reorderAtPoint(id: string, clientX: number, clientY: number): void {
+		const target = document.elementFromPoint(clientX, clientY);
+		if (!(target instanceof HTMLElement)) {
+			return;
+		}
+		const targetEl = target.closest<HTMLElement>('[data-connection-field-id]');
+		const targetId = targetEl?.dataset.connectionFieldId;
+		if (!targetEl || !targetId || targetId === id) {
+			return;
+		}
+		onReorderField(id, targetId, readPointerPlacement(targetEl, clientX));
+	}
+
+	function readPointerPlacement(
+		targetEl: HTMLElement,
+		clientX: number,
+	): ReorderPlacement {
+		const rect = targetEl.getBoundingClientRect();
+		return clientX > rect.left + rect.width / 2 ? 'after' : 'before';
 	}
 </script>
 
@@ -71,30 +187,55 @@
 				<span class="knowledge-workspace-connection-label">Connection</span>
 				<div class="knowledge-workspace-connection-tags" aria-label="Connection metadata fields">
 					{#each fields as field}
-						<span
-							class:active={field === activeField}
-							class="knowledge-workspace-connection-tag"
-						>
-							<button
-								type="button"
-								aria-pressed={field === activeField}
-								onclick={() => onSelectField(field)}
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<span
+								class:active={field.id === activeFieldSpecId}
+								class:reordering={reorderDrag?.id === field.id}
+								class="knowledge-workspace-connection-tag"
+								data-connection-field-id={field.id}
+								onpointerdown={(event) =>
+									handleFieldPointerDown(field.id, event)}
 							>
-								<span>{field}</span>
-							</button>
-							<ObsidianButton
-								icon="x"
-								ariaLabel={`Remove ${field}`}
-								onClick={() => onRemoveField(field)}
-							/>
-						</span>
+								<button
+									type="button"
+									aria-pressed={field.id === activeFieldSpecId}
+									aria-label={`${field.field} ${field.mode === 'bidirectional' ? 'two-way' : 'one-way'}`}
+									onclick={() => onSelectField(field.field, field.mode)}
+								>
+									<span
+										class="knowledge-workspace-connection-direction-icon"
+										use:obsidianIcon={directionIcon(field.mode)}
+										aria-hidden="true"
+									></span>
+									<span>{field.field}</span>
+								</button>
+								<ObsidianButton
+									icon="x"
+									ariaLabel={`Remove ${field.field}`}
+									onClick={() => onRemoveField(field.id)}
+								/>
+							</span>
 					{/each}
 					{#if fields.length === 0}
 						<span class="knowledge-workspace-connection-empty">No metadata</span>
 					{/if}
 				</div>
-			</div>
-			<form
+				</div>
+				<label class="knowledge-workspace-connection-direction">
+					<span class="knowledge-workspace-connection-label">Direction</span>
+					<ObsidianDropdown
+						value={activeMode}
+						options={directionOptions}
+						disabled={!activeField}
+						ariaLabel="Connection direction"
+						onChange={(value) =>
+							onFieldMode(
+								activeField,
+								value === 'bidirectional' ? 'bidirectional' : 'directed',
+							)}
+					/>
+				</label>
+				<form
 				class="knowledge-workspace-connection-custom"
 				onsubmit={(event) => {
 					event.preventDefault();

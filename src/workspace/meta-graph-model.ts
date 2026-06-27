@@ -1,6 +1,8 @@
 import type {
 	ChartSource,
 	ChartLayoutConfig,
+	ConnectionFieldMode,
+	ConnectionFieldSpec,
 	CuratedWorkspaceConfig,
 	CuratedWorkspaceContext,
 	CuratedWorkspaceFile,
@@ -34,6 +36,7 @@ export const META_GRAPH_VERSION = 1;
 export const BASE_STYLE_RULE_ID = 'all';
 export const DEFAULT_CONNECTION_FIELD = 'leads-to';
 export const DEFAULT_CONNECTION_FIELDS = [DEFAULT_CONNECTION_FIELD];
+export const DEFAULT_CONNECTION_FIELD_MODE: ConnectionFieldMode = 'directed';
 export const DEFAULT_LABEL_SIZE = 14;
 export const DEFAULT_LABEL_POSITION: LabelPosition = 'right';
 export const DEFAULT_LABEL_COLOR = '';
@@ -74,16 +77,38 @@ export function normalizeMetaGraphDocument(
 			? record.activeChart
 			: (charts[0]?.id ?? createChartId('graph'));
 	const connectionFields = normalizeConnectionFields(record.connectionFields);
+	const connectionFieldSpecs = normalizeConnectionFieldSpecs(
+		record.connectionFieldSpecs,
+		connectionFields,
+		record.connectionFieldModes,
+	);
+	const connectionFieldModes = normalizeConnectionFieldModes(
+		record.connectionFieldModes,
+		connectionFields,
+	);
 	const activeConnectionField =
 		typeof record.activeConnectionField === 'string'
 			? record.activeConnectionField.trim()
 			: (connectionFields[0] ?? '');
+	const activeConnectionFieldSpecId =
+		typeof record.activeConnectionFieldSpecId === 'string' &&
+		connectionFieldSpecs.some(
+			(spec) => spec.id === record.activeConnectionFieldSpecId,
+		)
+			? record.activeConnectionFieldSpecId
+			: (connectionFieldSpecs.find((spec) => spec.field === activeConnectionField)
+					?.id ??
+				connectionFieldSpecs[0]?.id ??
+				'');
 	return {
 		globalQuery: normalizeQuery(record.globalQuery, createDefaultGlobalQuery(maxNodes), maxNodes),
 		globalStyle: normalizeGlobalStyle(record.globalStyle),
 		charts,
 		activeChart,
 		connectionFields,
+		connectionFieldSpecs,
+		connectionFieldModes,
+		activeConnectionFieldSpecId,
 		activeConnectionField,
 		dock: normalizeDock(record.dock),
 	};
@@ -94,12 +119,23 @@ export function createDefaultMetaGraphDocument(
 	fadeDistance: number,
 ): MetaGraphDocument {
 	const charts = createDefaultCharts(maxNodes, fadeDistance);
+	const connectionFieldSpecs = DEFAULT_CONNECTION_FIELDS.map((field) =>
+		createConnectionFieldSpec(field, DEFAULT_CONNECTION_FIELD_MODE),
+	);
 	return {
 		globalQuery: createDefaultGlobalQuery(maxNodes),
 		globalStyle: createDefaultGlobalStyle(),
 		charts,
 		activeChart: charts[0]?.id ?? 'knowledge-map',
 		connectionFields: [...DEFAULT_CONNECTION_FIELDS],
+		connectionFieldSpecs,
+		connectionFieldModes: Object.fromEntries(
+			DEFAULT_CONNECTION_FIELDS.map((field) => [
+				field,
+				DEFAULT_CONNECTION_FIELD_MODE,
+			]),
+		),
+		activeConnectionFieldSpecId: connectionFieldSpecs[0]?.id ?? '',
 		activeConnectionField: DEFAULT_CONNECTION_FIELD,
 		dock: cloneSerializable(DEFAULT_DOCK),
 	};
@@ -151,6 +187,9 @@ export function serializeMetaGraphState(state: {
 	charts: MetaGraphChart[];
 	activeChartId: string;
 	connectionFields: string[];
+	connectionFieldSpecs: ConnectionFieldSpec[];
+	connectionFieldModes: Record<string, ConnectionFieldMode>;
+	activeConnectionFieldSpecId: string;
 	activeConnectionField: string;
 	dock: MetaGraphDock;
 }): MetaGraphDocument {
@@ -163,6 +202,9 @@ export function serializeMetaGraphState(state: {
 		charts: state.charts,
 		activeChart: state.activeChartId,
 		connectionFields: state.connectionFields,
+		connectionFieldSpecs: state.connectionFieldSpecs,
+		connectionFieldModes: state.connectionFieldModes,
+		activeConnectionFieldSpecId: state.activeConnectionFieldSpecId,
 		activeConnectionField: state.activeConnectionField,
 		dock: state.dock,
 	});
@@ -176,6 +218,52 @@ export function normalizeConnectionFields(value: unknown): string[] {
 				.filter(Boolean)
 		: [];
 	return uniqueStrings(fields);
+}
+
+export function normalizeConnectionFieldSpecs(
+	value: unknown,
+	legacyFields: string[] = [],
+	legacyModes: unknown = {},
+): ConnectionFieldSpec[] {
+	const records = Array.isArray(value) ? value : [];
+	const specs = records
+		.map((item) => normalizeConnectionFieldSpec(item))
+		.filter((item): item is ConnectionFieldSpec => item !== undefined);
+	const fallbackSpecs = legacyFields.map((field) =>
+		createConnectionFieldSpec(
+			field,
+			readConnectionFieldMode(isRecord(legacyModes) ? legacyModes[field] : undefined),
+		),
+	);
+	return uniqueConnectionFieldSpecs(specs.length > 0 ? specs : fallbackSpecs);
+}
+
+export function normalizeConnectionFieldModes(
+	value: unknown,
+	fields: string[],
+): Record<string, ConnectionFieldMode> {
+	const record = isRecord(value) ? value : {};
+	return Object.fromEntries(
+		fields.map((field) => {
+			const mode =
+				record[field] === 'bidirectional'
+					? 'bidirectional'
+					: DEFAULT_CONNECTION_FIELD_MODE;
+			return [field, mode];
+		}),
+	);
+}
+
+export function createConnectionFieldSpec(
+	field: string,
+	mode: ConnectionFieldMode,
+): ConnectionFieldSpec {
+	const normalized = field.trim();
+	return {
+		id: createConnectionFieldSpecId(normalized, mode),
+		field: normalized,
+		mode,
+	};
 }
 
 export function normalizeDock(value: unknown): MetaGraphDock {
@@ -215,6 +303,52 @@ function createDefaultCharts(
 	const flow = createDefaultChart('flow', maxNodes, fadeDistance, [graph]);
 	const arc = createDefaultChart('arc', maxNodes, fadeDistance, [graph, flow]);
 	return [graph, flow, arc];
+}
+
+function normalizeConnectionFieldSpec(
+	value: unknown,
+): ConnectionFieldSpec | undefined {
+	const record = isRecord(value) ? value : {};
+	const field = typeof record.field === 'string' ? record.field.trim() : '';
+	if (!field) {
+		return undefined;
+	}
+	const mode = readConnectionFieldMode(record.mode);
+	const id =
+		typeof record.id === 'string' && record.id.trim()
+			? record.id.trim()
+			: createConnectionFieldSpecId(field, mode);
+	return { id, field, mode };
+}
+
+function uniqueConnectionFieldSpecs(
+	specs: ConnectionFieldSpec[],
+): ConnectionFieldSpec[] {
+	const seen = new Set<string>();
+	const nextSpecs: ConnectionFieldSpec[] = [];
+	for (const spec of specs) {
+		const key = createConnectionFieldSpecId(spec.field, spec.mode);
+		if (seen.has(key)) {
+			continue;
+		}
+		seen.add(key);
+		nextSpecs.push({
+			...spec,
+			id: spec.id || key,
+		});
+	}
+	return nextSpecs;
+}
+
+function createConnectionFieldSpecId(
+	field: string,
+	mode: ConnectionFieldMode,
+): string {
+	return `${field}:${mode}`;
+}
+
+function readConnectionFieldMode(value: unknown): ConnectionFieldMode {
+	return value === 'bidirectional' ? 'bidirectional' : DEFAULT_CONNECTION_FIELD_MODE;
 }
 
 function normalizeChart(

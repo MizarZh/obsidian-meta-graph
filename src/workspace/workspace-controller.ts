@@ -5,6 +5,8 @@ import { extractLinkText } from '../core/link-resolver';
 import type {
 	ArcDirection,
 	ChartSource,
+	ConnectionFieldMode,
+	ConnectionFieldSpec,
 	CuratedWorkspaceConfig,
 	DebugSnapshot,
 	FlowDirection,
@@ -36,6 +38,10 @@ import { createWorkspaceState } from './workspace-state';
 import {
 	createDefaultCuratedWorkspace,
 	createDefaultChart,
+	createConnectionFieldSpec,
+	DEFAULT_CONNECTION_FIELD_MODE,
+	normalizeConnectionFieldSpecs,
+	normalizeConnectionFieldModes,
 	normalizeCuratedWorkspace,
 	normalizeConnectionFields,
 	normalizeDockNotes,
@@ -50,13 +56,15 @@ import { cloneSerializable } from './workspace-persistence';
 
 type StateListener = (state: WorkspaceState) => void;
 
-interface ConnectionUndoEntry {
+interface ConnectionUndoChange {
 	sourcePath: string;
 	field: string;
 	link: string;
 	hadField: boolean;
 	previousValue: unknown;
 }
+
+type ConnectionUndoEntry = ConnectionUndoChange[];
 
 export class WorkspaceController {
 	private state: WorkspaceState;
@@ -209,6 +217,10 @@ export class WorkspaceController {
 					},
 					activeChart: chart.id,
 					connectionFields: this.state.connectionFields,
+					connectionFieldSpecs: this.state.connectionFieldSpecs,
+					connectionFieldModes: this.state.connectionFieldModes,
+					activeConnectionFieldSpecId:
+						this.state.activeConnectionFieldSpecId,
 					activeConnectionField: this.state.activeConnectionField,
 					dock: this.state.dock,
 				},
@@ -224,6 +236,9 @@ export class WorkspaceController {
 			globalNodeStyleRules: this.state.globalNodeStyleRules,
 			globalLinkStyleRules: this.state.globalLinkStyleRules,
 			connectionFields: this.state.connectionFields,
+			connectionFieldSpecs: this.state.connectionFieldSpecs,
+			connectionFieldModes: this.state.connectionFieldModes,
+			activeConnectionFieldSpecId: this.state.activeConnectionFieldSpecId,
 			activeConnectionField: this.state.activeConnectionField,
 			dock: this.state.dock,
 			connectionUndoCount: this.state.connectionUndoCount,
@@ -936,10 +951,19 @@ export class WorkspaceController {
 		if (!normalized) {
 			return;
 		}
+		const activeMode = this.getActiveConnectionMode();
+		const activeSpec =
+			findConnectionFieldSpec(
+				this.state.connectionFieldSpecs,
+				normalized,
+				activeMode,
+			) ?? this.state.connectionFieldSpecs.find((item) => item.field === normalized);
 		const activeChart = this.getActiveChart();
 		if (activeChart.source === 'curated') {
 			this.state = {
 				...this.state,
+				activeConnectionFieldSpecId:
+					activeSpec?.id ?? this.state.activeConnectionFieldSpecId,
 				activeConnectionField: normalized,
 			};
 			this.emit();
@@ -956,6 +980,8 @@ export class WorkspaceController {
 		});
 		this.state = {
 			...nextState,
+			activeConnectionFieldSpecId:
+				activeSpec?.id ?? nextState.activeConnectionFieldSpecId,
 			activeConnectionField: normalized,
 		};
 		this.runQuery();
@@ -966,33 +992,140 @@ export class WorkspaceController {
 		if (!normalized) {
 			return;
 		}
-		const connectionFields = normalizeConnectionFields([
-			...this.state.connectionFields,
-			normalized,
+		const mode = this.getActiveConnectionMode();
+		const connectionFieldSpecs = normalizeConnectionFieldSpecs([
+			...this.state.connectionFieldSpecs,
+			createConnectionFieldSpec(normalized, mode),
 		]);
+		const activeSpec =
+			findConnectionFieldSpec(connectionFieldSpecs, normalized, mode) ??
+			connectionFieldSpecs[0];
+		const connectionFields = getConnectionSpecFields(connectionFieldSpecs);
 		this.state = {
 			...this.state,
 			connectionFields,
+			connectionFieldSpecs,
+			connectionFieldModes: normalizeConnectionFieldModes(
+				this.state.connectionFieldModes,
+				connectionFields,
+			),
+			activeConnectionFieldSpecId: activeSpec?.id ?? '',
 		};
 		this.setActiveConnectionField(normalized);
 	}
 
-	removeConnectionField(field: string): void {
+	removeConnectionField(id: string): void {
+		const spec = this.state.connectionFieldSpecs.find((item) => item.id === id);
+		if (spec) {
+			this.removeConnectionFieldSpec(spec.id);
+			return;
+		}
+		this.removeConnectionFieldByName(id);
+	}
+
+	reorderConnectionField(
+		id: string,
+		targetId: string,
+		placement: ReorderPlacement,
+	): void {
+		const connectionFieldSpecs = moveRelative(
+			this.state.connectionFieldSpecs,
+			(spec) => spec.id === id,
+			(spec) => spec.id === targetId,
+			placement,
+		);
+		if (connectionFieldSpecs === this.state.connectionFieldSpecs) {
+			return;
+		}
+		this.state = {
+			...this.state,
+			connectionFieldSpecs,
+			connectionFields: getConnectionSpecFields(connectionFieldSpecs),
+		};
+		this.emit();
+	}
+
+	private removeConnectionFieldSpec(id: string): void {
+		const connectionFieldSpecs = normalizeConnectionFieldSpecs(
+			this.state.connectionFieldSpecs.filter((item) => item.id !== id),
+		);
+		const activeSpec =
+			this.state.activeConnectionFieldSpecId === id
+				? connectionFieldSpecs[0]
+				: this.getActiveConnectionSpec(connectionFieldSpecs);
+		const connectionFields = getConnectionSpecFields(connectionFieldSpecs);
+		this.state = {
+			...this.state,
+			connectionFields,
+			connectionFieldSpecs,
+			connectionFieldModes: normalizeConnectionFieldModes(
+				this.state.connectionFieldModes,
+				connectionFields,
+			),
+			activeConnectionFieldSpecId: activeSpec?.id ?? '',
+			activeConnectionField: activeSpec?.field ?? '',
+		};
+		this.emit();
+	}
+
+	private removeConnectionFieldByName(field: string): void {
 		const normalized = field.trim();
 		if (!normalized) {
 			return;
 		}
-		const connectionFields = normalizeConnectionFields(
-			this.state.connectionFields.filter((item) => item !== normalized),
-			);
-			const activeConnectionField =
-				this.state.activeConnectionField === normalized
-					? (connectionFields[0] ?? '')
-					: this.state.activeConnectionField;
+		const connectionFieldSpecs = normalizeConnectionFieldSpecs(
+			this.state.connectionFieldSpecs.filter(
+				(item) => item.field !== normalized,
+			),
+		);
+		const activeSpec =
+			this.state.activeConnectionField === normalized
+				? connectionFieldSpecs[0]
+				: this.getActiveConnectionSpec(connectionFieldSpecs);
+		const connectionFields = getConnectionSpecFields(connectionFieldSpecs);
 		this.state = {
 			...this.state,
 			connectionFields,
-			activeConnectionField,
+			connectionFieldSpecs,
+			connectionFieldModes: normalizeConnectionFieldModes(
+				this.state.connectionFieldModes,
+				connectionFields,
+			),
+			activeConnectionFieldSpecId: activeSpec?.id ?? '',
+			activeConnectionField: activeSpec?.field ?? '',
+		};
+		this.emit();
+	}
+
+	setConnectionFieldMode(field: string, mode: ConnectionFieldMode): void {
+		const normalized = field.trim();
+		if (!normalized) {
+			return;
+		}
+		const connectionFieldSpecs = normalizeConnectionFieldSpecs([
+			...this.state.connectionFieldSpecs,
+			createConnectionFieldSpec(normalized, mode),
+		]);
+		const activeSpec =
+			findConnectionFieldSpec(connectionFieldSpecs, normalized, mode) ??
+			connectionFieldSpecs[0];
+		const connectionFields = getConnectionSpecFields(connectionFieldSpecs);
+		this.state = {
+			...this.state,
+			connectionFields,
+			connectionFieldSpecs,
+			connectionFieldModes: normalizeConnectionFieldModes(
+				{
+					...this.state.connectionFieldModes,
+					[normalized]:
+						mode === 'bidirectional'
+							? 'bidirectional'
+							: DEFAULT_CONNECTION_FIELD_MODE,
+				},
+				connectionFields,
+			),
+			activeConnectionFieldSpecId: activeSpec?.id ?? '',
+			activeConnectionField: activeSpec?.field ?? normalized,
 		};
 		this.emit();
 	}
@@ -1034,36 +1167,26 @@ export class WorkspaceController {
 			targetFile,
 			sourceFile.path,
 		);
-		let undo: ConnectionUndoEntry | undefined;
-		await this.app.fileManager.processFrontMatter(sourceFile, (frontmatter) => {
-			const data = asFrontmatterRecord(frontmatter);
-			const hadField = Object.prototype.hasOwnProperty.call(
-				data,
-				normalizedField,
+		const undo = await this.addFrontmatterConnection(
+			sourceFile,
+			targetFile,
+			normalizedField,
+			link,
+		);
+		if (this.getConnectionModeForField(normalizedField) === 'bidirectional') {
+			const reverseLink = this.app.fileManager.generateMarkdownLink(
+				sourceFile,
+				targetFile.path,
 			);
-			const currentValue = data[normalizedField];
-			const currentValues = toFrontmatterArray(currentValue);
-			if (
-				currentValues.some((value) =>
-					this.frontmatterValueLinksToTarget(
-						value,
-						sourceFile.path,
-						targetFile.path,
-					),
-				)
-			) {
-				return;
-			}
-			undo = {
-				sourcePath: sourceFile.path,
-				field: normalizedField,
-				link,
-				hadField,
-				previousValue: cloneFrontmatterValue(currentValue),
-			};
-			data[normalizedField] = [...currentValues, link];
-		});
-		if (undo) {
+			const reverseUndo = await this.addFrontmatterConnection(
+				targetFile,
+				sourceFile,
+				normalizedField,
+				reverseLink,
+			);
+			undo.push(...reverseUndo);
+		}
+		if (undo.length > 0) {
 			this.connectionUndoStack.push(undo);
 			this.updateConnectionUndoCount();
 			this.scheduleRefresh(
@@ -1078,12 +1201,26 @@ export class WorkspaceController {
 			if (!undo) {
 				break;
 			}
+			const changed = await this.undoFrontmatterChanges(undo);
+			this.updateConnectionUndoCount();
+			if (changed) {
+				this.scheduleRefresh();
+				return;
+			}
+		}
+		this.updateConnectionUndoCount();
+	}
+
+	private async undoFrontmatterChanges(
+		changes: ConnectionUndoEntry,
+	): Promise<boolean> {
+		let changed = false;
+		for (const undo of [...changes].reverse()) {
 			const sourceFile = this.app.vault.getAbstractFileByPath(undo.sourcePath);
 			if (!(sourceFile instanceof TFile)) {
 				continue;
 			}
 
-			let changed = false;
 			await this.app.fileManager.processFrontMatter(sourceFile, (frontmatter) => {
 				const data = asFrontmatterRecord(frontmatter);
 				const currentValue = data[undo.field];
@@ -1105,13 +1242,8 @@ export class WorkspaceController {
 				}
 				changed = true;
 			});
-			this.updateConnectionUndoCount();
-			if (changed) {
-				this.scheduleRefresh();
-				return;
-			}
 		}
-		this.updateConnectionUndoCount();
+		return changed;
 	}
 
 	dispose(): void {
@@ -1164,6 +1296,30 @@ export class WorkspaceController {
 			throw new Error('Active chart is missing from workspace state.');
 		}
 		return chart;
+	}
+
+	private getActiveConnectionSpec(
+		specs = this.state.connectionFieldSpecs,
+	): ConnectionFieldSpec | undefined {
+		return (
+			specs.find(
+				(item) => item.id === this.state.activeConnectionFieldSpecId,
+			) ??
+			specs.find((item) => item.field === this.state.activeConnectionField) ??
+			specs[0]
+		);
+	}
+
+	private getActiveConnectionMode(): ConnectionFieldMode {
+		return this.getActiveConnectionSpec()?.mode ?? DEFAULT_CONNECTION_FIELD_MODE;
+	}
+
+	private getConnectionModeForField(field: string): ConnectionFieldMode {
+		const activeSpec = this.getActiveConnectionSpec();
+		if (activeSpec?.field === field) {
+			return activeSpec.mode;
+		}
+		return DEFAULT_CONNECTION_FIELD_MODE;
 	}
 
 	private updateActiveChart(
@@ -1232,6 +1388,41 @@ export class WorkspaceController {
 			sourcePath,
 		);
 		return normalizePath(resolved?.path ?? linkText) === normalizePath(targetPath);
+	}
+
+	private async addFrontmatterConnection(
+		sourceFile: TFile,
+		targetFile: TFile,
+		field: string,
+		link: string,
+	): Promise<ConnectionUndoChange[]> {
+		let undo: ConnectionUndoChange | undefined;
+		await this.app.fileManager.processFrontMatter(sourceFile, (frontmatter) => {
+			const data = asFrontmatterRecord(frontmatter);
+			const hadField = Object.prototype.hasOwnProperty.call(data, field);
+			const currentValue = data[field];
+			const currentValues = toFrontmatterArray(currentValue);
+			if (
+				currentValues.some((value) =>
+					this.frontmatterValueLinksToTarget(
+						value,
+						sourceFile.path,
+						targetFile.path,
+					),
+				)
+			) {
+				return;
+			}
+			undo = {
+				sourcePath: sourceFile.path,
+				field,
+				link,
+				hadField,
+				previousValue: cloneFrontmatterValue(currentValue),
+			};
+			data[field] = [...currentValues, link];
+		});
+		return undo ? [undo] : [];
 	}
 
 	private async renderTemplateContent(
@@ -1350,6 +1541,18 @@ function frontmatterValueEquals(value: unknown, expected: string): boolean {
 
 function valuesEqual(left: unknown[], right: unknown[]): boolean {
 	return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function getConnectionSpecFields(specs: ConnectionFieldSpec[]): string[] {
+	return normalizeConnectionFields(specs.map((spec) => spec.field));
+}
+
+function findConnectionFieldSpec(
+	specs: ConnectionFieldSpec[],
+	field: string,
+	mode: ConnectionFieldMode,
+): ConnectionFieldSpec | undefined {
+	return specs.find((spec) => spec.field === field && spec.mode === mode);
 }
 
 type ReorderPlacement = 'before' | 'after';

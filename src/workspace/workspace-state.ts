@@ -57,6 +57,14 @@ export function createWorkspaceState(
 		nodeStyleRules: cloneSerializable(activeChart.style.nodeRules),
 		linkStyleRules: cloneSerializable(activeChart.style.linkRules),
 		connectionFields: cloneSerializable(metaGraphDocument.connectionFields),
+		connectionFieldSpecs: cloneSerializable(
+			metaGraphDocument.connectionFieldSpecs,
+		),
+		connectionFieldModes: cloneSerializable(
+			metaGraphDocument.connectionFieldModes,
+		),
+		activeConnectionFieldSpecId:
+			metaGraphDocument.activeConnectionFieldSpecId,
 		activeConnectionField: metaGraphDocument.activeConnectionField,
 		connectionUndoCount: 0,
 		dock: cloneSerializable(metaGraphDocument.dock),

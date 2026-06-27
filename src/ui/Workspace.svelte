@@ -1589,19 +1589,28 @@
 			{/if}
 			<ConnectionPanel
 				{app}
-				fields={workspaceState.connectionFields}
+				fields={workspaceState.connectionFieldSpecs}
 				{metadataFieldSuggestions}
+				activeFieldSpecId={workspaceState.activeConnectionFieldSpecId}
 				activeField={workspaceState.activeConnectionField}
 				dragging={Boolean(connectionDrag)}
 				dragTarget={connectionDrag?.targetNodeId}
 				undoCount={workspaceState.connectionUndoCount}
 				collapsed={!connectionOpen}
 				onToggle={() => (connectionOpen = !connectionOpen)}
-				onSelectField={(field) =>
-					controller.setActiveConnectionField(field)}
+				onSelectField={(field, mode) => {
+					if (mode) {
+						controller.setConnectionFieldMode(field, mode);
+					}
+					controller.setActiveConnectionField(field);
+				}}
+				onFieldMode={(field, mode) =>
+					controller.setConnectionFieldMode(field, mode)}
 				onAddField={(field) => controller.addConnectionField(field)}
 				onRemoveField={(field) =>
 					controller.removeConnectionField(field)}
+				onReorderField={(id, targetId, placement) =>
+					controller.reorderConnectionField(id, targetId, placement)}
 				onUndo={() =>
 					void controller
 						.undoLastConnection()

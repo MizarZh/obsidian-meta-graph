@@ -68,6 +68,87 @@ describe('workspace persistence', () => {
 		expect(restored.query.maxNodes).toBe(50);
 	});
 
+	it('persists connection field direction modes', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		document.connectionFields = ['leads-to', 'supports'];
+		document.connectionFieldSpecs = [
+			{ id: 'leads-to:directed', field: 'leads-to', mode: 'directed' },
+			{ id: 'supports:bidirectional', field: 'supports', mode: 'bidirectional' },
+		];
+		document.connectionFieldModes = {
+			'leads-to': 'directed',
+			supports: 'bidirectional',
+		};
+		document.activeConnectionFieldSpecId = 'supports:bidirectional';
+
+		const restoredDocument = normalizeMetaGraphDocument(document, 300, 1.5);
+		const restored = createWorkspaceState(300, 1.5, restoredDocument);
+		const saved = serializeMetaGraphState(restored);
+
+		expect(restored.connectionFieldModes.supports).toBe('bidirectional');
+		expect(restored.activeConnectionFieldSpecId).toBe(
+			'supports:bidirectional',
+		);
+		expect(saved.connectionFieldModes).toEqual({
+			'leads-to': 'directed',
+			supports: 'bidirectional',
+		});
+	});
+
+	it('allows one-way and two-way entries for the same metadata field', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		document.connectionFields = ['leads-to'];
+		document.connectionFieldSpecs = [
+			{ id: 'leads-to:directed', field: 'leads-to', mode: 'directed' },
+			{
+				id: 'leads-to:bidirectional',
+				field: 'leads-to',
+				mode: 'bidirectional',
+			},
+		];
+		document.activeConnectionFieldSpecId = 'leads-to:bidirectional';
+
+		const restoredDocument = normalizeMetaGraphDocument(document, 300, 1.5);
+		const restored = createWorkspaceState(300, 1.5, restoredDocument);
+
+		expect(restored.connectionFields).toEqual(['leads-to']);
+		expect(restored.connectionFieldSpecs).toEqual([
+			{ id: 'leads-to:directed', field: 'leads-to', mode: 'directed' },
+			{
+				id: 'leads-to:bidirectional',
+				field: 'leads-to',
+				mode: 'bidirectional',
+			},
+		]);
+		expect(restored.activeConnectionFieldSpecId).toBe(
+			'leads-to:bidirectional',
+		);
+	});
+
+	it('preserves connection field spec order', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		document.connectionFields = ['leads-to', 'supports'];
+		document.connectionFieldSpecs = [
+			{ id: 'supports:directed', field: 'supports', mode: 'directed' },
+			{ id: 'leads-to:directed', field: 'leads-to', mode: 'directed' },
+			{
+				id: 'supports:bidirectional',
+				field: 'supports',
+				mode: 'bidirectional',
+			},
+		];
+
+		const restoredDocument = normalizeMetaGraphDocument(document, 300, 1.5);
+		const restored = createWorkspaceState(300, 1.5, restoredDocument);
+		const saved = serializeMetaGraphState(restored);
+
+		expect(saved.connectionFieldSpecs.map((spec) => spec.id)).toEqual([
+			'supports:directed',
+			'leads-to:directed',
+			'supports:bidirectional',
+		]);
+	});
+
 	it('creates and restores the arc diagram chart', () => {
 		const document = createDefaultMetaGraphDocument(200, 2);
 		const arcChart = document.charts.find(

@@ -2092,7 +2092,7 @@
 
 .knowledge-workspace-connection-body {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto auto auto;
+	grid-template-columns: minmax(0, 1fr) auto auto auto auto;
 	gap: var(--size-4-3);
 	align-items: center;
 	flex: 1;
@@ -2134,11 +2134,18 @@
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 	overflow: hidden;
+	cursor: pointer;
+}
+
+.knowledge-workspace-connection-tag.reordering {
+	cursor: grabbing;
+	opacity: 0.75;
 }
 
 .knowledge-workspace-connection-tag > button:first-child {
 	display: inline-flex;
 	align-items: center;
+	gap: var(--size-4-1);
 	min-width: 0;
 	height: 100%;
 	margin: 0;
@@ -2148,7 +2155,25 @@
 	background: transparent;
 	box-shadow: none;
 	color: inherit;
+	cursor: pointer;
 	font-size: inherit;
+}
+
+.knowledge-workspace-connection-tag.reordering > button:first-child {
+	cursor: grabbing;
+}
+
+.knowledge-workspace-connection-direction-icon {
+	display: inline-flex;
+	flex: 0 0 auto;
+	width: 14px;
+	height: 14px;
+	color: var(--text-muted);
+}
+
+.knowledge-workspace-connection-direction-icon svg {
+	width: 14px;
+	height: 14px;
 }
 
 .knowledge-workspace-connection-tag > button:first-child span {
@@ -2212,6 +2237,21 @@
 	gap: var(--size-4-2);
 	align-items: center;
 	min-width: 0;
+}
+
+.knowledge-workspace-connection-direction {
+	display: flex;
+	gap: var(--size-4-2);
+	align-items: center;
+	min-width: 0;
+}
+
+.knowledge-workspace-connection-direction select {
+	height: 34px;
+	max-width: 120px;
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+	font-size: var(--font-ui-small);
 }
 
 .knowledge-workspace-connection-custom input {

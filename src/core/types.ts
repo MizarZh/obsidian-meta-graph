@@ -210,6 +210,12 @@ export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
 export type ArcDirection = 'right' | 'left' | 'up' | 'down';
 export type LabelPosition = 'right' | 'left' | 'top' | 'bottom';
 export type ChartType = ViewMode;
+export type ConnectionFieldMode = 'directed' | 'bidirectional';
+export interface ConnectionFieldSpec {
+	id: string;
+	field: string;
+	mode: ConnectionFieldMode;
+}
 export type NodeStyleField =
 	| 'all'
 	| 'folder'
@@ -319,6 +325,9 @@ export interface MetaGraphDocument {
 	charts: MetaGraphChart[];
 	activeChart: string;
 	connectionFields: string[];
+	connectionFieldSpecs: ConnectionFieldSpec[];
+	connectionFieldModes: Record<string, ConnectionFieldMode>;
+	activeConnectionFieldSpecId: string;
 	activeConnectionField: string;
 	dock: MetaGraphDock;
 }
@@ -380,6 +389,9 @@ export interface WorkspaceState {
 	nodeStyleRules: NodeStyleRule[];
 	linkStyleRules: LinkStyleRule[];
 	connectionFields: string[];
+	connectionFieldSpecs: ConnectionFieldSpec[];
+	connectionFieldModes: Record<string, ConnectionFieldMode>;
+	activeConnectionFieldSpecId: string;
 	activeConnectionField: string;
 	connectionUndoCount: number;
 	dock: MetaGraphDock;
