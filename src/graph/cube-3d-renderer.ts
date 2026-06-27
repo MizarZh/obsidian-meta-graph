@@ -34,7 +34,7 @@ interface CubeFace {
 interface CubeNodeObject {
 	id: string;
 	faceId: CubeFaceId;
-	mesh: Three.Mesh;
+	mesh: Three.Sprite;
 	label?: Three.Sprite;
 }
 
@@ -55,7 +55,6 @@ interface ThreeModule {
 	PlaneGeometry: typeof Three.PlaneGeometry;
 	Raycaster: typeof Three.Raycaster;
 	Scene: typeof Three.Scene;
-	SphereGeometry: typeof Three.SphereGeometry;
 	Sprite: typeof Three.Sprite;
 	SpriteMaterial: typeof Three.SpriteMaterial;
 	Vector2: typeof Three.Vector2;
@@ -415,8 +414,9 @@ export class Cube3DRenderer {
 		const x = clamp(local.dot(face.u) / range, -1, 1);
 		const y = clamp(local.dot(face.v) / range, -1, 1);
 		this.graph.mergeNodeAttributes(nodeId, { x, y, fixed: true });
-		node.mesh.position.copy(this.localPosition(face, x, y));
-		node.label?.position.copy(this.localPosition(face, x, y, 18));
+		node.mesh.position.copy(this.localPosition(face, x, y, 8));
+		const radius = node.mesh.scale.x * 0.5;
+		node.label?.position.copy(this.localLabelPosition(face, x, y, radius));
 		this.rebuildEdges();
 		this.scheduleRender();
 		return { x, y };
@@ -496,18 +496,18 @@ export class Cube3DRenderer {
 			}
 			const faceId = this.getFaceIdForNode(nodeId);
 			const face = this.getFace(faceId);
-			const mesh = new this.three.Mesh(
-				new this.three.SphereGeometry(Math.max(4, attributes.size), 18, 18),
-				new this.three.MeshBasicMaterial({ color: attributes.color }),
-			);
-			mesh.position.copy(this.localPosition(face, attributes.x, attributes.y));
+			const nodeSize = Math.max(5, attributes.size * 1.25);
+			const mesh = this.createNodeSprite(attributes.color, nodeSize);
+			mesh.position.copy(this.localPosition(face, attributes.x, attributes.y, 8));
 			mesh.userData.nodeId = nodeId;
 			this.nodeGroup.add(mesh);
 			const label = this.shouldShowLabel(attributes)
 				? this.createTextSprite(attributes.label, this.labelSize, attributes)
 				: undefined;
 			if (label) {
-				label.position.copy(this.localPosition(face, attributes.x, attributes.y, 18));
+				label.position.copy(
+					this.localLabelPosition(face, attributes.x, attributes.y, nodeSize),
+				);
 				this.labelGroup.add(label);
 			}
 			this.nodeObjects.set(nodeId, { id: nodeId, faceId, mesh, label });
@@ -571,14 +571,17 @@ export class Cube3DRenderer {
 
 	private refreshNodeColors(): void {
 		for (const [nodeId, node] of this.nodeObjects.entries()) {
-			const attributes = this.graph.getNodeAttributes(nodeId);
-			const material = node.mesh.material;
-			if (!(material instanceof this.three.MeshBasicMaterial)) {
-				continue;
+			this.setObjectOpacity(
+				node.mesh,
+				this.getNodeOpacity(nodeId) * this.getFaceVisibilityOpacity(node.faceId),
+			);
+			if (node.label) {
+				this.setObjectOpacity(
+					node.label,
+					this.getNodeOpacity(nodeId) *
+						this.getFaceVisibilityOpacity(node.faceId),
+				);
 			}
-			material.color = new this.three.Color(attributes.color);
-			material.opacity = this.getNodeOpacity(nodeId);
-			material.transparent = material.opacity < 1;
 		}
 	}
 
@@ -611,6 +614,30 @@ export class Cube3DRenderer {
 		return hashString(attributes.path) <= this.labelDensity;
 	}
 
+	private createNodeSprite(color: string, size: number): Three.Sprite {
+		const canvasSize = 64;
+		const canvas = this.container.ownerDocument.createElement("canvas");
+		canvas.width = canvasSize;
+		canvas.height = canvasSize;
+		const context = canvas.getContext("2d");
+		if (context) {
+			context.clearRect(0, 0, canvasSize, canvasSize);
+			context.fillStyle = color;
+			context.beginPath();
+			context.arc(canvasSize / 2, canvasSize / 2, canvasSize * 0.38, 0, Math.PI * 2);
+			context.fill();
+		}
+		const material = new this.three.SpriteMaterial({
+			map: new this.three.CanvasTexture(canvas),
+			transparent: true,
+			depthWrite: false,
+			depthTest: false,
+		});
+		const sprite = new this.three.Sprite(material);
+		sprite.scale.set(size * 2, size * 2, 1);
+		return sprite;
+	}
+
 	private createTextSprite(
 		text: string,
 		size: number,
@@ -640,12 +667,12 @@ export class Cube3DRenderer {
 			map: texture,
 			transparent: true,
 			depthWrite: false,
-			depthTest: true,
+			depthTest: false,
 		});
-		const sprite = new this.three.Sprite(material);
+		const label = new this.three.Sprite(material);
 		const scale = attributes.isPrimary ? 1.1 : 1;
-		sprite.scale.set(canvas.width * 0.28 * scale, canvas.height * 0.28 * scale, 1);
-		return sprite;
+		label.scale.set(canvas.width * 0.28 * scale, canvas.height * 0.28 * scale, 1);
+		return label;
 	}
 
 	private localPosition(
@@ -658,8 +685,55 @@ export class Cube3DRenderer {
 		return face.normal
 			.clone()
 			.multiplyScalar(this.cubeSize + offset)
-			.add(face.u.clone().multiplyScalar(clamp(x, -1, 1) * range))
-			.add(face.v.clone().multiplyScalar(clamp(y, -1, 1) * range));
+				.add(face.u.clone().multiplyScalar(clamp(x, -1, 1) * range))
+				.add(face.v.clone().multiplyScalar(clamp(y, -1, 1) * range));
+	}
+
+	private localLabelPosition(
+		face: CubeFace,
+		x: number,
+		y: number,
+		nodeRadius: number,
+	): Three.Vector3 {
+		return this.localPosition(face, x, y, 10).add(
+			face.v.clone().multiplyScalar(nodeRadius + this.labelSize * 0.9),
+		);
+	}
+
+	private getFaceVisibilityOpacity(faceId: CubeFaceId): number {
+		const face = this.getFace(faceId);
+		this.updateWorldMatrices();
+		const worldNormal = face.normal
+			.clone()
+			.transformDirection(this.cubeGroup.matrixWorld)
+			.normalize();
+		const faceCenter = this.cubeGroup.localToWorld(
+			face.normal.clone().multiplyScalar(this.cubeSize),
+		);
+		const toCamera = this.camera.position.clone().sub(faceCenter).normalize();
+		const facing = worldNormal.dot(toCamera);
+		if (facing >= 0.12) {
+			return 1;
+		}
+		if (facing <= -0.12) {
+			return 0.55;
+		}
+		return 0.75;
+	}
+
+	private setObjectOpacity(object: Three.Object3D, opacity: number): void {
+		const material = (object as Three.Mesh).material;
+		if (Array.isArray(material)) {
+			for (const item of material) {
+				item.opacity = opacity;
+				item.transparent = true;
+			}
+			return;
+		}
+		if (material) {
+			material.opacity = opacity;
+			material.transparent = true;
+		}
 	}
 
 	private getFaceIdForNode(nodeId: string): CubeFaceId {
@@ -748,7 +822,7 @@ export class Cube3DRenderer {
 				continue;
 			}
 			const distance = Math.hypot(screen.x - position.x, screen.y - position.y);
-			const radius = Math.max(16, node.mesh.geometry.boundingSphere?.radius ?? 0);
+			const radius = Math.max(16, node.mesh.scale.x * 0.6);
 			if (distance <= radius + 10 && distance < closestDistance) {
 				closestDistance = distance;
 				closestNodeId = nodeId;
@@ -779,9 +853,7 @@ export class Cube3DRenderer {
 		}
 		this.animationFrame = window.requestAnimationFrame(() => {
 			this.animationFrame = undefined;
-			this.labelGroup.children.forEach((child) => {
-				child.quaternion.copy(this.camera.quaternion);
-			});
+			this.refreshNodeColors();
 			this.webgl.render(this.scene, this.camera);
 		});
 	}
