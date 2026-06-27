@@ -44,8 +44,8 @@ settings to report them in the developer console.
 
 1. Enable **Meta Graph** in **Settings → Community plugins**.
 2. Run **Create graph** from the command palette.
-3. Add or select a chart in the graph toolbar. Graph, Flow, Arc diagram, and
-   Hierarchical edge bundling layouts each keep their own source, query,
+3. Add or select a chart in the graph toolbar. Graph, Free, Flow, Arc diagram,
+   and Hierarchical edge bundling layouts each keep their own source, query,
    layout, display, and style settings.
 4. Use the toolbar settings buttons to edit graph settings, filters, note
    styles, and link styles in one panel.
@@ -59,28 +59,34 @@ settings to report them in the developer console.
    filters support file name, path, folder, extension, tags, links, and
    frontmatter property presence.
 8. Add link style rules by relation or source frontmatter field.
-9. Increase **Label density** in **Graph** settings when Sigma samples too few
+9. Use **Group** settings to add chart-local groups, rename them, set colors,
+   and edit their Free-view region geometry. Groups are saved in the workspace
+   file, not note frontmatter.
+10. Increase **Label density** in **Graph** settings when Sigma samples too few
    labels while zoomed out. Enable **Always show labels** to force every visible
    note label through Sigma's label grid.
-10. Use the bottom connection panel to select or add the metadata field used for
+11. Use the bottom connection panel to select or add the metadata field used for
    new links. Set the field direction to **One-way** or **Two-way** from the
    direction dropdown.
-11. Hold `Ctrl`, drag from one node to another, and release to add a link to the
+12. Hold `Ctrl`, drag from one node to another, and release to add a link to the
    selected metadata field. One-way writes the source note only; two-way writes
    both notes so each note links to the other.
-12. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
+13. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
    through the force-directed layout. Nearby nodes can move with the graph
    forces, and the layout keeps settling briefly after release. `Ctrl`-drag
    still creates links.
-13. Use the right dock panel to keep templates and selected notes in a compact
+14. In Free views, drag nodes directly to place them by hand. Free views do not
+   run an automatic layout after the first placement, and dragged node
+   positions are saved in the workspace file.
+15. Use the right dock panel to keep templates and selected notes in a compact
    vertical list. Add or edit templates from the dock, drag items in the dock
    to reorder them, and hold `Ctrl` while dragging a dock item to connect it to
    a graph node.
-14. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
+16. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
    workspace is focused, to undo connection edits made in the current workspace
    session.
-15. Select a node to open its note in a new tab.
-16. Select **Debug** to inspect or copy the current query, projection,
+17. Select a node to open its note in a new tab.
+18. Select **Debug** to inspect or copy the current query, projection,
    canonical index, adjacency maps, and unresolved links as JSON.
 
 Style fallback is field-by-field:
@@ -126,6 +132,9 @@ charts:
     layout:
       engine: force-atlas
       spacing: 1
+      manual:
+        nodes: {}
+        groups: []
     display:
       fadeDistance: 1.5
       enableForceLayout: false

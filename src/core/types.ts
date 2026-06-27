@@ -195,6 +195,7 @@ export interface GraphProjection {
 export type ViewMode =
 	| 'graph'
 	| 'graph-3d'
+	| 'free'
 	| 'flow'
 	| 'arc'
 	| 'hierarchical-edge-bundling';
@@ -203,6 +204,7 @@ export type SettingsPanelMode =
 	| 'graph'
 	| 'workspace'
 	| 'filters'
+	| 'groups'
 	| 'text-style'
 	| 'note-style'
 	| 'link-style';
@@ -274,6 +276,7 @@ export interface ChartLayoutConfig {
 	engine:
 		| 'force-atlas'
 		| 'force-3d'
+		| 'free'
 		| 'elk'
 		| 'arc'
 		| 'hierarchical-edge-bundling';
@@ -281,6 +284,33 @@ export interface ChartLayoutConfig {
 	direction?: FlowDirection;
 	arcDirection?: ArcDirection;
 	edgeStyle?: FlowEdgeStyle;
+	manual?: ManualLayoutConfig;
+}
+
+export type ChartGroupMode = 'manual' | 'rule';
+
+export interface NodePlacement {
+	x: number;
+	y: number;
+	groupId?: string;
+}
+
+export interface ChartGroup {
+	id: string;
+	name: string;
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	color: string;
+	mode: ChartGroupMode;
+	padding: number;
+	rule?: NodeFilterGroup;
+}
+
+export interface ManualLayoutConfig {
+	nodes: Record<NodeId, NodePlacement>;
+	groups: ChartGroup[];
 }
 
 export interface ChartDisplayConfig {
@@ -401,6 +431,7 @@ export interface WorkspaceState {
 	graphSpacing: number;
 	flowSpacing: number;
 	arcSpacing: number;
+	manualLayout: ManualLayoutConfig;
 	layoutRevision: number;
 	currentNoteId?: NodeId;
 	selectedNodeId?: NodeId;

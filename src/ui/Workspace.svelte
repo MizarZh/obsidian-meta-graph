@@ -40,6 +40,7 @@
 	import { serializeMetaGraphState } from "../workspace/meta-graph-model";
 	import CuratedPanel from "./CuratedPanel.svelte";
 	import FilterPanel from "./FilterPanel.svelte";
+	import GroupPanel from "./GroupPanel.svelte";
 	import DebugPanel from "./DebugPanel.svelte";
 	import DockGraphPanel, {
 		type DockDragPayload,
@@ -88,7 +89,8 @@
 	let lastChartSource: WorkspaceState["chartSource"] | undefined;
 	let lastFlowEdgeStyle: WorkspaceState["flowEdgeStyle"] | undefined;
 	let lastFlowDirection: WorkspaceState["flowDirection"] | undefined;
-	let lastArcDirection: WorkspaceState["arcDirection"] | undefined;
+		let lastArcDirection: WorkspaceState["arcDirection"] | undefined;
+		let lastManualLayout: WorkspaceState["manualLayout"] | undefined;
 	let lastLayoutRevision: number | undefined;
 	let lastGlobalNodeStyleRules:
 		| WorkspaceState["globalNodeStyleRules"]
@@ -108,16 +110,28 @@
 	let dockDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockConnectionDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockTargetNodeId = $state<string | undefined>(undefined);
-	let dockOpen = $state(true);
-	let curatedPanelOpen = $state(true);
-	let connectionOpen = $state(true);
-	let forceLayoutSimulation: D3ForceSimulation | undefined;
+		let dockOpen = $state(true);
+		let curatedPanelOpen = $state(true);
+		let connectionOpen = $state(true);
+		let forceLayoutSimulation: D3ForceSimulation | undefined;
+		let unbindGroupCamera: (() => void) | undefined;
+		let groupOverlayRevision = $state(0);
+		let suppressNodeOpenUntil = 0;
 
-	interface LayoutSnapshot {
-		positions: Map<string, GraphPosition>;
-		edgeIds: Set<string>;
-		orthogonalRoutes: OrthogonalRouteMap;
-	}
+		interface LayoutSnapshot {
+			positions: Map<string, GraphPosition>;
+			edgeIds: Set<string>;
+			orthogonalRoutes: OrthogonalRouteMap;
+		}
+		interface GroupOverlay {
+			id: string;
+			name: string;
+			color: string;
+			left: number;
+			top: number;
+			width: number;
+			height: number;
+		}
 	const layoutSnapshots = new Map<string, LayoutSnapshot>();
 	const handleGraphConnectionMouseMove = (event: MouseEvent): void => {
 		if (!connectionDrag || dockConnectionDrag) {
@@ -253,9 +267,12 @@
 			const flowDirectionChanged =
 				lastFlowDirection !== undefined &&
 				nextState.flowDirection !== lastFlowDirection;
-			const arcDirectionChanged =
-				lastArcDirection !== undefined &&
-				nextState.arcDirection !== lastArcDirection;
+				const arcDirectionChanged =
+					lastArcDirection !== undefined &&
+					nextState.arcDirection !== lastArcDirection;
+				const manualLayoutChanged =
+					lastManualLayout !== undefined &&
+					nextState.manualLayout !== lastManualLayout;
 			const layoutRevisionChanged =
 				lastLayoutRevision !== undefined &&
 				nextState.layoutRevision !== lastLayoutRevision;
@@ -287,10 +304,11 @@
 				nextState.mode !== lastMode ||
 				nextState.chartSource !== lastChartSource ||
 				nextState.flowEdgeStyle !== lastFlowEdgeStyle ||
-				nextState.flowDirection !== lastFlowDirection ||
-				nextState.arcDirection !== lastArcDirection ||
-				nextState.layoutRevision !== lastLayoutRevision ||
-				styleRulesChanged;
+					nextState.flowDirection !== lastFlowDirection ||
+					nextState.arcDirection !== lastArcDirection ||
+					manualLayoutChanged ||
+					nextState.layoutRevision !== lastLayoutRevision ||
+					styleRulesChanged;
 			workspaceState = nextState;
 			if (
 				(nextState.chartSource === "curated" &&
@@ -338,9 +356,10 @@
 				lastMode = nextState.mode;
 				lastChartSource = nextState.chartSource;
 				lastFlowEdgeStyle = nextState.flowEdgeStyle;
-				lastFlowDirection = nextState.flowDirection;
-				lastArcDirection = nextState.arcDirection;
-				lastLayoutRevision = nextState.layoutRevision;
+					lastFlowDirection = nextState.flowDirection;
+					lastArcDirection = nextState.arcDirection;
+					lastManualLayout = nextState.manualLayout;
+					lastLayoutRevision = nextState.layoutRevision;
 				lastGlobalNodeStyleRules = nextState.globalNodeStyleRules;
 				lastGlobalLinkStyleRules = nextState.globalLinkStyleRules;
 				lastNodeStyleRules = nextState.nodeStyleRules;
@@ -416,10 +435,11 @@
 					capture: true,
 				},
 			);
-			resetDockConnectionDrag();
-			unbindEvents?.();
-			stopForceLayoutSimulation();
-			renderer?.kill();
+				resetDockConnectionDrag();
+				unbindEvents?.();
+				unbindGroupCamera?.();
+				stopForceLayoutSimulation();
+				renderer?.kill();
 		};
 	});
 
@@ -492,9 +512,10 @@
 			return;
 		}
 
-		const palette = readGraphPalette(canvas);
-		const layoutSnapshot = getLayoutSnapshot();
-		const positions = layoutSnapshot.positions;
+			const palette = readGraphPalette(canvas);
+			const layoutSnapshot = getLayoutSnapshot();
+			hydrateManualLayoutPositions(layoutSnapshot);
+			const positions = layoutSnapshot.positions;
 		const graph = new GraphologyAdapter(
 			palette,
 			getActiveDefaultNodeStyle(palette.node),
@@ -517,23 +538,27 @@
 		}
 
 			const wants3DRenderer = workspaceState.mode === "graph-3d";
-			if (renderer && isForce3DRenderer(renderer) !== wants3DRenderer) {
-				unbindEvents?.();
-				unbindEvents = undefined;
-				stopForceLayoutSimulation();
-				renderer.kill();
-				renderer = undefined;
-			}
-			const firstRender = !renderer;
-			if (renderer) {
-				unbindEvents?.();
-				stopForceLayoutSimulation();
+				if (renderer && isForce3DRenderer(renderer) !== wants3DRenderer) {
+					unbindEvents?.();
+					unbindEvents = undefined;
+					unbindGroupCamera?.();
+					unbindGroupCamera = undefined;
+					stopForceLayoutSimulation();
+					renderer.kill();
+					renderer = undefined;
+				}
+				const firstRender = !renderer;
+				if (renderer) {
+					unbindEvents?.();
+					unbindGroupCamera?.();
+					stopForceLayoutSimulation();
 				if (isForce3DRenderer(renderer)) {
 					renderer.setPalette(palette);
-				}
-				renderer.setGraph(graph);
-				unbindEvents = bindEventsForRenderer(renderer);
-			} else {
+					}
+					renderer.setGraph(graph);
+					unbindEvents = bindEventsForRenderer(renderer);
+					unbindGroupCamera = bindGroupOverlayCamera(renderer);
+				} else {
 				const nextRenderer = wants3DRenderer
 					? await Force3DRenderer.create(
 							graph,
@@ -567,10 +592,12 @@
 				if (version !== renderVersion) {
 					nextRenderer.kill();
 					return;
+					}
+					renderer = nextRenderer;
+					unbindEvents = bindEventsForRenderer(nextRenderer);
+					unbindGroupCamera = bindGroupOverlayCamera(nextRenderer);
 				}
-				renderer = nextRenderer;
-				unbindEvents = bindEventsForRenderer(nextRenderer);
-			}
+				refreshGroupOverlay();
 		renderer.setSelected(workspaceState.selectedNodeId);
 		renderer.setHovered(workspaceState.hoveredNodeId);
 		if (firstRender || fitAfterRender) {
@@ -617,21 +644,45 @@
 			return bindGraphEvents(targetRenderer, {
 				enableForceLayout:
 					workspaceState.mode === "graph" && workspaceState.enableForceLayout,
-			onSelect: (nodeId) => controller.selectNode(nodeId),
-			onHover: (nodeId) => controller.hoverNode(nodeId),
-			onOpen: (nodeId) => void controller.openNode(nodeId),
-			onNodeDrag: (nodeId, position) => {
-				targetRenderer.holdCurrentBounds();
-				getOrCreateForceLayoutSimulation(targetRenderer).drag(
-					nodeId,
-					position,
-				);
-				getLayoutSnapshot().positions.set(nodeId, position);
-				targetRenderer.instance.refresh();
-			},
-			onNodeDragEnd: (nodeId) => {
-				forceLayoutSimulation?.release(nodeId);
-			},
+				enableNodeDragging: workspaceState.mode === "free",
+				onSelect: (nodeId) => controller.selectNode(nodeId),
+				onHover: (nodeId) => controller.hoverNode(nodeId),
+				onOpen: (nodeId) => {
+					if (Date.now() < suppressNodeOpenUntil) {
+						return;
+					}
+					void controller.openNode(nodeId);
+				},
+				onNodeDrag: (nodeId, position) => {
+					suppressNodeOpenUntil = Date.now() + 700;
+					targetRenderer.holdCurrentBounds();
+					if (workspaceState.mode === "free") {
+						targetRenderer.runtimeGraph.mergeNodeAttributes(nodeId, {
+							x: position.x,
+							y: position.y,
+							fixed: true,
+						});
+					} else {
+						getOrCreateForceLayoutSimulation(targetRenderer).drag(
+							nodeId,
+							position,
+						);
+					}
+					getLayoutSnapshot().positions.set(nodeId, position);
+					targetRenderer.instance.refresh();
+					refreshGroupOverlay();
+				},
+				onNodeDragEnd: (nodeId) => {
+					suppressNodeOpenUntil = Date.now() + 700;
+					if (workspaceState.mode === "free") {
+						const position = getLayoutSnapshot().positions.get(nodeId);
+						if (position) {
+							controller.setManualNodePosition(nodeId, position);
+						}
+						return;
+					}
+					forceLayoutSimulation?.release(nodeId);
+				},
 			onConnectionDrag: (state) => {
 				connectionDrag = state;
 				if (!state) {
@@ -679,13 +730,29 @@
 		return forceLayoutSimulation;
 	}
 
-	function stopForceLayoutSimulation(): void {
-		forceLayoutSimulation?.stop();
-		forceLayoutSimulation = undefined;
-		renderer?.clearHeldBounds();
-	}
+		function stopForceLayoutSimulation(): void {
+			forceLayoutSimulation?.stop();
+			forceLayoutSimulation = undefined;
+			renderer?.clearHeldBounds();
+		}
 
-	function snapshotCurrentGraphPositions(graph: RuntimeGraph): void {
+		function bindGroupOverlayCamera(
+			targetRenderer: GraphRenderer,
+		): (() => void) | undefined {
+			if (isForce3DRenderer(targetRenderer)) {
+				return undefined;
+			}
+			const camera = targetRenderer.instance.getCamera();
+			const refresh = () => refreshGroupOverlay();
+			camera.on("updated", refresh);
+			return () => camera.removeListener("updated", refresh);
+		}
+
+		function refreshGroupOverlay(): void {
+			groupOverlayRevision += 1;
+		}
+
+		function snapshotCurrentGraphPositions(graph: RuntimeGraph): void {
 		const positions = getLayoutSnapshot().positions;
 		graph.forEachNode((nodeId, attributes) => {
 			if (!attributes.isBend) {
@@ -718,10 +785,40 @@
 				workspaceState.query.maxNodes
 			: false,
 	);
-	const debugSnapshot: DebugSnapshot = $derived(
-		controller.getDebugSnapshot(workspaceState),
-	);
-	const selectedDockNodes = $derived(getSelectedDockNodes(debugSnapshot));
+		const debugSnapshot: DebugSnapshot = $derived(
+			controller.getDebugSnapshot(workspaceState),
+		);
+		const groupOverlays = $derived.by(() => {
+			groupOverlayRevision;
+			const currentRenderer = renderer;
+			if (
+				workspaceState.mode !== "free" ||
+				!currentRenderer ||
+				isForce3DRenderer(currentRenderer)
+			) {
+				return [];
+			}
+			return workspaceState.manualLayout.groups.map((group) => {
+				const first = currentRenderer.instance.graphToViewport({
+					x: group.x,
+					y: group.y,
+				});
+				const second = currentRenderer.instance.graphToViewport({
+					x: group.x + group.width,
+					y: group.y + group.height,
+				});
+				return {
+					id: group.id,
+					name: group.name,
+					color: group.color,
+					left: Math.min(first.x, second.x),
+					top: Math.min(first.y, second.y),
+					width: Math.abs(second.x - first.x),
+					height: Math.abs(second.y - first.y),
+				} satisfies GroupOverlay;
+			});
+		});
+		const selectedDockNodes = $derived(getSelectedDockNodes(debugSnapshot));
 	const dockNoteCandidates = $derived(getDockNoteCandidates(debugSnapshot));
 	const nodeColors = $derived.by(() => {
 		const rules = getActiveNodeStyleRules();
@@ -872,6 +969,9 @@
 			if (flowEdgesChanged) {
 				snapshot.edgeIds = currentEdgeIds;
 			}
+			} else if (workspaceState.mode === "free") {
+				snapshot.edgeIds = currentEdgeIds;
+				snapshot.orthogonalRoutes = new Map();
 			} else if (workspaceState.mode === "graph") {
 				if (needsGraphLayout) {
 					await new ForceAtlasLayout(workspaceState.graphSpacing).apply(
@@ -1040,14 +1140,28 @@
 		if (workspaceState.mode === "graph") {
 			return `${workspaceState.activeChartId}-graph`;
 		}
-		if (workspaceState.mode === "graph-3d") {
-			return `${workspaceState.activeChartId}-graph-3d`;
-		}
+			if (workspaceState.mode === "graph-3d") {
+				return `${workspaceState.activeChartId}-graph-3d`;
+			}
+			if (workspaceState.mode === "free") {
+				return `${workspaceState.activeChartId}-free`;
+			}
 		if (workspaceState.mode === "arc") {
 			return `${workspaceState.activeChartId}-arc-${workspaceState.arcDirection}`;
 		}
-		return `${workspaceState.activeChartId}-flow-${workspaceState.flowEdgeStyle}-${workspaceState.flowDirection}`;
-	}
+			return `${workspaceState.activeChartId}-flow-${workspaceState.flowEdgeStyle}-${workspaceState.flowDirection}`;
+		}
+
+		function hydrateManualLayoutPositions(snapshot: LayoutSnapshot): void {
+			if (workspaceState.mode !== "free") {
+				return;
+			}
+			for (const [nodeId, placement] of Object.entries(
+				workspaceState.manualLayout.nodes,
+			)) {
+				snapshot.positions.set(nodeId, { x: placement.x, y: placement.y });
+			}
+		}
 
 	function getLogicalEdgeIds(graph: RuntimeGraph): Set<string> {
 		return new Set(
@@ -1570,9 +1684,18 @@
 				class="knowledge-workspace-settings-popover"
 				style:--knowledge-workspace-settings-left={`${settingsPopoverLeft}px`}
 			>
-				<FilterPanel
-						{app}
-						panel={settingsPanel}
+					{#if settingsPanel === "groups"}
+						<GroupPanel
+							manualLayout={workspaceState.manualLayout}
+							onAddGroup={() => controller.addGroup()}
+							onUpdateGroup={(groupId, patch) =>
+								controller.updateGroup(groupId, patch)}
+							onDeleteGroup={(groupId) => controller.deleteGroup(groupId)}
+						/>
+					{:else}
+						<FilterPanel
+								{app}
+								panel={settingsPanel}
 						mode={workspaceState.mode}
 							fadeDistance={workspaceState.fadeDistance}
 							labelSize={workspaceState.labelSize}
@@ -1645,10 +1768,11 @@
 						controller.setGlobalLinkStyleRules(rules)}
 					onLinkStyleOverrides={(style) =>
 						controller.setLinkStyleOverrides(style)}
-					onLinkStyleRulesChange={(rules) =>
-						controller.setLinkStyleRules(rules)}
-					/>
-			</div>
+							onLinkStyleRulesChange={(rules) =>
+								controller.setLinkStyleRules(rules)}
+						/>
+					{/if}
+				</div>
 		{/if}
 		<main
 			class="knowledge-workspace-main"
@@ -1664,8 +1788,24 @@
 					? '32px'
 					: '0px'}"
 		>
-				<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
-			{#if workspaceState.chartSource === "curated"}
+					<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+					{#if groupOverlays.length > 0}
+						<div class="knowledge-workspace-group-overlay" aria-hidden="true">
+							{#each groupOverlays as group (group.id)}
+								<div
+									class="knowledge-workspace-group-region"
+									style:left={`${group.left}px`}
+									style:top={`${group.top}px`}
+									style:width={`${group.width}px`}
+									style:height={`${group.height}px`}
+									style:--knowledge-workspace-group-color={group.color}
+								>
+									<span>{group.name}</span>
+								</div>
+							{/each}
+						</div>
+					{/if}
+					{#if workspaceState.chartSource === "curated"}
 				<CuratedPanel
 					{app}
 					curated={workspaceState.curated}

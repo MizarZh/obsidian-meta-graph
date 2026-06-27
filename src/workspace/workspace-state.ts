@@ -45,8 +45,11 @@ export function createWorkspaceState(
 					: 1,
 		flowSpacing:
 			activeChart.type === 'flow' ? activeChart.layout.spacing : 1,
-		arcSpacing: activeChart.type === 'arc' ? activeChart.layout.spacing : 1,
-		layoutRevision: 0,
+			arcSpacing: activeChart.type === 'arc' ? activeChart.layout.spacing : 1,
+			manualLayout: cloneSerializable(
+				activeChart.layout.manual ?? { nodes: {}, groups: [] },
+			),
+			layoutRevision: 0,
 		query: cloneSerializable(activeChart.query),
 		curated: cloneSerializable(activeChart.curated),
 			globalQuery: cloneSerializable(metaGraphDocument.globalQuery),

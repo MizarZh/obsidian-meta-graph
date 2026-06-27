@@ -16,6 +16,7 @@ import type {
 	LabelPosition,
 	LinkLineStyle,
 	LinkStyleRule,
+	ManualLayoutConfig,
 	MetaGraphChart,
 	MetaGraphDocument,
 	MetaGraphDock,
@@ -914,7 +915,7 @@ function normalizeLayout(
 ): ChartLayoutConfig {
 	const record = isRecord(value) ? value : {};
 	return {
-			engine: readLayoutEngine(type),
+		engine: readLayoutEngine(type),
 		spacing: readFiniteNumber(record.spacing, fallback.spacing),
 		direction:
 			record.direction === 'RL' ||
@@ -933,7 +934,95 @@ function normalizeLayout(
 			record.edgeStyle === 'straight' || record.edgeStyle === 'orthogonal'
 				? record.edgeStyle
 				: fallback.edgeStyle,
+		manual: normalizeManualLayout(record.manual, fallback.manual),
 	};
+}
+
+function normalizeManualLayout(
+	value: unknown,
+	fallback?: ManualLayoutConfig,
+): ManualLayoutConfig {
+	const record = isRecord(value) ? value : {};
+	const nodeRecord = isRecord(record.nodes) ? record.nodes : {};
+	const nodes: ManualLayoutConfig['nodes'] = {};
+	for (const [path, placementValue] of Object.entries(nodeRecord)) {
+		const placement = normalizeNodePlacement(placementValue);
+		if (placement) {
+			nodes[normalizeTextPath(path)] = placement;
+		}
+	}
+	const groups = Array.isArray(record.groups)
+		? record.groups
+				.map((group, index) => normalizeChartGroup(group, index))
+				.filter((group): group is ManualLayoutConfig['groups'][number] =>
+					Boolean(group),
+				)
+		: [];
+	return {
+		nodes:
+			Object.keys(nodes).length > 0
+				? nodes
+				: cloneSerializable(fallback?.nodes ?? {}),
+		groups: groups.length > 0 ? uniqueById(groups) : cloneSerializable(fallback?.groups ?? []),
+	};
+}
+
+function normalizeNodePlacement(value: unknown): ManualLayoutConfig['nodes'][string] | undefined {
+	const record = isRecord(value) ? value : {};
+	const x = readOptionalFiniteNumber(record.x);
+	const y = readOptionalFiniteNumber(record.y);
+	if (x === undefined || y === undefined) {
+		return undefined;
+	}
+	const groupId =
+		typeof record.groupId === 'string' && record.groupId.trim()
+			? record.groupId.trim()
+			: undefined;
+	return groupId ? { x, y, groupId } : { x, y };
+}
+
+function normalizeChartGroup(
+	value: unknown,
+	index: number,
+): ManualLayoutConfig['groups'][number] | undefined {
+	const record = isRecord(value) ? value : {};
+	const id =
+		typeof record.id === 'string' && record.id.trim()
+			? record.id.trim()
+			: createDockId('group', `${index + 1}`);
+	const name =
+		typeof record.name === 'string' && record.name.trim()
+			? record.name.trim()
+			: `Group ${index + 1}`;
+	const x = readFiniteNumber(record.x, 0);
+	const y = readFiniteNumber(record.y, 0);
+	const width = Math.max(0.8, normalizeGroupSize(record.width, 3.2));
+	const height = Math.max(0.6, normalizeGroupSize(record.height, 2.2));
+	const color =
+		typeof record.color === 'string' && record.color.trim()
+			? record.color.trim()
+			: '#7c6ff0';
+	const mode = record.mode === 'rule' ? 'rule' : 'manual';
+	const padding = Math.max(0, readFiniteNumber(record.padding, 0.32));
+	return {
+		id,
+		name,
+		x,
+		y,
+		width,
+		height,
+		color,
+		mode,
+		padding,
+		rule: isRecord(record.rule)
+			? normalizeFilterGroup(record.rule)
+			: undefined,
+	};
+}
+
+function normalizeGroupSize(value: unknown, fallback: number): number {
+	const size = readFiniteNumber(value, fallback);
+	return size > 20 ? size / 100 : size;
 }
 
 function normalizeDockTemplate(
@@ -1085,6 +1174,15 @@ function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 				engine: 'force-3d',
 				spacing: 1,
 			};
+		case 'free':
+			return {
+				engine: 'free',
+				spacing: 1,
+				manual: {
+					nodes: {},
+					groups: [],
+				},
+			};
 		case 'graph':
 			return {
 				engine: 'force-atlas',
@@ -1131,6 +1229,8 @@ function getDefaultChartId(type: ViewMode): string {
 			return 'knowledge-map';
 		case 'graph-3d':
 			return 'knowledge-map-3d';
+		case 'free':
+			return 'free-map';
 		case 'flow':
 			return 'learning-flow';
 		case 'arc':
@@ -1146,6 +1246,8 @@ function getDefaultChartName(type: ViewMode): string {
 			return 'Knowledge map';
 		case 'graph-3d':
 			return '3D graph';
+		case 'free':
+			return 'Free map';
 		case 'flow':
 			return 'Learning flow';
 		case 'arc':
@@ -1158,6 +1260,7 @@ function getDefaultChartName(type: ViewMode): string {
 function readViewMode(value: unknown): ViewMode {
 	return value === 'flow' ||
 		value === 'graph-3d' ||
+		value === 'free' ||
 		value === 'arc' ||
 		value === 'hierarchical-edge-bundling'
 		? value
@@ -1176,6 +1279,9 @@ function readLayoutEngine(type: ViewMode): ChartLayoutConfig['engine'] {
 	}
 	if (type === 'graph-3d') {
 		return 'force-3d';
+	}
+	if (type === 'free') {
+		return 'free';
 	}
 	return 'force-atlas';
 }

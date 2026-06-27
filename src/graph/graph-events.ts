@@ -3,6 +3,7 @@ import type { SigmaRenderer } from "./sigma-renderer";
 
 export interface GraphEventCallbacks {
 	enableForceLayout?: boolean;
+	enableNodeDragging?: boolean;
 	onSelect(nodeId?: string): void;
 	onHover(nodeId?: string): void;
 	onOpen(nodeId: string): void;
@@ -131,7 +132,10 @@ export function bindGraphEvents(
 		) {
 			return;
 		}
-		if (!event.original.ctrlKey && callbacks.enableForceLayout) {
+			if (
+				!event.original.ctrlKey &&
+				(callbacks.enableForceLayout || callbacks.enableNodeDragging)
+			) {
 			event.original.preventDefault();
 			event.preventSigmaDefault();
 			previousCameraPanning = sigma.getSetting("enableCameraPanning");
@@ -179,6 +183,7 @@ export function bindGraphEvents(
 				return;
 			}
 			hasDraggedNode = true;
+			startDragClickSuppression();
 			const position = sigma.viewportToGraph({ x: event.x, y: event.y });
 			callbacks.onNodeDrag?.(draggedNodeId, position);
 			return;
@@ -194,10 +199,14 @@ export function bindGraphEvents(
 		};
 		callbacks.onConnectionDrag?.(connectionDrag);
 	};
-	const upNode = ({ node }: { node: string }) => {
-		if (!connectionDrag) {
-			return;
-		}
+		const upNode = ({ node }: { node: string }) => {
+			if (draggedNodeId) {
+				endNodeDrag();
+				return;
+			}
+			if (!connectionDrag) {
+				return;
+			}
 		const { sourceNodeId } = connectionDrag;
 		endConnectionDrag();
 		if (
@@ -207,7 +216,10 @@ export function bindGraphEvents(
 			callbacks.onConnect?.(sourceNodeId, node);
 		}
 	};
-	const upStage = () => endConnectionDrag();
+		const upStage = () => {
+			endNodeDrag();
+			endConnectionDrag();
+		};
 	const mouseUp = () => {
 		endNodeDrag();
 		endConnectionDrag();
@@ -262,6 +274,11 @@ export function bindGraphEvents(
 		original: MouseEvent | TouchEvent;
 		preventSigmaDefault(): void;
 	}): boolean {
+		if (hasDraggedNode) {
+			event.original.preventDefault();
+			event.preventSigmaDefault();
+			return true;
+		}
 		if (Date.now() < suppressClickUntil) {
 			event.original.preventDefault();
 			event.preventSigmaDefault();

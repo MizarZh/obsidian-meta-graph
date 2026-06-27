@@ -5,6 +5,7 @@ import { extractLinkText } from '../core/link-resolver';
 import type {
 	ArcDirection,
 	ChartSource,
+	ChartGroup,
 	ConnectionFieldMode,
 	ConnectionFieldSpec,
 	CuratedWorkspaceConfig,
@@ -454,6 +455,98 @@ export class WorkspaceController {
 			display: {
 				...this.getActiveChart().display,
 				enableForceLayout,
+			},
+		});
+		this.emit();
+	}
+
+	setManualNodePosition(
+		nodeId: NodeId,
+		position: { x: number; y: number },
+		groupId?: string,
+	): void {
+		const activeChart = this.getActiveChart();
+		const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
+		const previous = manual.nodes[nodeId];
+		const nextPlacement = groupId
+			? { x: position.x, y: position.y, groupId }
+			: { x: position.x, y: position.y };
+		if (
+			previous?.x === nextPlacement.x &&
+			previous?.y === nextPlacement.y &&
+			previous?.groupId === nextPlacement.groupId
+		) {
+			return;
+		}
+		this.state = this.updateActiveChart({
+			layout: {
+				...activeChart.layout,
+				manual: {
+					...manual,
+					nodes: {
+						...manual.nodes,
+						[nodeId]: nextPlacement,
+					},
+				},
+			},
+		});
+		this.emit();
+	}
+
+	addGroup(): void {
+		const activeChart = this.getActiveChart();
+		const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
+		const group = createUniqueDefaultGroup(manual.groups);
+		this.state = this.updateActiveChart({
+			layout: {
+				...activeChart.layout,
+				manual: {
+					...manual,
+					groups: [...manual.groups, group],
+				},
+			},
+		});
+		this.emit();
+	}
+
+	updateGroup(groupId: string, patch: Partial<ChartGroup>): void {
+		const activeChart = this.getActiveChart();
+		const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
+		const groups = manual.groups.map((group) =>
+			group.id === groupId ? normalizeGroupPatch(group, patch) : group,
+		);
+		this.state = this.updateActiveChart({
+			layout: {
+				...activeChart.layout,
+				manual: {
+					...manual,
+					groups,
+				},
+			},
+		});
+		this.emit();
+	}
+
+	deleteGroup(groupId: string): void {
+		const activeChart = this.getActiveChart();
+		const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
+		const groups = manual.groups.filter((group) => group.id !== groupId);
+		const nodes = Object.fromEntries(
+			Object.entries(manual.nodes).map(([nodeId, placement]) => [
+				nodeId,
+				placement.groupId === groupId
+					? { x: placement.x, y: placement.y }
+					: placement,
+			]),
+		);
+		this.state = this.updateActiveChart({
+			layout: {
+				...activeChart.layout,
+				manual: {
+					...manual,
+					nodes,
+					groups,
+				},
 			},
 		});
 		this.emit();
@@ -1401,11 +1494,14 @@ export class WorkspaceController {
 				nextChart.type === 'flow'
 					? nextChart.layout.spacing
 					: this.state.flowSpacing,
-			arcSpacing:
-				nextChart.type === 'arc'
-					? nextChart.layout.spacing
-					: this.state.arcSpacing,
-			query: cloneSerializable(nextChart.query),
+				arcSpacing:
+					nextChart.type === 'arc'
+						? nextChart.layout.spacing
+						: this.state.arcSpacing,
+				manualLayout: cloneSerializable(
+					nextChart.layout.manual ?? { nodes: {}, groups: [] },
+				),
+				query: cloneSerializable(nextChart.query),
 				curated: cloneSerializable(nextChart.curated),
 				nodeStyleOverrides: cloneSerializable(nextChart.style.nodeOverrides),
 				linkStyleOverrides: cloneSerializable(nextChart.style.linkOverrides),
@@ -1529,6 +1625,67 @@ export class WorkspaceController {
 
 function normalizeSpacing(value: number): number {
 	return Number.isFinite(value) && value > 0 ? value : 1;
+}
+
+function createDefaultGroup(index: number): ChartGroup {
+		return {
+			id: createGroupId(`Group ${index}`),
+			name: `Group ${index}`,
+			x: -1.6,
+			y: -1.1,
+			width: 3.2,
+			height: 2.2,
+			color: '#7c6ff0',
+			mode: 'manual',
+			padding: 0.32,
+		};
+	}
+
+function createUniqueDefaultGroup(existingGroups: ChartGroup[]): ChartGroup {
+	const existingIds = new Set(existingGroups.map((group) => group.id));
+	let index = existingGroups.length + 1;
+	let group = createDefaultGroup(index);
+	while (existingIds.has(group.id)) {
+		index += 1;
+		group = createDefaultGroup(index);
+	}
+	return group;
+}
+
+function createGroupId(name: string): string {
+	const slug = name
+		.trim()
+		.toLocaleLowerCase()
+		.replace(/[^a-z0-9]+/gu, '-')
+		.replace(/^-+|-+$/gu, '');
+	return `group-${slug || Date.now().toString(36)}`;
+}
+
+function normalizeGroupPatch(
+	group: ChartGroup,
+	patch: Partial<ChartGroup>,
+): ChartGroup {
+	return {
+		...group,
+		...patch,
+		name:
+			typeof patch.name === 'string' && patch.name.trim()
+				? patch.name.trim()
+				: group.name,
+		width:
+			typeof patch.width === 'number' && Number.isFinite(patch.width)
+				? Math.max(0.8, patch.width)
+				: group.width,
+		height:
+			typeof patch.height === 'number' && Number.isFinite(patch.height)
+				? Math.max(0.6, patch.height)
+				: group.height,
+		padding:
+			typeof patch.padding === 'number' && Number.isFinite(patch.padding)
+				? Math.max(0, patch.padding)
+				: group.padding,
+		mode: patch.mode === 'rule' ? 'rule' : (patch.mode ?? group.mode),
+	};
 }
 
 function createDockId(prefix: string, value: string): string {

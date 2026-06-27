@@ -84,16 +84,18 @@
 		})),
 	);
 			const VIEW_ICONS: Record<ViewMode, IconName> = {
-				graph: "chart-scatter",
-				"graph-3d": "box",
-				flow: "git-fork",
+					graph: "chart-scatter",
+					"graph-3d": "box",
+					free: "move",
+					flow: "git-fork",
 				arc: "route",
 			"hierarchical-edge-bundling": "git-merge",
 		};
 			const VIEW_MODE_OPTIONS = [
-				{ value: "graph", label: "Graph" },
-				{ value: "graph-3d", label: "3D graph" },
-				{ value: "flow", label: "Flow" },
+					{ value: "graph", label: "Graph" },
+					{ value: "graph-3d", label: "3D graph" },
+					{ value: "free", label: "Free" },
+					{ value: "flow", label: "Flow" },
 			{ value: "arc", label: "Arc diagram" },
 			{
 				value: "hierarchical-edge-bundling",
@@ -109,11 +111,12 @@
 		icon: IconName;
 		label: string;
 	}>>([
-		{ mode: "graph", icon: "settings-2", label: "Graph" },
-		...(chartSource === "query"
-			? [{ mode: "filters", icon: "list-filter", label: "Filter" } as const]
-			: []),
-		{ mode: "text-style", icon: "type", label: "Text style" },
+			{ mode: "graph", icon: "settings-2", label: "Graph" },
+			...(chartSource === "query"
+				? [{ mode: "filters", icon: "list-filter", label: "Filter" } as const]
+				: []),
+			{ mode: "groups", icon: "group", label: "Group" },
+			{ mode: "text-style", icon: "type", label: "Text style" },
 		{ mode: "note-style", icon: "palette", label: "Note style" },
 		{ mode: "link-style", icon: "route", label: "Link style" },
 	]);
