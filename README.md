@@ -52,33 +52,46 @@ settings to report them in the developer console.
 5. Use **Source → Query** for filter-driven charts, or **Source → Workspace**
    to manually add a fixed set of notes. Workspace source shows selected notes,
    including isolated notes, and existing metadata links between them.
-6. Add filters and style rules for **All views** or **This view**. File
+6. Set workspace default note/link styles, then optionally add one chart
+   override card. If no chart override exists, the chart inherits the workspace
+   default.
+7. Add filters and style rules for **All views** or **This view**. File
    filters support file name, path, folder, extension, tags, links, and
    frontmatter property presence.
-7. Add link style rules by relation or source frontmatter field.
-8. Increase **Label density** in **Graph** settings when Sigma samples too few
+8. Add link style rules by relation or source frontmatter field.
+9. Increase **Label density** in **Graph** settings when Sigma samples too few
    labels while zoomed out. Enable **Always show labels** to force every visible
    note label through Sigma's label grid.
-9. Use the bottom connection panel to select or add the metadata field used for
+10. Use the bottom connection panel to select or add the metadata field used for
    new links. Set the field direction to **One-way** or **Two-way** from the
    direction dropdown.
-10. Hold `Ctrl`, drag from one node to another, and release to add a link to the
+11. Hold `Ctrl`, drag from one node to another, and release to add a link to the
    selected metadata field. One-way writes the source note only; two-way writes
    both notes so each note links to the other.
-11. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
+12. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
    through the force-directed layout. Nearby nodes can move with the graph
    forces, and the layout keeps settling briefly after release. `Ctrl`-drag
    still creates links.
-12. Use the right dock panel to keep templates and selected notes in a compact
+13. Use the right dock panel to keep templates and selected notes in a compact
    vertical list. Add or edit templates from the dock, drag items in the dock
    to reorder them, and hold `Ctrl` while dragging a dock item to connect it to
    a graph node.
-13. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
+14. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
    workspace is focused, to undo connection edits made in the current workspace
    session.
-14. Select a node to open its note in a new tab.
-15. Select **Debug** to inspect or copy the current query, projection,
+15. Select a node to open its note in a new tab.
+16. Select **Debug** to inspect or copy the current query, projection,
    canonical index, adjacency maps, and unresolved links as JSON.
+
+Style fallback is field-by-field:
+
+```text
+chart matching rule
+→ workspace global matching rule
+→ chart override card, when present
+→ workspace default
+→ built-in default
+```
 
 Markdown files with this frontmatter open as graph workspaces:
 
@@ -119,6 +132,8 @@ charts:
       showInspector: true
       showFilters: true
     style:
+      nodeOverrides: {}
+      linkOverrides: {}
       nodeRules: []
       linkRules: []
 
@@ -133,6 +148,16 @@ globalQuery:
   direction: both
   maxNodes: 200
 globalStyle:
+  defaultNodeStyle:
+    color: "#7c6ff0"
+    size: 7
+  defaultLinkStyle:
+    color: "#888888"
+    size: 1.5
+    lineStyle: solid
+    label: ""
+    showLabel: false
+    hidden: false
   nodeRules: []
   linkRules: []
 activeChart: knowledge-map

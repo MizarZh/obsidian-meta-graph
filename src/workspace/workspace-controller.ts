@@ -8,6 +8,8 @@ import type {
 	ConnectionFieldMode,
 	ConnectionFieldSpec,
 	CuratedWorkspaceConfig,
+	DefaultLinkStyle,
+	DefaultNodeStyle,
 	DebugSnapshot,
 	FlowDirection,
 	FlowEdgeStyle,
@@ -208,13 +210,15 @@ export class WorkspaceController {
 		const nextState = createWorkspaceState(
 			this.state.query.maxNodes,
 			chart.display.fadeDistance,
-				{
-					charts: this.state.charts,
-					globalQuery: this.state.globalQuery,
-					globalStyle: {
-						nodeRules: this.state.globalNodeStyleRules,
-						linkRules: this.state.globalLinkStyleRules,
-					},
+					{
+						charts: this.state.charts,
+						globalQuery: this.state.globalQuery,
+						globalStyle: {
+							defaultNodeStyle: this.state.defaultNodeStyle,
+							defaultLinkStyle: this.state.defaultLinkStyle,
+							nodeRules: this.state.globalNodeStyleRules,
+							linkRules: this.state.globalLinkStyleRules,
+						},
 					activeChart: chart.id,
 					connectionFields: this.state.connectionFields,
 					connectionFieldSpecs: this.state.connectionFieldSpecs,
@@ -926,6 +930,42 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	setDefaultNodeStyle(defaultNodeStyle: Required<DefaultNodeStyle>): void {
+		this.state = {
+			...this.state,
+			defaultNodeStyle: cloneSerializable(defaultNodeStyle),
+		};
+		this.emit();
+	}
+
+	setDefaultLinkStyle(defaultLinkStyle: Required<DefaultLinkStyle>): void {
+		this.state = {
+			...this.state,
+			defaultLinkStyle: cloneSerializable(defaultLinkStyle),
+		};
+		this.emit();
+	}
+
+	setNodeStyleOverrides(nodeStyleOverrides: DefaultNodeStyle): void {
+		this.state = this.updateActiveChart({
+			style: {
+				...this.getActiveChart().style,
+				nodeOverrides: cloneSerializable(nodeStyleOverrides),
+			},
+		});
+		this.emit();
+	}
+
+	setLinkStyleOverrides(linkStyleOverrides: DefaultLinkStyle): void {
+		this.state = this.updateActiveChart({
+			style: {
+				...this.getActiveChart().style,
+				linkOverrides: cloneSerializable(linkStyleOverrides),
+			},
+		});
+		this.emit();
+	}
+
 	setNodeStyleRules(nodeStyleRules: NodeStyleRule[]): void {
 		this.state = this.updateActiveChart({
 			style: {
@@ -1366,9 +1406,11 @@ export class WorkspaceController {
 					? nextChart.layout.spacing
 					: this.state.arcSpacing,
 			query: cloneSerializable(nextChart.query),
-			curated: cloneSerializable(nextChart.curated),
-			nodeStyleRules: cloneSerializable(nextChart.style.nodeRules),
-			linkStyleRules: cloneSerializable(nextChart.style.linkRules),
+				curated: cloneSerializable(nextChart.curated),
+				nodeStyleOverrides: cloneSerializable(nextChart.style.nodeOverrides),
+				linkStyleOverrides: cloneSerializable(nextChart.style.linkOverrides),
+				nodeStyleRules: cloneSerializable(nextChart.style.nodeRules),
+				linkStyleRules: cloneSerializable(nextChart.style.linkRules),
 			layoutRevision:
 				this.state.layoutRevision + (forceLayout ? 1 : 0),
 		};

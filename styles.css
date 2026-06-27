@@ -1355,6 +1355,10 @@
 	gap: var(--size-4-1);
 }
 
+.knowledge-workspace-rule-row.override-heading {
+	grid-template-columns: minmax(0, 1fr) 30px;
+}
+
 .knowledge-workspace-line-style-row {
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr);

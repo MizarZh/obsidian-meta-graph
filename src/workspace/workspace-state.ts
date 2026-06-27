@@ -47,15 +47,23 @@ export function createWorkspaceState(
 		layoutRevision: 0,
 		query: cloneSerializable(activeChart.query),
 		curated: cloneSerializable(activeChart.curated),
-		globalQuery: cloneSerializable(metaGraphDocument.globalQuery),
-		globalNodeStyleRules: cloneSerializable(
-			metaGraphDocument.globalStyle.nodeRules,
-		),
-		globalLinkStyleRules: cloneSerializable(
-			metaGraphDocument.globalStyle.linkRules,
-		),
-		nodeStyleRules: cloneSerializable(activeChart.style.nodeRules),
-		linkStyleRules: cloneSerializable(activeChart.style.linkRules),
+			globalQuery: cloneSerializable(metaGraphDocument.globalQuery),
+			defaultNodeStyle: cloneSerializable(
+				metaGraphDocument.globalStyle.defaultNodeStyle,
+			),
+			defaultLinkStyle: cloneSerializable(
+				metaGraphDocument.globalStyle.defaultLinkStyle,
+			),
+			globalNodeStyleRules: cloneSerializable(
+				metaGraphDocument.globalStyle.nodeRules,
+			),
+			globalLinkStyleRules: cloneSerializable(
+				metaGraphDocument.globalStyle.linkRules,
+			),
+			nodeStyleOverrides: cloneSerializable(activeChart.style.nodeOverrides),
+			linkStyleOverrides: cloneSerializable(activeChart.style.linkOverrides),
+			nodeStyleRules: cloneSerializable(activeChart.style.nodeRules),
+			linkStyleRules: cloneSerializable(activeChart.style.linkRules),
 		connectionFields: cloneSerializable(metaGraphDocument.connectionFields),
 		connectionFieldSpecs: cloneSerializable(
 			metaGraphDocument.connectionFieldSpecs,

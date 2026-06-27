@@ -22,6 +22,8 @@
 	} from './filter-config';
 	import type {
 		ArcDirection,
+		DefaultLinkStyle,
+		DefaultNodeStyle,
 		FlowDirection,
 		FlowEdgeStyle,
 		GraphQuery,
@@ -66,9 +68,13 @@
 			metadataFieldTypes,
 			metadataFieldValueSuggestions,
 			filePathSuggestions,
+		defaultNodeStyle,
+		defaultLinkStyle,
 		globalNodeStyleRules,
+		nodeStyleOverrides,
 		nodeStyleRules,
 		globalLinkStyleRules,
+		linkStyleOverrides,
 		linkStyleRules,
 		onFlowEdgeStyle,
 		onFlowDirection,
@@ -86,9 +92,13 @@
 		onArcSpacing,
 		onChange,
 		onGlobalChange,
+		onDefaultNodeStyle,
+		onDefaultLinkStyle,
 		onGlobalNodeStyleRulesChange,
+		onNodeStyleOverrides,
 		onNodeStyleRulesChange,
 		onGlobalLinkStyleRulesChange,
+		onLinkStyleOverrides,
 		onLinkStyleRulesChange,
 	}: {
 		app: App;
@@ -116,9 +126,13 @@
 			metadataFieldTypes: Record<string, string>;
 			metadataFieldValueSuggestions: Record<string, string[]>;
 			filePathSuggestions: string[];
+		defaultNodeStyle: Required<DefaultNodeStyle>;
+		defaultLinkStyle: Required<DefaultLinkStyle>;
 		globalNodeStyleRules: NodeStyleRule[];
+		nodeStyleOverrides: DefaultNodeStyle;
 		nodeStyleRules: NodeStyleRule[];
 		globalLinkStyleRules: LinkStyleRule[];
+		linkStyleOverrides: DefaultLinkStyle;
 		linkStyleRules: LinkStyleRule[];
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
@@ -136,9 +150,13 @@
 		onArcSpacing: (spacing: number) => void;
 		onChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
 		onGlobalChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
+		onDefaultNodeStyle: (style: Required<DefaultNodeStyle>) => void;
+		onDefaultLinkStyle: (style: Required<DefaultLinkStyle>) => void;
 		onGlobalNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
+		onNodeStyleOverrides: (style: DefaultNodeStyle) => void;
 		onNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
 		onGlobalLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
+		onLinkStyleOverrides: (style: DefaultLinkStyle) => void;
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 	} = $props();
 
@@ -150,17 +168,9 @@
 		{ value: 'title', label: 'Title' },
 		...FILE_FILTER_FIELD_OPTIONS,
 	];
-	const BASE_NODE_STYLE_FIELD_OPTIONS = [
-		{ value: 'all', label: 'All notes' },
-		...NODE_STYLE_FIELD_OPTIONS,
-	];
 	const LINK_STYLE_FIELD_OPTIONS = [
 		{ value: 'relation', label: 'Relation' },
 		{ value: 'source-field', label: 'Metadata field' },
-	];
-	const BASE_LINK_STYLE_FIELD_OPTIONS = [
-		{ value: 'all', label: 'All links' },
-		...LINK_STYLE_FIELD_OPTIONS,
 	];
 		const STYLE_FILTER_OPERATOR_OPTIONS = TEXT_FILTER_OPERATOR_OPTIONS;
 	const LINE_STYLE_OPTIONS = [
@@ -513,6 +523,88 @@
 		return scope === 'global' ? globalLinkStyleRules : linkStyleRules;
 	}
 
+	function updateDefaultNodeStyle(patch: Partial<DefaultNodeStyle>): void {
+		onDefaultNodeStyle({ ...defaultNodeStyle, ...patch });
+	}
+
+	function updateDefaultLinkStyle(patch: Partial<DefaultLinkStyle>): void {
+		onDefaultLinkStyle({ ...defaultLinkStyle, ...patch });
+	}
+
+	function updateNodeOverride(patch: DefaultNodeStyle): void {
+		onNodeStyleOverrides({ ...nodeStyleOverrides, ...patch });
+	}
+
+	function addNodeOverride(): void {
+		onNodeStyleOverrides({ ...defaultNodeStyle });
+	}
+
+	function clearNodeOverride(): void {
+		onNodeStyleOverrides({});
+	}
+
+	function updateLinkOverride(patch: DefaultLinkStyle): void {
+		onLinkStyleOverrides({ ...linkStyleOverrides, ...patch });
+	}
+
+	function addLinkOverride(): void {
+		onLinkStyleOverrides({ ...defaultLinkStyle });
+	}
+
+	function clearLinkOverride(): void {
+		onLinkStyleOverrides({});
+	}
+
+	function activeNodeStyleValue(field: keyof DefaultNodeStyle): string | number {
+		return nodeStyleOverrides[field] ?? defaultNodeStyle[field];
+	}
+
+	function activeLinkStyleValue(
+		field: keyof DefaultLinkStyle,
+	): string | number | boolean {
+		return linkStyleOverrides[field] ?? defaultLinkStyle[field];
+	}
+
+	function activeNodeColor(): string {
+		return String(activeNodeStyleValue('color'));
+	}
+
+	function activeNodeSize(): number {
+		return Number(activeNodeStyleValue('size'));
+	}
+
+	function activeLinkColor(): string {
+		return String(activeLinkStyleValue('color'));
+	}
+
+	function activeLinkSize(): number {
+		return Number(activeLinkStyleValue('size'));
+	}
+
+	function activeLinkLineStyle(): LinkLineStyle {
+		return activeLinkStyleValue('lineStyle') as LinkLineStyle;
+	}
+
+	function activeLinkLabel(): string {
+		return String(activeLinkStyleValue('label'));
+	}
+
+	function activeLinkShowLabel(): boolean {
+		return Boolean(activeLinkStyleValue('showLabel'));
+	}
+
+	function activeLinkHidden(): boolean {
+		return Boolean(activeLinkStyleValue('hidden'));
+	}
+
+	function hasNodeOverride(): boolean {
+		return Object.keys(nodeStyleOverrides).length > 0;
+	}
+
+	function hasLinkOverride(): boolean {
+		return Object.keys(linkStyleOverrides).length > 0;
+	}
+
 	function removeNodeRule(scope: 'global' | 'current', id: string): void {
 		updateNodeRules(
 			scope,
@@ -531,10 +623,6 @@
 		operator: NodeFilterOperator | undefined,
 	): boolean {
 		return operator !== 'has-value' && operator !== 'empty';
-	}
-
-	function isBaseStyleRule(rule: NodeStyleRule | LinkStyleRule): boolean {
-		return rule.id === 'all';
 	}
 
 	function createRuleId(): string {
@@ -808,14 +896,117 @@
 				/>
 			</section>
 		{/each}
-	{:else if panel === 'note-style'}
-		<section>
-			<header><h3>Note styles</h3></header>
-		</section>
-		{#each ['global', 'current'] as scope}
+		{:else if panel === 'note-style'}
+			<section>
+				<header><h3>Note styles</h3></header>
+			</section>
+			<section>
+				<header><h3>Workspace default</h3></header>
+				<div class="knowledge-workspace-rule">
+					<div class="knowledge-workspace-rule-row compact">
+						<label>
+							<span>Color</span>
+							<input
+								type="color"
+								value={defaultNodeStyle.color}
+								oninput={(event) =>
+									scheduleColorCommit(
+										'node:workspace-default',
+										defaultNodeStyle.color,
+										event.currentTarget.value,
+										(color) => updateDefaultNodeStyle({ color }),
+									)}
+								onchange={(event) =>
+									commitColor(
+										'node:workspace-default',
+										defaultNodeStyle.color,
+										event.currentTarget.value,
+										(color) => updateDefaultNodeStyle({ color }),
+									)}
+							/>
+						</label>
+						<label>
+							<span>Size</span>
+							<div class="knowledge-workspace-slider-value">
+								<ObsidianSlider
+									min={1}
+									max={30}
+									step={0.5}
+									value={defaultNodeStyle.size}
+									onChange={(size) => updateDefaultNodeStyle({ size })}
+								/>
+								<span>{defaultNodeStyle.size.toFixed(1)}</span>
+							</div>
+						</label>
+					</div>
+				</div>
+			</section>
 			<section>
 				<header>
-					<h3>{scope === 'global' ? 'All views' : 'This view'}</h3>
+					<h3>Chart overrides</h3>
+					{#if !hasNodeOverride()}
+						<ObsidianButton
+							class="knowledge-workspace-add-rule-button"
+							ariaLabel="Add chart note override"
+							icon="plus"
+							onClick={addNodeOverride}
+						/>
+					{/if}
+				</header>
+				{#if hasNodeOverride()}
+					<div class="knowledge-workspace-rule">
+						<div class="knowledge-workspace-rule-row override-heading">
+							<strong>This chart</strong>
+							<ObsidianButton
+								class="knowledge-workspace-remove-rule-button"
+								ariaLabel="Remove chart note override"
+								icon="trash-2"
+								onClick={clearNodeOverride}
+							/>
+						</div>
+						<div class="knowledge-workspace-rule-row compact">
+							<label>
+								<span>Color</span>
+								<input
+									type="color"
+									value={activeNodeColor()}
+									oninput={(event) =>
+										scheduleColorCommit(
+											'node:chart-override',
+											activeNodeColor(),
+											event.currentTarget.value,
+											(color) => updateNodeOverride({ color }),
+										)}
+									onchange={(event) =>
+										commitColor(
+											'node:chart-override',
+											activeNodeColor(),
+											event.currentTarget.value,
+											(color) => updateNodeOverride({ color }),
+										)}
+								/>
+							</label>
+							<label>
+								<span>Size</span>
+								<div class="knowledge-workspace-slider-value">
+									<ObsidianSlider
+										min={1}
+										max={30}
+										step={0.5}
+										value={activeNodeSize()}
+										onChange={(size) => updateNodeOverride({ size })}
+									/>
+									<span>{activeNodeSize().toFixed(1)}</span>
+								</div>
+							</label>
+						</div>
+					</div>
+				{/if}
+			</section>
+			{#each ['global', 'current'] as scope}
+				<section>
+					<header>
+						<h3>{scope === 'global' ? 'Global note rules' : 'Chart note rules'}</h3>
 					<ObsidianButton
 						class="knowledge-workspace-add-rule-button"
 						ariaLabel="Add note style rule"
@@ -829,14 +1020,9 @@
 						<div
 							class="knowledge-workspace-rule-row style-condition"
 						>
-							<ObsidianDropdown
-								disabled={isBaseStyleRule(rule)}
-								value={rule.field}
-								options={isBaseStyleRule(rule)
-									? BASE_NODE_STYLE_FIELD_OPTIONS
-									: scope === 'global'
-										? BASE_NODE_STYLE_FIELD_OPTIONS
-										: NODE_STYLE_FIELD_OPTIONS}
+								<ObsidianDropdown
+									value={rule.field}
+									options={NODE_STYLE_FIELD_OPTIONS}
 								onChange={(value) =>
 									updateNodeRule(
 										scope as 'global' | 'current',
@@ -846,8 +1032,7 @@
 										},
 									)}
 							/>
-							{#if rule.field !== 'all'}
-								<ObsidianDropdown
+									<ObsidianDropdown
 									value={rule.operator ?? 'is'}
 									options={STYLE_FILTER_OPERATOR_OPTIONS}
 									onChange={(value) =>
@@ -908,18 +1093,10 @@
 											)}
 									/>
 								{/if}
-							{:else}
-								<ObsidianTextInput
-									type="text"
-									disabled={true}
-									value="All notes"
-								/>
-							{/if}
-							<ObsidianButton
+								<ObsidianButton
 								class="knowledge-workspace-remove-rule-button"
 								ariaLabel="Remove note style rule"
-								disabled={isBaseStyleRule(rule)}
-								icon="trash-2"
+									icon="trash-2"
 								onClick={() =>
 									removeNodeRule(
 										scope as 'global' | 'current',
@@ -992,14 +1169,204 @@
 				{/each}
 			</section>
 		{/each}
-	{:else}
-		<section>
-			<header><h3>Link styles</h3></header>
-		</section>
-		{#each ['global', 'current'] as scope}
+		{:else}
+			<section>
+				<header><h3>Link styles</h3></header>
+			</section>
+			<section>
+				<header><h3>Workspace default</h3></header>
+				<div class="knowledge-workspace-rule">
+					<div class="knowledge-workspace-rule-row compact">
+						<label>
+							<span>Color</span>
+							<input
+								type="color"
+								value={defaultLinkStyle.color}
+								oninput={(event) =>
+									scheduleColorCommit(
+										'link:workspace-default',
+										defaultLinkStyle.color,
+										event.currentTarget.value,
+										(color) => updateDefaultLinkStyle({ color }),
+									)}
+								onchange={(event) =>
+									commitColor(
+										'link:workspace-default',
+										defaultLinkStyle.color,
+										event.currentTarget.value,
+										(color) => updateDefaultLinkStyle({ color }),
+									)}
+							/>
+						</label>
+						<label>
+							<span>Width</span>
+							<div class="knowledge-workspace-slider-value">
+								<ObsidianSlider
+									min={0.5}
+									max={10}
+									step={0.5}
+									value={defaultLinkStyle.size}
+									format={(value) => value.toFixed(1)}
+									onChange={(size) => updateDefaultLinkStyle({ size })}
+								/>
+								<span>{defaultLinkStyle.size.toFixed(1)}</span>
+							</div>
+						</label>
+					</div>
+					<div class="knowledge-workspace-line-style-row">
+						<span>Line</span>
+						<div class="knowledge-workspace-segmented">
+							{#each LINE_STYLE_OPTIONS as option}
+								<ObsidianButton
+									active={defaultLinkStyle.lineStyle === option.value}
+									text={option.label}
+									onClick={() =>
+										updateDefaultLinkStyle({
+											lineStyle: option.value as LinkLineStyle,
+										})}
+								/>
+							{/each}
+						</div>
+					</div>
+					<div class="knowledge-workspace-rule-row link-line-label">
+						<label class="knowledge-workspace-rule-label">
+							<span>Label</span>
+							<ObsidianTextInput
+								type="text"
+								placeholder="Optional label"
+								value={defaultLinkStyle.label}
+								onInput={(label) => updateDefaultLinkStyle({ label })}
+							/>
+						</label>
+					</div>
+					<div class="knowledge-workspace-toggle-row">
+						<label class="checkbox">
+							<ObsidianToggle
+								value={defaultLinkStyle.showLabel}
+								onChange={(showLabel) => updateDefaultLinkStyle({ showLabel })}
+							/>
+							<span>Show label</span>
+						</label>
+						<label class="checkbox">
+							<ObsidianToggle
+								value={defaultLinkStyle.hidden}
+								onChange={(hidden) => updateDefaultLinkStyle({ hidden })}
+							/>
+							<span>Hidden</span>
+						</label>
+					</div>
+				</div>
+			</section>
 			<section>
 				<header>
-					<h3>{scope === 'global' ? 'All views' : 'This view'}</h3>
+					<h3>Chart overrides</h3>
+					{#if !hasLinkOverride()}
+						<ObsidianButton
+							class="knowledge-workspace-add-rule-button"
+							ariaLabel="Add chart link override"
+							icon="plus"
+							onClick={addLinkOverride}
+						/>
+					{/if}
+				</header>
+				{#if hasLinkOverride()}
+					<div class="knowledge-workspace-rule">
+						<div class="knowledge-workspace-rule-row override-heading">
+							<strong>This chart</strong>
+							<ObsidianButton
+								class="knowledge-workspace-remove-rule-button"
+								ariaLabel="Remove chart link override"
+								icon="trash-2"
+								onClick={clearLinkOverride}
+							/>
+						</div>
+						<div class="knowledge-workspace-rule-row compact">
+							<label>
+								<span>Color</span>
+								<input
+									type="color"
+									value={activeLinkColor()}
+									oninput={(event) =>
+										scheduleColorCommit(
+											'link:chart-override',
+											activeLinkColor(),
+											event.currentTarget.value,
+											(color) => updateLinkOverride({ color }),
+										)}
+									onchange={(event) =>
+										commitColor(
+											'link:chart-override',
+											activeLinkColor(),
+											event.currentTarget.value,
+											(color) => updateLinkOverride({ color }),
+										)}
+								/>
+							</label>
+							<label>
+								<span>Width</span>
+								<div class="knowledge-workspace-slider-value">
+									<ObsidianSlider
+										min={0.5}
+										max={10}
+										step={0.5}
+										value={activeLinkSize()}
+										format={(value) => value.toFixed(1)}
+										onChange={(size) => updateLinkOverride({ size })}
+									/>
+									<span>{activeLinkSize().toFixed(1)}</span>
+								</div>
+							</label>
+						</div>
+						<div class="knowledge-workspace-line-style-row">
+							<span>Line</span>
+							<div class="knowledge-workspace-segmented">
+								{#each LINE_STYLE_OPTIONS as option}
+									<ObsidianButton
+										active={activeLinkLineStyle() === option.value}
+										text={option.label}
+										onClick={() =>
+											updateLinkOverride({
+												lineStyle: option.value as LinkLineStyle,
+											})}
+									/>
+								{/each}
+							</div>
+						</div>
+						<div class="knowledge-workspace-rule-row link-line-label">
+							<label class="knowledge-workspace-rule-label">
+								<span>Label</span>
+								<ObsidianTextInput
+									type="text"
+									placeholder="Optional label"
+									value={activeLinkLabel()}
+									onInput={(label) => updateLinkOverride({ label })}
+								/>
+							</label>
+						</div>
+						<div class="knowledge-workspace-toggle-row">
+							<label class="checkbox">
+								<ObsidianToggle
+									value={activeLinkShowLabel()}
+									onChange={(showLabel) =>
+										updateLinkOverride({ showLabel })}
+								/>
+								<span>Show label</span>
+							</label>
+							<label class="checkbox">
+								<ObsidianToggle
+									value={activeLinkHidden()}
+									onChange={(hidden) => updateLinkOverride({ hidden })}
+								/>
+								<span>Hidden</span>
+							</label>
+						</div>
+					</div>
+				{/if}
+			</section>
+			{#each ['global', 'current'] as scope}
+				<section>
+					<header>
+						<h3>{scope === 'global' ? 'Global link rules' : 'Chart link rules'}</h3>
 					<ObsidianButton
 						class="knowledge-workspace-add-rule-button"
 						ariaLabel="Add link style rule"
@@ -1011,14 +1378,9 @@
 				{#each getLinkRules(scope as 'global' | 'current') as rule (rule.id)}
 					<div class="knowledge-workspace-rule">
 						<div class="knowledge-workspace-rule-row">
-							<ObsidianDropdown
-								disabled={isBaseStyleRule(rule)}
-								value={rule.field}
-								options={isBaseStyleRule(rule)
-									? BASE_LINK_STYLE_FIELD_OPTIONS
-									: scope === 'global'
-										? BASE_LINK_STYLE_FIELD_OPTIONS
-										: LINK_STYLE_FIELD_OPTIONS}
+								<ObsidianDropdown
+									value={rule.field}
+									options={LINK_STYLE_FIELD_OPTIONS}
 								onChange={(value) =>
 									updateLinkRule(
 										scope as 'global' | 'current',
@@ -1028,12 +1390,9 @@
 										},
 									)}
 							/>
-							<ObsidianTextInput
-								type="text"
-								placeholder={isBaseStyleRule(rule)
-									? 'All links'
-									: 'Metadata value'}
-								disabled={isBaseStyleRule(rule)}
+								<ObsidianTextInput
+									type="text"
+									placeholder="Metadata value"
 								value={rule.value}
 								onInput={(value) =>
 									updateLinkRule(
@@ -1045,10 +1404,9 @@
 									)}
 							/>
 							<ObsidianButton
-								class="knowledge-workspace-remove-rule-button"
-								ariaLabel="Remove link style rule"
-								disabled={isBaseStyleRule(rule)}
-								icon="trash-2"
+									class="knowledge-workspace-remove-rule-button"
+									ariaLabel="Remove link style rule"
+									icon="trash-2"
 								onClick={() =>
 									removeLinkRule(
 										scope as 'global' | 'current',

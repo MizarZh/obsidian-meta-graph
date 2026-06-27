@@ -5,6 +5,8 @@ import type {
 	LinkStyleRule,
 	NodeStyleRule,
 	RelationType,
+	DefaultLinkStyle,
+	DefaultNodeStyle,
 } from '../core/types';
 import type { GraphPalette } from './graph-styles';
 import { resolveLinkStyle, resolveNodeStyle } from './style-rules';
@@ -54,11 +56,39 @@ export type RuntimeGraph = Graph<
 >;
 
 export class GraphologyAdapter {
+	private readonly defaultNodeStyle: Required<DefaultNodeStyle>;
+	private readonly defaultLinkStyle: Required<DefaultLinkStyle>;
+	private readonly nodeStyleRules: NodeStyleRule[];
+	private readonly linkStyleRules: LinkStyleRule[];
+
 	constructor(
 		private readonly palette: GraphPalette,
-		private readonly nodeStyleRules: NodeStyleRule[] = [],
-		private readonly linkStyleRules: LinkStyleRule[] = [],
-	) {}
+		defaultNodeStyleOrRules: Required<DefaultNodeStyle> | NodeStyleRule[] = [],
+		defaultLinkStyleOrRules: Required<DefaultLinkStyle> | LinkStyleRule[] = [],
+		nodeStyleRules: NodeStyleRule[] = [],
+		linkStyleRules: LinkStyleRule[] = [],
+	) {
+		const legacySignature = Array.isArray(defaultNodeStyleOrRules);
+		this.defaultNodeStyle = legacySignature
+			? { color: palette.node, size: 7 }
+			: defaultNodeStyleOrRules;
+		this.defaultLinkStyle = Array.isArray(defaultLinkStyleOrRules)
+			? {
+					color: palette.edge,
+					size: 1.5,
+					lineStyle: 'solid',
+					label: '',
+					showLabel: false,
+					hidden: false,
+				}
+			: defaultLinkStyleOrRules;
+		this.nodeStyleRules = legacySignature
+			? defaultNodeStyleOrRules
+			: nodeStyleRules;
+		this.linkStyleRules = Array.isArray(defaultLinkStyleOrRules)
+			? defaultLinkStyleOrRules
+			: linkStyleRules;
+	}
 
 	fromProjection(
 		projection: GraphProjection,
@@ -73,10 +103,10 @@ export class GraphologyAdapter {
 		for (const node of projection.nodes) {
 			const isPrimary = projection.primaryIds?.has(node.id) ?? false;
 			const isContext = projection.contextIds?.has(node.id) ?? false;
-			const style = resolveNodeStyle(node, this.nodeStyleRules, {
-				color: this.palette.node,
-				size: 7,
-			});
+				const style = resolveNodeStyle(node, this.nodeStyleRules, {
+					color: this.defaultNodeStyle.color || this.palette.node,
+					size: this.defaultNodeStyle.size,
+				});
 			const position =
 				positions.get(node.id) ??
 				createInitialPosition(node.id, projection, positions);
@@ -98,13 +128,15 @@ export class GraphologyAdapter {
 		}
 
 		for (const edge of projection.edges) {
-			const style = resolveLinkStyle(edge, this.linkStyleRules, {
-				color: this.palette.edge,
-				size: edge.directed ? 1.5 : 1,
-				lineStyle: 'solid',
-				label: '',
-				hidden: false,
-			});
+				const style = resolveLinkStyle(edge, this.linkStyleRules, {
+					color: this.defaultLinkStyle.color || this.palette.edge,
+					size: this.defaultLinkStyle.size,
+					lineStyle: this.defaultLinkStyle.lineStyle,
+					label: this.defaultLinkStyle.showLabel
+						? this.defaultLinkStyle.label || edge.relation
+						: '',
+					hidden: this.defaultLinkStyle.hidden,
+				});
 			const attributes: RuntimeEdgeAttributes = {
 				relation: edge.relation,
 				type: getEdgeType(style.lineStyle, edge.directed),

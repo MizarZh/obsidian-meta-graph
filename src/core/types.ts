@@ -255,6 +255,20 @@ export interface LinkStyleRule {
 	hidden: boolean;
 }
 
+export interface DefaultNodeStyle {
+	color?: string;
+	size?: number;
+}
+
+export interface DefaultLinkStyle {
+	color?: string;
+	size?: number;
+	lineStyle?: LinkLineStyle;
+	label?: string;
+	showLabel?: boolean;
+	hidden?: boolean;
+}
+
 export interface ChartLayoutConfig {
 	engine: 'force-atlas' | 'elk' | 'arc' | 'hierarchical-edge-bundling';
 	spacing: number;
@@ -277,11 +291,15 @@ export interface ChartDisplayConfig {
 }
 
 export interface ChartStyleConfig {
+	nodeOverrides: DefaultNodeStyle;
+	linkOverrides: DefaultLinkStyle;
 	nodeRules: NodeStyleRule[];
 	linkRules: LinkStyleRule[];
 }
 
 export interface GlobalStyleConfig {
+	defaultNodeStyle: Required<DefaultNodeStyle>;
+	defaultLinkStyle: Required<DefaultLinkStyle>;
 	nodeRules: NodeStyleRule[];
 	linkRules: LinkStyleRule[];
 }
@@ -384,8 +402,12 @@ export interface WorkspaceState {
 	query: GraphQuery;
 	curated: CuratedWorkspaceConfig;
 	globalQuery: GraphQuery;
+	defaultNodeStyle: Required<DefaultNodeStyle>;
+	defaultLinkStyle: Required<DefaultLinkStyle>;
 	globalNodeStyleRules: NodeStyleRule[];
 	globalLinkStyleRules: LinkStyleRule[];
+	nodeStyleOverrides: DefaultNodeStyle;
+	linkStyleOverrides: DefaultLinkStyle;
 	nodeStyleRules: NodeStyleRule[];
 	linkStyleRules: LinkStyleRule[];
 	connectionFields: string[];

@@ -6,6 +6,7 @@ import type {
 	NodeStyleRule,
 } from '../core/types';
 import { resolveLinkStyle, resolveNodeStyle } from '../graph/style-rules';
+import { normalizeMetaGraphDocument } from '../workspace/meta-graph-model';
 import { createWorkspaceState } from '../workspace/workspace-state';
 
 const node: KnowledgeNode = {
@@ -29,35 +30,143 @@ const edge: KnowledgeEdge = {
 };
 
 describe('style rules', () => {
-	it('starts charts with base style rules', () => {
+	it('starts charts with workspace defaults and empty chart overrides', () => {
 		const state = createWorkspaceState(200);
-		expect(state.nodeStyleRules).toEqual([
-			{
-				id: 'all',
-				field: 'all',
-				value: '',
-				color: '#7c6ff0',
-				size: 7,
-			},
-		]);
-		expect(state.linkStyleRules).toEqual([
-			{
-				id: 'all',
-				field: 'all',
-				value: '',
-				color: '#888888',
-				size: 1.5,
-				lineStyle: 'solid',
-				label: '',
-				showLabel: false,
-				hidden: false,
-			},
-		]);
+		expect(state.defaultNodeStyle).toEqual({ color: '#7c6ff0', size: 7 });
+		expect(state.defaultLinkStyle).toEqual({
+			color: '#888888',
+			size: 1.5,
+			lineStyle: 'solid',
+			label: '',
+			showLabel: false,
+			hidden: false,
+		});
+		expect(state.nodeStyleOverrides).toEqual({});
+		expect(state.linkStyleOverrides).toEqual({});
+		expect(state.nodeStyleRules).toEqual([]);
+		expect(state.linkStyleRules).toEqual([]);
 		expect(state.charts.map((chart) => chart.type)).toEqual([
 			'graph',
 			'flow',
 			'arc',
 		]);
+	});
+
+	it('migrates legacy all style rules to defaults and overrides', () => {
+		const document = normalizeMetaGraphDocument({
+			globalQuery: {
+				roots: [],
+				direction: 'both',
+				depth: 2,
+				relations: ['leads-to'],
+				includeTags: [],
+				excludeTags: [],
+				folders: [],
+				maxNodes: 200,
+				hiddenNodeRules: [],
+				filterRoot: { id: 'root', kind: 'group', mode: 'all', children: [] },
+			},
+			globalStyle: {
+				nodeRules: [
+					{
+						id: 'all',
+						field: 'all',
+						value: '',
+						color: '#111111',
+						size: 9,
+					},
+				],
+				linkRules: [],
+			},
+			charts: [
+				{
+					id: 'chart',
+					name: 'Chart',
+					type: 'graph',
+					source: 'query',
+					query: {
+						roots: [],
+						direction: 'both',
+						depth: 2,
+						relations: ['leads-to'],
+						includeTags: [],
+						excludeTags: [],
+						folders: [],
+						maxNodes: 200,
+						hiddenNodeRules: [],
+						filterRoot: {
+							id: 'root',
+							kind: 'group',
+							mode: 'all',
+							children: [],
+						},
+					},
+					curated: {
+						files: [],
+						context: {
+							enabled: false,
+							depth: 0,
+							includeOutgoingLinks: true,
+							includeBacklinks: true,
+							includeMetadataRelations: true,
+						},
+					},
+					layout: { engine: 'force-atlas', spacing: 1 },
+					display: {
+						fadeDistance: 1.5,
+						labelSize: 14,
+						labelPosition: 'right',
+						labelColor: '',
+						labelBackgroundOpacity: 0.82,
+						labelDensity: 0.8,
+						forceLabels: false,
+						enableForceLayout: false,
+						showInspector: true,
+						showFilters: true,
+					},
+					style: {
+						nodeRules: [
+							{
+								id: 'all',
+								field: 'all',
+								value: '',
+								color: '#222222',
+								size: 9,
+							},
+							{
+								id: 'tag',
+								field: 'tag',
+								value: 'important',
+								color: '#333333',
+								size: 12,
+							},
+						],
+						linkRules: [],
+					},
+				},
+			],
+			activeChart: 'chart',
+			connectionFields: ['leads-to'],
+			connectionFieldSpecs: [
+				{ id: 'leads-to:directed', field: 'leads-to', mode: 'directed' },
+			],
+			connectionFieldModes: { 'leads-to': 'directed' },
+			activeConnectionFieldSpecId: 'leads-to:directed',
+			activeConnectionField: 'leads-to',
+			dock: {
+				templates: [],
+				notes: [],
+				dockWidth: 280,
+				curatedPanelWidth: 300,
+				focusOnSelect: true,
+			},
+		}, 200, 1.5);
+		const state = createWorkspaceState(200, 1.5, document);
+
+		expect(state.defaultNodeStyle).toEqual({ color: '#111111', size: 9 });
+		expect(state.nodeStyleOverrides).toEqual({ color: '#222222' });
+		expect(state.nodeStyleRules).toHaveLength(1);
+		expect(state.nodeStyleRules[0]?.field).toBe('tag');
 	});
 
 	it('uses all rules as the base style layer', () => {

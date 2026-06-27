@@ -6,12 +6,15 @@ import type {
 	CuratedWorkspaceConfig,
 	CuratedWorkspaceContext,
 	CuratedWorkspaceFile,
+	DefaultLinkStyle,
+	DefaultNodeStyle,
 	DockConnectionDirection,
 	DockNoteNode,
 	DockTemplateNode,
 	GraphQuery,
 	GlobalStyleConfig,
 	LabelPosition,
+	LinkLineStyle,
 	LinkStyleRule,
 	MetaGraphChart,
 	MetaGraphDocument,
@@ -43,6 +46,18 @@ export const DEFAULT_LABEL_COLOR = '';
 export const DEFAULT_LABEL_BACKGROUND_OPACITY = 0.82;
 export const DEFAULT_LABEL_DENSITY = 0.8;
 export const DEFAULT_FORCE_LABELS = false;
+export const BUILT_IN_DEFAULT_NODE_STYLE: Required<DefaultNodeStyle> = {
+	color: '#7c6ff0',
+	size: 7,
+};
+export const BUILT_IN_DEFAULT_LINK_STYLE: Required<DefaultLinkStyle> = {
+	color: '#888888',
+	size: 1.5,
+	lineStyle: 'solid',
+	label: '',
+	showLabel: false,
+	hidden: false,
+};
 export const DEFAULT_DOCK: MetaGraphDock = {
 	templates: [],
 	notes: [],
@@ -64,11 +79,12 @@ export function normalizeMetaGraphDocument(
 	fadeDistance: number,
 ): MetaGraphDocument {
 	const record = isRecord(value) ? value : {};
+	const globalStyle = normalizeGlobalStyle(record.globalStyle);
 	const rawCharts = Array.isArray(record.charts) ? record.charts : [];
 	const charts =
 		rawCharts.length > 0
 			? rawCharts.map((chart, index) =>
-					normalizeChart(chart, index, maxNodes, fadeDistance),
+					normalizeChart(chart, index, maxNodes, fadeDistance, globalStyle),
 				)
 			: createDefaultCharts(maxNodes, fadeDistance);
 	const activeChart =
@@ -102,7 +118,7 @@ export function normalizeMetaGraphDocument(
 				'');
 	return {
 		globalQuery: normalizeQuery(record.globalQuery, createDefaultGlobalQuery(maxNodes), maxNodes),
-		globalStyle: normalizeGlobalStyle(record.globalStyle),
+		globalStyle,
 		charts,
 		activeChart,
 		connectionFields,
@@ -174,14 +190,18 @@ export function createDefaultChart(
 				showFilters: true,
 			},
 		style: {
-			nodeRules: [createDefaultNodeStyleRule()],
-			linkRules: [createDefaultLinkStyleRule()],
+			nodeOverrides: {},
+			linkOverrides: {},
+			nodeRules: [],
+			linkRules: [],
 		},
 	};
 }
 
 export function serializeMetaGraphState(state: {
 	globalQuery: GraphQuery;
+	defaultNodeStyle: Required<DefaultNodeStyle>;
+	defaultLinkStyle: Required<DefaultLinkStyle>;
 	globalNodeStyleRules: NodeStyleRule[];
 	globalLinkStyleRules: LinkStyleRule[];
 	charts: MetaGraphChart[];
@@ -196,6 +216,8 @@ export function serializeMetaGraphState(state: {
 	return cloneSerializable({
 		globalQuery: state.globalQuery,
 		globalStyle: {
+			defaultNodeStyle: state.defaultNodeStyle,
+			defaultLinkStyle: state.defaultLinkStyle,
 			nodeRules: state.globalNodeStyleRules,
 			linkRules: state.globalLinkStyleRules,
 		},
@@ -356,11 +378,15 @@ function normalizeChart(
 	index: number,
 	maxNodes: number,
 	fadeDistance: number,
+	globalStyle: GlobalStyleConfig = createDefaultGlobalStyle(),
 ): MetaGraphChart {
 	const record = isRecord(value) ? value : {};
 	const type = readViewMode(record.type);
 	const fallback = createDefaultChart(type, maxNodes, fadeDistance);
 	const source = normalizeChartSource(record.source);
+	const styleRecord = isRecord(record.style) ? record.style : {};
+	const legacyNodeBase = readBaseNodeStyleRule(styleRecord.nodeRules);
+	const legacyLinkBase = readBaseLinkStyleRule(styleRecord.linkRules);
 	const id =
 		typeof record.id === 'string' && record.id.trim()
 			? record.id.trim()
@@ -436,11 +462,21 @@ function normalizeChart(
 			),
 		},
 		style: {
+			nodeOverrides: normalizeNodeStyleOverrides(
+				styleRecord.nodeOverrides,
+				legacyNodeBase,
+				globalStyle.defaultNodeStyle,
+			),
+			linkOverrides: normalizeLinkStyleOverrides(
+				styleRecord.linkOverrides,
+				legacyLinkBase,
+				globalStyle.defaultLinkStyle,
+			),
 			nodeRules: normalizeNodeStyleRules(
-				isRecord(record.style) ? record.style.nodeRules : undefined,
+				styleRecord.nodeRules,
 			),
 			linkRules: normalizeLinkStyleRules(
-				isRecord(record.style) ? record.style.linkRules : undefined,
+				styleRecord.linkRules,
 			),
 		},
 	};
@@ -468,8 +504,8 @@ export function createDefaultNodeStyleRule(): NodeStyleRule {
 		id: BASE_STYLE_RULE_ID,
 		field: 'all',
 		value: '',
-		color: '#7c6ff0',
-		size: 7,
+		color: BUILT_IN_DEFAULT_NODE_STYLE.color,
+		size: BUILT_IN_DEFAULT_NODE_STYLE.size,
 	};
 }
 
@@ -478,70 +514,54 @@ export function createDefaultLinkStyleRule(): LinkStyleRule {
 		id: BASE_STYLE_RULE_ID,
 		field: 'all',
 		value: '',
-		color: '#888888',
-		size: 1.5,
-		lineStyle: 'solid',
-		label: '',
-		showLabel: false,
-		hidden: false,
+		color: BUILT_IN_DEFAULT_LINK_STYLE.color,
+		size: BUILT_IN_DEFAULT_LINK_STYLE.size,
+		lineStyle: BUILT_IN_DEFAULT_LINK_STYLE.lineStyle,
+		label: BUILT_IN_DEFAULT_LINK_STYLE.label,
+		showLabel: BUILT_IN_DEFAULT_LINK_STYLE.showLabel,
+		hidden: BUILT_IN_DEFAULT_LINK_STYLE.hidden,
 	};
 }
 
 export function normalizeNodeStyleRules(value: unknown): NodeStyleRule[] {
 	const allRules = normalizeArray<NodeStyleRule>(value);
-	const base = allRules.find(
-		(rule) => rule.id === BASE_STYLE_RULE_ID || rule.field === 'all',
-	);
-	const rules = allRules.filter(
+	return allRules.filter(
 		(rule) => rule.id !== BASE_STYLE_RULE_ID && rule.field !== 'all',
 	);
-	return [
-		{
-			...createDefaultNodeStyleRule(),
-			...base,
-			id: BASE_STYLE_RULE_ID,
-			field: 'all',
-			value: '',
-		},
-		...rules,
-	];
 }
 
 export function normalizeLinkStyleRules(value: unknown): LinkStyleRule[] {
 	const allRules = normalizeArray<LinkStyleRule>(value);
-	const base = allRules.find(
-		(rule) => rule.id === BASE_STYLE_RULE_ID || rule.field === 'all',
-	);
-	const rules = allRules.filter(
+	return allRules.filter(
 		(rule) => rule.id !== BASE_STYLE_RULE_ID && rule.field !== 'all',
 	);
-	return [
-		{
-			...createDefaultLinkStyleRule(),
-			...base,
-			id: BASE_STYLE_RULE_ID,
-			field: 'all',
-			value: '',
-		},
-		...rules,
-	];
 }
 
 export function normalizeGlobalNodeStyleRules(value: unknown): NodeStyleRule[] {
 	return normalizeArray<NodeStyleRule>(value).filter(
-		(rule) => rule.id !== BASE_STYLE_RULE_ID,
+		(rule) => rule.id !== BASE_STYLE_RULE_ID && rule.field !== 'all',
 	);
 }
 
 export function normalizeGlobalLinkStyleRules(value: unknown): LinkStyleRule[] {
 	return normalizeArray<LinkStyleRule>(value).filter(
-		(rule) => rule.id !== BASE_STYLE_RULE_ID,
+		(rule) => rule.id !== BASE_STYLE_RULE_ID && rule.field !== 'all',
 	);
 }
 
 function normalizeGlobalStyle(value: unknown): GlobalStyleConfig {
 	const record = isRecord(value) ? value : {};
+	const legacyNodeBase = readBaseNodeStyleRule(record.nodeRules);
+	const legacyLinkBase = readBaseLinkStyleRule(record.linkRules);
 	return {
+		defaultNodeStyle: normalizeDefaultNodeStyle(
+			record.defaultNodeStyle,
+			legacyNodeBase,
+		),
+		defaultLinkStyle: normalizeDefaultLinkStyle(
+			record.defaultLinkStyle,
+			legacyLinkBase,
+		),
 		nodeRules: normalizeGlobalNodeStyleRules(record.nodeRules),
 		linkRules: normalizeGlobalLinkStyleRules(record.linkRules),
 	};
@@ -549,9 +569,126 @@ function normalizeGlobalStyle(value: unknown): GlobalStyleConfig {
 
 function createDefaultGlobalStyle(): GlobalStyleConfig {
 	return {
+		defaultNodeStyle: { ...BUILT_IN_DEFAULT_NODE_STYLE },
+		defaultLinkStyle: { ...BUILT_IN_DEFAULT_LINK_STYLE },
 		nodeRules: [],
 		linkRules: [],
 	};
+}
+
+function normalizeDefaultNodeStyle(
+	value: unknown,
+	legacyBase?: NodeStyleRule,
+): Required<DefaultNodeStyle> {
+	const record = isRecord(value) ? value : {};
+	return {
+		color: readStyleColor(
+			record.color ?? legacyBase?.color,
+			BUILT_IN_DEFAULT_NODE_STYLE.color,
+		),
+		size: readFiniteNumber(
+			record.size ?? legacyBase?.size,
+			BUILT_IN_DEFAULT_NODE_STYLE.size,
+		),
+	};
+}
+
+function normalizeDefaultLinkStyle(
+	value: unknown,
+	legacyBase?: LinkStyleRule,
+): Required<DefaultLinkStyle> {
+	const record = isRecord(value) ? value : {};
+	return {
+		color: readStyleColor(
+			record.color ?? legacyBase?.color,
+			BUILT_IN_DEFAULT_LINK_STYLE.color,
+		),
+		size: readFiniteNumber(
+			record.size ?? legacyBase?.size,
+			BUILT_IN_DEFAULT_LINK_STYLE.size,
+		),
+		lineStyle: readLinkLineStyle(
+			record.lineStyle ?? legacyBase?.lineStyle,
+			BUILT_IN_DEFAULT_LINK_STYLE.lineStyle,
+		),
+		label: readStyleLabel(record.label ?? legacyBase?.label),
+		showLabel: readBoolean(
+			record.showLabel ?? legacyBase?.showLabel,
+			BUILT_IN_DEFAULT_LINK_STYLE.showLabel,
+		),
+		hidden: readBoolean(
+			record.hidden ?? legacyBase?.hidden,
+			BUILT_IN_DEFAULT_LINK_STYLE.hidden,
+		),
+	};
+}
+
+function normalizeNodeStyleOverrides(
+	value: unknown,
+	legacyBase: NodeStyleRule | undefined,
+	defaults: Required<DefaultNodeStyle>,
+): DefaultNodeStyle {
+	const record = isRecord(value) ? value : {};
+	const overrides: DefaultNodeStyle = {};
+	const color = readOptionalStyleColor(record.color ?? legacyBase?.color);
+	const size = readOptionalFiniteNumber(record.size ?? legacyBase?.size);
+	if (color !== undefined && color !== defaults.color) {
+		overrides.color = color;
+	}
+	if (size !== undefined && size !== defaults.size) {
+		overrides.size = size;
+	}
+	return overrides;
+}
+
+function normalizeLinkStyleOverrides(
+	value: unknown,
+	legacyBase: LinkStyleRule | undefined,
+	defaults: Required<DefaultLinkStyle>,
+): DefaultLinkStyle {
+	const record = isRecord(value) ? value : {};
+	const overrides: DefaultLinkStyle = {};
+	const color = readOptionalStyleColor(record.color ?? legacyBase?.color);
+	const size = readOptionalFiniteNumber(record.size ?? legacyBase?.size);
+	const lineStyle = readOptionalLinkLineStyle(
+		record.lineStyle ?? legacyBase?.lineStyle,
+	);
+	const label = readOptionalStyleLabel(record.label ?? legacyBase?.label);
+	const showLabel = readOptionalBoolean(
+		record.showLabel ?? legacyBase?.showLabel,
+	);
+	const hidden = readOptionalBoolean(record.hidden ?? legacyBase?.hidden);
+	if (color !== undefined && color !== defaults.color) {
+		overrides.color = color;
+	}
+	if (size !== undefined && size !== defaults.size) {
+		overrides.size = size;
+	}
+	if (lineStyle !== undefined && lineStyle !== defaults.lineStyle) {
+		overrides.lineStyle = lineStyle;
+	}
+	if (label !== undefined && label !== defaults.label) {
+		overrides.label = label;
+	}
+	if (showLabel !== undefined && showLabel !== defaults.showLabel) {
+		overrides.showLabel = showLabel;
+	}
+	if (hidden !== undefined && hidden !== defaults.hidden) {
+		overrides.hidden = hidden;
+	}
+	return overrides;
+}
+
+function readBaseNodeStyleRule(value: unknown): NodeStyleRule | undefined {
+	return normalizeArray<NodeStyleRule>(value).find(
+		(rule) => rule.id === BASE_STYLE_RULE_ID || rule.field === 'all',
+	);
+}
+
+function readBaseLinkStyleRule(value: unknown): LinkStyleRule | undefined {
+	return normalizeArray<LinkStyleRule>(value).find(
+		(rule) => rule.id === BASE_STYLE_RULE_ID || rule.field === 'all',
+	);
 }
 
 function normalizeQuery(
@@ -1049,6 +1186,41 @@ function clampNumber(value: number, min: number, max: number): number {
 
 function readBoolean(value: unknown, fallback: boolean): boolean {
 	return typeof value === 'boolean' ? value : fallback;
+}
+
+function readStyleColor(value: unknown, fallback: string): string {
+	return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+}
+
+function readOptionalStyleColor(value: unknown): string | undefined {
+	return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function readStyleLabel(value: unknown): string {
+	return typeof value === 'string' ? value.trim() : '';
+}
+
+function readOptionalStyleLabel(value: unknown): string | undefined {
+	return typeof value === 'string' ? value.trim() : undefined;
+}
+
+function readOptionalFiniteNumber(value: unknown): number | undefined {
+	return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function readOptionalBoolean(value: unknown): boolean | undefined {
+	return typeof value === 'boolean' ? value : undefined;
+}
+
+function readLinkLineStyle(value: unknown, fallback: LinkLineStyle): LinkLineStyle {
+	const optional = readOptionalLinkLineStyle(value);
+	return optional ?? fallback;
+}
+
+function readOptionalLinkLineStyle(value: unknown): LinkLineStyle | undefined {
+	return value === 'solid' || value === 'dashed' || value === 'dotted'
+		? value
+		: undefined;
 }
 
 function readFilterField(value: unknown): NodeFilterField | undefined {

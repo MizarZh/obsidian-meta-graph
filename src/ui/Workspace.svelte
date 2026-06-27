@@ -3,6 +3,8 @@
 	import { onMount } from "svelte";
 	import type {
 		DebugSnapshot,
+		DefaultLinkStyle,
+		DefaultNodeStyle,
 		DockConnectionDirection,
 		MetaGraphDocument,
 		SettingsPanelMode,
@@ -432,6 +434,8 @@
 		const positions = layoutSnapshot.positions;
 		const graph = new GraphologyAdapter(
 			palette,
+			getActiveDefaultNodeStyle(palette.node),
+			getActiveDefaultLinkStyle(palette.edge),
 			getActiveNodeStyleRules(),
 			getActiveLinkStyleRules(),
 		).fromProjection(workspaceState.projection, positions);
@@ -573,8 +577,7 @@
 					.getPropertyValue("--interactive-accent")
 					.trim() || "#7c6ff0";
 			return resolveNodeStyle(selectedNode, getActiveNodeStyleRules(), {
-				color: defaultColor,
-				size: 7,
+				...getActiveDefaultNodeStyle(defaultColor),
 			}).color;
 		});
 		const searchableNodes = $derived(workspaceState.projection?.nodes ?? []);
@@ -601,8 +604,7 @@
 				colors.set(
 					node.path,
 					resolveNodeStyle(node, rules, {
-						color: defaultColor,
-						size: 7,
+						...getActiveDefaultNodeStyle(defaultColor),
 					}).color,
 				);
 			}
@@ -920,27 +922,51 @@
 	}
 
 	function getActiveLinkStyleRules() {
-		return [
-			...workspaceState.linkStyleRules.filter(
-				(rule) => rule.id === "all",
-			),
-			...workspaceState.globalLinkStyleRules,
-			...workspaceState.linkStyleRules.filter(
-				(rule) => rule.id !== "all",
-			),
-		];
+		return [...workspaceState.globalLinkStyleRules, ...workspaceState.linkStyleRules];
 	}
 
 	function getActiveNodeStyleRules() {
-		return [
-			...workspaceState.nodeStyleRules.filter(
-				(rule) => rule.id === "all",
-			),
-			...workspaceState.globalNodeStyleRules,
-			...workspaceState.nodeStyleRules.filter(
-				(rule) => rule.id !== "all",
-			),
-		];
+		return [...workspaceState.globalNodeStyleRules, ...workspaceState.nodeStyleRules];
+	}
+
+	function getActiveDefaultNodeStyle(
+		fallbackColor: string,
+	): Required<DefaultNodeStyle> {
+		return {
+			color:
+				workspaceState.nodeStyleOverrides.color ??
+				workspaceState.defaultNodeStyle.color ??
+				fallbackColor,
+			size:
+				workspaceState.nodeStyleOverrides.size ??
+				workspaceState.defaultNodeStyle.size,
+		};
+	}
+
+	function getActiveDefaultLinkStyle(
+		fallbackColor: string,
+	): Required<DefaultLinkStyle> {
+		return {
+			color:
+				workspaceState.linkStyleOverrides.color ??
+				workspaceState.defaultLinkStyle.color ??
+				fallbackColor,
+			size:
+				workspaceState.linkStyleOverrides.size ??
+				workspaceState.defaultLinkStyle.size,
+			lineStyle:
+				workspaceState.linkStyleOverrides.lineStyle ??
+				workspaceState.defaultLinkStyle.lineStyle,
+			label:
+				workspaceState.linkStyleOverrides.label ??
+				workspaceState.defaultLinkStyle.label,
+			showLabel:
+				workspaceState.linkStyleOverrides.showLabel ??
+				workspaceState.defaultLinkStyle.showLabel,
+			hidden:
+				workspaceState.linkStyleOverrides.hidden ??
+				workspaceState.defaultLinkStyle.hidden,
+		};
 	}
 
 	function setsEqual(left: Set<string>, right: Set<string>): boolean {
@@ -1434,9 +1460,13 @@
 								{metadataFieldTypes}
 								{metadataFieldValueSuggestions}
 								{filePathSuggestions}
+							defaultNodeStyle={workspaceState.defaultNodeStyle}
+							defaultLinkStyle={workspaceState.defaultLinkStyle}
 							globalNodeStyleRules={workspaceState.globalNodeStyleRules}
+					nodeStyleOverrides={workspaceState.nodeStyleOverrides}
 					nodeStyleRules={workspaceState.nodeStyleRules}
 					globalLinkStyleRules={workspaceState.globalLinkStyleRules}
+					linkStyleOverrides={workspaceState.linkStyleOverrides}
 					linkStyleRules={workspaceState.linkStyleRules}
 					onFlowEdgeStyle={(style) =>
 						controller.setFlowEdgeStyle(style)}
@@ -1465,12 +1495,20 @@
 					onChange={(patch) => controller.updateQuery(patch)}
 					onGlobalChange={(patch) =>
 						controller.updateGlobalQuery(patch)}
+					onDefaultNodeStyle={(style) =>
+						controller.setDefaultNodeStyle(style)}
+					onDefaultLinkStyle={(style) =>
+						controller.setDefaultLinkStyle(style)}
 					onGlobalNodeStyleRulesChange={(rules) =>
 						controller.setGlobalNodeStyleRules(rules)}
+					onNodeStyleOverrides={(style) =>
+						controller.setNodeStyleOverrides(style)}
 					onNodeStyleRulesChange={(rules) =>
 						controller.setNodeStyleRules(rules)}
 					onGlobalLinkStyleRulesChange={(rules) =>
 						controller.setGlobalLinkStyleRules(rules)}
+					onLinkStyleOverrides={(style) =>
+						controller.setLinkStyleOverrides(style)}
 					onLinkStyleRulesChange={(rules) =>
 						controller.setLinkStyleRules(rules)}
 					/>
