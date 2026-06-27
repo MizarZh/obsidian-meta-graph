@@ -460,22 +460,27 @@ function drawNodeLabel(
 	if (typeof data.labelRotation === "number") {
 		const gap = 7;
 		const direction = data.labelDirection ?? 1;
-		const boxX =
-			direction > 0 ? data.size + gap : -data.size - gap - width;
-		const boxY = -height / 2;
-		const textX = direction > 0 ? boxX + paddingX : boxX + width - paddingX;
+		const box = getRotatedNodeLabelBox(
+			data.size,
+			width,
+			height,
+			paddingX,
+			gap,
+			direction,
+			labelPosition,
+		);
 		context.save();
 		context.translate(data.x, data.y);
 		context.rotate(data.labelRotation);
 		context.textBaseline = "middle";
-		context.textAlign = direction > 0 ? "left" : "right";
+		context.textAlign = box.textAlign;
 		context.beginPath();
-		drawRoundedRect(context, boxX, boxY, width, height, 4);
+		drawRoundedRect(context, box.x, box.y, width, height, 4);
 		context.fillStyle = labelBackground;
 		context.fill();
 		context.shadowBlur = 0;
 		context.fillStyle = labelColor;
-		context.fillText(data.label, textX, 0);
+		context.fillText(data.label, box.textX, box.textY);
 		context.restore();
 		return;
 	}
@@ -498,6 +503,60 @@ function drawNodeLabel(
 	context.shadowBlur = 0;
 	context.fillStyle = labelColor;
 	context.fillText(data.label, box.textX, box.textY);
+}
+
+function getRotatedNodeLabelBox(
+	nodeSize: number,
+	width: number,
+	height: number,
+	paddingX: number,
+	gap: number,
+	direction: 1 | -1,
+	position: LabelPosition,
+): {
+	x: number;
+	y: number;
+	textX: number;
+	textY: number;
+	textAlign: CanvasTextAlign;
+} {
+	const outward = direction > 0 ? 1 : -1;
+	if (position === "left") {
+		const x = outward > 0 ? -nodeSize - gap - width : nodeSize + gap;
+		return {
+			x,
+			y: -height / 2,
+			textX: x + (outward > 0 ? width - paddingX : paddingX),
+			textY: 0,
+			textAlign: outward > 0 ? "right" : "left",
+		};
+	}
+	if (position === "top") {
+		return {
+			x: -width / 2,
+			y: -nodeSize - gap - height,
+			textX: 0,
+			textY: -nodeSize - gap - height / 2,
+			textAlign: "center",
+		};
+	}
+	if (position === "bottom") {
+		return {
+			x: -width / 2,
+			y: nodeSize + gap,
+			textX: 0,
+			textY: nodeSize + gap + height / 2,
+			textAlign: "center",
+		};
+	}
+	const x = outward > 0 ? nodeSize + gap : -nodeSize - gap - width;
+	return {
+		x,
+		y: -height / 2,
+		textX: x + (outward > 0 ? paddingX : width - paddingX),
+		textY: 0,
+		textAlign: outward > 0 ? "left" : "right",
+	};
 }
 
 function getScaledLabelSize(baseLabelSize: number, nodeSize: number): number {

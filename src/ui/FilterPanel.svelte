@@ -628,24 +628,23 @@
 							>
 						</div>
 					</label>
-					<label class="knowledge-workspace-rule-label">
-						<span>Fade distance</span>
-						<div class="knowledge-workspace-slider-value">
-							<ObsidianSlider
-								value={fadeDistance}
-								min={0.25}
-								max={4}
-								step={0.05}
-								format={(value) =>
-									value.toFixed(2).replace(/\.?0+$/u, '')}
-								onChange={onFadeDistance}
-								onCommit={onFadeDistance}
-							/>
-							<span>{fadeDistance.toFixed(2).replace(/\.?0+$/u, '')}</span
-							>
-						</div>
-					</label>
 				{/if}
+				<label class="knowledge-workspace-rule-label">
+					<span>Fade distance</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							value={fadeDistance}
+							min={0.25}
+							max={4}
+							step={0.05}
+							format={(value) =>
+								value.toFixed(2).replace(/\.?0+$/u, '')}
+							onChange={onFadeDistance}
+							onCommit={onFadeDistance}
+						/>
+						<span>{fadeDistance.toFixed(2).replace(/\.?0+$/u, '')}</span>
+					</div>
+				</label>
 				<label class="knowledge-workspace-rule-label">
 					<span>Label density</span>
 					<div class="knowledge-workspace-slider-value">
@@ -764,23 +763,21 @@
 						</div>
 					</div>
 				{/if}
-				{#if mode !== 'hierarchical-edge-bundling'}
-					<label class="knowledge-workspace-rule-label">
-						<span>Text background</span>
-						<div class="knowledge-workspace-slider-value">
-							<ObsidianSlider
-								value={labelBackgroundOpacity}
-								min={0}
-								max={1}
-								step={0.05}
-								format={(value) => `${Math.round(value * 100)}%`}
-								onChange={onLabelBackgroundOpacity}
-								onCommit={onLabelBackgroundOpacity}
-							/>
-							<span>{Math.round(labelBackgroundOpacity * 100)}%</span>
-						</div>
-					</label>
-				{/if}
+				<label class="knowledge-workspace-rule-label">
+					<span>Text background</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							value={labelBackgroundOpacity}
+							min={0}
+							max={1}
+							step={0.05}
+							format={(value) => `${Math.round(value * 100)}%`}
+							onChange={onLabelBackgroundOpacity}
+							onCommit={onLabelBackgroundOpacity}
+						/>
+						<span>{Math.round(labelBackgroundOpacity * 100)}%</span>
+					</div>
+				</label>
 		</section>
 	{:else if panel === 'filters'}
 		{#each ['global', 'current'] as scope}
