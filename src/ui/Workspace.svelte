@@ -81,6 +81,7 @@
 	let autoSaveTimer: number | undefined;
 	let pendingAutoSave: MetaGraphDocument | undefined;
 	let lastAutoSavedState = "";
+	let themeRefreshTimer: number | undefined;
 	let lastProjection: WorkspaceState["projection"];
 	let lastActiveChartId: string | undefined;
 	let lastMode: WorkspaceState["mode"] | undefined;
@@ -201,6 +202,25 @@
 			}
 		});
 		resizeObserver.observe(canvas);
+		const themeObserver = new MutationObserver(() => {
+			window.clearTimeout(themeRefreshTimer);
+			themeRefreshTimer = window.setTimeout(() => {
+				void rebuildGraph(false, false).catch((error: unknown) => {
+					controller.setRendererDebugState({
+						status: "error",
+						error: formatError(error),
+					});
+				});
+			}, 50);
+		});
+		themeObserver.observe(document.body, {
+			attributes: true,
+			attributeFilter: ["class", "style"],
+		});
+		themeObserver.observe(document.documentElement, {
+			attributes: true,
+			attributeFilter: ["class", "style"],
+		});
 		workspaceRoot.addEventListener("keydown", handleWorkspaceKeydown);
 		workspaceRoot.addEventListener(
 			"pointerdown",
@@ -300,6 +320,9 @@
 				renderer?.setForceLabels(nextState.forceLabels);
 			}
 			if (forceLayoutChanged && renderer) {
+				if (isForce3DRenderer(renderer)) {
+					renderer.setEnableForceLayout(nextState.enableForceLayout);
+				}
 				unbindEvents?.();
 				unbindEvents = bindEventsForRenderer(renderer);
 				stopForceLayoutSimulation();
@@ -345,12 +368,14 @@
 		return () => {
 			renderVersion += 1;
 			window.clearTimeout(autoSaveTimer);
+			window.clearTimeout(themeRefreshTimer);
 			if (pendingAutoSave) {
 				void onAutoSave(pendingAutoSave);
 				pendingAutoSave = undefined;
 			}
 			unsubscribe();
 			resizeObserver.disconnect();
+			themeObserver.disconnect();
 			workspaceRoot.removeEventListener(
 				"keydown",
 				handleWorkspaceKeydown,
@@ -470,6 +495,9 @@
 			if (renderer) {
 				unbindEvents?.();
 				stopForceLayoutSimulation();
+				if (isForce3DRenderer(renderer)) {
+					renderer.setPalette(palette);
+				}
 				renderer.setGraph(graph);
 				unbindEvents = bindEventsForRenderer(renderer);
 			} else {
@@ -481,11 +509,12 @@
 							workspaceState.fadeDistance,
 							workspaceState.labelSize,
 							workspaceState.labelPosition,
-							workspaceState.labelColor,
-							workspaceState.labelBackgroundOpacity,
-							workspaceState.labelDensity,
-							workspaceState.forceLabels,
-						)
+								workspaceState.labelColor,
+								workspaceState.labelBackgroundOpacity,
+								workspaceState.labelDensity,
+								workspaceState.enableForceLayout,
+								workspaceState.forceLabels,
+							)
 					: new SigmaRenderer(
 							graph,
 							canvas,

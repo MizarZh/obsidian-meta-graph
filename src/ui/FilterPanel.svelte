@@ -724,7 +724,7 @@
 					onChange={(value) => onChange({ showIsolatedNodes: value })}
 				/>
 			</label>
-			{#if mode === 'graph'}
+			{#if mode === 'graph' || mode === 'graph-3d'}
 				<label class="knowledge-workspace-rule-label">
 					<span>Force layout</span>
 					<ObsidianToggle

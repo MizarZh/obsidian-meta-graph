@@ -18,6 +18,16 @@
 	visibility: hidden;
 }
 
+.knowledge-workspace-canvas .float-tooltip-kap {
+	padding: 2px 6px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--meta-graph-3d-label-background);
+	box-shadow: var(--shadow-s);
+	color: var(--meta-graph-3d-label-color);
+	font: var(--font-ui-smaller);
+}
+
 .knowledge-workspace {
 	display: flex;
 	flex-direction: column;
