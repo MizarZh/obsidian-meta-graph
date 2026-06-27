@@ -242,6 +242,10 @@
 			const labelBackgroundOpacityChanged =
 				nextState.labelBackgroundOpacity !==
 				workspaceState.labelBackgroundOpacity;
+			const labelDensityChanged =
+				nextState.labelDensity !== workspaceState.labelDensity;
+			const forceLabelsChanged =
+				nextState.forceLabels !== workspaceState.forceLabels;
 		const forceLayoutChanged =
 			nextState.enableForceLayout !== workspaceState.enableForceLayout;
 			const shouldRebuild =
@@ -280,6 +284,12 @@
 				renderer?.setLabelBackgroundOpacity(
 					nextState.labelBackgroundOpacity,
 				);
+			}
+			if (labelDensityChanged) {
+				renderer?.setLabelDensity(nextState.labelDensity);
+			}
+			if (forceLabelsChanged) {
+				renderer?.setForceLabels(nextState.forceLabels);
 			}
 			if (forceLayoutChanged && renderer) {
 				unbindEvents?.();
@@ -452,9 +462,11 @@
 				workspaceState.fadeDistance,
 				workspaceState.labelSize,
 				workspaceState.labelPosition,
-				workspaceState.labelColor,
-				workspaceState.labelBackgroundOpacity,
-			);
+					workspaceState.labelColor,
+					workspaceState.labelBackgroundOpacity,
+					workspaceState.labelDensity,
+					workspaceState.forceLabels,
+				);
 			renderer = nextRenderer;
 			unbindEvents = bindEventsForRenderer(nextRenderer);
 		}
@@ -1375,10 +1387,12 @@
 						mode={workspaceState.mode}
 							fadeDistance={workspaceState.fadeDistance}
 							labelSize={workspaceState.labelSize}
-							labelPosition={workspaceState.labelPosition}
-							labelColor={workspaceState.labelColor}
-							labelBackgroundOpacity={workspaceState.labelBackgroundOpacity}
-							enableForceLayout={workspaceState.enableForceLayout}
+					labelPosition={workspaceState.labelPosition}
+					labelColor={workspaceState.labelColor}
+					labelBackgroundOpacity={workspaceState.labelBackgroundOpacity}
+					labelDensity={workspaceState.labelDensity}
+					forceLabels={workspaceState.forceLabels}
+					enableForceLayout={workspaceState.enableForceLayout}
 							flowEdgeStyle={workspaceState.flowEdgeStyle}
 					flowDirection={workspaceState.flowDirection}
 					arcDirection={workspaceState.arcDirection}
@@ -1409,10 +1423,12 @@
 							onLabelPosition={(position) =>
 								controller.setLabelPosition(position)}
 							onLabelColor={(color) => controller.setLabelColor(color)}
-							onLabelBackgroundOpacity={(value) =>
-								controller.setLabelBackgroundOpacity(value)}
-							onEnableForceLayout={(value) =>
-								controller.setEnableForceLayout(value)}
+					onLabelBackgroundOpacity={(value) =>
+						controller.setLabelBackgroundOpacity(value)}
+					onLabelDensity={(value) => controller.setLabelDensity(value)}
+					onForceLabels={(value) => controller.setForceLabels(value)}
+					onEnableForceLayout={(value) =>
+						controller.setEnableForceLayout(value)}
 							onGraphSpacing={(spacing) =>
 							controller.setGraphSpacing(spacing)}
 					onFlowSpacing={(spacing) =>

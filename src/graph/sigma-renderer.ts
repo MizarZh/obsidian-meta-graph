@@ -37,6 +37,7 @@ export class SigmaRenderer {
 	private labelPosition: LabelPosition;
 	private labelColor: string;
 	private labelBackgroundOpacity: number;
+	private forceLabels: boolean;
 
 	constructor(
 		private graph: RuntimeGraph,
@@ -44,14 +45,17 @@ export class SigmaRenderer {
 		private readonly palette: GraphPalette,
 		fadeDistance = 1.5,
 		labelSize = 14,
-		labelPosition: LabelPosition = "right",
-		labelColor = "",
-		labelBackgroundOpacity = 0.82,
-	) {
+			labelPosition: LabelPosition = "right",
+			labelColor = "",
+			labelBackgroundOpacity = 0.82,
+			labelDensity = 0.8,
+			forceLabels = false,
+		) {
 		this.fadeDistance = fadeDistance;
 		this.labelPosition = labelPosition;
-		this.labelColor = labelColor;
-		this.labelBackgroundOpacity = labelBackgroundOpacity;
+			this.labelColor = labelColor;
+			this.labelBackgroundOpacity = labelBackgroundOpacity;
+			this.forceLabels = forceLabels;
 		this.instance = new Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>(
 			graph,
 			container,
@@ -88,10 +92,10 @@ export class SigmaRenderer {
 					this.getCurrentLabelOpacity(),
 				),
 				renderEdgeLabels: true,
-				labelColor: { color: palette.label },
-				labelSize,
-				labelDensity: 0.8,
-				labelRenderedSizeThreshold: 0,
+					labelColor: { color: palette.label },
+					labelSize,
+					labelDensity,
+					labelRenderedSizeThreshold: 0,
 				zIndex: true,
 			},
 		);
@@ -142,6 +146,15 @@ export class SigmaRenderer {
 
 	setLabelBackgroundOpacity(labelBackgroundOpacity: number): void {
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
+		this.instance.refresh();
+	}
+
+	setLabelDensity(labelDensity: number): void {
+		this.instance.setSetting("labelDensity", labelDensity);
+	}
+
+	setForceLabels(forceLabels: boolean): void {
+		this.forceLabels = forceLabels;
 		this.instance.refresh();
 	}
 
@@ -264,33 +277,36 @@ export class SigmaRenderer {
 				zIndex: -1,
 			};
 		}
-		if (activeHoverNodeId && !this.hoveredNeighborhood.has(node)) {
-			return {
-				...data,
-				color: this.palette.mutedNode,
-				label: null,
-				zIndex: 0,
-			};
+			if (activeHoverNodeId && !this.hoveredNeighborhood.has(node)) {
+				return {
+					...data,
+					color: this.palette.mutedNode,
+					label: null,
+					forceLabel: false,
+					zIndex: 0,
+				};
+			}
+			if (node === this.selectedNodeId) {
+				return {
+					...data,
+					color: this.palette.selected,
+					size: data.size + 3,
+					highlighted: true,
+					forceLabel: true,
+					zIndex: 3,
+				};
+			}
+			if (node === activeHoverNodeId) {
+				return {
+					...data,
+					size: data.size + 2,
+					highlighted: true,
+					forceLabel: true,
+					zIndex: 2,
+				};
+			}
+			return { ...data, forceLabel: this.forceLabels, zIndex: 0 };
 		}
-		if (node === this.selectedNodeId) {
-			return {
-				...data,
-				color: this.palette.selected,
-				size: data.size + 3,
-				highlighted: true,
-				zIndex: 3,
-			};
-		}
-		if (node === activeHoverNodeId) {
-			return {
-				...data,
-				size: data.size + 2,
-				highlighted: true,
-				zIndex: 2,
-			};
-		}
-		return { ...data, zIndex: 0 };
-	}
 
 	private reduceEdge(
 		edge: string,

@@ -55,23 +55,26 @@ settings to report them in the developer console.
    filters support file name, path, folder, extension, tags, links, and
    frontmatter property presence.
 7. Add link style rules by relation or source frontmatter field.
-8. Use the bottom connection panel to select or add the metadata field used for
+8. Increase **Label density** in **Graph** settings when Sigma samples too few
+   labels while zoomed out. Enable **Always show labels** to force every visible
+   note label through Sigma's label grid.
+9. Use the bottom connection panel to select or add the metadata field used for
    new links.
-9. Hold `Ctrl`, drag from one node to another, and release to add a link to the
+10. Hold `Ctrl`, drag from one node to another, and release to add a link to the
    source note's selected metadata field.
-10. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
+11. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
    through the force-directed layout. Nearby nodes can move with the graph
    forces, and the layout keeps settling briefly after release. `Ctrl`-drag
    still creates links.
-11. Use the right dock panel to keep templates and selected notes in a compact
+12. Use the right dock panel to keep templates and selected notes in a compact
    vertical list. Add or edit templates from the dock, drag items in the dock
    to reorder them, and hold `Ctrl` while dragging a dock item to connect it to
    a graph node.
-12. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
+13. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
    workspace is focused, to undo connection edits made in the current workspace
    session.
-13. Select a node to open its note in a new tab.
-14. Select **Debug** to inspect or copy the current query, projection,
+14. Select a node to open its note in a new tab.
+15. Select **Debug** to inspect or copy the current query, projection,
    canonical index, adjacency maps, and unresolved links as JSON.
 
 Markdown files with this frontmatter open as graph workspaces:

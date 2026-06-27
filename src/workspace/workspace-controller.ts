@@ -400,6 +400,33 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	setLabelDensity(labelDensity: number): void {
+		const density = Math.max(0, Math.min(1, labelDensity));
+		if (this.getActiveChart().display.labelDensity === density) {
+			return;
+		}
+		this.state = this.updateActiveChart({
+			display: {
+				...this.getActiveChart().display,
+				labelDensity: density,
+			},
+		});
+		this.emit();
+	}
+
+	setForceLabels(forceLabels: boolean): void {
+		if (this.getActiveChart().display.forceLabels === forceLabels) {
+			return;
+		}
+		this.state = this.updateActiveChart({
+			display: {
+				...this.getActiveChart().display,
+				forceLabels,
+			},
+		});
+		this.emit();
+	}
+
 	setEnableForceLayout(enableForceLayout: boolean): void {
 		if (this.getActiveChart().display.enableForceLayout === enableForceLayout) {
 			return;
@@ -1164,10 +1191,12 @@ export class WorkspaceController {
 			arcDirection: nextChart.layout.arcDirection ?? 'right',
 			fadeDistance: nextChart.display.fadeDistance,
 			labelSize: nextChart.display.labelSize,
-			labelPosition: nextChart.display.labelPosition,
-			labelColor: nextChart.display.labelColor,
-			labelBackgroundOpacity: nextChart.display.labelBackgroundOpacity,
-			enableForceLayout: nextChart.display.enableForceLayout,
+				labelPosition: nextChart.display.labelPosition,
+				labelColor: nextChart.display.labelColor,
+				labelBackgroundOpacity: nextChart.display.labelBackgroundOpacity,
+				labelDensity: nextChart.display.labelDensity,
+				forceLabels: nextChart.display.forceLabels,
+				enableForceLayout: nextChart.display.enableForceLayout,
 			graphSpacing:
 				nextChart.type === 'graph'
 					? nextChart.layout.spacing

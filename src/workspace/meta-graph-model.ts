@@ -38,6 +38,8 @@ export const DEFAULT_LABEL_SIZE = 14;
 export const DEFAULT_LABEL_POSITION: LabelPosition = 'right';
 export const DEFAULT_LABEL_COLOR = '';
 export const DEFAULT_LABEL_BACKGROUND_OPACITY = 0.82;
+export const DEFAULT_LABEL_DENSITY = 0.8;
+export const DEFAULT_FORCE_LABELS = false;
 export const DEFAULT_DOCK: MetaGraphDock = {
 	templates: [],
 	notes: [],
@@ -127,9 +129,11 @@ export function createDefaultChart(
 				fadeDistance,
 				labelSize: DEFAULT_LABEL_SIZE,
 				labelPosition: DEFAULT_LABEL_POSITION,
-				labelColor: DEFAULT_LABEL_COLOR,
-				labelBackgroundOpacity: DEFAULT_LABEL_BACKGROUND_OPACITY,
-				enableForceLayout: false,
+					labelColor: DEFAULT_LABEL_COLOR,
+					labelBackgroundOpacity: DEFAULT_LABEL_BACKGROUND_OPACITY,
+					labelDensity: DEFAULT_LABEL_DENSITY,
+					forceLabels: DEFAULT_FORCE_LABELS,
+					enableForceLayout: false,
 				showInspector: true,
 				showFilters: true,
 			},
@@ -257,13 +261,27 @@ function normalizeChart(
 					isRecord(record.display) && typeof record.display.labelColor === 'string'
 						? record.display.labelColor.trim()
 						: fallback.display.labelColor,
-				labelBackgroundOpacity: readFiniteNumber(
-					isRecord(record.display)
-						? record.display.labelBackgroundOpacity
-						: undefined,
-					fallback.display.labelBackgroundOpacity,
-				),
-				enableForceLayout: readBoolean(
+					labelBackgroundOpacity: readFiniteNumber(
+						isRecord(record.display)
+							? record.display.labelBackgroundOpacity
+							: undefined,
+						fallback.display.labelBackgroundOpacity,
+					),
+					labelDensity: clampNumber(
+						readFiniteNumber(
+							isRecord(record.display)
+								? record.display.labelDensity
+								: undefined,
+							fallback.display.labelDensity,
+						),
+						0,
+						1,
+					),
+					forceLabels: readBoolean(
+						isRecord(record.display) ? record.display.forceLabels : undefined,
+						fallback.display.forceLabels,
+					),
+					enableForceLayout: readBoolean(
 					isRecord(record.display)
 						? (record.display.enableForceLayout ??
 								record.display.enableNodeDragging)
@@ -889,6 +907,10 @@ function readFiniteNumber(value: unknown, fallback: number): number {
 	return typeof value === 'number' && Number.isFinite(value)
 		? value
 		: fallback;
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+	return Math.max(min, Math.min(max, value));
 }
 
 function readBoolean(value: unknown, fallback: boolean): boolean {

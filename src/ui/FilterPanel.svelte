@@ -46,10 +46,12 @@
 		mode,
 		fadeDistance,
 		labelSize,
-		labelPosition,
-		labelColor,
-		labelBackgroundOpacity,
-		enableForceLayout,
+			labelPosition,
+			labelColor,
+				labelBackgroundOpacity,
+				labelDensity,
+				forceLabels,
+				enableForceLayout,
 		flowEdgeStyle,
 		flowDirection,
 		arcDirection,
@@ -74,9 +76,11 @@
 		onFadeDistance,
 		onLabelSize,
 		onLabelPosition,
-		onLabelColor,
-		onLabelBackgroundOpacity,
-		onEnableForceLayout,
+			onLabelColor,
+				onLabelBackgroundOpacity,
+				onLabelDensity,
+				onForceLabels,
+				onEnableForceLayout,
 		onGraphSpacing,
 		onFlowSpacing,
 		onArcSpacing,
@@ -92,10 +96,12 @@
 		mode: ViewMode;
 		fadeDistance: number;
 		labelSize: number;
-		labelPosition: LabelPosition;
-		labelColor: string;
-		labelBackgroundOpacity: number;
-		enableForceLayout: boolean;
+			labelPosition: LabelPosition;
+			labelColor: string;
+				labelBackgroundOpacity: number;
+				labelDensity: number;
+				forceLabels: boolean;
+				enableForceLayout: boolean;
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
 		arcDirection: ArcDirection;
@@ -120,9 +126,11 @@
 		onFadeDistance: (value: number) => void;
 		onLabelSize: (value: number) => void;
 		onLabelPosition: (position: LabelPosition) => void;
-		onLabelColor: (color: string) => void;
-		onLabelBackgroundOpacity: (value: number) => void;
-		onEnableForceLayout: (value: boolean) => void;
+			onLabelColor: (color: string) => void;
+				onLabelBackgroundOpacity: (value: number) => void;
+				onLabelDensity: (value: number) => void;
+				onForceLabels: (value: boolean) => void;
+				onEnableForceLayout: (value: boolean) => void;
 		onGraphSpacing: (spacing: number) => void;
 		onFlowSpacing: (spacing: number) => void;
 		onArcSpacing: (spacing: number) => void;
@@ -638,7 +646,26 @@
 						</div>
 					</label>
 				{/if}
-			{#if mode === 'flow'}
+				<label class="knowledge-workspace-rule-label">
+					<span>Label density</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							value={labelDensity}
+							min={0}
+							max={1}
+							step={0.05}
+							format={(value) => `${Math.round(value * 100)}%`}
+							onChange={onLabelDensity}
+							onCommit={onLabelDensity}
+						/>
+						<span>{Math.round(labelDensity * 100)}%</span>
+					</div>
+				</label>
+				<label class="knowledge-workspace-rule-label">
+					<span>Always show labels</span>
+					<ObsidianToggle value={forceLabels} onChange={onForceLabels} />
+				</label>
+				{#if mode === 'flow'}
 				<div class="knowledge-workspace-rule-label segmented">
 					<span>Direction</span>
 					<div class="knowledge-workspace-segmented">

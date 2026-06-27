@@ -24,11 +24,28 @@ describe('workspace persistence', () => {
 		);
 
 		expect(activeChart?.display.fadeDistance).toBe(2);
+		expect(activeChart?.display.labelDensity).toBe(0.8);
+		expect(activeChart?.display.forceLabels).toBe(false);
 		expect(activeChart?.layout.spacing).toBe(1);
 		expect(activeChart?.query.maxNodes).toBe(200);
 		expect(saved).not.toHaveProperty('selectedNodeId');
 		expect(saved).not.toHaveProperty('projection');
 		expect(saved).not.toHaveProperty('availableFolders');
+	});
+
+	it('normalizes label density into the supported range', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		const graphChart = document.charts.find(
+			(chart) => chart.id === 'knowledge-map',
+		);
+		if (graphChart) {
+			graphChart.display.labelDensity = 3;
+		}
+
+		const restoredDocument = normalizeMetaGraphDocument(document, 300, 1.5);
+		const restored = createWorkspaceState(300, 1.5, restoredDocument);
+
+		expect(restored.labelDensity).toBe(1);
 	});
 
 	it('restores the active chart from a document', () => {
