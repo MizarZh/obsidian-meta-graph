@@ -434,6 +434,20 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	setCubeFaceOpacity(cubeFaceOpacity: number): void {
+		const opacity = Math.max(0.05, Math.min(1, cubeFaceOpacity));
+		if (this.getActiveChart().display.cubeFaceOpacity === opacity) {
+			return;
+		}
+		this.state = this.updateActiveChart({
+			display: {
+				...this.getActiveChart().display,
+				cubeFaceOpacity: opacity,
+			},
+		});
+		this.emit();
+	}
+
 	setForceLabels(forceLabels: boolean): void {
 		if (this.getActiveChart().display.forceLabels === forceLabels) {
 			return;
@@ -1552,10 +1566,11 @@ export class WorkspaceController {
 			fadeDistance: nextChart.display.fadeDistance,
 			labelSize: nextChart.display.labelSize,
 				labelPosition: nextChart.display.labelPosition,
-				labelColor: nextChart.display.labelColor,
-				labelBackgroundOpacity: nextChart.display.labelBackgroundOpacity,
-				labelDensity: nextChart.display.labelDensity,
-				forceLabels: nextChart.display.forceLabels,
+					labelColor: nextChart.display.labelColor,
+					labelBackgroundOpacity: nextChart.display.labelBackgroundOpacity,
+					labelDensity: nextChart.display.labelDensity,
+					cubeFaceOpacity: nextChart.display.cubeFaceOpacity,
+					forceLabels: nextChart.display.forceLabels,
 				enableForceLayout: nextChart.display.enableForceLayout,
 			graphSpacing:
 				nextChart.type === 'graph'

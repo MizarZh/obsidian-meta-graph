@@ -322,6 +322,7 @@ export interface ChartDisplayConfig {
 	labelColor: string;
 	labelBackgroundOpacity: number;
 	labelDensity: number;
+	cubeFaceOpacity: number;
 	forceLabels: boolean;
 	enableForceLayout: boolean;
 	showInspector: boolean;
@@ -429,6 +430,7 @@ export interface WorkspaceState {
 	labelColor: string;
 	labelBackgroundOpacity: number;
 	labelDensity: number;
+	cubeFaceOpacity: number;
 	forceLabels: boolean;
 	enableForceLayout: boolean;
 	graphSpacing: number;

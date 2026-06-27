@@ -46,6 +46,7 @@ export const DEFAULT_LABEL_POSITION: LabelPosition = 'right';
 export const DEFAULT_LABEL_COLOR = '';
 export const DEFAULT_LABEL_BACKGROUND_OPACITY = 0.82;
 export const DEFAULT_LABEL_DENSITY = 0.8;
+export const DEFAULT_CUBE_FACE_OPACITY = 0.55;
 export const DEFAULT_FORCE_LABELS = false;
 export const BUILT_IN_DEFAULT_NODE_STYLE: Required<DefaultNodeStyle> = {
 	color: '#7c6ff0',
@@ -185,6 +186,7 @@ export function createDefaultChart(
 					labelColor: DEFAULT_LABEL_COLOR,
 					labelBackgroundOpacity: DEFAULT_LABEL_BACKGROUND_OPACITY,
 					labelDensity: DEFAULT_LABEL_DENSITY,
+					cubeFaceOpacity: DEFAULT_CUBE_FACE_OPACITY,
 					forceLabels: DEFAULT_FORCE_LABELS,
 					enableForceLayout: false,
 				showInspector: true,
@@ -428,17 +430,27 @@ function normalizeChart(
 							: undefined,
 						fallback.display.labelBackgroundOpacity,
 					),
-					labelDensity: clampNumber(
-						readFiniteNumber(
-							isRecord(record.display)
-								? record.display.labelDensity
-								: undefined,
-							fallback.display.labelDensity,
+						labelDensity: clampNumber(
+							readFiniteNumber(
+								isRecord(record.display)
+									? record.display.labelDensity
+									: undefined,
+								fallback.display.labelDensity,
+							),
+							0,
+							1,
 						),
-						0,
-						1,
-					),
-					forceLabels: readBoolean(
+						cubeFaceOpacity: clampNumber(
+							readFiniteNumber(
+								isRecord(record.display)
+									? record.display.cubeFaceOpacity
+									: undefined,
+								fallback.display.cubeFaceOpacity,
+							),
+							0.05,
+							1,
+						),
+						forceLabels: readBoolean(
 						isRecord(record.display) ? record.display.forceLabels : undefined,
 						fallback.display.forceLabels,
 					),

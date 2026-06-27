@@ -52,6 +52,7 @@
 			labelColor,
 				labelBackgroundOpacity,
 				labelDensity,
+				cubeFaceOpacity,
 				forceLabels,
 				enableForceLayout,
 		flowEdgeStyle,
@@ -85,6 +86,7 @@
 			onLabelColor,
 				onLabelBackgroundOpacity,
 				onLabelDensity,
+				onCubeFaceOpacity,
 				onForceLabels,
 				onEnableForceLayout,
 		onGraphSpacing,
@@ -110,6 +112,7 @@
 			labelColor: string;
 				labelBackgroundOpacity: number;
 				labelDensity: number;
+				cubeFaceOpacity: number;
 				forceLabels: boolean;
 				enableForceLayout: boolean;
 		flowEdgeStyle: FlowEdgeStyle;
@@ -143,6 +146,7 @@
 			onLabelColor: (color: string) => void;
 				onLabelBackgroundOpacity: (value: number) => void;
 				onLabelDensity: (value: number) => void;
+				onCubeFaceOpacity: (value: number) => void;
 				onForceLabels: (value: boolean) => void;
 				onEnableForceLayout: (value: boolean) => void;
 		onGraphSpacing: (spacing: number) => void;
@@ -780,9 +784,9 @@
 						<span>{fadeDistance.toFixed(2).replace(/\.?0+$/u, '')}</span>
 					</div>
 				</label>
-				<label class="knowledge-workspace-rule-label">
-					<span>Label density</span>
-					<div class="knowledge-workspace-slider-value">
+					<label class="knowledge-workspace-rule-label">
+						<span>Label density</span>
+						<div class="knowledge-workspace-slider-value">
 						<ObsidianSlider
 							value={labelDensity}
 							min={0}
@@ -792,11 +796,28 @@
 							onChange={onLabelDensity}
 							onCommit={onLabelDensity}
 						/>
-						<span>{Math.round(labelDensity * 100)}%</span>
-					</div>
-				</label>
-				<label class="knowledge-workspace-rule-label">
-					<span>Always show labels</span>
+							<span>{Math.round(labelDensity * 100)}%</span>
+						</div>
+					</label>
+					{#if mode === 'cube'}
+						<label class="knowledge-workspace-rule-label">
+							<span>Face opacity</span>
+							<div class="knowledge-workspace-slider-value">
+								<ObsidianSlider
+									value={cubeFaceOpacity}
+									min={0.05}
+									max={1}
+									step={0.05}
+									format={(value) => `${Math.round(value * 100)}%`}
+									onChange={onCubeFaceOpacity}
+									onCommit={onCubeFaceOpacity}
+								/>
+								<span>{Math.round(cubeFaceOpacity * 100)}%</span>
+							</div>
+						</label>
+					{/if}
+					<label class="knowledge-workspace-rule-label">
+						<span>Always show labels</span>
 					<ObsidianToggle value={forceLabels} onChange={onForceLabels} />
 				</label>
 				{#if mode === 'flow'}

@@ -288,6 +288,8 @@
 				workspaceState.labelBackgroundOpacity;
 			const labelDensityChanged =
 				nextState.labelDensity !== workspaceState.labelDensity;
+			const cubeFaceOpacityChanged =
+				nextState.cubeFaceOpacity !== workspaceState.cubeFaceOpacity;
 			const forceLabelsChanged =
 				nextState.forceLabels !== workspaceState.forceLabels;
 		const forceLayoutChanged =
@@ -335,6 +337,13 @@
 			}
 			if (labelDensityChanged) {
 				renderer?.setLabelDensity(nextState.labelDensity);
+			}
+			if (
+				cubeFaceOpacityChanged &&
+				renderer &&
+				isCube3DRenderer(renderer)
+			) {
+				renderer.setCubeFaceOpacity(nextState.cubeFaceOpacity);
 			}
 			if (forceLabelsChanged) {
 				renderer?.setForceLabels(nextState.forceLabels);
@@ -586,6 +595,7 @@
 									workspaceState.labelColor,
 									workspaceState.labelBackgroundOpacity,
 									workspaceState.labelDensity,
+									workspaceState.cubeFaceOpacity,
 									workspaceState.enableForceLayout,
 									workspaceState.forceLabels,
 									() => version !== renderVersion,
@@ -1810,6 +1820,7 @@
 					labelColor={workspaceState.labelColor}
 					labelBackgroundOpacity={workspaceState.labelBackgroundOpacity}
 					labelDensity={workspaceState.labelDensity}
+					cubeFaceOpacity={workspaceState.cubeFaceOpacity}
 					forceLabels={workspaceState.forceLabels}
 					enableForceLayout={workspaceState.enableForceLayout}
 							flowEdgeStyle={workspaceState.flowEdgeStyle}
@@ -1849,6 +1860,8 @@
 					onLabelBackgroundOpacity={(value) =>
 						controller.setLabelBackgroundOpacity(value)}
 					onLabelDensity={(value) => controller.setLabelDensity(value)}
+					onCubeFaceOpacity={(value) =>
+						controller.setCubeFaceOpacity(value)}
 					onForceLabels={(value) => controller.setForceLabels(value)}
 					onEnableForceLayout={(value) =>
 						controller.setEnableForceLayout(value)}

@@ -86,7 +86,8 @@ settings to report them in the developer console.
 17. In Cube graph views, each cube face is a group. Drag the background to
    rotate the cube, drag nodes within their face to save their placement, use
    `Shift`-click for local relationship focus, right-click for selection
-   details, and `Ctrl`-drag between nodes to add links.
+   details, and `Ctrl`-drag between nodes to add links. Use **Face opacity** in
+   **Graph** settings to control cube face transparency.
 18. Use the right dock panel to keep templates and selected notes in a compact
    vertical list. Add or edit templates from the dock, choose an optional
    default group for template-created notes, drag items in the dock to reorder

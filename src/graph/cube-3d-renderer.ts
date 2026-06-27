@@ -87,6 +87,7 @@ export class Cube3DRenderer {
 	private labelBackgroundOpacity: number;
 	private labelSize: number;
 	private labelDensity: number;
+	private cubeFaceOpacity: number;
 	private forceLabels: boolean;
 	private manualLayout: ManualLayoutConfig;
 	private killed = false;
@@ -102,6 +103,7 @@ export class Cube3DRenderer {
 		labelColor = "",
 		labelBackgroundOpacity = 0.82,
 		labelDensity = 0.8,
+		cubeFaceOpacity = 0.55,
 		_forceLayout = false,
 		forceLabels = false,
 		isStale: () => boolean = () => false,
@@ -120,6 +122,7 @@ export class Cube3DRenderer {
 			labelColor,
 			labelBackgroundOpacity,
 			labelDensity,
+			cubeFaceOpacity,
 			forceLabels,
 		);
 	}
@@ -134,6 +137,7 @@ export class Cube3DRenderer {
 		labelColor: string,
 		labelBackgroundOpacity: number,
 		labelDensity: number,
+		cubeFaceOpacity: number,
 		forceLabels: boolean,
 	) {
 		this.manualLayout = manualLayout;
@@ -141,6 +145,7 @@ export class Cube3DRenderer {
 		this.labelColor = labelColor;
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.labelDensity = labelDensity;
+		this.cubeFaceOpacity = cubeFaceOpacity;
 		this.forceLabels = forceLabels;
 		this.scene = new this.three.Scene();
 		this.scene.background = new this.three.Color(this.palette.background ?? "#202020");
@@ -241,6 +246,12 @@ export class Cube3DRenderer {
 	setLabelDensity(labelDensity: number): void {
 		this.labelDensity = labelDensity;
 		this.rebuildGraphObjects();
+		this.scheduleRender();
+	}
+
+	setCubeFaceOpacity(cubeFaceOpacity: number): void {
+		this.cubeFaceOpacity = cubeFaceOpacity;
+		this.buildFaces();
 		this.scheduleRender();
 	}
 
@@ -435,10 +446,9 @@ export class Cube3DRenderer {
 			const geometry = new this.three.PlaneGeometry(this.cubeSize * 2, this.cubeSize * 2);
 			const material = new this.three.MeshBasicMaterial({
 				color: group?.color ?? this.palette.node,
-				opacity: 0.16,
-				transparent: true,
-				side: this.three.DoubleSide,
-				depthWrite: false,
+				opacity: this.cubeFaceOpacity,
+				transparent: this.cubeFaceOpacity < 1,
+				depthWrite: true,
 			});
 			const mesh = new this.three.Mesh(
 				geometry,
@@ -458,7 +468,7 @@ export class Cube3DRenderer {
 					linewidth: 3,
 				}),
 			);
-			edge.position.copy(mesh.position);
+			edge.position.copy(face.normal.clone().multiplyScalar(this.cubeSize + 1));
 			edge.rotation.copy(mesh.rotation);
 			this.faceEdgeGroup.add(edge);
 		}
@@ -630,7 +640,7 @@ export class Cube3DRenderer {
 			map: texture,
 			transparent: true,
 			depthWrite: false,
-			depthTest: false,
+			depthTest: true,
 		});
 		const sprite = new this.three.Sprite(material);
 		const scale = attributes.isPrimary ? 1.1 : 1;

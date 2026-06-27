@@ -35,9 +35,10 @@ export function createWorkspaceState(
 		labelSize: activeChart.display.labelSize,
 			labelPosition: activeChart.display.labelPosition,
 				labelColor: activeChart.display.labelColor,
-				labelBackgroundOpacity: activeChart.display.labelBackgroundOpacity,
-				labelDensity: activeChart.display.labelDensity,
-				forceLabels: activeChart.display.forceLabels,
+					labelBackgroundOpacity: activeChart.display.labelBackgroundOpacity,
+					labelDensity: activeChart.display.labelDensity,
+					cubeFaceOpacity: activeChart.display.cubeFaceOpacity,
+					forceLabels: activeChart.display.forceLabels,
 				enableForceLayout: activeChart.display.enableForceLayout,
 			graphSpacing:
 					activeChart.type === 'graph' ||
