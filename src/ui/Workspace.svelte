@@ -81,7 +81,7 @@
 	let autoSaveTimer: number | undefined;
 	let pendingAutoSave: MetaGraphDocument | undefined;
 	let lastAutoSavedState = "";
-	let themeRefreshTimer: number | undefined;
+	let lastThemeSignature = "";
 	let lastProjection: WorkspaceState["projection"];
 	let lastActiveChartId: string | undefined;
 	let lastMode: WorkspaceState["mode"] | undefined;
@@ -202,24 +202,17 @@
 			}
 		});
 		resizeObserver.observe(canvas);
+		lastThemeSignature = readThemeSignature();
 		const themeObserver = new MutationObserver(() => {
-			window.clearTimeout(themeRefreshTimer);
-			themeRefreshTimer = window.setTimeout(() => {
-				void rebuildGraph(false, false).catch((error: unknown) => {
-					controller.setRendererDebugState({
-						status: "error",
-						error: formatError(error),
-					});
-				});
-			}, 50);
+			refreshRendererTheme();
 		});
 		themeObserver.observe(document.body, {
 			attributes: true,
-			attributeFilter: ["class", "style"],
+			attributeFilter: ["class"],
 		});
 		themeObserver.observe(document.documentElement, {
 			attributes: true,
-			attributeFilter: ["class", "style"],
+			attributeFilter: ["class"],
 		});
 		workspaceRoot.addEventListener("keydown", handleWorkspaceKeydown);
 		workspaceRoot.addEventListener(
@@ -368,7 +361,6 @@
 		return () => {
 			renderVersion += 1;
 			window.clearTimeout(autoSaveTimer);
-			window.clearTimeout(themeRefreshTimer);
 			if (pendingAutoSave) {
 				void onAutoSave(pendingAutoSave);
 				pendingAutoSave = undefined;
@@ -404,6 +396,21 @@
 			renderer?.kill();
 		};
 	});
+
+	function readThemeSignature(): string {
+		return `${document.documentElement.className}|${document.body.className}`;
+	}
+
+	function refreshRendererTheme(): void {
+		const themeSignature = readThemeSignature();
+		if (themeSignature === lastThemeSignature) {
+			return;
+		}
+		lastThemeSignature = themeSignature;
+		if (renderer && isForce3DRenderer(renderer) && canvas) {
+			renderer.setPalette(readGraphPalette(canvas));
+		}
+	}
 
 	function scheduleAutoSave(state: WorkspaceState): void {
 		const document = serializeMetaGraphState(state);
