@@ -190,7 +190,8 @@
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<span
 								class:active={field.id === activeFieldSpecId}
-								class:reordering={reorderDrag?.id === field.id}
+								class:reordering={reorderDrag?.id === field.id &&
+									reorderDrag.active}
 								class="knowledge-workspace-connection-tag"
 								data-connection-field-id={field.id}
 								onpointerdown={(event) =>
