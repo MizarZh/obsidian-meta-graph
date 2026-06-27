@@ -44,9 +44,9 @@ settings to report them in the developer console.
 
 1. Enable **Meta Graph** in **Settings → Community plugins**.
 2. Run **Create graph** from the command palette.
-3. Add or select a chart in the graph toolbar. Graph, Free, Flow, Arc diagram,
-   and Hierarchical edge bundling layouts each keep their own source, query,
-   layout, display, and style settings.
+3. Add or select a chart in the graph toolbar. Graph, 3D graph, Cube graph,
+   Free, Flow, Arc diagram, and Hierarchical edge bundling layouts each keep
+   their own source, query, layout, display, and style settings.
 4. Use the toolbar settings buttons to edit graph settings, filters, note
    styles, and link styles in one panel.
 5. Use **Source → Query** for filter-driven charts, or **Source → Workspace**
@@ -83,16 +83,20 @@ settings to report them in the developer console.
    region.
 16. Drag a node into a manual group and release to assign it to that group.
    Drag it out and release over empty space to remove it from the group.
-17. Use the right dock panel to keep templates and selected notes in a compact
+17. In Cube graph views, each cube face is a group. Drag the background to
+   rotate the cube, drag nodes within their face to save their placement, use
+   `Shift`-click for local relationship focus, right-click for selection
+   details, and `Ctrl`-drag between nodes to add links.
+18. Use the right dock panel to keep templates and selected notes in a compact
    vertical list. Add or edit templates from the dock, choose an optional
    default group for template-created notes, drag items in the dock to reorder
    them, and hold `Ctrl` while dragging a dock item to connect it to a graph
    node.
-18. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
+19. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
    workspace is focused, to undo connection edits made in the current workspace
    session.
-19. Select a node to open its note in a new tab.
-20. Select **Debug** to inspect or copy the current query, projection,
+20. Select a node to open its note in a new tab.
+21. Select **Debug** to inspect or copy the current query, projection,
    canonical index, adjacency maps, and unresolved links as JSON.
 
 Style fallback is field-by-field:

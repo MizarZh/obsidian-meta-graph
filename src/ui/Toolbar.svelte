@@ -86,6 +86,7 @@
 			const VIEW_ICONS: Record<ViewMode, IconName> = {
 					graph: "chart-scatter",
 					"graph-3d": "box",
+					cube: "cuboid",
 					free: "move",
 					flow: "git-fork",
 				arc: "route",
@@ -94,6 +95,7 @@
 			const VIEW_MODE_OPTIONS = [
 					{ value: "graph", label: "Graph" },
 					{ value: "graph-3d", label: "3D graph" },
+					{ value: "cube", label: "Cube graph" },
 					{ value: "free", label: "Free" },
 					{ value: "flow", label: "Flow" },
 			{ value: "arc", label: "Arc diagram" },

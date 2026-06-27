@@ -677,7 +677,7 @@
 	}
 
 	function commitSpacing(spacing: number): void {
-		if (mode === 'graph' || mode === 'graph-3d') onGraphSpacing(spacing);
+		if (mode === 'graph' || mode === 'graph-3d' || mode === 'cube') onGraphSpacing(spacing);
 		if (mode === 'flow') onFlowSpacing(spacing);
 		if (mode === 'arc') onArcSpacing(spacing);
 	}
@@ -724,7 +724,7 @@
 					onChange={(value) => onChange({ showIsolatedNodes: value })}
 				/>
 			</label>
-			{#if mode === 'graph' || mode === 'graph-3d'}
+			{#if mode === 'graph' || mode === 'graph-3d' || mode === 'cube'}
 				<label class="knowledge-workspace-rule-label">
 					<span>Force layout</span>
 					<ObsidianToggle
@@ -741,7 +741,7 @@
 								min={0.25}
 								max={4}
 								step={0.25}
-								value={mode === 'graph' || mode === 'graph-3d'
+								value={mode === 'graph' || mode === 'graph-3d' || mode === 'cube'
 									? graphSpacing
 									: mode === 'flow'
 										? flowSpacing
@@ -752,7 +752,7 @@
 								onCommit={commitSpacing}
 							/>
 							<span
-								>{(mode === 'graph' || mode === 'graph-3d'
+								>{(mode === 'graph' || mode === 'graph-3d' || mode === 'cube'
 									? graphSpacing
 									: mode === 'flow'
 										? flowSpacing

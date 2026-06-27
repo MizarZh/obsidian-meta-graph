@@ -1178,6 +1178,15 @@ function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 				engine: 'force-3d',
 				spacing: 1,
 			};
+		case 'cube':
+			return {
+				engine: 'cube-3d',
+				spacing: 1,
+				manual: {
+					nodes: {},
+					groups: createDefaultCubeGroups(),
+				},
+			};
 		case 'free':
 			return {
 				engine: 'free',
@@ -1193,6 +1202,17 @@ function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 				spacing: 1,
 			};
 	}
+}
+
+function createDefaultCubeGroups(): ManualLayoutConfig['groups'] {
+	return [
+		{ id: 'cube-front', name: 'Front', x: 0, y: 0, width: 260, height: 260, color: '#7c6ff0', mode: 'manual', padding: 24 },
+		{ id: 'cube-back', name: 'Back', x: 0, y: 0, width: 260, height: 260, color: '#53a8ff', mode: 'manual', padding: 24 },
+		{ id: 'cube-left', name: 'Left', x: 0, y: 0, width: 260, height: 260, color: '#45c48a', mode: 'manual', padding: 24 },
+		{ id: 'cube-right', name: 'Right', x: 0, y: 0, width: 260, height: 260, color: '#f0a23a', mode: 'manual', padding: 24 },
+		{ id: 'cube-top', name: 'Top', x: 0, y: 0, width: 260, height: 260, color: '#e85d75', mode: 'manual', padding: 24 },
+		{ id: 'cube-bottom', name: 'Bottom', x: 0, y: 0, width: 260, height: 260, color: '#a36cf0', mode: 'manual', padding: 24 },
+	];
 }
 
 function createUniqueChartId(
@@ -1233,6 +1253,8 @@ function getDefaultChartId(type: ViewMode): string {
 			return 'knowledge-map';
 		case 'graph-3d':
 			return 'knowledge-map-3d';
+		case 'cube':
+			return 'cube-map';
 		case 'free':
 			return 'free-map';
 		case 'flow':
@@ -1250,6 +1272,8 @@ function getDefaultChartName(type: ViewMode): string {
 			return 'Knowledge map';
 		case 'graph-3d':
 			return '3D graph';
+		case 'cube':
+			return 'Cube graph';
 		case 'free':
 			return 'Free map';
 		case 'flow':
@@ -1264,6 +1288,7 @@ function getDefaultChartName(type: ViewMode): string {
 function readViewMode(value: unknown): ViewMode {
 	return value === 'flow' ||
 		value === 'graph-3d' ||
+		value === 'cube' ||
 		value === 'free' ||
 		value === 'arc' ||
 		value === 'hierarchical-edge-bundling'
@@ -1283,6 +1308,9 @@ function readLayoutEngine(type: ViewMode): ChartLayoutConfig['engine'] {
 	}
 	if (type === 'graph-3d') {
 		return 'force-3d';
+	}
+	if (type === 'cube') {
+		return 'cube-3d';
 	}
 	if (type === 'free') {
 		return 'free';

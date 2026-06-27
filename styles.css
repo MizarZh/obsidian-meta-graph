@@ -1724,6 +1724,12 @@
 	left: 0;
 }
 
+.meta-graph-cube-canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
 .connection-collapsed .knowledge-workspace-canvas {
 	bottom: 0;
 }

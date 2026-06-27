@@ -195,6 +195,7 @@ export interface GraphProjection {
 export type ViewMode =
 	| 'graph'
 	| 'graph-3d'
+	| 'cube'
 	| 'free'
 	| 'flow'
 	| 'arc'
@@ -276,6 +277,7 @@ export interface ChartLayoutConfig {
 	engine:
 		| 'force-atlas'
 		| 'force-3d'
+		| 'cube-3d'
 		| 'free'
 		| 'elk'
 		| 'arc'

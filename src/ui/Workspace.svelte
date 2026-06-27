@@ -14,10 +14,14 @@
 		bindGraphEvents,
 		type ConnectionDragState,
 	} from "../graph/graph-events";
-	import {
-		bindForce3DEvents,
-		Force3DRenderer,
-	} from "../graph/force-3d-renderer";
+		import {
+			bindForce3DEvents,
+			Force3DRenderer,
+		} from "../graph/force-3d-renderer";
+		import {
+			bindCube3DEvents,
+			Cube3DRenderer,
+		} from "../graph/cube-3d-renderer";
 	import {
 		GraphologyAdapter,
 		type GraphPosition,
@@ -75,7 +79,7 @@
 	let workspaceState: WorkspaceState = $state(getInitialState());
 	let workspaceRoot: HTMLDivElement;
 	let canvas: HTMLDivElement;
-	type GraphRenderer = SigmaRenderer | Force3DRenderer;
+		type GraphRenderer = SigmaRenderer | Force3DRenderer | Cube3DRenderer;
 	let renderer: GraphRenderer | undefined;
 	let unbindEvents: (() => void) | undefined;
 	let renderVersion = 0;
@@ -445,9 +449,13 @@
 			return;
 		}
 		lastThemeSignature = themeSignature;
-		if (renderer && isForce3DRenderer(renderer) && canvas) {
-			renderer.setPalette(readGraphPalette(canvas));
-		}
+			if (
+				renderer &&
+				(isForce3DRenderer(renderer) || isCube3DRenderer(renderer)) &&
+				canvas
+			) {
+				renderer.setPalette(readGraphPalette(canvas));
+			}
 	}
 
 	function scheduleAutoSave(state: WorkspaceState): void {
@@ -529,32 +537,36 @@
 			return;
 		}
 
-			const wants3DRenderer = workspaceState.mode === "graph-3d";
-					if (renderer && isForce3DRenderer(renderer) !== wants3DRenderer) {
-						unbindEvents?.();
-						unbindEvents = undefined;
-						stopForceLayoutSimulation();
-						renderer.kill();
-						renderer = undefined;
-					}
-					const firstRender = !renderer;
-					if (renderer) {
-						unbindEvents?.();
-						stopForceLayoutSimulation();
-				if (isForce3DRenderer(renderer)) {
+			const rendererKind = getRendererKindForMode();
+			if (renderer && getRendererKind(renderer) !== rendererKind) {
+				unbindEvents?.();
+				unbindEvents = undefined;
+				stopForceLayoutSimulation();
+				renderer.kill();
+				renderer = undefined;
+			}
+			const firstRender = !renderer;
+			if (renderer) {
+				unbindEvents?.();
+				stopForceLayoutSimulation();
+				if (isForce3DRenderer(renderer) || isCube3DRenderer(renderer)) {
 					renderer.setPalette(palette);
-					}
-					renderer.setGraph(graph);
-					unbindEvents = bindEventsForRenderer(renderer);
-				} else {
-				const nextRenderer = wants3DRenderer
-					? await Force3DRenderer.create(
-							graph,
-							canvas,
-							palette,
-							workspaceState.fadeDistance,
-							workspaceState.labelSize,
-							workspaceState.labelPosition,
+				}
+				if (isCube3DRenderer(renderer)) {
+					renderer.setManualLayout(workspaceState.manualLayout);
+				}
+				renderer.setGraph(graph);
+				unbindEvents = bindEventsForRenderer(renderer);
+			} else {
+				const nextRenderer =
+					rendererKind === "force-3d"
+						? await Force3DRenderer.create(
+								graph,
+								canvas,
+								palette,
+								workspaceState.fadeDistance,
+								workspaceState.labelSize,
+								workspaceState.labelPosition,
 								workspaceState.labelColor,
 								workspaceState.labelBackgroundOpacity,
 								workspaceState.labelDensity,
@@ -562,34 +574,50 @@
 								workspaceState.forceLabels,
 								() => version !== renderVersion,
 							)
-					: new SigmaRenderer(
-							graph,
-							canvas,
-							palette,
-							workspaceState.fadeDistance,
-							workspaceState.labelSize,
-							workspaceState.labelPosition,
-							workspaceState.labelColor,
-							workspaceState.labelBackgroundOpacity,
-							workspaceState.labelDensity,
-							workspaceState.forceLabels,
-						);
+						: rendererKind === "cube-3d"
+							? await Cube3DRenderer.create(
+									graph,
+									canvas,
+									palette,
+									workspaceState.manualLayout,
+									workspaceState.fadeDistance,
+									workspaceState.labelSize,
+									workspaceState.labelPosition,
+									workspaceState.labelColor,
+									workspaceState.labelBackgroundOpacity,
+									workspaceState.labelDensity,
+									workspaceState.enableForceLayout,
+									workspaceState.forceLabels,
+									() => version !== renderVersion,
+								)
+							: new SigmaRenderer(
+									graph,
+									canvas,
+									palette,
+									workspaceState.fadeDistance,
+									workspaceState.labelSize,
+									workspaceState.labelPosition,
+									workspaceState.labelColor,
+									workspaceState.labelBackgroundOpacity,
+									workspaceState.labelDensity,
+									workspaceState.forceLabels,
+								);
 				if (!nextRenderer) {
 					return;
 				}
 				if (version !== renderVersion) {
 					nextRenderer.kill();
 					return;
-					}
-					renderer = nextRenderer;
-					unbindEvents = bindEventsForRenderer(nextRenderer);
 				}
-				syncRendererGroups();
-		renderer.setSelected(workspaceState.selectedNodeId);
-		renderer.setHovered(workspaceState.hoveredNodeId);
-		if (firstRender || fitAfterRender) {
-			renderer.fit();
-		}
+				renderer = nextRenderer;
+				unbindEvents = bindEventsForRenderer(nextRenderer);
+			}
+			syncRendererGroups();
+			renderer.setSelected(workspaceState.selectedNodeId);
+			renderer.setHovered(workspaceState.hoveredNodeId);
+			if (firstRender || fitAfterRender) {
+				renderer.fit();
+			}
 			controller.setRendererDebugState({
 				status: "rendered",
 				mode: workspaceState.mode,
@@ -599,8 +627,8 @@
 		}
 
 		function bindEventsForRenderer(targetRenderer: GraphRenderer): () => void {
-			if (isForce3DRenderer(targetRenderer)) {
-				return bindForce3DEvents(targetRenderer, {
+				if (isForce3DRenderer(targetRenderer)) {
+					return bindForce3DEvents(targetRenderer, {
 					onSelect: (nodeId) => controller.selectNode(nodeId),
 					onHover: (nodeId) => controller.hoverNode(nodeId),
 					onOpen: (nodeId) => void controller.openNode(nodeId),
@@ -626,9 +654,51 @@
 								}),
 							);
 					},
-				});
-			}
-			return bindGraphEvents(targetRenderer, {
+					});
+				}
+				if (isCube3DRenderer(targetRenderer)) {
+					return bindCube3DEvents(targetRenderer, {
+						onSelect: (nodeId) => controller.selectNode(nodeId),
+						onHover: (nodeId) => controller.hoverNode(nodeId),
+						onOpen: (nodeId) => void controller.openNode(nodeId),
+						onNodeDrag: (nodeId, position) => {
+							getLayoutSnapshot().positions.set(nodeId, position);
+						},
+						onNodeDragEnd: (nodeId) => {
+							const position = getLayoutSnapshot().positions.get(nodeId);
+							if (position) {
+								controller.setManualNodePosition(
+									nodeId,
+									position,
+									targetRenderer.getNodeFace(nodeId),
+								);
+							}
+						},
+						onConnectionDrag: (state) => {
+							connectionDrag = state;
+							if (!state) {
+								graphConnectionTargetNotePath = undefined;
+								graphConnectionTargetTemplateId = undefined;
+								graphConnectionTargetCurated = false;
+							}
+						},
+						onConnect: (sourceNodeId, targetNodeId) => {
+							void controller
+								.connectNodes(
+									sourceNodeId,
+									targetNodeId,
+									workspaceState.activeConnectionField,
+								)
+								.catch((error: unknown) =>
+									controller.setRendererDebugState({
+										status: "error",
+										error: formatError(error),
+									}),
+								);
+						},
+					});
+				}
+				return bindGraphEvents(targetRenderer, {
 				enableForceLayout:
 					workspaceState.mode === "graph" && workspaceState.enableForceLayout,
 				enableNodeDragging: workspaceState.mode === "free",
@@ -707,16 +777,48 @@
 			});
 		}
 
-		function isForce3DRenderer(
-			targetRenderer: GraphRenderer,
-		): targetRenderer is Force3DRenderer {
-			return targetRenderer instanceof Force3DRenderer;
-		}
-
-		function syncRendererGroups(): void {
-			if (!renderer || isForce3DRenderer(renderer)) {
-				return;
+			function isForce3DRenderer(
+				targetRenderer: GraphRenderer,
+			): targetRenderer is Force3DRenderer {
+				return targetRenderer instanceof Force3DRenderer;
 			}
+
+			function isCube3DRenderer(
+				targetRenderer: GraphRenderer,
+			): targetRenderer is Cube3DRenderer {
+				return targetRenderer instanceof Cube3DRenderer;
+			}
+
+			type RendererKind = "sigma" | "force-3d" | "cube-3d";
+
+			function getRendererKind(targetRenderer: GraphRenderer): RendererKind {
+				if (isForce3DRenderer(targetRenderer)) {
+					return "force-3d";
+				}
+				if (isCube3DRenderer(targetRenderer)) {
+					return "cube-3d";
+				}
+				return "sigma";
+			}
+
+			function getRendererKindForMode(): RendererKind {
+				if (workspaceState.mode === "graph-3d") {
+					return "force-3d";
+				}
+				if (workspaceState.mode === "cube") {
+					return "cube-3d";
+				}
+				return "sigma";
+			}
+
+			function syncRendererGroups(): void {
+				if (
+					!renderer ||
+					isForce3DRenderer(renderer) ||
+					isCube3DRenderer(renderer)
+				) {
+					return;
+				}
 			renderer.setGroups(
 				workspaceState.mode === "free" ? workspaceState.manualLayout.groups : [],
 				{
@@ -729,13 +831,17 @@
 			);
 		}
 
-		function moveRuntimeGroupNodes(
-			groupId: string,
-			delta: { x: number; y: number },
-		): void {
-			if (!renderer || isForce3DRenderer(renderer)) {
-				return;
-			}
+			function moveRuntimeGroupNodes(
+				groupId: string,
+				delta: { x: number; y: number },
+			): void {
+				if (
+					!renderer ||
+					isForce3DRenderer(renderer) ||
+					isCube3DRenderer(renderer)
+				) {
+					return;
+				}
 			const graph = renderer.runtimeGraph;
 			const snapshot = getLayoutSnapshot();
 			for (const [nodeId, placement] of Object.entries(
@@ -975,6 +1081,9 @@
 				}
 			} else if (workspaceState.mode === "graph-3d") {
 				snapshot.edgeIds = currentEdgeIds;
+			} else if (workspaceState.mode === "cube") {
+				snapshot.edgeIds = currentEdgeIds;
+				snapshot.orthogonalRoutes = new Map();
 			}
 
 		graph.forEachNode((nodeId, attributes) => {
@@ -1135,12 +1244,15 @@
 		if (workspaceState.mode === "graph") {
 			return `${workspaceState.activeChartId}-graph`;
 		}
-			if (workspaceState.mode === "graph-3d") {
-				return `${workspaceState.activeChartId}-graph-3d`;
-			}
-			if (workspaceState.mode === "free") {
-				return `${workspaceState.activeChartId}-free`;
-			}
+				if (workspaceState.mode === "graph-3d") {
+					return `${workspaceState.activeChartId}-graph-3d`;
+				}
+				if (workspaceState.mode === "cube") {
+					return `${workspaceState.activeChartId}-cube`;
+				}
+				if (workspaceState.mode === "free") {
+					return `${workspaceState.activeChartId}-free`;
+				}
 		if (workspaceState.mode === "arc") {
 			return `${workspaceState.activeChartId}-arc-${workspaceState.arcDirection}`;
 		}
@@ -1148,9 +1260,9 @@
 		}
 
 		function hydrateManualLayoutPositions(snapshot: LayoutSnapshot): void {
-			if (workspaceState.mode !== "free") {
-				return;
-			}
+				if (workspaceState.mode !== "free" && workspaceState.mode !== "cube") {
+					return;
+				}
 			for (const [nodeId, placement] of Object.entries(
 				workspaceState.manualLayout.nodes,
 			)) {
