@@ -175,12 +175,18 @@
 			.then(() => {
 				controller.addCuratedFile(notePath);
 			})
-			.catch((error: unknown) =>
-				controller.setRendererDebugState({
-					status: "error",
-					error: formatError(error),
-				}),
-			);
+		.catch((error: unknown) =>
+			controller.setRendererDebugState({
+				status: "error",
+				error: formatError(error),
+			}),
+		);
+	};
+	const handleGraphConnectionPointerMove = (event: PointerEvent): void => {
+		handleGraphConnectionMouseMove(event);
+	};
+	const handleGraphConnectionPointerUp = (event: PointerEvent): void => {
+		handleGraphConnectionMouseUp(event);
 	};
 
 	function getInitialState(): WorkspaceState {
@@ -223,6 +229,12 @@
 			capture: true,
 		});
 		window.addEventListener("mouseup", handleGraphConnectionMouseUp, {
+			capture: true,
+		});
+		window.addEventListener("pointermove", handleGraphConnectionPointerMove, {
+			capture: true,
+		});
+		window.addEventListener("pointerup", handleGraphConnectionPointerUp, {
 			capture: true,
 		});
 
@@ -386,6 +398,20 @@
 			window.removeEventListener(
 				"mouseup",
 				handleGraphConnectionMouseUp,
+				{
+					capture: true,
+				},
+			);
+			window.removeEventListener(
+				"pointermove",
+				handleGraphConnectionPointerMove,
+				{
+					capture: true,
+				},
+			);
+			window.removeEventListener(
+				"pointerup",
+				handleGraphConnectionPointerUp,
 				{
 					capture: true,
 				},
@@ -564,6 +590,28 @@
 					onSelect: (nodeId) => controller.selectNode(nodeId),
 					onHover: (nodeId) => controller.hoverNode(nodeId),
 					onOpen: (nodeId) => void controller.openNode(nodeId),
+					onConnectionDrag: (state) => {
+						connectionDrag = state;
+						if (!state) {
+							graphConnectionTargetNotePath = undefined;
+							graphConnectionTargetTemplateId = undefined;
+							graphConnectionTargetCurated = false;
+						}
+					},
+					onConnect: (sourceNodeId, targetNodeId) => {
+						void controller
+							.connectNodes(
+								sourceNodeId,
+								targetNodeId,
+								workspaceState.activeConnectionField,
+							)
+							.catch((error: unknown) =>
+								controller.setRendererDebugState({
+									status: "error",
+									error: formatError(error),
+								}),
+							);
+					},
 				});
 			}
 			return bindGraphEvents(targetRenderer, {

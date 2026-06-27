@@ -24,7 +24,8 @@
 		"graphology": "^0.26.0",
 		"graphology-layout-forceatlas2": "^0.10.1",
 		"sigma": "^3.0.2",
-		"svelte": "^5.34.7"
+		"svelte": "^5.34.7",
+		"three": "0.185.0"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.39.4",
@@ -32,6 +33,7 @@
 		"@types/d3-hierarchy": "^3.1.7",
 		"@types/d3-scale": "^4.0.9",
 		"@types/node": "^22.15.17",
+		"@types/three": "^0.185.0",
 		"esbuild": "0.25.5",
 		"esbuild-svelte": "^0.9.3",
 		"eslint": "^9.39.4",

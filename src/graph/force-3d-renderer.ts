@@ -3,6 +3,7 @@ import type {
 	LinkObject,
 	NodeObject,
 } from "3d-force-graph";
+import type { Object3D } from "three";
 import type { LabelPosition } from "../core/types";
 import type {
 	RuntimeEdgeAttributes,
@@ -10,6 +11,7 @@ import type {
 	RuntimeNodeAttributes,
 } from "./graphology-adapter";
 import {
+	type ConnectionDragState,
 	type GraphEventCallbacks,
 	immediateNeighborhood,
 } from "./graph-events";
@@ -37,6 +39,21 @@ interface Force3DLink extends LinkObject<Force3DNode> {
 	hidden: boolean;
 }
 
+interface ThreeRuntime {
+	CanvasTexture: new (canvas: HTMLCanvasElement) => {
+		needsUpdate: boolean;
+	};
+	SpriteMaterial: new (parameters: {
+		map: unknown;
+		transparent: boolean;
+		depthWrite: boolean;
+		depthTest: boolean;
+	}) => unknown;
+	Sprite: new (material: unknown) => Object3D & {
+		scale: { set(x: number, y: number, z: number): void };
+	};
+}
+
 export class Force3DRenderer {
 	readonly instance: ForceGraph3DInstance<Force3DNode, Force3DLink>;
 	private selectedNodeId?: string;
@@ -45,9 +62,20 @@ export class Force3DRenderer {
 	private hoveredNeighborhood = new Set<string>();
 	private labelColor: string;
 	private labelBackgroundOpacity: number;
+	private labelSize: number;
+	private readonly three: ThreeRuntime;
 	private initialized = false;
 	private killed = false;
 	private pendingFrame: number | undefined;
+	private pendingConnectionMove: PointerEvent | undefined;
+	private pendingConnectionMoveFrame: number | undefined;
+	private screenPositionCacheFrame = -1;
+	private screenPositionCache: Array<{
+		id: string;
+		x: number;
+		y: number;
+		size: number;
+	}> = [];
 
 	static async create(
 		graph: RuntimeGraph,
@@ -63,7 +91,10 @@ export class Force3DRenderer {
 		forceLabels = false,
 		isStale: () => boolean = () => false,
 	): Promise<Force3DRenderer | undefined> {
-		const ForceGraph3D = await loadForceGraph3D();
+		const [ForceGraph3D, three] = await Promise.all([
+			loadForceGraph3D(),
+			loadThree(),
+		]);
 		if (isStale()) {
 			return undefined;
 		}
@@ -83,6 +114,7 @@ export class Force3DRenderer {
 			labelDensity,
 			enableNodeDrag,
 			forceLabels,
+			three,
 		);
 	}
 
@@ -99,9 +131,12 @@ export class Force3DRenderer {
 		_labelDensity = 0.8,
 		enableNodeDrag = false,
 		_forceLabels = false,
+		three: ThreeRuntime,
 	) {
 		this.labelColor = labelColor;
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
+		this.labelSize = _labelSize;
+		this.three = three;
 		this.instance = instance;
 		this.applyTooltipStyles();
 		this.instance
@@ -115,10 +150,28 @@ export class Force3DRenderer {
 			.nodeColor((node) => this.getNodeColor(node))
 			.nodeOpacity(0.94)
 			.nodeResolution(18)
+			.nodeThreeObjectExtend(true)
+			.nodeThreeObject((node: Force3DNode) =>
+				this.createTextSprite(node.label, this.labelSize, 1),
+			)
 			.linkLabel((link) => link.label || "")
 			.linkVisibility((link) => !link.hidden)
 			.linkColor((link) => this.getLinkColor(link))
 			.linkWidth((link) => Math.max(0.4, link.size))
+			.linkThreeObjectExtend(true)
+			.linkThreeObject((link: Force3DLink) =>
+				link.label && !link.hidden
+					? this.createTextSprite(link.label, Math.max(10, this.labelSize - 2), 0.86)
+					: this.createTextSprite("", 1, 0),
+			)
+			.linkPositionUpdate((object, { start, end }) => {
+				object.position.set(
+					(start.x + end.x) / 2,
+					(start.y + end.y) / 2,
+					(start.z + end.z) / 2,
+				);
+				return true;
+			})
 			.linkDirectionalArrowLength((link) =>
 				link.directed && !link.hidden ? Math.max(2.5, link.size * 2.5) : 0,
 			)
@@ -144,24 +197,26 @@ export class Force3DRenderer {
 			return;
 		}
 		this.instance.graphData(toForce3DData(graph));
+		this.refreshWhenReady();
 	}
 
 	setPalette(palette: GraphPalette): void {
 		this.palette = palette;
 		this.instance.backgroundColor(palette.background ?? "#202020");
 		this.applyTooltipStyles();
-		this.refreshWhenReady();
+		this.refreshColorsWhenReady();
+		this.refreshLabelsWhenReady();
 	}
 
 	setSelected(nodeId?: string): void {
 		this.selectedNodeId = nodeId;
-		this.refreshWhenReady();
+		this.refreshColorsWhenReady();
 	}
 
 	setHovered(nodeId?: string): void {
 		this.hoveredNodeId = nodeId;
 		this.updateHoveredNeighborhood();
-		this.refreshWhenReady();
+		this.refreshColorsWhenReady();
 	}
 
 	setFadeDistance(_fadeDistance: number): void {
@@ -169,7 +224,8 @@ export class Force3DRenderer {
 	}
 
 	setLabelSize(_labelSize: number): void {
-		this.refreshWhenReady();
+		this.labelSize = _labelSize;
+		this.refreshLabelsWhenReady();
 	}
 
 	setLabelPosition(_labelPosition: LabelPosition): void {
@@ -179,21 +235,21 @@ export class Force3DRenderer {
 	setLabelColor(labelColor: string): void {
 		this.labelColor = labelColor;
 		this.applyTooltipStyles();
-		this.refreshWhenReady();
+		this.refreshLabelsWhenReady();
 	}
 
 	setLabelBackgroundOpacity(labelBackgroundOpacity: number): void {
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.applyTooltipStyles();
-		this.refreshWhenReady();
+		this.refreshLabelsWhenReady();
 	}
 
 	setLabelDensity(_labelDensity: number): void {
-		this.refreshWhenReady();
+		this.refreshLabelsWhenReady();
 	}
 
 	setForceLabels(_forceLabels: boolean): void {
-		this.refreshWhenReady();
+		this.refreshLabelsWhenReady();
 	}
 
 	setEnableForceLayout(enableForceLayout: boolean): void {
@@ -203,7 +259,7 @@ export class Force3DRenderer {
 	togglePinnedHover(nodeId: string): void {
 		this.pinnedNodeId = this.pinnedNodeId === nodeId ? undefined : nodeId;
 		this.updateHoveredNeighborhood();
-		this.refreshWhenReady();
+		this.refreshColorsWhenReady();
 	}
 
 	clearPinnedHover(): void {
@@ -212,7 +268,7 @@ export class Force3DRenderer {
 		}
 		this.pinnedNodeId = undefined;
 		this.updateHoveredNeighborhood();
-		this.refreshWhenReady();
+		this.refreshColorsWhenReady();
 	}
 
 	focusNode(nodeId: string): void {
@@ -255,16 +311,8 @@ export class Force3DRenderer {
 	}): string | undefined {
 		let closestNodeId: string | undefined;
 		let closestDistance = Number.POSITIVE_INFINITY;
-		for (const node of this.instance.graphData().nodes) {
-			if (!hasFiniteCoordinates(node)) {
-				continue;
-			}
-			const screen = this.instance.graph2ScreenCoords(
-				node.x,
-				node.y,
-				node.z,
-			);
-			const distance = Math.hypot(screen.x - position.x, screen.y - position.y);
+		for (const node of this.getScreenPositionCache()) {
+			const distance = Math.hypot(node.x - position.x, node.y - position.y);
 			const hitRadius = Math.max(14, node.size + 8);
 			if (distance <= hitRadius && distance < closestDistance) {
 				closestDistance = distance;
@@ -272,6 +320,72 @@ export class Force3DRenderer {
 			}
 		}
 		return closestNodeId;
+	}
+
+	getNodeViewportPosition(nodeId: string): { x: number; y: number } | undefined {
+		const node = this.findNode(nodeId);
+		if (!node || !hasFiniteCoordinates(node)) {
+			return undefined;
+		}
+		const screen = this.instance.graph2ScreenCoords(node.x, node.y, node.z);
+		return { x: screen.x, y: screen.y };
+	}
+
+	getViewportPosition(event: MouseEvent | PointerEvent): { x: number; y: number } {
+		const rect = this.container.getBoundingClientRect();
+		return {
+			x: event.clientX - rect.left,
+			y: event.clientY - rect.top,
+		};
+	}
+
+	scheduleConnectionMove(update: (event: PointerEvent) => void, event: PointerEvent): void {
+		this.pendingConnectionMove = event;
+		if (this.pendingConnectionMoveFrame !== undefined) {
+			return;
+		}
+		this.pendingConnectionMoveFrame = window.requestAnimationFrame(() => {
+			this.pendingConnectionMoveFrame = undefined;
+			const pendingEvent = this.pendingConnectionMove;
+			if (pendingEvent) {
+				update(pendingEvent);
+			}
+		});
+	}
+
+	clearScheduledConnectionMove(): void {
+		this.pendingConnectionMove = undefined;
+		if (this.pendingConnectionMoveFrame !== undefined) {
+			window.cancelAnimationFrame(this.pendingConnectionMoveFrame);
+			this.pendingConnectionMoveFrame = undefined;
+		}
+	}
+
+	private getScreenPositionCache(): Array<{
+		id: string;
+		x: number;
+		y: number;
+		size: number;
+	}> {
+		const frame = Math.floor(performance.now() / 16);
+		if (this.screenPositionCacheFrame === frame) {
+			return this.screenPositionCache;
+		}
+		this.screenPositionCacheFrame = frame;
+		this.screenPositionCache = this.instance
+			.graphData()
+			.nodes.flatMap((node) => {
+				if (!hasFiniteCoordinates(node)) {
+					return [];
+				}
+				const screen = this.instance.graph2ScreenCoords(
+					node.x,
+					node.y,
+					node.z,
+				);
+				return [{ id: node.id, x: screen.x, y: screen.y, size: node.size }];
+			});
+		return this.screenPositionCache;
 	}
 
 	holdCurrentBounds(): void {
@@ -287,6 +401,10 @@ export class Force3DRenderer {
 		if (this.pendingFrame !== undefined) {
 			window.cancelAnimationFrame(this.pendingFrame);
 			this.pendingFrame = undefined;
+		}
+		if (this.pendingConnectionMoveFrame !== undefined) {
+			window.cancelAnimationFrame(this.pendingConnectionMoveFrame);
+			this.pendingConnectionMoveFrame = undefined;
 		}
 		this.instance.pauseAnimation();
 		this.instance._destructor();
@@ -313,6 +431,37 @@ export class Force3DRenderer {
 		if (this.initialized && !this.killed) {
 			this.instance.refresh();
 		}
+	}
+
+	private refreshColorsWhenReady(): void {
+		if (!this.initialized || this.killed) {
+			return;
+		}
+		this.instance
+			.nodeColor((node: Force3DNode) => this.getNodeColor(node))
+			.linkColor((link: Force3DLink) => this.getLinkColor(link))
+			.linkDirectionalArrowColor((link: Force3DLink) =>
+				this.getLinkColor(link),
+			);
+	}
+
+	private refreshLabelsWhenReady(): void {
+		if (!this.initialized || this.killed) {
+			return;
+		}
+		this.instance
+			.nodeThreeObject((node: Force3DNode) =>
+				this.createTextSprite(node.label, this.labelSize, 1),
+			)
+			.linkThreeObject((link: Force3DLink) =>
+				link.label && !link.hidden
+					? this.createTextSprite(
+							link.label,
+							Math.max(10, this.labelSize - 2),
+							0.86,
+						)
+					: this.createTextSprite("", 1, 0),
+			);
 	}
 
 	private getActiveHoverNodeId(): string | undefined {
@@ -359,6 +508,58 @@ export class Force3DRenderer {
 		return escapeHtml(node.label);
 	}
 
+	private createTextSprite(
+		text: string,
+		fontSize: number,
+		scaleFactor: number,
+	): Object3D {
+		const paddingX = Math.max(8, Math.round(fontSize * 0.55));
+		const paddingY = Math.max(4, Math.round(fontSize * 0.32));
+		const canvas = document.createElement("canvas");
+		const context = canvas.getContext("2d");
+		if (!context) {
+			return new this.three.Sprite(
+				new this.three.SpriteMaterial({
+					map: new this.three.CanvasTexture(canvas),
+					transparent: true,
+					depthWrite: false,
+					depthTest: false,
+				}),
+			);
+		}
+		context.font = `${fontSize}px sans-serif`;
+		const width = Math.ceil(context.measureText(text).width + paddingX * 2);
+		const height = Math.ceil(fontSize + paddingY * 2);
+		const pixelRatio = Math.min(2, window.devicePixelRatio || 1);
+		canvas.width = width * pixelRatio;
+		canvas.height = height * pixelRatio;
+		canvas.style.width = `${width}px`;
+		canvas.style.height = `${height}px`;
+		context.scale(pixelRatio, pixelRatio);
+		context.font = `${fontSize}px sans-serif`;
+		context.textBaseline = "middle";
+		context.fillStyle =
+			this.labelBackgroundOpacity <= 0
+				? "transparent"
+				: withAlpha(this.palette.labelBackground, this.labelBackgroundOpacity);
+		drawRoundRect(context, 0, 0, width, height, 4);
+		context.fill();
+		context.fillStyle = this.labelColor || this.palette.label;
+		context.fillText(text, paddingX, height / 2);
+
+		const texture = new this.three.CanvasTexture(canvas);
+		texture.needsUpdate = true;
+		const material = new this.three.SpriteMaterial({
+			map: texture,
+			transparent: true,
+			depthWrite: false,
+			depthTest: false,
+		});
+		const sprite = new this.three.Sprite(material);
+		sprite.scale.set(width * 0.24 * scaleFactor, height * 0.24 * scaleFactor, 1);
+		return sprite;
+	}
+
 	private applyTooltipStyles(): void {
 		this.container.style.setProperty(
 			"--meta-graph-3d-label-color",
@@ -381,8 +582,17 @@ export function bindForce3DEvents(
 	callbacks: GraphEventCallbacks,
 ): () => void {
 	const instance = renderer.instance;
+	const element = instance.renderer().domElement;
+	let connectionDrag: ConnectionDragState | undefined;
+	let suppressClickUntil = 0;
+	let previousNavigationControls: boolean | undefined;
+	let previousNodeDrag: boolean | undefined;
 	instance
 		.onNodeClick((node, event) => {
+			if (Date.now() < suppressClickUntil) {
+				event.preventDefault();
+				return;
+			}
 			if (event.shiftKey) {
 				event.preventDefault();
 				renderer.togglePinnedHover(node.id);
@@ -407,12 +617,126 @@ export function bindForce3DEvents(
 			renderer.clearPinnedHover();
 			callbacks.onSelect(undefined);
 		});
+
+	const pointerDown = (event: PointerEvent) => {
+		if (!event.ctrlKey || event.button !== 0) {
+			return;
+		}
+		const point = renderer.getViewportPosition(event);
+		const sourceNodeId = renderer.getNodeAtViewportPosition(point);
+		if (!sourceNodeId) {
+			return;
+		}
+		event.preventDefault();
+		event.stopImmediatePropagation();
+		const source = renderer.getNodeViewportPosition(sourceNodeId) ?? point;
+		previousNavigationControls = instance.enableNavigationControls();
+		previousNodeDrag = instance.enableNodeDrag();
+		instance.enableNavigationControls(false);
+		instance.enableNodeDrag(false);
+		connectionDrag = {
+			sourceNodeId,
+			x1: source.x,
+			y1: source.y,
+			x2: point.x,
+			y2: point.y,
+		};
+		callbacks.onSelect(sourceNodeId);
+		callbacks.onConnectionDrag?.(connectionDrag);
+		window.addEventListener("pointermove", pointerMove, { capture: true });
+		window.addEventListener("pointerup", pointerUp, { capture: true });
+		window.addEventListener("pointercancel", pointerCancel, { capture: true });
+	};
+
+	const pointerMove = (event: PointerEvent) => {
+		if (!connectionDrag) {
+			return;
+		}
+		event.preventDefault();
+		renderer.scheduleConnectionMove(updateConnectionDrag, event);
+	};
+
+	function updateConnectionDrag(event: PointerEvent): void {
+		if (!connectionDrag) {
+			return;
+		}
+		const point = renderer.getViewportPosition(event);
+		const targetNodeId = renderer.getNodeAtViewportPosition(point);
+		connectionDrag = {
+			...connectionDrag,
+			targetNodeId:
+				targetNodeId && targetNodeId !== connectionDrag.sourceNodeId
+					? targetNodeId
+					: undefined,
+			x2: point.x,
+			y2: point.y,
+		};
+		callbacks.onConnectionDrag?.(connectionDrag);
+	}
+
+	const pointerUp = (event: PointerEvent) => {
+		if (!connectionDrag) {
+			return;
+		}
+		event.preventDefault();
+		const { sourceNodeId, targetNodeId } = connectionDrag;
+		endConnectionDrag(event.pointerId);
+		if (targetNodeId && targetNodeId !== sourceNodeId) {
+			callbacks.onConnect?.(sourceNodeId, targetNodeId);
+		}
+	};
+
+	const pointerCancel = (event: PointerEvent) => {
+		if (connectionDrag) {
+			endConnectionDrag(event.pointerId);
+		}
+	};
+
+	function endConnectionDrag(pointerId: number): void {
+		connectionDrag = undefined;
+		renderer.clearScheduledConnectionMove();
+		suppressClickUntil = Date.now() + 500;
+		if (previousNavigationControls !== undefined) {
+			instance.enableNavigationControls(previousNavigationControls);
+			previousNavigationControls = undefined;
+		}
+		if (previousNodeDrag !== undefined) {
+			instance.enableNodeDrag(previousNodeDrag);
+			previousNodeDrag = undefined;
+		}
+		void pointerId;
+		window.removeEventListener("pointermove", pointerMove, { capture: true });
+		window.removeEventListener("pointerup", pointerUp, { capture: true });
+		window.removeEventListener("pointercancel", pointerCancel, {
+			capture: true,
+		});
+		callbacks.onConnectionDrag?.(undefined);
+	}
+
+	element.addEventListener("pointerdown", pointerDown, { capture: true });
 	return () => {
+		if (connectionDrag) {
+			callbacks.onConnectionDrag?.(undefined);
+		}
+		if (previousNavigationControls !== undefined) {
+			instance.enableNavigationControls(previousNavigationControls);
+			previousNavigationControls = undefined;
+		}
+		if (previousNodeDrag !== undefined) {
+			instance.enableNodeDrag(previousNodeDrag);
+			previousNodeDrag = undefined;
+		}
 		instance
 			.onNodeClick(() => undefined)
 			.onNodeRightClick(() => undefined)
 			.onNodeHover(() => undefined)
 			.onBackgroundClick(() => undefined);
+		element.removeEventListener("pointerdown", pointerDown, { capture: true });
+		window.removeEventListener("pointermove", pointerMove, { capture: true });
+		window.removeEventListener("pointerup", pointerUp, { capture: true });
+		window.removeEventListener("pointercancel", pointerCancel, {
+			capture: true,
+		});
 	};
 }
 
@@ -517,6 +841,13 @@ async function loadForceGraph3D(): Promise<ForceGraph3DConstructor> {
 	});
 }
 
+async function loadThree(): Promise<ThreeRuntime> {
+	return withSuppressedThreeDuplicateWarning(async () => {
+		const module = await import("three");
+		return module as unknown as ThreeRuntime;
+	});
+}
+
 async function withSuppressedThreeDuplicateWarning<T>(
 	load: () => Promise<T>,
 ): Promise<T> {
@@ -535,4 +866,31 @@ async function withSuppressedThreeDuplicateWarning<T>(
 	} finally {
 		console.warn = originalWarn;
 	}
+}
+
+function drawRoundRect(
+	context: CanvasRenderingContext2D,
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	radius: number,
+): void {
+	const normalizedRadius = Math.min(radius, width / 2, height / 2);
+	context.beginPath();
+	context.moveTo(x + normalizedRadius, y);
+	context.lineTo(x + width - normalizedRadius, y);
+	context.quadraticCurveTo(x + width, y, x + width, y + normalizedRadius);
+	context.lineTo(x + width, y + height - normalizedRadius);
+	context.quadraticCurveTo(
+		x + width,
+		y + height,
+		x + width - normalizedRadius,
+		y + height,
+	);
+	context.lineTo(x + normalizedRadius, y + height);
+	context.quadraticCurveTo(x, y + height, x, y + height - normalizedRadius);
+	context.lineTo(x, y + normalizedRadius);
+	context.quadraticCurveTo(x, y, x + normalizedRadius, y);
+	context.closePath();
 }
