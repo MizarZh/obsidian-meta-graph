@@ -161,6 +161,10 @@ export class Cube3DRenderer {
 		this.faceEdgeGroup = new this.three.Group();
 		this.nodeGroup = new this.three.Group();
 		this.labelGroup = new this.three.Group();
+		this.faceEdgeGroup.renderOrder = 1;
+		this.edgeGroup.renderOrder = 2;
+		this.nodeGroup.renderOrder = 3;
+		this.labelGroup.renderOrder = 4;
 		this.cubeGroup.add(this.faceEdgeGroup, this.edgeGroup, this.nodeGroup, this.labelGroup);
 		this.scene.add(new this.three.AmbientLight(0xffffff, 1));
 		this.scene.add(this.cubeGroup);
@@ -448,7 +452,8 @@ export class Cube3DRenderer {
 				color: group?.color ?? this.palette.node,
 				opacity: this.cubeFaceOpacity,
 				transparent: this.cubeFaceOpacity < 1,
-				depthWrite: true,
+				depthWrite: false,
+				depthTest: true,
 			});
 			const mesh = new this.three.Mesh(
 				geometry,
@@ -456,6 +461,7 @@ export class Cube3DRenderer {
 			);
 			mesh.position.copy(face.normal.clone().multiplyScalar(this.cubeSize));
 			mesh.lookAt(face.normal.clone().multiplyScalar(this.cubeSize * 2));
+			mesh.renderOrder = 0;
 			mesh.userData.faceId = face.id;
 			this.faceMeshes.set(face.id, mesh);
 			this.cubeGroup.add(mesh);
@@ -470,6 +476,7 @@ export class Cube3DRenderer {
 			);
 			edge.position.copy(face.normal.clone().multiplyScalar(this.cubeSize + 1));
 			edge.rotation.copy(mesh.rotation);
+			edge.renderOrder = 1;
 			this.faceEdgeGroup.add(edge);
 		}
 	}
@@ -497,9 +504,10 @@ export class Cube3DRenderer {
 			const faceId = this.getFaceIdForNode(nodeId);
 			const face = this.getFace(faceId);
 			const nodeSize = Math.max(5, attributes.size * 1.25);
-			const mesh = this.createNodeSprite(attributes.color, nodeSize);
-			mesh.position.copy(this.localPosition(face, attributes.x, attributes.y, 8));
-			mesh.userData.nodeId = nodeId;
+		const mesh = this.createNodeSprite(attributes.color, nodeSize);
+		mesh.position.copy(this.localPosition(face, attributes.x, attributes.y, 8));
+		mesh.renderOrder = 3;
+		mesh.userData.nodeId = nodeId;
 			this.nodeGroup.add(mesh);
 			const label = this.shouldShowLabel(attributes)
 				? this.createTextSprite(attributes.label, this.labelSize, attributes)
@@ -508,6 +516,7 @@ export class Cube3DRenderer {
 				label.position.copy(
 					this.localLabelPosition(face, attributes.x, attributes.y, nodeSize),
 				);
+				label.renderOrder = 4;
 				this.labelGroup.add(label);
 			}
 			this.nodeObjects.set(nodeId, { id: nodeId, faceId, mesh, label });
@@ -540,6 +549,7 @@ export class Cube3DRenderer {
 				end.clone(),
 			]);
 			const line = new this.three.Line(geometry, material);
+			line.renderOrder = 2;
 			this.edgeGroup.add(line);
 			if (this.graph.isDirected(edgeId)) {
 				this.addArrow(start, end, attributes);
@@ -566,6 +576,7 @@ export class Cube3DRenderer {
 			length,
 			Math.max(4, length * 0.45),
 		);
+		arrow.renderOrder = 2;
 		this.edgeGroup.add(arrow);
 	}
 
@@ -573,13 +584,14 @@ export class Cube3DRenderer {
 		for (const [nodeId, node] of this.nodeObjects.entries()) {
 			this.setObjectOpacity(
 				node.mesh,
-				this.getNodeOpacity(nodeId) * this.getFaceVisibilityOpacity(node.faceId),
+				this.getNodeOpacity(nodeId) *
+					this.getFaceVisibilityOpacity(node.faceId, node.mesh.position),
 			);
 			if (node.label) {
 				this.setObjectOpacity(
 					node.label,
 					this.getNodeOpacity(nodeId) *
-						this.getFaceVisibilityOpacity(node.faceId),
+						this.getFaceVisibilityOpacity(node.faceId, node.label.position),
 				);
 			}
 		}
@@ -647,7 +659,7 @@ export class Cube3DRenderer {
 		const context = canvas.getContext("2d");
 		const fontSize = Math.max(10, size);
 		const padding = Math.ceil(fontSize * 0.45);
-		const labelColor = this.labelColor || "#ffffff";
+		const labelColor = this.labelColor || this.palette.label;
 		if (!context) {
 			return new this.three.Sprite(new this.three.SpriteMaterial());
 		}
@@ -700,25 +712,20 @@ export class Cube3DRenderer {
 		);
 	}
 
-	private getFaceVisibilityOpacity(faceId: CubeFaceId): number {
+	private getFaceVisibilityOpacity(
+		faceId: CubeFaceId,
+		localPosition: Three.Vector3,
+	): number {
 		const face = this.getFace(faceId);
 		this.updateWorldMatrices();
 		const worldNormal = face.normal
 			.clone()
 			.transformDirection(this.cubeGroup.matrixWorld)
 			.normalize();
-		const faceCenter = this.cubeGroup.localToWorld(
-			face.normal.clone().multiplyScalar(this.cubeSize),
-		);
-		const toCamera = this.camera.position.clone().sub(faceCenter).normalize();
+		const worldPosition = this.cubeGroup.localToWorld(localPosition.clone());
+		const toCamera = this.camera.position.clone().sub(worldPosition).normalize();
 		const facing = worldNormal.dot(toCamera);
-		if (facing >= 0.12) {
-			return 1;
-		}
-		if (facing <= -0.12) {
-			return 0.55;
-		}
-		return 0.75;
+		return lerp(0.62, 1, smoothstep(-0.2, 0.35, facing));
 	}
 
 	private setObjectOpacity(object: Three.Object3D, opacity: number): void {
@@ -1107,6 +1114,15 @@ function isCubeFaceId(value: string): value is CubeFaceId {
 
 function clamp(value: number, min: number, max: number): number {
 	return Math.max(min, Math.min(max, value));
+}
+
+function lerp(start: number, end: number, amount: number): number {
+	return start + (end - start) * amount;
+}
+
+function smoothstep(edge0: number, edge1: number, value: number): number {
+	const amount = clamp((value - edge0) / (edge1 - edge0), 0, 1);
+	return amount * amount * (3 - 2 * amount);
 }
 
 function hashString(value: string): number {
