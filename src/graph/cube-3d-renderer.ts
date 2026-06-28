@@ -52,7 +52,6 @@ interface CubeNodeObject {
 
 interface ThreeModule {
 	AmbientLight: typeof Three.AmbientLight;
-	ArrowHelper: typeof Three.ArrowHelper;
 	BufferGeometry: typeof Three.BufferGeometry;
 	CanvasTexture: typeof Three.CanvasTexture;
 	Color: typeof Three.Color;
@@ -87,6 +86,7 @@ export class Cube3DRenderer {
 	private readonly pointer: Three.Vector2;
 	private readonly nodeObjects = new Map<string, CubeNodeObject>();
 	private readonly faceMeshes = new Map<CubeFaceId, Three.Mesh>();
+	private readonly arrowTextures = new Map<string, Three.CanvasTexture>();
 	private readonly cubeSize = 180;
 	private selectedNodeId?: string;
 	private hoveredNodeId?: string;
@@ -355,6 +355,8 @@ export class Cube3DRenderer {
 		this.clearObjectGroup(this.faceEdgeGroup);
 		this.clearObjectGroup(this.nodeGroup);
 		this.clearObjectGroup(this.labelGroup);
+		this.arrowTextures.forEach((texture) => texture.dispose());
+		this.arrowTextures.clear();
 		this.webgl.dispose();
 		this.webgl.domElement.remove();
 	}
@@ -630,18 +632,52 @@ export class Cube3DRenderer {
 		if (direction.lengthSq() === 0) {
 			return;
 		}
-		const length = Math.max(8, attributes.size * 5);
-		const origin = end.clone().add(direction.normalize().multiplyScalar(-16));
-		const arrow = new this.three.ArrowHelper(
-			direction,
-			origin,
-			length,
-			attributes.color,
-			length,
-			Math.max(4, length * 0.45),
+		const normalized = direction.normalize();
+		const size = Math.max(14, attributes.size * 7);
+		const material = new this.three.SpriteMaterial({
+			map: this.getArrowTexture(attributes.color),
+			transparent: true,
+			opacity: 0.88,
+			depthWrite: false,
+			depthTest: false,
+		});
+		const arrow = new this.three.Sprite(material);
+		arrow.position.copy(
+			end
+				.clone()
+				.add(normalized.clone().multiplyScalar(-(16 + size * 0.35))),
 		);
+		arrow.scale.set(size, size, 1);
+		arrow.userData.arrowStart = start.clone();
+		arrow.userData.arrowEnd = end.clone();
 		arrow.renderOrder = 2;
 		this.edgeGroup.add(arrow);
+	}
+
+	private getArrowTexture(color: string): Three.CanvasTexture {
+		const cached = this.arrowTextures.get(color);
+		if (cached) {
+			return cached;
+		}
+		const canvasSize = 64;
+		const canvas = this.container.ownerDocument.createElement("canvas");
+		canvas.width = canvasSize;
+		canvas.height = canvasSize;
+		const context = canvas.getContext("2d");
+		if (context) {
+			context.clearRect(0, 0, canvasSize, canvasSize);
+			context.fillStyle = color;
+			context.beginPath();
+			context.moveTo(52, 32);
+			context.lineTo(22, 14);
+			context.lineTo(28, 32);
+			context.lineTo(22, 50);
+			context.closePath();
+			context.fill();
+		}
+		const texture = new this.three.CanvasTexture(canvas);
+		this.arrowTextures.set(color, texture);
+		return texture;
 	}
 
 	private refreshNodeColors(): void {
@@ -924,9 +960,42 @@ export class Cube3DRenderer {
 		}
 		this.animationFrame = window.requestAnimationFrame(() => {
 			this.animationFrame = undefined;
+			this.updateArrowSprites();
 			this.refreshNodeColors();
 			this.webgl.render(this.scene, this.camera);
 		});
+	}
+
+	private updateArrowSprites(): void {
+		this.updateWorldMatrices();
+		for (const object of this.edgeGroup.children) {
+			if (!(object instanceof this.three.Sprite)) {
+				continue;
+			}
+			const start = object.userData.arrowStart;
+			const end = object.userData.arrowEnd;
+			if (!(start instanceof this.three.Vector3) || !(end instanceof this.three.Vector3)) {
+				continue;
+			}
+			const startScreen = this.localToViewport(start);
+			const endScreen = this.localToViewport(end);
+			const material = object.material as Three.SpriteMaterial;
+			material.rotation = -Math.atan2(
+				endScreen.y - startScreen.y,
+				endScreen.x - startScreen.x,
+			);
+		}
+	}
+
+	private localToViewport(position: Three.Vector3): { x: number; y: number } {
+		const projected = this.cubeGroup
+			.localToWorld(position.clone())
+			.project(this.camera);
+		const { width, height } = this.container.getBoundingClientRect();
+		return {
+			x: ((projected.x + 1) / 2) * width,
+			y: ((1 - projected.y) / 2) * height,
+		};
 	}
 
 	private clearObjectGroup(group: Three.Group): void {

@@ -2105,11 +2105,28 @@
 				}}
 			/>
 			<Inspector
+				{app}
 				node={selectedNode}
+				nodes={searchableNodes}
 				nodeColor={selectedNodeColor}
+				mode={workspaceState.mode}
+				manualLayout={workspaceState.manualLayout}
+				activeConnectionField={workspaceState.activeConnectionField}
 				onOpenNote={(path) => void controller.openNode(path)}
 				onOpenMetadataLink={(linkText, sourcePath) =>
 					void openMetadataLink(linkText, sourcePath)}
+				onSetNodeGroup={(path, groupId) =>
+					controller.setNodeGroup(path, groupId)}
+				onConnectNode={(sourcePath, targetPath, field) => {
+					void controller
+						.connectNodes(sourcePath, targetPath, field)
+						.catch((error: unknown) =>
+							controller.setRendererDebugState({
+								status: "error",
+								error: formatError(error),
+							}),
+						);
+				}}
 			/>
 			{#if atNodeLimit}
 				<section class="knowledge-workspace-notice">

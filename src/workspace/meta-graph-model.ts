@@ -276,10 +276,7 @@ export function normalizeConnectionFieldModes(
 	const record = isRecord(value) ? value : {};
 	return Object.fromEntries(
 		fields.map((field) => {
-			const mode =
-				record[field] === 'bidirectional'
-					? 'bidirectional'
-					: DEFAULT_CONNECTION_FIELD_MODE;
+			const mode = readConnectionFieldMode(record[field]);
 			return [field, mode];
 		}),
 	);
@@ -379,7 +376,9 @@ function createConnectionFieldSpecId(
 }
 
 function readConnectionFieldMode(value: unknown): ConnectionFieldMode {
-	return value === 'bidirectional' ? 'bidirectional' : DEFAULT_CONNECTION_FIELD_MODE;
+	return value === 'bidirectional' || value === 'reverse'
+		? value
+		: DEFAULT_CONNECTION_FIELD_MODE;
 }
 
 function normalizeChart(

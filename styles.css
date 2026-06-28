@@ -2096,6 +2096,50 @@
 	flex: 0 0 auto;
 }
 
+.knowledge-workspace-inspector-control,
+.knowledge-workspace-inspector-link {
+	display: flex;
+	gap: var(--size-4-1);
+	min-width: 260px;
+}
+
+.knowledge-workspace-inspector-control {
+	flex-direction: column;
+}
+
+.knowledge-workspace-inspector-link {
+	display: grid;
+	grid-template-columns: minmax(150px, 1fr) minmax(64px, auto) auto;
+	align-items: center;
+}
+
+.knowledge-workspace-inspector-control > span {
+	color: var(--text-muted);
+	font-weight: var(--font-medium, 500);
+}
+
+.knowledge-workspace-inspector-control .knowledge-workspace-obsidian-control,
+.knowledge-workspace-inspector-link .knowledge-workspace-obsidian-control {
+	display: block;
+	overflow: visible;
+	white-space: normal;
+}
+
+.knowledge-workspace-inspector-control select,
+.knowledge-workspace-inspector-link select,
+.knowledge-workspace-inspector-link input {
+	width: 100%;
+}
+
+.knowledge-workspace-inspector-link > span {
+	min-width: 0;
+	padding: 0 var(--size-4-1);
+	color: var(--text-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .knowledge-workspace-dock-panel {
 	position: absolute;
 	top: var(--size-4-3);

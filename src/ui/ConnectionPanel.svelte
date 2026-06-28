@@ -70,6 +70,7 @@
 	const directionOptions = [
 		{ value: 'directed', label: 'One-way' },
 		{ value: 'bidirectional', label: 'Two-way' },
+		{ value: 'reverse', label: 'Reverse' },
 	];
 	const activeMode = $derived(
 		fields.find((field) => field.id === activeFieldSpecId)?.mode ?? 'directed',
@@ -84,7 +85,17 @@
 	}
 
 	function directionIcon(mode: ConnectionFieldMode): IconName {
-		return mode === 'bidirectional' ? 'arrow-left-right' : 'arrow-right';
+		if (mode === 'bidirectional') {
+			return 'arrow-left-right';
+		}
+		return mode === 'reverse' ? 'arrow-left' : 'arrow-right';
+	}
+
+	function directionLabel(mode: ConnectionFieldMode): string {
+		if (mode === 'bidirectional') {
+			return 'two-way';
+		}
+		return mode === 'reverse' ? 'reverse' : 'one-way';
 	}
 
 	function obsidianIcon(node: HTMLElement, icon: IconName) {
@@ -200,7 +211,7 @@
 								<button
 									type="button"
 									aria-pressed={field.id === activeFieldSpecId}
-									aria-label={`${field.field} ${field.mode === 'bidirectional' ? 'two-way' : 'one-way'}`}
+									aria-label={`${field.field} ${directionLabel(field.mode)}`}
 									onclick={() => onSelectField(field.field, field.mode)}
 								>
 									<span
@@ -230,10 +241,7 @@
 						disabled={!activeField}
 						ariaLabel="Connection direction"
 						onChange={(value) =>
-							onFieldMode(
-								activeField,
-								value === 'bidirectional' ? 'bidirectional' : 'directed',
-							)}
+							onFieldMode(activeField, value as ConnectionFieldMode)}
 					/>
 				</label>
 				<form

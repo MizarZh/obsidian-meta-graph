@@ -214,7 +214,7 @@ export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
 export type ArcDirection = 'right' | 'left' | 'up' | 'down';
 export type LabelPosition = 'right' | 'left' | 'top' | 'bottom';
 export type ChartType = ViewMode;
-export type ConnectionFieldMode = 'directed' | 'bidirectional';
+export type ConnectionFieldMode = 'directed' | 'bidirectional' | 'reverse';
 export interface ConnectionFieldSpec {
 	id: string;
 	field: string;

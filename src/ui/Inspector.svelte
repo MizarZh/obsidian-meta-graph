@@ -1,17 +1,45 @@
 <script lang="ts">
-	import type { KnowledgeNode } from "../core/types";
+	import type { App } from "obsidian";
+	import type {
+		ChartGroup,
+		KnowledgeNode,
+		ManualLayoutConfig,
+		ViewMode,
+	} from "../core/types";
 	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
+	import ObsidianDropdown from "./obsidian/ObsidianDropdown.svelte";
+	import ObsidianSuggestInput, {
+		type SuggestionOption,
+	} from "./obsidian/ObsidianSuggestInput.svelte";
 
 	let {
+		app,
 		node,
+		nodes = [],
 		nodeColor,
+		mode = "graph",
+		manualLayout = { nodes: {}, groups: [] },
+		activeConnectionField = "",
 		onOpenNote = () => {},
 		onOpenMetadataLink = () => {},
+		onSetNodeGroup = () => {},
+		onConnectNode = () => {},
 	}: {
+		app: App;
 		node?: KnowledgeNode;
+		nodes?: KnowledgeNode[];
 		nodeColor?: string;
+		mode?: ViewMode;
+		manualLayout?: ManualLayoutConfig;
+		activeConnectionField?: string;
 		onOpenNote?: (path: string) => void;
 		onOpenMetadataLink?: (linkText: string, sourcePath: string) => void;
+		onSetNodeGroup?: (path: string, groupId?: string) => void;
+		onConnectNode?: (
+			sourcePath: string,
+			targetPath: string,
+			field: string,
+		) => void;
 	} = $props();
 
 	type MetadataSegment =
@@ -19,6 +47,38 @@
 		| { kind: "link"; text: string; linkText: string };
 
 	const wikiLinkPattern = /\[\[([^\]]+)\]\]/gu;
+
+	let linkTargetPath = $state("");
+
+	const canAssignGroup = $derived(mode === "free" || mode === "cube");
+	const groupRequired = $derived(mode === "cube");
+	const groupOptions = $derived.by(() => {
+		const options = manualLayout.groups.map((group: ChartGroup) => ({
+			value: group.id,
+			label: group.name,
+		}));
+		return groupRequired
+			? options
+			: [{ value: "", label: "No group" }, ...options];
+	});
+	const selectedGroupId = $derived(
+		node ? (manualLayout.nodes[node.path]?.groupId ?? "") : "",
+	);
+	const selectedGroupValue = $derived(
+		groupRequired && !selectedGroupId && groupOptions[0]
+			? groupOptions[0].value
+			: selectedGroupId,
+	);
+	const noteOptions = $derived<SuggestionOption[]>(
+		nodes
+			.filter((candidate) => candidate.path !== node?.path)
+			.map((candidate) => ({
+				value: candidate.path,
+				label: candidate.title,
+				detail: candidate.path,
+				searchText: `${candidate.title} ${candidate.path}`,
+			})),
+	);
 
 	function renderMetadataValue(value: unknown): MetadataSegment[] {
 		if (Array.isArray(value)) {
@@ -72,6 +132,14 @@
 	function readLinkLabel(value: string): string {
 		return (value.split("|")[1] ?? value).trim();
 	}
+
+	function addLink(): void {
+		if (!node || !linkTargetPath || !activeConnectionField) {
+			return;
+		}
+		onConnectNode(node.path, linkTargetPath, activeConnectionField);
+		linkTargetPath = "";
+	}
 </script>
 
 {#if node}
@@ -93,6 +161,43 @@
 		{#if node.noteType}<span>Type: {node.noteType}</span>{/if}
 		{#if node.domains.length}<span>Domains: {node.domains.join(", ")}</span
 			>{/if}
+		{#if canAssignGroup && groupOptions.length > 0}
+			<hr />
+			<label class="knowledge-workspace-inspector-control">
+				<span>Group</span>
+				<ObsidianDropdown
+					value={selectedGroupValue}
+					options={groupOptions}
+					ariaLabel="Node group"
+					onChange={(groupId) =>
+						onSetNodeGroup(node.path, groupId || undefined)}
+				/>
+			</label>
+		{/if}
+		{#if noteOptions.length > 0 && activeConnectionField}
+			<hr />
+			<div class="knowledge-workspace-inspector-link">
+				<ObsidianSuggestInput
+					{app}
+					type="search"
+					placeholder="Add link"
+					ariaLabel="Link target"
+					value={linkTargetPath}
+					options={noteOptions}
+					showOnEmpty={true}
+					onInput={(value) => (linkTargetPath = value)}
+					onSelect={(option) => (linkTargetPath = option.value)}
+				/>
+				<span>{activeConnectionField}</span>
+				<ObsidianButton
+					icon="link"
+					ariaLabel="Add link"
+					tooltip="Add link"
+					disabled={!linkTargetPath}
+					onClick={addLink}
+				/>
+			</div>
+		{/if}
 		{#if node.metadata && Object.keys(node.metadata).length > 0}
 			<hr />
 			{#each Object.entries(node.metadata) as [key, value]}

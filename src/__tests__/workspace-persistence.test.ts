@@ -74,28 +74,29 @@ describe('workspace persistence', () => {
 		document.connectionFieldSpecs = [
 			{ id: 'leads-to:directed', field: 'leads-to', mode: 'directed' },
 			{ id: 'supports:bidirectional', field: 'supports', mode: 'bidirectional' },
+			{ id: 'supports:reverse', field: 'supports', mode: 'reverse' },
 		];
 		document.connectionFieldModes = {
 			'leads-to': 'directed',
-			supports: 'bidirectional',
+			supports: 'reverse',
 		};
-		document.activeConnectionFieldSpecId = 'supports:bidirectional';
+		document.activeConnectionFieldSpecId = 'supports:reverse';
 
 		const restoredDocument = normalizeMetaGraphDocument(document, 300, 1.5);
 		const restored = createWorkspaceState(300, 1.5, restoredDocument);
 		const saved = serializeMetaGraphState(restored);
 
-		expect(restored.connectionFieldModes.supports).toBe('bidirectional');
+		expect(restored.connectionFieldModes.supports).toBe('reverse');
 		expect(restored.activeConnectionFieldSpecId).toBe(
-			'supports:bidirectional',
+			'supports:reverse',
 		);
 		expect(saved.connectionFieldModes).toEqual({
 			'leads-to': 'directed',
-			supports: 'bidirectional',
+			supports: 'reverse',
 		});
 	});
 
-	it('allows one-way and two-way entries for the same metadata field', () => {
+	it('allows one-way, two-way, and reverse entries for the same metadata field', () => {
 		const document = createDefaultMetaGraphDocument(200, 2);
 		document.connectionFields = ['leads-to'];
 		document.connectionFieldSpecs = [
@@ -105,8 +106,9 @@ describe('workspace persistence', () => {
 				field: 'leads-to',
 				mode: 'bidirectional',
 			},
+			{ id: 'leads-to:reverse', field: 'leads-to', mode: 'reverse' },
 		];
-		document.activeConnectionFieldSpecId = 'leads-to:bidirectional';
+		document.activeConnectionFieldSpecId = 'leads-to:reverse';
 
 		const restoredDocument = normalizeMetaGraphDocument(document, 300, 1.5);
 		const restored = createWorkspaceState(300, 1.5, restoredDocument);
@@ -119,9 +121,10 @@ describe('workspace persistence', () => {
 				field: 'leads-to',
 				mode: 'bidirectional',
 			},
+			{ id: 'leads-to:reverse', field: 'leads-to', mode: 'reverse' },
 		]);
 		expect(restored.activeConnectionFieldSpecId).toBe(
-			'leads-to:bidirectional',
+			'leads-to:reverse',
 		);
 	});
 
@@ -136,6 +139,7 @@ describe('workspace persistence', () => {
 				field: 'supports',
 				mode: 'bidirectional',
 			},
+			{ id: 'supports:reverse', field: 'supports', mode: 'reverse' },
 		];
 
 		const restoredDocument = normalizeMetaGraphDocument(document, 300, 1.5);
@@ -146,6 +150,7 @@ describe('workspace persistence', () => {
 			'supports:directed',
 			'leads-to:directed',
 			'supports:bidirectional',
+			'supports:reverse',
 		]);
 	});
 

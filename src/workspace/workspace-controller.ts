@@ -512,6 +512,26 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	setNodeGroup(nodeId: NodeId, groupId?: string): void {
+		const activeChart = this.getActiveChart();
+		if (activeChart.type !== 'free' && activeChart.type !== 'cube') {
+			return;
+		}
+		if (activeChart.type === 'cube' && !groupId) {
+			return;
+		}
+		const layout = moveManualNodesToGroup(
+			activeChart.layout,
+			[nodeId],
+			groupId || undefined,
+		);
+		if (layout === activeChart.layout) {
+			return;
+		}
+		this.state = this.updateActiveChart({ layout });
+		this.emit();
+	}
+
 	addGroup(): void {
 		const activeChart = this.getActiveChart();
 		if (activeChart.type === 'cube') {
@@ -1396,10 +1416,7 @@ export class WorkspaceController {
 			connectionFieldModes: normalizeConnectionFieldModes(
 				{
 					...this.state.connectionFieldModes,
-					[normalized]:
-						mode === 'bidirectional'
-							? 'bidirectional'
-							: DEFAULT_CONNECTION_FIELD_MODE,
+					[normalized]: mode,
 				},
 				connectionFields,
 			),
@@ -1442,6 +1459,27 @@ export class WorkspaceController {
 		}
 
 		this.setActiveConnectionField(normalizedField);
+		const mode = this.getConnectionModeForField(normalizedField);
+		if (mode === 'reverse') {
+			const reverseLink = this.app.fileManager.generateMarkdownLink(
+				sourceFile,
+				targetFile.path,
+			);
+			const undo = await this.addFrontmatterConnection(
+				targetFile,
+				sourceFile,
+				normalizedField,
+				reverseLink,
+			);
+			if (undo.length > 0) {
+				this.connectionUndoStack.push(undo);
+				this.updateConnectionUndoCount();
+				this.scheduleRefresh(
+					this.state.mode === 'flow' && this.relayoutFlowAfterConnection,
+				);
+			}
+			return;
+		}
 		const link = this.app.fileManager.generateMarkdownLink(
 			targetFile,
 			sourceFile.path,
@@ -1452,7 +1490,7 @@ export class WorkspaceController {
 			normalizedField,
 			link,
 		);
-		if (this.getConnectionModeForField(normalizedField) === 'bidirectional') {
+		if (mode === 'bidirectional') {
 			const reverseLink = this.app.fileManager.generateMarkdownLink(
 				sourceFile,
 				targetFile.path,
