@@ -402,7 +402,7 @@
 							flowStyleChanged ||
 							flowDirectionChanged ||
 							arcDirectionChanged ||
-							layoutRevisionChanged,
+							(layoutRevisionChanged && nextState.mode !== "cube"),
 						flowStyleChanged ||
 							flowDirectionChanged ||
 							arcDirectionChanged ||
@@ -855,11 +855,11 @@
 			}
 
 			function syncRendererGroups(): void {
-				if (
-					!renderer ||
-					isForce3DRenderer(renderer) ||
-					isCube3DRenderer(renderer)
-				) {
+				if (!renderer || isForce3DRenderer(renderer)) {
+					return;
+				}
+				if (isCube3DRenderer(renderer)) {
+					renderer.setManualLayout(workspaceState.manualLayout);
 					return;
 				}
 			renderer.setGroups(
@@ -1854,6 +1854,7 @@
 					{#if settingsPanel === "groups"}
 						<GroupPanel
 							manualLayout={workspaceState.manualLayout}
+							locked={workspaceState.mode === "cube"}
 							onAddGroup={() => controller.addGroup()}
 							onUpdateGroup={(groupId, patch) =>
 								controller.updateGroup(groupId, patch)}
@@ -1984,6 +1985,7 @@
 					nodes={debugSnapshot.index.nodes}
 					groups={workspaceState.manualLayout.groups}
 					manualLayout={workspaceState.manualLayout}
+					groupRequired={workspaceState.mode === "cube"}
 					folders={workspaceState.availableFolders}
 					{nodeColors}
 					{workspaceFilePath}

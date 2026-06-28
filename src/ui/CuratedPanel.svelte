@@ -42,6 +42,7 @@
 		nodes,
 		groups,
 		manualLayout,
+		groupRequired = false,
 		folders,
 		nodeColors,
 		workspaceFilePath,
@@ -67,6 +68,7 @@
 		nodes: KnowledgeNode[];
 		groups: ChartGroup[];
 		manualLayout: ManualLayoutConfig;
+		groupRequired?: boolean;
 		folders: string[];
 		nodeColors: Map<string, string>;
 		workspaceFilePath?: string;
@@ -121,12 +123,14 @@
 		reorderDrag?.active ? reorderDrag.path : undefined,
 	);
 	const addGroupOptions = $derived([
-		{ value: "", label: "No group" },
+		...(groupRequired ? [] : [{ value: "", label: "No group" }]),
 		...groups.map((group) => ({ value: group.id, label: group.name })),
 	]);
 	const groupOptions = $derived(addGroupOptions);
 	const groupsById = $derived(new Map(groups.map((group) => [group.id, group])));
-	const selectedAddGroupId = $derived(addGroupId || undefined);
+	const selectedAddGroupId = $derived(
+		addGroupId || (groupRequired ? groups[0]?.id : undefined),
+	);
 
 	const selectedPaths = $derived(new Set(curated.files.map((file) => file.path)));
 	const nodesByPath = $derived(new Map(nodes.map((node) => [node.path, node])));
@@ -239,6 +243,9 @@
 	$effect(() => {
 		if (addGroupId && !groups.some((group) => group.id === addGroupId)) {
 			addGroupId = "";
+		}
+		if (groupRequired && !addGroupId && groups[0]) {
+			addGroupId = groups[0].id;
 		}
 	});
 	const visibleConditionalMatches = $derived.by(() => {

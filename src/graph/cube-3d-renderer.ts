@@ -23,6 +23,15 @@ const FACE_IDS = [
 
 type CubeFaceId = (typeof FACE_IDS)[number];
 
+const RUBIK_FACE_COLORS: Record<CubeFaceId, string> = {
+	"cube-front": "#009b48",
+	"cube-back": "#0046ad",
+	"cube-left": "#ff5800",
+	"cube-right": "#b71234",
+	"cube-top": "#ffffff",
+	"cube-bottom": "#ffd500",
+};
+
 interface CubeFace {
 	id: CubeFaceId;
 	name: string;
@@ -459,7 +468,7 @@ export class Cube3DRenderer {
 			const group = this.manualLayout.groups.find((item) => item.id === face.id);
 			const geometry = new this.three.PlaneGeometry(this.cubeSize * 2, this.cubeSize * 2);
 			const material = new this.three.MeshBasicMaterial({
-				color: group?.color ?? this.palette.node,
+				color: group?.color ?? RUBIK_FACE_COLORS[face.id],
 				opacity: this.cubeFaceOpacity,
 				transparent: this.cubeFaceOpacity < 1,
 				depthWrite: false,

@@ -16,6 +16,7 @@ import type {
 	FlowDirection,
 	FlowEdgeStyle,
 	GraphQuery,
+	GraphProjection,
 	KnowledgeIndex,
 	LabelPosition,
 	LinkStyleRule,
@@ -282,10 +283,17 @@ export class WorkspaceController {
 			this.state.fadeDistance,
 			this.state.charts.filter((chart) => chart.id !== activeChart.id),
 		);
+		const layout =
+			type === 'cube'
+				? normalizeCubeLayout(
+						defaultChart.layout,
+						this.state.projection?.nodes.map((node) => node.id) ?? [],
+					)
+				: defaultChart.layout;
 		this.state = this.updateActiveChart(
 			{
 				type,
-				layout: defaultChart.layout,
+				layout,
 			},
 			true,
 		);
@@ -506,6 +514,9 @@ export class WorkspaceController {
 
 	addGroup(): void {
 		const activeChart = this.getActiveChart();
+		if (activeChart.type === 'cube') {
+			return;
+		}
 		const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
 		const group = createUniqueDefaultGroup(manual.groups);
 		this.state = this.updateActiveChart({
@@ -623,6 +634,9 @@ export class WorkspaceController {
 
 	deleteGroup(groupId: string): void {
 		const activeChart = this.getActiveChart();
+		if (activeChart.type === 'cube') {
+			return;
+		}
 		const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
 		const groups = manual.groups.filter((group) => group.id !== groupId);
 		const nodes = Object.fromEntries(
@@ -1529,8 +1543,39 @@ export class WorkspaceController {
 			projection.nodes.some((node) => node.id === this.state.selectedNodeId)
 				? this.state.selectedNodeId
 				: undefined;
-		this.state = { ...this.state, projection, selectedNodeId };
+		this.state = this.withCubeLayout(
+			{ ...this.state, projection, selectedNodeId },
+			projection,
+		);
 		this.emit();
+	}
+
+	private withCubeLayout(
+		state: WorkspaceState,
+		projection: GraphProjection,
+	): WorkspaceState {
+		const activeChart = state.charts.find(
+			(chart) => chart.id === state.activeChartId,
+		);
+		if (!activeChart || activeChart.type !== 'cube') {
+			return state;
+		}
+		const layout = normalizeCubeLayout(
+			activeChart.layout,
+			projection.nodes.map((node) => node.id),
+		);
+		if (layout === activeChart.layout) {
+			return state;
+		}
+		const nextChart = { ...activeChart, layout };
+		return {
+			...state,
+			charts: state.charts.map((chart) =>
+				chart.id === nextChart.id ? nextChart : chart,
+			),
+			manualLayout: cloneSerializable(layout.manual ?? { nodes: {}, groups: [] }),
+			layoutRevision: state.layoutRevision + 1,
+		};
 	}
 
 	private emit(): void {
@@ -1814,6 +1859,77 @@ function isForceGraphType(type: ViewMode): boolean {
 	return type === 'graph' || type === 'graph-3d' || type === 'cube';
 }
 
+const CUBE_FACE_GROUPS: ChartGroup[] = [
+	{
+		id: 'cube-front',
+		name: 'Front',
+		x: -1,
+		y: -1,
+		width: 2,
+		height: 2,
+		color: '#009b48',
+		mode: 'manual',
+		padding: 0.22,
+	},
+	{
+		id: 'cube-back',
+		name: 'Back',
+		x: -1,
+		y: -1,
+		width: 2,
+		height: 2,
+		color: '#0046ad',
+		mode: 'manual',
+		padding: 0.22,
+	},
+	{
+		id: 'cube-left',
+		name: 'Left',
+		x: -1,
+		y: -1,
+		width: 2,
+		height: 2,
+		color: '#ff5800',
+		mode: 'manual',
+		padding: 0.22,
+	},
+	{
+		id: 'cube-right',
+		name: 'Right',
+		x: -1,
+		y: -1,
+		width: 2,
+		height: 2,
+		color: '#b71234',
+		mode: 'manual',
+		padding: 0.22,
+	},
+	{
+		id: 'cube-top',
+		name: 'Top',
+		x: -1,
+		y: -1,
+		width: 2,
+		height: 2,
+		color: '#ffffff',
+		mode: 'manual',
+		padding: 0.22,
+	},
+	{
+		id: 'cube-bottom',
+		name: 'Bottom',
+		x: -1,
+		y: -1,
+		width: 2,
+		height: 2,
+		color: '#ffd500',
+		mode: 'manual',
+		padding: 0.22,
+	},
+];
+
+const CUBE_FACE_IDS = new Set(CUBE_FACE_GROUPS.map((group) => group.id));
+
 function createDefaultGroup(index: number): ChartGroup {
 		return {
 			id: createGroupId(`Group ${index}`),
@@ -1827,6 +1943,79 @@ function createDefaultGroup(index: number): ChartGroup {
 			padding: 0.32,
 		};
 	}
+
+function normalizeCubeLayout(
+	layout: ChartLayoutConfig,
+	visibleNodeIds: string[],
+): ChartLayoutConfig {
+	const manual = layout.manual ?? { nodes: {}, groups: [] };
+	const existingGroups = new Map(manual.groups.map((group) => [group.id, group]));
+	const groups = CUBE_FACE_GROUPS.map((defaultGroup) => ({
+		...defaultGroup,
+		...(existingGroups.get(defaultGroup.id) ?? {}),
+		id: defaultGroup.id,
+		color: defaultGroup.color,
+	}));
+	const nodes = { ...manual.nodes };
+	let changed =
+		manual.groups.length !== groups.length ||
+		groups.some(
+			(group, index) =>
+				manual.groups[index]?.id !== group.id ||
+				manual.groups[index]?.color !== group.color,
+		);
+
+	for (const [nodeId, placement] of Object.entries(nodes)) {
+		if (placement.groupId && CUBE_FACE_IDS.has(placement.groupId)) {
+			continue;
+		}
+		nodes[nodeId] = {
+			x: placement.x,
+			y: placement.y,
+			groupId: getCubeFaceIdForNode(nodeId),
+		};
+		changed = true;
+	}
+
+	for (const nodeId of visibleNodeIds) {
+		const placement = nodes[nodeId];
+		if (placement?.groupId && CUBE_FACE_IDS.has(placement.groupId)) {
+			continue;
+		}
+		const position = placement ?? createCubeNodePosition(nodeId);
+		nodes[nodeId] = {
+			x: position.x,
+			y: position.y,
+			groupId: getCubeFaceIdForNode(nodeId),
+		};
+		changed = true;
+	}
+
+	return changed
+		? {
+				...layout,
+				manual: {
+					...manual,
+					groups,
+					nodes,
+				},
+			}
+		: layout;
+}
+
+function getCubeFaceIdForNode(nodeId: string): string {
+	const index = Math.floor(hashString(nodeId) * CUBE_FACE_GROUPS.length);
+	return CUBE_FACE_GROUPS[index]?.id ?? CUBE_FACE_GROUPS[0]!.id;
+}
+
+function createCubeNodePosition(nodeId: string): { x: number; y: number } {
+	const first = hashString(`${nodeId}:x`);
+	const second = hashString(`${nodeId}:y`);
+	return {
+		x: first * 1.44 - 0.72,
+		y: second * 1.44 - 0.72,
+	};
+}
 
 interface PlacementBounds {
 	left: number;
@@ -2112,6 +2301,15 @@ function distanceSquared(
 	const dx = left.x - right.x;
 	const dy = left.y - right.y;
 	return dx * dx + dy * dy;
+}
+
+function hashString(value: string): number {
+	let hash = 2166136261;
+	for (let index = 0; index < value.length; index += 1) {
+		hash ^= value.charCodeAt(index);
+		hash = Math.imul(hash, 16777619);
+	}
+	return (hash >>> 0) / 0xffffffff;
 }
 
 function createUniqueDefaultGroup(existingGroups: ChartGroup[]): ChartGroup {

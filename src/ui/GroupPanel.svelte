@@ -6,11 +6,13 @@
 
 	let {
 		manualLayout,
+		locked = false,
 		onAddGroup,
 		onUpdateGroup,
 		onDeleteGroup,
 	}: {
 		manualLayout: ManualLayoutConfig;
+		locked?: boolean;
 		onAddGroup: () => void;
 		onUpdateGroup: (groupId: string, patch: Partial<ChartGroup>) => void;
 		onDeleteGroup: (groupId: string) => void;
@@ -49,15 +51,21 @@
 <aside class="knowledge-workspace-filters knowledge-workspace-groups">
 	<section>
 		<header>
-			<div>
-				<h3>Groups</h3>
-				<p>Organize visible notes into chart-local regions.</p>
-			</div>
-			<ObsidianButton
-				icon="plus"
-				text="Add group"
-				onClick={onAddGroup}
-			/>
+				<div>
+					<h3>Groups</h3>
+					<p>
+						{locked
+							? "Cube uses six fixed face groups."
+							: "Organize visible notes into chart-local regions."}
+					</p>
+				</div>
+				{#if !locked}
+					<ObsidianButton
+						icon="plus"
+						text="Add group"
+						onClick={onAddGroup}
+					/>
+				{/if}
 		</header>
 
 		{#if manualLayout.groups.length === 0}
@@ -80,12 +88,14 @@
 										onUpdateGroup(group.id, { name: value })}
 								/>
 							</label>
-							<ObsidianButton
-								icon="trash-2"
-								ariaLabel={`Delete ${group.name}`}
-								destructive={true}
-								onClick={() => onDeleteGroup(group.id)}
-							/>
+							{#if !locked}
+								<ObsidianButton
+									icon="trash-2"
+									ariaLabel={`Delete ${group.name}`}
+									destructive={true}
+									onClick={() => onDeleteGroup(group.id)}
+								/>
+							{/if}
 						</header>
 
 						<div class="knowledge-workspace-group-meta">
