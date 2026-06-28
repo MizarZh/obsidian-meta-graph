@@ -4,6 +4,7 @@ import { normalizePath } from '../core/knowledge-index';
 import { extractLinkText } from '../core/link-resolver';
 import type {
 	ArcDirection,
+	ChartLayoutConfig,
 	ChartSource,
 	ChartGroup,
 	ConnectionFieldMode,
@@ -710,17 +711,26 @@ export class WorkspaceController {
 		this.emit();
 	}
 
-	addCuratedFile(path: NodeId): void {
-		this.addCuratedFiles([path]);
+	addCuratedFile(path: NodeId, groupId?: string): void {
+		this.addCuratedFiles([path], groupId);
 	}
 
-	addCuratedFiles(paths: NodeId[]): void {
+	addCuratedFiles(paths: NodeId[], groupId?: string): void {
 		const activeChart = this.getActiveChart();
 		const update = addCuratedFilePaths(activeChart.curated, paths);
 		if (!update.changed) {
 			return;
 		}
-		this.state = this.updateActiveChart({ curated: update.curated }, true);
+		const layout = addManualPlacements(
+			activeChart.layout,
+			activeChart.curated.files.map((file) => file.path),
+			update.curated.files.map((file) => file.path),
+			groupId,
+		);
+		this.state = this.updateActiveChart(
+			{ curated: update.curated, layout },
+			true,
+		);
 		this.runQuery();
 	}
 
@@ -1808,6 +1818,207 @@ function createDefaultGroup(index: number): ChartGroup {
 			padding: 0.32,
 		};
 	}
+
+interface PlacementBounds {
+	left: number;
+	right: number;
+	bottom: number;
+	top: number;
+}
+
+const MANUAL_NODE_SPACING = 0.62;
+
+function addManualPlacements(
+	layout: ChartLayoutConfig,
+	previousPaths: string[],
+	nextPaths: string[],
+	groupId?: string,
+): ChartLayoutConfig {
+	const manual = layout.manual ?? { nodes: {}, groups: [] };
+	const previous = new Set(previousPaths);
+	const addedPaths = nextPaths.filter((path) => !previous.has(path));
+	if (addedPaths.length === 0) {
+		return layout;
+	}
+	const group = groupId
+		? manual.groups.find((item) => item.id === groupId)
+		: undefined;
+	if (groupId && !group) {
+		return layout;
+	}
+	const bounds = group
+		? readGroupPlacementBounds(group)
+		: readUngroupedPlacementBounds(Object.values(manual.nodes));
+	const occupied = Object.entries(manual.nodes)
+		.filter(([, placement]) =>
+			group ? placement.groupId === group.id : placement.groupId === undefined,
+		)
+		.map(([, placement]) => ({ x: placement.x, y: placement.y }));
+	const nodes = { ...manual.nodes };
+	const newPositions: Array<{ x: number; y: number }> = [];
+	for (const path of addedPaths) {
+		const position = findOpenManualPlacement(bounds, occupied);
+		occupied.push(position);
+		newPositions.push(position);
+		nodes[path] = groupId ? { ...position, groupId } : position;
+	}
+	const groups =
+		group && newPositions.length > 0
+			? manual.groups.map((item) =>
+					item.id === group.id
+						? expandGroupToPositions(item, newPositions)
+						: item,
+				)
+			: manual.groups;
+	return {
+		...layout,
+		manual: {
+			...manual,
+			nodes,
+			groups,
+		},
+	};
+}
+
+function readGroupPlacementBounds(group: ChartGroup): PlacementBounds {
+	const padding = Math.min(group.padding, group.width / 3, group.height / 3);
+	return {
+		left: group.x + padding,
+		right: group.x + group.width - padding,
+		bottom: group.y + padding,
+		top: group.y + group.height - padding,
+	};
+}
+
+function readUngroupedPlacementBounds(
+	placements: Array<{ x: number; y: number }>,
+): PlacementBounds {
+	if (placements.length === 0) {
+		return { left: -1.6, right: 1.6, bottom: -1.1, top: 1.1 };
+	}
+	const center = placements.reduce(
+		(total, placement) => ({
+			x: total.x + placement.x / placements.length,
+			y: total.y + placement.y / placements.length,
+		}),
+		{ x: 0, y: 0 },
+	);
+	return {
+		left: center.x - 1.6,
+		right: center.x + 1.6,
+		bottom: center.y - 1.1,
+		top: center.y + 1.1,
+	};
+}
+
+function findOpenManualPlacement(
+	bounds: PlacementBounds,
+	occupied: Array<{ x: number; y: number }>,
+): { x: number; y: number } {
+	const center = {
+		x: (bounds.left + bounds.right) / 2,
+		y: (bounds.bottom + bounds.top) / 2,
+	};
+	for (let expansion = 0; expansion < 6; expansion += 1) {
+		const expanded = expandBounds(bounds, expansion * MANUAL_NODE_SPACING);
+		const candidates = createPlacementCandidates(expanded, center);
+		const candidate = candidates.find((position) =>
+			isManualPlacementOpen(position, occupied),
+		);
+		if (candidate) {
+			return candidate;
+		}
+	}
+	return {
+		x: center.x + occupied.length * MANUAL_NODE_SPACING,
+		y: center.y,
+	};
+}
+
+function createPlacementCandidates(
+	bounds: PlacementBounds,
+	center: { x: number; y: number },
+): Array<{ x: number; y: number }> {
+	const candidates: Array<{ x: number; y: number }> = [];
+	const columns = Math.max(
+		1,
+		Math.floor((bounds.right - bounds.left) / MANUAL_NODE_SPACING) + 1,
+	);
+	const rows = Math.max(
+		1,
+		Math.floor((bounds.top - bounds.bottom) / MANUAL_NODE_SPACING) + 1,
+	);
+	for (let row = 0; row < rows; row += 1) {
+		for (let column = 0; column < columns; column += 1) {
+			candidates.push({
+				x: bounds.left + column * MANUAL_NODE_SPACING,
+				y: bounds.bottom + row * MANUAL_NODE_SPACING,
+			});
+		}
+	}
+	candidates.push(center);
+	return candidates.sort((left, right) => {
+		const leftDistance = distanceSquared(left, center);
+		const rightDistance = distanceSquared(right, center);
+		return leftDistance - rightDistance;
+	});
+}
+
+function isManualPlacementOpen(
+	position: { x: number; y: number },
+	occupied: Array<{ x: number; y: number }>,
+): boolean {
+	return occupied.every(
+		(placement) =>
+			distanceSquared(position, placement) >=
+			MANUAL_NODE_SPACING * MANUAL_NODE_SPACING,
+	);
+}
+
+function expandBounds(bounds: PlacementBounds, amount: number): PlacementBounds {
+	return {
+		left: bounds.left - amount,
+		right: bounds.right + amount,
+		bottom: bounds.bottom - amount,
+		top: bounds.top + amount,
+	};
+}
+
+function expandGroupToPositions(
+	group: ChartGroup,
+	positions: Array<{ x: number; y: number }>,
+): ChartGroup {
+	const padding = group.padding;
+	const left = Math.min(group.x, ...positions.map((position) => position.x - padding));
+	const right = Math.max(
+		group.x + group.width,
+		...positions.map((position) => position.x + padding),
+	);
+	const bottom = Math.min(
+		group.y,
+		...positions.map((position) => position.y - padding),
+	);
+	const top = Math.max(
+		group.y + group.height,
+		...positions.map((position) => position.y + padding),
+	);
+	return {
+		...group,
+		x: left,
+		y: bottom,
+		width: right - left,
+		height: top - bottom,
+	};
+}
+
+function distanceSquared(
+	left: { x: number; y: number },
+	right: { x: number; y: number },
+): number {
+	const dx = left.x - right.x;
+	const dy = left.y - right.y;
+	return dx * dx + dy * dy;
+}
 
 function createUniqueDefaultGroup(existingGroups: ChartGroup[]): ChartGroup {
 	const existingIds = new Set(existingGroups.map((group) => group.id));

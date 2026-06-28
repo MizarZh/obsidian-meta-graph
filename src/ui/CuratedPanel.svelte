@@ -2,6 +2,7 @@
 	import type { App } from "obsidian";
 	import { onDestroy } from "svelte";
 	import type {
+		ChartGroup,
 		CuratedWorkspaceConfig,
 		KnowledgeNode,
 		NodeFilterField,
@@ -12,6 +13,7 @@
 	import { nodeMatchesFilterGroup } from "../query/filters";
 	import FilterGroup from "./FilterGroup.svelte";
 	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
+	import ObsidianDropdown from "./obsidian/ObsidianDropdown.svelte";
 	import ObsidianSuggestInput from "./obsidian/ObsidianSuggestInput.svelte";
 	import type { SuggestionOption } from "./obsidian/ObsidianSuggestInput.svelte";
 	import ObsidianTextInput from "./obsidian/ObsidianTextInput.svelte";
@@ -37,6 +39,7 @@
 		app,
 		curated,
 		nodes,
+		groups,
 		nodeColors,
 		workspaceFilePath,
 		panelOpen,
@@ -58,6 +61,7 @@
 		app: App;
 		curated: CuratedWorkspaceConfig;
 		nodes: KnowledgeNode[];
+		groups: ChartGroup[];
 		nodeColors: Map<string, string>;
 		workspaceFilePath?: string;
 		panelOpen: boolean;
@@ -67,8 +71,8 @@
 		focusOnSelect: boolean;
 		onToggleFocusOnSelect: () => void;
 		dropTarget: boolean;
-		onAddFile: (path: string) => void;
-		onAddFiles: (paths: string[]) => void;
+		onAddFile: (path: string, groupId?: string) => void;
+		onAddFiles: (paths: string[], groupId?: string) => void;
 		onRemoveFile: (path: string) => void;
 		onRemoveFiles: (paths: string[]) => void;
 		onClearFiles: () => void;
@@ -82,6 +86,7 @@
 	} = $props();
 
 	let fileSearch = $state("");
+	let addGroupId = $state("");
 	let batchInput = $state("");
 	let batchOpen = $state(false);
 	let conditionModalOpen = $state(false);
@@ -108,6 +113,11 @@
 	const activeDraggingPath = $derived(
 		reorderDrag?.active ? reorderDrag.path : undefined,
 	);
+	const addGroupOptions = $derived([
+		{ value: "", label: "No group" },
+		...groups.map((group) => ({ value: group.id, label: group.name })),
+	]);
+	const selectedAddGroupId = $derived(addGroupId || undefined);
 
 	const selectedPaths = $derived(new Set(curated.files.map((file) => file.path)));
 	const nodesByPath = $derived(new Map(nodes.map((node) => [node.path, node])));
@@ -212,6 +222,12 @@
 	const conditionalStatus = $derived(
 		`${conditionalMatches.length} ${conditionMode === "add" ? "matches" : "selected"}`,
 	);
+
+	$effect(() => {
+		if (addGroupId && !groups.some((group) => group.id === addGroupId)) {
+			addGroupId = "";
+		}
+	});
 	const visibleConditionalMatches = $derived.by(() => {
 		const query = conditionResultSearch.trim().toLocaleLowerCase();
 		if (!query) {
@@ -284,9 +300,9 @@
 		const uniquePaths = [...new Set(paths)].filter(
 			(path) => !selectedPaths.has(path),
 		);
-		if (uniquePaths.length > 0) {
-			onAddFiles(uniquePaths);
-		}
+			if (uniquePaths.length > 0) {
+				onAddFiles(uniquePaths, selectedAddGroupId);
+			}
 		batchStatus = `${uniquePaths.length} added, ${lines.length - uniquePaths.length - unresolved.length} skipped, ${unresolved.length} unresolved.`;
 		if (unresolved.length === 0) {
 			batchInput = "";
@@ -303,9 +319,9 @@
 		if (paths.length === 0) {
 			return;
 		}
-		if (conditionMode === "add") {
-			onAddFiles(paths);
-		} else {
+			if (conditionMode === "add") {
+				onAddFiles(paths, selectedAddGroupId);
+			} else {
 			onRemoveFiles(paths);
 			selected = new Set([...selected].filter((path) => !paths.includes(path)));
 		}
@@ -667,9 +683,15 @@
 						fileSearch = value;
 					}}
 					onSelect={(option) => {
-						onAddFile(option.value);
+						onAddFile(option.value, selectedAddGroupId);
 						fileSearch = "";
 					}}
+				/>
+				<ObsidianDropdown
+					value={addGroupId}
+					options={addGroupOptions}
+					ariaLabel="Group for added files"
+					onChange={(value) => (addGroupId = value)}
 				/>
 			</div>
 			<div class="knowledge-workspace-curated-actions">
@@ -786,6 +808,12 @@
 						disabled={!batchInput.trim()}
 						onClick={addBatch}
 					/>
+					<ObsidianDropdown
+						value={addGroupId}
+						options={addGroupOptions}
+						ariaLabel="Group for added files"
+						onChange={(value) => (addGroupId = value)}
+					/>
 				</div>
 			{/if}
 			</section>
@@ -815,6 +843,17 @@
 								onClick={() => updateConditionMode("remove")}
 							/>
 						</div>
+						{#if conditionMode === "add"}
+							<label class="knowledge-workspace-curated-group-target">
+								<span>Group</span>
+								<ObsidianDropdown
+									value={addGroupId}
+									options={addGroupOptions}
+									ariaLabel="Group for added files"
+									onChange={(value) => (addGroupId = value)}
+								/>
+							</label>
+						{/if}
 						<FilterGroup
 							{app}
 							group={conditionFilterRoot}

@@ -41,7 +41,15 @@ export interface GroupInteractionCallbacks {
 	getGroupNodeIds?(groupId: string): Iterable<string>;
 }
 
-type GroupResizeDirection = "left" | "right" | "top" | "bottom";
+type GroupResizeDirection =
+	| "left"
+	| "right"
+	| "top"
+	| "bottom"
+	| "top-left"
+	| "top-right"
+	| "bottom-left"
+	| "bottom-right";
 
 interface GroupBounds {
 	left: number;
@@ -422,6 +430,8 @@ class GroupOverlayLayer {
 	private readonly elements = new Map<string, HTMLDivElement>();
 	private readonly updateBound = () => this.update();
 	private previousCameraPanning: boolean | undefined;
+	private previousCameraZooming: boolean | undefined;
+	private holdingInteractionBounds = false;
 	private activeDropGroupId: string | undefined;
 	private interaction:
 		| {
@@ -429,6 +439,7 @@ class GroupOverlayLayer {
 				group: ChartGroup;
 				resizeDirection?: GroupResizeDirection;
 				startPointer: { x: number; y: number };
+				startGraph: { x: number; y: number };
 				lastDelta: { x: number; y: number };
 		  }
 		| undefined;
@@ -579,7 +590,16 @@ class GroupOverlayLayer {
 			this.startInteraction(event, group.id, "move"),
 		);
 		element.appendChild(title);
-		for (const direction of ["left", "right", "top", "bottom"] as const) {
+		for (const direction of [
+			"left",
+			"right",
+			"top",
+			"bottom",
+			"top-left",
+			"top-right",
+			"bottom-left",
+			"bottom-right",
+		] as const) {
 			const resizeHandle = this.activeDocument.createElement("button");
 			resizeHandle.className = `knowledge-workspace-group-resize resize-${direction}`;
 			resizeHandle.type = "button";
@@ -613,15 +633,20 @@ class GroupOverlayLayer {
 		if (target instanceof HTMLElement) {
 			target.setPointerCapture(event.pointerId);
 		}
+		const startPointer = this.readViewportPoint(event);
+		this.holdInteractionBounds();
 		this.interaction = {
 			kind,
 			group: { ...group },
 			resizeDirection,
-			startPointer: this.readViewportPoint(event),
+			startPointer,
+			startGraph: this.sigma.viewportToGraph(startPointer),
 			lastDelta: { x: 0, y: 0 },
 		};
 		this.previousCameraPanning = this.sigma.getSetting("enableCameraPanning");
+		this.previousCameraZooming = this.sigma.getSetting("enableCameraZooming");
 		this.sigma.setSetting("enableCameraPanning", false);
+		this.sigma.setSetting("enableCameraZooming", false);
 		this.activeDocument.addEventListener("pointermove", this.handlePointerMove);
 		this.activeDocument.addEventListener("pointerup", this.handlePointerUp, {
 			once: true,
@@ -673,6 +698,11 @@ class GroupOverlayLayer {
 			this.sigma.setSetting("enableCameraPanning", this.previousCameraPanning);
 			this.previousCameraPanning = undefined;
 		}
+		if (this.previousCameraZooming !== undefined) {
+			this.sigma.setSetting("enableCameraZooming", this.previousCameraZooming);
+			this.previousCameraZooming = undefined;
+		}
+		this.releaseInteractionBounds();
 		this.activeDocument.removeEventListener(
 			"pointermove",
 			this.handlePointerMove,
@@ -680,16 +710,32 @@ class GroupOverlayLayer {
 		this.activeDocument.removeEventListener("pointerup", this.handlePointerUp);
 	}
 
+	private holdInteractionBounds(): void {
+		if (this.sigma.getCustomBBox()) {
+			this.holdingInteractionBounds = false;
+			return;
+		}
+		this.sigma.setCustomBBox(this.sigma.getBBox());
+		this.holdingInteractionBounds = true;
+	}
+
+	private releaseInteractionBounds(): void {
+		if (!this.holdingInteractionBounds) {
+			return;
+		}
+		this.sigma.setCustomBBox(null);
+		this.holdingInteractionBounds = false;
+	}
+
 	private readInteractionGeometry(event: PointerEvent): GroupGeometry {
 		const interaction = this.interaction;
 		if (!interaction) {
 			return { x: 0, y: 0, width: 0, height: 0 };
 		}
-		const startGraph = this.sigma.viewportToGraph(interaction.startPointer);
 		const currentGraph = this.sigma.viewportToGraph(this.readViewportPoint(event));
 		const delta = {
-			x: currentGraph.x - startGraph.x,
-			y: currentGraph.y - startGraph.y,
+			x: currentGraph.x - interaction.startGraph.x,
+			y: currentGraph.y - interaction.startGraph.y,
 		};
 		if (interaction.kind === "move") {
 			return {
@@ -718,36 +764,33 @@ class GroupOverlayLayer {
 		let bottom = startBottom;
 		let top = startTop;
 
-		switch (interaction.resizeDirection) {
-			case "left":
-				left = startLeft + delta.x;
-				left = Math.min(left, right - minWidth);
-				if (nodeBounds) {
-					left = Math.min(left, nodeBounds.left);
-				}
-				break;
-			case "right":
-				right = startRight + delta.x;
-				right = Math.max(right, left + minWidth);
-				if (nodeBounds) {
-					right = Math.max(right, nodeBounds.right);
-				}
-				break;
-			case "top":
-				top = startTop + delta.y;
-				top = Math.max(top, bottom + minHeight);
-				if (nodeBounds) {
-					top = Math.max(top, nodeBounds.top);
-				}
-				break;
-			case "bottom":
-			default:
-				bottom = startBottom + delta.y;
-				bottom = Math.min(bottom, top - minHeight);
-				if (nodeBounds) {
-					bottom = Math.min(bottom, nodeBounds.bottom);
-				}
-				break;
+		if (isLeftResize(interaction.resizeDirection)) {
+			left = startLeft + delta.x;
+			left = Math.min(left, right - minWidth);
+			if (nodeBounds) {
+				left = Math.min(left, nodeBounds.left);
+			}
+		}
+		if (isRightResize(interaction.resizeDirection)) {
+			right = startRight + delta.x;
+			right = Math.max(right, left + minWidth);
+			if (nodeBounds) {
+				right = Math.max(right, nodeBounds.right);
+			}
+		}
+		if (isTopResize(interaction.resizeDirection)) {
+			top = startTop + delta.y;
+			top = Math.max(top, bottom + minHeight);
+			if (nodeBounds) {
+				top = Math.max(top, nodeBounds.top);
+			}
+		}
+		if (isBottomResize(interaction.resizeDirection)) {
+			bottom = startBottom + delta.y;
+			bottom = Math.min(bottom, top - minHeight);
+			if (nodeBounds) {
+				bottom = Math.min(bottom, nodeBounds.bottom);
+			}
 		}
 
 		return {
@@ -838,6 +881,34 @@ class GroupOverlayLayer {
 		element.style.width = `${rect.width}px`;
 		element.style.height = `${rect.height}px`;
 	}
+}
+
+function isLeftResize(direction?: GroupResizeDirection): boolean {
+	return (
+		direction === "left" ||
+		direction === "top-left" ||
+		direction === "bottom-left"
+	);
+}
+
+function isRightResize(direction?: GroupResizeDirection): boolean {
+	return (
+		direction === "right" ||
+		direction === "top-right" ||
+		direction === "bottom-right"
+	);
+}
+
+function isTopResize(direction?: GroupResizeDirection): boolean {
+	return direction === "top" || direction === "top-left" || direction === "top-right";
+}
+
+function isBottomResize(direction?: GroupResizeDirection): boolean {
+	return (
+		direction === "bottom" ||
+		direction === "bottom-left" ||
+		direction === "bottom-right"
+	);
 }
 
 function createNodeLabelDrawer(

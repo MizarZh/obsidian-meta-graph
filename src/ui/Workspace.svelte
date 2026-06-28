@@ -1982,6 +1982,7 @@
 					{app}
 					curated={workspaceState.curated}
 					nodes={debugSnapshot.index.nodes}
+					groups={workspaceState.manualLayout.groups}
 					{nodeColors}
 					{workspaceFilePath}
 					panelOpen={curatedPanelOpen}
@@ -1995,8 +1996,10 @@
 							!workspaceState.dock.focusOnSelect,
 						)}
 					dropTarget={graphConnectionTargetCurated}
-					onAddFile={(path) => controller.addCuratedFile(path)}
-					onAddFiles={(paths) => controller.addCuratedFiles(paths)}
+					onAddFile={(path, groupId) =>
+						controller.addCuratedFile(path, groupId)}
+					onAddFiles={(paths, groupId) =>
+						controller.addCuratedFiles(paths, groupId)}
 					onRemoveFile={(path) => controller.removeCuratedFile(path)}
 					onRemoveFiles={(paths) =>
 						controller.removeCuratedFiles(paths)}
