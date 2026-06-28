@@ -1035,10 +1035,10 @@
 	display: grid;
 	grid-template-columns: 18px 14px minmax(0, 1fr) 18px 18px;
 	gap: var(--size-4-1);
-	align-items: center;
+	align-items: start;
 	width: 100%;
-	min-height: 32px;
-	padding: 4px 6px;
+	min-height: 54px;
+	padding: 6px;
 	border: 1px solid transparent;
 	border-radius: var(--radius-s);
 	background: var(--background-primary);
@@ -1075,6 +1075,7 @@
 }
 
 .knowledge-workspace-curated-file > span {
+	margin-top: 5px;
 	width: 10px;
 	height: 10px;
 	border-radius: 50%;
@@ -1088,12 +1089,16 @@
 .knowledge-workspace-curated-file-title {
 	display: flex;
 	flex-direction: column;
-	gap: 1px;
+	gap: 3px;
+	min-width: 0;
 	overflow: hidden;
 }
 
 .knowledge-workspace-curated-file input[type="checkbox"] {
-	margin: 0;
+	margin-top: 4px;
+	margin-right: 0;
+	margin-bottom: 0;
+	margin-left: 0;
 }
 
 .knowledge-workspace-curated-file-title strong,
@@ -1107,11 +1112,48 @@
 	color: var(--text-normal);
 	font-size: var(--font-ui-small);
 	font-weight: var(--font-medium, 500);
+	line-height: 1.25;
 }
 
 .knowledge-workspace-curated-file-path {
 	font-size: 10px;
 	line-height: 1.2;
+}
+
+.knowledge-workspace-curated-file-group {
+	display: flex;
+	gap: var(--size-4-1);
+	align-items: center;
+	min-width: 0;
+	max-width: 100%;
+	height: 22px;
+	overflow: hidden;
+}
+
+.knowledge-workspace-curated-file-group > span {
+	flex: 0 0 auto;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--text-faint);
+}
+
+.knowledge-workspace-curated-file-group.missing > span {
+	background: var(--text-warning);
+}
+
+.knowledge-workspace-curated-file-group
+	.knowledge-workspace-curated-group-select {
+	min-width: 0;
+	max-width: 100%;
+	height: 22px;
+	min-height: 22px;
+	padding-top: 0;
+	padding-bottom: 0;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	line-height: 20px;
+	text-overflow: ellipsis;
 }
 
 .knowledge-workspace-curated-file
@@ -1121,7 +1163,7 @@
 	place-items: center;
 	width: 18px;
 	height: 18px;
-	margin: 0;
+	margin: 3px 0 0;
 	padding: 0;
 	border: 0;
 	background: transparent;

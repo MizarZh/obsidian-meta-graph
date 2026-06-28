@@ -1983,6 +1983,7 @@
 					curated={workspaceState.curated}
 					nodes={debugSnapshot.index.nodes}
 					groups={workspaceState.manualLayout.groups}
+					manualLayout={workspaceState.manualLayout}
 					folders={workspaceState.availableFolders}
 					{nodeColors}
 					{workspaceFilePath}
@@ -2004,6 +2005,8 @@
 					onRemoveFile={(path) => controller.removeCuratedFile(path)}
 					onRemoveFiles={(paths) =>
 						controller.removeCuratedFiles(paths)}
+					onMoveFilesToGroup={(paths, groupId) =>
+						controller.moveCuratedFilesToGroup(paths, groupId)}
 					onClearFiles={() => controller.clearCuratedFiles()}
 					onReorderFile={(path, targetPath, placement) =>
 						controller.reorderCuratedFile(

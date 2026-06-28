@@ -5,6 +5,7 @@
 		ChartGroup,
 		CuratedWorkspaceConfig,
 		KnowledgeNode,
+		ManualLayoutConfig,
 		NodeFilterField,
 		NodeFilterGroup,
 		NodeFilterItem,
@@ -40,6 +41,7 @@
 		curated,
 		nodes,
 		groups,
+		manualLayout,
 		folders,
 		nodeColors,
 		workspaceFilePath,
@@ -54,6 +56,7 @@
 		onAddFiles,
 		onRemoveFile,
 		onRemoveFiles,
+		onMoveFilesToGroup,
 		onClearFiles,
 		onReorderFile,
 		onOpenNote,
@@ -63,6 +66,7 @@
 		curated: CuratedWorkspaceConfig;
 		nodes: KnowledgeNode[];
 		groups: ChartGroup[];
+		manualLayout: ManualLayoutConfig;
 		folders: string[];
 		nodeColors: Map<string, string>;
 		workspaceFilePath?: string;
@@ -77,6 +81,7 @@
 		onAddFiles: (paths: string[], groupId?: string) => void;
 		onRemoveFile: (path: string) => void;
 		onRemoveFiles: (paths: string[]) => void;
+		onMoveFilesToGroup: (paths: string[], groupId?: string) => void;
 		onClearFiles: () => void;
 		onReorderFile: (
 			path: string,
@@ -119,6 +124,8 @@
 		{ value: "", label: "No group" },
 		...groups.map((group) => ({ value: group.id, label: group.name })),
 	]);
+	const groupOptions = $derived(addGroupOptions);
+	const groupsById = $derived(new Map(groups.map((group) => [group.id, group])));
 	const selectedAddGroupId = $derived(addGroupId || undefined);
 
 	const selectedPaths = $derived(new Set(curated.files.map((file) => file.path)));
@@ -150,12 +157,18 @@
 	const selectedFiles = $derived(
 		curated.files.map((file) => {
 			const node = nodesByPath.get(file.path);
+			const groupId = manualLayout.nodes[file.path]?.groupId;
+			const group = groupId ? groupsById.get(groupId) : undefined;
 			return {
 				path: file.path,
 				title: node?.title ?? formatFileTitle(file.path),
 				detail: file.path,
 				missing: !node,
 				color: node ? nodeColors.get(node.path) : undefined,
+				groupId: groupId ?? "",
+				groupName: group?.name ?? (groupId ? "Missing group" : "No group"),
+				groupColor: group?.color,
+				missingGroup: Boolean(groupId && !group),
 				selected: selected.has(file.path),
 			};
 		}),
@@ -269,6 +282,29 @@
 		}
 		onRemoveFiles(paths);
 		selected = new Set();
+	}
+
+	function moveSelectedToGroup(groupId: string): void {
+		const paths = curated.files
+			.map((file) => file.path)
+			.filter((path) => selected.has(path));
+		if (paths.length === 0) {
+			return;
+		}
+		onMoveFilesToGroup(paths, groupId || undefined);
+	}
+
+	function moveFileToGroup(path: string, groupId: string): void {
+		onMoveFilesToGroup([path], groupId || undefined);
+	}
+
+	function getGroupOptions(currentGroupId: string) {
+		return currentGroupId && !groupsById.has(currentGroupId)
+			? [
+					...groupOptions,
+					{ value: currentGroupId, label: "Missing group" },
+				]
+			: groupOptions;
 	}
 
 	function clearAll(): void {
@@ -708,6 +744,26 @@
 					onClick={removeSelected}
 				/>
 				<ObsidianButton
+					text="Clear selection"
+					icon="circle-off"
+					disabled={selectedCount === 0}
+					onClick={() => (selected = new Set())}
+				/>
+				<ObsidianDropdown
+					value="__move__"
+					options={[
+						{ value: "__move__", label: "Move to group" },
+						...groupOptions,
+					]}
+					disabled={selectedCount === 0}
+					ariaLabel="Move selected to group"
+					onChange={(value) => {
+						if (value !== "__move__") {
+							moveSelectedToGroup(value);
+						}
+					}}
+				/>
+				<ObsidianButton
 					text="Clear all"
 					icon="x"
 					disabled={curated.files.length === 0}
@@ -760,6 +816,30 @@
 							{#if (selectedTitleCounts[file.title] ?? 0) > 1}
 								<span class="knowledge-workspace-curated-file-path">{file.detail}</span>
 							{/if}
+							<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+							<div
+								class="knowledge-workspace-curated-file-group"
+								class:missing={file.missingGroup}
+								role="group"
+								onclick={(event) => event.stopPropagation()}
+								onkeydown={(event) => event.stopPropagation()}
+								onpointerdown={(event) => event.stopPropagation()}
+							>
+								<span
+									style={file.groupColor
+										? `background: ${file.groupColor}`
+										: undefined}
+									aria-hidden="true"
+								></span>
+								<ObsidianDropdown
+									class="knowledge-workspace-curated-group-select"
+									value={file.groupId}
+									options={getGroupOptions(file.groupId)}
+									ariaLabel={`Group for ${file.title}`}
+									onChange={(value) =>
+										moveFileToGroup(file.path, value)}
+								/>
+							</div>
 						</div>
 						<ObsidianButton
 							ariaLabel={`Open ${file.title}`}

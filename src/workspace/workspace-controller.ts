@@ -585,6 +585,19 @@ export class WorkspaceController {
 		this.updateGroup(groupId, geometry);
 	}
 
+	moveCuratedFilesToGroup(paths: NodeId[], groupId?: string): void {
+		if (paths.length === 0) {
+			return;
+		}
+		const activeChart = this.getActiveChart();
+		const layout = moveManualNodesToGroup(activeChart.layout, paths, groupId);
+		if (layout === activeChart.layout) {
+			return;
+		}
+		this.state = this.updateActiveChart({ layout }, true);
+		this.emit();
+	}
+
 	private placeTemplateNoteInDefaultGroup(
 		path: NodeId,
 		groupId?: string,
@@ -1876,6 +1889,79 @@ function addManualPlacements(
 	};
 }
 
+function moveManualNodesToGroup(
+	layout: ChartLayoutConfig,
+	paths: string[],
+	groupId?: string,
+): ChartLayoutConfig {
+	const manual = layout.manual ?? { nodes: {}, groups: [] };
+	const movingPaths = new Set(paths);
+	const group = groupId
+		? manual.groups.find((item) => item.id === groupId)
+		: undefined;
+	if (groupId && !group) {
+		return layout;
+	}
+	const bounds = group
+		? readGroupPlacementBounds(group)
+		: readUngroupedPlacementBounds(
+				Object.entries(manual.nodes)
+					.filter(([nodeId]) => !movingPaths.has(nodeId))
+					.map(([, placement]) => placement),
+			);
+	const occupied = Object.entries(manual.nodes)
+		.filter(([nodeId, placement]) => {
+			if (movingPaths.has(nodeId)) {
+				return false;
+			}
+			return group
+				? placement.groupId === group.id
+				: placement.groupId === undefined;
+		})
+		.map(([, placement]) => ({ x: placement.x, y: placement.y }));
+	const nodes = { ...manual.nodes };
+	const newPositions: Array<{ x: number; y: number }> = [];
+	let changed = false;
+	for (const path of paths) {
+		const previous = manual.nodes[path];
+		const position =
+			previous && (!group || isPositionInsideGroup(previous, group))
+				? { x: previous.x, y: previous.y }
+				: findOpenManualPlacement(bounds, occupied);
+		occupied.push(position);
+		newPositions.push(position);
+		const nextPlacement = groupId ? { ...position, groupId } : position;
+		const nextGroupId = groupId ?? undefined;
+		if (
+			previous?.x !== nextPlacement.x ||
+			previous?.y !== nextPlacement.y ||
+			previous?.groupId !== nextGroupId
+		) {
+			changed = true;
+		}
+		nodes[path] = nextPlacement;
+	}
+	if (!changed) {
+		return layout;
+	}
+	const groups =
+		group && newPositions.length > 0
+			? manual.groups.map((item) =>
+					item.id === group.id
+						? expandGroupToPositions(item, newPositions)
+						: item,
+				)
+			: manual.groups;
+	return {
+		...layout,
+		manual: {
+			...manual,
+			nodes,
+			groups,
+		},
+	};
+}
+
 function readGroupPlacementBounds(group: ChartGroup): PlacementBounds {
 	const padding = Math.min(group.padding, group.width / 3, group.height / 3);
 	return {
@@ -1884,6 +1970,18 @@ function readGroupPlacementBounds(group: ChartGroup): PlacementBounds {
 		bottom: group.y + padding,
 		top: group.y + group.height - padding,
 	};
+}
+
+function isPositionInsideGroup(
+	position: { x: number; y: number },
+	group: ChartGroup,
+): boolean {
+	return (
+		position.x >= group.x &&
+		position.x <= group.x + group.width &&
+		position.y >= group.y &&
+		position.y <= group.y + group.height
+	);
 }
 
 function readUngroupedPlacementBounds(
