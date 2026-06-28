@@ -48,27 +48,33 @@
 		mode,
 		fadeDistance,
 		labelSize,
-			labelPosition,
-			labelColor,
-				labelBackgroundOpacity,
-				labelDensity,
-				cubeFaceOpacity,
-				forceLabels,
-				enableForceLayout,
+		labelPosition,
+		labelColor,
+		labelBackgroundOpacity,
+		labelDensity,
+		cubeFaceOpacity,
+		forceLabels,
+		enableForceLayout,
 		flowEdgeStyle,
 		flowDirection,
 		arcDirection,
 		graphSpacing,
+		graphCenterForce,
+			graphRepelForce,
+			graphLinkForce,
+			graphDragLinkForce,
+			graphReturnForce,
+			graphLinkDistance,
 		flowSpacing,
 		arcSpacing,
 		query,
 		globalQuery,
 		folders,
-			tags,
-			metadataFieldSuggestions,
-			metadataFieldTypes,
-			metadataFieldValueSuggestions,
-			filePathSuggestions,
+		tags,
+		metadataFieldSuggestions,
+		metadataFieldTypes,
+		metadataFieldValueSuggestions,
+		filePathSuggestions,
 		defaultNodeStyle,
 		defaultLinkStyle,
 		globalNodeStyleRules,
@@ -83,13 +89,19 @@
 		onFadeDistance,
 		onLabelSize,
 		onLabelPosition,
-			onLabelColor,
-				onLabelBackgroundOpacity,
-				onLabelDensity,
-				onCubeFaceOpacity,
-				onForceLabels,
-				onEnableForceLayout,
+		onLabelColor,
+		onLabelBackgroundOpacity,
+		onLabelDensity,
+		onCubeFaceOpacity,
+		onForceLabels,
+		onEnableForceLayout,
 		onGraphSpacing,
+		onGraphCenterForce,
+		onGraphRepelForce,
+		onGraphLinkForce,
+		onGraphDragLinkForce,
+		onGraphReturnForce,
+		onGraphLinkDistance,
 		onFlowSpacing,
 		onArcSpacing,
 		onChange,
@@ -108,27 +120,33 @@
 		mode: ViewMode;
 		fadeDistance: number;
 		labelSize: number;
-			labelPosition: LabelPosition;
-			labelColor: string;
-				labelBackgroundOpacity: number;
-				labelDensity: number;
-				cubeFaceOpacity: number;
-				forceLabels: boolean;
-				enableForceLayout: boolean;
+		labelPosition: LabelPosition;
+		labelColor: string;
+		labelBackgroundOpacity: number;
+		labelDensity: number;
+		cubeFaceOpacity: number;
+		forceLabels: boolean;
+		enableForceLayout: boolean;
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
 		arcDirection: ArcDirection;
 		graphSpacing: number;
+		graphCenterForce: number;
+			graphRepelForce: number;
+			graphLinkForce: number;
+			graphDragLinkForce: number;
+			graphReturnForce: number;
+			graphLinkDistance: number;
 		flowSpacing: number;
 		arcSpacing: number;
 		query: GraphQuery;
 		globalQuery: GraphQuery;
 		folders: string[];
-			tags: string[];
-			metadataFieldSuggestions: string[];
-			metadataFieldTypes: Record<string, string>;
-			metadataFieldValueSuggestions: Record<string, string[]>;
-			filePathSuggestions: string[];
+		tags: string[];
+		metadataFieldSuggestions: string[];
+		metadataFieldTypes: Record<string, string>;
+		metadataFieldValueSuggestions: Record<string, string[]>;
+		filePathSuggestions: string[];
 		defaultNodeStyle: Required<DefaultNodeStyle>;
 		defaultLinkStyle: Required<DefaultLinkStyle>;
 		globalNodeStyleRules: NodeStyleRule[];
@@ -143,13 +161,19 @@
 		onFadeDistance: (value: number) => void;
 		onLabelSize: (value: number) => void;
 		onLabelPosition: (position: LabelPosition) => void;
-			onLabelColor: (color: string) => void;
-				onLabelBackgroundOpacity: (value: number) => void;
-				onLabelDensity: (value: number) => void;
-				onCubeFaceOpacity: (value: number) => void;
-				onForceLabels: (value: boolean) => void;
-				onEnableForceLayout: (value: boolean) => void;
+		onLabelColor: (color: string) => void;
+		onLabelBackgroundOpacity: (value: number) => void;
+		onLabelDensity: (value: number) => void;
+		onCubeFaceOpacity: (value: number) => void;
+		onForceLabels: (value: boolean) => void;
+		onEnableForceLayout: (value: boolean) => void;
 		onGraphSpacing: (spacing: number) => void;
+		onGraphCenterForce: (value: number) => void;
+		onGraphRepelForce: (value: number) => void;
+		onGraphLinkForce: (value: number) => void;
+		onGraphDragLinkForce: (value: number) => void;
+		onGraphReturnForce: (value: number) => void;
+		onGraphLinkDistance: (value: number) => void;
 		onFlowSpacing: (spacing: number) => void;
 		onArcSpacing: (spacing: number) => void;
 		onChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
@@ -164,7 +188,7 @@
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 	} = $props();
 
-		const NODE_STYLE_FIELD_OPTIONS = [
+	const NODE_STYLE_FIELD_OPTIONS = [
 		{ value: 'folder', label: 'Folder' },
 		{ value: 'tag', label: 'Tag' },
 		{ value: 'domain', label: 'Domain' },
@@ -176,7 +200,7 @@
 		{ value: 'relation', label: 'Relation' },
 		{ value: 'source-field', label: 'Metadata field' },
 	];
-		const STYLE_FILTER_OPERATOR_OPTIONS = TEXT_FILTER_OPERATOR_OPTIONS;
+	const STYLE_FILTER_OPERATOR_OPTIONS = TEXT_FILTER_OPERATOR_OPTIONS;
 	const LINE_STYLE_OPTIONS = [
 		{ value: 'solid', label: 'Solid' },
 		{ value: 'dashed', label: 'Dashed' },
@@ -300,7 +324,9 @@
 
 	function getFilterRoot(scope: 'global' | 'current'): NodeFilterGroup {
 		return (
-			(scope === 'global' ? globalQuery.filterRoot : query.filterRoot) ?? {
+			(scope === 'global'
+				? globalQuery.filterRoot
+				: query.filterRoot) ?? {
 				id: 'root',
 				kind: 'group',
 				mode: 'all',
@@ -331,7 +357,10 @@
 		);
 	}
 
-	function addFilterGroup(scope: 'global' | 'current', groupId: string): void {
+	function addFilterGroup(
+		scope: 'global' | 'current',
+		groupId: string,
+	): void {
 		updateFilterRoot(
 			scope,
 			updateFilterGroup(getFilterRoot(scope), groupId, (group) => ({
@@ -356,11 +385,18 @@
 	): void {
 		updateFilterRoot(
 			scope,
-			patchFilterItem(getFilterRoot(scope), itemId, patch) as NodeFilterGroup,
+			patchFilterItem(
+				getFilterRoot(scope),
+				itemId,
+				patch,
+			) as NodeFilterGroup,
 		);
 	}
 
-	function removeFilterItem(scope: 'global' | 'current', itemId: string): void {
+	function removeFilterItem(
+		scope: 'global' | 'current',
+		itemId: string,
+	): void {
 		const root = getFilterRoot(scope);
 		if (itemId === root.id) {
 			return;
@@ -421,24 +457,26 @@
 		};
 	}
 
-		function getFilterFieldOptions() {
-			return resolveFilterFieldOptions(
-				metadataFieldSuggestions,
-				metadataFieldTypes,
-			);
-		}
+	function getFilterFieldOptions() {
+		return resolveFilterFieldOptions(
+			metadataFieldSuggestions,
+			metadataFieldTypes,
+		);
+	}
 
-		function getFilterOperatorOptions(field: NodeFilterField) {
-			return resolveFilterOperatorOptions(field, metadataFieldTypes);
-		}
+	function getFilterOperatorOptions(field: NodeFilterField) {
+		return resolveFilterOperatorOptions(field, metadataFieldTypes);
+	}
 
-		function getDefaultFilterOperator(field: NodeFilterField): NodeFilterOperator {
-			return resolveDefaultFilterOperator(field, metadataFieldTypes);
-		}
+	function getDefaultFilterOperator(
+		field: NodeFilterField,
+	): NodeFilterOperator {
+		return resolveDefaultFilterOperator(field, metadataFieldTypes);
+	}
 
-		function getFilterFieldType(field: NodeFilterField): string {
-			return resolveFilterFieldType(field, metadataFieldTypes);
-		}
+	function getFilterFieldType(field: NodeFilterField): string {
+		return resolveFilterFieldType(field, metadataFieldTypes);
+	}
 
 	function addNodeRule(scope: 'global' | 'current'): void {
 		updateNodeRules(scope, [
@@ -537,9 +575,15 @@
 		direction: -1 | 1,
 	): void {
 		if (kind === 'node') {
-			updateNodeRules(scope, moveRule(getNodeRules(scope), id, direction));
+			updateNodeRules(
+				scope,
+				moveRule(getNodeRules(scope), id, direction),
+			);
 		} else {
-			updateLinkRules(scope, moveRule(getLinkRules(scope), id, direction));
+			updateLinkRules(
+				scope,
+				moveRule(getLinkRules(scope), id, direction),
+			);
 		}
 	}
 
@@ -606,7 +650,9 @@
 		onLinkStyleOverrides({});
 	}
 
-	function activeNodeStyleValue(field: keyof DefaultNodeStyle): string | number {
+	function activeNodeStyleValue(
+		field: keyof DefaultNodeStyle,
+	): string | number {
 		return nodeStyleOverrides[field] ?? defaultNodeStyle[field];
 	}
 
@@ -681,25 +727,26 @@
 	}
 
 	function commitSpacing(spacing: number): void {
-		if (mode === 'graph' || mode === 'graph-3d' || mode === 'cube') onGraphSpacing(spacing);
+		if (mode === 'graph' || mode === 'graph-3d' || mode === 'cube')
+			onGraphSpacing(spacing);
 		if (mode === 'flow') onFlowSpacing(spacing);
 		if (mode === 'arc') onArcSpacing(spacing);
 	}
 
-		function getNodeValueOptions(
-			field: NodeFilterField | NodeStyleField,
-			operator?: NodeFilterOperator,
-		): SuggestionOption[] {
-			return resolveNodeValueOptions(field, operator, {
-				folders,
-				tags,
-				metadataFieldSuggestions,
-				metadataFieldTypes,
-				metadataFieldValueSuggestions,
-				filePathSuggestions,
-			});
-		}
-	</script>
+	function getNodeValueOptions(
+		field: NodeFilterField | NodeStyleField,
+		operator?: NodeFilterOperator,
+	): SuggestionOption[] {
+		return resolveNodeValueOptions(field, operator, {
+			folders,
+			tags,
+			metadataFieldSuggestions,
+			metadataFieldTypes,
+			metadataFieldValueSuggestions,
+			filePathSuggestions,
+		});
+	}
+</script>
 
 <aside class="knowledge-workspace-filters">
 	{#if panel === 'graph'}
@@ -737,90 +784,198 @@
 					/>
 				</label>
 			{/if}
-				{#if mode !== 'hierarchical-edge-bundling'}
-					<label class="knowledge-workspace-rule-label">
-						<span>Spacing</span>
-						<div class="knowledge-workspace-slider-value">
-							<ObsidianSlider
-								min={0.25}
-								max={4}
-								step={0.25}
-								value={mode === 'graph' || mode === 'graph-3d' || mode === 'cube'
-									? graphSpacing
-									: mode === 'flow'
-										? flowSpacing
-										: arcSpacing}
-								format={(value) =>
-									value.toFixed(2).replace(/\.?0+$/u, '')}
-								onChange={commitSpacing}
-								onCommit={commitSpacing}
-							/>
-							<span
-								>{(mode === 'graph' || mode === 'graph-3d' || mode === 'cube'
-									? graphSpacing
-									: mode === 'flow'
-										? flowSpacing
-										: arcSpacing
-								)
-									.toFixed(2)
-									.replace(/\.?0+$/u, '')}</span
-							>
-						</div>
-					</label>
-				{/if}
+			{#if mode === 'graph' || mode === 'graph-3d' || mode === 'cube'}
 				<label class="knowledge-workspace-rule-label">
-					<span>Fade distance</span>
+					<span>Center force</span>
 					<div class="knowledge-workspace-slider-value">
 						<ObsidianSlider
-							value={fadeDistance}
-							min={0.25}
-							max={4}
+							min={0}
+							max={5}
 							step={0.05}
+							value={graphCenterForce}
 							format={(value) =>
 								value.toFixed(2).replace(/\.?0+$/u, '')}
-							onChange={onFadeDistance}
-							onCommit={onFadeDistance}
+							onChange={onGraphCenterForce}
+							onCommit={onGraphCenterForce}
 						/>
-						<span>{fadeDistance.toFixed(2).replace(/\.?0+$/u, '')}</span>
+						<span
+							>{graphCenterForce
+								.toFixed(2)
+								.replace(/\.?0+$/u, '')}</span
+						>
 					</div>
 				</label>
-					<label class="knowledge-workspace-rule-label">
-						<span>Label density</span>
-						<div class="knowledge-workspace-slider-value">
+				<label class="knowledge-workspace-rule-label">
+					<span>Repel force</span>
+					<div class="knowledge-workspace-slider-value">
 						<ObsidianSlider
-							value={labelDensity}
 							min={0}
+							max={20}
+							step={0.1}
+							value={graphRepelForce}
+							format={(value) =>
+								value.toFixed(1).replace(/\.?0+$/u, '')}
+							onChange={onGraphRepelForce}
+							onCommit={onGraphRepelForce}
+						/>
+						<span
+							>{graphRepelForce
+								.toFixed(1)
+								.replace(/\.?0+$/u, '')}</span
+						>
+					</div>
+				</label>
+				<label class="knowledge-workspace-rule-label">
+					<span>Link force</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							min={0}
+							max={5}
+							step={0.05}
+							value={graphLinkForce}
+							format={(value) =>
+								value.toFixed(2).replace(/\.?0+$/u, '')}
+							onChange={onGraphLinkForce}
+							onCommit={onGraphLinkForce}
+						/>
+						<span
+							>{graphLinkForce
+								.toFixed(2)
+								.replace(/\.?0+$/u, '')}</span
+						>
+					</div>
+				</label>
+				<label class="knowledge-workspace-rule-label">
+					<span>Drag link force</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							min={0}
+							max={5}
+							step={0.05}
+							value={graphDragLinkForce}
+							format={(value) =>
+								value.toFixed(2).replace(/\.?0+$/u, '')}
+							onChange={onGraphDragLinkForce}
+							onCommit={onGraphDragLinkForce}
+						/>
+						<span
+							>{graphDragLinkForce
+								.toFixed(2)
+								.replace(/\.?0+$/u, '')}</span
+						>
+					</div>
+				</label>
+				<label class="knowledge-workspace-rule-label">
+					<span>Return force</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							min={0}
+							max={5}
+							step={0.05}
+							value={graphReturnForce}
+							format={(value) =>
+								value.toFixed(2).replace(/\.?0+$/u, '')}
+							onChange={onGraphReturnForce}
+							onCommit={onGraphReturnForce}
+						/>
+						<span
+							>{graphReturnForce
+								.toFixed(2)
+								.replace(/\.?0+$/u, '')}</span
+						>
+					</div>
+				</label>
+				<label class="knowledge-workspace-rule-label">
+					<span>Link distance</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							min={50}
+							max={800}
+							step={10}
+							value={graphLinkDistance}
+							format={(value) => `${Math.round(value)}`}
+							onChange={onGraphLinkDistance}
+							onCommit={onGraphLinkDistance}
+						/>
+						<span>{Math.round(graphLinkDistance)}</span>
+					</div>
+				</label>
+			{:else if mode === 'flow' || mode === 'arc'}
+				<label class="knowledge-workspace-rule-label">
+					<span>Spacing</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							min={0.25}
+							max={4}
+							step={0.25}
+							value={mode === 'flow' ? flowSpacing : arcSpacing}
+							format={(value) =>
+								value.toFixed(2).replace(/\.?0+$/u, '')}
+							onChange={commitSpacing}
+							onCommit={commitSpacing}
+						/>
+						<span
+							>{(mode === 'flow' ? flowSpacing : arcSpacing)
+								.toFixed(2)
+								.replace(/\.?0+$/u, '')}</span
+						>
+					</div>
+				</label>
+			{/if}
+			<label class="knowledge-workspace-rule-label">
+				<span>Fade distance</span>
+				<div class="knowledge-workspace-slider-value">
+					<ObsidianSlider
+						value={fadeDistance}
+						min={0.25}
+						max={4}
+						step={0.05}
+						format={(value) =>
+							value.toFixed(2).replace(/\.?0+$/u, '')}
+						onChange={onFadeDistance}
+						onCommit={onFadeDistance}
+					/>
+					<span>{fadeDistance.toFixed(2).replace(/\.?0+$/u, '')}</span
+					>
+				</div>
+			</label>
+			<label class="knowledge-workspace-rule-label">
+				<span>Label density</span>
+				<div class="knowledge-workspace-slider-value">
+					<ObsidianSlider
+						value={labelDensity}
+						min={0}
+						max={1}
+						step={0.05}
+						format={(value) => `${Math.round(value * 100)}%`}
+						onChange={onLabelDensity}
+						onCommit={onLabelDensity}
+					/>
+					<span>{Math.round(labelDensity * 100)}%</span>
+				</div>
+			</label>
+			{#if mode === 'cube'}
+				<label class="knowledge-workspace-rule-label">
+					<span>Face opacity</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							value={cubeFaceOpacity}
+							min={0.05}
 							max={1}
 							step={0.05}
 							format={(value) => `${Math.round(value * 100)}%`}
-							onChange={onLabelDensity}
-							onCommit={onLabelDensity}
+							onChange={onCubeFaceOpacity}
+							onCommit={onCubeFaceOpacity}
 						/>
-							<span>{Math.round(labelDensity * 100)}%</span>
-						</div>
-					</label>
-					{#if mode === 'cube'}
-						<label class="knowledge-workspace-rule-label">
-							<span>Face opacity</span>
-							<div class="knowledge-workspace-slider-value">
-								<ObsidianSlider
-									value={cubeFaceOpacity}
-									min={0.05}
-									max={1}
-									step={0.05}
-									format={(value) => `${Math.round(value * 100)}%`}
-									onChange={onCubeFaceOpacity}
-									onCommit={onCubeFaceOpacity}
-								/>
-								<span>{Math.round(cubeFaceOpacity * 100)}%</span>
-							</div>
-						</label>
-					{/if}
-					<label class="knowledge-workspace-rule-label">
-						<span>Always show labels</span>
-					<ObsidianToggle value={forceLabels} onChange={onForceLabels} />
+						<span>{Math.round(cubeFaceOpacity * 100)}%</span>
+					</div>
 				</label>
-				{#if mode === 'flow'}
+			{/if}
+			<label class="knowledge-workspace-rule-label">
+				<span>Always show labels</span>
+				<ObsidianToggle value={forceLabels} onChange={onForceLabels} />
+			</label>
+			{#if mode === 'flow'}
 				<div class="knowledge-workspace-rule-label segmented">
 					<span>Direction</span>
 					<div class="knowledge-workspace-segmented">
@@ -905,35 +1060,35 @@
 						)}
 				/>
 			</label>
-				{#if mode !== 'hierarchical-edge-bundling'}
-					<div class="knowledge-workspace-rule-label segmented">
-						<span>Text position</span>
-						<div class="knowledge-workspace-segmented">
-							{#each LABEL_POSITION_OPTIONS as option}
-								<ObsidianButton
-									active={labelPosition === option.value}
-									text={option.label}
-									onClick={() => onLabelPosition(option.value)}
-								/>
-							{/each}
-						</div>
+			{#if mode !== 'hierarchical-edge-bundling'}
+				<div class="knowledge-workspace-rule-label segmented">
+					<span>Text position</span>
+					<div class="knowledge-workspace-segmented">
+						{#each LABEL_POSITION_OPTIONS as option}
+							<ObsidianButton
+								active={labelPosition === option.value}
+								text={option.label}
+								onClick={() => onLabelPosition(option.value)}
+							/>
+						{/each}
 					</div>
-				{/if}
-				<label class="knowledge-workspace-rule-label">
-					<span>Text background</span>
-					<div class="knowledge-workspace-slider-value">
-						<ObsidianSlider
-							value={labelBackgroundOpacity}
-							min={0}
-							max={1}
-							step={0.05}
-							format={(value) => `${Math.round(value * 100)}%`}
-							onChange={onLabelBackgroundOpacity}
-							onCommit={onLabelBackgroundOpacity}
-						/>
-						<span>{Math.round(labelBackgroundOpacity * 100)}%</span>
-					</div>
-				</label>
+				</div>
+			{/if}
+			<label class="knowledge-workspace-rule-label">
+				<span>Text background</span>
+				<div class="knowledge-workspace-slider-value">
+					<ObsidianSlider
+						value={labelBackgroundOpacity}
+						min={0}
+						max={1}
+						step={0.05}
+						format={(value) => `${Math.round(value * 100)}%`}
+						onChange={onLabelBackgroundOpacity}
+						onCommit={onLabelBackgroundOpacity}
+					/>
+					<span>{Math.round(labelBackgroundOpacity * 100)}%</span>
+				</div>
+			</label>
 		</section>
 	{:else if panel === 'filters'}
 		{#each ['global', 'current'] as scope}
@@ -954,42 +1109,115 @@
 					groupModeOptions={getFilterGroupModeOptions()}
 					getValueOptions={getNodeValueOptions}
 					onAddCondition={(groupId) =>
-						addFilterCondition(scope as 'global' | 'current', groupId)}
+						addFilterCondition(
+							scope as 'global' | 'current',
+							groupId,
+						)}
 					onAddGroup={(groupId) =>
 						addFilterGroup(scope as 'global' | 'current', groupId)}
 					onUpdate={(id, patch) =>
-						updateFilterItem(scope as 'global' | 'current', id, patch)}
+						updateFilterItem(
+							scope as 'global' | 'current',
+							id,
+							patch,
+						)}
 					onRemove={(id) =>
 						removeFilterItem(scope as 'global' | 'current', id)}
 				/>
 			</section>
 		{/each}
-		{:else if panel === 'note-style'}
-			<section>
-				<header><h3>Note styles</h3></header>
-			</section>
-			<section>
-				<header><h3>Workspace default</h3></header>
+	{:else if panel === 'note-style'}
+		<section>
+			<header><h3>Note styles</h3></header>
+		</section>
+		<section>
+			<header><h3>Workspace default</h3></header>
+			<div class="knowledge-workspace-rule">
+				<div class="knowledge-workspace-rule-row compact">
+					<label>
+						<span>Color</span>
+						<input
+							type="color"
+							value={defaultNodeStyle.color}
+							oninput={(event) =>
+								scheduleColorCommit(
+									'node:workspace-default',
+									defaultNodeStyle.color,
+									event.currentTarget.value,
+									(color) =>
+										updateDefaultNodeStyle({ color }),
+								)}
+							onchange={(event) =>
+								commitColor(
+									'node:workspace-default',
+									defaultNodeStyle.color,
+									event.currentTarget.value,
+									(color) =>
+										updateDefaultNodeStyle({ color }),
+								)}
+						/>
+					</label>
+					<label>
+						<span>Size</span>
+						<div class="knowledge-workspace-slider-value">
+							<ObsidianSlider
+								min={1}
+								max={30}
+								step={0.5}
+								value={defaultNodeStyle.size}
+								onChange={(size) =>
+									updateDefaultNodeStyle({ size })}
+							/>
+							<span>{defaultNodeStyle.size.toFixed(1)}</span>
+						</div>
+					</label>
+				</div>
+			</div>
+		</section>
+		<section>
+			<header>
+				<h3>Chart overrides</h3>
+				{#if !hasNodeOverride()}
+					<ObsidianButton
+						class="knowledge-workspace-add-rule-button"
+						ariaLabel="Add chart note override"
+						icon="plus"
+						onClick={addNodeOverride}
+					/>
+				{/if}
+			</header>
+			{#if hasNodeOverride()}
 				<div class="knowledge-workspace-rule">
+					<div class="knowledge-workspace-rule-row override-heading">
+						<strong>This chart</strong>
+						<ObsidianButton
+							class="knowledge-workspace-remove-rule-button"
+							ariaLabel="Remove chart note override"
+							icon="trash-2"
+							onClick={clearNodeOverride}
+						/>
+					</div>
 					<div class="knowledge-workspace-rule-row compact">
 						<label>
 							<span>Color</span>
 							<input
 								type="color"
-								value={defaultNodeStyle.color}
+								value={activeNodeColor()}
 								oninput={(event) =>
 									scheduleColorCommit(
-										'node:workspace-default',
-										defaultNodeStyle.color,
+										'node:chart-override',
+										activeNodeColor(),
 										event.currentTarget.value,
-										(color) => updateDefaultNodeStyle({ color }),
+										(color) =>
+											updateNodeOverride({ color }),
 									)}
 								onchange={(event) =>
 									commitColor(
-										'node:workspace-default',
-										defaultNodeStyle.color,
+										'node:chart-override',
+										activeNodeColor(),
 										event.currentTarget.value,
-										(color) => updateDefaultNodeStyle({ color }),
+										(color) =>
+											updateNodeOverride({ color }),
 									)}
 							/>
 						</label>
@@ -1000,81 +1228,25 @@
 									min={1}
 									max={30}
 									step={0.5}
-									value={defaultNodeStyle.size}
-									onChange={(size) => updateDefaultNodeStyle({ size })}
+									value={activeNodeSize()}
+									onChange={(size) =>
+										updateNodeOverride({ size })}
 								/>
-								<span>{defaultNodeStyle.size.toFixed(1)}</span>
+								<span>{activeNodeSize().toFixed(1)}</span>
 							</div>
 						</label>
 					</div>
 				</div>
-			</section>
+			{/if}
+		</section>
+		{#each ['global', 'current'] as scope}
 			<section>
 				<header>
-					<h3>Chart overrides</h3>
-					{#if !hasNodeOverride()}
-						<ObsidianButton
-							class="knowledge-workspace-add-rule-button"
-							ariaLabel="Add chart note override"
-							icon="plus"
-							onClick={addNodeOverride}
-						/>
-					{/if}
-				</header>
-				{#if hasNodeOverride()}
-					<div class="knowledge-workspace-rule">
-						<div class="knowledge-workspace-rule-row override-heading">
-							<strong>This chart</strong>
-							<ObsidianButton
-								class="knowledge-workspace-remove-rule-button"
-								ariaLabel="Remove chart note override"
-								icon="trash-2"
-								onClick={clearNodeOverride}
-							/>
-						</div>
-						<div class="knowledge-workspace-rule-row compact">
-							<label>
-								<span>Color</span>
-								<input
-									type="color"
-									value={activeNodeColor()}
-									oninput={(event) =>
-										scheduleColorCommit(
-											'node:chart-override',
-											activeNodeColor(),
-											event.currentTarget.value,
-											(color) => updateNodeOverride({ color }),
-										)}
-									onchange={(event) =>
-										commitColor(
-											'node:chart-override',
-											activeNodeColor(),
-											event.currentTarget.value,
-											(color) => updateNodeOverride({ color }),
-										)}
-								/>
-							</label>
-							<label>
-								<span>Size</span>
-								<div class="knowledge-workspace-slider-value">
-									<ObsidianSlider
-										min={1}
-										max={30}
-										step={0.5}
-										value={activeNodeSize()}
-										onChange={(size) => updateNodeOverride({ size })}
-									/>
-									<span>{activeNodeSize().toFixed(1)}</span>
-								</div>
-							</label>
-						</div>
-					</div>
-				{/if}
-			</section>
-			{#each ['global', 'current'] as scope}
-				<section>
-					<header>
-						<h3>{scope === 'global' ? 'Global note rules' : 'Chart note rules'}</h3>
+					<h3>
+						{scope === 'global'
+							? 'Global note rules'
+							: 'Chart note rules'}
+					</h3>
 					<ObsidianButton
 						class="knowledge-workspace-add-rule-button"
 						ariaLabel="Add note style rule"
@@ -1088,43 +1260,43 @@
 						<div
 							class="knowledge-workspace-rule-row style-condition"
 						>
-								<div class="knowledge-workspace-move-rule-buttons">
-									<ObsidianButton
-										icon="chevron-up"
-										ariaLabel="Move note style rule up"
-										disabled={!canMoveRule(
-											getNodeRules(scope as StyleRuleScope),
+							<div class="knowledge-workspace-move-rule-buttons">
+								<ObsidianButton
+									icon="chevron-up"
+									ariaLabel="Move note style rule up"
+									disabled={!canMoveRule(
+										getNodeRules(scope as StyleRuleScope),
+										rule.id,
+										-1,
+									)}
+									onClick={() =>
+										moveStyleRule(
+											'node',
+											scope as StyleRuleScope,
 											rule.id,
 											-1,
 										)}
-										onClick={() =>
-											moveStyleRule(
-												'node',
-												scope as StyleRuleScope,
-												rule.id,
-												-1,
-											)}
-									/>
-									<ObsidianButton
-										icon="chevron-down"
-										ariaLabel="Move note style rule down"
-										disabled={!canMoveRule(
-											getNodeRules(scope as StyleRuleScope),
+								/>
+								<ObsidianButton
+									icon="chevron-down"
+									ariaLabel="Move note style rule down"
+									disabled={!canMoveRule(
+										getNodeRules(scope as StyleRuleScope),
+										rule.id,
+										1,
+									)}
+									onClick={() =>
+										moveStyleRule(
+											'node',
+											scope as StyleRuleScope,
 											rule.id,
 											1,
 										)}
-										onClick={() =>
-											moveStyleRule(
-												'node',
-												scope as StyleRuleScope,
-												rule.id,
-												1,
-											)}
-									/>
-								</div>
-								<ObsidianDropdown
-									value={rule.field}
-									options={NODE_STYLE_FIELD_OPTIONS}
+								/>
+							</div>
+							<ObsidianDropdown
+								value={rule.field}
+								options={NODE_STYLE_FIELD_OPTIONS}
 								onChange={(value) =>
 									updateNodeRule(
 										scope as 'global' | 'current',
@@ -1134,71 +1306,69 @@
 										},
 									)}
 							/>
-									<ObsidianDropdown
-									value={rule.operator ?? 'is'}
-									options={STYLE_FILTER_OPERATOR_OPTIONS}
-									onChange={(value) =>
+							<ObsidianDropdown
+								value={rule.operator ?? 'is'}
+								options={STYLE_FILTER_OPERATOR_OPTIONS}
+								onChange={(value) =>
+									updateNodeRule(
+										scope as 'global' | 'current',
+										rule.id,
+										{
+											operator:
+												value as NodeFilterOperator,
+										},
+									)}
+							/>
+							{#if shouldShowFilterValue(rule.operator) && getNodeValueOptions(rule.field).length > 0}
+								<ObsidianSuggestInput
+									{app}
+									type="text"
+									placeholder="Value"
+									value={rule.value}
+									options={getNodeValueOptions(rule.field)}
+									onInput={(value) =>
 										updateNodeRule(
 											scope as 'global' | 'current',
 											rule.id,
 											{
-												operator:
-													value as NodeFilterOperator,
+												value,
+											},
+										)}
+									onSelect={(option) =>
+										updateNodeRule(
+											scope as 'global' | 'current',
+											rule.id,
+											{
+												value: option.value,
 											},
 										)}
 								/>
-								{#if shouldShowFilterValue(rule.operator) && getNodeValueOptions(rule.field).length > 0}
-									<ObsidianSuggestInput
-										{app}
-										type="text"
-										placeholder="Value"
-										value={rule.value}
-										options={getNodeValueOptions(
-											rule.field,
+							{:else}
+								<ObsidianTextInput
+									type="text"
+									placeholder={shouldShowFilterValue(
+										rule.operator,
+									)
+										? 'Value'
+										: ''}
+									disabled={!shouldShowFilterValue(
+										rule.operator,
+									)}
+									value={rule.value}
+									onInput={(value) =>
+										updateNodeRule(
+											scope as 'global' | 'current',
+											rule.id,
+											{
+												value,
+											},
 										)}
-										onInput={(value) =>
-											updateNodeRule(
-												scope as 'global' | 'current',
-												rule.id,
-												{
-													value,
-												},
-											)}
-										onSelect={(option) =>
-											updateNodeRule(
-												scope as 'global' | 'current',
-												rule.id,
-												{
-													value: option.value,
-												},
-											)}
-									/>
-								{:else}
-									<ObsidianTextInput
-										type="text"
-										placeholder={shouldShowFilterValue(
-											rule.operator,
-										)
-											? 'Value'
-											: ''}
-										disabled={!shouldShowFilterValue(
-											rule.operator,
-										)}
-										value={rule.value}
-										onInput={(value) =>
-											updateNodeRule(
-												scope as 'global' | 'current',
-												rule.id,
-												{
-													value,
-												},
-											)}
-									/>
-								{/if}
-								<ObsidianButton
+								/>
+							{/if}
+							<ObsidianButton
 								class="knowledge-workspace-remove-rule-button"
 								ariaLabel="Remove note style rule"
-									icon="trash-2"
+								icon="trash-2"
 								onClick={() =>
 									removeNodeRule(
 										scope as 'global' | 'current',
@@ -1220,8 +1390,7 @@
 											(color) =>
 												updateNodeRule(
 													scope as
-														| 'global'
-														| 'current',
+														'global' | 'current',
 													rule.id,
 													{
 														color,
@@ -1236,8 +1405,7 @@
 											(color) =>
 												updateNodeRule(
 													scope as
-														| 'global'
-														| 'current',
+														'global' | 'current',
 													rule.id,
 													{
 														color,
@@ -1271,32 +1439,146 @@
 				{/each}
 			</section>
 		{/each}
-		{:else}
-			<section>
-				<header><h3>Link styles</h3></header>
-			</section>
-			<section>
-				<header><h3>Workspace default</h3></header>
+	{:else}
+		<section>
+			<header><h3>Link styles</h3></header>
+		</section>
+		<section>
+			<header><h3>Workspace default</h3></header>
+			<div class="knowledge-workspace-rule">
+				<div class="knowledge-workspace-rule-row compact">
+					<label>
+						<span>Color</span>
+						<input
+							type="color"
+							value={defaultLinkStyle.color}
+							oninput={(event) =>
+								scheduleColorCommit(
+									'link:workspace-default',
+									defaultLinkStyle.color,
+									event.currentTarget.value,
+									(color) =>
+										updateDefaultLinkStyle({ color }),
+								)}
+							onchange={(event) =>
+								commitColor(
+									'link:workspace-default',
+									defaultLinkStyle.color,
+									event.currentTarget.value,
+									(color) =>
+										updateDefaultLinkStyle({ color }),
+								)}
+						/>
+					</label>
+					<label>
+						<span>Width</span>
+						<div class="knowledge-workspace-slider-value">
+							<ObsidianSlider
+								min={0.5}
+								max={10}
+								step={0.5}
+								value={defaultLinkStyle.size}
+								format={(value) => value.toFixed(1)}
+								onChange={(size) =>
+									updateDefaultLinkStyle({ size })}
+							/>
+							<span>{defaultLinkStyle.size.toFixed(1)}</span>
+						</div>
+					</label>
+				</div>
+				<div class="knowledge-workspace-line-style-row">
+					<span>Line</span>
+					<div class="knowledge-workspace-segmented">
+						{#each LINE_STYLE_OPTIONS as option}
+							<ObsidianButton
+								active={defaultLinkStyle.lineStyle ===
+									option.value}
+								text={option.label}
+								onClick={() =>
+									updateDefaultLinkStyle({
+										lineStyle:
+											option.value as LinkLineStyle,
+									})}
+							/>
+						{/each}
+					</div>
+				</div>
+				<div class="knowledge-workspace-rule-row link-line-label">
+					<label class="knowledge-workspace-rule-label">
+						<span>Label</span>
+						<ObsidianTextInput
+							type="text"
+							placeholder="Optional label"
+							value={defaultLinkStyle.label}
+							onInput={(label) =>
+								updateDefaultLinkStyle({ label })}
+						/>
+					</label>
+				</div>
+				<div class="knowledge-workspace-toggle-row">
+					<label class="checkbox">
+						<ObsidianToggle
+							value={defaultLinkStyle.showLabel}
+							onChange={(showLabel) =>
+								updateDefaultLinkStyle({ showLabel })}
+						/>
+						<span>Show label</span>
+					</label>
+					<label class="checkbox">
+						<ObsidianToggle
+							value={defaultLinkStyle.hidden}
+							onChange={(hidden) =>
+								updateDefaultLinkStyle({ hidden })}
+						/>
+						<span>Hidden</span>
+					</label>
+				</div>
+			</div>
+		</section>
+		<section>
+			<header>
+				<h3>Chart overrides</h3>
+				{#if !hasLinkOverride()}
+					<ObsidianButton
+						class="knowledge-workspace-add-rule-button"
+						ariaLabel="Add chart link override"
+						icon="plus"
+						onClick={addLinkOverride}
+					/>
+				{/if}
+			</header>
+			{#if hasLinkOverride()}
 				<div class="knowledge-workspace-rule">
+					<div class="knowledge-workspace-rule-row override-heading">
+						<strong>This chart</strong>
+						<ObsidianButton
+							class="knowledge-workspace-remove-rule-button"
+							ariaLabel="Remove chart link override"
+							icon="trash-2"
+							onClick={clearLinkOverride}
+						/>
+					</div>
 					<div class="knowledge-workspace-rule-row compact">
 						<label>
 							<span>Color</span>
 							<input
 								type="color"
-								value={defaultLinkStyle.color}
+								value={activeLinkColor()}
 								oninput={(event) =>
 									scheduleColorCommit(
-										'link:workspace-default',
-										defaultLinkStyle.color,
+										'link:chart-override',
+										activeLinkColor(),
 										event.currentTarget.value,
-										(color) => updateDefaultLinkStyle({ color }),
+										(color) =>
+											updateLinkOverride({ color }),
 									)}
 								onchange={(event) =>
 									commitColor(
-										'link:workspace-default',
-										defaultLinkStyle.color,
+										'link:chart-override',
+										activeLinkColor(),
 										event.currentTarget.value,
-										(color) => updateDefaultLinkStyle({ color }),
+										(color) =>
+											updateLinkOverride({ color }),
 									)}
 							/>
 						</label>
@@ -1307,11 +1589,12 @@
 									min={0.5}
 									max={10}
 									step={0.5}
-									value={defaultLinkStyle.size}
+									value={activeLinkSize()}
 									format={(value) => value.toFixed(1)}
-									onChange={(size) => updateDefaultLinkStyle({ size })}
+									onChange={(size) =>
+										updateLinkOverride({ size })}
 								/>
-								<span>{defaultLinkStyle.size.toFixed(1)}</span>
+								<span>{activeLinkSize().toFixed(1)}</span>
 							</div>
 						</label>
 					</div>
@@ -1320,11 +1603,13 @@
 						<div class="knowledge-workspace-segmented">
 							{#each LINE_STYLE_OPTIONS as option}
 								<ObsidianButton
-									active={defaultLinkStyle.lineStyle === option.value}
+									active={activeLinkLineStyle() ===
+										option.value}
 									text={option.label}
 									onClick={() =>
-										updateDefaultLinkStyle({
-											lineStyle: option.value as LinkLineStyle,
+										updateLinkOverride({
+											lineStyle:
+												option.value as LinkLineStyle,
 										})}
 								/>
 							{/each}
@@ -1336,139 +1621,41 @@
 							<ObsidianTextInput
 								type="text"
 								placeholder="Optional label"
-								value={defaultLinkStyle.label}
-								onInput={(label) => updateDefaultLinkStyle({ label })}
+								value={activeLinkLabel()}
+								onInput={(label) =>
+									updateLinkOverride({ label })}
 							/>
 						</label>
 					</div>
 					<div class="knowledge-workspace-toggle-row">
 						<label class="checkbox">
 							<ObsidianToggle
-								value={defaultLinkStyle.showLabel}
-								onChange={(showLabel) => updateDefaultLinkStyle({ showLabel })}
+								value={activeLinkShowLabel()}
+								onChange={(showLabel) =>
+									updateLinkOverride({ showLabel })}
 							/>
 							<span>Show label</span>
 						</label>
 						<label class="checkbox">
 							<ObsidianToggle
-								value={defaultLinkStyle.hidden}
-								onChange={(hidden) => updateDefaultLinkStyle({ hidden })}
+								value={activeLinkHidden()}
+								onChange={(hidden) =>
+									updateLinkOverride({ hidden })}
 							/>
 							<span>Hidden</span>
 						</label>
 					</div>
 				</div>
-			</section>
+			{/if}
+		</section>
+		{#each ['global', 'current'] as scope}
 			<section>
 				<header>
-					<h3>Chart overrides</h3>
-					{#if !hasLinkOverride()}
-						<ObsidianButton
-							class="knowledge-workspace-add-rule-button"
-							ariaLabel="Add chart link override"
-							icon="plus"
-							onClick={addLinkOverride}
-						/>
-					{/if}
-				</header>
-				{#if hasLinkOverride()}
-					<div class="knowledge-workspace-rule">
-						<div class="knowledge-workspace-rule-row override-heading">
-							<strong>This chart</strong>
-							<ObsidianButton
-								class="knowledge-workspace-remove-rule-button"
-								ariaLabel="Remove chart link override"
-								icon="trash-2"
-								onClick={clearLinkOverride}
-							/>
-						</div>
-						<div class="knowledge-workspace-rule-row compact">
-							<label>
-								<span>Color</span>
-								<input
-									type="color"
-									value={activeLinkColor()}
-									oninput={(event) =>
-										scheduleColorCommit(
-											'link:chart-override',
-											activeLinkColor(),
-											event.currentTarget.value,
-											(color) => updateLinkOverride({ color }),
-										)}
-									onchange={(event) =>
-										commitColor(
-											'link:chart-override',
-											activeLinkColor(),
-											event.currentTarget.value,
-											(color) => updateLinkOverride({ color }),
-										)}
-								/>
-							</label>
-							<label>
-								<span>Width</span>
-								<div class="knowledge-workspace-slider-value">
-									<ObsidianSlider
-										min={0.5}
-										max={10}
-										step={0.5}
-										value={activeLinkSize()}
-										format={(value) => value.toFixed(1)}
-										onChange={(size) => updateLinkOverride({ size })}
-									/>
-									<span>{activeLinkSize().toFixed(1)}</span>
-								</div>
-							</label>
-						</div>
-						<div class="knowledge-workspace-line-style-row">
-							<span>Line</span>
-							<div class="knowledge-workspace-segmented">
-								{#each LINE_STYLE_OPTIONS as option}
-									<ObsidianButton
-										active={activeLinkLineStyle() === option.value}
-										text={option.label}
-										onClick={() =>
-											updateLinkOverride({
-												lineStyle: option.value as LinkLineStyle,
-											})}
-									/>
-								{/each}
-							</div>
-						</div>
-						<div class="knowledge-workspace-rule-row link-line-label">
-							<label class="knowledge-workspace-rule-label">
-								<span>Label</span>
-								<ObsidianTextInput
-									type="text"
-									placeholder="Optional label"
-									value={activeLinkLabel()}
-									onInput={(label) => updateLinkOverride({ label })}
-								/>
-							</label>
-						</div>
-						<div class="knowledge-workspace-toggle-row">
-							<label class="checkbox">
-								<ObsidianToggle
-									value={activeLinkShowLabel()}
-									onChange={(showLabel) =>
-										updateLinkOverride({ showLabel })}
-								/>
-								<span>Show label</span>
-							</label>
-							<label class="checkbox">
-								<ObsidianToggle
-									value={activeLinkHidden()}
-									onChange={(hidden) => updateLinkOverride({ hidden })}
-								/>
-								<span>Hidden</span>
-							</label>
-						</div>
-					</div>
-				{/if}
-			</section>
-			{#each ['global', 'current'] as scope}
-				<section>
-					<header>
-						<h3>{scope === 'global' ? 'Global link rules' : 'Chart link rules'}</h3>
+					<h3>
+						{scope === 'global'
+							? 'Global link rules'
+							: 'Chart link rules'}
+					</h3>
 					<ObsidianButton
 						class="knowledge-workspace-add-rule-button"
 						ariaLabel="Add link style rule"
@@ -1480,43 +1667,43 @@
 				{#each getLinkRules(scope as 'global' | 'current') as rule (rule.id)}
 					<div class="knowledge-workspace-rule">
 						<div class="knowledge-workspace-rule-row">
-								<div class="knowledge-workspace-move-rule-buttons">
-									<ObsidianButton
-										icon="chevron-up"
-										ariaLabel="Move link style rule up"
-										disabled={!canMoveRule(
-											getLinkRules(scope as StyleRuleScope),
+							<div class="knowledge-workspace-move-rule-buttons">
+								<ObsidianButton
+									icon="chevron-up"
+									ariaLabel="Move link style rule up"
+									disabled={!canMoveRule(
+										getLinkRules(scope as StyleRuleScope),
+										rule.id,
+										-1,
+									)}
+									onClick={() =>
+										moveStyleRule(
+											'link',
+											scope as StyleRuleScope,
 											rule.id,
 											-1,
 										)}
-										onClick={() =>
-											moveStyleRule(
-												'link',
-												scope as StyleRuleScope,
-												rule.id,
-												-1,
-											)}
-									/>
-									<ObsidianButton
-										icon="chevron-down"
-										ariaLabel="Move link style rule down"
-										disabled={!canMoveRule(
-											getLinkRules(scope as StyleRuleScope),
+								/>
+								<ObsidianButton
+									icon="chevron-down"
+									ariaLabel="Move link style rule down"
+									disabled={!canMoveRule(
+										getLinkRules(scope as StyleRuleScope),
+										rule.id,
+										1,
+									)}
+									onClick={() =>
+										moveStyleRule(
+											'link',
+											scope as StyleRuleScope,
 											rule.id,
 											1,
 										)}
-										onClick={() =>
-											moveStyleRule(
-												'link',
-												scope as StyleRuleScope,
-												rule.id,
-												1,
-											)}
-									/>
-								</div>
-								<ObsidianDropdown
-									value={rule.field}
-									options={LINK_STYLE_FIELD_OPTIONS}
+								/>
+							</div>
+							<ObsidianDropdown
+								value={rule.field}
+								options={LINK_STYLE_FIELD_OPTIONS}
 								onChange={(value) =>
 									updateLinkRule(
 										scope as 'global' | 'current',
@@ -1526,9 +1713,9 @@
 										},
 									)}
 							/>
-								<ObsidianTextInput
-									type="text"
-									placeholder="Metadata value"
+							<ObsidianTextInput
+								type="text"
+								placeholder="Metadata value"
 								value={rule.value}
 								onInput={(value) =>
 									updateLinkRule(
@@ -1540,9 +1727,9 @@
 									)}
 							/>
 							<ObsidianButton
-									class="knowledge-workspace-remove-rule-button"
-									ariaLabel="Remove link style rule"
-									icon="trash-2"
+								class="knowledge-workspace-remove-rule-button"
+								ariaLabel="Remove link style rule"
+								icon="trash-2"
 								onClick={() =>
 									removeLinkRule(
 										scope as 'global' | 'current',
@@ -1564,8 +1751,7 @@
 											(color) =>
 												updateLinkRule(
 													scope as
-														| 'global'
-														| 'current',
+														'global' | 'current',
 													rule.id,
 													{
 														color,
@@ -1580,8 +1766,7 @@
 											(color) =>
 												updateLinkRule(
 													scope as
-														| 'global'
-														| 'current',
+														'global' | 'current',
 													rule.id,
 													{
 														color,

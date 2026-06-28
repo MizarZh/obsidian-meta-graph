@@ -42,6 +42,12 @@ export const DEFAULT_CONNECTION_FIELD = 'leads-to';
 export const DEFAULT_CONNECTION_FIELDS = [DEFAULT_CONNECTION_FIELD];
 export const DEFAULT_CONNECTION_FIELD_MODE: ConnectionFieldMode = 'directed';
 export const DEFAULT_LABEL_SIZE = 14;
+export const DEFAULT_GRAPH_CENTER_FORCE = 1;
+export const DEFAULT_GRAPH_REPEL_FORCE = 10;
+export const DEFAULT_GRAPH_LINK_FORCE = 1;
+export const DEFAULT_GRAPH_DRAG_LINK_FORCE = 1;
+export const DEFAULT_GRAPH_RETURN_FORCE = 1;
+export const DEFAULT_GRAPH_LINK_DISTANCE = 250;
 export const DEFAULT_LABEL_POSITION: LabelPosition = 'right';
 export const DEFAULT_LABEL_COLOR = '';
 export const DEFAULT_LABEL_BACKGROUND_OPACITY = 0.82;
@@ -926,11 +932,35 @@ function normalizeLayout(
 	type: ViewMode,
 ): ChartLayoutConfig {
 	const record = isRecord(value) ? value : {};
-	return {
-		engine: readLayoutEngine(type),
-		spacing: readFiniteNumber(record.spacing, fallback.spacing),
-		direction:
-			record.direction === 'RL' ||
+		return {
+			engine: readLayoutEngine(type),
+			spacing: readFiniteNumber(record.spacing, fallback.spacing),
+			centerForce: normalizeForceSetting(
+				record.centerForce,
+				fallback.centerForce ?? DEFAULT_GRAPH_CENTER_FORCE,
+			),
+			repelForce: normalizeForceSetting(
+				record.repelForce,
+				fallback.repelForce ?? DEFAULT_GRAPH_REPEL_FORCE,
+			),
+			linkForce: normalizeForceSetting(
+				record.linkForce,
+				fallback.linkForce ?? DEFAULT_GRAPH_LINK_FORCE,
+			),
+			dragLinkForce: normalizeForceSetting(
+				record.dragLinkForce,
+				fallback.dragLinkForce ?? DEFAULT_GRAPH_DRAG_LINK_FORCE,
+			),
+			returnForce: normalizeForceSetting(
+				record.returnForce,
+				fallback.returnForce ?? DEFAULT_GRAPH_RETURN_FORCE,
+			),
+			linkDistance: normalizeForceSetting(
+				record.linkDistance,
+				fallback.linkDistance ?? DEFAULT_GRAPH_LINK_DISTANCE,
+			),
+			direction:
+				record.direction === 'RL' ||
 			record.direction === 'TD' ||
 			record.direction === 'DT'
 				? record.direction
@@ -948,6 +978,11 @@ function normalizeLayout(
 				: fallback.edgeStyle,
 		manual: normalizeManualLayout(record.manual, fallback.manual),
 	};
+}
+
+function normalizeForceSetting(value: unknown, fallback: number): number {
+	const normalized = readFiniteNumber(value, fallback);
+	return normalized >= 0 ? normalized : fallback;
 }
 
 function normalizeManualLayout(
@@ -1189,11 +1224,23 @@ function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 			return {
 				engine: 'force-3d',
 				spacing: 1,
+				centerForce: DEFAULT_GRAPH_CENTER_FORCE,
+				repelForce: DEFAULT_GRAPH_REPEL_FORCE,
+				linkForce: DEFAULT_GRAPH_LINK_FORCE,
+				dragLinkForce: DEFAULT_GRAPH_DRAG_LINK_FORCE,
+				returnForce: DEFAULT_GRAPH_RETURN_FORCE,
+				linkDistance: DEFAULT_GRAPH_LINK_DISTANCE,
 			};
 		case 'cube':
 			return {
 				engine: 'cube-3d',
 				spacing: 1,
+				centerForce: DEFAULT_GRAPH_CENTER_FORCE,
+				repelForce: DEFAULT_GRAPH_REPEL_FORCE,
+				linkForce: DEFAULT_GRAPH_LINK_FORCE,
+				dragLinkForce: DEFAULT_GRAPH_DRAG_LINK_FORCE,
+				returnForce: DEFAULT_GRAPH_RETURN_FORCE,
+				linkDistance: DEFAULT_GRAPH_LINK_DISTANCE,
 				manual: {
 					nodes: {},
 					groups: createDefaultCubeGroups(),
@@ -1212,6 +1259,12 @@ function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 			return {
 				engine: 'force-atlas',
 				spacing: 1,
+				centerForce: DEFAULT_GRAPH_CENTER_FORCE,
+				repelForce: DEFAULT_GRAPH_REPEL_FORCE,
+				linkForce: DEFAULT_GRAPH_LINK_FORCE,
+				dragLinkForce: DEFAULT_GRAPH_DRAG_LINK_FORCE,
+				returnForce: DEFAULT_GRAPH_RETURN_FORCE,
+				linkDistance: DEFAULT_GRAPH_LINK_DISTANCE,
 			};
 	}
 }

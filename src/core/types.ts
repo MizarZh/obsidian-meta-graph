@@ -283,6 +283,12 @@ export interface ChartLayoutConfig {
 		| 'arc'
 		| 'hierarchical-edge-bundling';
 	spacing: number;
+	centerForce?: number;
+	repelForce?: number;
+	linkForce?: number;
+	dragLinkForce?: number;
+	returnForce?: number;
+	linkDistance?: number;
 	direction?: FlowDirection;
 	arcDirection?: ArcDirection;
 	edgeStyle?: FlowEdgeStyle;
@@ -434,6 +440,12 @@ export interface WorkspaceState {
 	forceLabels: boolean;
 	enableForceLayout: boolean;
 	graphSpacing: number;
+	graphCenterForce: number;
+	graphRepelForce: number;
+	graphLinkForce: number;
+	graphDragLinkForce: number;
+	graphReturnForce: number;
+	graphLinkDistance: number;
 	flowSpacing: number;
 	arcSpacing: number;
 	manualLayout: ManualLayoutConfig;

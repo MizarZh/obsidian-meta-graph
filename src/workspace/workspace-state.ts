@@ -3,7 +3,15 @@ import type {
 	WorkspaceState,
 } from '../core/types';
 import { cloneSerializable } from './workspace-persistence';
-import { createDefaultMetaGraphDocument } from './meta-graph-model';
+import {
+	DEFAULT_GRAPH_CENTER_FORCE,
+	DEFAULT_GRAPH_DRAG_LINK_FORCE,
+	DEFAULT_GRAPH_LINK_DISTANCE,
+	DEFAULT_GRAPH_LINK_FORCE,
+	DEFAULT_GRAPH_REPEL_FORCE,
+	DEFAULT_GRAPH_RETURN_FORCE,
+	createDefaultMetaGraphDocument,
+} from './meta-graph-model';
 
 export function createWorkspaceState(
 	maxNodes: number,
@@ -44,10 +52,21 @@ export function createWorkspaceState(
 					activeChart.type === 'graph' ||
 					activeChart.type === 'graph-3d' ||
 					activeChart.type === 'cube'
-					? activeChart.layout.spacing
-					: 1,
-		flowSpacing:
-			activeChart.type === 'flow' ? activeChart.layout.spacing : 1,
+				? activeChart.layout.spacing
+				: 1,
+			graphCenterForce:
+				activeChart.layout.centerForce ?? DEFAULT_GRAPH_CENTER_FORCE,
+			graphRepelForce:
+				activeChart.layout.repelForce ?? DEFAULT_GRAPH_REPEL_FORCE,
+			graphLinkForce: activeChart.layout.linkForce ?? DEFAULT_GRAPH_LINK_FORCE,
+			graphDragLinkForce:
+				activeChart.layout.dragLinkForce ?? DEFAULT_GRAPH_DRAG_LINK_FORCE,
+			graphReturnForce:
+				activeChart.layout.returnForce ?? DEFAULT_GRAPH_RETURN_FORCE,
+			graphLinkDistance:
+				activeChart.layout.linkDistance ?? DEFAULT_GRAPH_LINK_DISTANCE,
+			flowSpacing:
+				activeChart.type === 'flow' ? activeChart.layout.spacing : 1,
 			arcSpacing: activeChart.type === 'arc' ? activeChart.layout.spacing : 1,
 			manualLayout: cloneSerializable(
 				activeChart.layout.manual ?? { nodes: {}, groups: [] },

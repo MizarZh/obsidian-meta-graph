@@ -70,12 +70,16 @@ export class Force3DRenderer {
 	private pendingConnectionMove: PointerEvent | undefined;
 	private pendingConnectionMoveFrame: number | undefined;
 	private screenPositionCacheFrame = -1;
-	private screenPositionCache: Array<{
-		id: string;
-		x: number;
-		y: number;
-		size: number;
-	}> = [];
+		private screenPositionCache: Array<{
+			id: string;
+			x: number;
+			y: number;
+			size: number;
+		}> = [];
+		private readonly blockDoubleClick = (event: MouseEvent): void => {
+			event.preventDefault();
+			event.stopPropagation();
+		};
 
 	static async create(
 		graph: RuntimeGraph,
@@ -135,10 +139,13 @@ export class Force3DRenderer {
 	) {
 		this.labelColor = labelColor;
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
-		this.labelSize = _labelSize;
-		this.three = three;
-		this.instance = instance;
-		this.applyTooltipStyles();
+			this.labelSize = _labelSize;
+			this.three = three;
+			this.instance = instance;
+			this.container.addEventListener("dblclick", this.blockDoubleClick, {
+				capture: true,
+			});
+			this.applyTooltipStyles();
 		this.instance
 			.pauseAnimation()
 			.backgroundColor(this.palette.background ?? "#202020")
@@ -396,9 +403,12 @@ export class Force3DRenderer {
 		// 2D Sigma-only behavior.
 	}
 
-	kill(): void {
-		this.killed = true;
-		if (this.pendingFrame !== undefined) {
+		kill(): void {
+			this.killed = true;
+			this.container.removeEventListener("dblclick", this.blockDoubleClick, {
+				capture: true,
+			});
+			if (this.pendingFrame !== undefined) {
 			window.cancelAnimationFrame(this.pendingFrame);
 			this.pendingFrame = undefined;
 		}

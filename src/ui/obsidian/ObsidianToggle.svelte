@@ -16,10 +16,16 @@
 
 	let containerEl: HTMLSpanElement;
 	let toggle: ToggleComponent | undefined;
+	let syncing = false;
 
 	onMount(() => {
 		toggle = new ToggleComponent(containerEl);
-		toggle.onChange((nextValue) => onChange(nextValue));
+		toggle.onChange((nextValue) => {
+			if (syncing || nextValue === value) {
+				return;
+			}
+			onChange(nextValue);
+		});
 
 		return () => {
 			containerEl.textContent = "";
@@ -32,8 +38,10 @@
 			return;
 		}
 
+		syncing = true;
 		toggle.setValue(value);
 		toggle.setDisabled(disabled);
+		syncing = false;
 		if (tooltip) {
 			toggle.setTooltip(tooltip);
 		}

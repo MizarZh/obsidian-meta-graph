@@ -145,5 +145,4 @@ When modifying Flow behavior, avoid temporary renderer-only edges. The graph sho
 ## Documentation
 
 - `README.md` is user-facing.
-- `design.md` is the current project/design status and should be written in Chinese.
 - Update both when changing major behavior, especially connection editing, undo, metadata parsing, or Flow layout policy.

@@ -86,8 +86,10 @@
 	let autoSaveTimer: number | undefined;
 	let pendingAutoSave: MetaGraphDocument | undefined;
 	let lastAutoSavedState = "";
-	let lastThemeSignature = "";
-	let lastProjection: WorkspaceState["projection"];
+		let lastThemeSignature = "";
+		let lastCanvasWidth = 0;
+		let lastCanvasHeight = 0;
+		let lastProjection: WorkspaceState["projection"];
 	let lastActiveChartId: string | undefined;
 	let lastMode: WorkspaceState["mode"] | undefined;
 	let lastChartSource: WorkspaceState["chartSource"] | undefined;
@@ -205,16 +207,20 @@
 		lastAutoSavedState = JSON.stringify(
 			serializeMetaGraphState(controller.snapshot),
 		);
-		const resizeObserver = new ResizeObserver((entries) => {
-			const entry = entries[0];
-			if (
-				entry &&
-				entry.contentRect.width > 0 &&
-				entry.contentRect.height > 0
-			) {
-				renderer?.resize();
-			}
-		});
+			const resizeObserver = new ResizeObserver((entries) => {
+				const entry = entries[0];
+				if (
+					entry &&
+					entry.contentRect.width > 0 &&
+					entry.contentRect.height > 0 &&
+					(entry.contentRect.width !== lastCanvasWidth ||
+						entry.contentRect.height !== lastCanvasHeight)
+				) {
+					lastCanvasWidth = entry.contentRect.width;
+					lastCanvasHeight = entry.contentRect.height;
+					renderer?.resize();
+				}
+			});
 		resizeObserver.observe(canvas);
 		lastThemeSignature = readThemeSignature();
 		const themeObserver = new MutationObserver(() => {
@@ -292,8 +298,16 @@
 				nextState.cubeFaceOpacity !== workspaceState.cubeFaceOpacity;
 			const forceLabelsChanged =
 				nextState.forceLabels !== workspaceState.forceLabels;
-		const forceLayoutChanged =
-			nextState.enableForceLayout !== workspaceState.enableForceLayout;
+			const graphForceSettingsChanged =
+				nextState.graphSpacing !== workspaceState.graphSpacing ||
+				nextState.graphCenterForce !== workspaceState.graphCenterForce ||
+				nextState.graphRepelForce !== workspaceState.graphRepelForce ||
+				nextState.graphLinkForce !== workspaceState.graphLinkForce ||
+				nextState.graphDragLinkForce !== workspaceState.graphDragLinkForce ||
+				nextState.graphReturnForce !== workspaceState.graphReturnForce ||
+				nextState.graphLinkDistance !== workspaceState.graphLinkDistance;
+			const forceLayoutChanged =
+				nextState.enableForceLayout !== workspaceState.enableForceLayout;
 			const shouldRebuild =
 				nextState.activeChartId !== lastActiveChartId ||
 				nextState.projection !== lastProjection ||
@@ -355,6 +369,17 @@
 				unbindEvents?.();
 				unbindEvents = bindEventsForRenderer(renderer);
 				stopForceLayoutSimulation();
+			}
+			if (
+				graphForceSettingsChanged &&
+				nextState.mode === "graph" &&
+				nextState.enableForceLayout &&
+				renderer &&
+				!isForce3DRenderer(renderer) &&
+				!isCube3DRenderer(renderer)
+			) {
+				stopForceLayoutSimulation();
+				getOrCreateForceLayoutSimulation(renderer).start();
 			}
 			if (shouldRebuild) {
 				lastProjection = nextState.projection;
@@ -625,6 +650,14 @@
 			syncRendererGroups();
 			renderer.setSelected(workspaceState.selectedNodeId);
 			renderer.setHovered(workspaceState.hoveredNodeId);
+			if (
+				workspaceState.mode === "graph" &&
+				workspaceState.enableForceLayout &&
+				!isForce3DRenderer(renderer) &&
+				!isCube3DRenderer(renderer)
+			) {
+				getOrCreateForceLayoutSimulation(renderer).start();
+			}
 			if (firstRender || fitAfterRender) {
 				renderer.fit();
 			}
@@ -876,18 +909,30 @@
 	): D3ForceSimulation {
 		if (!forceLayoutSimulation) {
 			forceLayoutSimulation = new D3ForceSimulation(
-				targetRenderer.runtimeGraph,
-				targetRenderer,
-				workspaceState.graphSpacing,
-				(nodeId, position) => {
-					getLayoutSnapshot().positions.set(nodeId, position);
-				},
-			);
+					targetRenderer.runtimeGraph,
+					targetRenderer,
+					workspaceState.graphSpacing,
+					getGraphForceSettings(),
+					(nodeId, position) => {
+						getLayoutSnapshot().positions.set(nodeId, position);
+					},
+				);
+			}
+			return forceLayoutSimulation;
 		}
-		return forceLayoutSimulation;
-	}
 
-		function stopForceLayoutSimulation(): void {
+		function getGraphForceSettings() {
+			return {
+				centerForce: workspaceState.graphCenterForce,
+				repelForce: workspaceState.graphRepelForce,
+				linkForce: workspaceState.graphLinkForce,
+				dragLinkForce: workspaceState.graphDragLinkForce,
+				returnForce: workspaceState.graphReturnForce,
+				linkDistance: workspaceState.graphLinkDistance,
+			};
+		}
+
+			function stopForceLayoutSimulation(): void {
 			forceLayoutSimulation?.stop();
 			forceLayoutSimulation = undefined;
 			renderer?.clearHeldBounds();
@@ -1045,7 +1090,7 @@
 			workspaceState.mode === "flow" &&
 			!setsEqual(currentEdgeIds, snapshot.edgeIds);
 		const needsFlowLayout = forceLayout || firstLayout;
-		const needsGraphLayout = forceLayout || firstLayout;
+			const needsGraphLayout = firstLayout;
 
 			if (workspaceState.mode === "arc") {
 				await new ArcLayout(
@@ -1083,12 +1128,13 @@
 			} else if (workspaceState.mode === "free") {
 				snapshot.edgeIds = currentEdgeIds;
 				snapshot.orthogonalRoutes = new Map();
-			} else if (workspaceState.mode === "graph") {
-				if (needsGraphLayout) {
-					await new ForceAtlasLayout(workspaceState.graphSpacing).apply(
-						graph,
-					);
-				}
+				} else if (workspaceState.mode === "graph") {
+					if (needsGraphLayout) {
+						await new ForceAtlasLayout(
+							workspaceState.graphSpacing,
+							getGraphForceSettings(),
+						).apply(graph);
+					}
 			} else if (workspaceState.mode === "graph-3d") {
 				snapshot.edgeIds = currentEdgeIds;
 			} else if (workspaceState.mode === "cube") {
@@ -1826,9 +1872,15 @@
 							flowEdgeStyle={workspaceState.flowEdgeStyle}
 					flowDirection={workspaceState.flowDirection}
 					arcDirection={workspaceState.arcDirection}
-					graphSpacing={workspaceState.graphSpacing}
-					flowSpacing={workspaceState.flowSpacing}
-					arcSpacing={workspaceState.arcSpacing}
+						graphSpacing={workspaceState.graphSpacing}
+						graphCenterForce={workspaceState.graphCenterForce}
+						graphRepelForce={workspaceState.graphRepelForce}
+						graphLinkForce={workspaceState.graphLinkForce}
+						graphDragLinkForce={workspaceState.graphDragLinkForce}
+						graphReturnForce={workspaceState.graphReturnForce}
+						graphLinkDistance={workspaceState.graphLinkDistance}
+						flowSpacing={workspaceState.flowSpacing}
+						arcSpacing={workspaceState.arcSpacing}
 					query={workspaceState.query}
 					globalQuery={workspaceState.globalQuery}
 						folders={workspaceState.availableFolders}
@@ -1866,9 +1918,21 @@
 					onEnableForceLayout={(value) =>
 						controller.setEnableForceLayout(value)}
 							onGraphSpacing={(spacing) =>
-							controller.setGraphSpacing(spacing)}
-					onFlowSpacing={(spacing) =>
-						controller.setFlowSpacing(spacing)}
+								controller.setGraphSpacing(spacing)}
+							onGraphCenterForce={(value) =>
+								controller.setGraphCenterForce(value)}
+							onGraphRepelForce={(value) =>
+								controller.setGraphRepelForce(value)}
+							onGraphLinkForce={(value) =>
+								controller.setGraphLinkForce(value)}
+							onGraphDragLinkForce={(value) =>
+								controller.setGraphDragLinkForce(value)}
+							onGraphReturnForce={(value) =>
+								controller.setGraphReturnForce(value)}
+							onGraphLinkDistance={(value) =>
+								controller.setGraphLinkDistance(value)}
+							onFlowSpacing={(spacing) =>
+								controller.setFlowSpacing(spacing)}
 					onArcSpacing={(spacing) =>
 						controller.setArcSpacing(spacing)}
 					onChange={(patch) => controller.updateQuery(patch)}

@@ -90,6 +90,10 @@ export class Cube3DRenderer {
 	private forceLabels: boolean;
 	private manualLayout: ManualLayoutConfig;
 	private killed = false;
+	private readonly blockDoubleClick = (event: MouseEvent): void => {
+		event.preventDefault();
+		event.stopPropagation();
+	};
 
 	static async create(
 		graph: RuntimeGraph,
@@ -151,9 +155,12 @@ export class Cube3DRenderer {
 		this.camera = new this.three.PerspectiveCamera(45, 1, 1, 2000);
 		this.camera.position.set(0, 0, 620);
 		this.webgl = new this.three.WebGLRenderer({ antialias: true, alpha: true });
-		this.webgl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-		this.webgl.domElement.className = "meta-graph-cube-canvas";
-		this.container.appendChild(this.webgl.domElement);
+			this.webgl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+			this.webgl.domElement.className = "meta-graph-cube-canvas";
+			this.webgl.domElement.addEventListener("dblclick", this.blockDoubleClick, {
+				capture: true,
+			});
+			this.container.appendChild(this.webgl.domElement);
 		this.raycaster = new this.three.Raycaster();
 		this.pointer = new this.three.Vector2();
 		this.cubeGroup = new this.three.Group();
@@ -322,9 +329,12 @@ export class Cube3DRenderer {
 		// Sigma-only behavior.
 	}
 
-	kill(): void {
-		this.killed = true;
-		if (this.animationFrame !== undefined) {
+		kill(): void {
+			this.killed = true;
+			this.webgl.domElement.removeEventListener("dblclick", this.blockDoubleClick, {
+				capture: true,
+			});
+			if (this.animationFrame !== undefined) {
 			window.cancelAnimationFrame(this.animationFrame);
 			this.animationFrame = undefined;
 		}

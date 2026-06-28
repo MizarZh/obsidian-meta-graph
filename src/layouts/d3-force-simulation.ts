@@ -12,6 +12,10 @@ import {
 } from 'd3-force';
 import type { RuntimeGraph } from '../graph/graphology-adapter';
 import type { SigmaRenderer } from '../graph/sigma-renderer';
+import {
+	DEFAULT_GRAPH_FORCE_SETTINGS,
+	type GraphForceSettings,
+} from './force-layout';
 
 interface ForceNode extends SimulationNodeDatum {
 	id: string;
@@ -26,13 +30,23 @@ export class D3ForceSimulation {
 	private simulation?: Simulation<ForceNode, ForceLink>;
 	private nodes: ForceNode[] = [];
 	private readonly nodesById = new Map<string, ForceNode>();
+	private readonly neighborsById = new Map<string, Set<string>>();
+	private readonly returnTargetsById = new Map<
+		string,
+		{ x: number; y: number; expiresAt: number }
+	>();
+	private draggedNodePosition?: { nodeId: string; x: number; y: number };
 	private settleTimer?: number;
 
 	constructor(
 		private readonly graph: RuntimeGraph,
 		private readonly renderer: SigmaRenderer,
 		private readonly spacing = 1,
-		private readonly onPosition?: (nodeId: string, position: { x: number; y: number }) => void,
+		private readonly forceSettings: GraphForceSettings = DEFAULT_GRAPH_FORCE_SETTINGS,
+		private readonly onPosition?: (
+			nodeId: string,
+			position: { x: number; y: number },
+		) => void,
 	) {
 		this.rebuild();
 	}
@@ -45,7 +59,10 @@ export class D3ForceSimulation {
 		if (!simulation) {
 			return;
 		}
-		simulation.alpha(Math.max(simulation.alpha(), 0.06)).alphaTarget(0).restart();
+		simulation
+			.alpha(Math.max(simulation.alpha(), 0.12))
+			.alphaTarget(0)
+			.restart();
 	}
 
 	drag(nodeId: string, position: { x: number; y: number }): void {
@@ -54,6 +71,14 @@ export class D3ForceSimulation {
 		if (!node) {
 			return;
 		}
+		const previous =
+			this.draggedNodePosition?.nodeId === nodeId
+				? this.draggedNodePosition
+				: undefined;
+		const delta = previous
+			? { x: position.x - previous.x, y: position.y - previous.y }
+			: { x: 0, y: 0 };
+		this.draggedNodePosition = { nodeId, x: position.x, y: position.y };
 		node.fx = position.x;
 		node.fy = position.y;
 		node.x = position.x;
@@ -64,6 +89,7 @@ export class D3ForceSimulation {
 			fixed: true,
 		});
 		this.onPosition?.(nodeId, position);
+		this.dragNeighbors(nodeId, delta);
 		this.start();
 	}
 
@@ -77,6 +103,10 @@ export class D3ForceSimulation {
 		if (this.graph.hasNode(nodeId)) {
 			this.graph.setNodeAttribute(nodeId, 'fixed', false);
 		}
+		if (this.draggedNodePosition?.nodeId === nodeId) {
+			this.draggedNodePosition = undefined;
+		}
+		this.setReturnTarget(nodeId);
 		this.simulation?.alphaTarget(0).restart();
 		this.scheduleStop();
 	}
@@ -107,6 +137,8 @@ export class D3ForceSimulation {
 				};
 			});
 		this.nodesById.clear();
+		this.neighborsById.clear();
+		this.returnTargetsById.clear();
 		for (const node of this.nodes) {
 			this.nodesById.set(node.id, node);
 		}
@@ -119,37 +151,73 @@ export class D3ForceSimulation {
 			}))
 			.filter(
 				(link) =>
-					this.nodesById.has(link.source) && this.nodesById.has(link.target),
+					this.nodesById.has(link.source) &&
+					this.nodesById.has(link.target),
 			);
+		for (const link of links) {
+			addNeighbor(this.neighborsById, link.source, link.target);
+			addNeighbor(this.neighborsById, link.target, link.source);
+		}
 
 		const center = getGraphCenter(this.nodes);
-		const distance = estimateLinkDistance(this.graph, links, this.nodesById) *
-			this.spacing;
+		const distance = (this.forceSettings.linkDistance / 100) * this.spacing;
+		const centerStrength = this.forceSettings.centerForce * 0.03;
+		const linkStrength = Math.min(this.forceSettings.linkForce * 0.25, 1);
+		const repelStrength = -this.forceSettings.repelForce * distance * 10;
 		this.simulation = forceSimulation<ForceNode, ForceLink>(this.nodes)
 			.force(
 				'link',
 				forceLink<ForceNode, ForceLink>(links)
 					.id((node) => node.id)
 					.distance(distance)
-					.strength(0.08),
+					.strength(linkStrength),
 			)
-			.force('charge', forceManyBody().strength(-distance * 0.025))
+			.force('charge', forceManyBody().strength(repelStrength))
 			.force(
 				'collide',
 				forceCollide<ForceNode>()
 					.radius(Math.max(distance * 0.04, 0.01))
 					.strength(0.18),
 			)
-			.force('x', forceX(center.x).strength(0.02))
-			.force('y', forceY(center.y).strength(0.02))
-			.force('center', forceCenter(center.x, center.y).strength(0.01))
-			.alphaDecay(0.09)
+			.force('x', forceX(center.x).strength(centerStrength * 2))
+			.force('y', forceY(center.y).strength(centerStrength * 2))
+			.force(
+				'center',
+				forceCenter(center.x, center.y).strength(centerStrength),
+			)
+			.alphaDecay(0.045)
 			.velocityDecay(0.78)
 			.stop()
 			.on('tick', () => this.applyTick());
 	}
 
+	private dragNeighbors(
+		nodeId: string,
+		delta: { x: number; y: number },
+	): void {
+		if (delta.x === 0 && delta.y === 0) {
+			return;
+		}
+		const influence = Math.min(this.forceSettings.dragLinkForce * 0.18, 0.85);
+		if (influence <= 0) {
+			return;
+		}
+		for (const neighborId of this.neighborsById.get(nodeId) ?? []) {
+			const neighbor = this.nodesById.get(neighborId);
+			if (!neighbor || neighbor.fx !== undefined || neighbor.fy !== undefined) {
+				continue;
+			}
+			const x = (neighbor.x ?? 0) + delta.x * influence;
+			const y = (neighbor.y ?? 0) + delta.y * influence;
+			neighbor.x = x;
+			neighbor.y = y;
+			this.graph.mergeNodeAttributes(neighborId, { x, y });
+			this.onPosition?.(neighborId, { x, y });
+		}
+	}
+
 	private applyTick(): void {
+		this.applyReturnForces();
 		for (const node of this.nodes) {
 			const x = node.x;
 			const y = node.y;
@@ -170,50 +238,63 @@ export class D3ForceSimulation {
 		this.renderer.instance.refresh();
 	}
 
+	private setReturnTarget(nodeId: string): void {
+		const neighbors = [...(this.neighborsById.get(nodeId) ?? [])]
+			.map((neighborId) => this.nodesById.get(neighborId))
+			.filter((neighbor): neighbor is ForceNode =>
+				Boolean(
+					neighbor &&
+						typeof neighbor.x === 'number' &&
+						typeof neighbor.y === 'number',
+				),
+			);
+		if (neighbors.length === 0 || this.forceSettings.returnForce <= 0) {
+			this.returnTargetsById.delete(nodeId);
+			return;
+		}
+		const target = {
+			x:
+				neighbors.reduce((sum, neighbor) => sum + (neighbor.x ?? 0), 0) /
+				neighbors.length,
+			y:
+				neighbors.reduce((sum, neighbor) => sum + (neighbor.y ?? 0), 0) /
+				neighbors.length,
+			expiresAt: performance.now() + 4000,
+		};
+		this.returnTargetsById.set(nodeId, target);
+	}
+
+	private applyReturnForces(): void {
+		const now = performance.now();
+		const returnDistance =
+			(this.forceSettings.linkDistance / 100) * this.spacing * 1.5;
+		const strength = Math.min(this.forceSettings.returnForce * 0.02, 0.2);
+		if (strength <= 0) {
+			return;
+		}
+		for (const [nodeId, target] of this.returnTargetsById.entries()) {
+			const node = this.nodesById.get(nodeId);
+			if (!node || target.expiresAt < now) {
+				this.returnTargetsById.delete(nodeId);
+				continue;
+			}
+			const dx = target.x - (node.x ?? 0);
+			const dy = target.y - (node.y ?? 0);
+			const distance = Math.hypot(dx, dy);
+			if (distance <= returnDistance) {
+				this.returnTargetsById.delete(nodeId);
+				continue;
+			}
+			const excessRatio = (distance - returnDistance) / distance;
+			node.vx = (node.vx ?? 0) + dx * excessRatio * strength;
+			node.vy = (node.vy ?? 0) + dy * excessRatio * strength;
+		}
+	}
+
 	private scheduleStop(): void {
 		window.clearTimeout(this.settleTimer);
-		this.settleTimer = window.setTimeout(() => this.stop(), 1600);
+		this.settleTimer = window.setTimeout(() => this.stop(), 4000);
 	}
-}
-
-function estimateLinkDistance(
-	graph: RuntimeGraph,
-	links: Array<{ source: string; target: string }>,
-	nodesById: ReadonlyMap<string, ForceNode>,
-): number {
-	const lengths = links
-		.map((link) => {
-			const source = nodesById.get(link.source);
-			const target = nodesById.get(link.target);
-			if (!source || !target) {
-				return undefined;
-			}
-			const sx = source.x;
-			const sy = source.y;
-			const tx = target.x;
-			const ty = target.y;
-			if (
-				typeof sx !== 'number' ||
-				typeof sy !== 'number' ||
-				typeof tx !== 'number' ||
-				typeof ty !== 'number'
-			) {
-				return undefined;
-			}
-			return Math.hypot(tx - sx, ty - sy);
-		})
-		.filter(
-			(length): length is number =>
-				typeof length === 'number' &&
-				Number.isFinite(length) &&
-				length > 0,
-		)
-		.sort((a, b) => a - b);
-	if (lengths.length > 0) {
-		return clamp(readMedian(lengths), 0.05, 500);
-	}
-	const graphSize = Math.max(graph.order, 1);
-	return clamp(1 / Math.sqrt(graphSize), 0.05, 2);
 }
 
 function getGraphCenter(nodes: ForceNode[]): { x: number; y: number } {
@@ -230,13 +311,15 @@ function getGraphCenter(nodes: ForceNode[]): { x: number; y: number } {
 	return count > 0 ? { x: x / count, y: y / count } : { x: 0, y: 0 };
 }
 
-function readMedian(values: number[]): number {
-	const middle = Math.floor(values.length / 2);
-	return values.length % 2 === 0
-		? ((values[middle - 1] ?? 0) + (values[middle] ?? 0)) / 2
-		: (values[middle] ?? 0);
-}
-
-function clamp(value: number, min: number, max: number): number {
-	return Math.max(min, Math.min(max, value));
+function addNeighbor(
+	neighborsById: Map<string, Set<string>>,
+	source: string,
+	target: string,
+): void {
+	let neighbors = neighborsById.get(source);
+	if (!neighbors) {
+		neighbors = new Set();
+		neighborsById.set(source, neighbors);
+	}
+	neighbors.add(target);
 }

@@ -73,10 +73,12 @@ export class SigmaRenderer {
 		this.instance = new Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>(
 			graph,
 			container,
-			{
-				allowInvalidContainer: true,
-				defaultEdgeType: "line",
-				edgeProgramClasses: {
+				{
+					allowInvalidContainer: true,
+					doubleClickZoomingDuration: 0,
+					doubleClickZoomingRatio: 1,
+					defaultEdgeType: "line",
+					edgeProgramClasses: {
 					arrow: createEdgeArrowProgram<
 						RuntimeNodeAttributes,
 						RuntimeEdgeAttributes
@@ -112,9 +114,19 @@ export class SigmaRenderer {
 					labelRenderedSizeThreshold: 0,
 				zIndex: true,
 			},
-		);
-		this.groupOverlayLayer = new GroupOverlayLayer(this.instance);
-	}
+			);
+			this.instance
+				.getMouseCaptor()
+				.on("doubleClick", (event: { preventSigmaDefault(): void }) => {
+					event.preventSigmaDefault();
+				});
+			this.instance
+				.getTouchCaptor()
+				.on("doubletap", (event: { preventSigmaDefault(): void }) => {
+					event.preventSigmaDefault();
+				});
+			this.groupOverlayLayer = new GroupOverlayLayer(this.instance);
+		}
 
 	get runtimeGraph(): RuntimeGraph {
 		return this.graph;

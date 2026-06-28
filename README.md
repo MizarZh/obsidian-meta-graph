@@ -73,8 +73,15 @@ settings to report them in the developer console.
    both notes so each note links to the other.
 13. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
    through the force-directed layout. Nearby nodes can move with the graph
-   forces, and the layout keeps settling briefly after release. `Ctrl`-drag
-   still creates links.
+   forces, and the layout keeps settling briefly after release. Use
+   **Center force**, **Repel force**, **Link force**, **Drag link force**,
+   **Return force**, and **Link distance** to tune the graph toward Obsidian's
+   built-in graph behavior. The Graph view
+   only runs its initial ForceAtlas placement once for a chart; later refreshes,
+   force setting changes, added notes, and added links keep existing positions.
+   New nodes are placed near positioned neighbors when possible, then Force
+   layout can move them through the force field. `Ctrl`-drag still creates
+   links.
 14. In Free views, drag nodes directly to place them by hand. Free views do not
    run an automatic layout after the first placement, and dragged node
    positions are saved in the workspace file.
@@ -143,6 +150,12 @@ charts:
     layout:
       engine: force-atlas
       spacing: 1
+      centerForce: 1
+      repelForce: 10
+      linkForce: 1
+      dragLinkForce: 1
+      returnForce: 1
+      linkDistance: 250
       manual:
         nodes: {}
         groups: []

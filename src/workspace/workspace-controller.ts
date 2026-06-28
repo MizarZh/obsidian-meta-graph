@@ -648,9 +648,32 @@ export class WorkspaceController {
 					spacing,
 				},
 			},
-			true,
 		);
 		this.emit();
+	}
+
+	setGraphCenterForce(centerForce: number): void {
+		this.setGraphForceSetting('centerForce', centerForce);
+	}
+
+	setGraphRepelForce(repelForce: number): void {
+		this.setGraphForceSetting('repelForce', repelForce);
+	}
+
+	setGraphLinkForce(linkForce: number): void {
+		this.setGraphForceSetting('linkForce', linkForce);
+	}
+
+	setGraphDragLinkForce(dragLinkForce: number): void {
+		this.setGraphForceSetting('dragLinkForce', dragLinkForce);
+	}
+
+	setGraphReturnForce(returnForce: number): void {
+		this.setGraphForceSetting('returnForce', returnForce);
+	}
+
+	setGraphLinkDistance(linkDistance: number): void {
+		this.setGraphForceSetting('linkDistance', linkDistance);
 	}
 
 	setFlowSpacing(flowSpacing: number): void {
@@ -1532,6 +1555,31 @@ export class WorkspaceController {
 		return this.getActiveConnectionSpec()?.mode ?? DEFAULT_CONNECTION_FIELD_MODE;
 	}
 
+	private setGraphForceSetting(
+		key:
+			| 'centerForce'
+			| 'repelForce'
+			| 'linkForce'
+			| 'dragLinkForce'
+			| 'returnForce'
+			| 'linkDistance',
+		value: number,
+	): void {
+		const normalized = normalizeForceSetting(value);
+		if (this.getActiveChart().layout[key] === normalized) {
+			return;
+		}
+		this.state = this.updateActiveChart(
+			{
+				layout: {
+					...this.getActiveChart().layout,
+					[key]: normalized,
+				},
+			},
+		);
+		this.emit();
+	}
+
 	private getConnectionModeForField(field: string): ConnectionFieldMode {
 		const activeSpec = this.getActiveConnectionSpec();
 		if (activeSpec?.field === field) {
@@ -1573,9 +1621,35 @@ export class WorkspaceController {
 					forceLabels: nextChart.display.forceLabels,
 				enableForceLayout: nextChart.display.enableForceLayout,
 			graphSpacing:
-				nextChart.type === 'graph'
+				isForceGraphType(nextChart.type)
 					? nextChart.layout.spacing
 					: this.state.graphSpacing,
+			graphCenterForce:
+				isForceGraphType(nextChart.type) && nextChart.layout.centerForce !== undefined
+					? nextChart.layout.centerForce
+					: this.state.graphCenterForce,
+			graphRepelForce:
+				isForceGraphType(nextChart.type) && nextChart.layout.repelForce !== undefined
+					? nextChart.layout.repelForce
+					: this.state.graphRepelForce,
+			graphLinkForce:
+				isForceGraphType(nextChart.type) && nextChart.layout.linkForce !== undefined
+					? nextChart.layout.linkForce
+					: this.state.graphLinkForce,
+			graphDragLinkForce:
+				isForceGraphType(nextChart.type) &&
+				nextChart.layout.dragLinkForce !== undefined
+					? nextChart.layout.dragLinkForce
+					: this.state.graphDragLinkForce,
+			graphReturnForce:
+				isForceGraphType(nextChart.type) &&
+				nextChart.layout.returnForce !== undefined
+					? nextChart.layout.returnForce
+					: this.state.graphReturnForce,
+			graphLinkDistance:
+				isForceGraphType(nextChart.type) && nextChart.layout.linkDistance !== undefined
+					? nextChart.layout.linkDistance
+					: this.state.graphLinkDistance,
 			flowSpacing:
 				nextChart.type === 'flow'
 					? nextChart.layout.spacing
@@ -1711,6 +1785,14 @@ export class WorkspaceController {
 
 function normalizeSpacing(value: number): number {
 	return Number.isFinite(value) && value > 0 ? value : 1;
+}
+
+function normalizeForceSetting(value: number): number {
+	return Number.isFinite(value) && value >= 0 ? value : 1;
+}
+
+function isForceGraphType(type: ViewMode): boolean {
+	return type === 'graph' || type === 'graph-3d' || type === 'cube';
 }
 
 function createDefaultGroup(index: number): ChartGroup {

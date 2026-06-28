@@ -56,14 +56,14 @@
 			return;
 		}
 
+		syncing = true;
 		slider.setLimits(min, max, step);
 		slider.setInstant(instant);
 		if (Number(slider.sliderEl.value) !== value) {
-			syncing = true;
 			slider.setValue(value);
-			syncing = false;
 		}
 		slider.setDisabled(disabled);
+		syncing = false;
 		if (className) {
 			slider.sliderEl.classList.add(...className.split(/\s+/u).filter(Boolean));
 		}
