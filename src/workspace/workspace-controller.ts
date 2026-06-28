@@ -616,18 +616,23 @@ export class WorkspaceController {
 		if (!groupId) {
 			return;
 		}
-		const group = this.getActiveChart().layout.manual?.groups.find(
+		const manual = this.getActiveChart().layout.manual ?? { nodes: {}, groups: [] };
+		const group = manual.groups.find(
 			(item) => item.id === groupId,
-		);
+		) ?? (this.getActiveChart().type === 'cube'
+			? CUBE_FACE_GROUPS_BY_ID.get(groupId)
+			: undefined);
 		if (!group) {
 			return;
 		}
+		const occupied = Object.entries(manual.nodes)
+			.filter(([nodeId, placement]) =>
+				nodeId !== path && placement.groupId === group.id,
+			)
+			.map(([, placement]) => ({ x: placement.x, y: placement.y }));
 		this.setManualNodePosition(
 			path,
-			{
-				x: group.x + group.width / 2,
-				y: group.y + group.height / 2,
-			},
+			findManualPlacement(readGroupPlacementBounds(group), occupied, group.id),
 			group.id,
 		);
 	}
@@ -1929,6 +1934,9 @@ const CUBE_FACE_GROUPS: ChartGroup[] = [
 ];
 
 const CUBE_FACE_IDS = new Set(CUBE_FACE_GROUPS.map((group) => group.id));
+const CUBE_FACE_GROUPS_BY_ID = new Map(
+	CUBE_FACE_GROUPS.map((group) => [group.id, group]),
+);
 
 function createDefaultGroup(index: number): ChartGroup {
 		return {
@@ -1966,14 +1974,31 @@ function normalizeCubeLayout(
 		);
 
 	for (const [nodeId, placement] of Object.entries(nodes)) {
-		if (placement.groupId && CUBE_FACE_IDS.has(placement.groupId)) {
+		const currentGroup =
+			placement.groupId && CUBE_FACE_IDS.has(placement.groupId)
+				? (CUBE_FACE_GROUPS_BY_ID.get(placement.groupId) ?? groups.find((item) => item.id === placement.groupId))
+				: undefined;
+		if (
+			currentGroup &&
+			isPlacementInBounds(placement, readGroupPlacementBounds(currentGroup))
+		) {
 			continue;
 		}
-		nodes[nodeId] = {
-			x: placement.x,
-			y: placement.y,
-			groupId: getCubeFaceIdForNode(nodeId),
-		};
+		const groupId =
+			placement.groupId && CUBE_FACE_IDS.has(placement.groupId)
+				? placement.groupId
+				: getCubeFaceIdForNode(nodeId);
+		const group = CUBE_FACE_GROUPS_BY_ID.get(groupId) ?? groups.find((item) => item.id === groupId);
+		const bounds = group ? readGroupPlacementBounds(group) : undefined;
+		const occupied = bounds
+			? readOccupiedPositions(nodes, groupId, nodeId).filter((position) =>
+					isPlacementInBounds(position, bounds),
+				)
+			: [];
+		const position = bounds
+			? findManualPlacement(bounds, occupied, groupId)
+			: { x: 0, y: 0 };
+		nodes[nodeId] = { ...position, groupId };
 		changed = true;
 	}
 
@@ -1982,12 +2007,23 @@ function normalizeCubeLayout(
 		if (placement?.groupId && CUBE_FACE_IDS.has(placement.groupId)) {
 			continue;
 		}
-		const position = placement ?? createCubeNodePosition(nodeId);
+		const groupId = getCubeFaceIdForNode(nodeId);
+		const group = CUBE_FACE_GROUPS_BY_ID.get(groupId) ?? groups.find((item) => item.id === groupId);
+		const occupied = readOccupiedPositions(nodes, groupId, nodeId);
+		const position =
+			placement ??
+			(group
+				? findManualPlacement(readGroupPlacementBounds(group), occupied, groupId)
+				: { x: 0, y: 0 });
 		nodes[nodeId] = {
 			x: position.x,
 			y: position.y,
-			groupId: getCubeFaceIdForNode(nodeId),
+			groupId,
 		};
+		changed = true;
+	}
+
+	if (spreadOverlappingCubeNodes(nodes, visibleNodeIds, groups)) {
 		changed = true;
 	}
 
@@ -2008,13 +2044,74 @@ function getCubeFaceIdForNode(nodeId: string): string {
 	return CUBE_FACE_GROUPS[index]?.id ?? CUBE_FACE_GROUPS[0]!.id;
 }
 
-function createCubeNodePosition(nodeId: string): { x: number; y: number } {
-	const first = hashString(`${nodeId}:x`);
-	const second = hashString(`${nodeId}:y`);
-	return {
-		x: first * 1.44 - 0.72,
-		y: second * 1.44 - 0.72,
-	};
+function readOccupiedPositions(
+	nodes: Record<string, { x: number; y: number; groupId?: string }>,
+	groupId: string,
+	excludeNodeId?: string,
+): Array<{ x: number; y: number }> {
+	return Object.entries(nodes)
+		.filter(
+			([nodeId, placement]) =>
+				nodeId !== excludeNodeId && placement.groupId === groupId,
+		)
+		.map(([, placement]) => ({ x: placement.x, y: placement.y }));
+}
+
+function isPlacementInBounds(
+	position: { x: number; y: number },
+	bounds: PlacementBounds,
+): boolean {
+	return (
+		Number.isFinite(position.x) &&
+		Number.isFinite(position.y) &&
+		position.x >= bounds.left &&
+		position.x <= bounds.right &&
+		position.y >= bounds.bottom &&
+		position.y <= bounds.top
+	);
+}
+
+function spreadOverlappingCubeNodes(
+	nodes: Record<string, { x: number; y: number; groupId?: string }>,
+	visibleNodeIds: string[],
+	groups: ChartGroup[],
+): boolean {
+	let changed = false;
+	const visible = new Set(visibleNodeIds);
+	for (const group of groups) {
+		const occupied: Array<{ x: number; y: number }> = [];
+		const nodeIds = Object.entries(nodes)
+			.filter(
+				([nodeId, placement]) =>
+					visible.has(nodeId) && placement.groupId === group.id,
+			)
+			.map(([nodeId]) => nodeId)
+			.sort((left, right) => left.localeCompare(right));
+		for (const nodeId of nodeIds) {
+			const placement = nodes[nodeId];
+			if (!placement) {
+				continue;
+			}
+			const overlaps = occupied.some(
+				(position) =>
+					distanceSquared(position, placement) <
+					CUBE_NODE_OVERLAP_DISTANCE * CUBE_NODE_OVERLAP_DISTANCE,
+			);
+			if (!overlaps) {
+				occupied.push({ x: placement.x, y: placement.y });
+				continue;
+			}
+			const position = findManualPlacement(
+				readGroupPlacementBounds(group),
+				occupied,
+				group.id,
+			);
+			nodes[nodeId] = { ...position, groupId: group.id };
+			occupied.push(position);
+			changed = true;
+		}
+	}
+	return changed;
 }
 
 interface PlacementBounds {
@@ -2025,6 +2122,7 @@ interface PlacementBounds {
 }
 
 const MANUAL_NODE_SPACING = 0.62;
+const CUBE_NODE_OVERLAP_DISTANCE = 0.08;
 
 function addManualPlacements(
 	layout: ChartLayoutConfig,
@@ -2038,30 +2136,49 @@ function addManualPlacements(
 	if (addedPaths.length === 0) {
 		return layout;
 	}
+	const isCubeLayout = layout.engine === 'cube-3d';
 	const group = groupId
-		? manual.groups.find((item) => item.id === groupId)
+		? (isCubeLayout
+				? CUBE_FACE_GROUPS_BY_ID.get(groupId)
+				: manual.groups.find((item) => item.id === groupId))
 		: undefined;
 	if (groupId && !group) {
 		return layout;
 	}
-	const bounds = group
-		? readGroupPlacementBounds(group)
-		: readUngroupedPlacementBounds(Object.values(manual.nodes));
-	const occupied = Object.entries(manual.nodes)
-		.filter(([, placement]) =>
-			group ? placement.groupId === group.id : placement.groupId === undefined,
-		)
-		.map(([, placement]) => ({ x: placement.x, y: placement.y }));
 	const nodes = { ...manual.nodes };
 	const newPositions: Array<{ x: number; y: number }> = [];
 	for (const path of addedPaths) {
-		const position = findOpenManualPlacement(bounds, occupied);
-		occupied.push(position);
+		const placementGroupId = groupId ?? (isCubeLayout ? getCubeFaceIdForNode(path) : undefined);
+		const placementGroup = placementGroupId
+			? (isCubeLayout
+					? CUBE_FACE_GROUPS_BY_ID.get(placementGroupId)
+					: manual.groups.find((item) => item.id === placementGroupId))
+			: undefined;
+		if (placementGroupId && !placementGroup) {
+			continue;
+		}
+		const bounds = placementGroup
+			? readGroupPlacementBounds(placementGroup)
+			: readUngroupedPlacementBounds(Object.values(nodes));
+		const occupied = Object.entries(nodes)
+			.filter(([, placement]) =>
+				placementGroup
+					? placement.groupId === placementGroup.id
+					: placement.groupId === undefined,
+			)
+			.map(([, placement]) => ({ x: placement.x, y: placement.y }));
+		const existing = nodes[path];
+		if (existing && (!placementGroupId || existing.groupId === placementGroupId)) {
+			continue;
+		}
+		const position = findManualPlacement(bounds, occupied, placementGroupId);
 		newPositions.push(position);
-		nodes[path] = groupId ? { ...position, groupId } : position;
+		nodes[path] = placementGroupId
+			? { ...position, groupId: placementGroupId }
+			: position;
 	}
 	const groups =
-		group && newPositions.length > 0
+		group && newPositions.length > 0 && !CUBE_FACE_IDS.has(group.id)
 			? manual.groups.map((item) =>
 					item.id === group.id
 						? expandGroupToPositions(item, newPositions)
@@ -2086,7 +2203,9 @@ function moveManualNodesToGroup(
 	const manual = layout.manual ?? { nodes: {}, groups: [] };
 	const movingPaths = new Set(paths);
 	const group = groupId
-		? manual.groups.find((item) => item.id === groupId)
+		? (layout.engine === 'cube-3d'
+				? CUBE_FACE_GROUPS_BY_ID.get(groupId)
+				: manual.groups.find((item) => item.id === groupId))
 		: undefined;
 	if (groupId && !group) {
 		return layout;
@@ -2116,7 +2235,7 @@ function moveManualNodesToGroup(
 		const position =
 			previous && (!group || isPositionInsideGroup(previous, group))
 				? { x: previous.x, y: previous.y }
-				: findOpenManualPlacement(bounds, occupied);
+				: findManualPlacement(bounds, occupied, groupId);
 		occupied.push(position);
 		newPositions.push(position);
 		const nextPlacement = groupId ? { ...position, groupId } : position;
@@ -2134,7 +2253,7 @@ function moveManualNodesToGroup(
 		return layout;
 	}
 	const groups =
-		group && newPositions.length > 0
+		group && newPositions.length > 0 && !CUBE_FACE_IDS.has(group.id)
 			? manual.groups.map((item) =>
 					item.id === group.id
 						? expandGroupToPositions(item, newPositions)
@@ -2216,6 +2335,74 @@ function findOpenManualPlacement(
 		x: center.x + occupied.length * MANUAL_NODE_SPACING,
 		y: center.y,
 	};
+}
+
+function findManualPlacement(
+	bounds: PlacementBounds,
+	occupied: Array<{ x: number; y: number }>,
+	groupId?: string,
+): { x: number; y: number } {
+	if (!groupId || !CUBE_FACE_IDS.has(groupId)) {
+		return findOpenManualPlacement(bounds, occupied);
+	}
+	const candidates = createBoundedGridPositions(bounds, occupied.length + 1);
+	return candidates.reduce(
+		(best, candidate) => {
+			const score = occupied.reduce(
+				(distance, placement) =>
+					Math.min(distance, distanceSquared(candidate, placement)),
+				Number.POSITIVE_INFINITY,
+			);
+			const center = {
+				x: (bounds.left + bounds.right) / 2,
+				y: (bounds.bottom + bounds.top) / 2,
+			};
+			const centerPenalty = distanceSquared(candidate, center) * 0.001;
+			const value = score - centerPenalty;
+			return value > best.value ? { position: candidate, value } : best;
+		},
+		{
+			position:
+				candidates[0] ?? {
+					x: (bounds.left + bounds.right) / 2,
+					y: (bounds.bottom + bounds.top) / 2,
+				},
+			value: Number.NEGATIVE_INFINITY,
+		},
+	).position;
+}
+
+function createBoundedGridPositions(
+	bounds: PlacementBounds,
+	count: number,
+): Array<{ x: number; y: number }> {
+	if (count <= 0) {
+		return [];
+	}
+	const width = Math.max(bounds.right - bounds.left, 0.001);
+	const height = Math.max(bounds.top - bounds.bottom, 0.001);
+	const columns = Math.max(1, Math.ceil(Math.sqrt(count * (width / height))));
+	const rows = Math.max(1, Math.ceil(count / columns));
+	const positions: Array<{ x: number; y: number }> = [];
+	for (let row = 0; row < rows; row += 1) {
+		for (let column = 0; column < columns; column += 1) {
+			positions.push({
+				x:
+					bounds.left +
+					((column + 1) * width) / (columns + 1),
+				y:
+					bounds.bottom +
+					((row + 1) * height) / (rows + 1),
+			});
+		}
+	}
+	const center = {
+		x: (bounds.left + bounds.right) / 2,
+		y: (bounds.bottom + bounds.top) / 2,
+	};
+	return positions
+		.sort((left, right) => distanceSquared(left, center) - distanceSquared(right, center))
+		.slice(0, count);
 }
 
 function createPlacementCandidates(

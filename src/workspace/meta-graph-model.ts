@@ -1271,12 +1271,12 @@ function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 
 function createDefaultCubeGroups(): ManualLayoutConfig['groups'] {
 	return [
-		{ id: 'cube-front', name: 'Front', x: 0, y: 0, width: 260, height: 260, color: '#7c6ff0', mode: 'manual', padding: 24 },
-		{ id: 'cube-back', name: 'Back', x: 0, y: 0, width: 260, height: 260, color: '#53a8ff', mode: 'manual', padding: 24 },
-		{ id: 'cube-left', name: 'Left', x: 0, y: 0, width: 260, height: 260, color: '#45c48a', mode: 'manual', padding: 24 },
-		{ id: 'cube-right', name: 'Right', x: 0, y: 0, width: 260, height: 260, color: '#f0a23a', mode: 'manual', padding: 24 },
-		{ id: 'cube-top', name: 'Top', x: 0, y: 0, width: 260, height: 260, color: '#e85d75', mode: 'manual', padding: 24 },
-		{ id: 'cube-bottom', name: 'Bottom', x: 0, y: 0, width: 260, height: 260, color: '#a36cf0', mode: 'manual', padding: 24 },
+		{ id: 'cube-front', name: 'Front', x: -1, y: -1, width: 2, height: 2, color: '#009b48', mode: 'manual', padding: 0.22 },
+		{ id: 'cube-back', name: 'Back', x: -1, y: -1, width: 2, height: 2, color: '#0046ad', mode: 'manual', padding: 0.22 },
+		{ id: 'cube-left', name: 'Left', x: -1, y: -1, width: 2, height: 2, color: '#ff5800', mode: 'manual', padding: 0.22 },
+		{ id: 'cube-right', name: 'Right', x: -1, y: -1, width: 2, height: 2, color: '#b71234', mode: 'manual', padding: 0.22 },
+		{ id: 'cube-top', name: 'Top', x: -1, y: -1, width: 2, height: 2, color: '#ffffff', mode: 'manual', padding: 0.22 },
+		{ id: 'cube-bottom', name: 'Bottom', x: -1, y: -1, width: 2, height: 2, color: '#ffd500', mode: 'manual', padding: 0.22 },
 	];
 }
 

@@ -31,6 +31,9 @@ const RUBIK_FACE_COLORS: Record<CubeFaceId, string> = {
 	"cube-top": "#ffffff",
 	"cube-bottom": "#ffd500",
 };
+const CUBE_DISPLAY_MIN = -0.72;
+const CUBE_DISPLAY_MAX = 0.72;
+const CUBE_DISPLAY_OVERLAP = 0.14;
 
 interface CubeFace {
 	id: CubeFaceId;
@@ -515,16 +518,22 @@ export class Cube3DRenderer {
 		this.clearObjectGroup(this.nodeGroup);
 		this.clearObjectGroup(this.labelGroup);
 		this.nodeObjects.clear();
+		const displayPositions = this.resolveDisplayPositions();
 		for (const nodeId of this.graph.nodes()) {
 			const attributes = this.graph.getNodeAttributes(nodeId);
 			if (attributes.isBend) {
 				continue;
 			}
-			const faceId = this.getFaceIdForNode(nodeId);
+			const display = displayPositions.get(nodeId);
+			const faceId = display?.faceId ?? this.getFaceIdForNode(nodeId);
 			const face = this.getFace(faceId);
+			const position = display ?? this.manualLayout.nodes[nodeId] ?? {
+				x: attributes.x,
+				y: attributes.y,
+			};
 			const nodeSize = Math.max(5, attributes.size * 1.25);
 		const mesh = this.createNodeSprite(attributes.color, nodeSize);
-		mesh.position.copy(this.localPosition(face, attributes.x, attributes.y, 8));
+		mesh.position.copy(this.localPosition(face, position.x, position.y, 8));
 		mesh.renderOrder = 3;
 		mesh.userData.nodeId = nodeId;
 			this.nodeGroup.add(mesh);
@@ -533,7 +542,7 @@ export class Cube3DRenderer {
 				: undefined;
 			if (label) {
 				label.position.copy(
-					this.localLabelPosition(face, attributes.x, attributes.y, nodeSize),
+					this.localLabelPosition(face, position.x, position.y, nodeSize),
 				);
 				label.renderOrder = 4;
 				this.labelGroup.add(label);
@@ -542,6 +551,42 @@ export class Cube3DRenderer {
 		}
 		this.rebuildEdges();
 		this.refreshNodeColors();
+	}
+
+	private resolveDisplayPositions(): Map<
+		string,
+		{ faceId: CubeFaceId; x: number; y: number }
+	> {
+		const positions = new Map<string, { faceId: CubeFaceId; x: number; y: number }>();
+		const byFace = new Map<CubeFaceId, Array<{ id: string; x: number; y: number }>>();
+		for (const nodeId of this.graph.nodes()) {
+			const attributes = this.graph.getNodeAttributes(nodeId);
+			if (attributes.isBend) {
+				continue;
+			}
+			const faceId = this.getFaceIdForNode(nodeId);
+			const placement = this.manualLayout.nodes[nodeId];
+			const position = placement ?? { x: attributes.x, y: attributes.y };
+			const bucket = byFace.get(faceId) ?? [];
+			bucket.push({ id: nodeId, x: position.x, y: position.y });
+			byFace.set(faceId, bucket);
+		}
+		for (const [faceId, items] of byFace) {
+			const occupied: Array<{ x: number; y: number }> = [];
+			for (const item of items) {
+				const overlaps = occupied.some(
+					(position) =>
+						distanceSquared(position, item) <
+						CUBE_DISPLAY_OVERLAP * CUBE_DISPLAY_OVERLAP,
+				);
+				const position = overlaps
+					? findOpenDisplayPosition(occupied.length + 1, occupied)
+					: { x: item.x, y: item.y };
+				positions.set(item.id, { faceId, ...position });
+				occupied.push(position);
+			}
+		}
+		return positions;
 	}
 
 	private rebuildEdges(): void {
@@ -1142,6 +1187,58 @@ function lerp(start: number, end: number, amount: number): number {
 function smoothstep(edge0: number, edge1: number, value: number): number {
 	const amount = clamp((value - edge0) / (edge1 - edge0), 0, 1);
 	return amount * amount * (3 - 2 * amount);
+}
+
+function findOpenDisplayPosition(
+	count: number,
+	occupied: Array<{ x: number; y: number }>,
+): { x: number; y: number } {
+	const candidates = createDisplayGridPositions(count);
+	return candidates.reduce(
+		(best, candidate) => {
+			const score = occupied.reduce(
+				(distance, position) =>
+					Math.min(distance, distanceSquared(candidate, position)),
+				Number.POSITIVE_INFINITY,
+			);
+			const centerPenalty = distanceSquared(candidate, { x: 0, y: 0 }) * 0.001;
+			const value = score - centerPenalty;
+			return value > best.value ? { position: candidate, value } : best;
+		},
+		{
+			position: candidates[0] ?? { x: 0, y: 0 },
+			value: Number.NEGATIVE_INFINITY,
+		},
+	).position;
+}
+
+function createDisplayGridPositions(count: number): Array<{ x: number; y: number }> {
+	const size = CUBE_DISPLAY_MAX - CUBE_DISPLAY_MIN;
+	const columns = Math.max(1, Math.ceil(Math.sqrt(count)));
+	const rows = Math.max(1, Math.ceil(count / columns));
+	const positions: Array<{ x: number; y: number }> = [];
+	for (let row = 0; row < rows; row += 1) {
+		for (let column = 0; column < columns; column += 1) {
+			positions.push({
+				x: CUBE_DISPLAY_MIN + ((column + 1) * size) / (columns + 1),
+				y: CUBE_DISPLAY_MIN + ((row + 1) * size) / (rows + 1),
+			});
+		}
+	}
+	return positions.sort(
+		(left, right) =>
+			distanceSquared(left, { x: 0, y: 0 }) -
+			distanceSquared(right, { x: 0, y: 0 }),
+	);
+}
+
+function distanceSquared(
+	left: { x: number; y: number },
+	right: { x: number; y: number },
+): number {
+	const dx = left.x - right.x;
+	const dy = left.y - right.y;
+	return dx * dx + dy * dy;
 }
 
 function hashString(value: string): number {
