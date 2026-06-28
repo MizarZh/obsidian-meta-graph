@@ -40,6 +40,7 @@
 		curated,
 		nodes,
 		groups,
+		folders,
 		nodeColors,
 		workspaceFilePath,
 		panelOpen,
@@ -62,6 +63,7 @@
 		curated: CuratedWorkspaceConfig;
 		nodes: KnowledgeNode[];
 		groups: ChartGroup[];
+		folders: string[];
 		nodeColors: Map<string, string>;
 		workspaceFilePath?: string;
 		panelOpen: boolean;
@@ -186,9 +188,7 @@
 				),
 			})),
 	);
-	const curatedFolderSuggestions = $derived(
-		uniqueSorted(nodes.map((node) => node.folder)),
-	);
+	const curatedFolderSuggestions = $derived(folders);
 	const curatedTagSuggestions = $derived(
 		uniqueSorted(nodes.flatMap((node) => node.tags)),
 	);

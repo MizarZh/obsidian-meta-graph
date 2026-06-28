@@ -1983,6 +1983,7 @@
 					curated={workspaceState.curated}
 					nodes={debugSnapshot.index.nodes}
 					groups={workspaceState.manualLayout.groups}
+					folders={workspaceState.availableFolders}
 					{nodeColors}
 					{workspaceFilePath}
 					panelOpen={curatedPanelOpen}

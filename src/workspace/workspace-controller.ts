@@ -177,11 +177,7 @@ export class WorkspaceController {
 			...this.state,
 			layoutRevision:
 				this.state.layoutRevision + (forceLayout ? 1 : 0),
-			availableFolders: uniqueSorted(
-				[...this.index.nodes.values()]
-					.map((node) => node.folder)
-					.filter(Boolean),
-			),
+			availableFolders: readVaultFolders(this.app),
 			availableTags: uniqueSorted(
 				[...this.index.nodes.values()].flatMap((node) => node.tags),
 			),
@@ -2165,6 +2161,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function uniqueSorted(values: string[]): string[] {
 	return [...new Set(values)].sort((left, right) => left.localeCompare(right));
+}
+
+function readVaultFolders(app: App): string[] {
+	return uniqueSorted(
+		app.vault
+			.getAllLoadedFiles()
+			.filter((file): file is TFolder => file instanceof TFolder)
+			.map((folder) => folder.path)
+			.filter((path) => path !== '/'),
+	);
 }
 
 function mapSetsToRecord(
