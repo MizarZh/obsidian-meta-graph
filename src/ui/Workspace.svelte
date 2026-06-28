@@ -870,6 +870,10 @@
 						controller.moveGroup(groupId, delta),
 					onResizeCommit: (groupId, geometry) =>
 						controller.resizeGroup(groupId, geometry),
+					getGroupNodeIds: (groupId) =>
+						Object.entries(workspaceState.manualLayout.nodes)
+							.filter(([, placement]) => placement.groupId === groupId)
+							.map(([nodeId]) => nodeId),
 				},
 			);
 		}

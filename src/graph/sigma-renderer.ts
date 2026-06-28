@@ -38,6 +38,16 @@ export interface GroupInteractionCallbacks {
 	onMovePreview?(groupId: string, delta: { x: number; y: number }): void;
 	onMoveCommit?(groupId: string, delta: { x: number; y: number }): void;
 	onResizeCommit?(groupId: string, geometry: GroupGeometry): void;
+	getGroupNodeIds?(groupId: string): Iterable<string>;
+}
+
+type GroupResizeDirection = "left" | "right" | "top" | "bottom";
+
+interface GroupBounds {
+	left: number;
+	right: number;
+	bottom: number;
+	top: number;
 }
 
 export class SigmaRenderer {
@@ -125,7 +135,10 @@ export class SigmaRenderer {
 				.on("doubletap", (event: { preventSigmaDefault(): void }) => {
 					event.preventSigmaDefault();
 				});
-			this.groupOverlayLayer = new GroupOverlayLayer(this.instance);
+			this.groupOverlayLayer = new GroupOverlayLayer(
+				this.instance,
+				() => this.graph,
+			);
 		}
 
 	get runtimeGraph(): RuntimeGraph {
@@ -414,6 +427,7 @@ class GroupOverlayLayer {
 		| {
 				kind: "move" | "resize";
 				group: ChartGroup;
+				resizeDirection?: GroupResizeDirection;
 				startPointer: { x: number; y: number };
 				lastDelta: { x: number; y: number };
 		  }
@@ -421,6 +435,7 @@ class GroupOverlayLayer {
 
 	constructor(
 		private readonly sigma: Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>,
+		private readonly getGraph: () => RuntimeGraph,
 	) {
 		const container = sigma.getContainer();
 		this.activeDocument = container.ownerDocument;
@@ -563,15 +578,20 @@ class GroupOverlayLayer {
 		title.addEventListener("pointerdown", (event) =>
 			this.startInteraction(event, group.id, "move"),
 		);
-		const resizeHandle = this.activeDocument.createElement("button");
-		resizeHandle.className = "knowledge-workspace-group-resize";
-		resizeHandle.type = "button";
-		resizeHandle.setAttribute("aria-label", `Resize ${group.name}`);
-		resizeHandle.addEventListener("pointerdown", (event) =>
-			this.startInteraction(event, group.id, "resize"),
-		);
 		element.appendChild(title);
-		element.appendChild(resizeHandle);
+		for (const direction of ["left", "right", "top", "bottom"] as const) {
+			const resizeHandle = this.activeDocument.createElement("button");
+			resizeHandle.className = `knowledge-workspace-group-resize resize-${direction}`;
+			resizeHandle.type = "button";
+			resizeHandle.setAttribute(
+				"aria-label",
+				`Resize ${group.name} ${direction}`,
+			);
+			resizeHandle.addEventListener("pointerdown", (event) =>
+				this.startInteraction(event, group.id, "resize", direction),
+			);
+			element.appendChild(resizeHandle);
+		}
 		this.layer.appendChild(element);
 		this.elements.set(group.id, element);
 		return element;
@@ -581,6 +601,7 @@ class GroupOverlayLayer {
 		event: PointerEvent,
 		groupId: string,
 		kind: "move" | "resize",
+		resizeDirection?: GroupResizeDirection,
 	): void {
 		const group = this.groups.find((item) => item.id === groupId);
 		if (!group) {
@@ -595,6 +616,7 @@ class GroupOverlayLayer {
 		this.interaction = {
 			kind,
 			group: { ...group },
+			resizeDirection,
 			startPointer: this.readViewportPoint(event),
 			lastDelta: { x: 0, y: 0 },
 		};
@@ -677,13 +699,123 @@ class GroupOverlayLayer {
 				height: interaction.group.height,
 			};
 		}
-		const top = interaction.group.y + interaction.group.height;
-		const nextHeight = Math.max(0.6, top - currentGraph.y);
+		return this.readResizeGeometry(interaction, delta);
+	}
+
+	private readResizeGeometry(
+		interaction: NonNullable<GroupOverlayLayer["interaction"]>,
+		delta: { x: number; y: number },
+	): GroupGeometry {
+		const minWidth = 0.8;
+		const minHeight = 0.6;
+		const startLeft = interaction.group.x;
+		const startRight = interaction.group.x + interaction.group.width;
+		const startBottom = interaction.group.y;
+		const startTop = interaction.group.y + interaction.group.height;
+		const nodeBounds = this.readGroupNodeBounds(interaction.group.id);
+		let left = startLeft;
+		let right = startRight;
+		let bottom = startBottom;
+		let top = startTop;
+
+		switch (interaction.resizeDirection) {
+			case "left":
+				left = startLeft + delta.x;
+				left = Math.min(left, right - minWidth);
+				if (nodeBounds) {
+					left = Math.min(left, nodeBounds.left);
+				}
+				break;
+			case "right":
+				right = startRight + delta.x;
+				right = Math.max(right, left + minWidth);
+				if (nodeBounds) {
+					right = Math.max(right, nodeBounds.right);
+				}
+				break;
+			case "top":
+				top = startTop + delta.y;
+				top = Math.max(top, bottom + minHeight);
+				if (nodeBounds) {
+					top = Math.max(top, nodeBounds.top);
+				}
+				break;
+			case "bottom":
+			default:
+				bottom = startBottom + delta.y;
+				bottom = Math.min(bottom, top - minHeight);
+				if (nodeBounds) {
+					bottom = Math.min(bottom, nodeBounds.bottom);
+				}
+				break;
+		}
+
 		return {
-			x: interaction.group.x,
-			y: top - nextHeight,
-			width: Math.max(0.8, interaction.group.width + delta.x),
-			height: nextHeight,
+			x: left,
+			y: bottom,
+			width: right - left,
+			height: top - bottom,
+		};
+	}
+
+	private readGroupNodeBounds(groupId: string): GroupBounds | undefined {
+		const nodeIds = this.callbacks.getGroupNodeIds?.(groupId);
+		if (!nodeIds) {
+			return undefined;
+		}
+		const graph = this.getGraph();
+		let bounds: GroupBounds | undefined;
+		for (const nodeId of nodeIds) {
+			if (!graph.hasNode(nodeId)) {
+				continue;
+			}
+			const attributes = graph.getNodeAttributes(nodeId);
+			if (attributes.isBend) {
+				continue;
+			}
+			const nodeBounds = this.readNodeBounds(attributes);
+			bounds = bounds
+				? {
+						left: Math.min(bounds.left, nodeBounds.left),
+						right: Math.max(bounds.right, nodeBounds.right),
+						bottom: Math.min(bounds.bottom, nodeBounds.bottom),
+						top: Math.max(bounds.top, nodeBounds.top),
+					}
+				: nodeBounds;
+		}
+		return bounds;
+	}
+
+	private readNodeBounds(attributes: RuntimeNodeAttributes): GroupBounds {
+		const viewportCenter = this.sigma.graphToViewport({
+			x: attributes.x,
+			y: attributes.y,
+		});
+		const sizeScaler = this.sigma as unknown as {
+			scaleSize(size?: number): number;
+		};
+		const radius = Math.max(8, sizeScaler.scaleSize(attributes.size) + 4);
+		const leftPoint = this.sigma.viewportToGraph({
+			x: viewportCenter.x - radius,
+			y: viewportCenter.y,
+		});
+		const rightPoint = this.sigma.viewportToGraph({
+			x: viewportCenter.x + radius,
+			y: viewportCenter.y,
+		});
+		const topPoint = this.sigma.viewportToGraph({
+			x: viewportCenter.x,
+			y: viewportCenter.y - radius,
+		});
+		const bottomPoint = this.sigma.viewportToGraph({
+			x: viewportCenter.x,
+			y: viewportCenter.y + radius,
+		});
+		return {
+			left: Math.min(leftPoint.x, rightPoint.x),
+			right: Math.max(leftPoint.x, rightPoint.x),
+			bottom: Math.min(topPoint.y, bottomPoint.y),
+			top: Math.max(topPoint.y, bottomPoint.y),
 		};
 	}
 

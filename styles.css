@@ -1745,8 +1745,6 @@
 
 .knowledge-workspace-group-region {
 	position: absolute;
-	min-width: 24px;
-	min-height: 20px;
 	border: 1.5px solid
 		color-mix(
 			in srgb,
@@ -1804,8 +1802,6 @@
 
 .knowledge-workspace-group-resize {
 	position: absolute;
-	right: -6px;
-	bottom: -6px;
 	width: 12px;
 	height: 12px;
 	margin: 0;
@@ -1819,8 +1815,31 @@
 	border-radius: 50%;
 	background: var(--background-primary);
 	box-shadow: var(--shadow-s);
-	cursor: nwse-resize;
 	pointer-events: auto;
+}
+
+.knowledge-workspace-group-resize.resize-left {
+	left: -6px;
+	top: calc(50% - 6px);
+	cursor: ew-resize;
+}
+
+.knowledge-workspace-group-resize.resize-right {
+	right: -6px;
+	top: calc(50% - 6px);
+	cursor: ew-resize;
+}
+
+.knowledge-workspace-group-resize.resize-top {
+	left: calc(50% - 6px);
+	top: -6px;
+	cursor: ns-resize;
+}
+
+.knowledge-workspace-group-resize.resize-bottom {
+	left: calc(50% - 6px);
+	bottom: -6px;
+	cursor: ns-resize;
 }
 
 .knowledge-workspace-group-resize:hover {
