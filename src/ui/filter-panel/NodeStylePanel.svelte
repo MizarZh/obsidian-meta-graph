@@ -1,28 +1,28 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
-	import ObsidianSlider from './obsidian/ObsidianSlider.svelte';
+	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
+	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
 	import ObsidianSuggestInput, {
 		type SuggestionOption,
-	} from './obsidian/ObsidianSuggestInput.svelte';
-	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
+	} from '../obsidian/ObsidianSuggestInput.svelte';
+	import ObsidianTextInput from '../obsidian/ObsidianTextInput.svelte';
 	import {
 		FILE_FILTER_FIELD_OPTIONS,
 		TEXT_FILTER_OPERATOR_OPTIONS,
 		getNodeValueOptions as resolveNodeValueOptions,
-	} from './filter-config';
+	} from '../filter-config';
 	import type {
 		DefaultNodeStyle,
 		NodeFilterField,
 		NodeFilterOperator,
 		NodeStyleField,
 		NodeStyleRule,
-	} from '../core/types';
+	} from '../../core/types';
 	import {
 		createRuleId,
 		shouldShowFilterValue,
-	} from './filter/filter-tree';
+	} from '../filter/filter-tree';
 	import {
 		activeNodeStyleValue as resolveActiveNodeStyleValue,
 		canMoveRule,
@@ -32,7 +32,7 @@
 		patchRule,
 		removeRule,
 		type StyleRuleScope,
-	} from './filter/filter-style-rules';
+	} from '../filter/filter-style-rules';
 
 	const NODE_STYLE_FIELD_OPTIONS = [
 		{ value: 'folder', label: 'Folder' },

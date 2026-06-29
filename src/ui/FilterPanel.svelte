@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
 	import { onDestroy } from 'svelte';
-	import FilterRulesPanel from './FilterRulesPanel.svelte';
-	import GraphSettingsPanel from './GraphSettingsPanel.svelte';
-	import LinkStylePanel from './LinkStylePanel.svelte';
-	import NodeStylePanel from './NodeStylePanel.svelte';
-	import TextStylePanel from './TextStylePanel.svelte';
+	import FilterRulesPanel from './filter-panel/FilterRulesPanel.svelte';
+	import GraphSettingsPanel from './filter-panel/GraphSettingsPanel.svelte';
+	import LinkStylePanel from './filter-panel/LinkStylePanel.svelte';
+	import NodeStylePanel from './filter-panel/NodeStylePanel.svelte';
+	import TextStylePanel from './filter-panel/TextStylePanel.svelte';
 	import {
 		ColorCommitScheduler,
 		getDefaultLabelColor as resolveDefaultLabelColor,

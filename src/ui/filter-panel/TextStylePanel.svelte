@@ -1,7 +1,7 @@
 <script lang="ts">
-	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import ObsidianSlider from './obsidian/ObsidianSlider.svelte';
-	import type { LabelPosition, ViewMode } from '../core/types';
+	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
+	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
+	import type { LabelPosition, ViewMode } from '../../core/types';
 
 	const LABEL_POSITION_OPTIONS: Array<{
 		value: LabelPosition;

@@ -1,16 +1,16 @@
 <script lang="ts">
-	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
-	import ObsidianSlider from './obsidian/ObsidianSlider.svelte';
-	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
-	import ObsidianToggle from './obsidian/ObsidianToggle.svelte';
+	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
+	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
+	import ObsidianTextInput from '../obsidian/ObsidianTextInput.svelte';
+	import ObsidianToggle from '../obsidian/ObsidianToggle.svelte';
 	import type {
 		DefaultLinkStyle,
 		LinkLineStyle,
 		LinkStyleField,
 		LinkStyleRule,
-	} from '../core/types';
-	import { createRuleId } from './filter/filter-tree';
+	} from '../../core/types';
+	import { createRuleId } from '../filter/filter-tree';
 	import {
 		activeLinkLineStyle as resolveActiveLinkLineStyle,
 		activeLinkStyleValue as resolveActiveLinkStyleValue,
@@ -21,7 +21,7 @@
 		patchRule,
 		removeRule,
 		type StyleRuleScope,
-	} from './filter/filter-style-rules';
+	} from '../filter/filter-style-rules';
 
 	const LINK_STYLE_FIELD_OPTIONS = [
 		{ value: 'relation', label: 'Relation' },

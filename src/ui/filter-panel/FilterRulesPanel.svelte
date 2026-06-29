@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import FilterGroup from './FilterGroup.svelte';
+	import FilterGroup from '../FilterGroup.svelte';
 	import {
 		getDefaultFilterOperator as resolveDefaultFilterOperator,
 		getFilterFieldOptions as resolveFilterFieldOptions,
@@ -8,13 +8,13 @@
 		getFilterGroupModeOptions,
 		getFilterOperatorOptions as resolveFilterOperatorOptions,
 		getNodeValueOptions as resolveNodeValueOptions,
-	} from './filter-config';
+	} from '../filter-config';
 	import type {
 		GraphQuery,
 		NodeFilterField,
 		NodeFilterGroup,
 		NodeFilterOperator,
-	} from '../core/types';
+	} from '../../core/types';
 	import {
 		addFilterConditionToGroup,
 		addFilterGroupToGroup,
@@ -23,7 +23,7 @@
 		patchFilterItem,
 		removeFilterItemFromGroup,
 		type FilterScope,
-	} from './filter/filter-tree';
+	} from '../filter/filter-tree';
 
 	let {
 		app,
