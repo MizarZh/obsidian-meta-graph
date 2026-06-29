@@ -13,7 +13,6 @@
 	import type { RuntimeGraph } from "../graph/graphology-adapter";
 	import { readGraphPalette } from "../graph/graph-styles";
 	import {
-		createGraphRenderer,
 		getModeCapabilities,
 		getRendererKind,
 		getRendererKindForMode,
@@ -23,7 +22,6 @@
 		setRendererPalette,
 		type GraphRenderer,
 	} from "../graph/renderer-adapter";
-	import { bindRendererEvents } from "../graph/renderer-events-adapter";
 	import { serializeRuntimeGraph } from "../graph/runtime-graph-debug";
 	import { SigmaRenderer } from "../graph/sigma-renderer";
 	import {
@@ -40,58 +38,32 @@
 	import DebugPanel from "./DebugPanel.svelte";
 	import DockGraphPanel from "./DockGraphPanel.svelte";
 	import type { DockDragPayload } from "./dock/types";
-	import {
-		readDockDropTarget,
-		readElementCenterViewportPosition,
-		readElementAtPoint,
-		readViewportPoint as readViewportPointFromContainer,
-	} from "./dock/dom";
-	import {
-		resolveDockPayloadGraphAction,
-		type DockPayloadGraphAction,
-	} from "./dock/connection";
-	import {
-		createDockConnectionDragState,
-		updateDockConnectionDragState,
-	} from "./dock/connection-drag";
-	import { canDockPayloadTargetNode } from "./dock/drag";
+	import type { DockPayloadGraphAction } from "./dock/connection";
 	import {
 		getMetadataFieldSuggestions,
 		getMetadataFieldTypes,
 		getMetadataFieldValueSuggestions,
 	} from "./filter-config";
 	import {
-		resolveGraphConnectionDropAction,
+		type GraphConnectionDropTarget,
 		type GraphConnectionDropAction,
 	} from "./interactions/graph-connection-drop";
-	import {
-		getNextNodeOpenSuppressUntil,
-		getSigmaDragAction,
-		getSigmaDragEndAction,
-		shouldOpenNode,
-	} from "./interactions/graph-interaction-policy";
 	import { shouldHandleConnectionUndoShortcut } from "./interactions/keyboard-shortcuts";
 	import {
-		getManualGroupNodeIds,
-		moveRuntimeManualGroupNodes,
-	} from "./interactions/manual-layout-groups";
-import {
-	findDockTemplateLabel,
-	findIndexedNodeTitle,
-	getDockNoteCandidates,
-	getDockNoteEntries,
-	getFilePathSuggestions,
-	getSelectedDockNodes,
-	getWorkspaceNodeColor,
-	getWorkspaceNodeColors,
-} from "./workspace/derived";
+		getDockNoteCandidates,
+		getDockNoteEntries,
+		getFilePathSuggestions,
+		getSelectedDockNodes,
+		getWorkspaceNodeColor,
+		getWorkspaceNodeColors,
+	} from "./workspace/derived";
 	import { syncRendererDisplaySettings } from "./workspace/renderer-display-sync";
 	import { shouldCloseSettingsPanelForChartSource } from "./workspace/settings-panel";
 	import {
 		readInteractiveAccentColor,
 		readThemeSignature,
 	} from "./workspace/theme";
-	import { openCreatedTemplateNote } from "./workspace/template-actions";
+	import { openWorkspaceTemplateNote } from "./workspace/template-modal-actions";
 	import { openResolvedMetadataLink } from "./workspace/metadata-link-actions";
 	import { getWorkspaceGraphForceSettings } from "./workspace/graph-settings";
 	import { WorkspaceAutoSave } from "./workspace/autosave";
@@ -101,11 +73,18 @@ import {
 		type WorkspaceRenderBaseline,
 	} from "./workspace/change-tracker";
 	import { createWorkspaceRuntimeGraph } from "./workspace/runtime-graph";
+	import { bindWorkspaceRendererEvents } from "./workspace/renderer-events";
+	import {
+		moveWorkspaceRuntimeGroupNodes,
+		syncWorkspaceRendererGroups,
+	} from "./workspace/renderer-groups";
+	import { createWorkspaceGraphRenderer } from "./workspace/renderer-factory";
+	import { DockGraphDragController } from "./workspace/dock-graph-drag";
+	import { GraphDockConnectionController } from "./workspace/graph-dock-connection";
 
 	import Inspector from "./Inspector.svelte";
 	import ConnectionPanel from "./ConnectionPanel.svelte";
 	import { ConfirmDeleteViewModal } from "./ConfirmDeleteWorkspaceModal";
-	import { CreateFromTemplateModal } from "./CreateFromTemplateModal";
 	import Toolbar from "./Toolbar.svelte";
 
 	let {
@@ -151,46 +130,36 @@ import {
 		let activeNodeDropGroupId: string | undefined;
 
 	const layoutSnapshots = new LayoutSnapshotStore();
-		const handleGraphConnectionMouseMove = (event: MouseEvent): void => {
-			if (!connectionDrag || dockConnectionDrag) {
-				return;
-			}
-			const target = readDockDropTarget(readElementAtMouseEvent(event));
+	const dockGraphDrag = new DockGraphDragController({
+		window,
+		readCanvas: () => canvas,
+		readRenderer: () => renderer,
+		readHoveredNodeId: () => workspaceState.hoveredNodeId,
+		setDockDrag: (payload) => {
+			dockDrag = payload;
+		},
+		setDockConnectionDrag: (payload) => {
+			dockConnectionDrag = payload;
+		},
+		setConnectionDrag: (state) => {
+			connectionDrag = state;
+		},
+		setDockTarget: (nodeId) => {
+			dockTargetNodeId = nodeId;
+		},
+		onDrop: (action) => handleDockPayloadGraphAction(action),
+	});
+	const graphDockConnection = new GraphDockConnectionController({
+		readConnectionDrag: () => connectionDrag,
+		readDockConnectionDrag: () => dockConnectionDrag,
+		readDocument: () => readWorkspaceDocument(),
+		setTarget: (target: GraphConnectionDropTarget) => {
 			graphConnectionTargetNotePath = target.notePath;
 			graphConnectionTargetTemplateId = target.templateId;
 			graphConnectionTargetCurated = target.curated;
-		};
-		const handleGraphConnectionMouseUp = (event: MouseEvent): void => {
-			if (!connectionDrag || dockConnectionDrag) {
-				return;
-			}
-			const action = resolveGraphConnectionDropAction(
-				connectionDrag.sourceNodeId,
-				{
-					notePath: graphConnectionTargetNotePath,
-					templateId: graphConnectionTargetTemplateId,
-					curated: graphConnectionTargetCurated,
-				},
-				readDockDropTarget(readElementAtMouseEvent(event)),
-			);
-			if (action.kind === "none") {
-				return;
-			}
-			resetGraphConnectionTarget();
-			handleGraphConnectionDropAction(action);
-		};
-	const handleGraphConnectionPointerMove = (event: PointerEvent): void => {
-		handleGraphConnectionMouseMove(event);
-	};
-		const handleGraphConnectionPointerUp = (event: PointerEvent): void => {
-			handleGraphConnectionMouseUp(event);
-		};
-
-		function resetGraphConnectionTarget(): void {
-			graphConnectionTargetNotePath = undefined;
-			graphConnectionTargetTemplateId = undefined;
-			graphConnectionTargetCurated = false;
-		}
+		},
+		onDrop: (action) => handleGraphConnectionDropAction(action),
+	});
 
 		function handleGraphConnectionDropAction(
 			action: GraphConnectionDropAction,
@@ -245,7 +214,7 @@ import {
 		function setGraphConnectionDrag(state: ConnectionDragState | undefined): void {
 			connectionDrag = state;
 			if (!state) {
-				resetGraphConnectionTarget();
+				graphDockConnection.resetTarget();
 			}
 		}
 
@@ -288,16 +257,16 @@ import {
 			"pointerdown",
 			focusWorkspaceForShortcuts,
 		);
-		window.addEventListener("mousemove", handleGraphConnectionMouseMove, {
+		window.addEventListener("mousemove", graphDockConnection.handleMouseMove, {
 			capture: true,
 		});
-		window.addEventListener("mouseup", handleGraphConnectionMouseUp, {
+		window.addEventListener("mouseup", graphDockConnection.handleMouseUp, {
 			capture: true,
 		});
-		window.addEventListener("pointermove", handleGraphConnectionPointerMove, {
+		window.addEventListener("pointermove", graphDockConnection.handlePointerMove, {
 			capture: true,
 		});
-		window.addEventListener("pointerup", handleGraphConnectionPointerUp, {
+		window.addEventListener("pointerup", graphDockConnection.handlePointerUp, {
 			capture: true,
 		});
 
@@ -374,33 +343,33 @@ import {
 			);
 			window.removeEventListener(
 				"mousemove",
-				handleGraphConnectionMouseMove,
+				graphDockConnection.handleMouseMove,
 				{
 					capture: true,
 				},
 			);
 			window.removeEventListener(
 				"mouseup",
-				handleGraphConnectionMouseUp,
+				graphDockConnection.handleMouseUp,
 				{
 					capture: true,
 				},
 			);
 			window.removeEventListener(
 				"pointermove",
-				handleGraphConnectionPointerMove,
+				graphDockConnection.handlePointerMove,
 				{
 					capture: true,
 				},
 			);
 			window.removeEventListener(
 				"pointerup",
-				handleGraphConnectionPointerUp,
+				graphDockConnection.handlePointerUp,
 				{
 					capture: true,
 				},
 			);
-				resetDockConnectionDrag();
+				dockGraphDrag.resetConnectionDrag();
 				unbindEvents?.();
 				stopForceLayoutSimulation();
 				renderer?.kill();
@@ -491,7 +460,7 @@ import {
 			return;
 		}
 
-				const rendererKind = getRendererKindForMode(workspaceState.mode);
+			const rendererKind = getRendererKindForMode(workspaceState.mode);
 			if (renderer && getRendererKind(renderer) !== rendererKind) {
 				unbindEvents?.();
 				unbindEvents = undefined;
@@ -500,35 +469,24 @@ import {
 				renderer = undefined;
 			}
 			const firstRender = !renderer;
-				if (renderer) {
-					unbindEvents?.();
-					stopForceLayoutSimulation();
-					setRendererPalette(renderer, palette);
-					setRendererManualLayout(renderer, workspaceState.manualLayout);
-					renderer.setGraph(graph);
-					unbindEvents = bindEventsForRenderer(renderer);
-				} else {
-					const nextRenderer = await createGraphRenderer({
-						graph,
-						container: canvas,
-						palette,
-						kind: rendererKind,
-						manualLayout: workspaceState.manualLayout,
-						fadeDistance: workspaceState.fadeDistance,
-						labelSize: workspaceState.labelSize,
-						labelPosition: workspaceState.labelPosition,
-						labelColor: workspaceState.labelColor,
-						labelBackgroundOpacity:
-							workspaceState.labelBackgroundOpacity,
-						labelDensity: workspaceState.labelDensity,
-						cubeFaceOpacity: workspaceState.cubeFaceOpacity,
-						enableForceLayout: workspaceState.enableForceLayout,
-						forceLabels: workspaceState.forceLabels,
-						isStale: () => version !== renderVersion,
-					});
-					if (!nextRenderer) {
-						return;
-					}
+			if (renderer) {
+				unbindEvents?.();
+				stopForceLayoutSimulation();
+				setRendererPalette(renderer, palette);
+				setRendererManualLayout(renderer, workspaceState.manualLayout);
+				renderer.setGraph(graph);
+				unbindEvents = bindEventsForRenderer(renderer);
+			} else {
+				const nextRenderer = await createWorkspaceGraphRenderer({
+					graph,
+					container: canvas,
+					palette,
+					state: workspaceState,
+					isStale: () => version !== renderVersion,
+				});
+				if (!nextRenderer) {
+					return;
+				}
 				if (version !== renderVersion) {
 					nextRenderer.kill();
 					return;
@@ -560,147 +518,65 @@ import {
 		}
 
 		function bindEventsForRenderer(targetRenderer: GraphRenderer): () => void {
-			const capabilities = getModeCapabilities(workspaceState.mode);
-			const baseCallbacks = {
+			return bindWorkspaceRendererEvents({
+				renderer: targetRenderer,
+				mode: workspaceState.mode,
+				enableForceLayout: workspaceState.enableForceLayout,
+				getLayoutSnapshot,
+				getOrCreateForceLayoutSimulation,
+				getForceLayoutSimulation: () => forceLayoutSimulation,
+				getSuppressNodeOpenUntil: () => suppressNodeOpenUntil,
+				setSuppressNodeOpenUntil: (value) => {
+					suppressNodeOpenUntil = value;
+				},
+				getActiveNodeDropGroupId: () => activeNodeDropGroupId,
+				setActiveNodeDropGroupId: (groupId) => {
+					activeNodeDropGroupId = groupId;
+				},
 				onSelect: (nodeId?: string) => controller.selectNode(nodeId),
 				onHover: (nodeId?: string) => controller.hoverNode(nodeId),
 				onOpen: (nodeId: string) => void controller.openNode(nodeId),
 				onConnectionDrag: setGraphConnectionDrag,
 				onConnect: connectVisibleNodes,
-			};
-
-			return bindRendererEvents(targetRenderer, {
-				force3d: () => baseCallbacks,
-				cube3d: (cubeRenderer) => ({
-					...baseCallbacks,
-					onNodeDrag: (nodeId, position) => {
-						getLayoutSnapshot().positions.set(nodeId, position);
-					},
-					onNodeDragEnd: (nodeId) => {
-						const position = getLayoutSnapshot().positions.get(nodeId);
-						if (position) {
-							controller.setManualNodePosition(
-								nodeId,
-								position,
-								cubeRenderer.getNodeFace(nodeId),
-							);
-						}
-					},
-				}),
-				sigma: (sigmaRenderer) => ({
-					...baseCallbacks,
-					enableForceLayout:
-						capabilities.usesSigmaForceSimulation &&
-						workspaceState.enableForceLayout,
-					enableNodeDragging: capabilities.supportsFreeNodeDrag,
-					onOpen: (nodeId) => {
-						if (!shouldOpenNode(Date.now(), suppressNodeOpenUntil)) {
-							return;
-						}
-						void controller.openNode(nodeId);
-					},
-					onNodeDrag: (nodeId, position) => {
-						suppressNodeOpenUntil = getNextNodeOpenSuppressUntil(Date.now());
-						sigmaRenderer.holdCurrentBounds();
-						if (getSigmaDragAction(capabilities).kind === "manual-position") {
-							sigmaRenderer.runtimeGraph.mergeNodeAttributes(nodeId, {
-								x: position.x,
-								y: position.y,
-								fixed: true,
-							});
-						} else {
-							getOrCreateForceLayoutSimulation(sigmaRenderer).drag(
-								nodeId,
-								position,
-							);
-						}
-						getLayoutSnapshot().positions.set(nodeId, position);
-						if (capabilities.supportsFreeNodeDrag) {
-							const viewportPosition =
-								sigmaRenderer.instance.graphToViewport(position);
-							activeNodeDropGroupId =
-								sigmaRenderer.getGroupAtViewportPosition(viewportPosition);
-							sigmaRenderer.setActiveDropGroup(activeNodeDropGroupId);
-						}
-						sigmaRenderer.instance.refresh();
-					},
-					onNodeDragEnd: (nodeId) => {
-						suppressNodeOpenUntil = getNextNodeOpenSuppressUntil(Date.now());
-						if (
-							getSigmaDragEndAction(capabilities).kind ===
-							"commit-manual-position"
-						) {
-							const position = getLayoutSnapshot().positions.get(nodeId);
-							if (position) {
-								controller.setManualNodePosition(
-									nodeId,
-									position,
-									activeNodeDropGroupId,
-								);
-							}
-							sigmaRenderer.setActiveDropGroup(undefined);
-							activeNodeDropGroupId = undefined;
-							return;
-						}
-						forceLayoutSimulation?.release(nodeId);
-					},
-				}),
+				onCommitManualNodePosition: (nodeId, position, groupId) => {
+					controller.setManualNodePosition(nodeId, position, groupId);
+				},
 			});
 		}
 
-			function syncRendererGroups(): void {
-				if (!renderer || isForce3DRenderer(renderer)) {
-					return;
-				}
-				if (isCube3DRenderer(renderer)) {
-					renderer.setManualLayout(workspaceState.manualLayout);
-					return;
-				}
-			renderer.setGroups(
-				getModeCapabilities(workspaceState.mode).supportsManualGroups
-					? workspaceState.manualLayout.groups
-					: [],
-					{
-						onMovePreview: moveRuntimeGroupNodes,
-						onMoveCommit: (groupId, delta) =>
-							controller.moveGroup(groupId, delta),
-						onResizeCommit: (groupId, geometry) =>
-							controller.resizeGroup(groupId, geometry),
-						getGroupNodeIds: (groupId) =>
-							getManualGroupNodeIds(
-								workspaceState.manualLayout.nodes,
-								groupId,
-							),
-					},
-				);
-			}
+		function syncRendererGroups(): void {
+			syncWorkspaceRendererGroups(
+				renderer,
+				workspaceState.mode,
+				workspaceState.manualLayout,
+				{
+					onMovePreview: moveRuntimeGroupNodes,
+					onMoveCommit: (groupId, delta) =>
+						controller.moveGroup(groupId, delta),
+					onResizeCommit: (groupId, geometry) =>
+						controller.resizeGroup(groupId, geometry),
+				},
+			);
+		}
 
-			function moveRuntimeGroupNodes(
-				groupId: string,
-				delta: { x: number; y: number },
-			): void {
-				if (
-					!renderer ||
-					isForce3DRenderer(renderer) ||
-					isCube3DRenderer(renderer)
-				) {
-					return;
-				}
-				moveRuntimeManualGroupNodes(
-					renderer.runtimeGraph,
-					getLayoutSnapshot().positions,
-					workspaceState.manualLayout.nodes,
-					groupId,
-					delta,
-				);
-				renderer.instance.refresh();
-			}
+		function moveRuntimeGroupNodes(
+			groupId: string,
+			delta: { x: number; y: number },
+		): void {
+			moveWorkspaceRuntimeGroupNodes(
+				renderer,
+				getLayoutSnapshot(),
+				workspaceState.manualLayout,
+				groupId,
+				delta,
+			);
+		}
 
 		function getOrCreateForceLayoutSimulation(
-		targetRenderer: SigmaRenderer,
-	): D3ForceSimulation {
-		if (!forceLayoutSimulation) {
-			forceLayoutSimulation = new D3ForceSimulation(
+			targetRenderer: SigmaRenderer,
+		): D3ForceSimulation {
+			if (!forceLayoutSimulation) {
+				forceLayoutSimulation = new D3ForceSimulation(
 					targetRenderer.runtimeGraph,
 					targetRenderer,
 					workspaceState.graphSpacing,
@@ -720,13 +596,13 @@ import {
 		}
 
 		function snapshotCurrentGraphPositions(graph: RuntimeGraph): void {
-		const positions = getLayoutSnapshot().positions;
-		graph.forEachNode((nodeId, attributes) => {
-			if (!attributes.isBend) {
-				positions.set(nodeId, { x: attributes.x, y: attributes.y });
-			}
-		});
-	}
+			const positions = getLayoutSnapshot().positions;
+			graph.forEachNode((nodeId, attributes) => {
+				if (!attributes.isBend) {
+					positions.set(nodeId, { x: attributes.x, y: attributes.y });
+				}
+			});
+		}
 
 		const selectedNode = $derived(
 			workspaceState.projection?.nodes.find(
@@ -861,82 +737,6 @@ import {
 		window.requestAnimationFrame(() => renderer?.focusNode(nodeId));
 	}
 
-	function handleDockLinkPointerDown(
-		payload: DockDragPayload,
-		event: PointerEvent,
-	): void {
-		if (
-			!canvas ||
-			!renderer ||
-			!(event.currentTarget instanceof HTMLElement)
-		) {
-			return;
-		}
-			const source = readElementCenterViewportPosition(
-				canvas,
-				event.currentTarget,
-			);
-			const point = readViewportPoint(event.clientX, event.clientY);
-			dockDrag = payload;
-			dockConnectionDrag = payload;
-			connectionDrag = createDockConnectionDragState(payload, source, point);
-		window.addEventListener("pointermove", handleDockLinkPointerMove, {
-			capture: true,
-		});
-		window.addEventListener("pointerup", handleDockLinkPointerUp, {
-			capture: true,
-			once: true,
-		});
-	}
-
-	function handleDockLinkPointerMove(event: PointerEvent): void {
-		if (!connectionDrag || !dockConnectionDrag) {
-			return;
-		}
-		event.preventDefault();
-		const point = readViewportPoint(event.clientX, event.clientY);
-		const targetNodeId = readNodeAtClientPosition(
-			event.clientX,
-			event.clientY,
-			dockConnectionDrag,
-		);
-		setDockTarget(targetNodeId);
-			connectionDrag = updateDockConnectionDragState(
-				connectionDrag,
-				point,
-				targetNodeId,
-			);
-	}
-
-	function handleDockLinkPointerUp(event: PointerEvent): void {
-		if (!dockConnectionDrag) {
-			return;
-		}
-		const payload = dockConnectionDrag;
-		const targetNodeId =
-			dockTargetNodeId ??
-			readNodeAtClientPosition(event.clientX, event.clientY, payload);
-		resetDockConnectionDrag();
-		if (!targetNodeId) {
-			return;
-		}
-			handleDockPayloadGraphAction(
-				resolveDockPayloadGraphAction(payload, targetNodeId),
-			);
-		}
-
-	function resetDockConnectionDrag(): void {
-		window.removeEventListener("pointermove", handleDockLinkPointerMove, {
-			capture: true,
-		});
-		window.removeEventListener("pointerup", handleDockLinkPointerUp, {
-			capture: true,
-		});
-		connectionDrag = undefined;
-		dockConnectionDrag = undefined;
-		resetDockDrag();
-	}
-
 		function handleDockPayloadGraphAction(
 			action: DockPayloadGraphAction,
 		): void {
@@ -969,53 +769,6 @@ import {
 			);
 	}
 
-	function resetDockDrag(): void {
-		dockDrag = undefined;
-		setDockTarget(undefined);
-	}
-
-	function readNodeAtClientPosition(
-		clientX: number,
-		clientY: number,
-		payload: DockDragPayload,
-	): string | undefined {
-		if (!canvas || !renderer) {
-			return undefined;
-		}
-		const point = readViewportPoint(clientX, clientY);
-		const nodeId = renderer.getNodeAtViewportPosition({
-			x: point.x,
-			y: point.y,
-		});
-		if (!nodeId) {
-			return undefined;
-		}
-			return canDockPayloadTargetNode(payload, nodeId) ? nodeId : undefined;
-	}
-
-		function readViewportPoint(
-			clientX: number,
-			clientY: number,
-		): { x: number; y: number } {
-			return readViewportPointFromContainer(canvas, clientX, clientY);
-		}
-
-		function setDockTarget(nodeId?: string): void {
-		if (dockTargetNodeId === nodeId) {
-			return;
-		}
-		dockTargetNodeId = nodeId;
-		renderer?.setHovered(nodeId ?? workspaceState.hoveredNodeId);
-	}
-
-		function readElementAtMouseEvent(event: MouseEvent): Element | null {
-			return readElementAtPoint(
-				readWorkspaceDocument(),
-				event.clientX,
-				event.clientY,
-			);
-		}
-
 	function openCreateFromTemplateModal(
 		payload: Extract<DockDragPayload, { kind: "template" }>,
 		targetNodeId: string,
@@ -1029,44 +782,38 @@ import {
 		);
 	}
 
-		async function openCreateFromTemplateId(
-			templateId: string,
-			targetNodeId: string,
-			label = findDockTemplateLabel(workspaceState.dock.templates, templateId),
-			direction: DockConnectionDirection = "from-dock-to-graph",
-		): Promise<void> {
-			if (!label) {
-				return;
-			}
-			const filePath = await new Promise<string | undefined>(
-				(resolve) => {
-			new CreateFromTemplateModal(
-				app,
-				label,
-				findIndexedNodeTitle(debugSnapshot, targetNodeId),
-				async (name) => {
-							const path =
-								await controller.createNoteFromTemplate(
-									templateId,
-									targetNodeId,
-									name,
-									direction,
-									workspaceState.activeConnectionField,
-								);
-							resolve(path);
-						},
-					).open();
-				},
-			);
-			if (filePath) {
-				controller.addCuratedFile(filePath);
-			}
-			await openCreatedTemplateNote(filePath, openTemplateNoteInNewTab, {
+	async function openCreateFromTemplateId(
+		templateId: string,
+		targetNodeId: string,
+		label?: string,
+		direction: DockConnectionDirection = "from-dock-to-graph",
+	): Promise<void> {
+		await openWorkspaceTemplateNote({
+			app,
+			templateId,
+			targetNodeId,
+			label,
+			direction,
+			templates: workspaceState.dock.templates,
+			debugSnapshot,
+			activeConnectionField: workspaceState.activeConnectionField,
+			openInNewTab: openTemplateNoteInNewTab,
+			createNoteFromTemplate: (id, target, name, linkDirection, field) =>
+				controller.createNoteFromTemplate(
+					id,
+					target,
+					name,
+					linkDirection,
+					field,
+				),
+			addCuratedFile: (path) => controller.addCuratedFile(path),
+			opener: {
 				getFile: (path) => app.vault.getAbstractFileByPath(path),
 				isOpenableFile: (file): file is TFile => file instanceof TFile,
 				openFile: (file) => app.workspace.getLeaf("tab").openFile(file),
-			});
-		}
+			},
+		});
+	}
 
 	function readWorkspaceDocument(): Document {
 		return canvas?.ownerDocument ?? document;
@@ -1417,7 +1164,7 @@ import {
 					)}
 				onReorderNote={(path, targetPath, placement) =>
 					controller.reorderDockNote(path, targetPath, placement)}
-				onLinkPointerDown={handleDockLinkPointerDown}
+				onLinkPointerDown={dockGraphDrag.handlePointerDown}
 				onOpenNote={(nodeId) => void controller.openNode(nodeId)}
 				focusOnSelect={workspaceState.dock.focusOnSelect}
 				onToggleFocusOnSelect={() =>
