@@ -1,7 +1,20 @@
 import type { DebugSnapshot, KnowledgeNode, WorkspaceState } from '../../core/types';
+import {
+	getActiveDefaultNodeStyle,
+	getActiveNodeStyleRules,
+} from '../../graph/active-styles';
+import { resolveNodeStyle } from '../../graph/style-rules';
 
 type DockNotes = WorkspaceState['dock']['notes'];
 type SnapshotNodeIndex = { index: Pick<DebugSnapshot['index'], 'nodes'> };
+
+export interface DockNoteEntry {
+	id: string;
+	path: string;
+	title: string;
+	broken: boolean;
+	color?: string;
+}
 
 export function getSelectedDockNodes(
 	snapshot: SnapshotNodeIndex,
@@ -37,4 +50,73 @@ export function getFilePathSuggestions(snapshot: SnapshotNodeIndex): string[] {
 		.sort((first, second) =>
 			first.localeCompare(second, undefined, { sensitivity: 'base' }),
 		);
+}
+
+export function getDockNoteEntries(
+	snapshot: SnapshotNodeIndex,
+	dockNotes: DockNotes,
+	nodeColors: ReadonlyMap<string, string>,
+): DockNoteEntry[] {
+	const nodesByPath = new Map(snapshot.index.nodes.map((node) => [node.path, node]));
+	return dockNotes.map((note) => {
+		const node = nodesByPath.get(note.path);
+		if (node) {
+			return {
+				id: node.id,
+				path: node.path,
+				title: node.title,
+				broken: false,
+				color: nodeColors.get(node.path),
+			};
+		}
+
+		return {
+			id: note.id,
+			path: note.path,
+			title: getFallbackDockNoteTitle(note.path),
+			broken: true,
+		};
+	});
+}
+
+export function getWorkspaceNodeColors(
+	nodes: Iterable<KnowledgeNode>,
+	state: WorkspaceState,
+	defaultColor: string,
+): Map<string, string> {
+	const colors = new Map<string, string>();
+	for (const node of nodes) {
+		if (!colors.has(node.path)) {
+			colors.set(node.path, getWorkspaceNodeColor(node, state, defaultColor));
+		}
+	}
+	return colors;
+}
+
+export function getWorkspaceNodeColor(
+	node: KnowledgeNode,
+	state: WorkspaceState,
+	defaultColor: string,
+): string {
+	const rules = getActiveNodeStyleRules(state);
+	const defaultNodeStyle = getActiveDefaultNodeStyle(state, defaultColor);
+	return resolveNodeStyle(node, rules, defaultNodeStyle).color;
+}
+
+export function findDockTemplateLabel(
+	templates: WorkspaceState['dock']['templates'],
+	templateId: string,
+): string | undefined {
+	return templates.find((template) => template.id === templateId)?.label;
+}
+
+export function findIndexedNodeTitle(
+	snapshot: SnapshotNodeIndex,
+	nodeId: string,
+): string {
+	return snapshot.index.nodes.find((node) => node.id === nodeId)?.title ?? nodeId;
+}
+
+function getFallbackDockNoteTitle(path: string): string {
+	return path.split('/').pop()?.replace(/\.md$/u, '') ?? path;
 }
