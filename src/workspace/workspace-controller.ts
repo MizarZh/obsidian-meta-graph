@@ -1,6 +1,5 @@
 import { TFile, type App } from 'obsidian';
 import { normalizePath } from '../core/knowledge-index';
-import { extractLinkText } from '../core/link-resolver';
 import type {
 	ArcDirection,
 	ChartSource,
@@ -72,6 +71,7 @@ import {
 	reorderConnectionFieldInState,
 	setConnectionFieldModeInState,
 } from './workspace-connection-fields';
+import { WorkspaceConnectionService } from './workspace-connection-service';
 import {
 	addCuratedFilesToState,
 	clearCuratedFilesInState,
@@ -114,27 +114,17 @@ import { cloneSerializable } from './workspace-persistence';
 
 type StateListener = (state: WorkspaceState) => void;
 
-interface ConnectionUndoChange {
-	sourcePath: string;
-	field: string;
-	link: string;
-	hadField: boolean;
-	previousValue: unknown;
-}
-
-type ConnectionUndoEntry = ConnectionUndoChange[];
-
 export class WorkspaceController {
 	private state: WorkspaceState;
 	private index?: KnowledgeIndex;
 	private readonly projectionService = new WorkspaceProjectionService();
+	private readonly connectionService: WorkspaceConnectionService<TFile>;
 	private readonly listeners = new Set<StateListener>();
 	private unresolvedLinks: UnresolvedLink[] = [];
 	private metadataSources: MetadataDebugEntry[] = [];
 	private rendererDebugState: RendererDebugState = { status: 'idle' };
 	private rebuildTimer?: number;
 	private pendingRefreshForceLayout = false;
-	private readonly connectionUndoStack: ConnectionUndoEntry[] = [];
 	private destroyed = false;
 
 	constructor(
@@ -146,6 +136,17 @@ export class WorkspaceController {
 		document?: MetaGraphDocument,
 	) {
 		this.state = createWorkspaceState(maxNodes, fadeDistance, document);
+		this.connectionService = new WorkspaceConnectionService<TFile>({
+			getFile: (path) => this.app.vault.getAbstractFileByPath(path),
+			isFile: (value): value is TFile => value instanceof TFile,
+			getPath: (file) => file.path,
+			generateMarkdownLink: (targetFile, sourcePath) =>
+				this.app.fileManager.generateMarkdownLink(targetFile, sourcePath),
+			processFrontMatter: (file, callback) =>
+				this.app.fileManager.processFrontMatter(file, callback),
+			resolveLink: (linkText, sourcePath) =>
+				this.app.metadataCache.getFirstLinkpathDest(linkText, sourcePath),
+		});
 	}
 
 	get snapshot(): WorkspaceState {
@@ -823,11 +824,19 @@ export class WorkspaceController {
 		direction: DockConnectionDirection = 'from-graph-to-dock',
 		field = this.state.activeConnectionField,
 	): Promise<void> {
-		const [sourceNodeId, targetPath] =
-			direction === 'from-dock-to-graph'
-				? [notePath, targetNodeId]
-				: [targetNodeId, notePath];
-		await this.connectNodes(sourceNodeId, targetPath, field);
+		const normalizedField = field.trim();
+		if (!normalizedField) {
+			return;
+		}
+		this.setActiveConnectionField(normalizedField);
+		const changed = await this.connectionService.connectDockNote(
+			notePath,
+			targetNodeId,
+			direction,
+			normalizedField,
+			this.getConnectionModeForField(normalizedField),
+		);
+		this.afterConnectionChange(changed);
 	}
 
 	async createNoteFromTemplate(
@@ -1034,115 +1043,22 @@ export class WorkspaceController {
 		if (!normalizedField || sourceNodeId === targetNodeId) {
 			return;
 		}
-		const sourceFile = this.app.vault.getAbstractFileByPath(sourceNodeId);
-		const targetFile = this.app.vault.getAbstractFileByPath(targetNodeId);
-		if (!(sourceFile instanceof TFile) || !(targetFile instanceof TFile)) {
-			return;
-		}
-
 		this.setActiveConnectionField(normalizedField);
-		const mode = this.getConnectionModeForField(normalizedField);
-		if (mode === 'reverse') {
-			const reverseLink = this.app.fileManager.generateMarkdownLink(
-				sourceFile,
-				targetFile.path,
-			);
-			const undo = await this.addFrontmatterConnection(
-				targetFile,
-				sourceFile,
-				normalizedField,
-				reverseLink,
-			);
-			if (undo.length > 0) {
-				this.connectionUndoStack.push(undo);
-				this.updateConnectionUndoCount();
-				this.scheduleRefresh(
-					this.state.mode === 'flow' && this.relayoutFlowAfterConnection,
-				);
-			}
-			return;
-		}
-		const link = this.app.fileManager.generateMarkdownLink(
-			targetFile,
-			sourceFile.path,
-		);
-		const undo = await this.addFrontmatterConnection(
-			sourceFile,
-			targetFile,
+		const changed = await this.connectionService.connectNodes(
+			sourceNodeId,
+			targetNodeId,
 			normalizedField,
-			link,
+			this.getConnectionModeForField(normalizedField),
 		);
-		if (mode === 'bidirectional') {
-			const reverseLink = this.app.fileManager.generateMarkdownLink(
-				sourceFile,
-				targetFile.path,
-			);
-			const reverseUndo = await this.addFrontmatterConnection(
-				targetFile,
-				sourceFile,
-				normalizedField,
-				reverseLink,
-			);
-			undo.push(...reverseUndo);
-		}
-		if (undo.length > 0) {
-			this.connectionUndoStack.push(undo);
-			this.updateConnectionUndoCount();
-			this.scheduleRefresh(
-				this.state.mode === 'flow' && this.relayoutFlowAfterConnection,
-			);
-		}
+		this.afterConnectionChange(changed);
 	}
 
 	async undoLastConnection(): Promise<void> {
-		while (this.connectionUndoStack.length > 0) {
-			const undo = this.connectionUndoStack.pop();
-			if (!undo) {
-				break;
-			}
-			const changed = await this.undoFrontmatterChanges(undo);
-			this.updateConnectionUndoCount();
-			if (changed) {
-				this.scheduleRefresh();
-				return;
-			}
-		}
+		const changed = await this.connectionService.undoLastConnection();
 		this.updateConnectionUndoCount();
-	}
-
-	private async undoFrontmatterChanges(
-		changes: ConnectionUndoEntry,
-	): Promise<boolean> {
-		let changed = false;
-		for (const undo of [...changes].reverse()) {
-			const sourceFile = this.app.vault.getAbstractFileByPath(undo.sourcePath);
-			if (!(sourceFile instanceof TFile)) {
-				continue;
-			}
-
-			await this.app.fileManager.processFrontMatter(sourceFile, (frontmatter) => {
-				const data = asFrontmatterRecord(frontmatter);
-				const currentValue = data[undo.field];
-				const currentValues = toFrontmatterArray(currentValue);
-				const remainingValues = currentValues.filter(
-					(value) => !frontmatterValueEquals(value, undo.link),
-				);
-				if (remainingValues.length === currentValues.length) {
-					return;
-				}
-
-				const previousValues = toFrontmatterArray(undo.previousValue);
-				if (undo.hadField && valuesEqual(remainingValues, previousValues)) {
-					data[undo.field] = undo.previousValue;
-				} else if (!undo.hadField && remainingValues.length === 0) {
-					delete data[undo.field];
-				} else {
-					data[undo.field] = remainingValues;
-				}
-				changed = true;
-			});
+		if (changed) {
+			this.scheduleRefresh();
 		}
-		return changed;
 	}
 
 	dispose(): void {
@@ -1226,8 +1142,18 @@ export class WorkspaceController {
 		}
 	}
 
+	private afterConnectionChange(changed: boolean): void {
+		if (!changed) {
+			return;
+		}
+		this.updateConnectionUndoCount();
+		this.scheduleRefresh(
+			this.state.mode === 'flow' && this.relayoutFlowAfterConnection,
+		);
+	}
+
 	private updateConnectionUndoCount(): void {
-		const connectionUndoCount = this.connectionUndoStack.length;
+		const connectionUndoCount = this.connectionService.undoCount;
 		if (this.state.connectionUndoCount === connectionUndoCount) {
 			return;
 		}
@@ -1283,97 +1209,6 @@ export class WorkspaceController {
 		return updateActiveChartState(this.state, patch, forceLayout);
 	}
 
-	private frontmatterValueLinksToTarget(
-		value: unknown,
-		sourcePath: string,
-		targetPath: string,
-	): boolean {
-		if (typeof value !== 'string') {
-			return false;
-		}
-		const linkText = extractLinkText(value);
-		const resolved = this.app.metadataCache.getFirstLinkpathDest(
-			linkText,
-			sourcePath,
-		);
-		return normalizePath(resolved?.path ?? linkText) === normalizePath(targetPath);
-	}
-
-	private async addFrontmatterConnection(
-		sourceFile: TFile,
-		targetFile: TFile,
-		field: string,
-		link: string,
-	): Promise<ConnectionUndoChange[]> {
-		let undo: ConnectionUndoChange | undefined;
-		await this.app.fileManager.processFrontMatter(sourceFile, (frontmatter) => {
-			const data = asFrontmatterRecord(frontmatter);
-			const hadField = Object.prototype.hasOwnProperty.call(data, field);
-			const currentValue = data[field];
-			const currentValues = toFrontmatterArray(currentValue);
-			if (
-				currentValues.some((value) =>
-					this.frontmatterValueLinksToTarget(
-						value,
-						sourceFile.path,
-						targetFile.path,
-					),
-				)
-			) {
-				return;
-			}
-			undo = {
-				sourcePath: sourceFile.path,
-				field,
-				link,
-				hadField,
-				previousValue: cloneFrontmatterValue(currentValue),
-			};
-			data[field] = [...currentValues, link];
-		});
-		return undo ? [undo] : [];
-	}
-
-}
-
-function asFrontmatterRecord(value: unknown): Record<string, unknown> {
-	return value && typeof value === 'object' && !Array.isArray(value)
-		? (value as Record<string, unknown>)
-		: {};
-}
-
-function toFrontmatterArray(value: unknown): unknown[] {
-	if (Array.isArray(value)) {
-		return value;
-	}
-	return value === undefined || value === null ? [] : [value];
-}
-
-function cloneFrontmatterValue(value: unknown): unknown {
-	if (Array.isArray(value)) {
-		return value.map((item) => cloneFrontmatterValue(item));
-	}
-	if (isRecord(value)) {
-		return Object.fromEntries(
-			Object.entries(value).map(([key, item]) => [
-				key,
-				cloneFrontmatterValue(item),
-			]),
-		);
-	}
-	return value;
-}
-
-function frontmatterValueEquals(value: unknown, expected: string): boolean {
-	return typeof value === 'string' && value.trim() === expected.trim();
-}
-
-function valuesEqual(left: unknown[], right: unknown[]): boolean {
-	return JSON.stringify(left) === JSON.stringify(right);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 function mapSetsToRecord(
