@@ -31,23 +31,40 @@ import type {
 	ViewMode,
 	WorkspaceState,
 } from '../core/types';
-import {
-	addCuratedFilePaths,
-	removeCuratedFilePaths,
-	renameCuratedFilePath,
-} from './curated-workspace';
 import { createWorkspaceState } from './workspace-state';
 import {
 	createDefaultCuratedWorkspace,
 	createDefaultChart,
 	DEFAULT_CONNECTION_FIELD_MODE,
-	normalizeCuratedWorkspace,
-	normalizeGlobalLinkStyleRules,
-	normalizeGlobalNodeStyleRules,
-	normalizeLinkStyleRules,
-	normalizeNodeStyleRules,
 	serializeMetaGraphState,
 } from './meta-graph-model';
+import {
+	setArcDirectionInState,
+	setArcSpacingInState,
+	setCubeFaceOpacityInState,
+	setDefaultLinkStyleInState,
+	setDefaultNodeStyleInState,
+	setEnableForceLayoutInState,
+	setFadeDistanceInState,
+	setFlowDirectionInState,
+	setFlowEdgeStyleInState,
+	setFlowSpacingInState,
+	setForceLabelsInState,
+	setGlobalLinkStyleRulesInState,
+	setGlobalNodeStyleRulesInState,
+	setGraphForceSettingInState,
+	setGraphSpacingInState,
+	setLabelBackgroundOpacityInState,
+	setLabelColorInState,
+	setLabelDensityInState,
+	setLabelPositionInState,
+	setLabelSizeInState,
+	setLinkStyleOverridesInState,
+	setLinkStyleRulesInState,
+	setNodeStyleOverridesInState,
+	setNodeStyleRulesInState,
+	type GraphForceSettingKey,
+} from './workspace-chart-settings';
 import {
 	addConnectionFieldToState,
 	findConnectionFieldSpec,
@@ -56,9 +73,17 @@ import {
 	setConnectionFieldModeInState,
 } from './workspace-connection-fields';
 import {
+	addCuratedFilesToState,
+	clearCuratedFilesInState,
+	pruneMissingCuratedFiles,
+	removeCuratedFilesFromState,
+	renameCuratedFilePathInState,
+	reorderCuratedFileInState,
+	updateCuratedWorkspaceInState,
+} from './workspace-curated-state';
+import {
 	addDockNote as addDockNoteToState,
 	addDockTemplate as addDockTemplateToState,
-	moveRelative,
 	removeDockNote as removeDockNoteFromState,
 	removeDockTemplate as removeDockTemplateFromState,
 	reorderDockNote as reorderDockNoteInState,
@@ -71,7 +96,6 @@ import {
 	type ReorderPlacement,
 } from './workspace-dock-state';
 import {
-	addManualPlacements,
 	createUniqueDefaultGroup,
 	findManualPlacement,
 	getManualGroup,
@@ -79,7 +103,6 @@ import {
 	normalizeCubeLayout,
 	normalizeGroupPatch,
 	readGroupPlacementBounds,
-	removeManualPlacements,
 } from './workspace-manual-layout';
 import {
 	WorkspaceProjectionService,
@@ -365,152 +388,57 @@ export class WorkspaceController {
 	}
 
 	setFlowEdgeStyle(flowEdgeStyle: FlowEdgeStyle): void {
-		this.state = this.updateActiveChart({
-			layout: {
-				...this.getActiveChart().layout,
-				edgeStyle: flowEdgeStyle,
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(setFlowEdgeStyleInState(this.state, flowEdgeStyle));
 	}
 
 	setFlowDirection(flowDirection: FlowDirection): void {
-		this.state = this.updateActiveChart({
-			layout: {
-				...this.getActiveChart().layout,
-				direction: flowDirection,
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(setFlowDirectionInState(this.state, flowDirection));
 	}
 
 	setArcDirection(arcDirection: ArcDirection): void {
-		this.state = this.updateActiveChart(
-			{
-				layout: {
-					...this.getActiveChart().layout,
-					arcDirection,
-				},
-			},
-			true,
-		);
-		this.emit();
+		this.setWorkspaceState(setArcDirectionInState(this.state, arcDirection));
 	}
 
 	setFadeDistance(fadeDistance: number): void {
-		if (this.getActiveChart().display.fadeDistance === fadeDistance) {
-			return;
-		}
-		this.state = this.updateActiveChart({
-			display: {
-				...this.getActiveChart().display,
-				fadeDistance,
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(setFadeDistanceInState(this.state, fadeDistance));
 	}
 
 	setLabelSize(labelSize: number): void {
-		if (this.getActiveChart().display.labelSize === labelSize) {
-			return;
-		}
-		this.state = this.updateActiveChart({
-			display: {
-				...this.getActiveChart().display,
-				labelSize,
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(setLabelSizeInState(this.state, labelSize));
 	}
 
 	setLabelPosition(labelPosition: LabelPosition): void {
-		this.state = this.updateActiveChart({
-			display: {
-				...this.getActiveChart().display,
-				labelPosition,
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(setLabelPositionInState(this.state, labelPosition));
 	}
 
 	setLabelColor(labelColor: string): void {
-		this.state = this.updateActiveChart({
-			display: {
-				...this.getActiveChart().display,
-				labelColor,
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(setLabelColorInState(this.state, labelColor));
 	}
 
 	setLabelBackgroundOpacity(labelBackgroundOpacity: number): void {
-		if (
-			this.getActiveChart().display.labelBackgroundOpacity ===
-			labelBackgroundOpacity
-		) {
-			return;
-		}
-		this.state = this.updateActiveChart({
-			display: {
-				...this.getActiveChart().display,
-				labelBackgroundOpacity,
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(
+			setLabelBackgroundOpacityInState(this.state, labelBackgroundOpacity),
+		);
 	}
 
 	setLabelDensity(labelDensity: number): void {
-		const density = Math.max(0, Math.min(1, labelDensity));
-		if (this.getActiveChart().display.labelDensity === density) {
-			return;
-		}
-		this.state = this.updateActiveChart({
-			display: {
-				...this.getActiveChart().display,
-				labelDensity: density,
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(setLabelDensityInState(this.state, labelDensity));
 	}
 
 	setCubeFaceOpacity(cubeFaceOpacity: number): void {
-		const opacity = Math.max(0.05, Math.min(1, cubeFaceOpacity));
-		if (this.getActiveChart().display.cubeFaceOpacity === opacity) {
-			return;
-		}
-		this.state = this.updateActiveChart({
-			display: {
-				...this.getActiveChart().display,
-				cubeFaceOpacity: opacity,
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(
+			setCubeFaceOpacityInState(this.state, cubeFaceOpacity),
+		);
 	}
 
 	setForceLabels(forceLabels: boolean): void {
-		if (this.getActiveChart().display.forceLabels === forceLabels) {
-			return;
-		}
-		this.state = this.updateActiveChart({
-			display: {
-				...this.getActiveChart().display,
-				forceLabels,
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(setForceLabelsInState(this.state, forceLabels));
 	}
 
 	setEnableForceLayout(enableForceLayout: boolean): void {
-		if (this.getActiveChart().display.enableForceLayout === enableForceLayout) {
-			return;
-		}
-		this.state = this.updateActiveChart({
-			display: {
-				...this.getActiveChart().display,
-				enableForceLayout,
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(
+			setEnableForceLayoutInState(this.state, enableForceLayout),
+		);
 	}
 
 	setManualNodePosition(
@@ -717,19 +645,7 @@ export class WorkspaceController {
 	}
 
 	setGraphSpacing(graphSpacing: number): void {
-		const spacing = normalizeSpacing(graphSpacing);
-		if (this.getActiveChart().layout.spacing === spacing) {
-			return;
-		}
-		this.state = this.updateActiveChart(
-			{
-				layout: {
-					...this.getActiveChart().layout,
-					spacing,
-				},
-			},
-		);
-		this.emit();
+		this.setWorkspaceState(setGraphSpacingInState(this.state, graphSpacing));
 	}
 
 	setGraphCenterForce(centerForce: number): void {
@@ -757,37 +673,11 @@ export class WorkspaceController {
 	}
 
 	setFlowSpacing(flowSpacing: number): void {
-		const spacing = normalizeSpacing(flowSpacing);
-		if (this.getActiveChart().layout.spacing === spacing) {
-			return;
-		}
-		this.state = this.updateActiveChart(
-			{
-				layout: {
-					...this.getActiveChart().layout,
-					spacing,
-				},
-			},
-			true,
-		);
-		this.emit();
+		this.setWorkspaceState(setFlowSpacingInState(this.state, flowSpacing));
 	}
 
 	setArcSpacing(arcSpacing: number): void {
-		const spacing = normalizeSpacing(arcSpacing);
-		if (this.getActiveChart().layout.spacing === spacing) {
-			return;
-		}
-		this.state = this.updateActiveChart(
-			{
-				layout: {
-					...this.getActiveChart().layout,
-					spacing,
-				},
-			},
-			true,
-		);
-		this.emit();
+		this.setWorkspaceState(setArcSpacingInState(this.state, arcSpacing));
 	}
 
 	addCuratedFile(path: NodeId, groupId?: string): void {
@@ -795,22 +685,10 @@ export class WorkspaceController {
 	}
 
 	addCuratedFiles(paths: NodeId[], groupId?: string): void {
-		const activeChart = this.getActiveChart();
-		const update = addCuratedFilePaths(activeChart.curated, paths);
-		if (!update.changed) {
-			return;
-		}
-		const layout = addManualPlacements(
-			activeChart.layout,
-			activeChart.curated.files.map((file) => file.path),
-			update.curated.files.map((file) => file.path),
-			groupId,
-		);
-		this.state = this.updateActiveChart(
-			{ curated: update.curated, layout },
+		this.setWorkspaceState(
+			addCuratedFilesToState(this.state, paths, groupId),
 			true,
 		);
-		this.runQuery();
 	}
 
 	removeCuratedFile(path: NodeId): void {
@@ -818,19 +696,7 @@ export class WorkspaceController {
 	}
 
 	removeCuratedFiles(paths: NodeId[]): void {
-		const activeChart = this.getActiveChart();
-		const update = removeCuratedFilePaths(activeChart.curated, paths);
-		if (!update.changed) {
-			return;
-		}
-		this.state = this.updateActiveChart(
-			{
-				curated: update.curated,
-				layout: removeManualPlacements(activeChart.layout, paths),
-			},
-			true,
-		);
-		this.runQuery();
+		this.setWorkspaceState(removeCuratedFilesFromState(this.state, paths), true);
 	}
 
 	reorderCuratedFile(
@@ -838,53 +704,18 @@ export class WorkspaceController {
 		targetPath: NodeId,
 		placement: ReorderPlacement,
 	): void {
-		const activeChart = this.getActiveChart();
-		const files = moveRelative(
-			activeChart.curated.files,
-			(file) => file.path === path,
-			(file) => file.path === targetPath,
-			placement,
+		this.setWorkspaceState(
+			reorderCuratedFileInState(this.state, path, targetPath, placement),
+			true,
 		);
-		if (files === activeChart.curated.files) {
-			return;
-		}
-		const curated = normalizeCuratedWorkspace({
-			...activeChart.curated,
-			files,
-		});
-		this.state = this.updateActiveChart({ curated });
-		this.runQuery();
 	}
 
 	clearCuratedFiles(): void {
-		const activeChart = this.getActiveChart();
-		if (activeChart.curated.files.length === 0) {
-			return;
-		}
-		this.state = this.updateActiveChart(
-			{
-				curated: normalizeCuratedWorkspace({
-					...activeChart.curated,
-					files: [],
-				}),
-				layout: removeManualPlacements(
-					activeChart.layout,
-					activeChart.curated.files.map((file) => file.path),
-				),
-			},
-			true,
-		);
-		this.runQuery();
+		this.setWorkspaceState(clearCuratedFilesInState(this.state), true);
 	}
 
 	updateCuratedWorkspace(patch: Partial<CuratedWorkspaceConfig>): void {
-		const activeChart = this.getActiveChart();
-		const curated = normalizeCuratedWorkspace({
-			...activeChart.curated,
-			...patch,
-		});
-		this.state = this.updateActiveChart({ curated }, true);
-		this.runQuery();
+		this.setWorkspaceState(updateCuratedWorkspaceInState(this.state, patch), true);
 	}
 
 	getDocument(): MetaGraphDocument {
@@ -964,33 +795,11 @@ export class WorkspaceController {
 	}
 
 	updateCuratedFilePath(oldPath: string, newPath: string): boolean {
-		const normalizedOld = normalizePath(oldPath);
-		const normalizedNew = normalizePath(newPath);
-		if (normalizedOld === normalizedNew) {
+		const state = renameCuratedFilePathInState(this.state, oldPath, newPath);
+		if (state === this.state) {
 			return false;
 		}
-		let changed = false;
-		const charts = this.state.charts.map((chart) => {
-			const update = renameCuratedFilePath(
-				chart.curated,
-				normalizedOld,
-				normalizedNew,
-			);
-			changed ||= update.changed;
-			return update.changed ? { ...chart, curated: update.curated } : chart;
-		});
-		if (!changed) {
-			return false;
-		}
-		const activeChart = charts.find(
-			(chart) => chart.id === this.state.activeChartId,
-		);
-		this.state = {
-			...this.state,
-			charts,
-			curated: cloneSerializable(activeChart?.curated ?? this.state.curated),
-		};
-		this.emit();
+		this.setWorkspaceState(state);
 		return true;
 	}
 
@@ -1066,75 +875,47 @@ export class WorkspaceController {
 	}
 
 	setGlobalNodeStyleRules(nodeStyleRules: NodeStyleRule[]): void {
-		this.state = {
-			...this.state,
-			globalNodeStyleRules: normalizeGlobalNodeStyleRules(nodeStyleRules),
-		};
-		this.emit();
+		this.setWorkspaceState(
+			setGlobalNodeStyleRulesInState(this.state, nodeStyleRules),
+		);
 	}
 
 	setGlobalLinkStyleRules(linkStyleRules: LinkStyleRule[]): void {
-		this.state = {
-			...this.state,
-			globalLinkStyleRules: normalizeGlobalLinkStyleRules(linkStyleRules),
-		};
-		this.emit();
+		this.setWorkspaceState(
+			setGlobalLinkStyleRulesInState(this.state, linkStyleRules),
+		);
 	}
 
 	setDefaultNodeStyle(defaultNodeStyle: Required<DefaultNodeStyle>): void {
-		this.state = {
-			...this.state,
-			defaultNodeStyle: cloneSerializable(defaultNodeStyle),
-		};
-		this.emit();
+		this.setWorkspaceState(
+			setDefaultNodeStyleInState(this.state, defaultNodeStyle),
+		);
 	}
 
 	setDefaultLinkStyle(defaultLinkStyle: Required<DefaultLinkStyle>): void {
-		this.state = {
-			...this.state,
-			defaultLinkStyle: cloneSerializable(defaultLinkStyle),
-		};
-		this.emit();
+		this.setWorkspaceState(
+			setDefaultLinkStyleInState(this.state, defaultLinkStyle),
+		);
 	}
 
 	setNodeStyleOverrides(nodeStyleOverrides: DefaultNodeStyle): void {
-		this.state = this.updateActiveChart({
-			style: {
-				...this.getActiveChart().style,
-				nodeOverrides: cloneSerializable(nodeStyleOverrides),
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(
+			setNodeStyleOverridesInState(this.state, nodeStyleOverrides),
+		);
 	}
 
 	setLinkStyleOverrides(linkStyleOverrides: DefaultLinkStyle): void {
-		this.state = this.updateActiveChart({
-			style: {
-				...this.getActiveChart().style,
-				linkOverrides: cloneSerializable(linkStyleOverrides),
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(
+			setLinkStyleOverridesInState(this.state, linkStyleOverrides),
+		);
 	}
 
 	setNodeStyleRules(nodeStyleRules: NodeStyleRule[]): void {
-		this.state = this.updateActiveChart({
-			style: {
-				...this.getActiveChart().style,
-				nodeRules: normalizeNodeStyleRules(nodeStyleRules),
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(setNodeStyleRulesInState(this.state, nodeStyleRules));
 	}
 
 	setLinkStyleRules(linkStyleRules: LinkStyleRule[]): void {
-		this.state = this.updateActiveChart({
-			style: {
-				...this.getActiveChart().style,
-				linkRules: normalizeLinkStyleRules(linkStyleRules),
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(setLinkStyleRulesInState(this.state, linkStyleRules));
 	}
 
 	setActiveConnectionField(field: string): void {
@@ -1415,6 +1196,19 @@ export class WorkspaceController {
 			};
 	}
 
+	private setWorkspaceState(state: WorkspaceState, runQuery = false): boolean {
+		if (state === this.state) {
+			return false;
+		}
+		this.state = state;
+		if (runQuery) {
+			this.runQuery();
+		} else {
+			this.emit();
+		}
+		return true;
+	}
+
 	private setDockState(dock: MetaGraphDock): void {
 		if (dock === this.state.dock) {
 			return;
@@ -1468,28 +1262,10 @@ export class WorkspaceController {
 	}
 
 	private setGraphForceSetting(
-		key:
-			| 'centerForce'
-			| 'repelForce'
-			| 'linkForce'
-			| 'dragLinkForce'
-			| 'returnForce'
-			| 'linkDistance',
+		key: GraphForceSettingKey,
 		value: number,
 	): void {
-		const normalized = normalizeForceSetting(value);
-		if (this.getActiveChart().layout[key] === normalized) {
-			return;
-		}
-		this.state = this.updateActiveChart(
-			{
-				layout: {
-					...this.getActiveChart().layout,
-					[key]: normalized,
-				},
-			},
-		);
-		this.emit();
+		this.setWorkspaceState(setGraphForceSettingInState(this.state, key, value));
 	}
 
 	private getConnectionModeForField(field: string): ConnectionFieldMode {
@@ -1560,14 +1336,6 @@ export class WorkspaceController {
 
 }
 
-function normalizeSpacing(value: number): number {
-	return Number.isFinite(value) && value > 0 ? value : 1;
-}
-
-function normalizeForceSetting(value: number): number {
-	return Number.isFinite(value) && value >= 0 ? value : 1;
-}
-
 function asFrontmatterRecord(value: unknown): Record<string, unknown> {
 	return value && typeof value === 'object' && !Array.isArray(value)
 		? (value as Record<string, unknown>)
@@ -1602,29 +1370,6 @@ function frontmatterValueEquals(value: unknown, expected: string): boolean {
 
 function valuesEqual(left: unknown[], right: unknown[]): boolean {
 	return JSON.stringify(left) === JSON.stringify(right);
-}
-
-function pruneMissingCuratedFiles(
-	charts: MetaGraphChart[],
-	existingPaths: Set<string>,
-): MetaGraphChart[] {
-	let changed = false;
-	const nextCharts = charts.map((chart) => {
-		const missingPaths = chart.curated.files
-			.map((file) => file.path)
-			.filter((path) => !existingPaths.has(path));
-		if (missingPaths.length === 0) {
-			return chart;
-		}
-		const update = removeCuratedFilePaths(chart.curated, missingPaths);
-		if (!update.changed) {
-			return chart;
-		}
-		const layout = removeManualPlacements(chart.layout, missingPaths);
-		changed = true;
-		return { ...chart, curated: update.curated, layout };
-	});
-	return changed ? nextCharts : charts;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
