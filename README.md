@@ -59,6 +59,10 @@ settings to report them in the developer console.
    filters support file name, path, folder, extension, tags, links, and
    frontmatter property presence.
 8. Add link style rules by relation or source frontmatter field.
+   Note and link colors, sizes, line style, labels, and hidden state update the
+   visible graph without rerunning layout. Color inputs are throttled while
+   dragging so changes preview live without rebuilding the graph for every
+   pointer event.
 9. Use **Group** settings to add chart-local groups, rename them, set colors,
    and edit their Free-view region geometry. Groups are saved in the workspace
    file, not note frontmatter.
@@ -221,6 +225,10 @@ Flow layout manually.
 Enable **Relayout Flow after connecting nodes** in the plugin settings if you
 want Flow charts to rerun layout immediately after each new connection.
 
+Style-only edits such as note/link colors, sizes, line style, labels, and
+hidden state do not run ELK layout. They update the existing runtime graph and
+refresh the renderer in place, including Flow orthogonal edge segments.
+
 ## Development
 
 This project uses pnpm, TypeScript, Svelte, Sigma.js, Graphology, D3,
@@ -254,3 +262,8 @@ The canonical knowledge model uses plain TypeScript maps and sets. Graphology is
 created from each projection and is only the runtime container used by the
 layout and rendering layers. Hierarchical edge bundling uses D3 hierarchy for
 layout calculation, then renders the positioned graph through Sigma.js.
+
+Workspace rendering separates structural changes from display changes. Query,
+projection, source, mode, and layout changes rebuild the runtime graph. Display
+settings and style-only edits update the existing renderer or runtime graph in
+place, avoiding unnecessary layout work while users tune visual settings.

@@ -52,10 +52,19 @@ Do not run `pnpm dev`, `pnpm build`, or `git diff` if the user explicitly asks n
 - `src/query/neighborhood.ts`: query projection.
 - `src/graph/graphology-adapter.ts`: projection -> runtime Graphology graph.
 - `src/graph/graph-events.ts`: Sigma events, node selection, hover, Ctrl-drag connection gesture.
+- `src/graph/renderer-adapter.ts`: renderer kind factory, renderer type guards, graph style refresh adapter.
 - `src/graph/sigma-renderer.ts`: Sigma renderer wrapper and visual reducers.
-- `src/ui/Workspace.svelte`: main workspace UI and graph rebuild/layout orchestration.
+- `src/ui/Workspace.svelte`: main workspace UI, state subscription, and graph rebuild/layout orchestration.
 - `src/ui/ConnectionPanel.svelte`: bottom connection panel.
+- `src/ui/FilterPanel.svelte`: settings panel shell for graph/filter/text/note/link controls.
 - `src/ui/Toolbar.svelte`: chart switcher, view settings, search, layout controls.
+- `src/ui/filter/`: pure helpers for filter tree editing, style-rule operations, and throttled/deferred setting commits.
+- `src/ui/workspace/change-tracker.ts`: classifies workspace changes into rebuild, display sync, style sync, and layout flags.
+- `src/ui/workspace/runtime-graph.ts`: creates runtime Graphology graphs and syncs style-only changes onto existing runtime graphs.
+- `src/ui/workspace/renderer-events.ts`: workspace renderer event policy for Sigma, 3D, and Cube renderers.
+- `src/ui/workspace/renderer-groups.ts`: renderer group overlay sync and runtime group movement previews.
+- `src/ui/workspace/dock-graph-drag.ts`: dock item -> graph node connection drag controller.
+- `src/ui/workspace/graph-dock-connection.ts`: graph node -> dock drop target connection controller.
 - `styles.css`: plugin UI styles.
 
 ## Data model
@@ -124,6 +133,30 @@ Global plugin setting:
 
 When modifying Flow behavior, avoid temporary renderer-only edges. The graph should stay synchronized with the canonical projection.
 
+## Style refresh policy
+
+Visual style edits must stay responsive and must not trigger full graph rebuilds unless the projection or layout input changed.
+
+Style-only changes include:
+
+- `defaultNodeStyle`
+- `defaultLinkStyle`
+- `nodeStyleOverrides`
+- `linkStyleOverrides`
+- `globalNodeStyleRules`
+- `globalLinkStyleRules`
+- `nodeStyleRules`
+- `linkStyleRules`
+
+These should be classified by `analyzeWorkspaceStateChanges` as `styleRulesChanged` with `shouldRebuild = false`. Apply them with `syncWorkspaceRuntimeGraphStyles`, then call `refreshRendererGraphStyles`.
+
+Important details:
+
+- Do not run ELK, ForceAtlas, Arc, or HEB layout for style-only edits.
+- Flow orthogonal edge segments must stay synchronized through `logicalEdgeId`.
+- Color controls use a throttled commit helper so drag previews update live without committing every pointer event.
+- Display settings such as label size/color/density stay in `syncRendererDisplaySettings`; do not convert them into graph rebuilds.
+
 ## Coding guidelines
 
 - Keep `src/main.ts` focused on lifecycle, commands, and view registration.
@@ -145,4 +178,5 @@ When modifying Flow behavior, avoid temporary renderer-only edges. The graph sho
 ## Documentation
 
 - `README.md` is user-facing.
-- Update both when changing major behavior, especially connection editing, undo, metadata parsing, or Flow layout policy.
+- `design.md` records current architecture, limitations, and planning notes.
+- Update docs when changing major behavior, especially connection editing, undo, metadata parsing, Flow layout policy, renderer refresh policy, or workspace/style persistence.
