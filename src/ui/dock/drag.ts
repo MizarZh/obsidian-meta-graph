@@ -1,4 +1,4 @@
-import type { DockDragPayload } from './dock-types';
+import type { DockDragPayload } from './types';
 
 export function getDockDragKey(payload: DockDragPayload): string {
 	return payload.kind === 'template'

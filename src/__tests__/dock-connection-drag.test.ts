@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	createDockConnectionDragState,
 	updateDockConnectionDragState,
-} from '../ui/dock-connection-drag';
+} from '../ui/dock/connection-drag';
 
 describe('dock connection drag state', () => {
 	it('creates connection drag state from dock payload and pointer positions', () => {

@@ -1,7 +1,7 @@
-import type { ConnectionDragState } from '../graph/graph-events';
-import type { ViewportPoint } from './dock-dom';
-import { getDockDragKey } from './dock-drag';
-import type { DockDragPayload } from './dock-types';
+import type { ConnectionDragState } from '../../graph/graph-events';
+import type { ViewportPoint } from './dom';
+import { getDockDragKey } from './drag';
+import type { DockDragPayload } from './types';
 
 export function createDockConnectionDragState(
 	payload: DockDragPayload,

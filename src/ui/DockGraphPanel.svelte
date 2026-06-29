@@ -10,7 +10,7 @@
 			DockTemplateNode,
 			KnowledgeNode,
 		} from "../core/types";
-		import type { DockDragPayload } from "./dock-types";
+		import type { DockDragPayload } from "./dock/types";
 
 		type ReorderPlacement = "before" | "after";
 

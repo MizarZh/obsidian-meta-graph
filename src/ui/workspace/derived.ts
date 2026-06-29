@@ -1,4 +1,4 @@
-import type { DebugSnapshot, KnowledgeNode, WorkspaceState } from '../core/types';
+import type { DebugSnapshot, KnowledgeNode, WorkspaceState } from '../../core/types';
 
 type DockNotes = WorkspaceState['dock']['notes'];
 type SnapshotNodeIndex = { index: Pick<DebugSnapshot['index'], 'nodes'> };

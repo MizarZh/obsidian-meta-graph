@@ -4,7 +4,7 @@ import {
 	getSigmaDragAction,
 	getSigmaDragEndAction,
 	shouldOpenNode,
-} from '../ui/graph-interaction-policy';
+} from '../ui/interactions/graph-interaction-policy';
 
 describe('graph interaction policy', () => {
 	it('maps free drag capability to manual drag actions', () => {

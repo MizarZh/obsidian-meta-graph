@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { resolveDockPayloadGraphAction } from '../ui/dock-connection';
-import type { DockDragPayload } from '../ui/dock-types';
+import { resolveDockPayloadGraphAction } from '../ui/dock/connection';
+import type { DockDragPayload } from '../ui/dock/types';
 
 describe('dock payload graph action planning', () => {
 	it('plans template creation actions', () => {

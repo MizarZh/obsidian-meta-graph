@@ -45,28 +45,27 @@
 		import { D3ForceSimulation } from "../layouts/d3-force-simulation";
 	import { extractLinkText } from "../core/link-resolver";
 	import type { WorkspaceController } from "../workspace/workspace-controller";
-	import { serializeMetaGraphState } from "../workspace/meta-graph-model";
 	import CuratedPanel from "./CuratedPanel.svelte";
 	import FilterPanel from "./FilterPanel.svelte";
 	import GroupPanel from "./GroupPanel.svelte";
 		import DebugPanel from "./DebugPanel.svelte";
 		import DockGraphPanel from "./DockGraphPanel.svelte";
-		import type { DockDragPayload } from "./dock-types";
+		import type { DockDragPayload } from "./dock/types";
 		import {
 			readDockDropTarget,
 			readElementCenterViewportPosition,
 			readElementAtPoint,
 			readViewportPoint as readViewportPointFromContainer,
-		} from "./dock-dom";
+		} from "./dock/dom";
 		import {
 			resolveDockPayloadGraphAction,
 			type DockPayloadGraphAction,
-		} from "./dock-connection";
+		} from "./dock/connection";
 		import {
 			createDockConnectionDragState,
 			updateDockConnectionDragState,
-		} from "./dock-connection-drag";
-		import { canDockPayloadTargetNode } from "./dock-drag";
+		} from "./dock/connection-drag";
+		import { canDockPayloadTargetNode } from "./dock/drag";
 		import {
 			getMetadataFieldSuggestions,
 			getMetadataFieldTypes,
@@ -75,24 +74,31 @@
 		import {
 			resolveGraphConnectionDropAction,
 			type GraphConnectionDropAction,
-		} from "./graph-connection-drop";
+		} from "./interactions/graph-connection-drop";
 		import {
 			getNextNodeOpenSuppressUntil,
 			getSigmaDragAction,
 			getSigmaDragEndAction,
 			shouldOpenNode,
-		} from "./graph-interaction-policy";
-		import { shouldHandleConnectionUndoShortcut } from "./keyboard-shortcuts";
+		} from "./interactions/graph-interaction-policy";
+		import { shouldHandleConnectionUndoShortcut } from "./interactions/keyboard-shortcuts";
 		import {
 			getManualGroupNodeIds,
 			moveRuntimeManualGroupNodes,
-		} from "./manual-layout-groups";
-		import {
-			getDockNoteCandidates,
-			getFilePathSuggestions,
-			getSelectedDockNodes,
-		} from "./workspace-derived";
-		import { getWorkspaceGraphForceSettings } from "./workspace-graph-settings";
+		} from "./interactions/manual-layout-groups";
+	import {
+		getDockNoteCandidates,
+		getFilePathSuggestions,
+		getSelectedDockNodes,
+	} from "./workspace/derived";
+	import { syncRendererDisplaySettings } from "./workspace/renderer-display-sync";
+	import { getWorkspaceGraphForceSettings } from "./workspace/graph-settings";
+	import { WorkspaceAutoSave } from "./workspace/autosave";
+	import {
+		analyzeWorkspaceStateChanges,
+		createWorkspaceRenderBaseline,
+		type WorkspaceRenderBaseline,
+	} from "./workspace/change-tracker";
 
 	import Inspector from "./Inspector.svelte";
 	import ConnectionPanel from "./ConnectionPanel.svelte";
@@ -121,29 +127,10 @@
 	let renderer: GraphRenderer | undefined;
 	let unbindEvents: (() => void) | undefined;
 	let renderVersion = 0;
-	let autoSaveTimer: number | undefined;
-	let pendingAutoSave: MetaGraphDocument | undefined;
-	let lastAutoSavedState = "";
 		let lastThemeSignature = "";
 		let lastCanvasWidth = 0;
 		let lastCanvasHeight = 0;
-		let lastProjection: WorkspaceState["projection"];
-	let lastActiveChartId: string | undefined;
-	let lastMode: WorkspaceState["mode"] | undefined;
-	let lastChartSource: WorkspaceState["chartSource"] | undefined;
-	let lastFlowEdgeStyle: WorkspaceState["flowEdgeStyle"] | undefined;
-	let lastFlowDirection: WorkspaceState["flowDirection"] | undefined;
-		let lastArcDirection: WorkspaceState["arcDirection"] | undefined;
-		let lastManualLayout: WorkspaceState["manualLayout"] | undefined;
-	let lastLayoutRevision: number | undefined;
-	let lastGlobalNodeStyleRules:
-		| WorkspaceState["globalNodeStyleRules"]
-		| undefined;
-	let lastGlobalLinkStyleRules:
-		| WorkspaceState["globalLinkStyleRules"]
-		| undefined;
-	let lastNodeStyleRules: WorkspaceState["nodeStyleRules"] | undefined;
-	let lastLinkStyleRules: WorkspaceState["linkStyleRules"] | undefined;
+	let renderBaseline: WorkspaceRenderBaseline = {};
 	let debugOpen = $state(false);
 	let settingsPanel = $state<SettingsPanelMode | undefined>(undefined);
 	let settingsPopoverLeft = $state(0);
@@ -265,9 +252,8 @@
 	}
 
 	onMount(() => {
-		lastAutoSavedState = JSON.stringify(
-			serializeMetaGraphState(controller.snapshot),
-		);
+		const autoSave = new WorkspaceAutoSave(onAutoSave, 350, window);
+		autoSave.initialize(controller.snapshot);
 			const resizeObserver = new ResizeObserver((entries) => {
 				const entry = entries[0];
 				if (
@@ -314,76 +300,16 @@
 		});
 
 		const unsubscribe = controller.subscribe((nextState) => {
-			const activeChartChanged =
-				lastActiveChartId !== undefined &&
-				nextState.activeChartId !== lastActiveChartId;
-			const modeChanged =
-				lastMode !== undefined && nextState.mode !== lastMode;
-			const chartSourceChanged =
-				lastChartSource !== undefined &&
-				nextState.chartSource !== lastChartSource;
-			const flowStyleChanged =
-				lastFlowEdgeStyle !== undefined &&
-				nextState.flowEdgeStyle !== lastFlowEdgeStyle;
-			const flowDirectionChanged =
-				lastFlowDirection !== undefined &&
-				nextState.flowDirection !== lastFlowDirection;
-				const arcDirectionChanged =
-					lastArcDirection !== undefined &&
-					nextState.arcDirection !== lastArcDirection;
-				const manualLayoutChanged =
-					lastManualLayout !== undefined &&
-					nextState.manualLayout !== lastManualLayout;
-			const layoutRevisionChanged =
-				lastLayoutRevision !== undefined &&
-				nextState.layoutRevision !== lastLayoutRevision;
-			const styleRulesChanged =
-				nextState.globalNodeStyleRules !== lastGlobalNodeStyleRules ||
-				nextState.globalLinkStyleRules !== lastGlobalLinkStyleRules ||
-				nextState.nodeStyleRules !== lastNodeStyleRules ||
-				nextState.linkStyleRules !== lastLinkStyleRules;
-				const fadeDistanceChanged =
-					nextState.fadeDistance !== workspaceState.fadeDistance;
-				const labelSizeChanged =
-					nextState.labelSize !== workspaceState.labelSize;
-				const labelPositionChanged =
-					nextState.labelPosition !== workspaceState.labelPosition;
-				const labelColorChanged =
-					nextState.labelColor !== workspaceState.labelColor;
-			const labelBackgroundOpacityChanged =
-				nextState.labelBackgroundOpacity !==
-				workspaceState.labelBackgroundOpacity;
-			const labelDensityChanged =
-				nextState.labelDensity !== workspaceState.labelDensity;
-			const cubeFaceOpacityChanged =
-				nextState.cubeFaceOpacity !== workspaceState.cubeFaceOpacity;
-			const forceLabelsChanged =
-				nextState.forceLabels !== workspaceState.forceLabels;
-			const graphForceSettingsChanged =
-				nextState.graphSpacing !== workspaceState.graphSpacing ||
-				nextState.graphCenterForce !== workspaceState.graphCenterForce ||
-				nextState.graphRepelForce !== workspaceState.graphRepelForce ||
-				nextState.graphLinkForce !== workspaceState.graphLinkForce ||
-				nextState.graphDragLinkForce !== workspaceState.graphDragLinkForce ||
-				nextState.graphReturnForce !== workspaceState.graphReturnForce ||
-				nextState.graphLinkDistance !== workspaceState.graphLinkDistance;
-			const forceLayoutChanged =
-				nextState.enableForceLayout !== workspaceState.enableForceLayout;
-			const shouldRebuild =
-				nextState.activeChartId !== lastActiveChartId ||
-				nextState.projection !== lastProjection ||
-				nextState.mode !== lastMode ||
-				nextState.chartSource !== lastChartSource ||
-					nextState.flowEdgeStyle !== lastFlowEdgeStyle ||
-						nextState.flowDirection !== lastFlowDirection ||
-						nextState.arcDirection !== lastArcDirection ||
-						nextState.layoutRevision !== lastLayoutRevision ||
-						styleRulesChanged;
-				workspaceState = nextState;
-				if (manualLayoutChanged) {
-					lastManualLayout = nextState.manualLayout;
-					syncRendererGroups();
-				}
+			const changes = analyzeWorkspaceStateChanges(
+				nextState,
+				workspaceState,
+				renderBaseline,
+			);
+			workspaceState = nextState;
+			if (changes.manualLayoutChanged) {
+				renderBaseline.manualLayout = nextState.manualLayout;
+				syncRendererGroups();
+			}
 			if (
 				(nextState.chartSource === "curated" &&
 					settingsPanel === "filters") ||
@@ -392,47 +318,18 @@
 			) {
 				settingsPanel = undefined;
 			}
-			scheduleAutoSave(nextState);
-				if (fadeDistanceChanged) {
-					renderer?.setFadeDistance(nextState.fadeDistance);
-				}
-				if (labelSizeChanged) {
-					renderer?.setLabelSize(nextState.labelSize);
-				}
-				if (labelPositionChanged) {
-					renderer?.setLabelPosition(nextState.labelPosition);
-				}
-				if (labelColorChanged) {
-					renderer?.setLabelColor(nextState.labelColor);
-				}
-			if (labelBackgroundOpacityChanged) {
-				renderer?.setLabelBackgroundOpacity(
-					nextState.labelBackgroundOpacity,
-				);
-			}
-			if (labelDensityChanged) {
-				renderer?.setLabelDensity(nextState.labelDensity);
-			}
-			if (
-				cubeFaceOpacityChanged &&
-				renderer &&
-				isCube3DRenderer(renderer)
-			) {
-				renderer.setCubeFaceOpacity(nextState.cubeFaceOpacity);
-			}
-			if (forceLabelsChanged) {
-				renderer?.setForceLabels(nextState.forceLabels);
-			}
-			if (forceLayoutChanged && renderer) {
+			autoSave.schedule(nextState);
+			syncRendererDisplaySettings(renderer, nextState, changes);
+			if (changes.forceLayoutChanged && renderer) {
 				if (isForce3DRenderer(renderer)) {
 					renderer.setEnableForceLayout(nextState.enableForceLayout);
 				}
 				unbindEvents?.();
 				unbindEvents = bindEventsForRenderer(renderer);
 				stopForceLayoutSimulation();
-			}
+				}
 				if (
-					graphForceSettingsChanged &&
+					changes.graphForceSettingsChanged &&
 					getModeCapabilities(nextState.mode).usesSigmaForceSimulation &&
 					nextState.enableForceLayout &&
 					renderer &&
@@ -442,33 +339,11 @@
 				stopForceLayoutSimulation();
 				getOrCreateForceLayoutSimulation(renderer).start();
 			}
-			if (shouldRebuild) {
-				lastProjection = nextState.projection;
-				lastActiveChartId = nextState.activeChartId;
-				lastMode = nextState.mode;
-				lastChartSource = nextState.chartSource;
-				lastFlowEdgeStyle = nextState.flowEdgeStyle;
-					lastFlowDirection = nextState.flowDirection;
-					lastArcDirection = nextState.arcDirection;
-					lastManualLayout = nextState.manualLayout;
-					lastLayoutRevision = nextState.layoutRevision;
-				lastGlobalNodeStyleRules = nextState.globalNodeStyleRules;
-				lastGlobalLinkStyleRules = nextState.globalLinkStyleRules;
-				lastNodeStyleRules = nextState.nodeStyleRules;
-				lastLinkStyleRules = nextState.linkStyleRules;
+			if (changes.shouldRebuild) {
+				renderBaseline = createWorkspaceRenderBaseline(nextState);
 					void rebuildGraph(
-						activeChartChanged ||
-							modeChanged ||
-							chartSourceChanged ||
-							flowStyleChanged ||
-							flowDirectionChanged ||
-							arcDirectionChanged ||
-							(layoutRevisionChanged && nextState.mode !== "cube"),
-						flowStyleChanged ||
-							flowDirectionChanged ||
-							arcDirectionChanged ||
-							layoutRevisionChanged ||
-							chartSourceChanged,
+						changes.fitAfterRender,
+						changes.forceLayout,
 					).catch((error: unknown) => {
 						controller.setRendererDebugState({
 							status: "error",
@@ -483,11 +358,7 @@
 
 		return () => {
 			renderVersion += 1;
-			window.clearTimeout(autoSaveTimer);
-			if (pendingAutoSave) {
-				void onAutoSave(pendingAutoSave);
-				pendingAutoSave = undefined;
-			}
+			autoSave.flush();
 			unsubscribe();
 			resizeObserver.disconnect();
 			themeObserver.disconnect();
@@ -549,26 +420,7 @@
 				}
 	}
 
-	function scheduleAutoSave(state: WorkspaceState): void {
-		const document = serializeMetaGraphState(state);
-		const serialized = JSON.stringify(document);
-		const fingerprint = serialized;
-		if (fingerprint === lastAutoSavedState) {
-			return;
-		}
-		lastAutoSavedState = fingerprint;
-		pendingAutoSave = document;
-		window.clearTimeout(autoSaveTimer);
-		autoSaveTimer = window.setTimeout(() => {
-			const documentToSave = pendingAutoSave;
-			pendingAutoSave = undefined;
-			if (documentToSave) {
-				void onAutoSave(documentToSave);
-			}
-		}, 350);
-	}
-
-		async function rebuildGraph(
+	async function rebuildGraph(
 		fitAfterRender = false,
 		forceLayout = false,
 	): Promise<void> {

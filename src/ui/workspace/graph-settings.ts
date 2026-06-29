@@ -1,5 +1,5 @@
-import type { WorkspaceState } from '../core/types';
-import type { GraphForceSettings } from '../layouts/force-layout';
+import type { WorkspaceState } from '../../core/types';
+import type { GraphForceSettings } from '../../layouts/force-layout';
 
 export function getWorkspaceGraphForceSettings(
 	state: Pick<

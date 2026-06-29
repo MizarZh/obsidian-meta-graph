@@ -1,5 +1,5 @@
-import type { ManualLayoutConfig } from '../core/types';
-import type { GraphPosition, RuntimeGraph } from '../graph/graphology-adapter';
+import type { ManualLayoutConfig } from '../../core/types';
+import type { GraphPosition, RuntimeGraph } from '../../graph/graphology-adapter';
 
 export function getManualGroupNodeIds(
 	nodes: ManualLayoutConfig['nodes'],

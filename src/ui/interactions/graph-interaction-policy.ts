@@ -1,4 +1,4 @@
-import type { ModeCapabilities } from '../graph/renderer-adapter';
+import type { ModeCapabilities } from '../../graph/renderer-adapter';
 
 export type SigmaDragAction =
 	| { kind: 'manual-position' }

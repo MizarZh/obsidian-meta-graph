@@ -1,5 +1,5 @@
-import type { DockConnectionDirection } from '../core/types';
-import type { DockDragPayload } from './dock-types';
+import type { DockConnectionDirection } from '../../core/types';
+import type { DockDragPayload } from './types';
 
 export type DockPayloadGraphAction =
 	| {

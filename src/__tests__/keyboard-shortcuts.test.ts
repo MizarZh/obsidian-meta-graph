@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shouldHandleConnectionUndoShortcut } from '../ui/keyboard-shortcuts';
+import { shouldHandleConnectionUndoShortcut } from '../ui/interactions/keyboard-shortcuts';
 
 describe('connection undo shortcut', () => {
 	it('handles Ctrl+Z and Cmd+Z with pending undo entries', () => {

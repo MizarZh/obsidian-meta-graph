@@ -8,7 +8,7 @@ import type { GraphPalette } from '../graph/graph-styles';
 import {
 	getManualGroupNodeIds,
 	moveRuntimeManualGroupNodes,
-} from '../ui/manual-layout-groups';
+} from '../ui/interactions/manual-layout-groups';
 
 const palette: GraphPalette = {
 	node: '#111111',

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getWorkspaceGraphForceSettings } from '../ui/workspace-graph-settings';
+import { getWorkspaceGraphForceSettings } from '../ui/workspace/graph-settings';
 
 describe('workspace graph force settings', () => {
 	it('maps workspace graph force fields to simulation settings', () => {

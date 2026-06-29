@@ -1,4 +1,4 @@
-import type { DockConnectionDirection } from '../core/types';
+import type { DockConnectionDirection } from '../../core/types';
 
 export type DockDragPayload =
 	| {

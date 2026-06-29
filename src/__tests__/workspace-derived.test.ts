@@ -4,7 +4,7 @@ import {
 	getDockNoteCandidates,
 	getFilePathSuggestions,
 	getSelectedDockNodes,
-} from '../ui/workspace-derived';
+} from '../ui/workspace/derived';
 
 const nodes = [
 	node('B.md', 'beta'),

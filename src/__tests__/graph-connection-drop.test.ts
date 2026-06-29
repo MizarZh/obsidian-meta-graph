@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveGraphConnectionDropAction } from '../ui/graph-connection-drop';
+import { resolveGraphConnectionDropAction } from '../ui/interactions/graph-connection-drop';
 
 describe('graph connection dock drop planning', () => {
 	it('prefers curated target from release target', () => {
