@@ -1,59 +1,75 @@
 <script lang="ts">
 	import { TFile, type App } from "obsidian";
 	import { onMount } from "svelte";
-	import type {
-		DebugSnapshot,
-		DefaultLinkStyle,
-		DefaultNodeStyle,
-		DockConnectionDirection,
-		MetaGraphDocument,
-		SettingsPanelMode,
-		WorkspaceState,
-	} from "../core/types";
-	import {
-		bindGraphEvents,
-		type ConnectionDragState,
-	} from "../graph/graph-events";
+		import type {
+			DebugSnapshot,
+			DockConnectionDirection,
+			MetaGraphDocument,
+			SettingsPanelMode,
+			WorkspaceState,
+		} from "../core/types";
+		import { formatError as formatErrorMessage } from "../core/errors";
 		import {
-			bindForce3DEvents,
-			Force3DRenderer,
-		} from "../graph/force-3d-renderer";
+			bindGraphEvents,
+			type ConnectionDragState,
+		} from "../graph/graph-events";
+		import { bindForce3DEvents } from "../graph/force-3d-renderer";
+		import { bindCube3DEvents } from "../graph/cube-3d-renderer";
 		import {
-			bindCube3DEvents,
-			Cube3DRenderer,
-		} from "../graph/cube-3d-renderer";
-	import {
-		GraphologyAdapter,
-		type GraphPosition,
-		type RuntimeGraph,
-	} from "../graph/graphology-adapter";
-	import { readGraphPalette } from "../graph/graph-styles";
-	import { resolveNodeStyle, type NodeStyle } from "../graph/style-rules";
-	import { SigmaRenderer } from "../graph/sigma-renderer";
-	import { ArcLayout } from "../layouts/arc-layout";
-	import {
-		applyOrthogonalFlowEdges,
-		ElkFlowLayout,
-		type OrthogonalRouteMap,
-	} from "../layouts/elk-flow-layout";
-	import { HierarchicalEdgeBundlingLayout } from "../layouts/hierarchical-edge-bundling-layout";
-	import { D3ForceSimulation } from "../layouts/d3-force-simulation";
-	import { ForceAtlasLayout } from "../layouts/force-layout";
+			GraphologyAdapter,
+			type RuntimeGraph,
+		} from "../graph/graphology-adapter";
+		import {
+			getActiveDefaultLinkStyle,
+			getActiveDefaultNodeStyle,
+			getActiveLinkStyleRules,
+			getActiveNodeStyleRules,
+		} from "../graph/active-styles";
+		import { readGraphPalette } from "../graph/graph-styles";
+		import {
+			createGraphRenderer,
+			getModeCapabilities,
+			getRendererKind,
+			getRendererKindForMode,
+			isCube3DRenderer,
+			isForce3DRenderer,
+			setRendererManualLayout,
+			setRendererPalette,
+			type GraphRenderer,
+		} from "../graph/renderer-adapter";
+		import { serializeRuntimeGraph } from "../graph/runtime-graph-debug";
+		import { resolveNodeStyle, type NodeStyle } from "../graph/style-rules";
+		import { SigmaRenderer } from "../graph/sigma-renderer";
+		import {
+			applyStableLayout as applyStableRuntimeLayout,
+			hydrateManualLayoutPositions,
+			LayoutSnapshotStore,
+			type LayoutSnapshot,
+		} from "../layouts/stable-layout";
+		import { D3ForceSimulation } from "../layouts/d3-force-simulation";
 	import { extractLinkText } from "../core/link-resolver";
 	import type { WorkspaceController } from "../workspace/workspace-controller";
 	import { serializeMetaGraphState } from "../workspace/meta-graph-model";
 	import CuratedPanel from "./CuratedPanel.svelte";
 	import FilterPanel from "./FilterPanel.svelte";
 	import GroupPanel from "./GroupPanel.svelte";
-	import DebugPanel from "./DebugPanel.svelte";
-	import DockGraphPanel, {
-		type DockDragPayload,
-	} from "./DockGraphPanel.svelte";
-	import {
-		getMetadataFieldSuggestions,
-		getMetadataFieldTypes,
-		getMetadataFieldValueSuggestions,
-	} from "./filter-config";
+		import DebugPanel from "./DebugPanel.svelte";
+		import DockGraphPanel from "./DockGraphPanel.svelte";
+		import type { DockDragPayload } from "./dock-types";
+		import {
+			readDockDropTarget,
+			readElementAtPoint,
+		} from "./dock-dom";
+		import { canDockPayloadTargetNode, getDockDragKey } from "./dock-drag";
+		import {
+			getMetadataFieldSuggestions,
+			getMetadataFieldTypes,
+			getMetadataFieldValueSuggestions,
+		} from "./filter-config";
+		import {
+			resolveGraphConnectionDropAction,
+			type GraphConnectionDropAction,
+		} from "./graph-connection-drop";
 
 	import Inspector from "./Inspector.svelte";
 	import ConnectionPanel from "./ConnectionPanel.svelte";
@@ -79,7 +95,6 @@
 	let workspaceState: WorkspaceState = $state(getInitialState());
 	let workspaceRoot: HTMLDivElement;
 	let canvas: HTMLDivElement;
-		type GraphRenderer = SigmaRenderer | Force3DRenderer | Cube3DRenderer;
 	let renderer: GraphRenderer | undefined;
 	let unbindEvents: (() => void) | undefined;
 	let renderVersion = 0;
@@ -123,83 +138,106 @@
 		let suppressNodeOpenUntil = 0;
 		let activeNodeDropGroupId: string | undefined;
 
-		interface LayoutSnapshot {
-			positions: Map<string, GraphPosition>;
-			edgeIds: Set<string>;
-			orthogonalRoutes: OrthogonalRouteMap;
-		}
-	const layoutSnapshots = new Map<string, LayoutSnapshot>();
-	const handleGraphConnectionMouseMove = (event: MouseEvent): void => {
-		if (!connectionDrag || dockConnectionDrag) {
-			return;
-		}
-		const target = readElementAtMouseEvent(event);
-		graphConnectionTargetNotePath = readDockNotePathFromTarget(target);
-		graphConnectionTargetTemplateId = readDockTemplateIdFromTarget(target);
-		graphConnectionTargetCurated = readCuratedDropTarget(target);
-	};
-	const handleGraphConnectionMouseUp = (event: MouseEvent): void => {
-		if (!connectionDrag || dockConnectionDrag) {
-			return;
-		}
-		const target = readElementAtMouseEvent(event);
-		if (readCuratedDropTarget(target)) {
-			const sourceNodeId = connectionDrag.sourceNodeId;
-			graphConnectionTargetNotePath = undefined;
-			graphConnectionTargetTemplateId = undefined;
-			graphConnectionTargetCurated = false;
-			controller.addCuratedFile(sourceNodeId);
-			return;
-		}
-		const templateId =
-			graphConnectionTargetTemplateId ??
-			readDockTemplateIdFromTarget(target);
-		if (templateId) {
-			const sourceNodeId = connectionDrag.sourceNodeId;
-			graphConnectionTargetNotePath = undefined;
-			graphConnectionTargetTemplateId = undefined;
-			graphConnectionTargetCurated = false;
-			openCreateFromTemplateId(
-				templateId,
-				sourceNodeId,
-				undefined,
-				"from-graph-to-dock",
+	const layoutSnapshots = new LayoutSnapshotStore();
+		const handleGraphConnectionMouseMove = (event: MouseEvent): void => {
+			if (!connectionDrag || dockConnectionDrag) {
+				return;
+			}
+			const target = readDockDropTarget(readElementAtMouseEvent(event));
+			graphConnectionTargetNotePath = target.notePath;
+			graphConnectionTargetTemplateId = target.templateId;
+			graphConnectionTargetCurated = target.curated;
+		};
+		const handleGraphConnectionMouseUp = (event: MouseEvent): void => {
+			if (!connectionDrag || dockConnectionDrag) {
+				return;
+			}
+			const action = resolveGraphConnectionDropAction(
+				connectionDrag.sourceNodeId,
+				{
+					notePath: graphConnectionTargetNotePath,
+					templateId: graphConnectionTargetTemplateId,
+					curated: graphConnectionTargetCurated,
+				},
+				readDockDropTarget(readElementAtMouseEvent(event)),
 			);
-			return;
-		}
-		const notePath =
-			graphConnectionTargetNotePath ?? readDockNotePathFromTarget(target);
-		if (!notePath || notePath === connectionDrag.sourceNodeId) {
-			return;
-		}
-		const sourceNodeId = connectionDrag.sourceNodeId;
-		graphConnectionTargetNotePath = undefined;
-		graphConnectionTargetTemplateId = undefined;
-		graphConnectionTargetCurated = false;
-		void controller
-			.connectNodes(
-				sourceNodeId,
-				notePath,
-				workspaceState.activeConnectionField,
-			)
-			.then(() => {
-				controller.addCuratedFile(notePath);
-			})
-		.catch((error: unknown) =>
-			controller.setRendererDebugState({
-				status: "error",
-				error: formatError(error),
-			}),
-		);
-	};
+			if (action.kind === "none") {
+				return;
+			}
+			resetGraphConnectionTarget();
+			handleGraphConnectionDropAction(action);
+		};
 	const handleGraphConnectionPointerMove = (event: PointerEvent): void => {
 		handleGraphConnectionMouseMove(event);
 	};
-	const handleGraphConnectionPointerUp = (event: PointerEvent): void => {
-		handleGraphConnectionMouseUp(event);
-	};
+		const handleGraphConnectionPointerUp = (event: PointerEvent): void => {
+			handleGraphConnectionMouseUp(event);
+		};
 
-	function getInitialState(): WorkspaceState {
+		function resetGraphConnectionTarget(): void {
+			graphConnectionTargetNotePath = undefined;
+			graphConnectionTargetTemplateId = undefined;
+			graphConnectionTargetCurated = false;
+		}
+
+		function handleGraphConnectionDropAction(
+			action: GraphConnectionDropAction,
+		): void {
+			if (action.kind === "add-curated") {
+				controller.addCuratedFile(action.sourceNodeId);
+				return;
+			}
+			if (action.kind === "create-from-template") {
+				openCreateFromTemplateId(
+					action.templateId,
+					action.sourceNodeId,
+					undefined,
+					"from-graph-to-dock",
+				);
+				return;
+			}
+			if (action.kind === "connect-note") {
+				void controller
+					.connectNodes(
+						action.sourceNodeId,
+						action.notePath,
+						workspaceState.activeConnectionField,
+					)
+					.then(() => {
+						controller.addCuratedFile(action.notePath);
+					})
+					.catch((error: unknown) =>
+						controller.setRendererDebugState({
+							status: "error",
+							error: formatError(error),
+						}),
+					);
+			}
+		}
+
+		function connectVisibleNodes(sourceNodeId: string, targetNodeId: string): void {
+			void controller
+				.connectNodes(
+					sourceNodeId,
+					targetNodeId,
+					workspaceState.activeConnectionField,
+				)
+				.catch((error: unknown) =>
+					controller.setRendererDebugState({
+						status: "error",
+						error: formatError(error),
+					}),
+				);
+		}
+
+		function setGraphConnectionDrag(state: ConnectionDragState | undefined): void {
+			connectionDrag = state;
+			if (!state) {
+				resetGraphConnectionTarget();
+			}
+		}
+
+		function getInitialState(): WorkspaceState {
 		return controller.snapshot;
 	}
 
@@ -370,11 +408,11 @@
 				unbindEvents = bindEventsForRenderer(renderer);
 				stopForceLayoutSimulation();
 			}
-			if (
-				graphForceSettingsChanged &&
-				nextState.mode === "graph" &&
-				nextState.enableForceLayout &&
-				renderer &&
+				if (
+					graphForceSettingsChanged &&
+					getModeCapabilities(nextState.mode).usesSigmaForceSimulation &&
+					nextState.enableForceLayout &&
+					renderer &&
 				!isForce3DRenderer(renderer) &&
 				!isCube3DRenderer(renderer)
 			) {
@@ -483,13 +521,9 @@
 			return;
 		}
 		lastThemeSignature = themeSignature;
-			if (
-				renderer &&
-				(isForce3DRenderer(renderer) || isCube3DRenderer(renderer)) &&
-				canvas
-			) {
-				renderer.setPalette(readGraphPalette(canvas));
-			}
+				if (renderer && canvas) {
+					setRendererPalette(renderer, readGraphPalette(canvas));
+				}
 	}
 
 	function scheduleAutoSave(state: WorkspaceState): void {
@@ -548,14 +582,18 @@
 
 			const palette = readGraphPalette(canvas);
 			const layoutSnapshot = getLayoutSnapshot();
-			hydrateManualLayoutPositions(layoutSnapshot);
+				hydrateManualLayoutPositions(
+					layoutSnapshot,
+					workspaceState.mode,
+					workspaceState.manualLayout,
+				);
 			const positions = layoutSnapshot.positions;
 		const graph = new GraphologyAdapter(
 			palette,
-			getActiveDefaultNodeStyle(palette.node),
-			getActiveDefaultLinkStyle(palette.edge),
-			getActiveNodeStyleRules(),
-			getActiveLinkStyleRules(),
+					getActiveDefaultNodeStyle(workspaceState, palette.node),
+					getActiveDefaultLinkStyle(workspaceState, palette.edge),
+					getActiveNodeStyleRules(workspaceState),
+					getActiveLinkStyleRules(workspaceState),
 		).fromProjection(workspaceState.projection, positions);
 		const newNodeIds = graph
 			.nodes()
@@ -566,12 +604,22 @@
 			container: readContainerSize(),
 			runtimeGraph: serializeRuntimeGraph(graph),
 		});
-		await applyStableLayout(graph, layoutSnapshot, newNodeIds, forceLayout);
+			await applyStableRuntimeLayout(graph, layoutSnapshot, newNodeIds, {
+				mode: workspaceState.mode,
+				forceLayout,
+				graphSpacing: workspaceState.graphSpacing,
+				graphForceSettings: getGraphForceSettings(),
+				flowEdgeStyle: workspaceState.flowEdgeStyle,
+				flowDirection: workspaceState.flowDirection,
+				flowSpacing: workspaceState.flowSpacing,
+				arcSpacing: workspaceState.arcSpacing,
+				arcDirection: workspaceState.arcDirection,
+			});
 		if (version !== renderVersion) {
 			return;
 		}
 
-			const rendererKind = getRendererKindForMode();
+				const rendererKind = getRendererKindForMode(workspaceState.mode);
 			if (renderer && getRendererKind(renderer) !== rendererKind) {
 				unbindEvents?.();
 				unbindEvents = undefined;
@@ -580,66 +628,35 @@
 				renderer = undefined;
 			}
 			const firstRender = !renderer;
-			if (renderer) {
-				unbindEvents?.();
-				stopForceLayoutSimulation();
-				if (isForce3DRenderer(renderer) || isCube3DRenderer(renderer)) {
-					renderer.setPalette(palette);
-				}
-				if (isCube3DRenderer(renderer)) {
-					renderer.setManualLayout(workspaceState.manualLayout);
-				}
-				renderer.setGraph(graph);
-				unbindEvents = bindEventsForRenderer(renderer);
-			} else {
-				const nextRenderer =
-					rendererKind === "force-3d"
-						? await Force3DRenderer.create(
-								graph,
-								canvas,
-								palette,
-								workspaceState.fadeDistance,
-								workspaceState.labelSize,
-								workspaceState.labelPosition,
-								workspaceState.labelColor,
-								workspaceState.labelBackgroundOpacity,
-								workspaceState.labelDensity,
-								workspaceState.enableForceLayout,
-								workspaceState.forceLabels,
-								() => version !== renderVersion,
-							)
-						: rendererKind === "cube-3d"
-							? await Cube3DRenderer.create(
-									graph,
-									canvas,
-									palette,
-									workspaceState.manualLayout,
-									workspaceState.fadeDistance,
-									workspaceState.labelSize,
-									workspaceState.labelPosition,
-									workspaceState.labelColor,
-									workspaceState.labelBackgroundOpacity,
-									workspaceState.labelDensity,
-									workspaceState.cubeFaceOpacity,
-									workspaceState.enableForceLayout,
-									workspaceState.forceLabels,
-									() => version !== renderVersion,
-								)
-							: new SigmaRenderer(
-									graph,
-									canvas,
-									palette,
-									workspaceState.fadeDistance,
-									workspaceState.labelSize,
-									workspaceState.labelPosition,
-									workspaceState.labelColor,
-									workspaceState.labelBackgroundOpacity,
-									workspaceState.labelDensity,
-									workspaceState.forceLabels,
-								);
-				if (!nextRenderer) {
-					return;
-				}
+				if (renderer) {
+					unbindEvents?.();
+					stopForceLayoutSimulation();
+					setRendererPalette(renderer, palette);
+					setRendererManualLayout(renderer, workspaceState.manualLayout);
+					renderer.setGraph(graph);
+					unbindEvents = bindEventsForRenderer(renderer);
+				} else {
+					const nextRenderer = await createGraphRenderer({
+						graph,
+						container: canvas,
+						palette,
+						kind: rendererKind,
+						manualLayout: workspaceState.manualLayout,
+						fadeDistance: workspaceState.fadeDistance,
+						labelSize: workspaceState.labelSize,
+						labelPosition: workspaceState.labelPosition,
+						labelColor: workspaceState.labelColor,
+						labelBackgroundOpacity:
+							workspaceState.labelBackgroundOpacity,
+						labelDensity: workspaceState.labelDensity,
+						cubeFaceOpacity: workspaceState.cubeFaceOpacity,
+						enableForceLayout: workspaceState.enableForceLayout,
+						forceLabels: workspaceState.forceLabels,
+						isStale: () => version !== renderVersion,
+					});
+					if (!nextRenderer) {
+						return;
+					}
 				if (version !== renderVersion) {
 					nextRenderer.kill();
 					return;
@@ -650,11 +667,12 @@
 			syncRendererGroups();
 			renderer.setSelected(workspaceState.selectedNodeId);
 			renderer.setHovered(workspaceState.hoveredNodeId);
-			if (
-				workspaceState.mode === "graph" &&
-				workspaceState.enableForceLayout &&
-				!isForce3DRenderer(renderer) &&
-				!isCube3DRenderer(renderer)
+				if (
+					getModeCapabilities(workspaceState.mode)
+						.usesSigmaForceSimulation &&
+					workspaceState.enableForceLayout &&
+					!isForce3DRenderer(renderer) &&
+					!isCube3DRenderer(renderer)
 			) {
 				getOrCreateForceLayoutSimulation(renderer).start();
 			}
@@ -675,28 +693,8 @@
 					onSelect: (nodeId) => controller.selectNode(nodeId),
 					onHover: (nodeId) => controller.hoverNode(nodeId),
 					onOpen: (nodeId) => void controller.openNode(nodeId),
-					onConnectionDrag: (state) => {
-						connectionDrag = state;
-						if (!state) {
-							graphConnectionTargetNotePath = undefined;
-							graphConnectionTargetTemplateId = undefined;
-							graphConnectionTargetCurated = false;
-						}
-					},
-					onConnect: (sourceNodeId, targetNodeId) => {
-						void controller
-							.connectNodes(
-								sourceNodeId,
-								targetNodeId,
-								workspaceState.activeConnectionField,
-							)
-							.catch((error: unknown) =>
-								controller.setRendererDebugState({
-									status: "error",
-									error: formatError(error),
-								}),
-							);
-					},
+					onConnectionDrag: setGraphConnectionDrag,
+					onConnect: connectVisibleNodes,
 					});
 				}
 				if (isCube3DRenderer(targetRenderer)) {
@@ -717,34 +715,16 @@
 								);
 							}
 						},
-						onConnectionDrag: (state) => {
-							connectionDrag = state;
-							if (!state) {
-								graphConnectionTargetNotePath = undefined;
-								graphConnectionTargetTemplateId = undefined;
-								graphConnectionTargetCurated = false;
-							}
-						},
-						onConnect: (sourceNodeId, targetNodeId) => {
-							void controller
-								.connectNodes(
-									sourceNodeId,
-									targetNodeId,
-									workspaceState.activeConnectionField,
-								)
-								.catch((error: unknown) =>
-									controller.setRendererDebugState({
-										status: "error",
-										error: formatError(error),
-									}),
-								);
-						},
+						onConnectionDrag: setGraphConnectionDrag,
+							onConnect: connectVisibleNodes,
 					});
 				}
-				return bindGraphEvents(targetRenderer, {
+			const capabilities = getModeCapabilities(workspaceState.mode);
+			return bindGraphEvents(targetRenderer, {
 				enableForceLayout:
-					workspaceState.mode === "graph" && workspaceState.enableForceLayout,
-				enableNodeDragging: workspaceState.mode === "free",
+					capabilities.usesSigmaForceSimulation &&
+					workspaceState.enableForceLayout,
+				enableNodeDragging: capabilities.supportsFreeNodeDrag,
 				onSelect: (nodeId) => controller.selectNode(nodeId),
 				onHover: (nodeId) => controller.hoverNode(nodeId),
 				onOpen: (nodeId) => {
@@ -756,7 +736,7 @@
 				onNodeDrag: (nodeId, position) => {
 					suppressNodeOpenUntil = Date.now() + 700;
 					targetRenderer.holdCurrentBounds();
-					if (workspaceState.mode === "free") {
+					if (capabilities.supportsFreeNodeDrag) {
 						targetRenderer.runtimeGraph.mergeNodeAttributes(nodeId, {
 							x: position.x,
 							y: position.y,
@@ -769,7 +749,7 @@
 						);
 					}
 					getLayoutSnapshot().positions.set(nodeId, position);
-					if (workspaceState.mode === "free") {
+					if (capabilities.supportsFreeNodeDrag) {
 						const viewportPosition =
 							targetRenderer.instance.graphToViewport(position);
 						activeNodeDropGroupId =
@@ -780,7 +760,7 @@
 				},
 				onNodeDragEnd: (nodeId) => {
 					suppressNodeOpenUntil = Date.now() + 700;
-					if (workspaceState.mode === "free") {
+					if (capabilities.supportsFreeNodeDrag) {
 						const position = getLayoutSnapshot().positions.get(nodeId);
 						if (position) {
 							controller.setManualNodePosition(
@@ -795,64 +775,10 @@
 					}
 					forceLayoutSimulation?.release(nodeId);
 				},
-			onConnectionDrag: (state) => {
-				connectionDrag = state;
-				if (!state) {
-					graphConnectionTargetNotePath = undefined;
-					graphConnectionTargetTemplateId = undefined;
-					graphConnectionTargetCurated = false;
-				}
-			},
-			onConnect: (sourceNodeId, targetNodeId) => {
-				void controller
-					.connectNodes(
-						sourceNodeId,
-						targetNodeId,
-						workspaceState.activeConnectionField,
-					)
-					.catch((error: unknown) =>
-						controller.setRendererDebugState({
-							status: "error",
-							error: formatError(error),
-						}),
-					);
-			},
+				onConnectionDrag: setGraphConnectionDrag,
+				onConnect: connectVisibleNodes,
 			});
 		}
-
-			function isForce3DRenderer(
-				targetRenderer: GraphRenderer,
-			): targetRenderer is Force3DRenderer {
-				return targetRenderer instanceof Force3DRenderer;
-			}
-
-			function isCube3DRenderer(
-				targetRenderer: GraphRenderer,
-			): targetRenderer is Cube3DRenderer {
-				return targetRenderer instanceof Cube3DRenderer;
-			}
-
-			type RendererKind = "sigma" | "force-3d" | "cube-3d";
-
-			function getRendererKind(targetRenderer: GraphRenderer): RendererKind {
-				if (isForce3DRenderer(targetRenderer)) {
-					return "force-3d";
-				}
-				if (isCube3DRenderer(targetRenderer)) {
-					return "cube-3d";
-				}
-				return "sigma";
-			}
-
-			function getRendererKindForMode(): RendererKind {
-				if (workspaceState.mode === "graph-3d") {
-					return "force-3d";
-				}
-				if (workspaceState.mode === "cube") {
-					return "cube-3d";
-				}
-				return "sigma";
-			}
 
 			function syncRendererGroups(): void {
 				if (!renderer || isForce3DRenderer(renderer)) {
@@ -863,7 +789,9 @@
 					return;
 				}
 			renderer.setGroups(
-				workspaceState.mode === "free" ? workspaceState.manualLayout.groups : [],
+				getModeCapabilities(workspaceState.mode).supportsManualGroups
+					? workspaceState.manualLayout.groups
+					: [],
 				{
 					onMovePreview: moveRuntimeGroupNodes,
 					onMoveCommit: (groupId, delta) =>
@@ -964,9 +892,9 @@
 				getComputedStyle(document.body)
 					.getPropertyValue("--interactive-accent")
 					.trim() || "#7c6ff0";
-			return resolveNodeStyle(selectedNode, getActiveNodeStyleRules(), {
-				...getActiveDefaultNodeStyle(defaultColor),
-			}).color;
+				return resolveNodeStyle(selectedNode, getActiveNodeStyleRules(workspaceState), {
+					...getActiveDefaultNodeStyle(workspaceState, defaultColor),
+				}).color;
 		});
 		const searchableNodes = $derived(workspaceState.projection?.nodes ?? []);
 	const atNodeLimit = $derived(
@@ -981,7 +909,7 @@
 		const selectedDockNodes = $derived(getSelectedDockNodes(debugSnapshot));
 	const dockNoteCandidates = $derived(getDockNoteCandidates(debugSnapshot));
 	const nodeColors = $derived.by(() => {
-		const rules = getActiveNodeStyleRules();
+			const rules = getActiveNodeStyleRules(workspaceState);
 		const defaultColor =
 			getComputedStyle(document.body)
 				.getPropertyValue("--interactive-accent")
@@ -990,11 +918,11 @@
 		for (const node of [...selectedDockNodes, ...dockNoteCandidates]) {
 			if (!colors.has(node.path)) {
 				colors.set(
-					node.path,
-					resolveNodeStyle(node, rules, {
-						...getActiveDefaultNodeStyle(defaultColor),
-					}).color,
-				);
+						node.path,
+						resolveNodeStyle(node, rules, {
+							...getActiveDefaultNodeStyle(workspaceState, defaultColor),
+						}).color,
+					);
 			}
 		}
 		return colors;
@@ -1081,343 +1009,19 @@
 		return { width, height };
 	}
 
-	async function applyStableLayout(
-		graph: RuntimeGraph,
-		snapshot: LayoutSnapshot,
-		newNodeIds: string[],
-		forceLayout: boolean,
-	): Promise<void> {
-		const positions = snapshot.positions;
-		const firstLayout = positions.size === 0;
-		const currentEdgeIds = getLogicalEdgeIds(graph);
-		const flowEdgesChanged =
-			workspaceState.mode === "flow" &&
-			!setsEqual(currentEdgeIds, snapshot.edgeIds);
-		const needsFlowLayout = forceLayout || firstLayout;
-			const needsGraphLayout = firstLayout;
-
-			if (workspaceState.mode === "arc") {
-				await new ArcLayout(
-					workspaceState.arcSpacing,
-					workspaceState.arcDirection,
-				).apply(graph);
-				snapshot.edgeIds = currentEdgeIds;
-				snapshot.orthogonalRoutes = new Map();
-			} else if (workspaceState.mode === "hierarchical-edge-bundling") {
-				await new HierarchicalEdgeBundlingLayout().apply(graph);
-				snapshot.edgeIds = currentEdgeIds;
-				snapshot.orthogonalRoutes = new Map();
-			} else if (workspaceState.mode === "flow") {
-			if (needsFlowLayout) {
-				const layout = new ElkFlowLayout(
-					workspaceState.flowEdgeStyle,
-					workspaceState.flowDirection,
-					workspaceState.flowSpacing,
-				);
-				await layout.apply(graph);
-				snapshot.edgeIds = currentEdgeIds;
-				snapshot.orthogonalRoutes =
-					workspaceState.flowEdgeStyle === "orthogonal"
-						? layout.getOrthogonalRoutes()
-						: new Map();
-			} else {
-				placeNewFlowNodes(graph, positions, newNodeIds);
-				if (workspaceState.flowEdgeStyle === "orthogonal") {
-					applyOrthogonalFlowEdges(graph, snapshot.orthogonalRoutes);
-				}
-			}
-			if (flowEdgesChanged) {
-				snapshot.edgeIds = currentEdgeIds;
-			}
-			} else if (workspaceState.mode === "free") {
-				snapshot.edgeIds = currentEdgeIds;
-				snapshot.orthogonalRoutes = new Map();
-				} else if (workspaceState.mode === "graph") {
-					if (needsGraphLayout) {
-						await new ForceAtlasLayout(
-							workspaceState.graphSpacing,
-							getGraphForceSettings(),
-						).apply(graph);
-					}
-			} else if (workspaceState.mode === "graph-3d") {
-				snapshot.edgeIds = currentEdgeIds;
-			} else if (workspaceState.mode === "cube") {
-				snapshot.edgeIds = currentEdgeIds;
-				snapshot.orthogonalRoutes = new Map();
-			}
-
-		graph.forEachNode((nodeId, attributes) => {
-			if (!attributes.isBend) {
-				positions.set(nodeId, { x: attributes.x, y: attributes.y });
-			}
-			graph.setNodeAttribute(nodeId, "fixed", false);
-		});
-	}
-
-	function placeNewFlowNodes(
-		graph: RuntimeGraph,
-		positions: ReadonlyMap<string, GraphPosition>,
-		newNodeIds: string[],
-	): void {
-		if (newNodeIds.length === 0) {
-			return;
-		}
-		const occupied = new Map<string, GraphPosition>(
-			[...positions.entries()].filter(([nodeId]) =>
-				graph.hasNode(nodeId),
-			),
-		);
-		for (const nodeId of newNodeIds) {
-			const placement = findFlowInsertionPlacement(
-				graph,
-				occupied,
-				nodeId,
-			);
-			if (!placement) {
-				continue;
-			}
-			graph.mergeNodeAttributes(nodeId, {
-				x: placement.x,
-				y: placement.y,
-				fixed: true,
+		function getLayoutSnapshot(): LayoutSnapshot {
+			return layoutSnapshots.get({
+				activeChartId: workspaceState.activeChartId,
+				mode: workspaceState.mode,
+				arcDirection: workspaceState.arcDirection,
+				flowEdgeStyle: workspaceState.flowEdgeStyle,
+				flowDirection: workspaceState.flowDirection,
 			});
-			occupied.set(nodeId, placement);
-		}
-	}
-
-	function findFlowInsertionPlacement(
-		graph: RuntimeGraph,
-		occupied: ReadonlyMap<string, GraphPosition>,
-		nodeId: string,
-	): GraphPosition | undefined {
-		for (const edge of graph.edges()) {
-			const source = graph.source(edge);
-			const target = graph.target(edge);
-			const anchorId =
-				source === nodeId && occupied.has(target)
-					? target
-					: target === nodeId && occupied.has(source)
-						? source
-						: undefined;
-			if (!anchorId) {
-				continue;
-			}
-			const anchor = occupied.get(anchorId);
-			if (!anchor) {
-				continue;
-			}
-			const newNodeIsAfterAnchor =
-				source === anchorId && target === nodeId;
-			return findOpenFlowSlot(anchor, newNodeIsAfterAnchor, occupied);
-		}
-		return undefined;
-	}
-
-	function findOpenFlowSlot(
-		anchor: GraphPosition,
-		newNodeIsAfterAnchor: boolean,
-		occupied: ReadonlyMap<string, GraphPosition>,
-	): GraphPosition {
-		const direction = getFlowInsertionDirection(newNodeIsAfterAnchor);
-		const layerDistance = 220 * workspaceState.flowSpacing;
-		const crossStep = 90 * workspaceState.flowSpacing;
-		const attempts = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5];
-		for (const attempt of attempts) {
-			const candidate = {
-				x:
-					anchor.x +
-					direction.x * layerDistance +
-					direction.crossX * crossStep * attempt,
-				y:
-					anchor.y +
-					direction.y * layerDistance +
-					direction.crossY * crossStep * attempt,
-			};
-			if (!flowSlotCollides(candidate, occupied)) {
-				return candidate;
-			}
-		}
-		const fallbackOffset = crossStep * (attempts.length + 1);
-		return {
-			x:
-				anchor.x +
-				direction.x * layerDistance +
-				direction.crossX * fallbackOffset,
-			y:
-				anchor.y +
-				direction.y * layerDistance +
-				direction.crossY * fallbackOffset,
-		};
-	}
-
-	function getFlowInsertionDirection(newNodeIsAfterAnchor: boolean): {
-		x: number;
-		y: number;
-		crossX: number;
-		crossY: number;
-	} {
-		const forward =
-			workspaceState.flowDirection === "RL" ||
-			workspaceState.flowDirection === "DT"
-				? -1
-				: 1;
-		const sign = newNodeIsAfterAnchor ? forward : -forward;
-		if (
-			workspaceState.flowDirection === "LR" ||
-			workspaceState.flowDirection === "RL"
-		) {
-			return { x: sign, y: 0, crossX: 0, crossY: 1 };
-		}
-		return { x: 0, y: sign, crossX: 1, crossY: 0 };
-	}
-
-	function flowSlotCollides(
-		candidate: GraphPosition,
-		occupied: ReadonlyMap<string, GraphPosition>,
-	): boolean {
-		for (const position of occupied.values()) {
-			if (
-				Math.abs(position.x - candidate.x) < 150 &&
-				Math.abs(position.y - candidate.y) < 80
-			) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	function getLayoutSnapshot(): LayoutSnapshot {
-		const key = getLayoutSnapshotKey();
-		let snapshot = layoutSnapshots.get(key);
-		if (!snapshot) {
-			snapshot = {
-				positions: new Map(),
-				edgeIds: new Set(),
-				orthogonalRoutes: new Map(),
-			};
-			layoutSnapshots.set(key, snapshot);
-		}
-		return snapshot;
-	}
-
-	function getLayoutSnapshotKey(): string {
-		if (workspaceState.mode === "graph") {
-			return `${workspaceState.activeChartId}-graph`;
-		}
-				if (workspaceState.mode === "graph-3d") {
-					return `${workspaceState.activeChartId}-graph-3d`;
-				}
-				if (workspaceState.mode === "cube") {
-					return `${workspaceState.activeChartId}-cube`;
-				}
-				if (workspaceState.mode === "free") {
-					return `${workspaceState.activeChartId}-free`;
-				}
-		if (workspaceState.mode === "arc") {
-			return `${workspaceState.activeChartId}-arc-${workspaceState.arcDirection}`;
-		}
-			return `${workspaceState.activeChartId}-flow-${workspaceState.flowEdgeStyle}-${workspaceState.flowDirection}`;
 		}
 
-		function hydrateManualLayoutPositions(snapshot: LayoutSnapshot): void {
-				if (workspaceState.mode !== "free" && workspaceState.mode !== "cube") {
-					return;
-				}
-			for (const [nodeId, placement] of Object.entries(
-				workspaceState.manualLayout.nodes,
-			)) {
-				snapshot.positions.set(nodeId, { x: placement.x, y: placement.y });
-			}
+			function formatError(error: unknown): string {
+			return formatErrorMessage(error, { includeStack: true });
 		}
-
-	function getLogicalEdgeIds(graph: RuntimeGraph): Set<string> {
-		return new Set(
-			graph
-				.edges()
-				.filter((edge) => !graph.getEdgeAttribute(edge, "hidden")),
-		);
-	}
-
-	function getActiveLinkStyleRules() {
-		return [...workspaceState.globalLinkStyleRules, ...workspaceState.linkStyleRules];
-	}
-
-	function getActiveNodeStyleRules() {
-		return [...workspaceState.globalNodeStyleRules, ...workspaceState.nodeStyleRules];
-	}
-
-	function getActiveDefaultNodeStyle(
-		fallbackColor: string,
-	): Required<DefaultNodeStyle> {
-		return {
-			color:
-				workspaceState.nodeStyleOverrides.color ??
-				workspaceState.defaultNodeStyle.color ??
-				fallbackColor,
-			size:
-				workspaceState.nodeStyleOverrides.size ??
-				workspaceState.defaultNodeStyle.size,
-		};
-	}
-
-	function getActiveDefaultLinkStyle(
-		fallbackColor: string,
-	): Required<DefaultLinkStyle> {
-		return {
-			color:
-				workspaceState.linkStyleOverrides.color ??
-				workspaceState.defaultLinkStyle.color ??
-				fallbackColor,
-			size:
-				workspaceState.linkStyleOverrides.size ??
-				workspaceState.defaultLinkStyle.size,
-			lineStyle:
-				workspaceState.linkStyleOverrides.lineStyle ??
-				workspaceState.defaultLinkStyle.lineStyle,
-			label:
-				workspaceState.linkStyleOverrides.label ??
-				workspaceState.defaultLinkStyle.label,
-			showLabel:
-				workspaceState.linkStyleOverrides.showLabel ??
-				workspaceState.defaultLinkStyle.showLabel,
-			hidden:
-				workspaceState.linkStyleOverrides.hidden ??
-				workspaceState.defaultLinkStyle.hidden,
-		};
-	}
-
-	function setsEqual(left: Set<string>, right: Set<string>): boolean {
-		return (
-			left.size === right.size &&
-			[...left].every((value) => right.has(value))
-		);
-	}
-
-	function serializeRuntimeGraph(graph: RuntimeGraph) {
-		return {
-			nodeCount: graph.order,
-			edgeCount: graph.size,
-			nodes: graph.mapNodes((id, attributes) => ({
-				id,
-				x: attributes.x,
-				y: attributes.y,
-				label: attributes.label,
-			})),
-			edges: graph.mapEdges((id, attributes, source, target) => ({
-				id,
-				source,
-				target,
-				type: attributes.type,
-				hidden: attributes.hidden,
-			})),
-		};
-	}
-
-	function formatError(error: unknown): string {
-		return error instanceof Error
-			? `${error.name}: ${error.message}\n${error.stack ?? ""}`
-			: String(error);
-	}
 
 	function confirmDeleteActiveChart(): void {
 		if (workspaceState.charts.length <= 1) {
@@ -1489,7 +1093,7 @@
 		dockDrag = payload;
 		dockConnectionDrag = payload;
 		connectionDrag = {
-			sourceNodeId: dragKey(payload),
+				sourceNodeId: getDockDragKey(payload),
 			x1: source.x,
 			y1: source.y,
 			x2: point.x,
@@ -1605,9 +1209,7 @@
 		if (!nodeId) {
 			return undefined;
 		}
-		return payload.kind === "note" && payload.notePath === nodeId
-			? undefined
-			: nodeId;
+			return canDockPayloadTargetNode(payload, nodeId) ? nodeId : undefined;
 	}
 
 	function readViewportPoint(
@@ -1632,13 +1234,7 @@
 		);
 	}
 
-	function dragKey(payload: DockDragPayload): string {
-		return payload.kind === "template"
-			? `template:${payload.templateId}`
-			: `note:${payload.notePath}`;
-	}
-
-	function setDockTarget(nodeId?: string): void {
+		function setDockTarget(nodeId?: string): void {
 		if (dockTargetNodeId === nodeId) {
 			return;
 		}
@@ -1646,38 +1242,13 @@
 		renderer?.setHovered(nodeId ?? workspaceState.hoveredNodeId);
 	}
 
-	function readElementAtMouseEvent(event: MouseEvent): Element | null {
-		return document.elementFromPoint(event.clientX, event.clientY);
-	}
-
-	function readDockNotePathFromTarget(
-		target: EventTarget | null,
-	): string | undefined {
-		if (!(target instanceof HTMLElement)) {
-			return undefined;
+		function readElementAtMouseEvent(event: MouseEvent): Element | null {
+			return readElementAtPoint(
+				canvas.ownerDocument,
+				event.clientX,
+				event.clientY,
+			);
 		}
-		const noteEl = target.closest<HTMLElement>("[data-dock-note-path]");
-		return noteEl?.dataset.dockNotePath || undefined;
-	}
-
-	function readDockTemplateIdFromTarget(
-		target: EventTarget | null,
-	): string | undefined {
-		if (!(target instanceof HTMLElement)) {
-			return undefined;
-		}
-		const templateEl = target.closest<HTMLElement>(
-			"[data-dock-template-id]",
-		);
-		return templateEl?.dataset.dockTemplateId || undefined;
-	}
-
-	function readCuratedDropTarget(target: EventTarget | null): boolean {
-		if (!(target instanceof HTMLElement)) {
-			return false;
-		}
-		return Boolean(target.closest("[data-curated-drop-target]"));
-	}
 
 	function openCreateFromTemplateModal(
 		payload: Extract<DockDragPayload, { kind: "template" }>,

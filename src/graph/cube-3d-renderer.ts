@@ -972,15 +972,19 @@ export class Cube3DRenderer {
 			if (!(object instanceof this.three.Sprite)) {
 				continue;
 			}
-			const start = object.userData.arrowStart;
-			const end = object.userData.arrowEnd;
-			if (!(start instanceof this.three.Vector3) || !(end instanceof this.three.Vector3)) {
-				continue;
-			}
-			const startScreen = this.localToViewport(start);
-			const endScreen = this.localToViewport(end);
-			const material = object.material as Three.SpriteMaterial;
-			material.rotation = -Math.atan2(
+				const arrowData = object.userData as {
+					arrowStart?: unknown;
+					arrowEnd?: unknown;
+				};
+				const start = arrowData.arrowStart;
+				const end = arrowData.arrowEnd;
+				if (!(start instanceof this.three.Vector3) || !(end instanceof this.three.Vector3)) {
+					continue;
+				}
+				const startScreen = this.localToViewport(start);
+				const endScreen = this.localToViewport(end);
+				const material = object.material;
+				material.rotation = -Math.atan2(
 				endScreen.y - startScreen.y,
 				endScreen.x - startScreen.x,
 			);

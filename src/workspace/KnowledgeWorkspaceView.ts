@@ -5,6 +5,7 @@ import {
 	type WorkspaceLeaf,
 } from 'obsidian';
 import { mount, unmount } from 'svelte';
+import { formatError } from '../core/errors';
 import type { MetaGraphDocument } from '../core/types';
 import { DEFAULT_GRAPH_QUERY } from '../query/graph-query';
 import type KnowledgeWorkspacePlugin from '../main';
@@ -166,8 +167,4 @@ export class KnowledgeWorkspaceView extends TextFileView {
 			this.component = undefined;
 		}
 	}
-}
-
-function formatError(error: unknown): string {
-	return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
 }

@@ -46,7 +46,7 @@ export const SYSTEM_FILTER_FIELD_OPTIONS = [
 	{ value: "file.embeds", label: "Embeds", icon: "list" },
 	{ value: "aliases", label: "Aliases", icon: "corner-down-right" },
 	{ value: "metadata-field", label: "Property", icon: "braces" },
-];
+] satisfies Array<{ value: NodeFilterField; label: string; icon: IconName }>;
 
 export const FILE_FILTER_FIELD_OPTIONS = SYSTEM_FILTER_FIELD_OPTIONS.map(
 	({ value, label }) => ({ value, label }),
@@ -126,11 +126,11 @@ export function getFilterFieldOptions(
 ): PropertyPickerOption[] {
 	return [
 		...SYSTEM_FILTER_FIELD_OPTIONS.map((field) => ({
-			value: field.value,
-			label: field.label,
-			detail: field.value,
-			icon: field.icon as IconName,
-		})),
+				value: field.value,
+				label: field.label,
+				detail: field.value,
+				icon: field.icon,
+			})),
 		...metadataFieldSuggestions.map((field) => ({
 			value: `metadata.${field}`,
 			label: field,

@@ -7,30 +7,12 @@
 	import ObsidianTextInput from "./obsidian/ObsidianTextInput.svelte";
 	import type {
 		ChartGroup,
-		DockConnectionDirection,
-		DockTemplateNode,
-		KnowledgeNode,
-	} from "../core/types";
+			DockTemplateNode,
+			KnowledgeNode,
+		} from "../core/types";
+		import type { DockDragPayload } from "./dock-types";
 
-	export type DockDragPayload =
-		| {
-				kind: "template";
-				templateId: string;
-				label: string;
-		  }
-		| {
-				kind: "note";
-				notePath: string;
-				label: string;
-				direction: DockConnectionDirection;
-				relationField: string;
-		  }
-		| {
-				kind: "broken-note";
-				notePath: string;
-				label: string;
-		  };
-	type ReorderPlacement = "before" | "after";
+		type ReorderPlacement = "before" | "after";
 
 	let {
 		app,

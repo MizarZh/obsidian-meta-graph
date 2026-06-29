@@ -102,9 +102,9 @@ export class Force3DRenderer {
 		if (isStale()) {
 			return undefined;
 		}
-		const instance = new ForceGraph3D(container, {
-			controlType: "trackball",
-		}) as unknown as ForceGraph3DInstance<Force3DNode, Force3DLink>;
+			const instance = new ForceGraph3D(container, {
+				controlType: "trackball",
+			});
 		return new Force3DRenderer(
 			instance,
 			graph,
@@ -525,7 +525,7 @@ export class Force3DRenderer {
 	): Object3D {
 		const paddingX = Math.max(8, Math.round(fontSize * 0.55));
 		const paddingY = Math.max(4, Math.round(fontSize * 0.32));
-		const canvas = document.createElement("canvas");
+		const canvas = this.container.ownerDocument.createElement("canvas");
 		const context = canvas.getContext("2d");
 		if (!context) {
 			return new this.three.Sprite(
