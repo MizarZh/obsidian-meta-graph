@@ -128,6 +128,14 @@ export function setRendererManualLayout(
 	}
 }
 
+export function refreshRendererGraphStyles(renderer: GraphRenderer): void {
+	if (isForce3DRenderer(renderer) || isCube3DRenderer(renderer)) {
+		renderer.setGraph(renderer.runtimeGraph);
+		return;
+	}
+	renderer.instance.refresh();
+}
+
 export async function createGraphRenderer(
 	options: GraphRendererOptions,
 ): Promise<GraphRenderer | undefined> {

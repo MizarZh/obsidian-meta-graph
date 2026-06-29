@@ -10,6 +10,10 @@ export interface WorkspaceRenderBaseline {
 	arcDirection?: WorkspaceState['arcDirection'];
 	manualLayout?: WorkspaceState['manualLayout'];
 	layoutRevision?: number;
+	defaultNodeStyle?: WorkspaceState['defaultNodeStyle'];
+	defaultLinkStyle?: WorkspaceState['defaultLinkStyle'];
+	nodeStyleOverrides?: WorkspaceState['nodeStyleOverrides'];
+	linkStyleOverrides?: WorkspaceState['linkStyleOverrides'];
 	globalNodeStyleRules?: WorkspaceState['globalNodeStyleRules'];
 	globalLinkStyleRules?: WorkspaceState['globalLinkStyleRules'];
 	nodeStyleRules?: WorkspaceState['nodeStyleRules'];
@@ -28,6 +32,7 @@ export interface WorkspaceStateChanges {
 	forceLabelsChanged: boolean;
 	graphForceSettingsChanged: boolean;
 	forceLayoutChanged: boolean;
+	styleRulesChanged: boolean;
 	shouldRebuild: boolean;
 	fitAfterRender: boolean;
 	forceLayout: boolean;
@@ -59,6 +64,10 @@ export function analyzeWorkspaceStateChanges(
 		baseline.layoutRevision !== undefined &&
 		nextState.layoutRevision !== baseline.layoutRevision;
 	const styleRulesChanged =
+		nextState.defaultNodeStyle !== baseline.defaultNodeStyle ||
+		nextState.defaultLinkStyle !== baseline.defaultLinkStyle ||
+		nextState.nodeStyleOverrides !== baseline.nodeStyleOverrides ||
+		nextState.linkStyleOverrides !== baseline.linkStyleOverrides ||
 		nextState.globalNodeStyleRules !== baseline.globalNodeStyleRules ||
 		nextState.globalLinkStyleRules !== baseline.globalLinkStyleRules ||
 		nextState.nodeStyleRules !== baseline.nodeStyleRules ||
@@ -80,26 +89,26 @@ export function analyzeWorkspaceStateChanges(
 		cubeFaceOpacityChanged:
 			nextState.cubeFaceOpacity !== currentState.cubeFaceOpacity,
 		forceLabelsChanged: nextState.forceLabels !== currentState.forceLabels,
-		graphForceSettingsChanged:
-			nextState.graphSpacing !== currentState.graphSpacing ||
+			graphForceSettingsChanged:
+				nextState.graphSpacing !== currentState.graphSpacing ||
 			nextState.graphCenterForce !== currentState.graphCenterForce ||
 			nextState.graphRepelForce !== currentState.graphRepelForce ||
 			nextState.graphLinkForce !== currentState.graphLinkForce ||
 			nextState.graphDragLinkForce !== currentState.graphDragLinkForce ||
 			nextState.graphReturnForce !== currentState.graphReturnForce ||
 			nextState.graphLinkDistance !== currentState.graphLinkDistance,
-		forceLayoutChanged:
-			nextState.enableForceLayout !== currentState.enableForceLayout,
-		shouldRebuild:
-			nextState.activeChartId !== baseline.activeChartId ||
-			nextState.projection !== baseline.projection ||
+			forceLayoutChanged:
+				nextState.enableForceLayout !== currentState.enableForceLayout,
+			styleRulesChanged,
+			shouldRebuild:
+				nextState.activeChartId !== baseline.activeChartId ||
+				nextState.projection !== baseline.projection ||
 			nextState.mode !== baseline.mode ||
 			nextState.chartSource !== baseline.chartSource ||
 			nextState.flowEdgeStyle !== baseline.flowEdgeStyle ||
 			nextState.flowDirection !== baseline.flowDirection ||
-			nextState.arcDirection !== baseline.arcDirection ||
-			nextState.layoutRevision !== baseline.layoutRevision ||
-			styleRulesChanged,
+				nextState.arcDirection !== baseline.arcDirection ||
+				nextState.layoutRevision !== baseline.layoutRevision,
 		fitAfterRender:
 			activeChartChanged ||
 			modeChanged ||
@@ -128,9 +137,13 @@ export function createWorkspaceRenderBaseline(
 		flowEdgeStyle: state.flowEdgeStyle,
 		flowDirection: state.flowDirection,
 		arcDirection: state.arcDirection,
-		manualLayout: state.manualLayout,
-		layoutRevision: state.layoutRevision,
-		globalNodeStyleRules: state.globalNodeStyleRules,
+			manualLayout: state.manualLayout,
+			layoutRevision: state.layoutRevision,
+			defaultNodeStyle: state.defaultNodeStyle,
+			defaultLinkStyle: state.defaultLinkStyle,
+			nodeStyleOverrides: state.nodeStyleOverrides,
+			linkStyleOverrides: state.linkStyleOverrides,
+			globalNodeStyleRules: state.globalNodeStyleRules,
 		globalLinkStyleRules: state.globalLinkStyleRules,
 		nodeStyleRules: state.nodeStyleRules,
 		linkStyleRules: state.linkStyleRules,

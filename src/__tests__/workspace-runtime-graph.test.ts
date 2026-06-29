@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { GraphProjection } from '../core/types';
 import type { GraphPalette } from '../graph/graph-styles';
-import { createWorkspaceRuntimeGraph } from '../ui/workspace/runtime-graph';
+import {
+	createWorkspaceRuntimeGraph,
+	syncWorkspaceRuntimeGraphStyles,
+} from '../ui/workspace/runtime-graph';
 import { createWorkspaceState } from '../workspace/workspace-state';
 
 const palette: GraphPalette = {
@@ -43,6 +46,82 @@ describe('workspace runtime graph', () => {
 			x: 10,
 			y: 20,
 			fixed: true,
+		});
+	});
+
+	it('syncs active style changes onto an existing runtime graph', () => {
+		const styledProjection: GraphProjection = {
+			...projection,
+			nodes: [
+				...projection.nodes,
+				{
+					id: 'B.md',
+					path: 'B.md',
+					title: 'B',
+					folder: '',
+					domains: [],
+					tags: [],
+				},
+			],
+			edges: [
+				{
+					id: 'A->B',
+					source: 'A.md',
+					target: 'B.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'leads-to',
+				},
+			],
+		};
+		const state = createWorkspaceState(200);
+		const graph = createWorkspaceRuntimeGraph(
+			styledProjection,
+			new Map(),
+			state,
+			palette,
+		);
+		const nextState = {
+			...state,
+			nodeStyleRules: [
+				{
+					id: 'node',
+					field: 'title',
+					operator: 'is',
+					value: 'A',
+					color: '#ff0000',
+					size: 11,
+				},
+			],
+			linkStyleRules: [
+				{
+					id: 'link',
+					field: 'relation',
+					value: 'leads-to',
+					color: '#00ff00',
+					size: 3,
+					lineStyle: 'dashed',
+					label: 'Next',
+					showLabel: true,
+					hidden: false,
+				},
+			],
+		} satisfies typeof state;
+
+		syncWorkspaceRuntimeGraphStyles(graph, styledProjection, nextState, palette);
+
+		expect(graph.getNodeAttributes('A.md')).toMatchObject({
+			color: '#ff0000',
+			size: 11,
+		});
+		expect(graph.getEdgeAttributes('A->B')).toMatchObject({
+			color: '#00ff00',
+			size: 3,
+			lineStyle: 'dashed',
+			type: 'dashed-arrow',
+			label: 'Next',
+			forceLabel: true,
 		});
 	});
 });

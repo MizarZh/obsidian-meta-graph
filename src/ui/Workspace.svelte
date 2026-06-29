@@ -18,6 +18,7 @@
 		getRendererKindForMode,
 		isCube3DRenderer,
 		isForce3DRenderer,
+		refreshRendererGraphStyles,
 		setRendererManualLayout,
 		setRendererPalette,
 		type GraphRenderer,
@@ -72,7 +73,10 @@
 		createWorkspaceRenderBaseline,
 		type WorkspaceRenderBaseline,
 	} from "./workspace/change-tracker";
-	import { createWorkspaceRuntimeGraph } from "./workspace/runtime-graph";
+	import {
+		createWorkspaceRuntimeGraph,
+		syncWorkspaceRuntimeGraphStyles,
+	} from "./workspace/runtime-graph";
 	import { bindWorkspaceRendererEvents } from "./workspace/renderer-events";
 	import {
 		moveWorkspaceRuntimeGroupNodes,
@@ -291,6 +295,31 @@
 			}
 			autoSave.schedule(nextState);
 			syncRendererDisplaySettings(renderer, nextState, changes);
+			if (
+				changes.styleRulesChanged &&
+				!changes.shouldRebuild &&
+				renderer &&
+				nextState.projection &&
+				canvas
+			) {
+				syncWorkspaceRuntimeGraphStyles(
+					renderer.runtimeGraph,
+					nextState.projection,
+					nextState,
+					readGraphPalette(canvas),
+				);
+				refreshRendererGraphStyles(renderer);
+				renderBaseline.defaultNodeStyle = nextState.defaultNodeStyle;
+				renderBaseline.defaultLinkStyle = nextState.defaultLinkStyle;
+				renderBaseline.nodeStyleOverrides = nextState.nodeStyleOverrides;
+				renderBaseline.linkStyleOverrides = nextState.linkStyleOverrides;
+				renderBaseline.globalNodeStyleRules =
+					nextState.globalNodeStyleRules;
+				renderBaseline.globalLinkStyleRules =
+					nextState.globalLinkStyleRules;
+				renderBaseline.nodeStyleRules = nextState.nodeStyleRules;
+				renderBaseline.linkStyleRules = nextState.linkStyleRules;
+			}
 			if (changes.forceLayoutChanged && renderer) {
 				if (isForce3DRenderer(renderer)) {
 					renderer.setEnableForceLayout(nextState.enableForceLayout);

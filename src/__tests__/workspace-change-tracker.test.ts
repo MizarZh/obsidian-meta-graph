@@ -30,6 +30,58 @@ describe('workspace change tracker', () => {
 		expect(changes.shouldRebuild).toBe(false);
 	});
 
+	it('detects style-only updates without rebuild', () => {
+		const state = createWorkspaceState(200);
+		const nextState = {
+			...state,
+			nodeStyleRules: [
+				{
+					id: 'red',
+					field: 'title',
+					operator: 'contains',
+					value: 'A',
+					color: '#ff0000',
+					size: 12,
+				},
+			],
+		} satisfies typeof state;
+
+		const changes = analyzeWorkspaceStateChanges(
+			nextState,
+			state,
+			createWorkspaceRenderBaseline(state),
+		);
+
+		expect(changes.styleRulesChanged).toBe(true);
+		expect(changes.shouldRebuild).toBe(false);
+	});
+
+	it('detects default and override style updates without rebuild', () => {
+		const state = createWorkspaceState(200);
+		const baseline = createWorkspaceRenderBaseline(state);
+		for (const nextState of [
+			{ ...state, defaultNodeStyle: { color: '#ff0000', size: 7 } },
+			{
+				...state,
+				defaultLinkStyle: {
+					...state.defaultLinkStyle,
+					color: '#00ff00',
+				},
+			},
+			{ ...state, nodeStyleOverrides: { color: '#ff0000' } },
+			{ ...state, linkStyleOverrides: { size: 3 } },
+		]) {
+			const changes = analyzeWorkspaceStateChanges(
+				nextState,
+				state,
+				baseline,
+			);
+
+			expect(changes.styleRulesChanged).toBe(true);
+			expect(changes.shouldRebuild).toBe(false);
+		}
+	});
+
 	it('forces flow layout after flow direction changes', () => {
 		const state = createWorkspaceState(200);
 		const nextState = { ...state, flowDirection: 'RL' as const };

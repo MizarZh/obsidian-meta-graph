@@ -49,6 +49,7 @@ function noChanges(): WorkspaceStateChanges {
 		forceLabelsChanged: false,
 		graphForceSettingsChanged: false,
 		forceLayoutChanged: false,
+		styleRulesChanged: false,
 		shouldRebuild: false,
 		fitAfterRender: false,
 		forceLayout: false,

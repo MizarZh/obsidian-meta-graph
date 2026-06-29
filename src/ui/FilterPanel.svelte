@@ -34,13 +34,40 @@
 		NodeFilterField,
 		NodeFilterGroup,
 		NodeFilterGroupMode,
-		NodeFilterItem,
 		NodeFilterOperator,
 		NodeStyleField,
 		NodeStyleRule,
 		SettingsPanelMode,
 		ViewMode,
 	} from '../core/types';
+	import {
+		addFilterConditionToGroup,
+		addFilterGroupToGroup,
+		createRuleId,
+		getScopedFilterRoot,
+		patchFilterItem,
+		removeFilterItemFromGroup,
+		shouldShowFilterValue,
+		type FilterScope,
+	} from './filter/filter-tree';
+	import {
+		activeLinkLineStyle as resolveActiveLinkLineStyle,
+		activeLinkStyleValue as resolveActiveLinkStyleValue,
+		activeNodeStyleValue as resolveActiveNodeStyleValue,
+		canMoveRule,
+		createLinkStyleRule,
+		createNodeStyleRule,
+		hasStyleOverride,
+		moveRule,
+		patchRule,
+		removeRule,
+		type StyleRuleKind,
+		type StyleRuleScope,
+	} from './filter/filter-style-rules';
+	import {
+		ColorCommitScheduler,
+		getDefaultLabelColor as resolveDefaultLabelColor,
+	} from './filter/color-commit';
 
 	let {
 		app,
@@ -215,9 +242,7 @@
 		{ value: 'top', label: 'Top' },
 		{ value: 'bottom', label: 'Bottom' },
 	];
-	const COLOR_COMMIT_DELAY_MS = 180;
-	const colorCommitTimers = new Map<string, number>();
-	const lastCommittedColors = new Map<string, string>();
+	const colorCommitScheduler = new ColorCommitScheduler(window);
 
 	function scheduleColorCommit(
 		key: string,
@@ -225,17 +250,7 @@
 		nextColor: string,
 		commit: (color: string) => void,
 	): void {
-		clearColorCommit(key);
-		if (shouldSkipColorCommit(key, currentColor, nextColor)) {
-			return;
-		}
-		colorCommitTimers.set(
-			key,
-			window.setTimeout(() => {
-				colorCommitTimers.delete(key);
-				commitColor(key, currentColor, nextColor, commit);
-			}, COLOR_COMMIT_DELAY_MS),
-		);
+		colorCommitScheduler.schedule(key, currentColor, nextColor, commit);
 	}
 
 	function commitColor(
@@ -244,74 +259,19 @@
 		nextColor: string,
 		commit: (color: string) => void,
 	): void {
-		clearColorCommit(key);
-		if (shouldSkipColorCommit(key, currentColor, nextColor)) {
-			return;
-		}
-		lastCommittedColors.set(key, nextColor);
-		commit(nextColor);
-	}
-
-	function clearColorCommit(key: string): void {
-		const timer = colorCommitTimers.get(key);
-		if (timer !== undefined) {
-			window.clearTimeout(timer);
-			colorCommitTimers.delete(key);
-		}
-	}
-
-	function shouldSkipColorCommit(
-		key: string,
-		currentColor: string,
-		nextColor: string,
-	): boolean {
-		if (lastCommittedColors.get(key) !== currentColor) {
-			lastCommittedColors.delete(key);
-		}
-		return (
-			nextColor === currentColor ||
-			lastCommittedColors.get(key) === nextColor
-		);
+		colorCommitScheduler.commit(key, currentColor, nextColor, commit);
 	}
 
 	function getDefaultLabelColor(): string {
-		return cssColorToHex(
-			getComputedStyle(document.body)
-				.getPropertyValue('--text-normal')
-				.trim() || '#000000',
-		);
-	}
-
-	function cssColorToHex(color: string): string {
-		const probe = document.createElement('span');
-		probe.style.color = color;
-		probe.style.display = 'none';
-		document.body.appendChild(probe);
-		const normalized = getComputedStyle(probe).color;
-		probe.remove();
-		const channels = normalized.match(/\d+/gu);
-		if (!channels || channels.length < 3) {
-			return '#000000';
-		}
-		return `#${channels
-			.slice(0, 3)
-			.map((channel) =>
-				Math.max(0, Math.min(255, Number(channel)))
-					.toString(16)
-					.padStart(2, '0'),
-			)
-			.join('')}`;
+		return resolveDefaultLabelColor(document);
 	}
 
 	onDestroy(() => {
-		for (const timer of colorCommitTimers.values()) {
-			window.clearTimeout(timer);
-		}
-		colorCommitTimers.clear();
+		colorCommitScheduler.clearAll();
 	});
 
 	function updateFilterRoot(
-		scope: 'global' | 'current',
+		scope: FilterScope,
 		filterRoot: NodeFilterGroup,
 	): void {
 		const patch = { filterRoot, hiddenNodeRules: [] };
@@ -322,66 +282,34 @@
 		}
 	}
 
-	function getFilterRoot(scope: 'global' | 'current'): NodeFilterGroup {
-		return (
-			(scope === 'global'
-				? globalQuery.filterRoot
-				: query.filterRoot) ?? {
-				id: 'root',
-				kind: 'group',
-				mode: 'all',
-				children: [],
-			}
-		);
+	function getFilterRoot(scope: FilterScope): NodeFilterGroup {
+		return getScopedFilterRoot(scope, query, globalQuery);
 	}
 
 	function addFilterCondition(
-		scope: 'global' | 'current',
+		scope: FilterScope,
 		groupId: string,
 	): void {
 		updateFilterRoot(
 			scope,
-			updateFilterGroup(getFilterRoot(scope), groupId, (group) => ({
-				...group,
-				children: [
-					...group.children,
-					{
-						id: createRuleId(),
-						kind: 'condition',
-						field: 'file.links',
-						operator: 'has-value',
-						value: '',
-					},
-				],
-			})),
+			addFilterConditionToGroup(getFilterRoot(scope), groupId, createRuleId()),
 		);
 	}
 
 	function addFilterGroup(
-		scope: 'global' | 'current',
+		scope: FilterScope,
 		groupId: string,
 	): void {
 		updateFilterRoot(
 			scope,
-			updateFilterGroup(getFilterRoot(scope), groupId, (group) => ({
-				...group,
-				children: [
-					...group.children,
-					{
-						id: createRuleId(),
-						kind: 'group',
-						mode: 'all',
-						children: [],
-					},
-				],
-			})),
+			addFilterGroupToGroup(getFilterRoot(scope), groupId, createRuleId()),
 		);
 	}
 
 	function updateFilterItem(
-		scope: 'global' | 'current',
+		scope: FilterScope,
 		itemId: string,
-		patch: Partial<NodeFilterItem>,
+		patch: Parameters<typeof patchFilterItem>[2],
 	): void {
 		updateFilterRoot(
 			scope,
@@ -394,7 +322,7 @@
 	}
 
 	function removeFilterItem(
-		scope: 'global' | 'current',
+		scope: FilterScope,
 		itemId: string,
 	): void {
 		const root = getFilterRoot(scope);
@@ -402,59 +330,6 @@
 			return;
 		}
 		updateFilterRoot(scope, removeFilterItemFromGroup(root, itemId));
-	}
-
-	function updateFilterGroup(
-		root: NodeFilterGroup,
-		groupId: string,
-		update: (group: NodeFilterGroup) => NodeFilterGroup,
-	): NodeFilterGroup {
-		if (root.id === groupId) {
-			return update(root);
-		}
-		return {
-			...root,
-			children: root.children.map((child) =>
-				child.kind === 'group'
-					? updateFilterGroup(child, groupId, update)
-					: child,
-			),
-		};
-	}
-
-	function patchFilterItem(
-		item: NodeFilterItem,
-		itemId: string,
-		patch: Partial<NodeFilterItem>,
-	): NodeFilterItem {
-		if (item.id === itemId) {
-			return { ...item, ...patch } as NodeFilterItem;
-		}
-		if (item.kind === 'group') {
-			return {
-				...item,
-				children: item.children.map((child) =>
-					patchFilterItem(child, itemId, patch),
-				),
-			};
-		}
-		return item;
-	}
-
-	function removeFilterItemFromGroup(
-		group: NodeFilterGroup,
-		itemId: string,
-	): NodeFilterGroup {
-		return {
-			...group,
-			children: group.children
-				.filter((child) => child.id !== itemId)
-				.map((child) =>
-					child.kind === 'group'
-						? removeFilterItemFromGroup(child, itemId)
-						: child,
-				),
-		};
 	}
 
 	function getFilterFieldOptions() {
@@ -481,14 +356,7 @@
 	function addNodeRule(scope: 'global' | 'current'): void {
 		updateNodeRules(scope, [
 			...getNodeRules(scope),
-			{
-				id: createRuleId(),
-				field: 'metadata-field',
-				operator: 'has-value',
-				value: '',
-				color: '#7c6ff0',
-				size: 7,
-			},
+			createNodeStyleRule(createRuleId()),
 		]);
 	}
 
@@ -499,9 +367,7 @@
 	): void {
 		updateNodeRules(
 			scope,
-			getNodeRules(scope).map((rule) =>
-				rule.id === id ? { ...rule, ...patch } : rule,
-			),
+			patchRule(getNodeRules(scope), id, patch),
 		);
 	}
 
@@ -523,17 +389,7 @@
 	function addLinkRule(scope: 'global' | 'current'): void {
 		updateLinkRules(scope, [
 			...getLinkRules(scope),
-			{
-				id: createRuleId(),
-				field: 'source-field',
-				value: 'leads-to',
-				color: '#888888',
-				size: 1.5,
-				lineStyle: 'solid',
-				label: '',
-				showLabel: false,
-				hidden: false,
-			},
+			createLinkStyleRule(createRuleId()),
 		]);
 	}
 
@@ -544,9 +400,7 @@
 	): void {
 		updateLinkRules(
 			scope,
-			getLinkRules(scope).map((rule) =>
-				rule.id === id ? { ...rule, ...patch } : rule,
-			),
+			patchRule(getLinkRules(scope), id, patch),
 		);
 	}
 
@@ -565,9 +419,6 @@
 		return scope === 'global' ? globalLinkStyleRules : linkStyleRules;
 	}
 
-	type StyleRuleKind = 'node' | 'link';
-	type StyleRuleScope = 'global' | 'current';
-
 	function moveStyleRule(
 		kind: StyleRuleKind,
 		scope: StyleRuleScope,
@@ -585,37 +436,6 @@
 				moveRule(getLinkRules(scope), id, direction),
 			);
 		}
-	}
-
-	function canMoveRule<T extends { id: string }>(
-		rules: T[],
-		id: string,
-		direction: -1 | 1,
-	): boolean {
-		const index = rules.findIndex((rule) => rule.id === id);
-		const targetIndex = index + direction;
-		return index >= 0 && targetIndex >= 0 && targetIndex < rules.length;
-	}
-
-	function moveRule<T extends { id: string }>(
-		rules: T[],
-		id: string,
-		direction: -1 | 1,
-	): T[] {
-		const index = rules.findIndex((rule) => rule.id === id);
-		const targetIndex = index + direction;
-		if (index < 0 || targetIndex < 0 || targetIndex >= rules.length) {
-			return rules;
-		}
-		const next = [...rules];
-		const current = next[index];
-		const target = next[targetIndex];
-		if (!current || !target) {
-			return rules;
-		}
-		next[index] = target;
-		next[targetIndex] = current;
-		return next;
 	}
 
 	function updateDefaultNodeStyle(patch: Partial<DefaultNodeStyle>): void {
@@ -653,13 +473,21 @@
 	function activeNodeStyleValue(
 		field: keyof DefaultNodeStyle,
 	): string | number {
-		return nodeStyleOverrides[field] ?? defaultNodeStyle[field];
+		return resolveActiveNodeStyleValue(
+			nodeStyleOverrides,
+			defaultNodeStyle,
+			field,
+		);
 	}
 
 	function activeLinkStyleValue(
 		field: keyof DefaultLinkStyle,
 	): string | number | boolean {
-		return linkStyleOverrides[field] ?? defaultLinkStyle[field];
+		return resolveActiveLinkStyleValue(
+			linkStyleOverrides,
+			defaultLinkStyle,
+			field,
+		);
 	}
 
 	function activeNodeColor(): string {
@@ -679,7 +507,7 @@
 	}
 
 	function activeLinkLineStyle(): LinkLineStyle {
-		return activeLinkStyleValue('lineStyle') as LinkLineStyle;
+		return resolveActiveLinkLineStyle(linkStyleOverrides, defaultLinkStyle);
 	}
 
 	function activeLinkLabel(): string {
@@ -695,35 +523,19 @@
 	}
 
 	function hasNodeOverride(): boolean {
-		return Object.keys(nodeStyleOverrides).length > 0;
+		return hasStyleOverride(nodeStyleOverrides);
 	}
 
 	function hasLinkOverride(): boolean {
-		return Object.keys(linkStyleOverrides).length > 0;
+		return hasStyleOverride(linkStyleOverrides);
 	}
 
 	function removeNodeRule(scope: 'global' | 'current', id: string): void {
-		updateNodeRules(
-			scope,
-			getNodeRules(scope).filter((rule) => rule.id !== id),
-		);
+		updateNodeRules(scope, removeRule(getNodeRules(scope), id));
 	}
 
 	function removeLinkRule(scope: 'global' | 'current', id: string): void {
-		updateLinkRules(
-			scope,
-			getLinkRules(scope).filter((rule) => rule.id !== id),
-		);
-	}
-
-	function shouldShowFilterValue(
-		operator: NodeFilterOperator | undefined,
-	): boolean {
-		return operator !== 'has-value' && operator !== 'empty';
-	}
-
-	function createRuleId(): string {
-		return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+		updateLinkRules(scope, removeRule(getLinkRules(scope), id));
 	}
 
 	function commitSpacing(spacing: number): void {
