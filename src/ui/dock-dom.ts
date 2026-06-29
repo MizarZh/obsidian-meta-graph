@@ -12,6 +12,35 @@ export function readElementAtPoint(
 	return document.elementFromPoint(clientX, clientY);
 }
 
+export interface ViewportPoint {
+	x: number;
+	y: number;
+}
+
+export function readViewportPoint(
+	container: HTMLElement,
+	clientX: number,
+	clientY: number,
+): ViewportPoint {
+	const rect = container.getBoundingClientRect();
+	return {
+		x: clientX - rect.left,
+		y: clientY - rect.top,
+	};
+}
+
+export function readElementCenterViewportPosition(
+	container: HTMLElement,
+	element: HTMLElement,
+): ViewportPoint {
+	const elementRect = element.getBoundingClientRect();
+	return readViewportPoint(
+		container,
+		elementRect.left + elementRect.width / 2,
+		elementRect.top + elementRect.height / 2,
+	);
+}
+
 export function readDockDropTarget(target: EventTarget | null): DockDropTarget {
 	return {
 		notePath: readDockNotePathFromTarget(target),
