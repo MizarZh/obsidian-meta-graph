@@ -1,6 +1,17 @@
 import type * as Three from "three";
 import type { LabelPosition, ManualLayoutConfig } from "../core/types";
 import {
+	type CubeFace,
+	type CubeFaceId,
+	RUBIK_FACE_COLORS,
+	createCubeFaces,
+	findOpenDisplayPosition,
+	getCubeFace,
+	getCubeFaceIdForNode,
+	hashString,
+	hasCubeDisplayOverlap,
+} from "./cube-faces";
+import {
 	type ConnectionDragState,
 	type GraphEventCallbacks,
 	immediateNeighborhood,
@@ -11,37 +22,18 @@ import type {
 	RuntimeNodeAttributes,
 } from "./graphology-adapter";
 import type { GraphPalette } from "./graph-styles";
-
-const FACE_IDS = [
-	"cube-front",
-	"cube-back",
-	"cube-left",
-	"cube-right",
-	"cube-top",
-	"cube-bottom",
-] as const;
-
-type CubeFaceId = (typeof FACE_IDS)[number];
-
-const RUBIK_FACE_COLORS: Record<CubeFaceId, string> = {
-	"cube-front": "#009b48",
-	"cube-back": "#0046ad",
-	"cube-left": "#ff5800",
-	"cube-right": "#b71234",
-	"cube-top": "#ffffff",
-	"cube-bottom": "#ffd500",
-};
-const CUBE_DISPLAY_MIN = -0.72;
-const CUBE_DISPLAY_MAX = 0.72;
-const CUBE_DISPLAY_OVERLAP = 0.14;
-
-interface CubeFace {
-	id: CubeFaceId;
-	name: string;
-	normal: Three.Vector3;
-	u: Three.Vector3;
-	v: Three.Vector3;
-}
+import {
+	findClosestScreenNode,
+	projectedToViewport,
+	readViewportPosition,
+} from "./renderer-hit-testing";
+import {
+	createConnectionDragState,
+	getFinishedConnection,
+	isConnectionDragStart,
+	updateConnectionDragState,
+} from "./renderer-connection-drag";
+import { createThreeTextSprite } from "./renderer-labels";
 
 interface CubeNodeObject {
 	id: string;
@@ -362,11 +354,7 @@ export class Cube3DRenderer {
 	}
 
 	getViewportPosition(event: MouseEvent | PointerEvent): { x: number; y: number } {
-		const rect = this.container.getBoundingClientRect();
-		return {
-			x: event.clientX - rect.left,
-			y: event.clientY - rect.top,
-		};
+		return readViewportPosition(this.container, event);
 	}
 
 	getNodeAtViewportPosition(position: { x: number; y: number }): string | undefined {
@@ -385,11 +373,7 @@ export class Cube3DRenderer {
 		this.updateWorldMatrices();
 		const world = node.mesh.getWorldPosition(new this.three.Vector3());
 		const projected = world.project(this.camera);
-		const { width, height } = this.container.getBoundingClientRect();
-		return {
-			x: ((projected.x + 1) / 2) * width,
-			y: ((1 - projected.y) / 2) * height,
-		};
+		return projectedToViewport(projected, this.container.getBoundingClientRect());
 	}
 
 	rotate(deltaX: number, deltaY: number): void {
@@ -576,10 +560,8 @@ export class Cube3DRenderer {
 		for (const [faceId, items] of byFace) {
 			const occupied: Array<{ x: number; y: number }> = [];
 			for (const item of items) {
-				const overlaps = occupied.some(
-					(position) =>
-						distanceSquared(position, item) <
-						CUBE_DISPLAY_OVERLAP * CUBE_DISPLAY_OVERLAP,
+				const overlaps = occupied.some((position) =>
+					hasCubeDisplayOverlap(position, item),
 				);
 				const position = overlaps
 					? findOpenDisplayPosition(occupied.length + 1, occupied)
@@ -755,36 +737,19 @@ export class Cube3DRenderer {
 		size: number,
 		attributes: RuntimeNodeAttributes,
 	): Three.Sprite {
-		const canvas = this.container.ownerDocument.createElement("canvas");
-		const context = canvas.getContext("2d");
 		const fontSize = Math.max(10, size);
 		const padding = Math.ceil(fontSize * 0.45);
-		const labelColor = this.labelColor || this.palette.label;
-		if (!context) {
-			return new this.three.Sprite(new this.three.SpriteMaterial());
-		}
-		context.font = `${fontSize}px sans-serif`;
-		const width = Math.ceil(context.measureText(text).width + padding * 2);
-		const height = Math.ceil(fontSize * 1.45 + padding);
-		canvas.width = Math.max(1, width);
-		canvas.height = Math.max(1, height);
-		context.font = `${fontSize}px sans-serif`;
-		context.fillStyle = `rgba(0, 0, 0, ${this.labelBackgroundOpacity})`;
-		context.fillRect(0, 0, canvas.width, canvas.height);
-		context.fillStyle = labelColor;
-		context.textBaseline = "middle";
-		context.fillText(text, padding, canvas.height / 2);
-		const texture = new this.three.CanvasTexture(canvas);
-		const material = new this.three.SpriteMaterial({
-			map: texture,
-			transparent: true,
-			depthWrite: false,
-			depthTest: false,
+		return createThreeTextSprite(this.three, {
+			text,
+			fontSize,
+			textColor: this.labelColor || this.palette.label,
+			backgroundColor: `rgba(0, 0, 0, ${this.labelBackgroundOpacity})`,
+			ownerDocument: this.container.ownerDocument,
+			paddingX: padding,
+			paddingY: padding,
+			scale: attributes.isPrimary ? 1.1 : 1,
+			scaleMultiplier: 0.28,
 		});
-		const label = new this.three.Sprite(material);
-		const scale = attributes.isPrimary ? 1.1 : 1;
-		label.scale.set(canvas.width * 0.28 * scale, canvas.height * 0.28 * scale, 1);
-		return label;
 	}
 
 	private localPosition(
@@ -845,63 +810,15 @@ export class Cube3DRenderer {
 
 	private getFaceIdForNode(nodeId: string): CubeFaceId {
 		const placement = this.manualLayout.nodes[nodeId];
-		if (placement?.groupId && isCubeFaceId(placement.groupId)) {
-			return placement.groupId;
-		}
-		return FACE_IDS[Math.floor(hashString(nodeId) * FACE_IDS.length)] ?? "cube-front";
+		return getCubeFaceIdForNode(nodeId, placement?.groupId);
 	}
 
 	private getFaces(): CubeFace[] {
-		const v = this.three.Vector3;
-		return [
-			{
-				id: "cube-front",
-				name: "Front",
-				normal: new v(0, 0, 1),
-				u: new v(1, 0, 0),
-				v: new v(0, 1, 0),
-			},
-			{
-				id: "cube-back",
-				name: "Back",
-				normal: new v(0, 0, -1),
-				u: new v(-1, 0, 0),
-				v: new v(0, 1, 0),
-			},
-			{
-				id: "cube-left",
-				name: "Left",
-				normal: new v(-1, 0, 0),
-				u: new v(0, 0, 1),
-				v: new v(0, 1, 0),
-			},
-			{
-				id: "cube-right",
-				name: "Right",
-				normal: new v(1, 0, 0),
-				u: new v(0, 0, -1),
-				v: new v(0, 1, 0),
-			},
-			{
-				id: "cube-top",
-				name: "Top",
-				normal: new v(0, 1, 0),
-				u: new v(1, 0, 0),
-				v: new v(0, 0, -1),
-			},
-			{
-				id: "cube-bottom",
-				name: "Bottom",
-				normal: new v(0, -1, 0),
-				u: new v(1, 0, 0),
-				v: new v(0, 0, 1),
-			},
-		];
+		return createCubeFaces(this.three);
 	}
 
 	private getFace(faceId: CubeFaceId): CubeFace {
-		const faces = this.getFaces();
-		return faces.find((face) => face.id === faceId) ?? faces[0]!;
+		return getCubeFace(this.getFaces(), faceId);
 	}
 
 	private raycastNodes(position: { x: number; y: number }) {
@@ -921,21 +838,17 @@ export class Cube3DRenderer {
 		x: number;
 		y: number;
 	}): string | undefined {
-		let closestNodeId: string | undefined;
-		let closestDistance = Number.POSITIVE_INFINITY;
-		for (const [nodeId, node] of this.nodeObjects.entries()) {
+		const nodes = [...this.nodeObjects.entries()].flatMap(([nodeId, node]) => {
 			const screen = this.getNodeViewportPosition(nodeId);
-			if (!screen) {
-				continue;
-			}
-			const distance = Math.hypot(screen.x - position.x, screen.y - position.y);
-			const radius = Math.max(16, node.mesh.scale.x * 0.6);
-			if (distance <= radius + 10 && distance < closestDistance) {
-				closestDistance = distance;
-				closestNodeId = nodeId;
-			}
-		}
-		return closestNodeId;
+			return screen
+				? [{ id: nodeId, x: screen.x, y: screen.y, size: node.mesh.scale.x * 0.6 }]
+				: [];
+		});
+		return findClosestScreenNode(
+			nodes,
+			position,
+			(node) => Math.max(16, node.size) + 10,
+		);
 	}
 
 	private createRay(position: { x: number; y: number }): Three.Raycaster["ray"] {
@@ -995,11 +908,7 @@ export class Cube3DRenderer {
 		const projected = this.cubeGroup
 			.localToWorld(position.clone())
 			.project(this.camera);
-		const { width, height } = this.container.getBoundingClientRect();
-		return {
-			x: ((projected.x + 1) / 2) * width,
-			y: ((1 - projected.y) / 2) * height,
-		};
+		return projectedToViewport(projected, this.container.getBoundingClientRect());
 	}
 
 	private clearObjectGroup(group: Three.Group): void {
@@ -1043,17 +952,10 @@ export function bindCube3DEvents(
 		const point = renderer.getViewportPosition(event);
 		const nodeId = renderer.getNodeAtViewportPosition(point);
 		lastPointer = { x: event.clientX, y: event.clientY };
-		if (event.ctrlKey && event.button === 0 && nodeId) {
+		if (isConnectionDragStart(event) && nodeId) {
 			event.preventDefault();
 			event.stopImmediatePropagation();
-			const source = renderer.getNodeViewportPosition(nodeId) ?? point;
-			connectionDrag = {
-				sourceNodeId: nodeId,
-				x1: source.x,
-				y1: source.y,
-				x2: point.x,
-				y2: point.y,
-			};
+			connectionDrag = createConnectionDragState(renderer, nodeId, point);
 			callbacks.onSelect(nodeId);
 			callbacks.onConnectionDrag?.(connectionDrag);
 			window.addEventListener("pointermove", pointerMove, { capture: true });
@@ -1093,16 +995,7 @@ export function bindCube3DEvents(
 		if (connectionDrag) {
 			event.preventDefault();
 			event.stopImmediatePropagation();
-			const targetNodeId = renderer.getNodeAtViewportPosition(point);
-			connectionDrag = {
-				...connectionDrag,
-				targetNodeId:
-					targetNodeId && targetNodeId !== connectionDrag.sourceNodeId
-						? targetNodeId
-						: undefined,
-				x2: point.x,
-				y2: point.y,
-			};
+			connectionDrag = updateConnectionDragState(renderer, connectionDrag, event);
 			callbacks.onConnectionDrag?.(connectionDrag);
 			return;
 		}
@@ -1140,10 +1033,10 @@ export function bindCube3DEvents(
 		const nodeId = renderer.getNodeAtViewportPosition(point);
 		if (connectionDrag) {
 			event.preventDefault();
-			const { sourceNodeId, targetNodeId } = connectionDrag;
+			const finished = getFinishedConnection(connectionDrag);
 			endPointerState();
-			if (targetNodeId && targetNodeId !== sourceNodeId) {
-				callbacks.onConnect?.(sourceNodeId, targetNodeId);
+			if (finished) {
+				callbacks.onConnect?.(finished.sourceNodeId, finished.targetNodeId);
 			}
 			return;
 		}
@@ -1245,10 +1138,6 @@ async function loadThree(): Promise<ThreeModule> {
 	return module;
 }
 
-function isCubeFaceId(value: string): value is CubeFaceId {
-	return (FACE_IDS as readonly string[]).includes(value);
-}
-
 function clamp(value: number, min: number, max: number): number {
 	return Math.max(min, Math.min(max, value));
 }
@@ -1260,64 +1149,4 @@ function lerp(start: number, end: number, amount: number): number {
 function smoothstep(edge0: number, edge1: number, value: number): number {
 	const amount = clamp((value - edge0) / (edge1 - edge0), 0, 1);
 	return amount * amount * (3 - 2 * amount);
-}
-
-function findOpenDisplayPosition(
-	count: number,
-	occupied: Array<{ x: number; y: number }>,
-): { x: number; y: number } {
-	const candidates = createDisplayGridPositions(count);
-	return candidates.reduce(
-		(best, candidate) => {
-			const score = occupied.reduce(
-				(distance, position) =>
-					Math.min(distance, distanceSquared(candidate, position)),
-				Number.POSITIVE_INFINITY,
-			);
-			const centerPenalty = distanceSquared(candidate, { x: 0, y: 0 }) * 0.001;
-			const value = score - centerPenalty;
-			return value > best.value ? { position: candidate, value } : best;
-		},
-		{
-			position: candidates[0] ?? { x: 0, y: 0 },
-			value: Number.NEGATIVE_INFINITY,
-		},
-	).position;
-}
-
-function createDisplayGridPositions(count: number): Array<{ x: number; y: number }> {
-	const size = CUBE_DISPLAY_MAX - CUBE_DISPLAY_MIN;
-	const columns = Math.max(1, Math.ceil(Math.sqrt(count)));
-	const rows = Math.max(1, Math.ceil(count / columns));
-	const positions: Array<{ x: number; y: number }> = [];
-	for (let row = 0; row < rows; row += 1) {
-		for (let column = 0; column < columns; column += 1) {
-			positions.push({
-				x: CUBE_DISPLAY_MIN + ((column + 1) * size) / (columns + 1),
-				y: CUBE_DISPLAY_MIN + ((row + 1) * size) / (rows + 1),
-			});
-		}
-	}
-	return positions.sort(
-		(left, right) =>
-			distanceSquared(left, { x: 0, y: 0 }) -
-			distanceSquared(right, { x: 0, y: 0 }),
-	);
-}
-
-function distanceSquared(
-	left: { x: number; y: number },
-	right: { x: number; y: number },
-): number {
-	const dx = left.x - right.x;
-	const dy = left.y - right.y;
-	return dx * dx + dy * dy;
-}
-
-function hashString(value: string): number {
-	let hash = 0;
-	for (let index = 0; index < value.length; index += 1) {
-		hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-	}
-	return (hash % 10000) / 10000;
 }

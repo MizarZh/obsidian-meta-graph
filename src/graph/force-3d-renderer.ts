@@ -1,15 +1,17 @@
 import type {
 	ForceGraph3DInstance,
-	LinkObject,
-	NodeObject,
 } from "3d-force-graph";
+import type * as Three from "three";
 import type { Object3D } from "three";
 import type { LabelPosition } from "../core/types";
-import type {
-	RuntimeEdgeAttributes,
-	RuntimeGraph,
-	RuntimeNodeAttributes,
-} from "./graphology-adapter";
+import type { RuntimeGraph } from "./graphology-adapter";
+import {
+	type Force3DLink,
+	type Force3DNode,
+	getLinkEndpointId,
+	hasFiniteCoordinates,
+	toForce3DData,
+} from "./force-3d-data";
 import {
 	type ConnectionDragState,
 	type GraphEventCallbacks,
@@ -17,41 +19,23 @@ import {
 } from "./graph-events";
 import type { GraphPalette } from "./graph-styles";
 import { withAlpha } from "./graph-styles";
-
-interface Force3DNode extends NodeObject {
-	id: string;
-	label: string;
-	color: string;
-	size: number;
-	path: string;
-	isPrimary?: boolean;
-	isContext?: boolean;
-}
-
-interface Force3DLink extends LinkObject<Force3DNode> {
-	id: string;
-	source: string | number | Force3DNode;
-	target: string | number | Force3DNode;
-	color: string;
-	size: number;
-	label: string;
-	directed: boolean;
-	hidden: boolean;
-}
+import {
+	findClosestScreenNode,
+	readViewportPosition,
+	type ScreenNode,
+} from "./renderer-hit-testing";
+import {
+	createConnectionDragState,
+	getFinishedConnection,
+	isConnectionDragStart,
+	updateConnectionDragState,
+} from "./renderer-connection-drag";
+import { createThreeTextSprite } from "./renderer-labels";
 
 interface ThreeRuntime {
-	CanvasTexture: new (canvas: HTMLCanvasElement) => {
-		needsUpdate: boolean;
-	};
-	SpriteMaterial: new (parameters: {
-		map: unknown;
-		transparent: boolean;
-		depthWrite: boolean;
-		depthTest: boolean;
-	}) => unknown;
-	Sprite: new (material: unknown) => Object3D & {
-		scale: { set(x: number, y: number, z: number): void };
-	};
+	CanvasTexture: typeof Three.CanvasTexture;
+	SpriteMaterial: typeof Three.SpriteMaterial;
+	Sprite: typeof Three.Sprite;
 }
 
 export class Force3DRenderer {
@@ -70,12 +54,7 @@ export class Force3DRenderer {
 	private pendingConnectionMove: PointerEvent | undefined;
 	private pendingConnectionMoveFrame: number | undefined;
 	private screenPositionCacheFrame = -1;
-		private screenPositionCache: Array<{
-			id: string;
-			x: number;
-			y: number;
-			size: number;
-		}> = [];
+	private screenPositionCache: ScreenNode[] = [];
 		private readonly blockDoubleClick = (event: MouseEvent): void => {
 			event.preventDefault();
 			event.stopPropagation();
@@ -316,17 +295,11 @@ export class Force3DRenderer {
 		x: number;
 		y: number;
 	}): string | undefined {
-		let closestNodeId: string | undefined;
-		let closestDistance = Number.POSITIVE_INFINITY;
-		for (const node of this.getScreenPositionCache()) {
-			const distance = Math.hypot(node.x - position.x, node.y - position.y);
-			const hitRadius = Math.max(14, node.size + 8);
-			if (distance <= hitRadius && distance < closestDistance) {
-				closestDistance = distance;
-				closestNodeId = node.id;
-			}
-		}
-		return closestNodeId;
+		return findClosestScreenNode(
+			this.getScreenPositionCache(),
+			position,
+			(node) => Math.max(14, node.size + 8),
+		);
 	}
 
 	getNodeViewportPosition(nodeId: string): { x: number; y: number } | undefined {
@@ -339,11 +312,7 @@ export class Force3DRenderer {
 	}
 
 	getViewportPosition(event: MouseEvent | PointerEvent): { x: number; y: number } {
-		const rect = this.container.getBoundingClientRect();
-		return {
-			x: event.clientX - rect.left,
-			y: event.clientY - rect.top,
-		};
+		return readViewportPosition(this.container, event);
 	}
 
 	scheduleConnectionMove(update: (event: PointerEvent) => void, event: PointerEvent): void {
@@ -368,12 +337,7 @@ export class Force3DRenderer {
 		}
 	}
 
-	private getScreenPositionCache(): Array<{
-		id: string;
-		x: number;
-		y: number;
-		size: number;
-	}> {
+	private getScreenPositionCache(): ScreenNode[] {
 		const frame = Math.floor(performance.now() / 16);
 		if (this.screenPositionCacheFrame === frame) {
 			return this.screenPositionCache;
@@ -523,51 +487,19 @@ export class Force3DRenderer {
 		fontSize: number,
 		scaleFactor: number,
 	): Object3D {
-		const paddingX = Math.max(8, Math.round(fontSize * 0.55));
-		const paddingY = Math.max(4, Math.round(fontSize * 0.32));
-		const canvas = this.container.ownerDocument.createElement("canvas");
-		const context = canvas.getContext("2d");
-		if (!context) {
-			return new this.three.Sprite(
-				new this.three.SpriteMaterial({
-					map: new this.three.CanvasTexture(canvas),
-					transparent: true,
-					depthWrite: false,
-					depthTest: false,
-				}),
-			);
-		}
-		context.font = `${fontSize}px sans-serif`;
-		const width = Math.ceil(context.measureText(text).width + paddingX * 2);
-		const height = Math.ceil(fontSize + paddingY * 2);
-		const pixelRatio = Math.min(2, window.devicePixelRatio || 1);
-		canvas.width = width * pixelRatio;
-		canvas.height = height * pixelRatio;
-		canvas.style.width = `${width}px`;
-		canvas.style.height = `${height}px`;
-		context.scale(pixelRatio, pixelRatio);
-		context.font = `${fontSize}px sans-serif`;
-		context.textBaseline = "middle";
-		context.fillStyle =
-			this.labelBackgroundOpacity <= 0
-				? "transparent"
-				: withAlpha(this.palette.labelBackground, this.labelBackgroundOpacity);
-		drawRoundRect(context, 0, 0, width, height, 4);
-		context.fill();
-		context.fillStyle = this.labelColor || this.palette.label;
-		context.fillText(text, paddingX, height / 2);
-
-		const texture = new this.three.CanvasTexture(canvas);
-		texture.needsUpdate = true;
-		const material = new this.three.SpriteMaterial({
-			map: texture,
-			transparent: true,
-			depthWrite: false,
-			depthTest: false,
+		return createThreeTextSprite(this.three, {
+			text,
+			fontSize,
+			textColor: this.labelColor || this.palette.label,
+			backgroundColor:
+				this.labelBackgroundOpacity <= 0
+					? "transparent"
+					: withAlpha(this.palette.labelBackground, this.labelBackgroundOpacity),
+			ownerDocument: this.container.ownerDocument,
+			scale: scaleFactor,
+			scaleMultiplier: 0.24,
+			roundRadius: 4,
 		});
-		const sprite = new this.three.Sprite(material);
-		sprite.scale.set(width * 0.24 * scaleFactor, height * 0.24 * scaleFactor, 1);
-		return sprite;
 	}
 
 	private applyTooltipStyles(): void {
@@ -626,10 +558,10 @@ export function bindForce3DEvents(
 		.onBackgroundClick(() => {
 			renderer.clearPinnedHover();
 			callbacks.onSelect(undefined);
-		});
+	});
 
 	const pointerDown = (event: PointerEvent) => {
-		if (!event.ctrlKey || event.button !== 0) {
+		if (!isConnectionDragStart(event)) {
 			return;
 		}
 		const point = renderer.getViewportPosition(event);
@@ -639,18 +571,11 @@ export function bindForce3DEvents(
 		}
 		event.preventDefault();
 		event.stopImmediatePropagation();
-		const source = renderer.getNodeViewportPosition(sourceNodeId) ?? point;
 		previousNavigationControls = instance.enableNavigationControls();
 		previousNodeDrag = instance.enableNodeDrag();
 		instance.enableNavigationControls(false);
 		instance.enableNodeDrag(false);
-		connectionDrag = {
-			sourceNodeId,
-			x1: source.x,
-			y1: source.y,
-			x2: point.x,
-			y2: point.y,
-		};
+		connectionDrag = createConnectionDragState(renderer, sourceNodeId, point);
 		callbacks.onSelect(sourceNodeId);
 		callbacks.onConnectionDrag?.(connectionDrag);
 		window.addEventListener("pointermove", pointerMove, { capture: true });
@@ -670,17 +595,7 @@ export function bindForce3DEvents(
 		if (!connectionDrag) {
 			return;
 		}
-		const point = renderer.getViewportPosition(event);
-		const targetNodeId = renderer.getNodeAtViewportPosition(point);
-		connectionDrag = {
-			...connectionDrag,
-			targetNodeId:
-				targetNodeId && targetNodeId !== connectionDrag.sourceNodeId
-					? targetNodeId
-					: undefined,
-			x2: point.x,
-			y2: point.y,
-		};
+		connectionDrag = updateConnectionDragState(renderer, connectionDrag, event);
 		callbacks.onConnectionDrag?.(connectionDrag);
 	}
 
@@ -689,10 +604,10 @@ export function bindForce3DEvents(
 			return;
 		}
 		event.preventDefault();
-		const { sourceNodeId, targetNodeId } = connectionDrag;
+		const finished = getFinishedConnection(connectionDrag);
 		endConnectionDrag(event.pointerId);
-		if (targetNodeId && targetNodeId !== sourceNodeId) {
-			callbacks.onConnect?.(sourceNodeId, targetNodeId);
+		if (finished) {
+			callbacks.onConnect?.(finished.sourceNodeId, finished.targetNodeId);
 		}
 	};
 
@@ -750,86 +665,6 @@ export function bindForce3DEvents(
 	};
 }
 
-function toForce3DData(graph: RuntimeGraph): {
-	nodes: Force3DNode[];
-	links: Force3DLink[];
-} {
-	return {
-		nodes: graph
-			.nodes()
-			.filter((nodeId) => !graph.getNodeAttribute(nodeId, "isBend"))
-			.map((nodeId) => toForce3DNode(nodeId, graph.getNodeAttributes(nodeId))),
-		links: graph
-			.edges()
-			.map((edgeId) => {
-				const attributes = graph.getEdgeAttributes(edgeId);
-				return toForce3DLink(
-					edgeId,
-					graph.source(edgeId),
-					graph.target(edgeId),
-					attributes,
-				);
-			}),
-	};
-}
-
-function toForce3DNode(
-	nodeId: string,
-	attributes: RuntimeNodeAttributes,
-): Force3DNode {
-	return {
-		id: nodeId,
-		label: attributes.label,
-		color: attributes.color,
-		size: attributes.size,
-		path: attributes.path,
-		isPrimary: attributes.isPrimary,
-		isContext: attributes.isContext,
-		x: attributes.x,
-		y: attributes.y,
-	};
-}
-
-function toForce3DLink(
-	edgeId: string,
-	source: string,
-	target: string,
-	attributes: RuntimeEdgeAttributes,
-): Force3DLink {
-	return {
-		id: edgeId,
-		source: attributes.logicalSource ?? source,
-		target: attributes.logicalTarget ?? target,
-		color: attributes.color,
-		size: attributes.size,
-		label: attributes.label || attributes.relation,
-		directed: attributes.type.includes("arrow"),
-		hidden: attributes.hidden,
-	};
-}
-
-function getLinkEndpointId(
-	endpoint: string | number | Force3DNode | undefined,
-): string {
-	if (typeof endpoint === "object" && endpoint) {
-		return endpoint.id;
-	}
-	return String(endpoint ?? "");
-}
-
-function hasFiniteCoordinates(
-	node: Force3DNode,
-): node is Force3DNode & { x: number; y: number; z: number } {
-	return (
-		typeof node.x === "number" &&
-		Number.isFinite(node.x) &&
-		typeof node.y === "number" &&
-		Number.isFinite(node.y) &&
-		typeof node.z === "number" &&
-		Number.isFinite(node.z)
-	);
-}
-
 function escapeHtml(value: string): string {
 	return value
 		.replaceAll("&", "&amp;")
@@ -854,7 +689,7 @@ async function loadForceGraph3D(): Promise<ForceGraph3DConstructor> {
 async function loadThree(): Promise<ThreeRuntime> {
 	return withSuppressedThreeDuplicateWarning(async () => {
 		const module = await import("three");
-		return module as unknown as ThreeRuntime;
+		return module;
 	});
 }
 
@@ -876,31 +711,4 @@ async function withSuppressedThreeDuplicateWarning<T>(
 	} finally {
 		console.warn = originalWarn;
 	}
-}
-
-function drawRoundRect(
-	context: CanvasRenderingContext2D,
-	x: number,
-	y: number,
-	width: number,
-	height: number,
-	radius: number,
-): void {
-	const normalizedRadius = Math.min(radius, width / 2, height / 2);
-	context.beginPath();
-	context.moveTo(x + normalizedRadius, y);
-	context.lineTo(x + width - normalizedRadius, y);
-	context.quadraticCurveTo(x + width, y, x + width, y + normalizedRadius);
-	context.lineTo(x + width, y + height - normalizedRadius);
-	context.quadraticCurveTo(
-		x + width,
-		y + height,
-		x + width - normalizedRadius,
-		y + height,
-	);
-	context.lineTo(x + normalizedRadius, y + height);
-	context.quadraticCurveTo(x, y + height, x, y + height - normalizedRadius);
-	context.lineTo(x, y + normalizedRadius);
-	context.quadraticCurveTo(x, y, x + normalizedRadius, y);
-	context.closePath();
 }
