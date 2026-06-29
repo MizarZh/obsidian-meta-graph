@@ -1,10 +1,8 @@
-import { TFile, TFolder, type App } from 'obsidian';
-import { MetadataIndexer } from '../core/metadata-indexer';
+import { TFile, type App } from 'obsidian';
 import { normalizePath } from '../core/knowledge-index';
 import { extractLinkText } from '../core/link-resolver';
 import type {
 	ArcDirection,
-	ChartLayoutConfig,
 	ChartSource,
 	ChartGroup,
 	ConnectionFieldMode,
@@ -22,6 +20,7 @@ import type {
 	LinkStyleRule,
 	MetaGraphChart,
 	MetaGraphDocument,
+	MetaGraphDock,
 	DockConnectionDirection,
 	DockTemplateNode,
 	MetadataDebugEntry,
@@ -32,8 +31,6 @@ import type {
 	ViewMode,
 	WorkspaceState,
 } from '../core/types';
-import { CuratedProjectionEngine } from '../query/curated';
-import { GraphQueryEngine } from '../query/neighborhood';
 import {
 	addCuratedFilePaths,
 	removeCuratedFilePaths,
@@ -43,20 +40,53 @@ import { createWorkspaceState } from './workspace-state';
 import {
 	createDefaultCuratedWorkspace,
 	createDefaultChart,
-	createConnectionFieldSpec,
 	DEFAULT_CONNECTION_FIELD_MODE,
-	normalizeConnectionFieldSpecs,
-	normalizeConnectionFieldModes,
 	normalizeCuratedWorkspace,
-	normalizeConnectionFields,
-	normalizeDockNotes,
-	normalizeDockTemplates,
 	normalizeGlobalLinkStyleRules,
 	normalizeGlobalNodeStyleRules,
 	normalizeLinkStyleRules,
 	normalizeNodeStyleRules,
 	serializeMetaGraphState,
 } from './meta-graph-model';
+import {
+	addConnectionFieldToState,
+	findConnectionFieldSpec,
+	removeConnectionFieldFromState,
+	reorderConnectionFieldInState,
+	setConnectionFieldModeInState,
+} from './workspace-connection-fields';
+import {
+	addDockNote as addDockNoteToState,
+	addDockTemplate as addDockTemplateToState,
+	moveRelative,
+	removeDockNote as removeDockNoteFromState,
+	removeDockTemplate as removeDockTemplateFromState,
+	reorderDockNote as reorderDockNoteInState,
+	reorderDockTemplate as reorderDockTemplateInState,
+	setCuratedPanelWidth as setCuratedPanelWidthInState,
+	setDockFocusOnSelect as setDockFocusOnSelectInState,
+	setDockWidth as setDockWidthInState,
+	updateDockNotePath as updateDockNotePathInState,
+	updateDockTemplate as updateDockTemplateInState,
+	type ReorderPlacement,
+} from './workspace-dock-state';
+import {
+	addManualPlacements,
+	createUniqueDefaultGroup,
+	findManualPlacement,
+	getManualGroup,
+	moveManualNodesToGroup,
+	normalizeCubeLayout,
+	normalizeGroupPatch,
+	readGroupPlacementBounds,
+	removeManualPlacements,
+} from './workspace-manual-layout';
+import {
+	WorkspaceProjectionService,
+	buildWorkspaceIndex,
+} from './workspace-query-service';
+import { updateActiveChartState } from './workspace-state-updaters';
+import { createTemplateNoteFile } from './workspace-template-service';
 import { cloneSerializable } from './workspace-persistence';
 
 type StateListener = (state: WorkspaceState) => void;
@@ -74,8 +104,7 @@ type ConnectionUndoEntry = ConnectionUndoChange[];
 export class WorkspaceController {
 	private state: WorkspaceState;
 	private index?: KnowledgeIndex;
-	private readonly queryEngine = new GraphQueryEngine();
-	private readonly curatedEngine = new CuratedProjectionEngine();
+	private readonly projectionService = new WorkspaceProjectionService();
 	private readonly listeners = new Set<StateListener>();
 	private unresolvedLinks: UnresolvedLink[] = [];
 	private metadataSources: MetadataDebugEntry[] = [];
@@ -166,14 +195,14 @@ export class WorkspaceController {
 		if (this.destroyed) {
 			return;
 		}
-		const indexer = new MetadataIndexer(
+		const indexSnapshot = buildWorkspaceIndex(
 			this.app,
 			this.debug,
 			this.state.connectionFields,
 		);
-		this.index = indexer.build();
-		this.unresolvedLinks = [...indexer.unresolvedLinks];
-		this.metadataSources = [...indexer.metadataSources];
+		this.index = indexSnapshot.index;
+		this.unresolvedLinks = indexSnapshot.unresolvedLinks;
+		this.metadataSources = indexSnapshot.metadataSources;
 		const charts = pruneMissingCuratedFiles(
 			this.state.charts,
 			new Set(this.index.nodes.keys()),
@@ -185,17 +214,13 @@ export class WorkspaceController {
 			...this.state,
 			charts,
 			curated: activeChart?.curated ?? this.state.curated,
-			layoutRevision:
-				this.state.layoutRevision + (forceLayout ? 1 : 0),
-			availableFolders: readVaultFolders(this.app),
-			availableTags: uniqueSorted(
-				[...this.index.nodes.values()].flatMap((node) => node.tags),
-			),
-			availableDomains: uniqueSorted(
-				[...this.index.nodes.values()].flatMap((node) => node.domains),
-			),
-		};
-		this.runQuery();
+				layoutRevision:
+					this.state.layoutRevision + (forceLayout ? 1 : 0),
+				availableFolders: indexSnapshot.availableFolders,
+				availableTags: indexSnapshot.availableTags,
+				availableDomains: indexSnapshot.availableDomains,
+			};
+			this.runQuery();
 	}
 
 	setCurrentFile(file: TFile | null): void {
@@ -645,12 +670,9 @@ export class WorkspaceController {
 		if (!groupId) {
 			return;
 		}
-		const manual = this.getActiveChart().layout.manual ?? { nodes: {}, groups: [] };
-		const group = manual.groups.find(
-			(item) => item.id === groupId,
-		) ?? (this.getActiveChart().type === 'cube'
-			? CUBE_FACE_GROUPS_BY_ID.get(groupId)
-			: undefined);
+		const activeChart = this.getActiveChart();
+		const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
+		const group = getManualGroup(activeChart.layout, activeChart.type, groupId);
 		if (!group) {
 			return;
 		}
@@ -872,69 +894,20 @@ export class WorkspaceController {
 	addDockTemplate(
 		template: Omit<DockTemplateNode, 'id'> & { id?: string },
 	): void {
-		const templates = normalizeDockTemplates([
-			...this.state.dock.templates,
-			{
-				...template,
-				id: template.id ?? createDockId('template', template.label),
-			},
-		]);
-		this.state = {
-			...this.state,
-			dock: {
-				...this.state.dock,
-				templates,
-			},
-		};
-		this.emit();
+		this.setDockState(addDockTemplateToState(this.state.dock, template));
 	}
 
 	updateDockTemplate(
 		templateId: string,
 		patch: Omit<DockTemplateNode, 'id'>,
 	): void {
-		if (!this.state.dock.templates.some((template) => template.id === templateId)) {
-			return;
-		}
-		const templates = normalizeDockTemplates(
-			this.state.dock.templates.map((template) =>
-				template.id === templateId
-					? {
-							...template,
-							...patch,
-							id: template.id,
-						}
-					: template,
-			),
+		this.setDockState(
+			updateDockTemplateInState(this.state.dock, templateId, patch),
 		);
-		if (templates === this.state.dock.templates) {
-			return;
-		}
-		this.state = {
-			...this.state,
-			dock: {
-				...this.state.dock,
-				templates,
-			},
-		};
-		this.emit();
 	}
 
 	removeDockTemplate(templateId: string): void {
-		const templates = this.state.dock.templates.filter(
-			(template) => template.id !== templateId,
-		);
-		if (templates.length === this.state.dock.templates.length) {
-			return;
-		}
-		this.state = {
-			...this.state,
-			dock: {
-				...this.state.dock,
-				templates,
-			},
-		};
-		this.emit();
+		this.setDockState(removeDockTemplateFromState(this.state.dock, templateId));
 	}
 
 	reorderDockTemplate(
@@ -942,62 +915,34 @@ export class WorkspaceController {
 		targetTemplateId: string,
 		placement: ReorderPlacement,
 	): void {
-		const templates = moveRelative(
-			this.state.dock.templates,
-			(template) => template.id === templateId,
-			(template) => template.id === targetTemplateId,
-			placement,
+		this.setDockState(
+			reorderDockTemplateInState(
+				this.state.dock,
+				templateId,
+				targetTemplateId,
+				placement,
+			),
 		);
-		if (templates === this.state.dock.templates) {
-			return;
-		}
-		this.state = {
-			...this.state,
-			dock: {
-				...this.state.dock,
-				templates,
-			},
-		};
-		this.emit();
 	}
 
 	addDockNote(path: NodeId): void {
-		const notes = normalizeDockNotes([
-			...this.state.dock.notes,
-			{ id: createDockId('note', path), path },
-		]);
-		this.state = {
-			...this.state,
-			dock: {
-				...this.state.dock,
-				notes,
-			},
-		};
-		this.emit();
+		this.setDockState(addDockNoteToState(this.state.dock, path));
 	}
 
 	setDockWidth(dockWidth: number): void {
-		this.state = {
-			...this.state,
-			dock: { ...this.state.dock, dockWidth },
-		};
-		this.emit();
+		this.setDockState(setDockWidthInState(this.state.dock, dockWidth));
 	}
 
 	setCuratedPanelWidth(curatedPanelWidth: number): void {
-		this.state = {
-			...this.state,
-			dock: { ...this.state.dock, curatedPanelWidth },
-		};
-		this.emit();
+		this.setDockState(
+			setCuratedPanelWidthInState(this.state.dock, curatedPanelWidth),
+		);
 	}
 
 	setDockFocusOnSelect(focusOnSelect: boolean): void {
-		this.state = {
-			...this.state,
-			dock: { ...this.state.dock, focusOnSelect },
-		};
-		this.emit();
+		this.setDockState(
+			setDockFocusOnSelectInState(this.state.dock, focusOnSelect),
+		);
 	}
 
 	updateDockNotePath(oldPath: string, newPath: string): boolean {
@@ -1006,22 +951,15 @@ export class WorkspaceController {
 		if (normalizedOld === normalizedNew) {
 			return false;
 		}
-		let changed = false;
-		const notes = this.state.dock.notes.map((note) => {
-			if (note.path !== normalizedOld) {
-				return note;
-			}
-			changed = true;
-			return { ...note, path: normalizedNew };
-		});
-		if (!changed) {
+		const dock = updateDockNotePathInState(
+			this.state.dock,
+			normalizedOld,
+			normalizedNew,
+		);
+		if (dock === this.state.dock) {
 			return false;
 		}
-		this.state = {
-			...this.state,
-			dock: { ...this.state.dock, notes },
-		};
-		this.emit();
+		this.setDockState(dock);
 		return true;
 	}
 
@@ -1057,18 +995,7 @@ export class WorkspaceController {
 	}
 
 	removeDockNote(path: NodeId): void {
-		const notes = this.state.dock.notes.filter((note) => note.path !== path);
-		if (notes.length === this.state.dock.notes.length) {
-			return;
-		}
-		this.state = {
-			...this.state,
-			dock: {
-				...this.state.dock,
-				notes,
-			},
-		};
-		this.emit();
+		this.setDockState(removeDockNoteFromState(this.state.dock, path));
 	}
 
 	reorderDockNote(
@@ -1076,23 +1003,9 @@ export class WorkspaceController {
 		targetPath: NodeId,
 		placement: ReorderPlacement,
 	): void {
-		const notes = moveRelative(
-			this.state.dock.notes,
-			(note) => note.path === path,
-			(note) => note.path === targetPath,
-			placement,
+		this.setDockState(
+			reorderDockNoteInState(this.state.dock, path, targetPath, placement),
 		);
-		if (notes === this.state.dock.notes) {
-			return;
-		}
-		this.state = {
-			...this.state,
-			dock: {
-				...this.state.dock,
-				notes,
-			},
-		};
-		this.emit();
 	}
 
 	async connectDockNote(
@@ -1125,57 +1038,17 @@ export class WorkspaceController {
 		if (!title) {
 			throw new Error('Note name is required.');
 		}
-		const folderPath = normalizePath(template.targetFolder);
-		await this.ensureFolderPath(folderPath);
-		const filePath = this.createAvailableMarkdownPath(folderPath, title);
-		const content = await this.renderTemplateContent(template, title);
-		const file = await this.app.vault.create(filePath, content);
+		const file = await createTemplateNoteFile(this.app, template, title);
 
-		// Process with Templater if available
-		const appRuntime = this.app as unknown as {
-			plugins: { plugins: Record<string, { templater?: Record<string, unknown> } | undefined> };
-		};
-		const templaterPlugin = appRuntime.plugins.plugins['templater-obsidian'];
-		if (templaterPlugin?.templater) {
-			try {
-				const templateFile = this.app.vault.getAbstractFileByPath(
-					normalizePath(template.templatePath),
-				);
-				const templater = templaterPlugin.templater as unknown as {
-					create_running_config(
-						template_file: TFile | undefined,
-						target_file: TFile,
-						run_mode: number,
-					): unknown;
-					parse_template(
-						config: unknown,
-						content: string,
-					): Promise<string>;
-				};
-				const config = templater.create_running_config(
-					templateFile instanceof TFile ? templateFile : undefined,
-					file,
-					2, // RunMode.OverwriteFile
-				);
-				const processed = await templater.parse_template(config, content);
-				await this.app.vault.modify(file, processed);
-			} catch (error) {
-				console.warn(
-					'[Meta Graph] Templater processing failed, using fallback content.',
-					error,
-				);
-			}
-		}
-
-			await this.connectDockNote(
-				file.path,
-				targetNodeId,
-				direction,
-				field,
-			);
-			this.placeTemplateNoteInDefaultGroup(file.path, template.defaultGroupId);
-			return file.path;
-		}
+		await this.connectDockNote(
+			file.path,
+			targetNodeId,
+			direction,
+			field,
+		);
+		this.placeTemplateNoteInDefaultGroup(file.path, template.defaultGroupId);
+		return file.path;
+	}
 
 	updateQuery(patch: Partial<Omit<GraphQuery, 'roots'>>): void {
 		this.state = this.updateActiveChart({
@@ -1306,39 +1179,25 @@ export class WorkspaceController {
 	}
 
 	addConnectionField(field: string): void {
-		const normalized = field.trim();
-		if (!normalized) {
+		const update = addConnectionFieldToState(
+			this.state,
+			field,
+			this.getActiveConnectionMode(),
+		);
+		if (!update.normalized) {
 			return;
 		}
-		const mode = this.getActiveConnectionMode();
-		const connectionFieldSpecs = normalizeConnectionFieldSpecs([
-			...this.state.connectionFieldSpecs,
-			createConnectionFieldSpec(normalized, mode),
-		]);
-		const activeSpec =
-			findConnectionFieldSpec(connectionFieldSpecs, normalized, mode) ??
-			connectionFieldSpecs[0];
-		const connectionFields = getConnectionSpecFields(connectionFieldSpecs);
-		this.state = {
-			...this.state,
-			connectionFields,
-			connectionFieldSpecs,
-			connectionFieldModes: normalizeConnectionFieldModes(
-				this.state.connectionFieldModes,
-				connectionFields,
-			),
-			activeConnectionFieldSpecId: activeSpec?.id ?? '',
-		};
-		this.setActiveConnectionField(normalized);
+		this.state = update.state;
+		this.setActiveConnectionField(update.normalized);
 	}
 
 	removeConnectionField(id: string): void {
-		const spec = this.state.connectionFieldSpecs.find((item) => item.id === id);
-		if (spec) {
-			this.removeConnectionFieldSpec(spec.id);
+		const state = removeConnectionFieldFromState(this.state, id);
+		if (state === this.state) {
 			return;
 		}
-		this.removeConnectionFieldByName(id);
+		this.state = state;
+		this.emit();
 	}
 
 	reorderConnectionField(
@@ -1346,102 +1205,25 @@ export class WorkspaceController {
 		targetId: string,
 		placement: ReorderPlacement,
 	): void {
-		const connectionFieldSpecs = moveRelative(
-			this.state.connectionFieldSpecs,
-			(spec) => spec.id === id,
-			(spec) => spec.id === targetId,
+		const state = reorderConnectionFieldInState(
+			this.state,
+			id,
+			targetId,
 			placement,
 		);
-		if (connectionFieldSpecs === this.state.connectionFieldSpecs) {
+		if (state === this.state) {
 			return;
 		}
-		this.state = {
-			...this.state,
-			connectionFieldSpecs,
-			connectionFields: getConnectionSpecFields(connectionFieldSpecs),
-		};
-		this.emit();
-	}
-
-	private removeConnectionFieldSpec(id: string): void {
-		const connectionFieldSpecs = normalizeConnectionFieldSpecs(
-			this.state.connectionFieldSpecs.filter((item) => item.id !== id),
-		);
-		const activeSpec =
-			this.state.activeConnectionFieldSpecId === id
-				? connectionFieldSpecs[0]
-				: this.getActiveConnectionSpec(connectionFieldSpecs);
-		const connectionFields = getConnectionSpecFields(connectionFieldSpecs);
-		this.state = {
-			...this.state,
-			connectionFields,
-			connectionFieldSpecs,
-			connectionFieldModes: normalizeConnectionFieldModes(
-				this.state.connectionFieldModes,
-				connectionFields,
-			),
-			activeConnectionFieldSpecId: activeSpec?.id ?? '',
-			activeConnectionField: activeSpec?.field ?? '',
-		};
-		this.emit();
-	}
-
-	private removeConnectionFieldByName(field: string): void {
-		const normalized = field.trim();
-		if (!normalized) {
-			return;
-		}
-		const connectionFieldSpecs = normalizeConnectionFieldSpecs(
-			this.state.connectionFieldSpecs.filter(
-				(item) => item.field !== normalized,
-			),
-		);
-		const activeSpec =
-			this.state.activeConnectionField === normalized
-				? connectionFieldSpecs[0]
-				: this.getActiveConnectionSpec(connectionFieldSpecs);
-		const connectionFields = getConnectionSpecFields(connectionFieldSpecs);
-		this.state = {
-			...this.state,
-			connectionFields,
-			connectionFieldSpecs,
-			connectionFieldModes: normalizeConnectionFieldModes(
-				this.state.connectionFieldModes,
-				connectionFields,
-			),
-			activeConnectionFieldSpecId: activeSpec?.id ?? '',
-			activeConnectionField: activeSpec?.field ?? '',
-		};
+		this.state = state;
 		this.emit();
 	}
 
 	setConnectionFieldMode(field: string, mode: ConnectionFieldMode): void {
-		const normalized = field.trim();
-		if (!normalized) {
+		const state = setConnectionFieldModeInState(this.state, field, mode);
+		if (state === this.state) {
 			return;
 		}
-		const connectionFieldSpecs = normalizeConnectionFieldSpecs([
-			...this.state.connectionFieldSpecs,
-			createConnectionFieldSpec(normalized, mode),
-		]);
-		const activeSpec =
-			findConnectionFieldSpec(connectionFieldSpecs, normalized, mode) ??
-			connectionFieldSpecs[0];
-		const connectionFields = getConnectionSpecFields(connectionFieldSpecs);
-		this.state = {
-			...this.state,
-			connectionFields,
-			connectionFieldSpecs,
-			connectionFieldModes: normalizeConnectionFieldModes(
-				{
-					...this.state.connectionFieldModes,
-					[normalized]: mode,
-				},
-				connectionFields,
-			),
-			activeConnectionFieldSpecId: activeSpec?.id ?? '',
-			activeConnectionField: activeSpec?.field ?? normalized,
-		};
+		this.state = state;
 		this.emit();
 	}
 
@@ -1592,14 +1374,7 @@ export class WorkspaceController {
 		if (!this.index || this.destroyed) {
 			return;
 		}
-		const projection =
-			this.state.chartSource === 'curated'
-				? this.curatedEngine.project(this.index, this.state.curated)
-				: this.queryEngine.project(
-						this.index,
-						this.state.query,
-						this.state.globalQuery,
-					);
+		const projection = this.projectionService.project(this.index, this.state);
 		const selectedNodeId =
 			this.state.selectedNodeId &&
 			projection.nodes.some((node) => node.id === this.state.selectedNodeId)
@@ -1637,7 +1412,18 @@ export class WorkspaceController {
 			),
 			manualLayout: cloneSerializable(layout.manual ?? { nodes: {}, groups: [] }),
 			layoutRevision: state.layoutRevision + 1,
+			};
+	}
+
+	private setDockState(dock: MetaGraphDock): void {
+		if (dock === this.state.dock) {
+			return;
+		}
+		this.state = {
+			...this.state,
+			dock,
 		};
+		this.emit();
 	}
 
 	private emit(): void {
@@ -1718,84 +1504,7 @@ export class WorkspaceController {
 		patch: Partial<MetaGraphChart>,
 		forceLayout = false,
 	): WorkspaceState {
-		const activeChart = this.getActiveChart();
-		const nextChart = cloneSerializable({
-			...activeChart,
-			...patch,
-			query: patch.query ?? activeChart.query,
-			layout: patch.layout ?? activeChart.layout,
-			display: patch.display ?? activeChart.display,
-			style: patch.style ?? activeChart.style,
-		});
-		return {
-			...this.state,
-			charts: this.state.charts.map((chart) =>
-				chart.id === nextChart.id ? nextChart : chart,
-			),
-			mode: nextChart.type,
-			chartSource: nextChart.source,
-			flowEdgeStyle: nextChart.layout.edgeStyle ?? 'orthogonal',
-			flowDirection: nextChart.layout.direction ?? 'LR',
-			arcDirection: nextChart.layout.arcDirection ?? 'right',
-			fadeDistance: nextChart.display.fadeDistance,
-			labelSize: nextChart.display.labelSize,
-				labelPosition: nextChart.display.labelPosition,
-					labelColor: nextChart.display.labelColor,
-					labelBackgroundOpacity: nextChart.display.labelBackgroundOpacity,
-					labelDensity: nextChart.display.labelDensity,
-					cubeFaceOpacity: nextChart.display.cubeFaceOpacity,
-					forceLabels: nextChart.display.forceLabels,
-				enableForceLayout: nextChart.display.enableForceLayout,
-			graphSpacing:
-				isForceGraphType(nextChart.type)
-					? nextChart.layout.spacing
-					: this.state.graphSpacing,
-			graphCenterForce:
-				isForceGraphType(nextChart.type) && nextChart.layout.centerForce !== undefined
-					? nextChart.layout.centerForce
-					: this.state.graphCenterForce,
-			graphRepelForce:
-				isForceGraphType(nextChart.type) && nextChart.layout.repelForce !== undefined
-					? nextChart.layout.repelForce
-					: this.state.graphRepelForce,
-			graphLinkForce:
-				isForceGraphType(nextChart.type) && nextChart.layout.linkForce !== undefined
-					? nextChart.layout.linkForce
-					: this.state.graphLinkForce,
-			graphDragLinkForce:
-				isForceGraphType(nextChart.type) &&
-				nextChart.layout.dragLinkForce !== undefined
-					? nextChart.layout.dragLinkForce
-					: this.state.graphDragLinkForce,
-			graphReturnForce:
-				isForceGraphType(nextChart.type) &&
-				nextChart.layout.returnForce !== undefined
-					? nextChart.layout.returnForce
-					: this.state.graphReturnForce,
-			graphLinkDistance:
-				isForceGraphType(nextChart.type) && nextChart.layout.linkDistance !== undefined
-					? nextChart.layout.linkDistance
-					: this.state.graphLinkDistance,
-			flowSpacing:
-				nextChart.type === 'flow'
-					? nextChart.layout.spacing
-					: this.state.flowSpacing,
-				arcSpacing:
-					nextChart.type === 'arc'
-						? nextChart.layout.spacing
-						: this.state.arcSpacing,
-				manualLayout: cloneSerializable(
-					nextChart.layout.manual ?? { nodes: {}, groups: [] },
-				),
-				query: cloneSerializable(nextChart.query),
-				curated: cloneSerializable(nextChart.curated),
-				nodeStyleOverrides: cloneSerializable(nextChart.style.nodeOverrides),
-				linkStyleOverrides: cloneSerializable(nextChart.style.linkOverrides),
-				nodeStyleRules: cloneSerializable(nextChart.style.nodeRules),
-				linkStyleRules: cloneSerializable(nextChart.style.linkRules),
-			layoutRevision:
-				this.state.layoutRevision + (forceLayout ? 1 : 0),
-		};
+		return updateActiveChartState(this.state, patch, forceLayout);
 	}
 
 	private frontmatterValueLinksToTarget(
@@ -1849,64 +1558,6 @@ export class WorkspaceController {
 		return undo ? [undo] : [];
 	}
 
-	private async renderTemplateContent(
-		template: DockTemplateNode,
-		title: string,
-	): Promise<string> {
-		const templateFile = this.app.vault.getAbstractFileByPath(
-			normalizePath(template.templatePath),
-		);
-		const raw =
-			templateFile instanceof TFile
-				? await this.app.vault.cachedRead(templateFile)
-				: '# {{title}}\n';
-		const rendered = raw
-			.replaceAll('{{title}}', title)
-			.replaceAll('{{name}}', title)
-			.replaceAll('{{date}}', window.moment().format('YYYY-MM-DD'))
-			.replaceAll('{{time}}', window.moment().format('HH:mm'))
-			.replace(/\{\{date:(.+?)\}\}/gu, (_, fmt: string) =>
-				window.moment().format(fmt),
-			);
-		return rendered.endsWith('\n') ? rendered : `${rendered}\n`;
-	}
-
-	private async ensureFolderPath(folderPath: string): Promise<void> {
-		const normalized = normalizePath(folderPath);
-		if (!normalized) {
-			return;
-		}
-		let current = '';
-		for (const part of normalized.split('/').filter(Boolean)) {
-			current = current ? `${current}/${part}` : part;
-			const existing = this.app.vault.getAbstractFileByPath(current);
-			if (existing instanceof TFolder) {
-				continue;
-			}
-			if (existing) {
-				throw new Error(`Cannot create folder "${current}". A file exists there.`);
-			}
-			await this.app.vault.createFolder(current);
-		}
-	}
-
-	private createAvailableMarkdownPath(folderPath: string, title: string): string {
-		const baseName = sanitizeFileName(title);
-		const folder = normalizePath(folderPath);
-		let index = 1;
-		while (true) {
-			const suffix = index === 1 ? '' : ` ${index}`;
-			const path = normalizePath(
-				folder
-					? `${folder}/${baseName}${suffix}.md`
-					: `${baseName}${suffix}.md`,
-			);
-			if (!this.app.vault.getAbstractFileByPath(path)) {
-				return path;
-			}
-			index += 1;
-		}
-	}
 }
 
 function normalizeSpacing(value: number): number {
@@ -1915,736 +1566,6 @@ function normalizeSpacing(value: number): number {
 
 function normalizeForceSetting(value: number): number {
 	return Number.isFinite(value) && value >= 0 ? value : 1;
-}
-
-function isForceGraphType(type: ViewMode): boolean {
-	return type === 'graph' || type === 'graph-3d' || type === 'cube';
-}
-
-const CUBE_FACE_GROUPS: ChartGroup[] = [
-	{
-		id: 'cube-front',
-		name: 'Front',
-		x: -1,
-		y: -1,
-		width: 2,
-		height: 2,
-		color: '#009b48',
-		mode: 'manual',
-		padding: 0.22,
-	},
-	{
-		id: 'cube-back',
-		name: 'Back',
-		x: -1,
-		y: -1,
-		width: 2,
-		height: 2,
-		color: '#0046ad',
-		mode: 'manual',
-		padding: 0.22,
-	},
-	{
-		id: 'cube-left',
-		name: 'Left',
-		x: -1,
-		y: -1,
-		width: 2,
-		height: 2,
-		color: '#ff5800',
-		mode: 'manual',
-		padding: 0.22,
-	},
-	{
-		id: 'cube-right',
-		name: 'Right',
-		x: -1,
-		y: -1,
-		width: 2,
-		height: 2,
-		color: '#b71234',
-		mode: 'manual',
-		padding: 0.22,
-	},
-	{
-		id: 'cube-top',
-		name: 'Top',
-		x: -1,
-		y: -1,
-		width: 2,
-		height: 2,
-		color: '#ffffff',
-		mode: 'manual',
-		padding: 0.22,
-	},
-	{
-		id: 'cube-bottom',
-		name: 'Bottom',
-		x: -1,
-		y: -1,
-		width: 2,
-		height: 2,
-		color: '#ffd500',
-		mode: 'manual',
-		padding: 0.22,
-	},
-];
-
-const CUBE_FACE_IDS = new Set(CUBE_FACE_GROUPS.map((group) => group.id));
-const CUBE_FACE_GROUPS_BY_ID = new Map(
-	CUBE_FACE_GROUPS.map((group) => [group.id, group]),
-);
-
-function createDefaultGroup(index: number): ChartGroup {
-		return {
-			id: createGroupId(`Group ${index}`),
-			name: `Group ${index}`,
-			x: -1.6,
-			y: -1.1,
-			width: 3.2,
-			height: 2.2,
-			color: '#7c6ff0',
-			mode: 'manual',
-			padding: 0.32,
-		};
-	}
-
-function normalizeCubeLayout(
-	layout: ChartLayoutConfig,
-	visibleNodeIds: string[],
-): ChartLayoutConfig {
-	const manual = layout.manual ?? { nodes: {}, groups: [] };
-	const existingGroups = new Map(manual.groups.map((group) => [group.id, group]));
-	const groups = CUBE_FACE_GROUPS.map((defaultGroup) => ({
-		...defaultGroup,
-		...(existingGroups.get(defaultGroup.id) ?? {}),
-		id: defaultGroup.id,
-		color: defaultGroup.color,
-	}));
-	const nodes = { ...manual.nodes };
-	let changed =
-		manual.groups.length !== groups.length ||
-		groups.some(
-			(group, index) =>
-				manual.groups[index]?.id !== group.id ||
-				manual.groups[index]?.color !== group.color,
-		);
-
-	for (const [nodeId, placement] of Object.entries(nodes)) {
-		const currentGroup =
-			placement.groupId && CUBE_FACE_IDS.has(placement.groupId)
-				? (CUBE_FACE_GROUPS_BY_ID.get(placement.groupId) ?? groups.find((item) => item.id === placement.groupId))
-				: undefined;
-		if (
-			currentGroup &&
-			isPlacementInBounds(placement, readGroupPlacementBounds(currentGroup))
-		) {
-			continue;
-		}
-		const groupId =
-			placement.groupId && CUBE_FACE_IDS.has(placement.groupId)
-				? placement.groupId
-				: getCubeFaceIdForNode(nodeId);
-		const group = CUBE_FACE_GROUPS_BY_ID.get(groupId) ?? groups.find((item) => item.id === groupId);
-		const bounds = group ? readGroupPlacementBounds(group) : undefined;
-		const occupied = bounds
-			? readOccupiedPositions(nodes, groupId, nodeId).filter((position) =>
-					isPlacementInBounds(position, bounds),
-				)
-			: [];
-		const position = bounds
-			? findManualPlacement(bounds, occupied, groupId)
-			: { x: 0, y: 0 };
-		nodes[nodeId] = { ...position, groupId };
-		changed = true;
-	}
-
-	for (const nodeId of visibleNodeIds) {
-		const placement = nodes[nodeId];
-		if (placement?.groupId && CUBE_FACE_IDS.has(placement.groupId)) {
-			continue;
-		}
-		const groupId = getCubeFaceIdForNode(nodeId);
-		const group = CUBE_FACE_GROUPS_BY_ID.get(groupId) ?? groups.find((item) => item.id === groupId);
-		const occupied = readOccupiedPositions(nodes, groupId, nodeId);
-		const position =
-			placement ??
-			(group
-				? findManualPlacement(readGroupPlacementBounds(group), occupied, groupId)
-				: { x: 0, y: 0 });
-		nodes[nodeId] = {
-			x: position.x,
-			y: position.y,
-			groupId,
-		};
-		changed = true;
-	}
-
-	if (spreadOverlappingCubeNodes(nodes, visibleNodeIds, groups)) {
-		changed = true;
-	}
-
-	return changed
-		? {
-				...layout,
-				manual: {
-					...manual,
-					groups,
-					nodes,
-				},
-			}
-		: layout;
-}
-
-function getCubeFaceIdForNode(nodeId: string): string {
-	const index = Math.floor(hashString(nodeId) * CUBE_FACE_GROUPS.length);
-	return CUBE_FACE_GROUPS[index]?.id ?? CUBE_FACE_GROUPS[0]!.id;
-}
-
-function readOccupiedPositions(
-	nodes: Record<string, { x: number; y: number; groupId?: string }>,
-	groupId: string,
-	excludeNodeId?: string,
-): Array<{ x: number; y: number }> {
-	return Object.entries(nodes)
-		.filter(
-			([nodeId, placement]) =>
-				nodeId !== excludeNodeId && placement.groupId === groupId,
-		)
-		.map(([, placement]) => ({ x: placement.x, y: placement.y }));
-}
-
-function isPlacementInBounds(
-	position: { x: number; y: number },
-	bounds: PlacementBounds,
-): boolean {
-	return (
-		Number.isFinite(position.x) &&
-		Number.isFinite(position.y) &&
-		position.x >= bounds.left &&
-		position.x <= bounds.right &&
-		position.y >= bounds.bottom &&
-		position.y <= bounds.top
-	);
-}
-
-function spreadOverlappingCubeNodes(
-	nodes: Record<string, { x: number; y: number; groupId?: string }>,
-	visibleNodeIds: string[],
-	groups: ChartGroup[],
-): boolean {
-	let changed = false;
-	const visible = new Set(visibleNodeIds);
-	for (const group of groups) {
-		const occupied: Array<{ x: number; y: number }> = [];
-		const nodeIds = Object.entries(nodes)
-			.filter(
-				([nodeId, placement]) =>
-					visible.has(nodeId) && placement.groupId === group.id,
-			)
-			.map(([nodeId]) => nodeId)
-			.sort((left, right) => left.localeCompare(right));
-		for (const nodeId of nodeIds) {
-			const placement = nodes[nodeId];
-			if (!placement) {
-				continue;
-			}
-			const overlaps = occupied.some(
-				(position) =>
-					distanceSquared(position, placement) <
-					CUBE_NODE_OVERLAP_DISTANCE * CUBE_NODE_OVERLAP_DISTANCE,
-			);
-			if (!overlaps) {
-				occupied.push({ x: placement.x, y: placement.y });
-				continue;
-			}
-			const position = findManualPlacement(
-				readGroupPlacementBounds(group),
-				occupied,
-				group.id,
-			);
-			nodes[nodeId] = { ...position, groupId: group.id };
-			occupied.push(position);
-			changed = true;
-		}
-	}
-	return changed;
-}
-
-interface PlacementBounds {
-	left: number;
-	right: number;
-	bottom: number;
-	top: number;
-}
-
-const MANUAL_NODE_SPACING = 0.62;
-const CUBE_NODE_OVERLAP_DISTANCE = 0.08;
-
-function addManualPlacements(
-	layout: ChartLayoutConfig,
-	previousPaths: string[],
-	nextPaths: string[],
-	groupId?: string,
-): ChartLayoutConfig {
-	const manual = layout.manual ?? { nodes: {}, groups: [] };
-	const previous = new Set(previousPaths);
-	const addedPaths = nextPaths.filter((path) => !previous.has(path));
-	if (addedPaths.length === 0) {
-		return layout;
-	}
-	const isCubeLayout = layout.engine === 'cube-3d';
-	const group = groupId
-		? (isCubeLayout
-				? CUBE_FACE_GROUPS_BY_ID.get(groupId)
-				: manual.groups.find((item) => item.id === groupId))
-		: undefined;
-	if (groupId && !group) {
-		return layout;
-	}
-	const nodes = { ...manual.nodes };
-	const newPositions: Array<{ x: number; y: number }> = [];
-	for (const path of addedPaths) {
-		const placementGroupId = groupId ?? (isCubeLayout ? getCubeFaceIdForNode(path) : undefined);
-		const placementGroup = placementGroupId
-			? (isCubeLayout
-					? CUBE_FACE_GROUPS_BY_ID.get(placementGroupId)
-					: manual.groups.find((item) => item.id === placementGroupId))
-			: undefined;
-		if (placementGroupId && !placementGroup) {
-			continue;
-		}
-		const bounds = placementGroup
-			? readGroupPlacementBounds(placementGroup)
-			: readUngroupedPlacementBounds(Object.values(nodes));
-		const occupied = Object.entries(nodes)
-			.filter(([, placement]) =>
-				placementGroup
-					? placement.groupId === placementGroup.id
-					: placement.groupId === undefined,
-			)
-			.map(([, placement]) => ({ x: placement.x, y: placement.y }));
-		const existing = nodes[path];
-		if (existing && (!placementGroupId || existing.groupId === placementGroupId)) {
-			continue;
-		}
-		const position = findManualPlacement(bounds, occupied, placementGroupId);
-		newPositions.push(position);
-		nodes[path] = placementGroupId
-			? { ...position, groupId: placementGroupId }
-			: position;
-	}
-	const groups =
-		group && newPositions.length > 0 && !CUBE_FACE_IDS.has(group.id)
-			? manual.groups.map((item) =>
-					item.id === group.id
-						? expandGroupToPositions(item, newPositions)
-						: item,
-				)
-			: manual.groups;
-	return {
-		...layout,
-		manual: {
-			...manual,
-			nodes,
-			groups,
-		},
-	};
-}
-
-function removeManualPlacements(
-	layout: ChartLayoutConfig,
-	paths: string[],
-): ChartLayoutConfig {
-	const manual = layout.manual;
-	if (!manual || paths.length === 0) {
-		return layout;
-	}
-	const removedPaths = new Set(paths.map((path) => normalizePath(path)));
-	const nodes = Object.fromEntries(
-		Object.entries(manual.nodes).filter(
-			([nodeId]) => !removedPaths.has(normalizePath(nodeId)),
-		),
-	);
-	if (Object.keys(nodes).length === Object.keys(manual.nodes).length) {
-		return layout;
-	}
-	return {
-		...layout,
-		manual: {
-			...manual,
-			nodes,
-		},
-	};
-}
-
-function moveManualNodesToGroup(
-	layout: ChartLayoutConfig,
-	paths: string[],
-	groupId?: string,
-): ChartLayoutConfig {
-	const manual = layout.manual ?? { nodes: {}, groups: [] };
-	const movingPaths = new Set(paths);
-	const group = groupId
-		? (layout.engine === 'cube-3d'
-				? CUBE_FACE_GROUPS_BY_ID.get(groupId)
-				: manual.groups.find((item) => item.id === groupId))
-		: undefined;
-	if (groupId && !group) {
-		return layout;
-	}
-	const bounds = group
-		? readGroupPlacementBounds(group)
-		: readUngroupedPlacementBounds(
-				Object.entries(manual.nodes)
-					.filter(([nodeId]) => !movingPaths.has(nodeId))
-					.map(([, placement]) => placement),
-			);
-	const occupied = Object.entries(manual.nodes)
-		.filter(([nodeId, placement]) => {
-			if (movingPaths.has(nodeId)) {
-				return false;
-			}
-			return group
-				? placement.groupId === group.id
-				: placement.groupId === undefined;
-		})
-		.map(([, placement]) => ({ x: placement.x, y: placement.y }));
-	const nodes = { ...manual.nodes };
-	const newPositions: Array<{ x: number; y: number }> = [];
-	let changed = false;
-	for (const path of paths) {
-		const previous = manual.nodes[path];
-		const position =
-			previous && (!group || isPositionInsideGroup(previous, group))
-				? { x: previous.x, y: previous.y }
-				: findManualPlacement(bounds, occupied, groupId);
-		occupied.push(position);
-		newPositions.push(position);
-		const nextPlacement = groupId ? { ...position, groupId } : position;
-		const nextGroupId = groupId ?? undefined;
-		if (
-			previous?.x !== nextPlacement.x ||
-			previous?.y !== nextPlacement.y ||
-			previous?.groupId !== nextGroupId
-		) {
-			changed = true;
-		}
-		nodes[path] = nextPlacement;
-	}
-	if (!changed) {
-		return layout;
-	}
-	const groups =
-		group && newPositions.length > 0 && !CUBE_FACE_IDS.has(group.id)
-			? manual.groups.map((item) =>
-					item.id === group.id
-						? expandGroupToPositions(item, newPositions)
-						: item,
-				)
-			: manual.groups;
-	return {
-		...layout,
-		manual: {
-			...manual,
-			nodes,
-			groups,
-		},
-	};
-}
-
-function readGroupPlacementBounds(group: ChartGroup): PlacementBounds {
-	const padding = Math.min(group.padding, group.width / 3, group.height / 3);
-	return {
-		left: group.x + padding,
-		right: group.x + group.width - padding,
-		bottom: group.y + padding,
-		top: group.y + group.height - padding,
-	};
-}
-
-function isPositionInsideGroup(
-	position: { x: number; y: number },
-	group: ChartGroup,
-): boolean {
-	return (
-		position.x >= group.x &&
-		position.x <= group.x + group.width &&
-		position.y >= group.y &&
-		position.y <= group.y + group.height
-	);
-}
-
-function readUngroupedPlacementBounds(
-	placements: Array<{ x: number; y: number }>,
-): PlacementBounds {
-	if (placements.length === 0) {
-		return { left: -1.6, right: 1.6, bottom: -1.1, top: 1.1 };
-	}
-	const center = placements.reduce(
-		(total, placement) => ({
-			x: total.x + placement.x / placements.length,
-			y: total.y + placement.y / placements.length,
-		}),
-		{ x: 0, y: 0 },
-	);
-	return {
-		left: center.x - 1.6,
-		right: center.x + 1.6,
-		bottom: center.y - 1.1,
-		top: center.y + 1.1,
-	};
-}
-
-function findOpenManualPlacement(
-	bounds: PlacementBounds,
-	occupied: Array<{ x: number; y: number }>,
-): { x: number; y: number } {
-	const center = {
-		x: (bounds.left + bounds.right) / 2,
-		y: (bounds.bottom + bounds.top) / 2,
-	};
-	for (let expansion = 0; expansion < 6; expansion += 1) {
-		const expanded = expandBounds(bounds, expansion * MANUAL_NODE_SPACING);
-		const candidates = createPlacementCandidates(expanded, center);
-		const candidate = candidates.find((position) =>
-			isManualPlacementOpen(position, occupied),
-		);
-		if (candidate) {
-			return candidate;
-		}
-	}
-	return {
-		x: center.x + occupied.length * MANUAL_NODE_SPACING,
-		y: center.y,
-	};
-}
-
-function findManualPlacement(
-	bounds: PlacementBounds,
-	occupied: Array<{ x: number; y: number }>,
-	groupId?: string,
-): { x: number; y: number } {
-	if (!groupId || !CUBE_FACE_IDS.has(groupId)) {
-		return findOpenManualPlacement(bounds, occupied);
-	}
-	const candidates = createBoundedGridPositions(bounds, occupied.length + 1);
-	return candidates.reduce(
-		(best, candidate) => {
-			const score = occupied.reduce(
-				(distance, placement) =>
-					Math.min(distance, distanceSquared(candidate, placement)),
-				Number.POSITIVE_INFINITY,
-			);
-			const center = {
-				x: (bounds.left + bounds.right) / 2,
-				y: (bounds.bottom + bounds.top) / 2,
-			};
-			const centerPenalty = distanceSquared(candidate, center) * 0.001;
-			const value = score - centerPenalty;
-			return value > best.value ? { position: candidate, value } : best;
-		},
-		{
-			position:
-				candidates[0] ?? {
-					x: (bounds.left + bounds.right) / 2,
-					y: (bounds.bottom + bounds.top) / 2,
-				},
-			value: Number.NEGATIVE_INFINITY,
-		},
-	).position;
-}
-
-function createBoundedGridPositions(
-	bounds: PlacementBounds,
-	count: number,
-): Array<{ x: number; y: number }> {
-	if (count <= 0) {
-		return [];
-	}
-	const width = Math.max(bounds.right - bounds.left, 0.001);
-	const height = Math.max(bounds.top - bounds.bottom, 0.001);
-	const columns = Math.max(1, Math.ceil(Math.sqrt(count * (width / height))));
-	const rows = Math.max(1, Math.ceil(count / columns));
-	const positions: Array<{ x: number; y: number }> = [];
-	for (let row = 0; row < rows; row += 1) {
-		for (let column = 0; column < columns; column += 1) {
-			positions.push({
-				x:
-					bounds.left +
-					((column + 1) * width) / (columns + 1),
-				y:
-					bounds.bottom +
-					((row + 1) * height) / (rows + 1),
-			});
-		}
-	}
-	const center = {
-		x: (bounds.left + bounds.right) / 2,
-		y: (bounds.bottom + bounds.top) / 2,
-	};
-	return positions
-		.sort((left, right) => distanceSquared(left, center) - distanceSquared(right, center))
-		.slice(0, count);
-}
-
-function createPlacementCandidates(
-	bounds: PlacementBounds,
-	center: { x: number; y: number },
-): Array<{ x: number; y: number }> {
-	const candidates: Array<{ x: number; y: number }> = [];
-	const columns = Math.max(
-		1,
-		Math.floor((bounds.right - bounds.left) / MANUAL_NODE_SPACING) + 1,
-	);
-	const rows = Math.max(
-		1,
-		Math.floor((bounds.top - bounds.bottom) / MANUAL_NODE_SPACING) + 1,
-	);
-	for (let row = 0; row < rows; row += 1) {
-		for (let column = 0; column < columns; column += 1) {
-			candidates.push({
-				x: bounds.left + column * MANUAL_NODE_SPACING,
-				y: bounds.bottom + row * MANUAL_NODE_SPACING,
-			});
-		}
-	}
-	candidates.push(center);
-	return candidates.sort((left, right) => {
-		const leftDistance = distanceSquared(left, center);
-		const rightDistance = distanceSquared(right, center);
-		return leftDistance - rightDistance;
-	});
-}
-
-function isManualPlacementOpen(
-	position: { x: number; y: number },
-	occupied: Array<{ x: number; y: number }>,
-): boolean {
-	return occupied.every(
-		(placement) =>
-			distanceSquared(position, placement) >=
-			MANUAL_NODE_SPACING * MANUAL_NODE_SPACING,
-	);
-}
-
-function expandBounds(bounds: PlacementBounds, amount: number): PlacementBounds {
-	return {
-		left: bounds.left - amount,
-		right: bounds.right + amount,
-		bottom: bounds.bottom - amount,
-		top: bounds.top + amount,
-	};
-}
-
-function expandGroupToPositions(
-	group: ChartGroup,
-	positions: Array<{ x: number; y: number }>,
-): ChartGroup {
-	const padding = group.padding;
-	const left = Math.min(group.x, ...positions.map((position) => position.x - padding));
-	const right = Math.max(
-		group.x + group.width,
-		...positions.map((position) => position.x + padding),
-	);
-	const bottom = Math.min(
-		group.y,
-		...positions.map((position) => position.y - padding),
-	);
-	const top = Math.max(
-		group.y + group.height,
-		...positions.map((position) => position.y + padding),
-	);
-	return {
-		...group,
-		x: left,
-		y: bottom,
-		width: right - left,
-		height: top - bottom,
-	};
-}
-
-function distanceSquared(
-	left: { x: number; y: number },
-	right: { x: number; y: number },
-): number {
-	const dx = left.x - right.x;
-	const dy = left.y - right.y;
-	return dx * dx + dy * dy;
-}
-
-function hashString(value: string): number {
-	let hash = 2166136261;
-	for (let index = 0; index < value.length; index += 1) {
-		hash ^= value.charCodeAt(index);
-		hash = Math.imul(hash, 16777619);
-	}
-	return (hash >>> 0) / 0xffffffff;
-}
-
-function createUniqueDefaultGroup(existingGroups: ChartGroup[]): ChartGroup {
-	const existingIds = new Set(existingGroups.map((group) => group.id));
-	let index = existingGroups.length + 1;
-	let group = createDefaultGroup(index);
-	while (existingIds.has(group.id)) {
-		index += 1;
-		group = createDefaultGroup(index);
-	}
-	return group;
-}
-
-function createGroupId(name: string): string {
-	const slug = name
-		.trim()
-		.toLocaleLowerCase()
-		.replace(/[^a-z0-9]+/gu, '-')
-		.replace(/^-+|-+$/gu, '');
-	return `group-${slug || Date.now().toString(36)}`;
-}
-
-function normalizeGroupPatch(
-	group: ChartGroup,
-	patch: Partial<ChartGroup>,
-): ChartGroup {
-	return {
-		...group,
-		...patch,
-		name:
-			typeof patch.name === 'string' && patch.name.trim()
-				? patch.name.trim()
-				: group.name,
-		width:
-			typeof patch.width === 'number' && Number.isFinite(patch.width)
-				? Math.max(0.8, patch.width)
-				: group.width,
-		height:
-			typeof patch.height === 'number' && Number.isFinite(patch.height)
-				? Math.max(0.6, patch.height)
-				: group.height,
-		padding:
-			typeof patch.padding === 'number' && Number.isFinite(patch.padding)
-				? Math.max(0, patch.padding)
-				: group.padding,
-		mode: patch.mode === 'rule' ? 'rule' : (patch.mode ?? group.mode),
-	};
-}
-
-function createDockId(prefix: string, value: string): string {
-	const slug = value
-		.trim()
-		.toLocaleLowerCase()
-		.replace(/[^a-z0-9]+/gu, '-')
-		.replace(/^-+|-+$/gu, '');
-	return `${prefix}-${slug || Date.now().toString(36)}`;
-}
-
-function sanitizeFileName(value: string): string {
-	const sanitized = value
-		.trim()
-		.replace(/[\\/:*?"<>|#^[\]]/gu, '-')
-		.replace(/\s+/gu, ' ')
-		.replace(/^-+|-+$/gu, '');
-	return sanitized || 'Untitled';
 }
 
 function asFrontmatterRecord(value: unknown): Record<string, unknown> {
@@ -2683,10 +1604,6 @@ function valuesEqual(left: unknown[], right: unknown[]): boolean {
 	return JSON.stringify(left) === JSON.stringify(right);
 }
 
-function getConnectionSpecFields(specs: ConnectionFieldSpec[]): string[] {
-	return normalizeConnectionFields(specs.map((spec) => spec.field));
-}
-
 function pruneMissingCuratedFiles(
 	charts: MetaGraphChart[],
 	existingPaths: Set<string>,
@@ -2710,56 +1627,8 @@ function pruneMissingCuratedFiles(
 	return changed ? nextCharts : charts;
 }
 
-function findConnectionFieldSpec(
-	specs: ConnectionFieldSpec[],
-	field: string,
-	mode: ConnectionFieldMode,
-): ConnectionFieldSpec | undefined {
-	return specs.find((spec) => spec.field === field && spec.mode === mode);
-}
-
-type ReorderPlacement = 'before' | 'after';
-
-function moveRelative<T>(
-	items: T[],
-	matchMoved: (item: T) => boolean,
-	matchTarget: (item: T) => boolean,
-	placement: ReorderPlacement,
-): T[] {
-	const fromIndex = items.findIndex(matchMoved);
-	const toIndex = items.findIndex(matchTarget);
-	if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
-		return items;
-	}
-	const next = [...items];
-	const [moved] = next.splice(fromIndex, 1) as [T];
-	const targetIndex = next.findIndex(matchTarget);
-	if (targetIndex < 0) {
-		return items;
-	}
-	next.splice(placement === 'after' ? targetIndex + 1 : targetIndex, 0, moved);
-	if (next.every((item, index) => item === items[index])) {
-		return items;
-	}
-	return next;
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-function uniqueSorted(values: string[]): string[] {
-	return [...new Set(values)].sort((left, right) => left.localeCompare(right));
-}
-
-function readVaultFolders(app: App): string[] {
-	return uniqueSorted(
-		app.vault
-			.getAllLoadedFiles()
-			.filter((file): file is TFolder => file instanceof TFolder)
-			.map((folder) => folder.path)
-			.filter((path) => path !== '/'),
-	);
 }
 
 function mapSetsToRecord(
