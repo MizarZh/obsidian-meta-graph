@@ -174,8 +174,17 @@ export class WorkspaceController {
 		this.index = indexer.build();
 		this.unresolvedLinks = [...indexer.unresolvedLinks];
 		this.metadataSources = [...indexer.metadataSources];
+		const charts = pruneMissingCuratedFiles(
+			this.state.charts,
+			new Set(this.index.nodes.keys()),
+		);
+		const activeChart = charts.find(
+			(chart) => chart.id === this.state.activeChartId,
+		);
 		this.state = {
 			...this.state,
+			charts,
+			curated: activeChart?.curated ?? this.state.curated,
 			layoutRevision:
 				this.state.layoutRevision + (forceLayout ? 1 : 0),
 			availableFolders: readVaultFolders(this.app),
@@ -792,7 +801,13 @@ export class WorkspaceController {
 		if (!update.changed) {
 			return;
 		}
-		this.state = this.updateActiveChart({ curated: update.curated }, true);
+		this.state = this.updateActiveChart(
+			{
+				curated: update.curated,
+				layout: removeManualPlacements(activeChart.layout, paths),
+			},
+			true,
+		);
 		this.runQuery();
 	}
 
@@ -830,6 +845,10 @@ export class WorkspaceController {
 					...activeChart.curated,
 					files: [],
 				}),
+				layout: removeManualPlacements(
+					activeChart.layout,
+					activeChart.curated.files.map((file) => file.path),
+				),
 			},
 			true,
 		);
@@ -2233,6 +2252,32 @@ function addManualPlacements(
 	};
 }
 
+function removeManualPlacements(
+	layout: ChartLayoutConfig,
+	paths: string[],
+): ChartLayoutConfig {
+	const manual = layout.manual;
+	if (!manual || paths.length === 0) {
+		return layout;
+	}
+	const removedPaths = new Set(paths.map((path) => normalizePath(path)));
+	const nodes = Object.fromEntries(
+		Object.entries(manual.nodes).filter(
+			([nodeId]) => !removedPaths.has(normalizePath(nodeId)),
+		),
+	);
+	if (Object.keys(nodes).length === Object.keys(manual.nodes).length) {
+		return layout;
+	}
+	return {
+		...layout,
+		manual: {
+			...manual,
+			nodes,
+		},
+	};
+}
+
 function moveManualNodesToGroup(
 	layout: ChartLayoutConfig,
 	paths: string[],
@@ -2640,6 +2685,29 @@ function valuesEqual(left: unknown[], right: unknown[]): boolean {
 
 function getConnectionSpecFields(specs: ConnectionFieldSpec[]): string[] {
 	return normalizeConnectionFields(specs.map((spec) => spec.field));
+}
+
+function pruneMissingCuratedFiles(
+	charts: MetaGraphChart[],
+	existingPaths: Set<string>,
+): MetaGraphChart[] {
+	let changed = false;
+	const nextCharts = charts.map((chart) => {
+		const missingPaths = chart.curated.files
+			.map((file) => file.path)
+			.filter((path) => !existingPaths.has(path));
+		if (missingPaths.length === 0) {
+			return chart;
+		}
+		const update = removeCuratedFilePaths(chart.curated, missingPaths);
+		if (!update.changed) {
+			return chart;
+		}
+		const layout = removeManualPlacements(chart.layout, missingPaths);
+		changed = true;
+		return { ...chart, curated: update.curated, layout };
+	});
+	return changed ? nextCharts : charts;
 }
 
 function findConnectionFieldSpec(
