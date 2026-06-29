@@ -5,7 +5,7 @@ import type {
 	LinkStyleRule,
 	NodeStyleRule,
 } from '../core/types';
-import { resolveLinkStyle, resolveNodeStyle } from '../graph/style-rules';
+import { resolveLinkStyle, resolveNodeStyle } from '../graph/styles/style-rules';
 import { normalizeMetaGraphDocument } from '../workspace/meta-graph-model';
 import { createWorkspaceState } from '../workspace/workspace-state';
 

@@ -1,11 +1,11 @@
 import type { WorkspaceState } from '../../core/types';
-import type { RuntimeGraph } from '../../graph/graphology-adapter';
-import type { GraphPalette } from '../../graph/graph-styles';
+import type { RuntimeGraph } from '../../graph/model/graphology-adapter';
+import type { GraphPalette } from '../../graph/styles/graph-styles';
 import {
 	createGraphRenderer,
 	getRendererKindForMode,
 	type GraphRenderer,
-} from '../../graph/renderer-adapter';
+} from '../../graph/renderers/renderer-adapter';
 
 export interface WorkspaceGraphRendererOptions {
 	graph: RuntimeGraph;

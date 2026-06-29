@@ -4,7 +4,7 @@ import type {
 	LinkStyleRule,
 	NodeStyleRule,
 	WorkspaceState,
-} from '../core/types';
+} from '../../core/types';
 
 export function getActiveNodeStyleRules(
 	state: Pick<WorkspaceState, 'globalNodeStyleRules' | 'nodeStyleRules'>,

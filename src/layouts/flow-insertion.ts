@@ -1,5 +1,5 @@
 import type { FlowDirection } from '../core/types';
-import type { GraphPosition, RuntimeGraph } from '../graph/graphology-adapter';
+import type { GraphPosition, RuntimeGraph } from '../graph/model/graphology-adapter';
 
 const BASE_LAYER_DISTANCE = 220;
 const BASE_CROSS_STEP = 90;

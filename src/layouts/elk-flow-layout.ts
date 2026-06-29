@@ -4,7 +4,7 @@ import ELK, {
 	type ElkPoint,
 } from 'elkjs/lib/elk.bundled.js';
 import type { FlowDirection, FlowEdgeStyle } from '../core/types';
-import type { RuntimeGraph } from '../graph/graphology-adapter';
+import type { RuntimeGraph } from '../graph/model/graphology-adapter';
 import type { LayoutEngine } from './layout-engine';
 
 export type OrthogonalRouteMap = Map<string, ElkPoint[]>;

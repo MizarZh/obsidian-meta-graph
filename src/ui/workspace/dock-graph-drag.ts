@@ -1,5 +1,5 @@
-import type { ConnectionDragState } from '../../graph/graph-events';
-import type { GraphRenderer } from '../../graph/renderer-adapter';
+import type { ConnectionDragState } from '../../graph/renderers/renderer-events';
+import type { GraphRenderer } from '../../graph/renderers/renderer-adapter';
 import {
 	createDockConnectionDragState,
 	updateDockConnectionDragState,

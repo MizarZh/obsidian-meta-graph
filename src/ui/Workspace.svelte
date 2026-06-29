@@ -9,9 +9,9 @@
 		WorkspaceState,
 	} from "../core/types";
 	import { formatError as formatErrorMessage } from "../core/errors";
-	import type { ConnectionDragState } from "../graph/graph-events";
-	import type { RuntimeGraph } from "../graph/graphology-adapter";
-	import { readGraphPalette } from "../graph/graph-styles";
+	import type { ConnectionDragState } from "../graph/renderers/renderer-events";
+	import type { RuntimeGraph } from "../graph/model/graphology-adapter";
+	import { readGraphPalette } from "../graph/styles/graph-styles";
 	import {
 		getModeCapabilities,
 		getRendererKind,
@@ -22,9 +22,9 @@
 		setRendererManualLayout,
 		setRendererPalette,
 		type GraphRenderer,
-	} from "../graph/renderer-adapter";
-	import { serializeRuntimeGraph } from "../graph/runtime-graph-debug";
-	import { SigmaRenderer } from "../graph/sigma-renderer";
+	} from "../graph/renderers/renderer-adapter";
+	import { serializeRuntimeGraph } from "../graph/model/runtime-graph-debug";
+	import { SigmaRenderer } from "../graph/renderers/sigma/sigma-renderer";
 	import {
 		applyStableLayout as applyStableRuntimeLayout,
 		hydrateManualLayoutPositions,

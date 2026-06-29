@@ -4,7 +4,7 @@ import {
 	getActiveDefaultNodeStyle,
 	getActiveLinkStyleRules,
 	getActiveNodeStyleRules,
-} from '../graph/active-styles';
+} from '../graph/styles/active-styles';
 
 describe('active style composition', () => {
 	it('combines global and chart-specific rules in application order', () => {

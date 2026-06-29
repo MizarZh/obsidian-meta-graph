@@ -9,15 +9,15 @@ import {
 	getActiveDefaultNodeStyle,
 	getActiveLinkStyleRules,
 	getActiveNodeStyleRules,
-} from '../../graph/active-styles';
+} from '../../graph/styles/active-styles';
 import {
 	GraphologyAdapter,
 	getEdgeType,
 	type GraphPosition,
 	type RuntimeGraph,
-} from '../../graph/graphology-adapter';
-import type { GraphPalette } from '../../graph/graph-styles';
-import { resolveLinkStyle, resolveNodeStyle } from '../../graph/style-rules';
+} from '../../graph/model/graphology-adapter';
+import type { GraphPalette } from '../../graph/styles/graph-styles';
+import { resolveLinkStyle, resolveNodeStyle } from '../../graph/styles/style-rules';
 
 export function createWorkspaceRuntimeGraph(
 	projection: GraphProjection,

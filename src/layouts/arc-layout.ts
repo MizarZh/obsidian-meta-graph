@@ -1,6 +1,6 @@
 import { scalePoint } from "d3-scale";
 import type { ArcDirection } from "../core/types";
-import type { RuntimeGraph } from "../graph/graphology-adapter";
+import type { RuntimeGraph } from "../graph/model/graphology-adapter";
 import type { LayoutEngine } from "./layout-engine";
 
 export interface ArcPoint {

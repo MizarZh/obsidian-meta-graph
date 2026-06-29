@@ -8,7 +8,7 @@ import { floatColor } from 'sigma/utils';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeNodeAttributes,
-} from './graphology-adapter';
+} from '../../model/graphology-adapter';
 
 const VERTEX_SHADER_SOURCE = /* glsl */ `
 attribute vec4 a_id;

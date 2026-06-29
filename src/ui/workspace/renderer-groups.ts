@@ -1,12 +1,12 @@
 import type { ManualLayoutConfig, ViewMode } from '../../core/types';
-import type { GraphPosition } from '../../graph/graphology-adapter';
+import type { GraphPosition } from '../../graph/model/graphology-adapter';
 import {
 	getModeCapabilities,
 	isCube3DRenderer,
 	isForce3DRenderer,
 	type GraphRenderer,
-} from '../../graph/renderer-adapter';
-import type { GroupInteractionCallbacks } from '../../graph/sigma-renderer';
+} from '../../graph/renderers/renderer-adapter';
+import type { GroupInteractionCallbacks } from '../../graph/renderers/sigma/sigma-renderer';
 import type { LayoutSnapshot } from '../../layouts/stable-layout';
 import {
 	getManualGroupNodeIds,

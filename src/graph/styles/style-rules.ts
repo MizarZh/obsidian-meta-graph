@@ -4,8 +4,8 @@ import type {
 	LinkLineStyle,
 	LinkStyleRule,
 	NodeStyleRule,
-} from '../core/types';
-import { matchesNodeCriterion } from '../query/filters';
+} from '../../core/types';
+import { matchesNodeCriterion } from '../../query/filters';
 
 export interface NodeStyle {
 	color: string;

@@ -1,22 +1,13 @@
 import Sigma from "sigma";
-import {
-	createEdgeArrowProgram,
-	drawStraightEdgeLabel,
-	type NodeHoverDrawingFunction,
-} from "sigma/rendering";
-import type {
-	EdgeLabelDrawingFunction,
-	NodeLabelDrawingFunction,
-} from "sigma/rendering";
-import type { NodeDisplayData, EdgeDisplayData } from "sigma/types";
-import type { ChartGroup, LabelPosition } from "../core/types";
+import { createEdgeArrowProgram } from "sigma/rendering";
+import type { ChartGroup, LabelPosition } from "../../../core/types";
 import {
 	type RuntimeEdgeAttributes,
 	type RuntimeGraph,
 	type RuntimeNodeAttributes,
-} from "./graphology-adapter";
-import { immediateNeighborhood } from "./graph-events";
-import { withAlpha, type GraphPalette } from "./graph-styles";
+} from "../../model/graphology-adapter";
+import { immediateNeighborhood } from "../../model/neighborhood";
+import { withAlpha, type GraphPalette } from "../../styles/graph-styles";
 import { calculateLabelOpacity } from "./label-opacity";
 import {
 	DashedArrowEdgeProgram,
@@ -24,8 +15,12 @@ import {
 	DottedArrowEdgeProgram,
 	DottedEdgeProgram,
 } from "./patterned-edge-program";
-
-const DEFAULT_NODE_LABEL_BASE_SIZE = 7;
+import {
+	createEdgeLabelDrawer,
+	createNodeHoverDrawer,
+	createNodeLabelDrawer,
+} from "./sigma-label-rendering";
+import { reduceSigmaEdge, reduceSigmaNode } from "./sigma-hover-policy";
 
 export interface GroupGeometry {
 	x: number;
@@ -106,17 +101,22 @@ export class SigmaRenderer {
 					dotted: DottedEdgeProgram,
 					"dotted-arrow": DottedArrowEdgeProgram,
 				},
-				nodeReducer: (node, data) => this.reduceNode(node, data),
-				edgeReducer: (edge, data) => this.reduceEdge(edge, data),
+				nodeReducer: (node, data) =>
+					reduceSigmaNode(node, data, this.getHoverState(), this.palette),
+				edgeReducer: (edge, data) =>
+					reduceSigmaEdge(
+						data,
+						this.getHoverState(),
+						this.palette,
+						this.graph.extremities(edge),
+					),
 				defaultDrawNodeLabel: createNodeLabelDrawer(
-					palette,
 					() => this.getCurrentLabelOpacity(),
 					() => this.labelPosition,
 					() => this.getLabelColor(),
 					() => this.getLabelBackground(),
 				),
 				defaultDrawNodeHover: createNodeHoverDrawer(
-					palette,
 					() => this.getCurrentLabelOpacity(),
 					() => this.labelPosition,
 					() => this.getLabelColor(),
@@ -325,73 +325,13 @@ export class SigmaRenderer {
 		this.instance.kill();
 	}
 
-	private reduceNode(
-		node: string,
-		data: RuntimeNodeAttributes,
-	): Partial<NodeDisplayData> {
-		const activeHoverNodeId = this.getActiveHoverNodeId();
-		if (data.isBend) {
-			return {
-				...data,
-				label: null,
-				size: 0.01,
-				highlighted: false,
-				zIndex: -1,
-			};
-		}
-			if (activeHoverNodeId && !this.hoveredNeighborhood.has(node)) {
-				return {
-					...data,
-					color: this.palette.mutedNode,
-					label: null,
-					forceLabel: false,
-					zIndex: 0,
-				};
-			}
-			if (node === this.selectedNodeId) {
-				return {
-					...data,
-					color: this.palette.selected,
-					size: data.size + 3,
-					highlighted: true,
-					forceLabel: true,
-					zIndex: 3,
-				};
-			}
-			if (node === activeHoverNodeId) {
-				return {
-					...data,
-					size: data.size + 2,
-					highlighted: true,
-					forceLabel: true,
-					zIndex: 2,
-				};
-			}
-			return { ...data, forceLabel: this.forceLabels, zIndex: 0 };
-		}
-
-	private reduceEdge(
-		edge: string,
-		data: RuntimeEdgeAttributes,
-	): Partial<EdgeDisplayData> {
-		const activeHoverNodeId = this.getActiveHoverNodeId();
-		if (!activeHoverNodeId) {
-			return { ...data };
-		}
-		const [source, target] = this.graph.extremities(edge);
-		const connected =
-			source === activeHoverNodeId ||
-			target === activeHoverNodeId ||
-			data.logicalSource === activeHoverNodeId ||
-			data.logicalTarget === activeHoverNodeId;
-		return connected
-			? { ...data, size: data.size + 1, zIndex: 2 }
-			: {
-					...data,
-					color: this.palette.mutedEdge,
-					size: 0.4,
-					zIndex: 0,
-				};
+	private getHoverState() {
+		return {
+			activeHoverNodeId: this.getActiveHoverNodeId(),
+			selectedNodeId: this.selectedNodeId,
+			hoveredNeighborhood: this.hoveredNeighborhood,
+			forceLabels: this.forceLabels,
+		};
 	}
 
 	private getActiveHoverNodeId(): string | undefined {
@@ -909,302 +849,4 @@ function isBottomResize(direction?: GroupResizeDirection): boolean {
 		direction === "bottom-left" ||
 		direction === "bottom-right"
 	);
-}
-
-function createNodeLabelDrawer(
-	palette: GraphPalette,
-	getOpacity: () => number,
-	getLabelPosition: () => LabelPosition,
-	getLabelColor: () => string,
-	getLabelBackground: () => string,
-): NodeLabelDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
-	return (context, data, settings) => {
-		if (!data.label) {
-			return;
-		}
-
-		const labelSize = getScaledLabelSize(settings.labelSize, data.size);
-		const font = `${settings.labelWeight} ${labelSize}px ${settings.labelFont}`;
-		const paddingX = 5;
-		const paddingY = 3;
-		context.save();
-		context.font = font;
-		context.textBaseline = "middle";
-		const textWidth = context.measureText(data.label).width;
-		const width = textWidth + paddingX * 2;
-		const height = labelSize + paddingY * 2;
-			context.globalAlpha = getOpacity();
-			drawNodeLabel(
-				context,
-				data,
-				width,
-				height,
-				paddingX,
-				getLabelPosition(),
-				getLabelBackground(),
-				getLabelColor(),
-			);
-			context.restore();
-		};
-	}
-
-function createNodeHoverDrawer(
-	palette: GraphPalette,
-	getOpacity: () => number,
-	getLabelPosition: () => LabelPosition,
-	getLabelColor: () => string,
-	getLabelBackground: () => string,
-): NodeHoverDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
-	return (context, data, settings) => {
-		if (data.hidden) return;
-		if (typeof data.label !== "string") return;
-
-		const { labelFont: font, labelWeight: weight } = settings;
-		const size = getScaledLabelSize(settings.labelSize, data.size);
-		context.font = `${weight} ${size}px ${font}`;
-
-		const alpha = getOpacity();
-		context.save();
-		context.globalAlpha = alpha;
-		context.fillStyle = getLabelBackground();
-		context.shadowOffsetX = 0;
-		context.shadowOffsetY = 0;
-		context.shadowBlur = 8;
-		context.shadowColor = "rgba(0,0,0,0.4)";
-
-		const paddingX = 5;
-		const paddingY = 3;
-		const textWidth = context.measureText(data.label).width;
-		const width = textWidth + paddingX * 2;
-		const height = size + paddingY * 2;
-			drawNodeLabel(
-				context,
-				data,
-				width,
-				height,
-				paddingX,
-				getLabelPosition(),
-				getLabelBackground(),
-				getLabelColor(),
-			);
-
-			context.restore();
-		};
-	}
-
-function drawNodeLabel(
-	context: CanvasRenderingContext2D,
-	data: Pick<
-		NodeDisplayData,
-		"x" | "y" | "label" | "size"
-	> & { labelRotation?: number; labelDirection?: 1 | -1 },
-	width: number,
-	height: number,
-	paddingX: number,
-	labelPosition: LabelPosition,
-	labelBackground: string,
-	labelColor: string,
-): void {
-	if (typeof data.label !== "string") {
-		return;
-	}
-	if (typeof data.labelRotation === "number") {
-		const gap = 7;
-		const direction = data.labelDirection ?? 1;
-		const box = getRotatedNodeLabelBox(
-			data.size,
-			width,
-			height,
-			paddingX,
-			gap,
-			direction,
-			labelPosition,
-		);
-		context.save();
-		context.translate(data.x, data.y);
-		context.rotate(data.labelRotation);
-		context.textBaseline = "middle";
-		context.textAlign = box.textAlign;
-		context.beginPath();
-		drawRoundedRect(context, box.x, box.y, width, height, 4);
-		context.fillStyle = labelBackground;
-		context.fill();
-		context.shadowBlur = 0;
-		context.fillStyle = labelColor;
-		context.fillText(data.label, box.textX, box.textY);
-		context.restore();
-		return;
-	}
-
-	const box = getNodeLabelBox(
-		data.x,
-		data.y,
-		data.size,
-		width,
-		height,
-		paddingX,
-		labelPosition,
-	);
-	context.textBaseline = "middle";
-	context.textAlign = box.textAlign;
-	context.beginPath();
-	drawRoundedRect(context, box.x, box.y, width, height, 4);
-	context.fillStyle = labelBackground;
-	context.fill();
-	context.shadowBlur = 0;
-	context.fillStyle = labelColor;
-	context.fillText(data.label, box.textX, box.textY);
-}
-
-function getRotatedNodeLabelBox(
-	nodeSize: number,
-	width: number,
-	height: number,
-	paddingX: number,
-	gap: number,
-	direction: 1 | -1,
-	position: LabelPosition,
-): {
-	x: number;
-	y: number;
-	textX: number;
-	textY: number;
-	textAlign: CanvasTextAlign;
-} {
-	const outward = direction > 0 ? 1 : -1;
-	if (position === "left") {
-		const x = outward > 0 ? -nodeSize - gap - width : nodeSize + gap;
-		return {
-			x,
-			y: -height / 2,
-			textX: x + (outward > 0 ? width - paddingX : paddingX),
-			textY: 0,
-			textAlign: outward > 0 ? "right" : "left",
-		};
-	}
-	if (position === "top") {
-		return {
-			x: -width / 2,
-			y: -nodeSize - gap - height,
-			textX: 0,
-			textY: -nodeSize - gap - height / 2,
-			textAlign: "center",
-		};
-	}
-	if (position === "bottom") {
-		return {
-			x: -width / 2,
-			y: nodeSize + gap,
-			textX: 0,
-			textY: nodeSize + gap + height / 2,
-			textAlign: "center",
-		};
-	}
-	const x = outward > 0 ? nodeSize + gap : -nodeSize - gap - width;
-	return {
-		x,
-		y: -height / 2,
-		textX: x + (outward > 0 ? paddingX : width - paddingX),
-		textY: 0,
-		textAlign: outward > 0 ? "left" : "right",
-	};
-}
-
-function getScaledLabelSize(baseLabelSize: number, nodeSize: number): number {
-	return (baseLabelSize * nodeSize) / DEFAULT_NODE_LABEL_BASE_SIZE;
-}
-
-function getNodeLabelBox(
-	nodeX: number,
-	nodeY: number,
-	nodeSize: number,
-	width: number,
-	height: number,
-	paddingX: number,
-	position: LabelPosition,
-): {
-	x: number;
-	y: number;
-	textX: number;
-	textY: number;
-	textAlign: CanvasTextAlign;
-} {
-	const gap = 5;
-	if (position === "left") {
-		const textX = nodeX - nodeSize - gap;
-		return {
-			x: textX - width + paddingX,
-			y: nodeY - height / 2,
-			textX,
-			textY: nodeY,
-			textAlign: "right",
-		};
-	}
-	if (position === "top") {
-		const y = nodeY - nodeSize - gap - height;
-		return {
-			x: nodeX - width / 2,
-			y,
-			textX: nodeX,
-			textY: y + height / 2,
-			textAlign: "center",
-		};
-	}
-	if (position === "bottom") {
-		const y = nodeY + nodeSize + gap;
-		return {
-			x: nodeX - width / 2,
-			y,
-			textX: nodeX,
-			textY: y + height / 2,
-			textAlign: "center",
-		};
-	}
-	const textX = nodeX + nodeSize + gap;
-	return {
-		x: textX - paddingX,
-		y: nodeY - height / 2,
-		textX,
-		textY: nodeY,
-		textAlign: "left",
-	};
-}
-
-function createEdgeLabelDrawer(
-	getOpacity: () => number,
-): EdgeLabelDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
-	return (context, edgeData, sourceData, targetData, settings) => {
-		context.save();
-		context.globalAlpha = getOpacity();
-		drawStraightEdgeLabel(
-			context,
-			edgeData,
-			sourceData,
-			targetData,
-			settings,
-		);
-		context.restore();
-	};
-}
-
-function drawRoundedRect(
-	context: CanvasRenderingContext2D,
-	x: number,
-	y: number,
-	width: number,
-	height: number,
-	radius: number,
-): void {
-	const right = x + width;
-	const bottom = y + height;
-	context.moveTo(x + radius, y);
-	context.lineTo(right - radius, y);
-	context.quadraticCurveTo(right, y, right, y + radius);
-	context.lineTo(right, bottom - radius);
-	context.quadraticCurveTo(right, bottom, right - radius, bottom);
-	context.lineTo(x + radius, bottom);
-	context.quadraticCurveTo(x, bottom, x, bottom - radius);
-	context.lineTo(x, y + radius);
-	context.quadraticCurveTo(x, y, x + radius, y);
-	context.closePath();
 }

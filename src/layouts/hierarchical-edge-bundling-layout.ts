@@ -1,5 +1,5 @@
 import { cluster, hierarchy, type HierarchyPointNode } from 'd3-hierarchy';
-import type { RuntimeGraph } from '../graph/graphology-adapter';
+import type { RuntimeGraph } from '../graph/model/graphology-adapter';
 import type { LayoutEngine } from './layout-engine';
 
 interface BundleNode {

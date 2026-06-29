@@ -1,5 +1,5 @@
 import forceAtlas2 from 'graphology-layout-forceatlas2';
-import type { RuntimeGraph } from '../graph/graphology-adapter';
+import type { RuntimeGraph } from '../graph/model/graphology-adapter';
 import type { LayoutEngine } from './layout-engine';
 
 export interface GraphForceSettings {

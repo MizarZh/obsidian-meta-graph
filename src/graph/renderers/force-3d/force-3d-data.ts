@@ -3,7 +3,7 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from './graphology-adapter';
+} from '../../model/graphology-adapter';
 
 export interface Force3DNode extends NodeObject {
 	id: string;

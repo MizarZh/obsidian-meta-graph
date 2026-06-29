@@ -3,8 +3,8 @@ import type { GraphProjection } from '../core/types';
 import {
 	GraphologyAdapter,
 	type GraphPosition,
-} from '../graph/graphology-adapter';
-import type { GraphPalette } from '../graph/graph-styles';
+} from '../graph/model/graphology-adapter';
+import type { GraphPalette } from '../graph/styles/graph-styles';
 import {
 	getFlowInsertionDirection,
 	placeNewFlowNodes,

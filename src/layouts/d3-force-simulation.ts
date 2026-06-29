@@ -10,8 +10,8 @@ import {
 	type SimulationLinkDatum,
 	type SimulationNodeDatum,
 } from 'd3-force';
-import type { RuntimeGraph } from '../graph/graphology-adapter';
-import type { SigmaRenderer } from '../graph/sigma-renderer';
+import type { RuntimeGraph } from '../graph/model/graphology-adapter';
+import type { SigmaRenderer } from '../graph/renderers/sigma/sigma-renderer';
 import {
 	DEFAULT_GRAPH_FORCE_SETTINGS,
 	type GraphForceSettings,

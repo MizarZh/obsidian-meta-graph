@@ -1,12 +1,12 @@
 import type { ViewMode } from '../../core/types';
-import type { ConnectionDragState } from '../../graph/graph-events';
-import type { GraphPosition } from '../../graph/graphology-adapter';
+import type { ConnectionDragState } from '../../graph/renderers/renderer-events';
+import type { GraphPosition } from '../../graph/model/graphology-adapter';
 import {
 	getModeCapabilities,
 	type GraphRenderer,
-} from '../../graph/renderer-adapter';
-import { bindRendererEvents } from '../../graph/renderer-events-adapter';
-import type { SigmaRenderer } from '../../graph/sigma-renderer';
+} from '../../graph/renderers/renderer-adapter';
+import { bindRendererEvents } from '../../graph/renderers/renderer-events-adapter';
+import type { SigmaRenderer } from '../../graph/renderers/sigma/sigma-renderer';
 import type { D3ForceSimulation } from '../../layouts/d3-force-simulation';
 import type { LayoutSnapshot } from '../../layouts/stable-layout';
 import {

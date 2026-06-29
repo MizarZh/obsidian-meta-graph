@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateLabelOpacity } from '../graph/label-opacity';
+import { calculateLabelOpacity } from '../graph/renderers/sigma/label-opacity';
 
 describe('label opacity', () => {
 	it('keeps the configured opacity before the fade distance', () => {

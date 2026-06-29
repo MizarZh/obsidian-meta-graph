@@ -1,4 +1,4 @@
-import type { RendererDebugState } from '../core/types';
+import type { RendererDebugState } from '../../core/types';
 import type { RuntimeGraph } from './graphology-adapter';
 
 export function serializeRuntimeGraph(

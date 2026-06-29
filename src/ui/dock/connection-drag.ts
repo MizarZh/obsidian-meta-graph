@@ -1,4 +1,4 @@
-import type { ConnectionDragState } from '../../graph/graph-events';
+import type { ConnectionDragState } from '../../graph/renderers/renderer-events';
 import type { ViewportPoint } from './dom';
 import { getDockDragKey } from './drag';
 import type { DockDragPayload } from './types';

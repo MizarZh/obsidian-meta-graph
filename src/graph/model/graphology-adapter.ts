@@ -7,9 +7,9 @@ import type {
 	RelationType,
 	DefaultLinkStyle,
 	DefaultNodeStyle,
-} from '../core/types';
-import type { GraphPalette } from './graph-styles';
-import { resolveLinkStyle, resolveNodeStyle } from './style-rules';
+} from '../../core/types';
+import type { GraphPalette } from '../styles/graph-styles';
+import { resolveLinkStyle, resolveNodeStyle } from '../styles/style-rules';
 
 export interface GraphPosition {
 	x: number;

@@ -1,9 +1,9 @@
-import type { LabelPosition, ManualLayoutConfig, ViewMode } from '../core/types';
-import type { RuntimeGraph } from './graphology-adapter';
-import type { GraphPalette } from './graph-styles';
-import { Cube3DRenderer } from './cube-3d-renderer';
-import { Force3DRenderer } from './force-3d-renderer';
-import { SigmaRenderer } from './sigma-renderer';
+import type { LabelPosition, ManualLayoutConfig, ViewMode } from '../../core/types';
+import type { RuntimeGraph } from '../model/graphology-adapter';
+import type { GraphPalette } from '../styles/graph-styles';
+import { Cube3DRenderer } from './cube-3d/cube-3d-renderer';
+import { Force3DRenderer } from './force-3d/force-3d-renderer';
+import { SigmaRenderer } from './sigma/sigma-renderer';
 
 export type GraphRenderer = SigmaRenderer | Force3DRenderer | Cube3DRenderer;
 export type RendererKind = 'sigma' | 'force-3d' | 'cube-3d';

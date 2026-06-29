@@ -1,26 +1,5 @@
-import type { RuntimeGraph } from "./graphology-adapter";
-import type { SigmaRenderer } from "./sigma-renderer";
-
-export interface GraphEventCallbacks {
-	enableForceLayout?: boolean;
-	enableNodeDragging?: boolean;
-	onSelect(nodeId?: string): void;
-	onHover(nodeId?: string): void;
-	onOpen(nodeId: string): void;
-	onNodeDrag?(nodeId: string, position: { x: number; y: number }): void;
-	onNodeDragEnd?(nodeId: string): void;
-	onConnectionDrag?(state?: ConnectionDragState): void;
-	onConnect?(sourceNodeId: string, targetNodeId: string): void;
-}
-
-export interface ConnectionDragState {
-	sourceNodeId: string;
-	targetNodeId?: string;
-	x1: number;
-	y1: number;
-	x2: number;
-	y2: number;
-}
+import type { GraphEventCallbacks, ConnectionDragState } from '../renderer-events';
+import type { SigmaRenderer } from './sigma-renderer';
 
 export function bindGraphEvents(
 	renderer: SigmaRenderer,
@@ -331,37 +310,4 @@ export function bindGraphEvents(
 		mouseCaptor.off("mousemovebody", moveBody);
 		mouseCaptor.off("mouseup", mouseUp);
 	};
-}
-
-export function immediateNeighborhood(
-	graph: RuntimeGraph,
-	nodeId: string,
-): Set<string> {
-	const neighbors = new Set([nodeId]);
-	graph.forEachEdge(
-		nodeId,
-		(
-			_edge,
-			attributes,
-			source,
-			target,
-			_sourceAttributes,
-			_targetAttributes,
-		) => {
-			if (
-				attributes.logicalSource === nodeId &&
-				attributes.logicalTarget
-			) {
-				neighbors.add(attributes.logicalTarget);
-			} else if (
-				attributes.logicalTarget === nodeId &&
-				attributes.logicalSource
-			) {
-				neighbors.add(attributes.logicalSource);
-			} else {
-				neighbors.add(source === nodeId ? target : source);
-			}
-		},
-	);
-	return neighbors;
 }

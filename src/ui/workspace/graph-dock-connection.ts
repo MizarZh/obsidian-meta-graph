@@ -1,4 +1,4 @@
-import type { ConnectionDragState } from '../../graph/graph-events';
+import type { ConnectionDragState } from '../../graph/renderers/renderer-events';
 import { readDockDropTarget, readElementAtPoint } from '../dock/dom';
 import {
 	resolveGraphConnectionDropAction,

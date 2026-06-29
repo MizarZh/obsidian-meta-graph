@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { GraphProjection } from '../core/types';
-import { GraphologyAdapter } from '../graph/graphology-adapter';
-import type { GraphPalette } from '../graph/graph-styles';
-import { serializeRuntimeGraph } from '../graph/runtime-graph-debug';
+import { GraphologyAdapter } from '../graph/model/graphology-adapter';
+import type { GraphPalette } from '../graph/styles/graph-styles';
+import { serializeRuntimeGraph } from '../graph/model/runtime-graph-debug';
 
 const palette: GraphPalette = {
 	node: '#111111',

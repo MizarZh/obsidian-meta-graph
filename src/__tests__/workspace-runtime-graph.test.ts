@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GraphProjection } from '../core/types';
-import type { GraphPalette } from '../graph/graph-styles';
+import type { GraphPalette } from '../graph/styles/graph-styles';
 import {
 	createWorkspaceRuntimeGraph,
 	syncWorkspaceRuntimeGraphStyles,

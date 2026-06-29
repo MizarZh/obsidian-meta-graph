@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeNodeAttributes,
-} from '../graph/graphology-adapter';
+} from '../graph/model/graphology-adapter';
 import { ForceAtlasLayout } from '../layouts/force-layout';
 
 describe('ForceAtlasLayout', () => {

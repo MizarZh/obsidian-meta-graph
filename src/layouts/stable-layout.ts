@@ -5,7 +5,7 @@ import type {
 	ManualLayoutConfig,
 	ViewMode,
 } from '../core/types';
-import type { GraphPosition, RuntimeGraph } from '../graph/graphology-adapter';
+import type { GraphPosition, RuntimeGraph } from '../graph/model/graphology-adapter';
 import { ArcLayout } from './arc-layout';
 import {
 	applyOrthogonalFlowEdges,

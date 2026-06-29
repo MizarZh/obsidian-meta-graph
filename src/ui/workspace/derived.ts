@@ -2,8 +2,8 @@ import type { DebugSnapshot, KnowledgeNode, WorkspaceState } from '../../core/ty
 import {
 	getActiveDefaultNodeStyle,
 	getActiveNodeStyleRules,
-} from '../../graph/active-styles';
-import { resolveNodeStyle } from '../../graph/style-rules';
+} from '../../graph/styles/active-styles';
+import { resolveNodeStyle } from '../../graph/styles/style-rules';
 
 type DockNotes = WorkspaceState['dock']['notes'];
 type SnapshotNodeIndex = { index: Pick<DebugSnapshot['index'], 'nodes'> };
