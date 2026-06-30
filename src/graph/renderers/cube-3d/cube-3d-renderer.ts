@@ -5,17 +5,29 @@ import {
 	type CubeFaceId,
 	RUBIK_FACE_COLORS,
 	createCubeFaces,
-	findOpenDisplayPosition,
 	getCubeFace,
 	getCubeFaceIdForNode,
-	hashString,
-	hasCubeDisplayOverlap,
 } from "./cube-faces";
+import {
+	resolveCubeDisplayPositions,
+	shouldShowCubeLabel,
+} from "./cube-display";
+import {
+	clamp,
+	getCubeLocalLabelPosition,
+	getCubeLocalPosition,
+	getFaceVisibilityOpacity as readFaceVisibilityOpacity,
+} from "./cube-math";
+import {
+	createCubeArrowTexture,
+	createCubeNodeSprite,
+	createCubeTextSprite,
+} from "./cube-sprites";
+import type { ThreeModule } from "./cube-three";
 import { immediateNeighborhood } from "../../model/neighborhood";
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
-	RuntimeNodeAttributes,
 } from "../../model/graphology-adapter";
 import type { GraphPalette } from "../../styles/graph-styles";
 import {
@@ -23,36 +35,12 @@ import {
 	projectedToViewport,
 	readViewportPosition,
 } from "../renderer-interaction";
-import { createThreeTextSprite } from "../renderer-labels";
 
 interface CubeNodeObject {
 	id: string;
 	faceId: CubeFaceId;
 	mesh: Three.Sprite;
 	label?: Three.Sprite;
-}
-
-interface ThreeModule {
-	AmbientLight: typeof Three.AmbientLight;
-	BufferGeometry: typeof Three.BufferGeometry;
-	CanvasTexture: typeof Three.CanvasTexture;
-	Color: typeof Three.Color;
-	DoubleSide: typeof Three.DoubleSide;
-	Group: typeof Three.Group;
-	Line: typeof Three.Line;
-	LineBasicMaterial: typeof Three.LineBasicMaterial;
-	Mesh: typeof Three.Mesh;
-	MeshBasicMaterial: typeof Three.MeshBasicMaterial;
-	PerspectiveCamera: typeof Three.PerspectiveCamera;
-	Plane: typeof Three.Plane;
-	PlaneGeometry: typeof Three.PlaneGeometry;
-	Raycaster: typeof Three.Raycaster;
-	Scene: typeof Three.Scene;
-	Sprite: typeof Three.Sprite;
-	SpriteMaterial: typeof Three.SpriteMaterial;
-	Vector2: typeof Three.Vector2;
-	Vector3: typeof Three.Vector3;
-	WebGLRenderer: typeof Three.WebGLRenderer;
 }
 
 export class Cube3DRenderer {
@@ -494,7 +482,10 @@ export class Cube3DRenderer {
 		this.clearObjectGroup(this.nodeGroup);
 		this.clearObjectGroup(this.labelGroup);
 		this.nodeObjects.clear();
-		const displayPositions = this.resolveDisplayPositions();
+			const displayPositions = resolveCubeDisplayPositions(
+				this.graph,
+				this.manualLayout,
+			);
 		for (const nodeId of this.graph.nodes()) {
 			const attributes = this.graph.getNodeAttributes(nodeId);
 			if (attributes.isBend) {
@@ -508,14 +499,32 @@ export class Cube3DRenderer {
 				y: attributes.y,
 			};
 			const nodeSize = Math.max(5, attributes.size * 1.25);
-		const mesh = this.createNodeSprite(attributes.color, nodeSize);
+			const mesh = createCubeNodeSprite(
+				this.three,
+				this.container.ownerDocument,
+				attributes.color,
+				nodeSize,
+			);
 		mesh.position.copy(this.localPosition(face, position.x, position.y, 8));
 		mesh.renderOrder = 3;
 		mesh.userData.nodeId = nodeId;
 			this.nodeGroup.add(mesh);
-			const label = this.shouldShowLabel(attributes)
-				? this.createTextSprite(attributes.label, this.labelSize, attributes)
-				: undefined;
+				const label = shouldShowCubeLabel(
+					attributes,
+					this.labelDensity,
+					this.forceLabels,
+				)
+					? createCubeTextSprite(
+							this.three,
+							this.container.ownerDocument,
+							attributes.label,
+							this.labelSize,
+							attributes,
+							this.palette,
+							this.labelColor,
+							this.labelBackgroundOpacity,
+						)
+					: undefined;
 			if (label) {
 				label.position.copy(
 					this.localLabelPosition(face, position.x, position.y, nodeSize),
@@ -529,41 +538,7 @@ export class Cube3DRenderer {
 		this.refreshNodeColors();
 	}
 
-	private resolveDisplayPositions(): Map<
-		string,
-		{ faceId: CubeFaceId; x: number; y: number }
-	> {
-		const positions = new Map<string, { faceId: CubeFaceId; x: number; y: number }>();
-		const byFace = new Map<CubeFaceId, Array<{ id: string; x: number; y: number }>>();
-		for (const nodeId of this.graph.nodes()) {
-			const attributes = this.graph.getNodeAttributes(nodeId);
-			if (attributes.isBend) {
-				continue;
-			}
-			const faceId = this.getFaceIdForNode(nodeId);
-			const placement = this.manualLayout.nodes[nodeId];
-			const position = placement ?? { x: attributes.x, y: attributes.y };
-			const bucket = byFace.get(faceId) ?? [];
-			bucket.push({ id: nodeId, x: position.x, y: position.y });
-			byFace.set(faceId, bucket);
-		}
-		for (const [faceId, items] of byFace) {
-			const occupied: Array<{ x: number; y: number }> = [];
-			for (const item of items) {
-				const overlaps = occupied.some((position) =>
-					hasCubeDisplayOverlap(position, item),
-				);
-				const position = overlaps
-					? findOpenDisplayPosition(occupied.length + 1, occupied)
-					: { x: item.x, y: item.y };
-				positions.set(item.id, { faceId, ...position });
-				occupied.push(position);
-			}
-		}
-		return positions;
-	}
-
-	private rebuildEdges(): void {
+		private rebuildEdges(): void {
 		this.clearObjectGroup(this.edgeGroup);
 		for (const edgeId of this.graph.edges()) {
 			const attributes = this.graph.getEdgeAttributes(edgeId);
@@ -627,30 +602,18 @@ export class Cube3DRenderer {
 	}
 
 	private getArrowTexture(color: string): Three.CanvasTexture {
-		const cached = this.arrowTextures.get(color);
-		if (cached) {
-			return cached;
+			const cached = this.arrowTextures.get(color);
+			if (cached) {
+				return cached;
+			}
+			const texture = createCubeArrowTexture(
+				this.three,
+				this.container.ownerDocument,
+				color,
+			);
+			this.arrowTextures.set(color, texture);
+			return texture;
 		}
-		const canvasSize = 64;
-		const canvas = this.container.ownerDocument.createElement("canvas");
-		canvas.width = canvasSize;
-		canvas.height = canvasSize;
-		const context = canvas.getContext("2d");
-		if (context) {
-			context.clearRect(0, 0, canvasSize, canvasSize);
-			context.fillStyle = color;
-			context.beginPath();
-			context.moveTo(52, 32);
-			context.lineTo(22, 14);
-			context.lineTo(28, 32);
-			context.lineTo(22, 50);
-			context.closePath();
-			context.fill();
-		}
-		const texture = new this.three.CanvasTexture(canvas);
-		this.arrowTextures.set(color, texture);
-		return texture;
-	}
 
 	private refreshNodeColors(): void {
 		for (const [nodeId, node] of this.nodeObjects.entries()) {
@@ -691,69 +654,13 @@ export class Cube3DRenderer {
 			: new Set();
 	}
 
-	private shouldShowLabel(attributes: RuntimeNodeAttributes): boolean {
-		if (this.forceLabels || attributes.isPrimary) {
-			return true;
-		}
-		return hashString(attributes.path) <= this.labelDensity;
-	}
-
-	private createNodeSprite(color: string, size: number): Three.Sprite {
-		const canvasSize = 64;
-		const canvas = this.container.ownerDocument.createElement("canvas");
-		canvas.width = canvasSize;
-		canvas.height = canvasSize;
-		const context = canvas.getContext("2d");
-		if (context) {
-			context.clearRect(0, 0, canvasSize, canvasSize);
-			context.fillStyle = color;
-			context.beginPath();
-			context.arc(canvasSize / 2, canvasSize / 2, canvasSize * 0.38, 0, Math.PI * 2);
-			context.fill();
-		}
-		const material = new this.three.SpriteMaterial({
-			map: new this.three.CanvasTexture(canvas),
-			transparent: true,
-			depthWrite: false,
-			depthTest: false,
-		});
-		const sprite = new this.three.Sprite(material);
-		sprite.scale.set(size * 2, size * 2, 1);
-		return sprite;
-	}
-
-	private createTextSprite(
-		text: string,
-		size: number,
-		attributes: RuntimeNodeAttributes,
-	): Three.Sprite {
-		const fontSize = Math.max(10, size);
-		const padding = Math.ceil(fontSize * 0.45);
-		return createThreeTextSprite(this.three, {
-			text,
-			fontSize,
-			textColor: this.labelColor || this.palette.label,
-			backgroundColor: `rgba(0, 0, 0, ${this.labelBackgroundOpacity})`,
-			ownerDocument: this.container.ownerDocument,
-			paddingX: padding,
-			paddingY: padding,
-			scale: attributes.isPrimary ? 1.1 : 1,
-			scaleMultiplier: 0.28,
-		});
-	}
-
-	private localPosition(
+		private localPosition(
 		face: CubeFace,
 		x: number,
 		y: number,
 		offset = 6,
 	): Three.Vector3 {
-		const range = this.cubeSize * 0.78;
-		return face.normal
-			.clone()
-			.multiplyScalar(this.cubeSize + offset)
-				.add(face.u.clone().multiplyScalar(clamp(x, -1, 1) * range))
-				.add(face.v.clone().multiplyScalar(clamp(y, -1, 1) * range));
+			return getCubeLocalPosition(face, this.cubeSize, x, y, offset);
 	}
 
 	private localLabelPosition(
@@ -762,25 +669,28 @@ export class Cube3DRenderer {
 		y: number,
 		nodeRadius: number,
 	): Three.Vector3 {
-		return this.localPosition(face, x, y, 10).add(
-			face.v.clone().multiplyScalar(nodeRadius + this.labelSize * 0.9),
-		);
+			return getCubeLocalLabelPosition(
+				face,
+				this.cubeSize,
+				x,
+				y,
+				nodeRadius,
+				this.labelSize,
+			);
 	}
 
 	private getFaceVisibilityOpacity(
 		faceId: CubeFaceId,
 		localPosition: Three.Vector3,
 	): number {
-		const face = this.getFace(faceId);
-		this.updateWorldMatrices();
-		const worldNormal = face.normal
-			.clone()
-			.transformDirection(this.cubeGroup.matrixWorld)
-			.normalize();
-		const worldPosition = this.cubeGroup.localToWorld(localPosition.clone());
-		const toCamera = this.camera.position.clone().sub(worldPosition).normalize();
-		const facing = worldNormal.dot(toCamera);
-		return lerp(0.62, 1, smoothstep(-0.2, 0.35, facing));
+			const face = this.getFace(faceId);
+			this.updateWorldMatrices();
+			return readFaceVisibilityOpacity(
+				face,
+				localPosition,
+				this.cubeGroup,
+				this.camera,
+			);
 	}
 
 	private setObjectOpacity(object: Three.Object3D, opacity: number): void {
@@ -925,17 +835,4 @@ export class Cube3DRenderer {
 async function loadThree(): Promise<ThreeModule> {
 	const module = await import("three");
 	return module;
-}
-
-function clamp(value: number, min: number, max: number): number {
-	return Math.max(min, Math.min(max, value));
-}
-
-function lerp(start: number, end: number, amount: number): number {
-	return start + (end - start) * amount;
-}
-
-function smoothstep(edge0: number, edge1: number, value: number): number {
-	const amount = clamp((value - edge0) / (edge1 - edge0), 0, 1);
-	return amount * amount * (3 - 2 * amount);
 }
