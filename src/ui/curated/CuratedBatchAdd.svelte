@@ -2,6 +2,7 @@
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
 	import type { DropdownOption } from '../obsidian/ObsidianDropdown.svelte';
+	import WorkspaceModal from '../WorkspaceModal.svelte';
 
 	let {
 		open,
@@ -9,7 +10,8 @@
 		status,
 		groupId,
 		groupOptions,
-		onToggle,
+		onOpen,
+		onClose,
 		onInput,
 		onAdd,
 		onGroupChange,
@@ -19,23 +21,20 @@
 		status: string;
 		groupId: string;
 		groupOptions: DropdownOption[];
-		onToggle: () => void;
+		onOpen: () => void;
+		onClose: () => void;
 		onInput: (value: string) => void;
 		onAdd: () => void;
 		onGroupChange: (value: string) => void;
 	} = $props();
 </script>
 
-<div class="knowledge-workspace-curated-batch-header">
-	<ObsidianButton
-		icon={open ? 'chevron-down' : 'chevron-right'}
-		ariaLabel={open ? 'Collapse batch add' : 'Expand batch add'}
-		onClick={onToggle}
-	/>
-	<h3>Batch add</h3>
-	<span>{status}</span>
-</div>
-{#if open}
+<ObsidianButton text="Batch add" icon="list-plus" onClick={onOpen} />
+{#if status}
+	<span class="knowledge-workspace-curated-status">{status}</span>
+{/if}
+
+<WorkspaceModal {open} title="Batch add" subtitle={status} onClose={onClose}>
 	<textarea
 		class="knowledge-workspace-curated-batch"
 		placeholder="One path or [[wikilink]] per line"
@@ -60,4 +59,4 @@
 			onChange={onGroupChange}
 		/>
 	</div>
-{/if}
+</WorkspaceModal>

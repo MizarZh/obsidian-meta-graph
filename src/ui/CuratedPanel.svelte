@@ -402,6 +402,18 @@
 					icon="list-filter"
 					onClick={openConditionModal}
 				/>
+				<CuratedBatchAdd
+					open={batchOpen}
+					input={batchInput}
+					status={batchStatus}
+					groupId={addGroupId}
+					groupOptions={addGroupOptions}
+					onOpen={() => (batchOpen = true)}
+					onClose={() => (batchOpen = false)}
+					onInput={(value) => (batchInput = value)}
+					onAdd={addBatch}
+					onGroupChange={(value) => (addGroupId = value)}
+				/>
 				<ObsidianButton
 					text={`Remove selected${selectedCount ? ` (${selectedCount})` : ''}`}
 					icon="trash-2"
@@ -449,19 +461,8 @@
 				onMoveFileToGroup={moveFileToGroup}
 				{onRemoveFile}
 			/>
-			<CuratedBatchAdd
-				open={batchOpen}
-				input={batchInput}
-				status={batchStatus}
-				groupId={addGroupId}
-				groupOptions={addGroupOptions}
-				onToggle={() => (batchOpen = !batchOpen)}
-				onInput={(value) => (batchInput = value)}
-				onAdd={addBatch}
-				onGroupChange={(value) => (addGroupId = value)}
-			/>
-		</section>
-	{/if}
+			</section>
+		{/if}
 	<CuratedConditionModal
 		{app}
 		open={conditionModalOpen}
