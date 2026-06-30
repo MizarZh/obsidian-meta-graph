@@ -28,8 +28,8 @@ export interface CubeFace {
 	v: Three.Vector3;
 }
 
-const CUBE_DISPLAY_MIN = -0.72;
-const CUBE_DISPLAY_MAX = 0.72;
+const CUBE_DISPLAY_MIN = -0.9;
+const CUBE_DISPLAY_MAX = 0.9;
 const CUBE_DISPLAY_OVERLAP = 0.14;
 
 export function createCubeFaces(three: {

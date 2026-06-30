@@ -1,4 +1,5 @@
 import type { ChartGroup, ChartLayoutConfig } from '../../../core/types';
+import { CUBE_FACE_PADDING } from '../../../graph/renderers/cube-3d/cube-constants';
 import { spreadOverlappingCubeNodes } from './collision';
 import {
 	findManualPlacement,
@@ -17,7 +18,7 @@ export const CUBE_FACE_GROUPS: ChartGroup[] = [
 		height: 2,
 		color: '#009b48',
 		mode: 'manual',
-		padding: 0.22,
+		padding: CUBE_FACE_PADDING,
 	},
 	{
 		id: 'cube-back',
@@ -28,7 +29,7 @@ export const CUBE_FACE_GROUPS: ChartGroup[] = [
 		height: 2,
 		color: '#0046ad',
 		mode: 'manual',
-		padding: 0.22,
+		padding: CUBE_FACE_PADDING,
 	},
 	{
 		id: 'cube-left',
@@ -39,7 +40,7 @@ export const CUBE_FACE_GROUPS: ChartGroup[] = [
 		height: 2,
 		color: '#ff5800',
 		mode: 'manual',
-		padding: 0.22,
+		padding: CUBE_FACE_PADDING,
 	},
 	{
 		id: 'cube-right',
@@ -50,7 +51,7 @@ export const CUBE_FACE_GROUPS: ChartGroup[] = [
 		height: 2,
 		color: '#b71234',
 		mode: 'manual',
-		padding: 0.22,
+		padding: CUBE_FACE_PADDING,
 	},
 	{
 		id: 'cube-top',
@@ -61,7 +62,7 @@ export const CUBE_FACE_GROUPS: ChartGroup[] = [
 		height: 2,
 		color: '#ffffff',
 		mode: 'manual',
-		padding: 0.22,
+		padding: CUBE_FACE_PADDING,
 	},
 	{
 		id: 'cube-bottom',
@@ -72,7 +73,7 @@ export const CUBE_FACE_GROUPS: ChartGroup[] = [
 		height: 2,
 		color: '#ffd500',
 		mode: 'manual',
-		padding: 0.22,
+		padding: CUBE_FACE_PADDING,
 	},
 ];
 
@@ -104,23 +105,26 @@ export function normalizeCubeLayout(
 				manual.groups[index]?.color !== group.color,
 		);
 
-	for (const [nodeId, placement] of Object.entries(nodes)) {
-		const currentGroup =
-			placement.groupId && CUBE_FACE_IDS.has(placement.groupId)
-				? (CUBE_FACE_GROUPS_BY_ID.get(placement.groupId) ??
-					groups.find((item) => item.id === placement.groupId))
-				: undefined;
-		if (
-			currentGroup &&
-			isPlacementInBounds(
-				placement,
-				readGroupPlacementBounds(currentGroup),
-			)
-		) {
-			continue;
-		}
-		const groupId =
-			placement.groupId && CUBE_FACE_IDS.has(placement.groupId)
+		for (const [nodeId, placement] of Object.entries(nodes)) {
+			const currentGroup =
+				placement.groupId && CUBE_FACE_IDS.has(placement.groupId)
+					? (CUBE_FACE_GROUPS_BY_ID.get(placement.groupId) ??
+						groups.find((item) => item.id === placement.groupId))
+					: undefined;
+			if (currentGroup) {
+				const bounds = readGroupPlacementBounds(currentGroup);
+				if (isPlacementInBounds(placement, bounds)) {
+					continue;
+				}
+				nodes[nodeId] = {
+					...clampPlacementToBounds(placement, bounds),
+					groupId: currentGroup.id,
+				};
+				changed = true;
+				continue;
+			}
+			const groupId =
+				placement.groupId && CUBE_FACE_IDS.has(placement.groupId)
 				? placement.groupId
 				: getCubeFaceIdForNode(nodeId);
 		const group =
@@ -188,6 +192,16 @@ export function normalizeCubeLayout(
 export function getCubeFaceIdForNode(nodeId: string): string {
 	const index = Math.floor(hashString(nodeId) * CUBE_FACE_GROUPS.length);
 	return CUBE_FACE_GROUPS[index]?.id ?? CUBE_FACE_GROUPS[0]!.id;
+}
+
+function clampPlacementToBounds(
+	placement: { x: number; y: number },
+	bounds: ReturnType<typeof readGroupPlacementBounds>,
+): { x: number; y: number } {
+	return {
+		x: Math.min(bounds.right, Math.max(bounds.left, placement.x)),
+		y: Math.min(bounds.top, Math.max(bounds.bottom, placement.y)),
+	};
 }
 
 function hashString(value: string): number {

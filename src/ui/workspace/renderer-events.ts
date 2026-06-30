@@ -62,18 +62,20 @@ export function bindWorkspaceRendererEvents(
 			onNodeDrag: (nodeId, position) => {
 				options.getLayoutSnapshot().positions.set(nodeId, position);
 			},
-			onNodeDragEnd: (nodeId) => {
-				const position = options
-					.getLayoutSnapshot()
-					.positions.get(nodeId);
-				if (position) {
-					options.onCommitManualNodePosition(
-						nodeId,
-						position,
-						cubeRenderer.getNodeFace(nodeId),
-					);
-				}
-			},
+				onNodeDragEnd: (nodeId) => {
+					const placement =
+						cubeRenderer.getNodeManualPlacement(nodeId);
+					const position = placement ?? options
+						.getLayoutSnapshot()
+						.positions.get(nodeId);
+					if (position) {
+						options.onCommitManualNodePosition(
+							nodeId,
+							position,
+							placement?.groupId ?? cubeRenderer.getNodeFace(nodeId),
+						);
+					}
+				},
 		}),
 		sigma: (sigmaRenderer) => ({
 			...baseCallbacks,

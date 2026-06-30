@@ -19,6 +19,11 @@ import {
 	getFaceVisibilityOpacity as readFaceVisibilityOpacity,
 } from './cube-math';
 import {
+	CUBE_FACE_COORDINATE_LIMIT,
+	CUBE_FACE_POINTER_LIMIT,
+	CUBE_FACE_POSITION_SCALE,
+} from './cube-constants';
+import {
 	createCubeArrowTexture,
 	createCubeNodeSprite,
 	createCubeTextSprite,
@@ -438,11 +443,34 @@ export class Cube3DRenderer {
 		const hit = ray.intersectPlane(plane, new this.three.Vector3());
 		if (!hit) {
 			return undefined;
-		}
-		const local = this.cubeGroup.worldToLocal(hit.clone());
-		const range = this.cubeSize * 0.78;
-		const x = clamp(local.dot(face.u) / range, -1, 1);
-		const y = clamp(local.dot(face.v) / range, -1, 1);
+			}
+			const local = this.cubeGroup.worldToLocal(hit.clone());
+			const range = this.cubeSize * CUBE_FACE_POSITION_SCALE;
+			const rawX = local.dot(face.u) / range;
+			const rawY = local.dot(face.v) / range;
+			if (
+				Math.abs(rawX) > CUBE_FACE_POINTER_LIMIT ||
+				Math.abs(rawY) > CUBE_FACE_POINTER_LIMIT
+			) {
+				return this.getCurrentNodePlacement(nodeId);
+			}
+			const x = clamp(
+				rawX,
+				-CUBE_FACE_COORDINATE_LIMIT,
+				CUBE_FACE_COORDINATE_LIMIT,
+			);
+			const y = clamp(
+				rawY,
+				-CUBE_FACE_COORDINATE_LIMIT,
+				CUBE_FACE_COORDINATE_LIMIT,
+			);
+		this.manualLayout = {
+			...this.manualLayout,
+			nodes: {
+				...this.manualLayout.nodes,
+				[nodeId]: { x, y, groupId: node.faceId },
+			},
+		};
 		this.graph.mergeNodeAttributes(nodeId, { x, y, fixed: true });
 		node.mesh.position.copy(this.localPosition(face, x, y, 8));
 		const radius = node.mesh.scale.x * 0.5;
@@ -450,6 +478,23 @@ export class Cube3DRenderer {
 		this.rebuildEdges();
 		this.scheduleRender();
 		return { x, y };
+	}
+
+	getNodeManualPlacement(
+		nodeId: string,
+	): { x: number; y: number; groupId?: string } | undefined {
+		return this.manualLayout.nodes[nodeId];
+	}
+
+	private getCurrentNodePlacement(nodeId: string):
+		| { x: number; y: number }
+		| undefined {
+		const manual = this.manualLayout.nodes[nodeId];
+		if (manual) {
+			return { x: manual.x, y: manual.y };
+		}
+		const attributes = this.graph.getNodeAttributes(nodeId);
+		return attributes ? { x: attributes.x, y: attributes.y } : undefined;
 	}
 
 	getNodeFace(nodeId: string): string | undefined {
