@@ -73,7 +73,11 @@ describe('workspace persistence', () => {
 		document.connectionFields = ['leads-to', 'supports'];
 		document.connectionFieldSpecs = [
 			{ id: 'leads-to:directed', field: 'leads-to', mode: 'directed' },
-			{ id: 'supports:bidirectional', field: 'supports', mode: 'bidirectional' },
+			{
+				id: 'supports:bidirectional',
+				field: 'supports',
+				mode: 'bidirectional',
+			},
 			{ id: 'supports:reverse', field: 'supports', mode: 'reverse' },
 		];
 		document.connectionFieldModes = {
@@ -87,9 +91,7 @@ describe('workspace persistence', () => {
 		const saved = serializeMetaGraphState(restored);
 
 		expect(restored.connectionFieldModes.supports).toBe('reverse');
-		expect(restored.activeConnectionFieldSpecId).toBe(
-			'supports:reverse',
-		);
+		expect(restored.activeConnectionFieldSpecId).toBe('supports:reverse');
 		expect(saved.connectionFieldModes).toEqual({
 			'leads-to': 'directed',
 			supports: 'reverse',
@@ -123,9 +125,7 @@ describe('workspace persistence', () => {
 			},
 			{ id: 'leads-to:reverse', field: 'leads-to', mode: 'reverse' },
 		]);
-		expect(restored.activeConnectionFieldSpecId).toBe(
-			'leads-to:reverse',
-		);
+		expect(restored.activeConnectionFieldSpecId).toBe('leads-to:reverse');
 	});
 
 	it('preserves connection field spec order', () => {
@@ -220,7 +220,11 @@ describe('workspace persistence', () => {
 			];
 		}
 
-		const legacyRestoredDocument = normalizeMetaGraphDocument(document, 300, 1.5);
+		const legacyRestoredDocument = normalizeMetaGraphDocument(
+			document,
+			300,
+			1.5,
+		);
 		const restored = createWorkspaceState(300, 1.5, legacyRestoredDocument);
 
 		expect(restored.query.filterRoot).toMatchObject({
@@ -298,10 +302,7 @@ describe('workspace persistence', () => {
 	});
 
 	it('clones proxy-backed serializable state', () => {
-		const value = new Proxy(
-			{ nested: new Proxy({ value: 1 }, {}) },
-			{},
-		);
+		const value = new Proxy({ nested: new Proxy({ value: 1 }, {}) }, {});
 
 		expect(cloneSerializable(value)).toEqual({ nested: { value: 1 } });
 	});

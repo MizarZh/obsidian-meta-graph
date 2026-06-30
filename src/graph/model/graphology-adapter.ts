@@ -63,8 +63,10 @@ export class GraphologyAdapter {
 
 	constructor(
 		private readonly palette: GraphPalette,
-		defaultNodeStyleOrRules: Required<DefaultNodeStyle> | NodeStyleRule[] = [],
-		defaultLinkStyleOrRules: Required<DefaultLinkStyle> | LinkStyleRule[] = [],
+		defaultNodeStyleOrRules:
+			Required<DefaultNodeStyle> | NodeStyleRule[] = [],
+		defaultLinkStyleOrRules:
+			Required<DefaultLinkStyle> | LinkStyleRule[] = [],
 		nodeStyleRules: NodeStyleRule[] = [],
 		linkStyleRules: LinkStyleRule[] = [],
 	) {
@@ -103,10 +105,10 @@ export class GraphologyAdapter {
 		for (const node of projection.nodes) {
 			const isPrimary = projection.primaryIds?.has(node.id) ?? false;
 			const isContext = projection.contextIds?.has(node.id) ?? false;
-				const style = resolveNodeStyle(node, this.nodeStyleRules, {
-					color: this.defaultNodeStyle.color || this.palette.node,
-					size: this.defaultNodeStyle.size,
-				});
+			const style = resolveNodeStyle(node, this.nodeStyleRules, {
+				color: this.defaultNodeStyle.color || this.palette.node,
+				size: this.defaultNodeStyle.size,
+			});
 			const position =
 				positions.get(node.id) ??
 				createInitialPosition(node.id, projection, positions);
@@ -128,15 +130,15 @@ export class GraphologyAdapter {
 		}
 
 		for (const edge of projection.edges) {
-				const style = resolveLinkStyle(edge, this.linkStyleRules, {
-					color: this.defaultLinkStyle.color || this.palette.edge,
-					size: this.defaultLinkStyle.size,
-					lineStyle: this.defaultLinkStyle.lineStyle,
-					label: this.defaultLinkStyle.showLabel
-						? this.defaultLinkStyle.label || edge.relation
-						: '',
-					hidden: this.defaultLinkStyle.hidden,
-				});
+			const style = resolveLinkStyle(edge, this.linkStyleRules, {
+				color: this.defaultLinkStyle.color || this.palette.edge,
+				size: this.defaultLinkStyle.size,
+				lineStyle: this.defaultLinkStyle.lineStyle,
+				label: this.defaultLinkStyle.showLabel
+					? this.defaultLinkStyle.label || edge.relation
+					: '',
+				hidden: this.defaultLinkStyle.hidden,
+			});
 			const attributes: RuntimeEdgeAttributes = {
 				relation: edge.relation,
 				type: getEdgeType(style.lineStyle, edge.directed),
@@ -168,7 +170,10 @@ export class GraphologyAdapter {
 	}
 }
 
-export function getEdgeType(lineStyle: LinkLineStyle, directed: boolean): string {
+export function getEdgeType(
+	lineStyle: LinkLineStyle,
+	directed: boolean,
+): string {
 	if (lineStyle === 'solid') {
 		return directed ? 'arrow' : 'line';
 	}
@@ -183,7 +188,9 @@ function createInitialPosition(
 	const connectedIds = projection.edges
 		.filter((edge) => edge.source === nodeId || edge.target === nodeId)
 		.map((edge) => (edge.source === nodeId ? edge.target : edge.source));
-	const neighborId = connectedIds.find((candidate) => positions.has(candidate));
+	const neighborId = connectedIds.find((candidate) =>
+		positions.has(candidate),
+	);
 	const anchor = neighborId ? positions.get(neighborId) : undefined;
 	if (!neighborId || !anchor) {
 		const angle = hashString(nodeId) * Math.PI * 2;
@@ -214,7 +221,9 @@ function findOpenAngle(
 	}
 	const occupiedAngles = [...positions.entries()]
 		.filter(([positionedNodeId]) => positionedNodeId !== anchorId)
-		.map(([, position]) => Math.atan2(position.y - anchor.y, position.x - anchor.x))
+		.map(([, position]) =>
+			Math.atan2(position.y - anchor.y, position.x - anchor.x),
+		)
 		.sort((left, right) => left - right);
 	if (occupiedAngles.length === 0) {
 		return hashString(nodeId) * Math.PI * 2;

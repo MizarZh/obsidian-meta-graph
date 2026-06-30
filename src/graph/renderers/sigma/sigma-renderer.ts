@@ -1,31 +1,34 @@
-import Sigma from "sigma";
-import { createEdgeArrowProgram } from "sigma/rendering";
-import type { ChartGroup, LabelPosition } from "../../../core/types";
+import Sigma from 'sigma';
+import { createEdgeArrowProgram } from 'sigma/rendering';
+import type { ChartGroup, LabelPosition } from '../../../core/types';
 import {
 	type RuntimeEdgeAttributes,
 	type RuntimeGraph,
 	type RuntimeNodeAttributes,
-} from "../../model/graphology-adapter";
-import { immediateNeighborhood } from "../../model/neighborhood";
-import { withAlpha, type GraphPalette } from "../../styles/graph-styles";
-import { calculateLabelOpacity } from "./label-opacity";
+} from '../../model/graphology-adapter';
+import { immediateNeighborhood } from '../../model/neighborhood';
+import { withAlpha, type GraphPalette } from '../../styles/graph-styles';
+import { calculateLabelOpacity } from './label-opacity';
 import {
 	DashedArrowEdgeProgram,
 	DashedEdgeProgram,
 	DottedArrowEdgeProgram,
 	DottedEdgeProgram,
-} from "./patterned-edge-program";
+} from './patterned-edge-program';
 import {
 	createEdgeLabelDrawer,
 	createNodeHoverDrawer,
 	createNodeLabelDrawer,
-} from "./sigma-label-rendering";
-import { reduceSigmaEdge, reduceSigmaNode } from "./sigma-hover-policy";
+} from './sigma-label-rendering';
+import { reduceSigmaEdge, reduceSigmaNode } from './sigma-hover-policy';
 import {
 	GroupOverlayLayer,
 	type GroupInteractionCallbacks,
-} from "./sigma-group-overlay";
-export type { GroupGeometry, GroupInteractionCallbacks } from "./sigma-group-overlay";
+} from './sigma-group-overlay';
+export type {
+	GroupGeometry,
+	GroupInteractionCallbacks,
+} from './sigma-group-overlay';
 
 export class SigmaRenderer {
 	readonly instance: Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>;
@@ -46,37 +49,42 @@ export class SigmaRenderer {
 		private readonly palette: GraphPalette,
 		fadeDistance = 1.5,
 		labelSize = 14,
-			labelPosition: LabelPosition = "right",
-			labelColor = "",
-			labelBackgroundOpacity = 0.82,
-			labelDensity = 0.8,
-			forceLabels = false,
-		) {
+		labelPosition: LabelPosition = 'right',
+		labelColor = '',
+		labelBackgroundOpacity = 0.82,
+		labelDensity = 0.8,
+		forceLabels = false,
+	) {
 		this.fadeDistance = fadeDistance;
 		this.labelPosition = labelPosition;
-			this.labelColor = labelColor;
-			this.labelBackgroundOpacity = labelBackgroundOpacity;
-			this.forceLabels = forceLabels;
+		this.labelColor = labelColor;
+		this.labelBackgroundOpacity = labelBackgroundOpacity;
+		this.forceLabels = forceLabels;
 		this.instance = new Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>(
 			graph,
 			container,
-				{
-					allowInvalidContainer: true,
-					doubleClickZoomingDuration: 0,
-					doubleClickZoomingRatio: 1,
-					defaultEdgeType: "line",
-					edgeProgramClasses: {
+			{
+				allowInvalidContainer: true,
+				doubleClickZoomingDuration: 0,
+				doubleClickZoomingRatio: 1,
+				defaultEdgeType: 'line',
+				edgeProgramClasses: {
 					arrow: createEdgeArrowProgram<
 						RuntimeNodeAttributes,
 						RuntimeEdgeAttributes
 					>(),
 					dashed: DashedEdgeProgram,
-					"dashed-arrow": DashedArrowEdgeProgram,
+					'dashed-arrow': DashedArrowEdgeProgram,
 					dotted: DottedEdgeProgram,
-					"dotted-arrow": DottedArrowEdgeProgram,
+					'dotted-arrow': DottedArrowEdgeProgram,
 				},
 				nodeReducer: (node, data) =>
-					reduceSigmaNode(node, data, this.getHoverState(), this.palette),
+					reduceSigmaNode(
+						node,
+						data,
+						this.getHoverState(),
+						this.palette,
+					),
 				edgeReducer: (edge, data) =>
 					reduceSigmaEdge(
 						data,
@@ -100,28 +108,28 @@ export class SigmaRenderer {
 					this.getCurrentLabelOpacity(),
 				),
 				renderEdgeLabels: true,
-					labelColor: { color: palette.label },
-					labelSize,
-					labelDensity,
-					labelRenderedSizeThreshold: 0,
+				labelColor: { color: palette.label },
+				labelSize,
+				labelDensity,
+				labelRenderedSizeThreshold: 0,
 				zIndex: true,
 			},
-			);
-			this.instance
-				.getMouseCaptor()
-				.on("doubleClick", (event: { preventSigmaDefault(): void }) => {
-					event.preventSigmaDefault();
-				});
-			this.instance
-				.getTouchCaptor()
-				.on("doubletap", (event: { preventSigmaDefault(): void }) => {
-					event.preventSigmaDefault();
-				});
-			this.groupOverlayLayer = new GroupOverlayLayer(
-				this.instance,
-				() => this.graph,
-			);
-		}
+		);
+		this.instance
+			.getMouseCaptor()
+			.on('doubleClick', (event: { preventSigmaDefault(): void }) => {
+				event.preventSigmaDefault();
+			});
+		this.instance
+			.getTouchCaptor()
+			.on('doubletap', (event: { preventSigmaDefault(): void }) => {
+				event.preventSigmaDefault();
+			});
+		this.groupOverlayLayer = new GroupOverlayLayer(
+			this.instance,
+			() => this.graph,
+		);
+	}
 
 	get runtimeGraph(): RuntimeGraph {
 		return this.graph;
@@ -137,11 +145,17 @@ export class SigmaRenderer {
 		this.groupOverlayLayer.update();
 	}
 
-	setGroups(groups: ChartGroup[], callbacks?: GroupInteractionCallbacks): void {
+	setGroups(
+		groups: ChartGroup[],
+		callbacks?: GroupInteractionCallbacks,
+	): void {
 		this.groupOverlayLayer.setGroups(groups, callbacks);
 	}
 
-	getGroupAtViewportPosition(position: { x: number; y: number }): string | undefined {
+	getGroupAtViewportPosition(position: {
+		x: number;
+		y: number;
+	}): string | undefined {
 		return this.groupOverlayLayer.getGroupAtViewportPosition(position);
 	}
 
@@ -166,7 +180,7 @@ export class SigmaRenderer {
 	}
 
 	setLabelSize(labelSize: number): void {
-		this.instance.setSetting("labelSize", labelSize);
+		this.instance.setSetting('labelSize', labelSize);
 	}
 
 	setLabelPosition(labelPosition: LabelPosition): void {
@@ -185,7 +199,7 @@ export class SigmaRenderer {
 	}
 
 	setLabelDensity(labelDensity: number): void {
-		this.instance.setSetting("labelDensity", labelDensity);
+		this.instance.setSetting('labelDensity', labelDensity);
 	}
 
 	setForceLabels(forceLabels: boolean): void {
@@ -234,7 +248,7 @@ export class SigmaRenderer {
 		if (!nodeId || !this.graph.hasNode(nodeId)) {
 			return this.getNearestNodeAtViewportPosition(position);
 		}
-		return this.graph.getNodeAttribute(nodeId, "isBend")
+		return this.graph.getNodeAttribute(nodeId, 'isBend')
 			? undefined
 			: nodeId;
 	}
@@ -328,7 +342,10 @@ export class SigmaRenderer {
 	}
 
 	private getLabelBackground(): string {
-		return withAlpha(this.palette.labelBackground, this.labelBackgroundOpacity);
+		return withAlpha(
+			this.palette.labelBackground,
+			this.labelBackgroundOpacity,
+		);
 	}
 
 	private getLabelColor(): string {

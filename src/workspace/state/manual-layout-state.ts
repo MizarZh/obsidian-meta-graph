@@ -191,12 +191,19 @@ export function placeNodeInDefaultGroupInState(
 		return state;
 	}
 	const occupied = Object.entries(manual.nodes)
-		.filter(([nodeId, placement]) => nodeId !== path && placement.groupId === group.id)
+		.filter(
+			([nodeId, placement]) =>
+				nodeId !== path && placement.groupId === group.id,
+		)
 		.map(([, placement]) => ({ x: placement.x, y: placement.y }));
 	return setManualNodePositionInState(
 		state,
 		path,
-		findManualPlacement(readGroupPlacementBounds(group), occupied, group.id),
+		findManualPlacement(
+			readGroupPlacementBounds(group),
+			occupied,
+			group.id,
+		),
 		group.id,
 	);
 }

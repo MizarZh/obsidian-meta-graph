@@ -86,7 +86,9 @@ export function reorderCuratedFileInState(
 	return updateActiveChartState(state, { curated });
 }
 
-export function clearCuratedFilesInState(state: WorkspaceState): WorkspaceState {
+export function clearCuratedFilesInState(
+	state: WorkspaceState,
+): WorkspaceState {
 	const activeChart = getActiveChart(state);
 	if (activeChart.curated.files.length === 0) {
 		return state;
@@ -142,7 +144,9 @@ export function renameCuratedFilePathInState(
 	if (!changed) {
 		return state;
 	}
-	const activeChart = charts.find((chart) => chart.id === state.activeChartId);
+	const activeChart = charts.find(
+		(chart) => chart.id === state.activeChartId,
+	);
 	return {
 		...state,
 		charts,

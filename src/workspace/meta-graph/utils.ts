@@ -106,7 +106,9 @@ export function readOptionalStyleLabel(value: unknown): string | undefined {
 }
 
 export function readOptionalFiniteNumber(value: unknown): number | undefined {
-	return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+	return typeof value === 'number' && Number.isFinite(value)
+		? value
+		: undefined;
 }
 
 export function readOptionalBoolean(value: unknown): boolean | undefined {
@@ -177,7 +179,10 @@ export function createRuleId(): string {
 }
 
 export function normalizeTextPath(value: string): string {
-	return value.trim().replaceAll('\\', '/').replace(/^\/+|\/+$/gu, '');
+	return value
+		.trim()
+		.replaceAll('\\', '/')
+		.replace(/^\/+|\/+$/gu, '');
 }
 
 export function createDockId(prefix: string, value: string): string {

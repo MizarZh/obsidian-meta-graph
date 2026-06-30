@@ -41,7 +41,14 @@ export class ElkFlowLayout implements LayoutEngine {
 		};
 
 		graph.forEachEdge(
-			(edge, attributes, source, target, sourceAttributes, targetAttributes) => {
+			(
+				edge,
+				attributes,
+				source,
+				target,
+				sourceAttributes,
+				targetAttributes,
+			) => {
 				if (!attributes.hidden) {
 					elkGraph.edges?.push({
 						id: edge,
@@ -64,7 +71,9 @@ export class ElkFlowLayout implements LayoutEngine {
 			}
 		}
 		if (this.edgeStyle === 'orthogonal') {
-			this.orthogonalRoutes = extractElkOrthogonalRoutes(result.edges ?? []);
+			this.orthogonalRoutes = extractElkOrthogonalRoutes(
+				result.edges ?? [],
+			);
 			applyOrthogonalFlowEdges(graph, this.orthogonalRoutes);
 		}
 	}
@@ -155,7 +164,10 @@ export function applyOrthogonalFlowEdges(
 		graph.dropEdge(edge);
 		const segmentAttributes = {
 			...attributes,
-			type: attributes.lineStyle === 'solid' ? 'line' : attributes.lineStyle,
+			type:
+				attributes.lineStyle === 'solid'
+					? 'line'
+					: attributes.lineStyle,
 			label: '',
 			forceLabel: false,
 			logicalEdgeId: edge,
@@ -190,8 +202,7 @@ export function applyOrthogonalFlowEdges(
 							? 'line'
 							: attributes.lineStyle,
 				label: index === labelSegment ? attributes.label : '',
-				forceLabel:
-					index === labelSegment && Boolean(attributes.label),
+				forceLabel: index === labelSegment && Boolean(attributes.label),
 			};
 			if (directed) {
 				graph.addDirectedEdgeWithKey(

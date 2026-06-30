@@ -23,7 +23,9 @@ export class HierarchicalEdgeBundlingLayout implements LayoutEngine {
 	async apply(graph: RuntimeGraph): Promise<void> {
 		const root = cluster<BundleNode>()
 			.size([Math.PI * 2, calculateRadius(graph, this.spacing)])
-			.separation((left, right) => (left.parent === right.parent ? 1 : 1.6))(
+			.separation((left, right) =>
+				left.parent === right.parent ? 1 : 1.6,
+			)(
 			hierarchy(createHierarchy(graph)).sort(
 				(first, second) =>
 					first.height - second.height ||
@@ -77,7 +79,9 @@ function applyBundledEdges(
 		const directed = graph.isDirected(edge);
 		const attributes = graph.getEdgeAttributes(edge);
 		const points = smoothPoints(
-			sourceLeaf.path(targetLeaf).map((point) => toCartesian(point.x, point.y)),
+			sourceLeaf
+				.path(targetLeaf)
+				.map((point) => toCartesian(point.x, point.y)),
 		);
 		if (points.length < 2) {
 			continue;
@@ -144,10 +148,15 @@ function createHierarchy(graph: RuntimeGraph): BundleNode {
 		.sort((left, right) => {
 			const leftPath = graph.getNodeAttribute(left, 'path') || left;
 			const rightPath = graph.getNodeAttribute(right, 'path') || right;
-			return leftPath.localeCompare(rightPath, undefined, { sensitivity: 'base' });
+			return leftPath.localeCompare(rightPath, undefined, {
+				sensitivity: 'base',
+			});
 		})) {
 		const attributes = graph.getNodeAttributes(nodeId);
-		const parts = getHierarchySegments(attributes.path || nodeId, attributes.label);
+		const parts = getHierarchySegments(
+			attributes.path || nodeId,
+			attributes.label,
+		);
 		let parent = root;
 		for (const segment of parts.slice(0, -1)) {
 			parent = getOrCreateChild(parent, segment);
@@ -175,7 +184,9 @@ function getHierarchySegments(path: string, label: string): string[] {
 
 function getOrCreateChild(parent: BundleNode, name: string): BundleNode {
 	parent.children ??= [];
-	const existing = parent.children.find((child) => child.name === name && !child.id);
+	const existing = parent.children.find(
+		(child) => child.name === name && !child.id,
+	);
 	if (existing) {
 		return existing;
 	}
@@ -187,7 +198,10 @@ function getOrCreateChild(parent: BundleNode, name: string): BundleNode {
 function calculateRadius(graph: RuntimeGraph, spacing: number): number {
 	const nodeCount = Math.max(
 		1,
-		graph.nodes().filter((nodeId) => !graph.getNodeAttribute(nodeId, 'isBend')).length,
+		graph
+			.nodes()
+			.filter((nodeId) => !graph.getNodeAttribute(nodeId, 'isBend'))
+			.length,
 	);
 	return Math.max(180, nodeCount * 18) * spacing;
 }

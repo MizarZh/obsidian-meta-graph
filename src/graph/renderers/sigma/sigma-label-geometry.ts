@@ -56,7 +56,10 @@ export function getRotatedNodeLabelBox(
 	};
 }
 
-export function getScaledLabelSize(baseLabelSize: number, nodeSize: number): number {
+export function getScaledLabelSize(
+	baseLabelSize: number,
+	nodeSize: number,
+): number {
 	return (baseLabelSize * nodeSize) / DEFAULT_NODE_LABEL_BASE_SIZE;
 }
 

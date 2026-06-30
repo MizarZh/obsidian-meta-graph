@@ -21,7 +21,11 @@ describe('dock payload graph action planning', () => {
 	it('ignores broken notes', () => {
 		expect(
 			resolveDockPayloadGraphAction(
-				{ kind: 'broken-note', notePath: 'Missing.md', label: 'Missing' },
+				{
+					kind: 'broken-note',
+					notePath: 'Missing.md',
+					label: 'Missing',
+				},
 				'A.md',
 			),
 		).toEqual({ kind: 'none' });

@@ -137,7 +137,11 @@ export function setActiveConnectionFieldInState(
 	}
 	const activeMode = getActiveConnectionModeInState(state);
 	const activeSpec =
-		findConnectionFieldSpec(state.connectionFieldSpecs, normalized, activeMode) ??
+		findConnectionFieldSpec(
+			state.connectionFieldSpecs,
+			normalized,
+			activeMode,
+		) ??
 		state.connectionFieldSpecs.find((item) => item.field === normalized);
 	const activeChart = getActiveChart(state);
 	if (activeChart.source === 'curated') {
@@ -188,7 +192,9 @@ export function findConnectionFieldSpec(
 export function getActiveConnectionModeInState(
 	state: WorkspaceState,
 ): ConnectionFieldMode {
-	return getActiveConnectionSpec(state)?.mode ?? DEFAULT_CONNECTION_FIELD_MODE;
+	return (
+		getActiveConnectionSpec(state)?.mode ?? DEFAULT_CONNECTION_FIELD_MODE
+	);
 }
 
 export function getConnectionModeForFieldInState(

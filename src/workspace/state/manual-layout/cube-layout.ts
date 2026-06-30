@@ -86,7 +86,9 @@ export function normalizeCubeLayout(
 	visibleNodeIds: string[],
 ): ChartLayoutConfig {
 	const manual = layout.manual ?? { nodes: {}, groups: [] };
-	const existingGroups = new Map(manual.groups.map((group) => [group.id, group]));
+	const existingGroups = new Map(
+		manual.groups.map((group) => [group.id, group]),
+	);
 	const groups = CUBE_FACE_GROUPS.map((defaultGroup) => ({
 		...defaultGroup,
 		...(existingGroups.get(defaultGroup.id) ?? {}),
@@ -110,7 +112,10 @@ export function normalizeCubeLayout(
 				: undefined;
 		if (
 			currentGroup &&
-			isPlacementInBounds(placement, readGroupPlacementBounds(currentGroup))
+			isPlacementInBounds(
+				placement,
+				readGroupPlacementBounds(currentGroup),
+			)
 		) {
 			continue;
 		}
@@ -162,7 +167,9 @@ export function normalizeCubeLayout(
 		changed = true;
 	}
 
-	if (spreadOverlappingCubeNodes(nodes, visibleNodeIds, groups, CUBE_FACE_IDS)) {
+	if (
+		spreadOverlappingCubeNodes(nodes, visibleNodeIds, groups, CUBE_FACE_IDS)
+	) {
 		changed = true;
 	}
 

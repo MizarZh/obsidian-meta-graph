@@ -72,12 +72,14 @@ function normalizeDockTemplate(
 				? normalizeTextPath(record.targetFolder).replace(/\/$/u, '')
 				: '',
 		relationField:
-			typeof record.relationField === 'string' && record.relationField.trim()
+			typeof record.relationField === 'string' &&
+			record.relationField.trim()
 				? record.relationField.trim()
 				: DEFAULT_CONNECTION_FIELD,
 		direction,
 		defaultGroupId:
-			typeof record.defaultGroupId === 'string' && record.defaultGroupId.trim()
+			typeof record.defaultGroupId === 'string' &&
+			record.defaultGroupId.trim()
 				? record.defaultGroupId.trim()
 				: undefined,
 	};

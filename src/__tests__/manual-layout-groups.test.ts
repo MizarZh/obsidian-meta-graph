@@ -46,7 +46,10 @@ describe('manual layout groups', () => {
 
 		expect(graph.getNodeAttributes('A.md')).toMatchObject({ x: 6, y: 0 });
 		expect(graph.getNodeAttributes('B.md')).toMatchObject({ x: 10, y: 20 });
-		expect(graph.getNodeAttributes('C.md')).toMatchObject({ x: 105, y: 198 });
+		expect(graph.getNodeAttributes('C.md')).toMatchObject({
+			x: 105,
+			y: 198,
+		});
 		expect(positions.get('A.md')).toEqual({ x: 6, y: 0 });
 		expect(positions.get('C.md')).toEqual({ x: 105, y: 198 });
 	});
@@ -62,11 +65,7 @@ function manualNodes(): ManualLayoutConfig['nodes'] {
 }
 
 const projection: GraphProjection = {
-	nodes: [
-		node('A.md', 'A'),
-		node('B.md', 'B'),
-		node('C.md', 'C'),
-	],
+	nodes: [node('A.md', 'A'), node('B.md', 'B'), node('C.md', 'C')],
 	edges: [],
 	rootIds: new Set(['A.md']),
 };

@@ -19,8 +19,12 @@ describe('workspace connection request', () => {
 		expect(
 			normalizeConnectionRequest('   ', 'Source.md', 'Target.md'),
 		).toBeNull();
-		expect(normalizeConnectionRequest('leads-to', '', 'Target.md')).toBeNull();
-		expect(normalizeConnectionRequest('leads-to', 'Source.md', '')).toBeNull();
+		expect(
+			normalizeConnectionRequest('leads-to', '', 'Target.md'),
+		).toBeNull();
+		expect(
+			normalizeConnectionRequest('leads-to', 'Source.md', ''),
+		).toBeNull();
 		expect(
 			normalizeConnectionRequest('leads-to', '   ', 'Target.md'),
 		).toBeNull();

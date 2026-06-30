@@ -60,7 +60,10 @@ export class GroupOverlayLayer {
 		| undefined;
 
 	constructor(
-		private readonly sigma: Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>,
+		private readonly sigma: Sigma<
+			RuntimeNodeAttributes,
+			RuntimeEdgeAttributes
+		>,
 		private readonly getGraph: () => RuntimeGraph,
 	) {
 		const container = sigma.getContainer();
@@ -95,7 +98,10 @@ export class GroupOverlayLayer {
 		this.update();
 	}
 
-	getGroupAtViewportPosition(position: { x: number; y: number }): string | undefined {
+	getGroupAtViewportPosition(position: {
+		x: number;
+		y: number;
+	}): string | undefined {
 		let bestGroup: { id: string; area: number } | undefined;
 		for (const group of this.groups) {
 			if (group.mode !== 'manual') {
@@ -123,7 +129,9 @@ export class GroupOverlayLayer {
 			return;
 		}
 		if (this.activeDropGroupId) {
-			this.elements.get(this.activeDropGroupId)?.classList.remove('drop-target');
+			this.elements
+				.get(this.activeDropGroupId)
+				?.classList.remove('drop-target');
 		}
 		this.activeDropGroupId = groupId;
 		if (groupId) {
@@ -147,7 +155,10 @@ export class GroupOverlayLayer {
 			element.style.top = `${rect.top}px`;
 			element.style.width = `${rect.width}px`;
 			element.style.height = `${rect.height}px`;
-			element.style.setProperty('--knowledge-workspace-group-color', group.color);
+			element.style.setProperty(
+				'--knowledge-workspace-group-color',
+				group.color,
+			);
 			const title = element.querySelector<HTMLElement>(
 				'.knowledge-workspace-group-title',
 			);
@@ -253,14 +264,25 @@ export class GroupOverlayLayer {
 			startGraph: this.sigma.viewportToGraph(startPointer),
 			lastDelta: { x: 0, y: 0 },
 		};
-		this.previousCameraPanning = this.sigma.getSetting('enableCameraPanning');
-		this.previousCameraZooming = this.sigma.getSetting('enableCameraZooming');
+		this.previousCameraPanning = this.sigma.getSetting(
+			'enableCameraPanning',
+		);
+		this.previousCameraZooming = this.sigma.getSetting(
+			'enableCameraZooming',
+		);
 		this.sigma.setSetting('enableCameraPanning', false);
 		this.sigma.setSetting('enableCameraZooming', false);
-		this.activeDocument.addEventListener('pointermove', this.handlePointerMove);
-		this.activeDocument.addEventListener('pointerup', this.handlePointerUp, {
-			once: true,
-		});
+		this.activeDocument.addEventListener(
+			'pointermove',
+			this.handlePointerMove,
+		);
+		this.activeDocument.addEventListener(
+			'pointerup',
+			this.handlePointerUp,
+			{
+				once: true,
+			},
+		);
 	}
 
 	private readonly handlePointerMove = (event: PointerEvent): void => {
@@ -280,7 +302,10 @@ export class GroupOverlayLayer {
 				y: totalDelta.y - this.interaction.lastDelta.y,
 			};
 			this.interaction.lastDelta = totalDelta;
-			this.callbacks.onMovePreview?.(this.interaction.group.id, stepDelta);
+			this.callbacks.onMovePreview?.(
+				this.interaction.group.id,
+				stepDelta,
+			);
 		}
 	};
 
@@ -305,16 +330,28 @@ export class GroupOverlayLayer {
 	private endInteraction(): void {
 		this.interaction = undefined;
 		if (this.previousCameraPanning !== undefined) {
-			this.sigma.setSetting('enableCameraPanning', this.previousCameraPanning);
+			this.sigma.setSetting(
+				'enableCameraPanning',
+				this.previousCameraPanning,
+			);
 			this.previousCameraPanning = undefined;
 		}
 		if (this.previousCameraZooming !== undefined) {
-			this.sigma.setSetting('enableCameraZooming', this.previousCameraZooming);
+			this.sigma.setSetting(
+				'enableCameraZooming',
+				this.previousCameraZooming,
+			);
 			this.previousCameraZooming = undefined;
 		}
 		this.releaseInteractionBounds();
-		this.activeDocument.removeEventListener('pointermove', this.handlePointerMove);
-		this.activeDocument.removeEventListener('pointerup', this.handlePointerUp);
+		this.activeDocument.removeEventListener(
+			'pointermove',
+			this.handlePointerMove,
+		);
+		this.activeDocument.removeEventListener(
+			'pointerup',
+			this.handlePointerUp,
+		);
 	}
 
 	private holdInteractionBounds(): void {
@@ -339,7 +376,9 @@ export class GroupOverlayLayer {
 		if (!interaction) {
 			return { x: 0, y: 0, width: 0, height: 0 };
 		}
-		const currentGraph = this.sigma.viewportToGraph(this.readViewportPoint(event));
+		const currentGraph = this.sigma.viewportToGraph(
+			this.readViewportPoint(event),
+		);
 		const delta = {
 			x: currentGraph.x - interaction.startGraph.x,
 			y: currentGraph.y - interaction.startGraph.y,
@@ -477,7 +516,10 @@ export class GroupOverlayLayer {
 		};
 	}
 
-	private renderGroupGeometry(groupId: string, geometry: GroupGeometry): void {
+	private renderGroupGeometry(
+		groupId: string,
+		geometry: GroupGeometry,
+	): void {
 		const element = this.elements.get(groupId);
 		if (!element) {
 			return;
@@ -507,7 +549,11 @@ function isRightResize(direction?: GroupResizeDirection): boolean {
 }
 
 function isTopResize(direction?: GroupResizeDirection): boolean {
-	return direction === 'top' || direction === 'top-left' || direction === 'top-right';
+	return (
+		direction === 'top' ||
+		direction === 'top-left' ||
+		direction === 'top-right'
+	);
 }
 
 function isBottomResize(direction?: GroupResizeDirection): boolean {

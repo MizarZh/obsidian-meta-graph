@@ -30,16 +30,19 @@ function nodeMatchesQueryFilters(
 	const folderMatches =
 		query.folders.length === 0 ||
 		query.folders.some(
-			(folder) => node.folder === folder || node.folder.startsWith(`${folder}/`),
+			(folder) =>
+				node.folder === folder || node.folder.startsWith(`${folder}/`),
 		);
 	const domainMatches =
 		query.domains.length === 0 ||
 		query.domains.some((domain) => node.domains.includes(domain));
 	const tagMatches =
-		query.tags.length === 0 || query.tags.some((tag) => node.tags.includes(tag));
+		query.tags.length === 0 ||
+		query.tags.some((tag) => node.tags.includes(tag));
 	const rootMatches =
 		query.filterRoot &&
-		(query.filterRoot.children.length > 0 || query.hiddenNodeRules.length === 0)
+		(query.filterRoot.children.length > 0 ||
+			query.hiddenNodeRules.length === 0)
 			? matchesFilterGroup(node, query.filterRoot)
 			: matchesLegacyFilterRules(node, query.hiddenNodeRules);
 	return folderMatches && domainMatches && tagMatches && rootMatches;
@@ -49,7 +52,9 @@ function matchesLegacyFilterRules(
 	node: KnowledgeNode,
 	rules: GraphQuery['hiddenNodeRules'],
 ): boolean {
-	const showRules = rules.filter((rule) => rule.action === 'show' && rule.value.trim());
+	const showRules = rules.filter(
+		(rule) => rule.action === 'show' && rule.value.trim(),
+	);
 	const showMatches =
 		showRules.length === 0 ||
 		showRules.every((rule) => matchesFilterCondition(node, rule));
@@ -72,7 +77,10 @@ export function nodeMatchesFilterGroup(
 	return matchesFilterGroup(node, group);
 }
 
-function matchesFilterGroup(node: KnowledgeNode, group: NodeFilterGroup): boolean {
+function matchesFilterGroup(
+	node: KnowledgeNode,
+	group: NodeFilterGroup,
+): boolean {
 	if (group.children.length === 0) {
 		return true;
 	}
@@ -114,7 +122,8 @@ export function matchesNodeCriterion(
 	) {
 		const folder = node.folder.toLocaleLowerCase();
 		const matches =
-			folder === normalizedValue || folder.startsWith(`${normalizedValue}/`);
+			folder === normalizedValue ||
+			folder.startsWith(`${normalizedValue}/`);
 		return operator === 'is' ? matches : !matches;
 	}
 	const values = getNodeCriterionValues(node, field)
@@ -154,23 +163,38 @@ export function matchesNodeCriterion(
 		case 'has-property':
 			return matchesNodeCriterion(node, 'metadata-field', 'is', value);
 		case 'does-not-have-property':
-			return matchesNodeCriterion(node, 'metadata-field', 'is-not', value);
+			return matchesNodeCriterion(
+				node,
+				'metadata-field',
+				'is-not',
+				value,
+			);
 		case 'is':
 		case 'eq':
 			return normalizedValues.some((item) => item === normalizedValue);
 		case 'on':
-			return normalizedValues.some((item) => sameFilterDate(item, normalizedValue));
+			return normalizedValues.some((item) =>
+				sameFilterDate(item, normalizedValue),
+			);
 		case 'is-not':
 		case 'neq':
 			return normalizedValues.every((item) => item !== normalizedValue);
 		case 'not-on':
-			return normalizedValues.every((item) => !sameFilterDate(item, normalizedValue));
+			return normalizedValues.every(
+				(item) => !sameFilterDate(item, normalizedValue),
+			);
 		case 'starts-with':
-			return normalizedValues.some((item) => item.startsWith(normalizedValue));
+			return normalizedValues.some((item) =>
+				item.startsWith(normalizedValue),
+			);
 		case 'ends-with':
-			return normalizedValues.some((item) => item.endsWith(normalizedValue));
+			return normalizedValues.some((item) =>
+				item.endsWith(normalizedValue),
+			);
 		case 'contains':
-			return normalizedValues.some((item) => item.includes(normalizedValue));
+			return normalizedValues.some((item) =>
+				item.includes(normalizedValue),
+			);
 		case 'contains-any-of':
 			return expectedValues.some((expected) =>
 				normalizedValues.some((item) => item.includes(expected)),
@@ -180,11 +204,17 @@ export function matchesNodeCriterion(
 				normalizedValues.some((item) => item.includes(expected)),
 			);
 		case 'does-not-start-with':
-			return normalizedValues.every((item) => !item.startsWith(normalizedValue));
+			return normalizedValues.every(
+				(item) => !item.startsWith(normalizedValue),
+			);
 		case 'does-not-end-with':
-			return normalizedValues.every((item) => !item.endsWith(normalizedValue));
+			return normalizedValues.every(
+				(item) => !item.endsWith(normalizedValue),
+			);
 		case 'does-not-contain':
-			return normalizedValues.every((item) => !item.includes(normalizedValue));
+			return normalizedValues.every(
+				(item) => !item.includes(normalizedValue),
+			);
 		case 'does-not-contain-any-of':
 			return expectedValues.every((expected) =>
 				normalizedValues.every((item) => !item.includes(expected)),
@@ -195,16 +225,24 @@ export function matchesNodeCriterion(
 			);
 		case 'before':
 		case 'lt':
-			return normalizedValues.some((item) => compareFilterValues(item, normalizedValue) < 0);
+			return normalizedValues.some(
+				(item) => compareFilterValues(item, normalizedValue) < 0,
+			);
 		case 'on-or-before':
 		case 'lte':
-			return normalizedValues.some((item) => compareFilterValues(item, normalizedValue) <= 0);
+			return normalizedValues.some(
+				(item) => compareFilterValues(item, normalizedValue) <= 0,
+			);
 		case 'after':
 		case 'gt':
-			return normalizedValues.some((item) => compareFilterValues(item, normalizedValue) > 0);
+			return normalizedValues.some(
+				(item) => compareFilterValues(item, normalizedValue) > 0,
+			);
 		case 'on-or-after':
 		case 'gte':
-			return normalizedValues.some((item) => compareFilterValues(item, normalizedValue) >= 0);
+			return normalizedValues.some(
+				(item) => compareFilterValues(item, normalizedValue) >= 0,
+			);
 		case 'is-exactly':
 			return normalizedValues.join(',') === expectedValues.join(',');
 		case 'is-not-exactly':
@@ -331,5 +369,9 @@ function edgeMatchesQueryFilters(
 	edge: KnowledgeEdge,
 	query: GraphQuery | undefined,
 ): boolean {
-	return !query || query.relations.length === 0 || query.relations.includes(edge.relation);
+	return (
+		!query ||
+		query.relations.length === 0 ||
+		query.relations.includes(edge.relation)
+	);
 }

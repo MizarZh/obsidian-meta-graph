@@ -87,11 +87,16 @@ class Object3D {
 	children: Object3D[] = [];
 	position = new Vector3();
 	rotation = { set: vi.fn(), copy: vi.fn() };
-	scale = { x: 1, y: 1, z: 1, set: vi.fn((x: number, y: number, z: number) => {
-		this.scale.x = x;
-		this.scale.y = y;
-		this.scale.z = z;
-	}) };
+	scale = {
+		x: 1,
+		y: 1,
+		z: 1,
+		set: vi.fn((x: number, y: number, z: number) => {
+			this.scale.x = x;
+			this.scale.y = y;
+			this.scale.z = z;
+		}),
+	};
 	renderOrder = 0;
 	userData: Record<string, unknown> = {};
 
@@ -306,7 +311,9 @@ function createContainer(): HTMLElement {
 						lineTo: vi.fn(),
 						closePath: vi.fn(),
 						font: '',
-						measureText: (text: string) => ({ width: text.length * 6 }),
+						measureText: (text: string) => ({
+							width: text.length * 6,
+						}),
 						scale: vi.fn(),
 						textBaseline: '',
 						fillRect: vi.fn(),
@@ -320,7 +327,12 @@ function createContainer(): HTMLElement {
 	return {
 		ownerDocument,
 		appendChild: vi.fn(),
-		getBoundingClientRect: () => ({ width: 640, height: 480, left: 0, top: 0 }),
+		getBoundingClientRect: () => ({
+			width: 640,
+			height: 480,
+			left: 0,
+			top: 0,
+		}),
 	} as unknown as HTMLElement;
 }
 
@@ -346,8 +358,14 @@ function createGraph(nodeIds: string[]): RuntimeGraph {
 		hasNode: (nodeId: string) => nodeAttributes.has(nodeId),
 		getNodeAttributes: (nodeId: string) => nodeAttributes.get(nodeId),
 		getNodeAttribute: (nodeId: string, key: string) =>
-			(nodeAttributes.get(nodeId) as Record<string, unknown> | undefined)?.[key],
-		mergeNodeAttributes: (nodeId: string, attributes: Record<string, unknown>) => {
+			(
+				nodeAttributes.get(nodeId) as
+					Record<string, unknown> | undefined
+			)?.[key],
+		mergeNodeAttributes: (
+			nodeId: string,
+			attributes: Record<string, unknown>,
+		) => {
 			const previous = nodeAttributes.get(nodeId);
 			if (previous) {
 				nodeAttributes.set(nodeId, { ...previous, ...attributes });

@@ -77,7 +77,9 @@ export function updateFilterGroup(
 	return {
 		...root,
 		children: root.children.map((child) =>
-			child.kind === 'group' ? updateFilterGroup(child, groupId, update) : child,
+			child.kind === 'group'
+				? updateFilterGroup(child, groupId, update)
+				: child,
 		),
 	};
 }

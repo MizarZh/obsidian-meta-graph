@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-	canDockPayloadTargetNode,
-	getDockDragKey,
-} from '../ui/dock/drag';
+import { canDockPayloadTargetNode, getDockDragKey } from '../ui/dock/drag';
 import type { DockDragPayload } from '../ui/dock/types';
 
 describe('dock drag helpers', () => {
@@ -18,8 +15,12 @@ describe('dock drag helpers', () => {
 	});
 
 	it('prevents note payloads from targeting themselves', () => {
-		expect(canDockPayloadTargetNode(notePayload('A.md'), 'A.md')).toBe(false);
-		expect(canDockPayloadTargetNode(notePayload('A.md'), 'B.md')).toBe(true);
+		expect(canDockPayloadTargetNode(notePayload('A.md'), 'A.md')).toBe(
+			false,
+		);
+		expect(canDockPayloadTargetNode(notePayload('A.md'), 'B.md')).toBe(
+			true,
+		);
 		expect(
 			canDockPayloadTargetNode(
 				{ kind: 'template', templateId: 'daily', label: 'Daily' },

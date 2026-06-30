@@ -19,10 +19,7 @@
 		NodeStyleField,
 		NodeStyleRule,
 	} from '../../core/types';
-	import {
-		createRuleId,
-		shouldShowFilterValue,
-	} from '../filter/filter-tree';
+	import { createRuleId, shouldShowFilterValue } from '../filter/filter-tree';
 	import {
 		activeNodeStyleValue as resolveActiveNodeStyleValue,
 		canMoveRule,
@@ -146,7 +143,9 @@
 		onNodeStyleOverrides({});
 	}
 
-	function activeNodeStyleValue(field: keyof DefaultNodeStyle): string | number {
+	function activeNodeStyleValue(
+		field: keyof DefaultNodeStyle,
+	): string | number {
 		return resolveActiveNodeStyleValue(
 			nodeStyleOverrides,
 			defaultNodeStyle,
@@ -317,7 +316,11 @@
 								-1,
 							)}
 							onClick={() =>
-								moveNodeRule(scope as StyleRuleScope, rule.id, -1)}
+								moveNodeRule(
+									scope as StyleRuleScope,
+									rule.id,
+									-1,
+								)}
 						/>
 						<ObsidianButton
 							icon="chevron-down"
@@ -328,24 +331,36 @@
 								1,
 							)}
 							onClick={() =>
-								moveNodeRule(scope as StyleRuleScope, rule.id, 1)}
+								moveNodeRule(
+									scope as StyleRuleScope,
+									rule.id,
+									1,
+								)}
 						/>
 					</div>
 					<ObsidianDropdown
 						value={rule.field}
 						options={NODE_STYLE_FIELD_OPTIONS}
 						onChange={(value) =>
-							updateNodeRule(scope as 'global' | 'current', rule.id, {
-								field: value as NodeStyleField,
-							})}
+							updateNodeRule(
+								scope as 'global' | 'current',
+								rule.id,
+								{
+									field: value as NodeStyleField,
+								},
+							)}
 					/>
 					<ObsidianDropdown
 						value={rule.operator ?? 'is'}
 						options={STYLE_FILTER_OPERATOR_OPTIONS}
 						onChange={(value) =>
-							updateNodeRule(scope as 'global' | 'current', rule.id, {
-								operator: value as NodeFilterOperator,
-							})}
+							updateNodeRule(
+								scope as 'global' | 'current',
+								rule.id,
+								{
+									operator: value as NodeFilterOperator,
+								},
+							)}
 					/>
 					{#if shouldShowFilterValue(rule.operator) && getNodeValueOptions(rule.field).length > 0}
 						<ObsidianSuggestInput
@@ -355,31 +370,49 @@
 							value={rule.value}
 							options={getNodeValueOptions(rule.field)}
 							onInput={(value) =>
-								updateNodeRule(scope as 'global' | 'current', rule.id, {
-									value,
-								})}
+								updateNodeRule(
+									scope as 'global' | 'current',
+									rule.id,
+									{
+										value,
+									},
+								)}
 							onSelect={(option) =>
-								updateNodeRule(scope as 'global' | 'current', rule.id, {
-									value: option.value,
-								})}
+								updateNodeRule(
+									scope as 'global' | 'current',
+									rule.id,
+									{
+										value: option.value,
+									},
+								)}
 						/>
 					{:else}
 						<ObsidianTextInput
 							type="text"
-							placeholder={shouldShowFilterValue(rule.operator) ? 'Value' : ''}
+							placeholder={shouldShowFilterValue(rule.operator)
+								? 'Value'
+								: ''}
 							disabled={!shouldShowFilterValue(rule.operator)}
 							value={rule.value}
 							onInput={(value) =>
-								updateNodeRule(scope as 'global' | 'current', rule.id, {
-									value,
-								})}
+								updateNodeRule(
+									scope as 'global' | 'current',
+									rule.id,
+									{
+										value,
+									},
+								)}
 						/>
 					{/if}
 					<ObsidianButton
 						class="knowledge-workspace-remove-rule-button"
 						ariaLabel="Remove note style rule"
 						icon="trash-2"
-						onClick={() => removeNodeRule(scope as 'global' | 'current', rule.id)}
+						onClick={() =>
+							removeNodeRule(
+								scope as 'global' | 'current',
+								rule.id,
+							)}
 					/>
 				</div>
 				<div class="knowledge-workspace-rule-row compact">
@@ -394,9 +427,13 @@
 									rule.color,
 									event.currentTarget.value,
 									(color) =>
-										updateNodeRule(scope as 'global' | 'current', rule.id, {
-											color,
-										}),
+										updateNodeRule(
+											scope as 'global' | 'current',
+											rule.id,
+											{
+												color,
+											},
+										),
 								)}
 							onchange={(event) =>
 								commitColor(
@@ -404,9 +441,13 @@
 									rule.color,
 									event.currentTarget.value,
 									(color) =>
-										updateNodeRule(scope as 'global' | 'current', rule.id, {
-											color,
-										}),
+										updateNodeRule(
+											scope as 'global' | 'current',
+											rule.id,
+											{
+												color,
+											},
+										),
 								)}
 						/>
 					</label>
@@ -419,9 +460,13 @@
 								step={0.5}
 								value={rule.size}
 								onChange={(value) =>
-									updateNodeRule(scope as 'global' | 'current', rule.id, {
-										size: value,
-									})}
+									updateNodeRule(
+										scope as 'global' | 'current',
+										rule.id,
+										{
+											size: value,
+										},
+									)}
 							/>
 							<span>{rule.size.toFixed(1)}</span>
 						</div>

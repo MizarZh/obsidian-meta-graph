@@ -52,7 +52,9 @@ async function ensureFolderPath(app: App, folderPath: string): Promise<void> {
 			continue;
 		}
 		if (existing) {
-			throw new Error(`Cannot create folder "${current}". A file exists there.`);
+			throw new Error(
+				`Cannot create folder "${current}". A file exists there.`,
+			);
 		}
 		await app.vault.createFolder(current);
 	}

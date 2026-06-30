@@ -44,7 +44,10 @@ export function createDefaultChart(
 ): MetaGraphChart {
 	const baseId = getDefaultChartId(type);
 	const id = createUniqueChartId(baseId, existingCharts);
-	const name = createUniqueChartName(getDefaultChartName(type), existingCharts);
+	const name = createUniqueChartName(
+		getDefaultChartName(type),
+		existingCharts,
+	);
 	return {
 		id,
 		name,
@@ -81,7 +84,10 @@ export function createDefaultCharts(
 ): MetaGraphChart[] {
 	const graph = createDefaultChart('graph', maxNodes, fadeDistance);
 	const flow = createDefaultChart('flow', maxNodes, fadeDistance, [graph]);
-	const arc = createDefaultChart('arc', maxNodes, fadeDistance, [graph, flow]);
+	const arc = createDefaultChart('arc', maxNodes, fadeDistance, [
+		graph,
+		flow,
+	]);
 	return [graph, flow, arc];
 }
 
@@ -120,7 +126,10 @@ export function normalizeChart(
 				display.fadeDistance,
 				fallback.display.fadeDistance,
 			),
-			labelSize: readFiniteNumber(display.labelSize, fallback.display.labelSize),
+			labelSize: readFiniteNumber(
+				display.labelSize,
+				fallback.display.labelSize,
+			),
 			labelPosition: readLabelPosition(
 				display.labelPosition,
 				fallback.display.labelPosition,
@@ -134,7 +143,10 @@ export function normalizeChart(
 				fallback.display.labelBackgroundOpacity,
 			),
 			labelDensity: clampNumber(
-				readFiniteNumber(display.labelDensity, fallback.display.labelDensity),
+				readFiniteNumber(
+					display.labelDensity,
+					fallback.display.labelDensity,
+				),
 				0,
 				1,
 			),

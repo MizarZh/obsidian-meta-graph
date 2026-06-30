@@ -1,7 +1,8 @@
-import type { ConnectionFieldMode, ConnectionFieldSpec } from '../../core/types';
-import {
-	DEFAULT_CONNECTION_FIELD_MODE,
-} from './constants';
+import type {
+	ConnectionFieldMode,
+	ConnectionFieldSpec,
+} from '../../core/types';
+import { DEFAULT_CONNECTION_FIELD_MODE } from './constants';
 import { isRecord, uniqueStrings } from './utils';
 
 export function normalizeConnectionFields(value: unknown): string[] {
@@ -26,7 +27,9 @@ export function normalizeConnectionFieldSpecs(
 	const fallbackSpecs = legacyFields.map((field) =>
 		createConnectionFieldSpec(
 			field,
-			readConnectionFieldMode(isRecord(legacyModes) ? legacyModes[field] : undefined),
+			readConnectionFieldMode(
+				isRecord(legacyModes) ? legacyModes[field] : undefined,
+			),
 		),
 	);
 	return uniqueConnectionFieldSpecs(specs.length > 0 ? specs : fallbackSpecs);

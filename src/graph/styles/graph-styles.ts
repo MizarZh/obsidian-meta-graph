@@ -19,17 +19,17 @@ export function readGraphPalette(container: HTMLElement): GraphPalette {
 		);
 
 	return {
-		node: read("--interactive-accent", "#7c6ff0"),
-		selected: read("--color-orange", "#e08b36"),
-		edge: read("--text-muted", "#888888"),
-		mutedNode: read("--background-modifier-border", "#555555"),
-		mutedEdge: read("--background-modifier-border", "#555555"),
-		label: read("--text-normal", "#000"),
+		node: read('--interactive-accent', '#7c6ff0'),
+		selected: read('--color-orange', '#e08b36'),
+		edge: read('--text-muted', '#888888'),
+		mutedNode: read('--background-modifier-border', '#555555'),
+		mutedEdge: read('--background-modifier-border', '#555555'),
+		label: read('--text-normal', '#000'),
 		labelBackground: withAlpha(
-			read("--background-primary", "#202020"),
+			read('--background-primary', '#202020'),
 			0.82,
 		),
-		background: read("--background-primary", "#202020"),
+		background: read('--background-primary', '#202020'),
 	};
 }
 
@@ -39,8 +39,8 @@ function normalizeCssColor(
 	fallback: string,
 ): string {
 	const probe = container.createSpan({
-		cls: "knowledge-workspace-color-probe",
-		attr: { "aria-hidden": "true" },
+		cls: 'knowledge-workspace-color-probe',
+		attr: { 'aria-hidden': 'true' },
 	});
 	probe.style.color = color;
 	const normalized = getComputedStyle(probe).color;

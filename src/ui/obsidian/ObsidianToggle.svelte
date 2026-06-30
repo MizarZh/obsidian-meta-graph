@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { ToggleComponent } from "obsidian";
-	import { onMount } from "svelte";
+	import { ToggleComponent } from 'obsidian';
+	import { onMount } from 'svelte';
 
 	let {
 		value,
@@ -28,7 +28,7 @@
 		});
 
 		return () => {
-			containerEl.textContent = "";
+			containerEl.textContent = '';
 			toggle = undefined;
 		};
 	});
@@ -48,4 +48,5 @@
 	});
 </script>
 
-<span class="knowledge-workspace-obsidian-control" bind:this={containerEl}></span>
+<span class="knowledge-workspace-obsidian-control" bind:this={containerEl}
+></span>

@@ -21,11 +21,7 @@ const palette: GraphPalette = {
 };
 
 const projection: GraphProjection = {
-	nodes: [
-		node('A.md', 'A'),
-		node('B.md', 'B'),
-		node('C.md', 'C'),
-	],
+	nodes: [node('A.md', 'A'), node('B.md', 'B'), node('C.md', 'C')],
 	edges: [
 		{
 			id: 'A-to-B',
@@ -46,33 +42,41 @@ describe('flow insertion layout', () => {
 		['RL', { x: -1, y: 0, crossX: 0, crossY: 1 }],
 		['TD', { x: 0, y: 1, crossX: 1, crossY: 0 }],
 		['DT', { x: 0, y: -1, crossX: 1, crossY: 0 }],
-	] as const)('maps %s forward insertion direction', (flowDirection, expected) => {
-		expect(getFlowInsertionDirection(flowDirection, true)).toEqual(expected);
-	});
+	] as const)(
+		'maps %s forward insertion direction',
+		(flowDirection, expected) => {
+			expect(getFlowInsertionDirection(flowDirection, true)).toEqual(
+				expected,
+			);
+		},
+	);
 
 	it.each([
 		['LR', { x: 220, y: 0 }],
 		['RL', { x: -220, y: 0 }],
 		['TD', { x: 0, y: 220 }],
 		['DT', { x: 0, y: -220 }],
-	] as const)('places new downstream nodes for %s flow', (flowDirection, expected) => {
-		const graph = new GraphologyAdapter(palette).fromProjection(
-			projection,
-			new Map<string, GraphPosition>([['A.md', { x: 0, y: 0 }]]),
-		);
+	] as const)(
+		'places new downstream nodes for %s flow',
+		(flowDirection, expected) => {
+			const graph = new GraphologyAdapter(palette).fromProjection(
+				projection,
+				new Map<string, GraphPosition>([['A.md', { x: 0, y: 0 }]]),
+			);
 
-		placeNewFlowNodes(
-			graph,
-			new Map<string, GraphPosition>([['A.md', { x: 0, y: 0 }]]),
-			['B.md'],
-			{ flowDirection, flowSpacing: 1 },
-		);
+			placeNewFlowNodes(
+				graph,
+				new Map<string, GraphPosition>([['A.md', { x: 0, y: 0 }]]),
+				['B.md'],
+				{ flowDirection, flowSpacing: 1 },
+			);
 
-		expect(graph.getNodeAttributes('B.md')).toMatchObject({
-			...expected,
-			fixed: true,
-		});
-	});
+			expect(graph.getNodeAttributes('B.md')).toMatchObject({
+				...expected,
+				fixed: true,
+			});
+		},
+	);
 
 	it('uses cross-axis slots when the direct slot is occupied', () => {
 		const positions = new Map<string, GraphPosition>([

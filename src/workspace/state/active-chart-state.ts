@@ -1,4 +1,8 @@
-import type { MetaGraphChart, ViewMode, WorkspaceState } from '../../core/types';
+import type {
+	MetaGraphChart,
+	ViewMode,
+	WorkspaceState,
+} from '../../core/types';
 import {
 	DEFAULT_GRAPH_CENTER_FORCE,
 	DEFAULT_GRAPH_DRAG_LINK_FORCE,
@@ -142,8 +146,10 @@ function createActiveChartStateFields(
 			chart.layout.linkDistance,
 			fallback.graphLinkDistance,
 		),
-		flowSpacing: chart.type === 'flow' ? chart.layout.spacing : fallback.flowSpacing,
-		arcSpacing: chart.type === 'arc' ? chart.layout.spacing : fallback.arcSpacing,
+		flowSpacing:
+			chart.type === 'flow' ? chart.layout.spacing : fallback.flowSpacing,
+		arcSpacing:
+			chart.type === 'arc' ? chart.layout.spacing : fallback.arcSpacing,
 		manualLayout: cloneSerializable(
 			chart.layout.manual ?? { nodes: {}, groups: [] },
 		),

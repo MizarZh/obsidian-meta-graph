@@ -100,9 +100,15 @@ export function activeLinkLineStyle(
 	overrides: DefaultLinkStyle,
 	defaultStyle: Required<DefaultLinkStyle>,
 ): LinkLineStyle {
-	return activeLinkStyleValue(overrides, defaultStyle, 'lineStyle') as LinkLineStyle;
+	return activeLinkStyleValue(
+		overrides,
+		defaultStyle,
+		'lineStyle',
+	) as LinkLineStyle;
 }
 
-export function hasStyleOverride(style: DefaultNodeStyle | DefaultLinkStyle): boolean {
+export function hasStyleOverride(
+	style: DefaultNodeStyle | DefaultLinkStyle,
+): boolean {
 	return Object.keys(style).length > 0;
 }

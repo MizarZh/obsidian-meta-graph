@@ -12,8 +12,8 @@ describe('WorkspaceAutoSave', () => {
 	it('does not save when scheduled state matches initialized fingerprint', () => {
 		vi.useFakeTimers();
 		const state = createWorkspaceState(200);
-		const onSave = vi.fn<(document: MetaGraphDocument) => Promise<void>>(() =>
-			Promise.resolve(),
+		const onSave = vi.fn<(document: MetaGraphDocument) => Promise<void>>(
+			() => Promise.resolve(),
 		);
 		const autoSave = new WorkspaceAutoSave(onSave, 350, timerHost());
 
@@ -27,8 +27,8 @@ describe('WorkspaceAutoSave', () => {
 	it('debounces and saves the latest changed state', () => {
 		vi.useFakeTimers();
 		const state = createWorkspaceState(200);
-		const onSave = vi.fn<(document: MetaGraphDocument) => Promise<void>>(() =>
-			Promise.resolve(),
+		const onSave = vi.fn<(document: MetaGraphDocument) => Promise<void>>(
+			() => Promise.resolve(),
 		);
 		const autoSave = new WorkspaceAutoSave(onSave, 350, timerHost());
 
@@ -52,8 +52,8 @@ describe('WorkspaceAutoSave', () => {
 	it('flushes pending autosave immediately', () => {
 		vi.useFakeTimers();
 		const state = createWorkspaceState(200);
-		const onSave = vi.fn<(document: MetaGraphDocument) => Promise<void>>(() =>
-			Promise.resolve(),
+		const onSave = vi.fn<(document: MetaGraphDocument) => Promise<void>>(
+			() => Promise.resolve(),
 		);
 		const autoSave = new WorkspaceAutoSave(onSave, 350, timerHost());
 

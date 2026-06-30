@@ -70,14 +70,22 @@
 	function addFilterCondition(scope: FilterScope, groupId: string): void {
 		updateFilterRoot(
 			scope,
-			addFilterConditionToGroup(getFilterRoot(scope), groupId, createRuleId()),
+			addFilterConditionToGroup(
+				getFilterRoot(scope),
+				groupId,
+				createRuleId(),
+			),
 		);
 	}
 
 	function addFilterGroup(scope: FilterScope, groupId: string): void {
 		updateFilterRoot(
 			scope,
-			addFilterGroupToGroup(getFilterRoot(scope), groupId, createRuleId()),
+			addFilterGroupToGroup(
+				getFilterRoot(scope),
+				groupId,
+				createRuleId(),
+			),
 		);
 	}
 
@@ -88,7 +96,11 @@
 	): void {
 		updateFilterRoot(
 			scope,
-			patchFilterItem(getFilterRoot(scope), itemId, patch) as NodeFilterGroup,
+			patchFilterItem(
+				getFilterRoot(scope),
+				itemId,
+				patch,
+			) as NodeFilterGroup,
 		);
 	}
 
@@ -101,14 +113,19 @@
 	}
 
 	function getFilterFieldOptions() {
-		return resolveFilterFieldOptions(metadataFieldSuggestions, metadataFieldTypes);
+		return resolveFilterFieldOptions(
+			metadataFieldSuggestions,
+			metadataFieldTypes,
+		);
 	}
 
 	function getFilterOperatorOptions(field: NodeFilterField) {
 		return resolveFilterOperatorOptions(field, metadataFieldTypes);
 	}
 
-	function getDefaultFilterOperator(field: NodeFilterField): NodeFilterOperator {
+	function getDefaultFilterOperator(
+		field: NodeFilterField,
+	): NodeFilterOperator {
 		return resolveDefaultFilterOperator(field, metadataFieldTypes);
 	}
 
@@ -154,7 +171,8 @@
 				addFilterGroup(scope as 'global' | 'current', groupId)}
 			onUpdate={(id, patch) =>
 				updateFilterItem(scope as 'global' | 'current', id, patch)}
-			onRemove={(id) => removeFilterItem(scope as 'global' | 'current', id)}
+			onRemove={(id) =>
+				removeFilterItem(scope as 'global' | 'current', id)}
 		/>
 	</section>
 {/each}

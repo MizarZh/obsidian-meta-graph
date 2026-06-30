@@ -60,7 +60,12 @@ export function prepareConnectDockNoteInState(
 ): PreparedConnectionAction | null {
 	return prepareConnectionRequestInState(
 		state,
-		normalizeDockConnectionRequest(notePath, targetNodeId, direction, field),
+		normalizeDockConnectionRequest(
+			notePath,
+			targetNodeId,
+			direction,
+			field,
+		),
 	);
 }
 

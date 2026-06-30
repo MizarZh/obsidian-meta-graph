@@ -50,7 +50,9 @@
 
 	{#if snapshot.unresolvedLinks.length > 0}
 		<details open>
-			<summary>Unresolved links ({snapshot.unresolvedLinks.length})</summary>
+			<summary
+				>Unresolved links ({snapshot.unresolvedLinks.length})</summary
+			>
 			<pre>{JSON.stringify(snapshot.unresolvedLinks, null, 2)}</pre>
 		</details>
 	{/if}
@@ -66,7 +68,10 @@
 	</details>
 
 	<details open>
-		<summary>Detected relation metadata ({snapshot.metadataSources.length})</summary>
+		<summary
+			>Detected relation metadata ({snapshot.metadataSources
+				.length})</summary
+		>
 		<pre>{JSON.stringify(snapshot.metadataSources, null, 2)}</pre>
 	</details>
 
@@ -83,12 +88,12 @@
 	<details>
 		<summary>Adjacency maps</summary>
 		<pre>{JSON.stringify(
-			{
-				outgoing: snapshot.index.outgoing,
-				incoming: snapshot.index.incoming,
-			},
-			null,
-			2,
-		)}</pre>
+				{
+					outgoing: snapshot.index.outgoing,
+					incoming: snapshot.index.incoming,
+				},
+				null,
+				2,
+			)}</pre>
 	</details>
 </section>

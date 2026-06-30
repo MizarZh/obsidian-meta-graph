@@ -19,10 +19,7 @@ export function addCuratedFilePaths(
 	}
 	const next = normalizeCuratedWorkspace({
 		...curated,
-		files: [
-			...curated.files,
-			...normalizedPaths.map((path) => ({ path })),
-		],
+		files: [...curated.files, ...normalizedPaths.map((path) => ({ path }))],
 	});
 	return {
 		curated: next,

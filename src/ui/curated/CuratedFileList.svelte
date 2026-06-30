@@ -1,8 +1,8 @@
 <script lang="ts">
-	import ObsidianButton from "../obsidian/ObsidianButton.svelte";
-	import ObsidianDropdown from "../obsidian/ObsidianDropdown.svelte";
-	import type { DropdownOption } from "../obsidian/ObsidianDropdown.svelte";
-	import type { CuratedFileEntry } from "./curated-panel-state";
+	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
+	import type { DropdownOption } from '../obsidian/ObsidianDropdown.svelte';
+	import type { CuratedFileEntry } from './curated-panel-state';
 
 	let {
 		files,
@@ -39,12 +39,14 @@
 			data-curated-file-path={file.path}
 			role="button"
 			tabindex="0"
-			aria-label={file.missing ? `${file.title} (file not found)` : file.title}
+			aria-label={file.missing
+				? `${file.title} (file not found)`
+				: file.title}
 			title={file.missing ? `File not found: ${file.path}` : undefined}
 			onpointerdown={(event) => onPointerDown(file.path, event)}
 			ondblclick={file.missing ? undefined : () => onOpenNote(file.path)}
 			onkeydown={(event) => {
-				if (event.key === "Enter" || event.key === " ") {
+				if (event.key === 'Enter' || event.key === ' ') {
 					event.preventDefault();
 					onSelectNote(file.path);
 				}
@@ -65,7 +67,9 @@
 			<div class="knowledge-workspace-curated-file-title">
 				<strong>{file.title}</strong>
 				{#if (selectedTitleCounts[file.title] ?? 0) > 1}
-					<span class="knowledge-workspace-curated-file-path">{file.detail}</span>
+					<span class="knowledge-workspace-curated-file-path"
+						>{file.detail}</span
+					>
 				{/if}
 				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 				<div
@@ -77,7 +81,9 @@
 					onpointerdown={(event) => event.stopPropagation()}
 				>
 					<span
-						style={file.groupColor ? `background: ${file.groupColor}` : undefined}
+						style={file.groupColor
+							? `background: ${file.groupColor}`
+							: undefined}
 						aria-hidden="true"
 					></span>
 					<ObsidianDropdown
@@ -85,7 +91,8 @@
 						value={file.groupId}
 						options={getGroupOptions(file.groupId)}
 						ariaLabel={`Group for ${file.title}`}
-						onChange={(value) => onMoveFileToGroup(file.path, value)}
+						onChange={(value) =>
+							onMoveFileToGroup(file.path, value)}
 					/>
 				</div>
 			</div>
@@ -108,6 +115,7 @@
 			/>
 		</div>
 	{:else}
-		<span class="knowledge-workspace-curated-empty">No workspace files</span>
+		<span class="knowledge-workspace-curated-empty">No workspace files</span
+		>
 	{/each}
 </div>

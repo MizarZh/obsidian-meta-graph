@@ -1,15 +1,15 @@
 <script lang="ts">
-	import type { App } from "obsidian";
-	import { onDestroy } from "svelte";
+	import type { App } from 'obsidian';
+	import { onDestroy } from 'svelte';
 	import type {
 		ChartGroup,
 		CuratedWorkspaceConfig,
 		KnowledgeNode,
 		ManualLayoutConfig,
-	} from "../core/types";
-	import CuratedBatchAdd from "./curated/CuratedBatchAdd.svelte";
-	import CuratedConditionModal from "./curated/CuratedConditionModal.svelte";
-	import CuratedFileList from "./curated/CuratedFileList.svelte";
+	} from '../core/types';
+	import CuratedBatchAdd from './curated/CuratedBatchAdd.svelte';
+	import CuratedConditionModal from './curated/CuratedConditionModal.svelte';
+	import CuratedFileList from './curated/CuratedFileList.svelte';
 	import {
 		buildFileOptions,
 		buildSelectedCuratedFiles,
@@ -18,10 +18,10 @@
 		parseBatchInput,
 		readPointerPlacement,
 		type ReorderPlacement,
-	} from "./curated/curated-panel-state";
-	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
-	import ObsidianDropdown from "./obsidian/ObsidianDropdown.svelte";
-	import ObsidianSuggestInput from "./obsidian/ObsidianSuggestInput.svelte";
+	} from './curated/curated-panel-state';
+	import ObsidianButton from './obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
+	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
 
 	let {
 		app,
@@ -81,13 +81,13 @@
 		onSelectNote: (path: string) => void;
 	} = $props();
 
-	let fileSearch = $state("");
-	let addGroupId = $state("");
-	let batchInput = $state("");
+	let fileSearch = $state('');
+	let addGroupId = $state('');
+	let batchInput = $state('');
 	let batchOpen = $state(false);
 	let conditionModalOpen = $state(false);
 	let selected = $state<Set<string>>(new Set());
-	let batchStatus = $state("");
+	let batchStatus = $state('');
 	let reorderDrag = $state<
 		| {
 				path: string;
@@ -102,16 +102,22 @@
 		reorderDrag?.active ? reorderDrag.path : undefined,
 	);
 	const addGroupOptions = $derived([
-		...(groupRequired ? [] : [{ value: "", label: "No group" }]),
+		...(groupRequired ? [] : [{ value: '', label: 'No group' }]),
 		...groups.map((group) => ({ value: group.id, label: group.name })),
 	]);
 	const groupOptions = $derived(addGroupOptions);
-	const groupsById = $derived(new Map(groups.map((group) => [group.id, group])));
+	const groupsById = $derived(
+		new Map(groups.map((group) => [group.id, group])),
+	);
 	const selectedAddGroupId = $derived(
 		addGroupId || (groupRequired ? groups[0]?.id : undefined),
 	);
-	const selectedPaths = $derived(new Set(curated.files.map((file) => file.path)));
-	const nodesByPath = $derived(new Map(nodes.map((node) => [node.path, node])));
+	const selectedPaths = $derived(
+		new Set(curated.files.map((file) => file.path)),
+	);
+	const nodesByPath = $derived(
+		new Map(nodes.map((node) => [node.path, node])),
+	);
 	const titleIndex = $derived(buildTitleIndex(nodes));
 	const availableTitleCounts = $derived(countTitles(nodes));
 	const selectedFiles = $derived(
@@ -129,12 +135,17 @@
 		curated.files.filter((file) => selected.has(file.path)).length,
 	);
 	const fileOptions = $derived(
-		buildFileOptions(nodes, workspaceFilePath, selectedPaths, availableTitleCounts),
+		buildFileOptions(
+			nodes,
+			workspaceFilePath,
+			selectedPaths,
+			availableTitleCounts,
+		),
 	);
 
 	$effect(() => {
 		if (addGroupId && !groups.some((group) => group.id === addGroupId)) {
-			addGroupId = "";
+			addGroupId = '';
 		}
 		if (groupRequired && !addGroupId && groups[0]) {
 			addGroupId = groups[0].id;
@@ -168,7 +179,9 @@
 
 	function removeFiles(paths: string[]): void {
 		onRemoveFiles(paths);
-		selected = new Set([...selected].filter((path) => !paths.includes(path)));
+		selected = new Set(
+			[...selected].filter((path) => !paths.includes(path)),
+		);
 	}
 
 	function moveSelectedToGroup(groupId: string): void {
@@ -189,7 +202,7 @@
 		return currentGroupId && !groupsById.has(currentGroupId)
 			? [
 					...groupOptions,
-					{ value: currentGroupId, label: "Missing group" },
+					{ value: currentGroupId, label: 'Missing group' },
 				]
 			: groupOptions;
 	}
@@ -197,7 +210,7 @@
 	function clearAll(): void {
 		if (
 			curated.files.length === 0 ||
-			!window.confirm("Remove all workspace files from this view?")
+			!window.confirm('Remove all workspace files from this view?')
 		) {
 			return;
 		}
@@ -217,7 +230,7 @@
 		}
 		batchStatus = `${result.uniquePaths.length} added, ${result.skipped} skipped, ${result.unresolved.length} unresolved.`;
 		if (result.unresolved.length === 0) {
-			batchInput = "";
+			batchInput = '';
 		}
 	}
 
@@ -228,7 +241,7 @@
 	function handleFilePointerDown(path: string, event: PointerEvent): void {
 		if (
 			event.target instanceof HTMLElement &&
-			event.target.closest("button, input")
+			event.target.closest('button, input')
 		) {
 			return;
 		}
@@ -243,10 +256,10 @@
 			startY: event.clientY,
 			active: false,
 		};
-		window.addEventListener("pointermove", handleReorderPointerMove, {
+		window.addEventListener('pointermove', handleReorderPointerMove, {
 			capture: true,
 		});
-		window.addEventListener("pointerup", handleReorderPointerUp, {
+		window.addEventListener('pointerup', handleReorderPointerUp, {
 			capture: true,
 			once: true,
 		});
@@ -270,25 +283,35 @@
 
 	function handleReorderPointerUp(): void {
 		reorderDrag = undefined;
-		window.removeEventListener("pointermove", handleReorderPointerMove, {
+		window.removeEventListener('pointermove', handleReorderPointerMove, {
 			capture: true,
 		});
-		window.removeEventListener("pointerup", handleReorderPointerUp, {
+		window.removeEventListener('pointerup', handleReorderPointerUp, {
 			capture: true,
 		});
 	}
 
-	function reorderAtPoint(path: string, clientX: number, clientY: number): void {
+	function reorderAtPoint(
+		path: string,
+		clientX: number,
+		clientY: number,
+	): void {
 		const target = document.elementFromPoint(clientX, clientY);
 		if (!(target instanceof HTMLElement)) {
 			return;
 		}
-		const targetEl = target.closest<HTMLElement>("[data-curated-file-path]");
+		const targetEl = target.closest<HTMLElement>(
+			'[data-curated-file-path]',
+		);
 		const targetPath = targetEl?.dataset.curatedFilePath;
 		if (!targetEl || !targetPath || targetPath === path) {
 			return;
 		}
-		onReorderFile(path, targetPath, readPointerPlacement(targetEl, clientY));
+		onReorderFile(
+			path,
+			targetPath,
+			readPointerPlacement(targetEl, clientY),
+		);
 	}
 
 	function handleResizePointerDown(event: PointerEvent): void {
@@ -303,11 +326,11 @@
 			onResizePanel(newWidth);
 		}
 		function onUp() {
-			window.removeEventListener("pointermove", onMove);
-			window.removeEventListener("pointerup", onUp);
+			window.removeEventListener('pointermove', onMove);
+			window.removeEventListener('pointerup', onUp);
 		}
-		window.addEventListener("pointermove", onMove);
-		window.addEventListener("pointerup", onUp);
+		window.addEventListener('pointermove', onMove);
+		window.addEventListener('pointerup', onUp);
 	}
 
 	onDestroy(() => {
@@ -319,7 +342,7 @@
 	class="knowledge-workspace-curated-panel"
 	class:knowledge-workspace-curated-panel-collapsed={!panelOpen}
 	class:target={dropTarget}
-	data-curated-drop-target={panelOpen ? "" : undefined}
+	data-curated-drop-target={panelOpen ? '' : undefined}
 	style="width: {panelOpen ? `${panelWidth}px` : undefined}"
 >
 	<div
@@ -330,8 +353,8 @@
 	></div>
 	<ObsidianButton
 		class="knowledge-workspace-curated-toggle"
-		icon={panelOpen ? "panel-left-close" : "panel-left-open"}
-		ariaLabel={panelOpen ? "Close workspace files" : "Open workspace files"}
+		icon={panelOpen ? 'panel-left-close' : 'panel-left-open'}
+		ariaLabel={panelOpen ? 'Close workspace files' : 'Open workspace files'}
 		onClick={onTogglePanel}
 	/>
 	{#if panelOpen}
@@ -343,8 +366,8 @@
 					icon="crosshair"
 					active={focusOnSelect}
 					ariaLabel={focusOnSelect
-						? "Auto-focus on click (enabled)"
-						: "Auto-focus on click (disabled)"}
+						? 'Auto-focus on click (enabled)'
+						: 'Auto-focus on click (disabled)'}
 					tooltip="Auto-focus on click"
 					class="knowledge-workspace-curated-focus-toggle"
 					onClick={onToggleFocusOnSelect}
@@ -363,7 +386,7 @@
 					}}
 					onSelect={(option) => {
 						onAddFile(option.value, selectedAddGroupId);
-						fileSearch = "";
+						fileSearch = '';
 					}}
 				/>
 				<ObsidianDropdown
@@ -380,7 +403,7 @@
 					onClick={openConditionModal}
 				/>
 				<ObsidianButton
-					text={`Remove selected${selectedCount ? ` (${selectedCount})` : ""}`}
+					text={`Remove selected${selectedCount ? ` (${selectedCount})` : ''}`}
 					icon="trash-2"
 					disabled={selectedCount === 0}
 					destructive={true}
@@ -394,11 +417,14 @@
 				/>
 				<ObsidianDropdown
 					value="__move__"
-					options={[{ value: "__move__", label: "Move to group" }, ...groupOptions]}
+					options={[
+						{ value: '__move__', label: 'Move to group' },
+						...groupOptions,
+					]}
 					disabled={selectedCount === 0}
 					ariaLabel="Move selected to group"
 					onChange={(value) => {
-						if (value !== "__move__") {
+						if (value !== '__move__') {
 							moveSelectedToGroup(value);
 						}
 					}}

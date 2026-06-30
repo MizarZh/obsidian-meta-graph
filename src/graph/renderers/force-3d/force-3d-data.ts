@@ -34,7 +34,9 @@ export function toForce3DData(graph: RuntimeGraph): {
 		nodes: graph
 			.nodes()
 			.filter((nodeId) => !graph.getNodeAttribute(nodeId, 'isBend'))
-			.map((nodeId) => toForce3DNode(nodeId, graph.getNodeAttributes(nodeId))),
+			.map((nodeId) =>
+				toForce3DNode(nodeId, graph.getNodeAttributes(nodeId)),
+			),
 		links: graph.edges().map((edgeId) => {
 			const attributes = graph.getEdgeAttributes(edgeId);
 			return toForce3DLink(

@@ -1,4 +1,7 @@
-import type { GraphEventCallbacks, ConnectionDragState } from '../renderer-events';
+import type {
+	GraphEventCallbacks,
+	ConnectionDragState,
+} from '../renderer-events';
 import type { Force3DRenderer } from './force-3d-renderer';
 import {
 	createConnectionDragState,
@@ -63,12 +66,18 @@ export function bindForce3DEvents(
 		previousNodeDrag = instance.enableNodeDrag();
 		instance.enableNavigationControls(false);
 		instance.enableNodeDrag(false);
-		connectionDrag = createConnectionDragState(renderer, sourceNodeId, point);
+		connectionDrag = createConnectionDragState(
+			renderer,
+			sourceNodeId,
+			point,
+		);
 		callbacks.onSelect(sourceNodeId);
 		callbacks.onConnectionDrag?.(connectionDrag);
 		window.addEventListener('pointermove', pointerMove, { capture: true });
 		window.addEventListener('pointerup', pointerUp, { capture: true });
-		window.addEventListener('pointercancel', pointerCancel, { capture: true });
+		window.addEventListener('pointercancel', pointerCancel, {
+			capture: true,
+		});
 	};
 
 	const pointerMove = (event: PointerEvent) => {
@@ -83,7 +92,11 @@ export function bindForce3DEvents(
 		if (!connectionDrag) {
 			return;
 		}
-		connectionDrag = updateConnectionDragState(renderer, connectionDrag, event);
+		connectionDrag = updateConnectionDragState(
+			renderer,
+			connectionDrag,
+			event,
+		);
 		callbacks.onConnectionDrag?.(connectionDrag);
 	}
 
@@ -118,7 +131,9 @@ export function bindForce3DEvents(
 			previousNodeDrag = undefined;
 		}
 		void pointerId;
-		window.removeEventListener('pointermove', pointerMove, { capture: true });
+		window.removeEventListener('pointermove', pointerMove, {
+			capture: true,
+		});
 		window.removeEventListener('pointerup', pointerUp, { capture: true });
 		window.removeEventListener('pointercancel', pointerCancel, {
 			capture: true,
@@ -144,8 +159,12 @@ export function bindForce3DEvents(
 			.onNodeRightClick(() => undefined)
 			.onNodeHover(() => undefined)
 			.onBackgroundClick(() => undefined);
-		element.removeEventListener('pointerdown', pointerDown, { capture: true });
-		window.removeEventListener('pointermove', pointerMove, { capture: true });
+		element.removeEventListener('pointerdown', pointerDown, {
+			capture: true,
+		});
+		window.removeEventListener('pointermove', pointerMove, {
+			capture: true,
+		});
 		window.removeEventListener('pointerup', pointerUp, { capture: true });
 		window.removeEventListener('pointercancel', pointerCancel, {
 			capture: true,

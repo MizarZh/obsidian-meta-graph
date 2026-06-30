@@ -28,8 +28,10 @@ export function createMetaGraphMarkdown(
 }
 
 export function isMetaGraphMarkdown(data: string): boolean {
-	return readMetaGraphFrontmatter(data)[META_GRAPH_FRONTMATTER_KEY] ===
-		META_GRAPH_FRONTMATTER_VALUE;
+	return (
+		readMetaGraphFrontmatter(data)[META_GRAPH_FRONTMATTER_KEY] ===
+		META_GRAPH_FRONTMATTER_VALUE
+	);
 }
 
 export function parseMetaGraphDocument(
@@ -45,7 +47,9 @@ export function parseMetaGraphDocument(
 	return normalizeMetaGraphDocument(parsed, maxNodes, fadeDistance);
 }
 
-export function stringifyMetaGraphDocument(document: MetaGraphDocument): string {
+export function stringifyMetaGraphDocument(
+	document: MetaGraphDocument,
+): string {
 	const frontmatter = stringifyYaml({
 		[META_GRAPH_FRONTMATTER_KEY]: META_GRAPH_FRONTMATTER_VALUE,
 		[META_GRAPH_VERSION_KEY]: META_GRAPH_VERSION,

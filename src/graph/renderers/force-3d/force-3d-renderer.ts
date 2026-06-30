@@ -1,26 +1,24 @@
-import type {
-	ForceGraph3DInstance,
-} from "3d-force-graph";
-import type * as Three from "three";
-import type { Object3D } from "three";
-import type { LabelPosition } from "../../../core/types";
-import type { RuntimeGraph } from "../../model/graphology-adapter";
+import type { ForceGraph3DInstance } from '3d-force-graph';
+import type * as Three from 'three';
+import type { Object3D } from 'three';
+import type { LabelPosition } from '../../../core/types';
+import type { RuntimeGraph } from '../../model/graphology-adapter';
 import {
 	type Force3DLink,
 	type Force3DNode,
 	getLinkEndpointId,
 	hasFiniteCoordinates,
 	toForce3DData,
-} from "./force-3d-data";
-import { immediateNeighborhood } from "../../model/neighborhood";
-import type { GraphPalette } from "../../styles/graph-styles";
-import { withAlpha } from "../../styles/graph-styles";
+} from './force-3d-data';
+import { immediateNeighborhood } from '../../model/neighborhood';
+import type { GraphPalette } from '../../styles/graph-styles';
+import { withAlpha } from '../../styles/graph-styles';
 import {
 	findClosestScreenNode,
 	readViewportPosition,
 	type ScreenNode,
-} from "../renderer-interaction";
-import { createThreeTextSprite } from "../renderer-labels";
+} from '../renderer-interaction';
+import { createThreeTextSprite } from '../renderer-labels';
 
 interface ThreeRuntime {
 	CanvasTexture: typeof Three.CanvasTexture;
@@ -45,10 +43,10 @@ export class Force3DRenderer {
 	private pendingConnectionMoveFrame: number | undefined;
 	private screenPositionCacheFrame = -1;
 	private screenPositionCache: ScreenNode[] = [];
-		private readonly blockDoubleClick = (event: MouseEvent): void => {
-			event.preventDefault();
-			event.stopPropagation();
-		};
+	private readonly blockDoubleClick = (event: MouseEvent): void => {
+		event.preventDefault();
+		event.stopPropagation();
+	};
 
 	static async create(
 		graph: RuntimeGraph,
@@ -56,8 +54,8 @@ export class Force3DRenderer {
 		palette: GraphPalette,
 		fadeDistance = 1.5,
 		labelSize = 14,
-		labelPosition: LabelPosition = "right",
-		labelColor = "",
+		labelPosition: LabelPosition = 'right',
+		labelColor = '',
 		labelBackgroundOpacity = 0.82,
 		labelDensity = 0.8,
 		enableNodeDrag = false,
@@ -71,9 +69,9 @@ export class Force3DRenderer {
 		if (isStale()) {
 			return undefined;
 		}
-			const instance = new ForceGraph3D(container, {
-				controlType: "trackball",
-			});
+		const instance = new ForceGraph3D(container, {
+			controlType: 'trackball',
+		});
 		return new Force3DRenderer(
 			instance,
 			graph,
@@ -98,8 +96,8 @@ export class Force3DRenderer {
 		private palette: GraphPalette,
 		_fadeDistance = 1.5,
 		_labelSize = 14,
-		_labelPosition: LabelPosition = "right",
-		labelColor = "",
+		_labelPosition: LabelPosition = 'right',
+		labelColor = '',
 		labelBackgroundOpacity = 0.82,
 		_labelDensity = 0.8,
 		enableNodeDrag = false,
@@ -108,19 +106,19 @@ export class Force3DRenderer {
 	) {
 		this.labelColor = labelColor;
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
-			this.labelSize = _labelSize;
-			this.three = three;
-			this.instance = instance;
-			this.container.addEventListener("dblclick", this.blockDoubleClick, {
-				capture: true,
-			});
-			this.applyTooltipStyles();
+		this.labelSize = _labelSize;
+		this.three = three;
+		this.instance = instance;
+		this.container.addEventListener('dblclick', this.blockDoubleClick, {
+			capture: true,
+		});
+		this.applyTooltipStyles();
 		this.instance
 			.pauseAnimation()
-			.backgroundColor(this.palette.background ?? "#202020")
+			.backgroundColor(this.palette.background ?? '#202020')
 			.showNavInfo(false)
 			.enableNodeDrag(enableNodeDrag)
-			.nodeId("id")
+			.nodeId('id')
 			.nodeLabel((node) => this.formatNodeLabel(node))
 			.nodeVal((node) => node.size)
 			.nodeColor((node) => this.getNodeColor(node))
@@ -130,15 +128,19 @@ export class Force3DRenderer {
 			.nodeThreeObject((node: Force3DNode) =>
 				this.createTextSprite(node.label, this.labelSize, 1),
 			)
-			.linkLabel((link) => link.label || "")
+			.linkLabel((link) => link.label || '')
 			.linkVisibility((link) => !link.hidden)
 			.linkColor((link) => this.getLinkColor(link))
 			.linkWidth((link) => Math.max(0.4, link.size))
 			.linkThreeObjectExtend(true)
 			.linkThreeObject((link: Force3DLink) =>
 				link.label && !link.hidden
-					? this.createTextSprite(link.label, Math.max(10, this.labelSize - 2), 0.86)
-					: this.createTextSprite("", 1, 0),
+					? this.createTextSprite(
+							link.label,
+							Math.max(10, this.labelSize - 2),
+							0.86,
+						)
+					: this.createTextSprite('', 1, 0),
 			)
 			.linkPositionUpdate((object, { start, end }) => {
 				object.position.set(
@@ -149,7 +151,9 @@ export class Force3DRenderer {
 				return true;
 			})
 			.linkDirectionalArrowLength((link) =>
-				link.directed && !link.hidden ? Math.max(2.5, link.size * 2.5) : 0,
+				link.directed && !link.hidden
+					? Math.max(2.5, link.size * 2.5)
+					: 0,
 			)
 			.linkDirectionalArrowRelPos(1)
 			.linkDirectionalArrowColor((link) => this.getLinkColor(link))
@@ -178,7 +182,7 @@ export class Force3DRenderer {
 
 	setPalette(palette: GraphPalette): void {
 		this.palette = palette;
-		this.instance.backgroundColor(palette.background ?? "#202020");
+		this.instance.backgroundColor(palette.background ?? '#202020');
 		this.applyTooltipStyles();
 		this.refreshColorsWhenReady();
 		this.refreshLabelsWhenReady();
@@ -278,7 +282,7 @@ export class Force3DRenderer {
 	}
 
 	fit(): void {
-		this.instance.zoomToFit(350, 80, (node) => !node.id.includes("__bend"));
+		this.instance.zoomToFit(350, 80, (node) => !node.id.includes('__bend'));
 	}
 
 	getNodeAtViewportPosition(position: {
@@ -292,7 +296,9 @@ export class Force3DRenderer {
 		);
 	}
 
-	getNodeViewportPosition(nodeId: string): { x: number; y: number } | undefined {
+	getNodeViewportPosition(
+		nodeId: string,
+	): { x: number; y: number } | undefined {
 		const node = this.findNode(nodeId);
 		if (!node || !hasFiniteCoordinates(node)) {
 			return undefined;
@@ -301,11 +307,17 @@ export class Force3DRenderer {
 		return { x: screen.x, y: screen.y };
 	}
 
-	getViewportPosition(event: MouseEvent | PointerEvent): { x: number; y: number } {
+	getViewportPosition(event: MouseEvent | PointerEvent): {
+		x: number;
+		y: number;
+	} {
 		return readViewportPosition(this.container, event);
 	}
 
-	scheduleConnectionMove(update: (event: PointerEvent) => void, event: PointerEvent): void {
+	scheduleConnectionMove(
+		update: (event: PointerEvent) => void,
+		event: PointerEvent,
+	): void {
 		this.pendingConnectionMove = event;
 		if (this.pendingConnectionMoveFrame !== undefined) {
 			return;
@@ -344,7 +356,9 @@ export class Force3DRenderer {
 					node.y,
 					node.z,
 				);
-				return [{ id: node.id, x: screen.x, y: screen.y, size: node.size }];
+				return [
+					{ id: node.id, x: screen.x, y: screen.y, size: node.size },
+				];
 			});
 		return this.screenPositionCache;
 	}
@@ -357,12 +371,12 @@ export class Force3DRenderer {
 		// 2D Sigma-only behavior.
 	}
 
-		kill(): void {
-			this.killed = true;
-			this.container.removeEventListener("dblclick", this.blockDoubleClick, {
-				capture: true,
-			});
-			if (this.pendingFrame !== undefined) {
+	kill(): void {
+		this.killed = true;
+		this.container.removeEventListener('dblclick', this.blockDoubleClick, {
+			capture: true,
+		});
+		if (this.pendingFrame !== undefined) {
 			window.cancelAnimationFrame(this.pendingFrame);
 			this.pendingFrame = undefined;
 		}
@@ -424,7 +438,7 @@ export class Force3DRenderer {
 							Math.max(10, this.labelSize - 2),
 							0.86,
 						)
-					: this.createTextSprite("", 1, 0),
+					: this.createTextSprite('', 1, 0),
 			);
 	}
 
@@ -483,8 +497,11 @@ export class Force3DRenderer {
 			textColor: this.labelColor || this.palette.label,
 			backgroundColor:
 				this.labelBackgroundOpacity <= 0
-					? "transparent"
-					: withAlpha(this.palette.labelBackground, this.labelBackgroundOpacity),
+					? 'transparent'
+					: withAlpha(
+							this.palette.labelBackground,
+							this.labelBackgroundOpacity,
+						),
 			ownerDocument: this.container.ownerDocument,
 			scale: scaleFactor,
 			scaleMultiplier: 0.24,
@@ -494,13 +511,13 @@ export class Force3DRenderer {
 
 	private applyTooltipStyles(): void {
 		this.container.style.setProperty(
-			"--meta-graph-3d-label-color",
+			'--meta-graph-3d-label-color',
 			this.labelColor || this.palette.label,
 		);
 		this.container.style.setProperty(
-			"--meta-graph-3d-label-background",
+			'--meta-graph-3d-label-background',
 			this.labelBackgroundOpacity <= 0
-				? "transparent"
+				? 'transparent'
 				: withAlpha(
 						this.palette.labelBackground,
 						this.labelBackgroundOpacity,
@@ -511,28 +528,28 @@ export class Force3DRenderer {
 
 function escapeHtml(value: string): string {
 	return value
-		.replaceAll("&", "&amp;")
-		.replaceAll("<", "&lt;")
-		.replaceAll(">", "&gt;")
-		.replaceAll('"', "&quot;")
-		.replaceAll("'", "&#39;");
+		.replaceAll('&', '&amp;')
+		.replaceAll('<', '&lt;')
+		.replaceAll('>', '&gt;')
+		.replaceAll('"', '&quot;')
+		.replaceAll("'", '&#39;');
 }
 
 type ForceGraph3DConstructor = new (
 	element: HTMLElement,
-	configOptions?: { controlType?: "trackball" | "orbit" | "fly" },
+	configOptions?: { controlType?: 'trackball' | 'orbit' | 'fly' },
 ) => ForceGraph3DInstance<Force3DNode, Force3DLink>;
 
 async function loadForceGraph3D(): Promise<ForceGraph3DConstructor> {
 	return withSuppressedThreeDuplicateWarning(async () => {
-		const module = await import("3d-force-graph");
+		const module = await import('3d-force-graph');
 		return module.default as unknown as ForceGraph3DConstructor;
 	});
 }
 
 async function loadThree(): Promise<ThreeRuntime> {
 	return withSuppressedThreeDuplicateWarning(async () => {
-		const module = await import("three");
+		const module = await import('three');
 		return module;
 	});
 }
@@ -543,8 +560,8 @@ async function withSuppressedThreeDuplicateWarning<T>(
 	const originalWarn = console.warn;
 	console.warn = (...args: unknown[]) => {
 		if (
-			typeof args[0] === "string" &&
-			args[0].includes("THREE.WARNING: Multiple instances of Three.js")
+			typeof args[0] === 'string' &&
+			args[0].includes('THREE.WARNING: Multiple instances of Three.js')
 		) {
 			return;
 		}

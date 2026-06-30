@@ -29,7 +29,10 @@ import {
 	getRotatedNodeLabelBox,
 	getScaledLabelSize,
 } from '../graph/renderers/sigma/sigma-label-geometry';
-import { reduceSigmaEdge, reduceSigmaNode } from '../graph/renderers/sigma/sigma-hover-policy';
+import {
+	reduceSigmaEdge,
+	reduceSigmaNode,
+} from '../graph/renderers/sigma/sigma-hover-policy';
 
 const palette: GraphPalette = {
 	node: '#111111',
@@ -104,9 +107,9 @@ describe('graph renderer helpers', () => {
 		expect(isCubeFaceId('unknown')).toBe(false);
 		expect(getCubeFaceIdForNode('A.md', 'cube-right')).toBe('cube-right');
 		expect(getCubeFaceIdForNode('A.md', undefined)).toMatch(/^cube-/u);
-		expect(hasCubeDisplayOverlap({ x: 0, y: 0 }, { x: 0.05, y: 0.05 })).toBe(
-			true,
-		);
+		expect(
+			hasCubeDisplayOverlap({ x: 0, y: 0 }, { x: 0.05, y: 0.05 }),
+		).toBe(true);
 
 		const position = findOpenDisplayPosition(3, [
 			{ x: 0, y: 0 },
@@ -121,11 +124,19 @@ describe('graph renderer helpers', () => {
 
 	it('creates and updates shared connection drag state', () => {
 		const renderer = createDragRenderer();
-		const event = createPointerEvent({ ctrlKey: true, button: 0, x: 70, y: 80 });
+		const event = createPointerEvent({
+			ctrlKey: true,
+			button: 0,
+			x: 70,
+			y: 80,
+		});
 
 		expect(isConnectionDragStart(event)).toBe(true);
 
-		const start = createConnectionDragState(renderer, 'A.md', { x: 12, y: 24 });
+		const start = createConnectionDragState(renderer, 'A.md', {
+			x: 12,
+			y: 24,
+		});
 		const updated = updateConnectionDragState(renderer, start, event);
 
 		expect(start).toEqual({
@@ -189,20 +200,16 @@ describe('graph renderer helpers', () => {
 			zIndex: 0,
 		});
 		expect(
-			reduceSigmaEdge(
-				edge,
-				{ activeHoverNodeId: 'A.md' },
-				palette,
-				['A.md', 'B.md'],
-			),
+			reduceSigmaEdge(edge, { activeHoverNodeId: 'A.md' }, palette, [
+				'A.md',
+				'B.md',
+			]),
 		).toMatchObject({ size: edge.size + 1, zIndex: 2 });
 		expect(
-			reduceSigmaEdge(
-				edge,
-				{ activeHoverNodeId: 'C.md' },
-				palette,
-				['A.md', 'B.md'],
-			),
+			reduceSigmaEdge(edge, { activeHoverNodeId: 'C.md' }, palette, [
+				'A.md',
+				'B.md',
+			]),
 		).toMatchObject({ color: palette.mutedEdge, size: 0.4, zIndex: 0 });
 	});
 
@@ -308,7 +315,10 @@ function createEdgeAttributes(): RuntimeEdgeAttributes {
 
 function createDragRenderer(): ConnectionDragRenderer {
 	return {
-		getViewportPosition: (event) => ({ x: event.clientX, y: event.clientY }),
+		getViewportPosition: (event) => ({
+			x: event.clientX,
+			y: event.clientY,
+		}),
 		getNodeAtViewportPosition: (position) =>
 			position.x >= 50 ? 'B.md' : 'A.md',
 		getNodeViewportPosition: (nodeId) =>

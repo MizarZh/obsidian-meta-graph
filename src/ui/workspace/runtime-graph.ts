@@ -17,7 +17,10 @@ import {
 	type RuntimeGraph,
 } from '../../graph/model/graphology-adapter';
 import type { GraphPalette } from '../../graph/styles/graph-styles';
-import { resolveLinkStyle, resolveNodeStyle } from '../../graph/styles/style-rules';
+import {
+	resolveLinkStyle,
+	resolveNodeStyle,
+} from '../../graph/styles/style-rules';
 
 export function createWorkspaceRuntimeGraph(
 	projection: GraphProjection,
@@ -31,7 +34,7 @@ export function createWorkspaceRuntimeGraph(
 		getActiveDefaultLinkStyle(state, palette.edge),
 		getActiveNodeStyleRules(state),
 		getActiveLinkStyleRules(state),
-		).fromProjection(projection, positions);
+	).fromProjection(projection, positions);
 }
 
 export function syncWorkspaceRuntimeGraphStyles(
@@ -64,7 +67,8 @@ export function syncWorkspaceRuntimeGraphStyles(
 		if (!attributes.logicalEdgeId) {
 			return;
 		}
-		const segments = segmentsByLogicalEdge.get(attributes.logicalEdgeId) ?? [];
+		const segments =
+			segmentsByLogicalEdge.get(attributes.logicalEdgeId) ?? [];
 		segments.push(runtimeEdgeId);
 		segmentsByLogicalEdge.set(attributes.logicalEdgeId, segments);
 	});

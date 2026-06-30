@@ -1,4 +1,7 @@
-import type { GraphEventCallbacks, ConnectionDragState } from '../renderer-events';
+import type {
+	GraphEventCallbacks,
+	ConnectionDragState,
+} from '../renderer-events';
 import type { SigmaRenderer } from './sigma-renderer';
 
 export function bindGraphEvents(
@@ -29,15 +32,15 @@ export function bindGraphEvents(
 		if (shouldSuppressClick(event)) {
 			return;
 		}
-		if ("ctrlKey" in event.original && event.original.ctrlKey) {
+		if ('ctrlKey' in event.original && event.original.ctrlKey) {
 			event.original.preventDefault();
 			event.preventSigmaDefault();
 			return;
 		}
-		if (sigma.getGraph().getNodeAttribute(node, "isBend")) {
+		if (sigma.getGraph().getNodeAttribute(node, 'isBend')) {
 			return;
 		}
-		if ("shiftKey" in event.original && event.original.shiftKey) {
+		if ('shiftKey' in event.original && event.original.shiftKey) {
 			event.original.preventDefault();
 			event.preventSigmaDefault();
 			renderer.togglePinnedHover(node);
@@ -73,13 +76,13 @@ export function bindGraphEvents(
 	}) => {
 		event.original.preventDefault();
 		event.preventSigmaDefault();
-		if (!sigma.getGraph().getNodeAttribute(node, "isBend")) {
+		if (!sigma.getGraph().getNodeAttribute(node, 'isBend')) {
 			callbacks.onSelect(node);
 		}
 	};
 
 	const enterNode = ({ node }: { node: string }) => {
-		if (!sigma.getGraph().getNodeAttribute(node, "isBend")) {
+		if (!sigma.getGraph().getNodeAttribute(node, 'isBend')) {
 			if (connectionDrag && node !== connectionDrag.sourceNodeId) {
 				connectionDrag = { ...connectionDrag, targetNodeId: node };
 				callbacks.onConnectionDrag?.(connectionDrag);
@@ -107,18 +110,18 @@ export function bindGraphEvents(
 		if (
 			!(event.original instanceof MouseEvent) ||
 			event.original.button !== 0 ||
-			sigma.getGraph().getNodeAttribute(node, "isBend")
+			sigma.getGraph().getNodeAttribute(node, 'isBend')
 		) {
 			return;
 		}
-			if (
-				!event.original.ctrlKey &&
-				(callbacks.enableForceLayout || callbacks.enableNodeDragging)
-			) {
+		if (
+			!event.original.ctrlKey &&
+			(callbacks.enableForceLayout || callbacks.enableNodeDragging)
+		) {
 			event.original.preventDefault();
 			event.preventSigmaDefault();
-			previousCameraPanning = sigma.getSetting("enableCameraPanning");
-			sigma.setSetting("enableCameraPanning", false);
+			previousCameraPanning = sigma.getSetting('enableCameraPanning');
+			sigma.setSetting('enableCameraPanning', false);
 			draggedNodeId = node;
 			draggedNodeStart = readMouseViewportPosition(event.original);
 			hasDraggedNode = false;
@@ -130,8 +133,8 @@ export function bindGraphEvents(
 		}
 		event.original.preventDefault();
 		event.preventSigmaDefault();
-		previousCameraPanning = sigma.getSetting("enableCameraPanning");
-		sigma.setSetting("enableCameraPanning", false);
+		previousCameraPanning = sigma.getSetting('enableCameraPanning');
+		sigma.setSetting('enableCameraPanning', false);
 		const source = readNodeViewportPosition(node);
 		connectionDrag = {
 			sourceNodeId: node,
@@ -178,27 +181,27 @@ export function bindGraphEvents(
 		};
 		callbacks.onConnectionDrag?.(connectionDrag);
 	};
-		const upNode = ({ node }: { node: string }) => {
-			if (draggedNodeId) {
-				endNodeDrag();
-				return;
-			}
-			if (!connectionDrag) {
-				return;
-			}
+	const upNode = ({ node }: { node: string }) => {
+		if (draggedNodeId) {
+			endNodeDrag();
+			return;
+		}
+		if (!connectionDrag) {
+			return;
+		}
 		const { sourceNodeId } = connectionDrag;
 		endConnectionDrag();
 		if (
 			node !== sourceNodeId &&
-			!sigma.getGraph().getNodeAttribute(node, "isBend")
+			!sigma.getGraph().getNodeAttribute(node, 'isBend')
 		) {
 			callbacks.onConnect?.(sourceNodeId, node);
 		}
 	};
-		const upStage = () => {
-			endNodeDrag();
-			endConnectionDrag();
-		};
+	const upStage = () => {
+		endNodeDrag();
+		endConnectionDrag();
+	};
 	const mouseUp = () => {
 		endNodeDrag();
 		endConnectionDrag();
@@ -209,11 +212,11 @@ export function bindGraphEvents(
 			return;
 		}
 		const nodeId = draggedNodeId;
-		sigma.getGraph().setNodeAttribute(draggedNodeId, "fixed", false);
+		sigma.getGraph().setNodeAttribute(draggedNodeId, 'fixed', false);
 		draggedNodeId = undefined;
 		draggedNodeStart = undefined;
 		if (previousCameraPanning !== undefined) {
-			sigma.setSetting("enableCameraPanning", previousCameraPanning);
+			sigma.setSetting('enableCameraPanning', previousCameraPanning);
 			previousCameraPanning = undefined;
 		}
 		if (hasDraggedNode) {
@@ -230,7 +233,7 @@ export function bindGraphEvents(
 		connectionDrag = undefined;
 		suppressClickForDrag();
 		if (previousCameraPanning !== undefined) {
-			sigma.setSetting("enableCameraPanning", previousCameraPanning);
+			sigma.setSetting('enableCameraPanning', previousCameraPanning);
 			previousCameraPanning = undefined;
 		}
 		callbacks.onConnectionDrag?.(undefined);
@@ -277,7 +280,10 @@ export function bindGraphEvents(
 		return sigma.graphToViewport({ x: attributes.x, y: attributes.y });
 	}
 
-	function readMouseViewportPosition(event: MouseEvent): { x: number; y: number } {
+	function readMouseViewportPosition(event: MouseEvent): {
+		x: number;
+		y: number;
+	} {
 		const rect = sigma.getContainer().getBoundingClientRect();
 		return {
 			x: event.clientX - rect.left,
@@ -285,29 +291,29 @@ export function bindGraphEvents(
 		};
 	}
 
-	sigma.on("downNode", downNode);
-	sigma.on("clickNode", clickNode);
-	sigma.on("clickStage", clickStage);
-	sigma.on("rightClickNode", rightClickNode);
-	sigma.on("enterNode", enterNode);
-	sigma.on("leaveNode", leaveNode);
-	sigma.on("upNode", upNode);
-	sigma.on("upStage", upStage);
-	mouseCaptor.on("mousemovebody", moveBody);
-	mouseCaptor.on("mouseup", mouseUp);
+	sigma.on('downNode', downNode);
+	sigma.on('clickNode', clickNode);
+	sigma.on('clickStage', clickStage);
+	sigma.on('rightClickNode', rightClickNode);
+	sigma.on('enterNode', enterNode);
+	sigma.on('leaveNode', leaveNode);
+	sigma.on('upNode', upNode);
+	sigma.on('upStage', upStage);
+	mouseCaptor.on('mousemovebody', moveBody);
+	mouseCaptor.on('mouseup', mouseUp);
 
 	return () => {
 		endNodeDrag();
 		endConnectionDrag();
-		sigma.off("downNode", downNode);
-		sigma.off("clickNode", clickNode);
-		sigma.off("clickStage", clickStage);
-		sigma.off("rightClickNode", rightClickNode);
-		sigma.off("enterNode", enterNode);
-		sigma.off("leaveNode", leaveNode);
-		sigma.off("upNode", upNode);
-		sigma.off("upStage", upStage);
-		mouseCaptor.off("mousemovebody", moveBody);
-		mouseCaptor.off("mouseup", mouseUp);
+		sigma.off('downNode', downNode);
+		sigma.off('clickNode', clickNode);
+		sigma.off('clickStage', clickStage);
+		sigma.off('rightClickNode', rightClickNode);
+		sigma.off('enterNode', enterNode);
+		sigma.off('leaveNode', leaveNode);
+		sigma.off('upNode', upNode);
+		sigma.off('upStage', upStage);
+		mouseCaptor.off('mousemovebody', moveBody);
+		mouseCaptor.off('mouseup', mouseUp);
 	};
 }

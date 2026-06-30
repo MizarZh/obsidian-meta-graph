@@ -86,17 +86,18 @@ describe('workspace derived data', () => {
 
 	it('resolves a single workspace node color from active style defaults', () => {
 		expect(
-			getWorkspaceNodeColor(node('A.md', 'Alpha'), createWorkspaceState(200), '#fallback'),
+			getWorkspaceNodeColor(
+				node('A.md', 'Alpha'),
+				createWorkspaceState(200),
+				'#fallback',
+			),
 		).toBe('#7c6ff0');
 	});
 
 	it('finds dock template labels by id', () => {
 		expect(
 			findDockTemplateLabel(
-				[
-					template('daily', 'Daily'),
-					template('project', 'Project'),
-				],
+				[template('daily', 'Daily'), template('project', 'Project')],
 				'project',
 			),
 		).toBe('Project');
@@ -105,7 +106,9 @@ describe('workspace derived data', () => {
 
 	it('falls back to node id when indexed title is missing', () => {
 		expect(findIndexedNodeTitle(snapshot(), 'A.md')).toBe('Alpha');
-		expect(findIndexedNodeTitle(snapshot(), 'Missing.md')).toBe('Missing.md');
+		expect(findIndexedNodeTitle(snapshot(), 'Missing.md')).toBe(
+			'Missing.md',
+		);
 	});
 });
 

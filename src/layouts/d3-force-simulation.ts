@@ -198,13 +198,20 @@ export class D3ForceSimulation {
 		if (delta.x === 0 && delta.y === 0) {
 			return;
 		}
-		const influence = Math.min(this.forceSettings.dragLinkForce * 0.18, 0.85);
+		const influence = Math.min(
+			this.forceSettings.dragLinkForce * 0.18,
+			0.85,
+		);
 		if (influence <= 0) {
 			return;
 		}
 		for (const neighborId of this.neighborsById.get(nodeId) ?? []) {
 			const neighbor = this.nodesById.get(neighborId);
-			if (!neighbor || neighbor.fx !== undefined || neighbor.fy !== undefined) {
+			if (
+				!neighbor ||
+				neighbor.fx !== undefined ||
+				neighbor.fy !== undefined
+			) {
 				continue;
 			}
 			const x = (neighbor.x ?? 0) + delta.x * influence;
@@ -244,8 +251,8 @@ export class D3ForceSimulation {
 			.filter((neighbor): neighbor is ForceNode =>
 				Boolean(
 					neighbor &&
-						typeof neighbor.x === 'number' &&
-						typeof neighbor.y === 'number',
+					typeof neighbor.x === 'number' &&
+					typeof neighbor.y === 'number',
 				),
 			);
 		if (neighbors.length === 0 || this.forceSettings.returnForce <= 0) {
@@ -254,11 +261,15 @@ export class D3ForceSimulation {
 		}
 		const target = {
 			x:
-				neighbors.reduce((sum, neighbor) => sum + (neighbor.x ?? 0), 0) /
-				neighbors.length,
+				neighbors.reduce(
+					(sum, neighbor) => sum + (neighbor.x ?? 0),
+					0,
+				) / neighbors.length,
 			y:
-				neighbors.reduce((sum, neighbor) => sum + (neighbor.y ?? 0), 0) /
-				neighbors.length,
+				neighbors.reduce(
+					(sum, neighbor) => sum + (neighbor.y ?? 0),
+					0,
+				) / neighbors.length,
 			expiresAt: performance.now() + 4000,
 		};
 		this.returnTargetsById.set(nodeId, target);

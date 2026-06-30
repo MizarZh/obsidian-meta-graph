@@ -5,7 +5,10 @@ import type {
 	ManualLayoutConfig,
 	ViewMode,
 } from '../core/types';
-import type { GraphPosition, RuntimeGraph } from '../graph/model/graphology-adapter';
+import type {
+	GraphPosition,
+	RuntimeGraph,
+} from '../graph/model/graphology-adapter';
 import { ArcLayout } from './arc-layout';
 import {
 	applyOrthogonalFlowEdges,
@@ -105,7 +108,9 @@ export async function applyStableLayout(
 	snapshotRuntimePositions(graph, snapshot.positions);
 }
 
-export function getLayoutSnapshotKey(options: LayoutSnapshotKeyOptions): string {
+export function getLayoutSnapshotKey(
+	options: LayoutSnapshotKeyOptions,
+): string {
 	if (options.mode === 'arc') {
 		return `${options.activeChartId}-arc-${options.arcDirection}`;
 	}
@@ -159,8 +164,14 @@ async function applyHierarchicalEdgeBundlingLayout({
 }
 
 async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
-	const { graph, snapshot, newNodeIds, options, firstLayout, currentEdgeIds } =
-		context;
+	const {
+		graph,
+		snapshot,
+		newNodeIds,
+		options,
+		firstLayout,
+		currentEdgeIds,
+	} = context;
 	const flowEdgesChanged = !setsEqual(currentEdgeIds, snapshot.edgeIds);
 	const needsFlowLayout = options.forceLayout || firstLayout;
 
@@ -242,7 +253,9 @@ function snapshotRuntimePositions(
 }
 
 function setsEqual(left: Set<string>, right: Set<string>): boolean {
-	return left.size === right.size && [...left].every((value) => right.has(value));
+	return (
+		left.size === right.size && [...left].every((value) => right.has(value))
+	);
 }
 
 function createOrthogonalRouteMap(): OrthogonalRouteMap {

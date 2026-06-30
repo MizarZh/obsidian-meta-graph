@@ -1,8 +1,7 @@
 import type { NodeId } from './graph';
 
 export type DockConnectionDirection =
-	| 'from-graph-to-dock'
-	| 'from-dock-to-graph';
+	'from-graph-to-dock' | 'from-dock-to-graph';
 
 export interface DockTemplateNode {
 	id: string;

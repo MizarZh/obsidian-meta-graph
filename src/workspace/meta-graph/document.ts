@@ -26,10 +26,7 @@ import {
 } from './connections';
 import { normalizeDock } from './dock';
 import { createDefaultGlobalQuery, normalizeQuery } from './query';
-import {
-	createDefaultGlobalStyle,
-	normalizeGlobalStyle,
-} from './style';
+import { createDefaultGlobalStyle, normalizeGlobalStyle } from './style';
 import { isRecord } from './utils';
 
 export function normalizeMetaGraphDocument(
@@ -43,7 +40,13 @@ export function normalizeMetaGraphDocument(
 	const charts =
 		rawCharts.length > 0
 			? rawCharts.map((chart, index) =>
-					normalizeChart(chart, index, maxNodes, fadeDistance, globalStyle),
+					normalizeChart(
+						chart,
+						index,
+						maxNodes,
+						fadeDistance,
+						globalStyle,
+					),
 				)
 			: createDefaultCharts(maxNodes, fadeDistance);
 	const activeChart =
@@ -71,8 +74,9 @@ export function normalizeMetaGraphDocument(
 			(spec) => spec.id === record.activeConnectionFieldSpecId,
 		)
 			? record.activeConnectionFieldSpecId
-			: (connectionFieldSpecs.find((spec) => spec.field === activeConnectionField)
-					?.id ??
+			: (connectionFieldSpecs.find(
+					(spec) => spec.field === activeConnectionField,
+				)?.id ??
 				connectionFieldSpecs[0]?.id ??
 				'');
 	return {

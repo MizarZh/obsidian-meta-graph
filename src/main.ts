@@ -54,11 +54,15 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 			name: 'Open active graph',
 			checkCallback: (checking) => {
 				const activeFile = this.app.workspace.getActiveFile();
-				if (!activeFile || !this.fileHasMetaGraphFrontmatter(activeFile)) {
+				if (
+					!activeFile ||
+					!this.fileHasMetaGraphFrontmatter(activeFile)
+				) {
 					return false;
 				}
 				if (!checking) {
-					const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+					const view =
+						this.app.workspace.getActiveViewOfType(MarkdownView);
 					if (view) {
 						void this.setMetaGraphView(view.leaf);
 					}
@@ -97,10 +101,7 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 		return this.app.workspace.getActiveFile() ?? this.lastActiveFile;
 	}
 
-	async setMarkdownView(
-		leaf: WorkspaceLeaf,
-		focus = true,
-	): Promise<void> {
+	async setMarkdownView(leaf: WorkspaceLeaf, focus = true): Promise<void> {
 		const leafId = getLeafId(leaf);
 		if (leafId) {
 			const filePath = getViewFilePath(leaf.view.getState());
@@ -152,10 +153,7 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 					name: string,
 				): Promise<TFile>;
 			}
-		).createNewMarkdownFile(
-			targetFolder,
-			'Untitled meta graph',
-		);
+		).createNewMarkdownFile(targetFolder, 'Untitled meta graph');
 		await this.app.vault.modify(
 			file,
 			createMetaGraphMarkdown(
@@ -255,8 +253,7 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 	}
 
 	private pathHasMetaGraphFrontmatter(path: string): boolean {
-		const frontmatter =
-			this.app.metadataCache.getCache(path)?.frontmatter;
+		const frontmatter = this.app.metadataCache.getCache(path)?.frontmatter;
 		return (
 			frontmatter?.[META_GRAPH_FRONTMATTER_KEY] ===
 			META_GRAPH_FRONTMATTER_VALUE

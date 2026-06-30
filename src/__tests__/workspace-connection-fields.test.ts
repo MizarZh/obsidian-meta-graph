@@ -54,7 +54,9 @@ describe('workspace connection fields', () => {
 
 		const result = setActiveConnectionFieldInState(state, 'supports');
 
-		expect(result.state.activeConnectionFieldSpecId).toBe('supports:reverse');
+		expect(result.state.activeConnectionFieldSpecId).toBe(
+			'supports:reverse',
+		);
 	});
 
 	it('adds connection fields and selects the new field', () => {
@@ -73,7 +75,9 @@ describe('workspace connection fields', () => {
 	it('keeps blank added connection fields stable', () => {
 		const state = createWorkspaceState(100);
 
-		expect(addConnectionFieldAndSelectInState(state, '   ', 'directed')).toEqual({
+		expect(
+			addConnectionFieldAndSelectInState(state, '   ', 'directed'),
+		).toEqual({
 			state,
 			runQuery: false,
 		});
@@ -102,7 +106,11 @@ describe('workspace connection fields', () => {
 			'supports',
 		).state;
 
-		expect(getConnectionModeForFieldInState(state, 'supports')).toBe('reverse');
-		expect(getConnectionModeForFieldInState(state, 'blocks')).toBe('directed');
+		expect(getConnectionModeForFieldInState(state, 'supports')).toBe(
+			'reverse',
+		);
+		expect(getConnectionModeForFieldInState(state, 'blocks')).toBe(
+			'directed',
+		);
 	});
 });

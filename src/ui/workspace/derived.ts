@@ -1,4 +1,8 @@
-import type { DebugSnapshot, KnowledgeNode, WorkspaceState } from '../../core/types';
+import type {
+	DebugSnapshot,
+	KnowledgeNode,
+	WorkspaceState,
+} from '../../core/types';
 import {
 	getActiveDefaultNodeStyle,
 	getActiveNodeStyleRules,
@@ -20,7 +24,9 @@ export function getSelectedDockNodes(
 	snapshot: SnapshotNodeIndex,
 	dockNotes: DockNotes,
 ): KnowledgeNode[] {
-	const nodesByPath = new Map(snapshot.index.nodes.map((node) => [node.path, node]));
+	const nodesByPath = new Map(
+		snapshot.index.nodes.map((node) => [node.path, node]),
+	);
 	return dockNotes
 		.map((note) => nodesByPath.get(note.path))
 		.filter((node): node is KnowledgeNode => node !== undefined);
@@ -35,7 +41,8 @@ export function getDockNoteCandidates(
 	return snapshot.index.nodes
 		.filter(
 			(node) =>
-				node.path !== workspaceFilePath && !selectedPaths.has(node.path),
+				node.path !== workspaceFilePath &&
+				!selectedPaths.has(node.path),
 		)
 		.sort((first, second) =>
 			first.title.localeCompare(second.title, undefined, {
@@ -57,7 +64,9 @@ export function getDockNoteEntries(
 	dockNotes: DockNotes,
 	nodeColors: ReadonlyMap<string, string>,
 ): DockNoteEntry[] {
-	const nodesByPath = new Map(snapshot.index.nodes.map((node) => [node.path, node]));
+	const nodesByPath = new Map(
+		snapshot.index.nodes.map((node) => [node.path, node]),
+	);
 	return dockNotes.map((note) => {
 		const node = nodesByPath.get(note.path);
 		if (node) {
@@ -87,7 +96,10 @@ export function getWorkspaceNodeColors(
 	const colors = new Map<string, string>();
 	for (const node of nodes) {
 		if (!colors.has(node.path)) {
-			colors.set(node.path, getWorkspaceNodeColor(node, state, defaultColor));
+			colors.set(
+				node.path,
+				getWorkspaceNodeColor(node, state, defaultColor),
+			);
 		}
 	}
 	return colors;
@@ -114,7 +126,9 @@ export function findIndexedNodeTitle(
 	snapshot: SnapshotNodeIndex,
 	nodeId: string,
 ): string {
-	return snapshot.index.nodes.find((node) => node.id === nodeId)?.title ?? nodeId;
+	return (
+		snapshot.index.nodes.find((node) => node.id === nodeId)?.title ?? nodeId
+	);
 }
 
 function getFallbackDockNoteTitle(path: string): string {

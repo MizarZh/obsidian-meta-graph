@@ -1,5 +1,8 @@
 import type { ManualLayoutConfig } from '../../../core/types';
-import type { RuntimeGraph, RuntimeNodeAttributes } from '../../model/graphology-adapter';
+import type {
+	RuntimeGraph,
+	RuntimeNodeAttributes,
+} from '../../model/graphology-adapter';
 import {
 	type CubeFaceId,
 	findOpenDisplayPosition,
@@ -19,7 +22,10 @@ export function resolveCubeDisplayPositions(
 	manualLayout: ManualLayoutConfig,
 ): Map<string, CubeDisplayPosition> {
 	const positions = new Map<string, CubeDisplayPosition>();
-	const byFace = new Map<CubeFaceId, Array<{ id: string; x: number; y: number }>>();
+	const byFace = new Map<
+		CubeFaceId,
+		Array<{ id: string; x: number; y: number }>
+	>();
 	for (const nodeId of graph.nodes()) {
 		const attributes = graph.getNodeAttributes(nodeId);
 		if (attributes.isBend) {

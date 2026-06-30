@@ -24,16 +24,19 @@
 		function onMove(moveEvent: PointerEvent): void {
 			const nextWidth = Math.max(
 				minWidth,
-				Math.min(maxWidth, startWidth + readDelta(startX, moveEvent.clientX)),
+				Math.min(
+					maxWidth,
+					startWidth + readDelta(startX, moveEvent.clientX),
+				),
 			);
 			onResize(nextWidth);
 		}
 		function onUp(): void {
-			window.removeEventListener("pointermove", onMove);
-			window.removeEventListener("pointerup", onUp);
+			window.removeEventListener('pointermove', onMove);
+			window.removeEventListener('pointerup', onUp);
 		}
-		window.addEventListener("pointermove", onMove);
-		window.addEventListener("pointerup", onUp);
+		window.addEventListener('pointermove', onMove);
+		window.addEventListener('pointerup', onUp);
 	}
 </script>
 

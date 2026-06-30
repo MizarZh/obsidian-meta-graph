@@ -14,7 +14,13 @@ const template: DockTemplateNode = {
 
 describe('workspace template service', () => {
 	it('resolves template note requests with trimmed titles', () => {
-		expect(resolveTemplateNoteRequest([template], 'template-1', '  New note  ')).toEqual({
+		expect(
+			resolveTemplateNoteRequest(
+				[template],
+				'template-1',
+				'  New note  ',
+			),
+		).toEqual({
 			template,
 			title: 'New note',
 		});

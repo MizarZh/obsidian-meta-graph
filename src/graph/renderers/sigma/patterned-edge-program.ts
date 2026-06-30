@@ -3,7 +3,11 @@ import {
 	createEdgeArrowHeadProgram,
 	createEdgeCompoundProgram,
 } from 'sigma/rendering';
-import type { EdgeDisplayData, NodeDisplayData, RenderParams } from 'sigma/types';
+import type {
+	EdgeDisplayData,
+	NodeDisplayData,
+	RenderParams,
+} from 'sigma/types';
 import { floatColor } from 'sigma/utils';
 import type {
 	RuntimeEdgeAttributes,
@@ -175,9 +179,16 @@ void main(void) {
 			params: RenderParams,
 			{ gl, uniformLocations }: ProgramInfo,
 		): void {
-			gl.uniformMatrix3fv(uniformLocations.u_matrix!, false, params.matrix);
+			gl.uniformMatrix3fv(
+				uniformLocations.u_matrix!,
+				false,
+				params.matrix,
+			);
 			gl.uniform1f(uniformLocations.u_sizeRatio!, params.sizeRatio);
-			gl.uniform1f(uniformLocations.u_correctionRatio!, params.correctionRatio);
+			gl.uniform1f(
+				uniformLocations.u_correctionRatio!,
+				params.correctionRatio,
+			);
 			gl.uniform2f(
 				uniformLocations.u_resolution!,
 				params.width * params.pixelRatio,

@@ -131,10 +131,13 @@
 		return () => {
 			window.removeEventListener('resize', reposition);
 			window.removeEventListener('scroll', closeOnScroll, true);
-			window.removeEventListener('pointerdown', closeOnOutsidePointerDown, true);
+			window.removeEventListener(
+				'pointerdown',
+				closeOnOutsidePointerDown,
+				true,
+			);
 		};
 	});
-
 </script>
 
 <div class="knowledge-workspace-property-picker">

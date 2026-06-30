@@ -237,7 +237,8 @@
 			<label class="checkbox">
 				<ObsidianToggle
 					value={defaultLinkStyle.showLabel}
-					onChange={(showLabel) => updateDefaultLinkStyle({ showLabel })}
+					onChange={(showLabel) =>
+						updateDefaultLinkStyle({ showLabel })}
 				/>
 				<span>Show label</span>
 			</label>
@@ -341,7 +342,8 @@
 				<label class="checkbox">
 					<ObsidianToggle
 						value={activeLinkShowLabel()}
-						onChange={(showLabel) => updateLinkOverride({ showLabel })}
+						onChange={(showLabel) =>
+							updateLinkOverride({ showLabel })}
 					/>
 					<span>Show label</span>
 				</label>
@@ -382,7 +384,11 @@
 								-1,
 							)}
 							onClick={() =>
-								moveLinkRule(scope as StyleRuleScope, rule.id, -1)}
+								moveLinkRule(
+									scope as StyleRuleScope,
+									rule.id,
+									-1,
+								)}
 						/>
 						<ObsidianButton
 							icon="chevron-down"
@@ -393,31 +399,47 @@
 								1,
 							)}
 							onClick={() =>
-								moveLinkRule(scope as StyleRuleScope, rule.id, 1)}
+								moveLinkRule(
+									scope as StyleRuleScope,
+									rule.id,
+									1,
+								)}
 						/>
 					</div>
 					<ObsidianDropdown
 						value={rule.field}
 						options={LINK_STYLE_FIELD_OPTIONS}
 						onChange={(value) =>
-							updateLinkRule(scope as 'global' | 'current', rule.id, {
-								field: value as LinkStyleField,
-							})}
+							updateLinkRule(
+								scope as 'global' | 'current',
+								rule.id,
+								{
+									field: value as LinkStyleField,
+								},
+							)}
 					/>
 					<ObsidianTextInput
 						type="text"
 						placeholder="Metadata value"
 						value={rule.value}
 						onInput={(value) =>
-							updateLinkRule(scope as 'global' | 'current', rule.id, {
-								value,
-							})}
+							updateLinkRule(
+								scope as 'global' | 'current',
+								rule.id,
+								{
+									value,
+								},
+							)}
 					/>
 					<ObsidianButton
 						class="knowledge-workspace-remove-rule-button"
 						ariaLabel="Remove link style rule"
 						icon="trash-2"
-						onClick={() => removeLinkRule(scope as 'global' | 'current', rule.id)}
+						onClick={() =>
+							removeLinkRule(
+								scope as 'global' | 'current',
+								rule.id,
+							)}
 					/>
 				</div>
 				<div class="knowledge-workspace-rule-row compact">
@@ -432,9 +454,13 @@
 									rule.color,
 									event.currentTarget.value,
 									(color) =>
-										updateLinkRule(scope as 'global' | 'current', rule.id, {
-											color,
-										}),
+										updateLinkRule(
+											scope as 'global' | 'current',
+											rule.id,
+											{
+												color,
+											},
+										),
 								)}
 							onchange={(event) =>
 								commitColor(
@@ -442,9 +468,13 @@
 									rule.color,
 									event.currentTarget.value,
 									(color) =>
-										updateLinkRule(scope as 'global' | 'current', rule.id, {
-											color,
-										}),
+										updateLinkRule(
+											scope as 'global' | 'current',
+											rule.id,
+											{
+												color,
+											},
+										),
 								)}
 						/>
 					</label>
@@ -458,9 +488,13 @@
 								value={rule.size}
 								format={(value) => value.toFixed(1)}
 								onChange={(value) =>
-									updateLinkRule(scope as 'global' | 'current', rule.id, {
-										size: value,
-									})}
+									updateLinkRule(
+										scope as 'global' | 'current',
+										rule.id,
+										{
+											size: value,
+										},
+									)}
 							/>
 							<span>{rule.size.toFixed(1)}</span>
 						</div>
@@ -474,9 +508,14 @@
 								active={rule.lineStyle === option.value}
 								text={option.label}
 								onClick={() =>
-									updateLinkRule(scope as 'global' | 'current', rule.id, {
-										lineStyle: option.value as LinkLineStyle,
-									})}
+									updateLinkRule(
+										scope as 'global' | 'current',
+										rule.id,
+										{
+											lineStyle:
+												option.value as LinkLineStyle,
+										},
+									)}
 							/>
 						{/each}
 					</div>
@@ -489,9 +528,13 @@
 							placeholder="Optional label"
 							value={rule.label}
 							onInput={(value) =>
-								updateLinkRule(scope as 'global' | 'current', rule.id, {
-									label: value,
-								})}
+								updateLinkRule(
+									scope as 'global' | 'current',
+									rule.id,
+									{
+										label: value,
+									},
+								)}
 						/>
 					</label>
 				</div>
@@ -500,9 +543,13 @@
 						<ObsidianToggle
 							value={rule.showLabel}
 							onChange={(value) =>
-								updateLinkRule(scope as 'global' | 'current', rule.id, {
-									showLabel: value,
-								})}
+								updateLinkRule(
+									scope as 'global' | 'current',
+									rule.id,
+									{
+										showLabel: value,
+									},
+								)}
 						/>
 						<span>Show label</span>
 					</label>
@@ -510,9 +557,13 @@
 						<ObsidianToggle
 							value={rule.hidden}
 							onChange={(value) =>
-								updateLinkRule(scope as 'global' | 'current', rule.id, {
-									hidden: value,
-								})}
+								updateLinkRule(
+									scope as 'global' | 'current',
+									rule.id,
+									{
+										hidden: value,
+									},
+								)}
 						/>
 						<span>Hidden</span>
 					</label>

@@ -35,7 +35,9 @@ const RELATIONS: RelationDefinition[] = [
 	},
 ];
 const DEFAULT_RELATION_FIELDS = new Set(
-	RELATIONS.flatMap((definition) => definition.fields.map(normalizeFieldName)),
+	RELATIONS.flatMap((definition) =>
+		definition.fields.map(normalizeFieldName),
+	),
 );
 
 export function toStringArray(value: unknown): string[] {
@@ -62,13 +64,20 @@ export function parseRelations(
 	const edges = new Map<string, KnowledgeEdge>();
 
 	for (const definition of createRelationDefinitions(relationFields)) {
-		const values = getRelationValues(frontmatter, frontmatterLinks, definition);
+		const values = getRelationValues(
+			frontmatter,
+			frontmatterLinks,
+			definition,
+		);
 		for (const { value, sourceField } of values) {
 			const linkText = extractLinkText(value);
 			if (!linkText) {
 				continue;
 			}
-			const targetPath = resolver.resolve(linkText, normalizedCurrentPath);
+			const targetPath = resolver.resolve(
+				linkText,
+				normalizedCurrentPath,
+			);
 			if (!targetPath) {
 				onUnresolved?.(linkText, normalizedCurrentPath);
 				continue;
@@ -125,7 +134,10 @@ function createRelationDefinitions(
 	const definitions = [...RELATIONS];
 	for (const field of relationFields) {
 		const trimmed = field.trim();
-		if (!trimmed || DEFAULT_RELATION_FIELDS.has(normalizeFieldName(trimmed))) {
+		if (
+			!trimmed ||
+			DEFAULT_RELATION_FIELDS.has(normalizeFieldName(trimmed))
+		) {
 			continue;
 		}
 		definitions.push({

@@ -55,7 +55,9 @@ describe('workspace chart settings', () => {
 
 	it('preserves graph force settings when a non-force chart becomes active', () => {
 		const state = createWorkspaceState(100, 1.5);
-		const flowChart = state.charts.find((chart) => chart.id === 'learning-flow');
+		const flowChart = state.charts.find(
+			(chart) => chart.id === 'learning-flow',
+		);
 		if (!flowChart) {
 			throw new Error('Flow chart is missing.');
 		}
@@ -88,5 +90,4 @@ describe('workspace chart settings', () => {
 		expect(nextState.graphCenterForce).toBe(7);
 		expect(nextState.graphRepelForce).toBe(6);
 	});
-
 });

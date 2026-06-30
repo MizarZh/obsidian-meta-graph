@@ -24,8 +24,10 @@ export function createThreeTextSprite(
 	options: ThreeTextSpriteOptions,
 ): Three.Sprite {
 	const fontSize = Math.max(1, options.fontSize);
-	const paddingX = options.paddingX ?? Math.max(8, Math.round(fontSize * 0.55));
-	const paddingY = options.paddingY ?? Math.max(4, Math.round(fontSize * 0.32));
+	const paddingX =
+		options.paddingX ?? Math.max(8, Math.round(fontSize * 0.55));
+	const paddingY =
+		options.paddingY ?? Math.max(4, Math.round(fontSize * 0.32));
 	const canvas = options.ownerDocument.createElement('canvas');
 	const context = canvas.getContext('2d');
 	if (!context) {
@@ -75,7 +77,11 @@ export function createThreeTextSprite(
 	const sprite = new three.Sprite(material);
 	const scale = options.scale ?? 1;
 	const scaleMultiplier = options.scaleMultiplier ?? 0.24;
-	sprite.scale.set(width * scaleMultiplier * scale, height * scaleMultiplier * scale, 1);
+	sprite.scale.set(
+		width * scaleMultiplier * scale,
+		height * scaleMultiplier * scale,
+		1,
+	);
 	return sprite;
 }
 

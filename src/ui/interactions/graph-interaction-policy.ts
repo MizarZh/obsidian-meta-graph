@@ -1,12 +1,10 @@
 import type { ModeCapabilities } from '../../graph/renderers/renderer-adapter';
 
 export type SigmaDragAction =
-	| { kind: 'manual-position' }
-	| { kind: 'force-simulation' };
+	{ kind: 'manual-position' } | { kind: 'force-simulation' };
 
 export type SigmaDragEndAction =
-	| { kind: 'commit-manual-position' }
-	| { kind: 'release-force-simulation' };
+	{ kind: 'commit-manual-position' } | { kind: 'release-force-simulation' };
 
 export function getSigmaDragAction(
 	capabilities: Pick<ModeCapabilities, 'supportsFreeNodeDrag'>,

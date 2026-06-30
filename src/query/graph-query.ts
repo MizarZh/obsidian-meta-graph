@@ -1,4 +1,4 @@
-import type { GraphQuery } from "../core/types";
+import type { GraphQuery } from '../core/types';
 
 export const DEFAULT_GRAPH_QUERY: GraphQuery = {
 	roots: [],
@@ -12,9 +12,9 @@ export const DEFAULT_GRAPH_QUERY: GraphQuery = {
 		children: [],
 	},
 	domains: [],
-	relations: ["prerequisite", "leads-to", "related"],
+	relations: ['prerequisite', 'leads-to', 'related'],
 	depth: 2,
-	direction: "both",
+	direction: 'both',
 	maxNodes: 500,
 	showIsolatedNodes: false,
 };

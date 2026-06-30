@@ -16,7 +16,12 @@ describe('workspace connection service', () => {
 		]);
 
 		await expect(
-			service.connectNodes('Source.md', 'Target.md', 'leads-to', 'directed'),
+			service.connectNodes(
+				'Source.md',
+				'Target.md',
+				'leads-to',
+				'directed',
+			),
 		).resolves.toBe(true);
 
 		expect(frontmatter('Source.md')).toEqual({
@@ -40,7 +45,12 @@ describe('workspace connection service', () => {
 			},
 		);
 
-		await service.connectNodes('Source.md', 'Target.md', 'leads-to', 'directed');
+		await service.connectNodes(
+			'Source.md',
+			'Target.md',
+			'leads-to',
+			'directed',
+		);
 
 		expect(frontmatter('Source.md')).toEqual({
 			'leads-to': ['[[Existing]]', '[[Target]]'],
@@ -64,7 +74,12 @@ describe('workspace connection service', () => {
 		);
 
 		await expect(
-			service.connectNodes('Source.md', 'Target.md', 'leads-to', 'directed'),
+			service.connectNodes(
+				'Source.md',
+				'Target.md',
+				'leads-to',
+				'directed',
+			),
 		).resolves.toBe(false);
 
 		expect(frontmatter('Source.md')).toEqual({
@@ -106,7 +121,12 @@ describe('workspace connection service', () => {
 			'Target.md',
 		]);
 
-		await service.connectNodes('Source.md', 'Target.md', 'requires', 'reverse');
+		await service.connectNodes(
+			'Source.md',
+			'Target.md',
+			'requires',
+			'reverse',
+		);
 
 		expect(frontmatter('Source.md')).toEqual({});
 		expect(frontmatter('Target.md')).toEqual({

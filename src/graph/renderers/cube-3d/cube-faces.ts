@@ -82,10 +82,7 @@ export function createCubeFaces(three: {
 	];
 }
 
-export function getCubeFace(
-	faces: CubeFace[],
-	faceId: CubeFaceId,
-): CubeFace {
+export function getCubeFace(faces: CubeFace[], faceId: CubeFaceId): CubeFace {
 	return faces.find((face) => face.id === faceId) ?? faces[0]!;
 }
 
@@ -96,7 +93,10 @@ export function getCubeFaceIdForNode(
 	if (groupId && isCubeFaceId(groupId)) {
 		return groupId;
 	}
-	return FACE_IDS[Math.floor(hashString(nodeId) * FACE_IDS.length)] ?? 'cube-front';
+	return (
+		FACE_IDS[Math.floor(hashString(nodeId) * FACE_IDS.length)] ??
+		'cube-front'
+	);
 }
 
 export function isCubeFaceId(value: string): value is CubeFaceId {
@@ -115,7 +115,8 @@ export function findOpenDisplayPosition(
 					Math.min(distance, distanceSquared(candidate, position)),
 				Number.POSITIVE_INFINITY,
 			);
-			const centerPenalty = distanceSquared(candidate, { x: 0, y: 0 }) * 0.001;
+			const centerPenalty =
+				distanceSquared(candidate, { x: 0, y: 0 }) * 0.001;
 			const value = score - centerPenalty;
 			return value > best.value ? { position: candidate, value } : best;
 		},
@@ -144,7 +145,9 @@ export function hashString(value: string): number {
 	return (hash % 10000) / 10000;
 }
 
-function createDisplayGridPositions(count: number): Array<{ x: number; y: number }> {
+function createDisplayGridPositions(
+	count: number,
+): Array<{ x: number; y: number }> {
 	const size = CUBE_DISPLAY_MAX - CUBE_DISPLAY_MIN;
 	const columns = Math.max(1, Math.ceil(Math.sqrt(count)));
 	const rows = Math.max(1, Math.ceil(count / columns));

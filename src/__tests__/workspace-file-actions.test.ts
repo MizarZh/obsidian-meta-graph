@@ -17,7 +17,9 @@ describe('workspace file actions', () => {
 		const nextState = setCurrentFileInState(state, 'Folder/Note.md');
 
 		expect(nextState.currentNoteId).toBe('Folder/Note.md');
-		expect(setCurrentFileInState(nextState, 'Folder/Note.md')).toBe(nextState);
+		expect(setCurrentFileInState(nextState, 'Folder/Note.md')).toBe(
+			nextState,
+		);
 		expect(setCurrentFileInState(nextState, null)).toBe(nextState);
 	});
 
@@ -40,7 +42,8 @@ describe('workspace file actions', () => {
 			openWorkspaceNode('A.md', {
 				getFile: () => file,
 				isFile: (value): value is TestFile =>
-					Boolean(value) && typeof (value as TestFile).path === 'string',
+					Boolean(value) &&
+					typeof (value as TestFile).path === 'string',
 				openFile: async (entry) => {
 					openFile(entry);
 				},

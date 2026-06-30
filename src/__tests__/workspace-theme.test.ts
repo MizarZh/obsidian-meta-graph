@@ -29,20 +29,20 @@ function createStyleDocument(accentColor: string): Document {
 
 describe('workspace theme helpers', () => {
 	it('builds a stable signature from document and body classes', () => {
-		expect(readThemeSignature(createThemeDocument('theme-dark', 'is-mobile'))).toBe(
-			'theme-dark|is-mobile',
-		);
+		expect(
+			readThemeSignature(createThemeDocument('theme-dark', 'is-mobile')),
+		).toBe('theme-dark|is-mobile');
 	});
 
 	it('reads the interactive accent color from computed styles', () => {
-		expect(readInteractiveAccentColor(createStyleDocument('  #3366ff  '))).toBe(
-			'#3366ff',
-		);
+		expect(
+			readInteractiveAccentColor(createStyleDocument('  #3366ff  ')),
+		).toBe('#3366ff');
 	});
 
 	it('uses a fallback when the accent color is empty', () => {
-		expect(readInteractiveAccentColor(createStyleDocument(''), '#123456')).toBe(
-			'#123456',
-		);
+		expect(
+			readInteractiveAccentColor(createStyleDocument(''), '#123456'),
+		).toBe('#123456');
 	});
 });

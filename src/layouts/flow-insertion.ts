@@ -1,5 +1,8 @@
 import type { FlowDirection } from '../core/types';
-import type { GraphPosition, RuntimeGraph } from '../graph/model/graphology-adapter';
+import type {
+	GraphPosition,
+	RuntimeGraph,
+} from '../graph/model/graphology-adapter';
 
 const BASE_LAYER_DISTANCE = 220;
 const BASE_CROSS_STEP = 90;
@@ -77,7 +80,12 @@ export function findFlowInsertionPlacement(
 		}
 
 		const newNodeIsAfterAnchor = source === anchorId && target === nodeId;
-		return findOpenFlowSlot(anchor, newNodeIsAfterAnchor, occupied, options);
+		return findOpenFlowSlot(
+			anchor,
+			newNodeIsAfterAnchor,
+			occupied,
+			options,
+		);
 	}
 
 	return undefined;

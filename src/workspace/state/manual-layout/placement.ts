@@ -45,11 +45,10 @@ export function findManualPlacement(
 			return value > best.value ? { position: candidate, value } : best;
 		},
 		{
-			position:
-				candidates[0] ?? {
-					x: (bounds.left + bounds.right) / 2,
-					y: (bounds.bottom + bounds.top) / 2,
-				},
+			position: candidates[0] ?? {
+				x: (bounds.left + bounds.right) / 2,
+				y: (bounds.bottom + bounds.top) / 2,
+			},
 			value: Number.NEGATIVE_INFINITY,
 		},
 	).position;
@@ -250,7 +249,10 @@ function isManualPlacementOpen(
 	);
 }
 
-function expandBounds(bounds: PlacementBounds, amount: number): PlacementBounds {
+function expandBounds(
+	bounds: PlacementBounds,
+	amount: number,
+): PlacementBounds {
 	return {
 		left: bounds.left - amount,
 		right: bounds.right + amount,

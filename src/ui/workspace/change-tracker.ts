@@ -134,7 +134,11 @@ export function analyzeWorkspaceStateChanges(
 			currentState,
 			'fadeDistance',
 		),
-		labelSizeChanged: stateValueChanged(nextState, currentState, 'labelSize'),
+		labelSizeChanged: stateValueChanged(
+			nextState,
+			currentState,
+			'labelSize',
+		),
 		labelPositionChanged: stateValueChanged(
 			nextState,
 			currentState,
@@ -272,7 +276,9 @@ function syncBaselineValue<Key extends WorkspaceStateBaselineKey>(
 	baseline[key] = state[key];
 }
 
-function readProjectionSignature(projection: GraphProjection | undefined): string {
+function readProjectionSignature(
+	projection: GraphProjection | undefined,
+): string {
 	if (!projection) {
 		return '';
 	}
@@ -302,8 +308,12 @@ function readProjectionSignature(projection: GraphProjection | undefined): strin
 		)
 		.sort();
 	const rootParts = [...projection.rootIds].sort();
-	const primaryParts = [...(projection.primaryIds ?? new Set<string>())].sort();
-	const contextParts = [...(projection.contextIds ?? new Set<string>())].sort();
+	const primaryParts = [
+		...(projection.primaryIds ?? new Set<string>()),
+	].sort();
+	const contextParts = [
+		...(projection.contextIds ?? new Set<string>()),
+	].sort();
 	return [
 		`n:${nodeParts.join('\u001e')}`,
 		`e:${edgeParts.join('\u001e')}`,

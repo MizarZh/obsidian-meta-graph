@@ -248,7 +248,12 @@
 						onChange={commitSpacing}
 						onCommit={commitSpacing}
 					/>
-					<span>{formatCompact(mode === 'flow' ? flowSpacing : arcSpacing, 2)}</span>
+					<span
+						>{formatCompact(
+							mode === 'flow' ? flowSpacing : arcSpacing,
+							2,
+						)}</span
+					>
 				</div>
 			</label>
 		</div>
@@ -317,7 +322,8 @@
 						<ObsidianButton
 							active={flowDirection === direction}
 							text={direction}
-							onClick={() => onFlowDirection(direction as FlowDirection)}
+							onClick={() =>
+								onFlowDirection(direction as FlowDirection)}
 						/>
 					{/each}
 				</div>

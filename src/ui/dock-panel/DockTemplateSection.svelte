@@ -1,18 +1,18 @@
 <script lang="ts">
-	import type { App } from "obsidian";
-	import type { DockTemplateNode } from "../../core/types";
-	import type { DockDragPayload } from "../dock/types";
-	import ObsidianButton from "../obsidian/ObsidianButton.svelte";
-	import ObsidianDropdown from "../obsidian/ObsidianDropdown.svelte";
-	import ObsidianSuggestInput from "../obsidian/ObsidianSuggestInput.svelte";
-	import ObsidianTextInput from "../obsidian/ObsidianTextInput.svelte";
-	import type { DropdownOption } from "../obsidian/ObsidianDropdown.svelte";
-	import type { SuggestionOption } from "../obsidian/ObsidianSuggestInput.svelte";
+	import type { App } from 'obsidian';
+	import type { DockTemplateNode } from '../../core/types';
+	import type { DockDragPayload } from '../dock/types';
+	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
+	import ObsidianSuggestInput from '../obsidian/ObsidianSuggestInput.svelte';
+	import ObsidianTextInput from '../obsidian/ObsidianTextInput.svelte';
+	import type { DropdownOption } from '../obsidian/ObsidianDropdown.svelte';
+	import type { SuggestionOption } from '../obsidian/ObsidianSuggestInput.svelte';
 	import {
 		dragKey,
 		templateDragPayload,
 		type DockTemplateEntry,
-	} from "./dock-panel-state";
+	} from './dock-panel-state';
 
 	let {
 		app,
@@ -37,10 +37,10 @@
 		activeConnectionField: string;
 		activeDraggingKey?: string;
 		graphTargetTemplateId?: string;
-		onAddTemplate: (template: Omit<DockTemplateNode, "id">) => void;
+		onAddTemplate: (template: Omit<DockTemplateNode, 'id'>) => void;
 		onUpdateTemplate: (
 			templateId: string,
-			template: Omit<DockTemplateNode, "id">,
+			template: Omit<DockTemplateNode, 'id'>,
 		) => void;
 		onRemoveTemplate: (templateId: string) => void;
 		onPointerDown: (payload: DockDragPayload, event: PointerEvent) => void;
@@ -49,10 +49,10 @@
 
 	let templatesOpen = $state(true);
 	let templateFormOpen = $state(false);
-	let templateLabel = $state("");
-	let templatePath = $state("");
-	let targetFolder = $state("");
-	let templateDefaultGroupId = $state("");
+	let templateLabel = $state('');
+	let templatePath = $state('');
+	let targetFolder = $state('');
+	let templateDefaultGroupId = $state('');
 	let editingTemplateId = $state<string | undefined>(undefined);
 
 	function saveTemplate(): void {
@@ -66,9 +66,9 @@
 			templatePath: path,
 			targetFolder: targetFolder.trim(),
 			relationField: activeConnectionField,
-			direction: "from-dock-to-graph",
+			direction: 'from-dock-to-graph',
 			defaultGroupId: templateDefaultGroupId || undefined,
-		} satisfies Omit<DockTemplateNode, "id">;
+		} satisfies Omit<DockTemplateNode, 'id'>;
 		if (editingTemplateId) {
 			onUpdateTemplate(editingTemplateId, template);
 		} else {
@@ -90,10 +90,10 @@
 			return;
 		}
 		editingTemplateId = undefined;
-		templateLabel = "";
-		templatePath = "";
-		targetFolder = "";
-		templateDefaultGroupId = "";
+		templateLabel = '';
+		templatePath = '';
+		targetFolder = '';
+		templateDefaultGroupId = '';
 		templateFormOpen = true;
 	}
 
@@ -102,15 +102,15 @@
 		templateLabel = template.label;
 		templatePath = template.templatePath;
 		targetFolder = template.targetFolder;
-		templateDefaultGroupId = template.defaultGroupId ?? "";
+		templateDefaultGroupId = template.defaultGroupId ?? '';
 		templateFormOpen = true;
 	}
 
 	function closeTemplateForm(): void {
-		templateLabel = "";
-		templatePath = "";
-		targetFolder = "";
-		templateDefaultGroupId = "";
+		templateLabel = '';
+		templatePath = '';
+		targetFolder = '';
+		templateDefaultGroupId = '';
 		editingTemplateId = undefined;
 		templateFormOpen = false;
 	}
@@ -119,14 +119,18 @@
 <section class:knowledge-workspace-dock-section-collapsed={!templatesOpen}>
 	<header>
 		<ObsidianButton
-			icon={templatesOpen ? "chevron-down" : "chevron-right"}
-			ariaLabel={templatesOpen ? "Collapse templates" : "Expand templates"}
+			icon={templatesOpen ? 'chevron-down' : 'chevron-right'}
+			ariaLabel={templatesOpen
+				? 'Collapse templates'
+				: 'Expand templates'}
 			onClick={() => (templatesOpen = !templatesOpen)}
 		/>
 		<h3>Templates</h3>
 		<ObsidianButton
-			icon={templateFormOpen ? "x" : "plus"}
-			ariaLabel={templateFormOpen ? "Close template form" : "Add template"}
+			icon={templateFormOpen ? 'x' : 'plus'}
+			ariaLabel={templateFormOpen
+				? 'Close template form'
+				: 'Add template'}
 			onClick={templateFormOpen ? closeTemplateForm : openAddTemplateForm}
 		/>
 	</header>
@@ -188,8 +192,8 @@
 					/>
 				</label>
 				<ObsidianButton
-					icon={editingTemplateId ? "check" : "plus"}
-					text={editingTemplateId ? "Save template" : "Add template"}
+					icon={editingTemplateId ? 'check' : 'plus'}
+					text={editingTemplateId ? 'Save template' : 'Add template'}
 					onClick={saveTemplate}
 				/>
 			</form>
@@ -202,11 +206,14 @@
 					{@const payload = templateDragPayload(template)}
 					<div
 						class:dragging={activeDraggingKey === dragKey(payload)}
-						class:target={!template.broken && graphTargetTemplateId === template.id}
+						class:target={!template.broken &&
+							graphTargetTemplateId === template.id}
 						class="knowledge-workspace-dock-node template"
 						class:broken={template.broken}
 						data-dock-template-id={template.id}
-						data-dock-template-broken={template.broken ? "" : undefined}
+						data-dock-template-broken={template.broken
+							? ''
+							: undefined}
 						role="button"
 						tabindex="0"
 						aria-label={template.broken

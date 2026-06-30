@@ -29,14 +29,19 @@ export class ForceAtlasLayout implements LayoutEngine {
 	async apply(graph: RuntimeGraph): Promise<void> {
 		graph.forEachNode((node, attributes) => {
 			graph.setNodeAttribute(node, 'fixed', false);
-			if (!Number.isFinite(attributes.x) || !Number.isFinite(attributes.y)) {
+			if (
+				!Number.isFinite(attributes.x) ||
+				!Number.isFinite(attributes.y)
+			) {
 				graph.mergeNodeAttributes(node, {
 					x: 0,
 					y: 0,
 				});
 			}
 		});
-		graph.forEachEdge((edge) => graph.setEdgeAttribute(edge, 'hidden', false));
+		graph.forEachEdge((edge) =>
+			graph.setEdgeAttribute(edge, 'hidden', false),
+		);
 
 		if (graph.order < 2) {
 			return;
@@ -44,11 +49,18 @@ export class ForceAtlasLayout implements LayoutEngine {
 
 		forceAtlas2.assign(graph, {
 			iterations: graph.order < 50 ? 150 : 250,
-			settings: getForceAtlasSettings(graph, this.spacing, this.forceSettings),
+			settings: getForceAtlasSettings(
+				graph,
+				this.spacing,
+				this.forceSettings,
+			),
 		});
-		normalizeLinkDistance(graph, this.spacing, this.forceSettings.linkDistance);
+		normalizeLinkDistance(
+			graph,
+			this.spacing,
+			this.forceSettings.linkDistance,
+		);
 	}
-
 }
 
 function getForceAtlasSettings(
@@ -63,12 +75,16 @@ function getForceAtlasSettings(
 		barnesHutTheta: graph.order > 500 ? 0.8 : 0.5,
 		gravity: Math.max(forceSettings.centerForce, 0),
 		scalingRatio:
-			0.8 * Math.max(forceSettings.repelForce, 0.1) *
+			0.8 *
+			Math.max(forceSettings.repelForce, 0.1) *
 			spacing *
 			spacing *
 			distanceScale *
 			distanceScale,
-		edgeWeightInfluence: Math.min(Math.max(forceSettings.linkForce, 0) * 1.5, 5),
+		edgeWeightInfluence: Math.min(
+			Math.max(forceSettings.linkForce, 0) * 1.5,
+			5,
+		),
 		slowDown: 2.5,
 	};
 }
@@ -106,8 +122,13 @@ function readMedianEdgeDistance(graph: RuntimeGraph): number | undefined {
 		.map((edge) => {
 			const source = graph.getNodeAttributes(graph.source(edge));
 			const target = graph.getNodeAttributes(graph.target(edge));
-			const distance = Math.hypot(target.x - source.x, target.y - source.y);
-			return Number.isFinite(distance) && distance > 0 ? distance : undefined;
+			const distance = Math.hypot(
+				target.x - source.x,
+				target.y - source.y,
+			);
+			return Number.isFinite(distance) && distance > 0
+				? distance
+				: undefined;
 		})
 		.filter((distance): distance is number => distance !== undefined)
 		.sort((left, right) => left - right);

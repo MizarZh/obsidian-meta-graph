@@ -9,7 +9,11 @@ export function lerp(start: number, end: number, amount: number): number {
 	return start + (end - start) * amount;
 }
 
-export function smoothstep(edge0: number, edge1: number, value: number): number {
+export function smoothstep(
+	edge0: number,
+	edge1: number,
+	value: number,
+): number {
 	const amount = clamp((value - edge0) / (edge1 - edge0), 0, 1);
 	return amount * amount * (3 - 2 * amount);
 }

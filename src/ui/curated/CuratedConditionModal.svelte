@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { App } from "obsidian";
+	import type { App } from 'obsidian';
 	import type {
 		KnowledgeNode,
 		NodeFilterField,
 		NodeFilterGroup,
 		NodeFilterItem,
 		NodeFilterOperator,
-	} from "../../core/types";
+	} from '../../core/types';
 	import {
 		getDefaultFilterOperator as resolveDefaultFilterOperator,
 		getFilterFieldOptions as resolveFilterFieldOptions,
@@ -18,14 +18,14 @@
 		getMetadataFieldValueSuggestions as resolveMetadataFieldValueSuggestions,
 		getNodeValueOptions as resolveNodeValueOptions,
 		uniqueSorted,
-	} from "../filter-config";
-	import FilterGroup from "../FilterGroup.svelte";
-	import ObsidianButton from "../obsidian/ObsidianButton.svelte";
-	import ObsidianDropdown from "../obsidian/ObsidianDropdown.svelte";
-	import ObsidianTextInput from "../obsidian/ObsidianTextInput.svelte";
-	import type { DropdownOption } from "../obsidian/ObsidianDropdown.svelte";
-	import type { SuggestionOption } from "../obsidian/ObsidianSuggestInput.svelte";
-	import WorkspaceModal from "../WorkspaceModal.svelte";
+	} from '../filter-config';
+	import FilterGroup from '../FilterGroup.svelte';
+	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
+	import ObsidianTextInput from '../obsidian/ObsidianTextInput.svelte';
+	import type { DropdownOption } from '../obsidian/ObsidianDropdown.svelte';
+	import type { SuggestionOption } from '../obsidian/ObsidianSuggestInput.svelte';
+	import WorkspaceModal from '../WorkspaceModal.svelte';
 	import {
 		canApplyConditionToPath,
 		createConditionFilterRoot,
@@ -36,7 +36,7 @@
 		removeFilterItemFromGroup,
 		updateFilterGroup,
 		type ConditionalMode,
-	} from "./curated-panel-state";
+	} from './curated-panel-state';
 
 	let {
 		app,
@@ -70,9 +70,11 @@
 		onClose: () => void;
 	} = $props();
 
-	let conditionMode = $state<ConditionalMode>("add");
-	let conditionFilterRoot = $state<NodeFilterGroup>(createConditionFilterRoot());
-	let conditionResultSearch = $state("");
+	let conditionMode = $state<ConditionalMode>('add');
+	let conditionFilterRoot = $state<NodeFilterGroup>(
+		createConditionFilterRoot(),
+	);
+	let conditionResultSearch = $state('');
 	let selectedMatchPaths = $state<Set<string>>(new Set());
 	let wasOpen = $state(false);
 
@@ -84,7 +86,7 @@
 		nodes
 			.map((node) => node.path)
 			.sort((first, second) =>
-				first.localeCompare(second, undefined, { sensitivity: "base" }),
+				first.localeCompare(second, undefined, { sensitivity: 'base' }),
 			),
 	);
 	const metadataFieldSuggestions = $derived(
@@ -104,7 +106,7 @@
 		),
 	);
 	const conditionalStatus = $derived(
-		`${conditionalMatches.length} ${conditionMode === "add" ? "matches" : "selected"}`,
+		`${conditionalMatches.length} ${conditionMode === 'add' ? 'matches' : 'selected'}`,
 	);
 	const visibleConditionalMatches = $derived(
 		filterConditionalMatches(conditionalMatches, conditionResultSearch),
@@ -118,7 +120,7 @@
 
 	$effect(() => {
 		if (open && !wasOpen) {
-			conditionResultSearch = "";
+			conditionResultSearch = '';
 			resetConditionalSelection();
 		}
 		wasOpen = open;
@@ -165,7 +167,9 @@
 	}
 
 	function clearVisibleMatches(): void {
-		const visiblePaths = new Set(visibleConditionalMatches.map((node) => node.path));
+		const visiblePaths = new Set(
+			visibleConditionalMatches.map((node) => node.path),
+		);
 		selectedMatchPaths = new Set(
 			[...selectedMatchPaths].filter((path) => !visiblePaths.has(path)),
 		);
@@ -175,13 +179,14 @@
 		const paths = conditionalMatches
 			.filter(
 				(node) =>
-					selectedMatchPaths.has(node.path) && canApplyConditionTo(node),
+					selectedMatchPaths.has(node.path) &&
+					canApplyConditionTo(node),
 			)
 			.map((node) => node.path);
 		if (paths.length === 0) {
 			return;
 		}
-		if (conditionMode === "add") {
+		if (conditionMode === 'add') {
 			onAddFiles(paths, selectedAddGroupId);
 		} else {
 			onRemoveFiles(paths);
@@ -191,35 +196,43 @@
 	}
 
 	function addFilterCondition(groupId: string): void {
-		conditionFilterRoot = updateFilterGroup(conditionFilterRoot, groupId, (group) => ({
-			...group,
-			children: [
-				...group.children,
-				{
-					id: createRuleId(),
-					kind: "condition",
-					field: "file.file",
-					operator: "links-to",
-					value: "",
-				},
-			],
-		}));
+		conditionFilterRoot = updateFilterGroup(
+			conditionFilterRoot,
+			groupId,
+			(group) => ({
+				...group,
+				children: [
+					...group.children,
+					{
+						id: createRuleId(),
+						kind: 'condition',
+						field: 'file.file',
+						operator: 'links-to',
+						value: '',
+					},
+				],
+			}),
+		);
 		scheduleSelectionReset();
 	}
 
 	function addFilterGroup(groupId: string): void {
-		conditionFilterRoot = updateFilterGroup(conditionFilterRoot, groupId, (group) => ({
-			...group,
-			children: [
-				...group.children,
-				{
-					id: createRuleId(),
-					kind: "group",
-					mode: "all",
-					children: [],
-				},
-			],
-		}));
+		conditionFilterRoot = updateFilterGroup(
+			conditionFilterRoot,
+			groupId,
+			(group) => ({
+				...group,
+				children: [
+					...group.children,
+					{
+						id: createRuleId(),
+						kind: 'group',
+						mode: 'all',
+						children: [],
+					},
+				],
+			}),
+		);
 		scheduleSelectionReset();
 	}
 
@@ -239,7 +252,10 @@
 		if (itemId === conditionFilterRoot.id) {
 			return;
 		}
-		conditionFilterRoot = removeFilterItemFromGroup(conditionFilterRoot, itemId);
+		conditionFilterRoot = removeFilterItemFromGroup(
+			conditionFilterRoot,
+			itemId,
+		);
 		scheduleSelectionReset();
 	}
 
@@ -254,7 +270,9 @@
 		return resolveFilterOperatorOptions(field, metadataFieldTypes);
 	}
 
-	function getDefaultFilterOperator(field: NodeFilterField): NodeFilterOperator {
+	function getDefaultFilterOperator(
+		field: NodeFilterField,
+	): NodeFilterOperator {
 		return resolveDefaultFilterOperator(field, metadataFieldTypes);
 	}
 
@@ -281,7 +299,7 @@
 	{open}
 	title="Filter files"
 	subtitle={conditionalStatus}
-	onClose={onClose}
+	{onClose}
 >
 	<div class="knowledge-workspace-curated-condition">
 		<div class="knowledge-workspace-curated-condition-mode">
@@ -289,20 +307,20 @@
 				class="knowledge-workspace-condition-mode-button"
 				text="Add to workspace"
 				icon="plus"
-				active={conditionMode === "add"}
-				cta={conditionMode === "add"}
-				onClick={() => updateConditionMode("add")}
+				active={conditionMode === 'add'}
+				cta={conditionMode === 'add'}
+				onClick={() => updateConditionMode('add')}
 			/>
 			<ObsidianButton
 				class="knowledge-workspace-condition-mode-button"
 				text="Remove from workspace"
 				icon="trash-2"
-				active={conditionMode === "remove"}
-				destructive={conditionMode === "remove"}
-				onClick={() => updateConditionMode("remove")}
+				active={conditionMode === 'remove'}
+				destructive={conditionMode === 'remove'}
+				onClick={() => updateConditionMode('remove')}
 			/>
 		</div>
-		{#if conditionMode === "add"}
+		{#if conditionMode === 'add'}
 			<label class="knowledge-workspace-curated-group-target">
 				<span>Group</span>
 				<ObsidianDropdown
@@ -368,26 +386,28 @@
 					<span>{node.path}</span>
 				</div>
 				<small>
-					{conditionMode === "add"
+					{conditionMode === 'add'
 						? selectedPaths.has(node.path)
-							? "Added"
-							: "New"
-						: "Selected"}
+							? 'Added'
+							: 'New'
+						: 'Selected'}
 				</small>
 			</label>
 		{:else}
-			<span class="knowledge-workspace-curated-empty">No matching files</span>
+			<span class="knowledge-workspace-curated-empty"
+				>No matching files</span
+			>
 		{/each}
 	</div>
 	<div class="knowledge-workspace-curated-modal-actions">
 		<ObsidianButton text="Cancel" onClick={onClose} />
 		<ObsidianButton
-			text={conditionMode === "add"
+			text={conditionMode === 'add'
 				? `Add ${selectedMatchCount}`
 				: `Remove ${selectedMatchCount}`}
-			icon={conditionMode === "add" ? "plus" : "trash-2"}
+			icon={conditionMode === 'add' ? 'plus' : 'trash-2'}
 			disabled={selectedMatchCount === 0}
-			destructive={conditionMode === "remove"}
+			destructive={conditionMode === 'remove'}
 			onClick={applyConditionalChange}
 		/>
 	</div>

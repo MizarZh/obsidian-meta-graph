@@ -11,8 +11,10 @@ import { createWorkspaceState } from '../workspace/state/workspace-state';
 
 describe('workspace refresh state', () => {
 	it('applies index metadata and prunes missing curated files', () => {
-		const state = addCuratedFileInState(createWorkspaceState(100), 'Missing.md')
-			.state;
+		const state = addCuratedFileInState(
+			createWorkspaceState(100),
+			'Missing.md',
+		).state;
 		const index = createIndex(['Existing.md']);
 
 		const nextState = applyWorkspaceIndexSnapshotToState(

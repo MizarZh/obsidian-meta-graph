@@ -22,7 +22,7 @@
 			max={4}
 			step={0.05}
 			onChange={onInput}
-			onCommit={onCommit}
+			{onCommit}
 		/>
 	</label>
 </details>

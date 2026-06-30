@@ -1,11 +1,15 @@
 <script lang="ts">
-	import type { App } from "obsidian";
-	import { onDestroy } from "svelte";
-	import type { ChartGroup, DockTemplateNode, KnowledgeNode } from "../core/types";
-	import type { DockDragPayload } from "./dock/types";
-	import DockNotesSection from "./dock-panel/DockNotesSection.svelte";
-	import DockResizeHandle from "./dock-panel/DockResizeHandle.svelte";
-	import DockTemplateSection from "./dock-panel/DockTemplateSection.svelte";
+	import type { App } from 'obsidian';
+	import { onDestroy } from 'svelte';
+	import type {
+		ChartGroup,
+		DockTemplateNode,
+		KnowledgeNode,
+	} from '../core/types';
+	import type { DockDragPayload } from './dock/types';
+	import DockNotesSection from './dock-panel/DockNotesSection.svelte';
+	import DockResizeHandle from './dock-panel/DockResizeHandle.svelte';
+	import DockTemplateSection from './dock-panel/DockTemplateSection.svelte';
 	import {
 		buildGroupOptions,
 		buildNoteOptions,
@@ -16,8 +20,8 @@
 		readPointerPlacement,
 		type DockNoteEntry,
 		type ReorderPlacement,
-	} from "./dock-panel/dock-panel-state";
-	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
+	} from './dock-panel/dock-panel-state';
+	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 
 	let {
 		app,
@@ -65,10 +69,10 @@
 		targetNodeId?: string;
 		graphTargetNotePath?: string;
 		graphTargetTemplateId?: string;
-		onAddTemplate: (template: Omit<DockTemplateNode, "id">) => void;
+		onAddTemplate: (template: Omit<DockTemplateNode, 'id'>) => void;
 		onUpdateTemplate: (
 			templateId: string,
-			template: Omit<DockTemplateNode, "id">,
+			template: Omit<DockTemplateNode, 'id'>,
 		) => void;
 		onRemoveTemplate: (templateId: string) => void;
 		onAddNote: (path: string) => void;
@@ -104,7 +108,8 @@
 	>(undefined);
 
 	const activeDraggingKey = $derived(
-		draggingKey ?? (reorderDrag?.active ? dragKey(reorderDrag.payload) : undefined),
+		draggingKey ??
+			(reorderDrag?.active ? dragKey(reorderDrag.payload) : undefined),
 	);
 	const notesTitleCounts = $derived(countTitles(notes));
 	const titleCounts = $derived(countTitles(availableNotes));
@@ -123,17 +128,17 @@
 	): void {
 		if (
 			event.target instanceof HTMLElement &&
-			event.target.closest("button")
+			event.target.closest('button')
 		) {
 			return;
 		}
-		if (payload.kind === "broken-note") {
+		if (payload.kind === 'broken-note') {
 			if (event.ctrlKey) return;
 		} else if (event.ctrlKey) {
 			handleLinkPointerDown(payload, event);
 			return;
 		}
-		if (payload.kind === "note") {
+		if (payload.kind === 'note') {
 			onSelectNote(payload.notePath);
 		}
 		if (event.button !== 0) {
@@ -146,10 +151,10 @@
 			startY: event.clientY,
 			active: false,
 		};
-		window.addEventListener("pointermove", handleReorderPointerMove, {
+		window.addEventListener('pointermove', handleReorderPointerMove, {
 			capture: true,
 		});
-		window.addEventListener("pointerup", handleReorderPointerUp, {
+		window.addEventListener('pointerup', handleReorderPointerUp, {
 			capture: true,
 			once: true,
 		});
@@ -173,10 +178,10 @@
 
 	function handleReorderPointerUp(): void {
 		reorderDrag = undefined;
-		window.removeEventListener("pointermove", handleReorderPointerMove, {
+		window.removeEventListener('pointermove', handleReorderPointerMove, {
 			capture: true,
 		});
-		window.removeEventListener("pointerup", handleReorderPointerUp, {
+		window.removeEventListener('pointerup', handleReorderPointerUp, {
 			capture: true,
 		});
 	}
@@ -190,10 +195,16 @@
 		if (!(target instanceof HTMLElement)) {
 			return;
 		}
-		if (payload.kind === "template") {
-			const targetEl = target.closest<HTMLElement>("[data-dock-template-id]");
+		if (payload.kind === 'template') {
+			const targetEl = target.closest<HTMLElement>(
+				'[data-dock-template-id]',
+			);
 			const targetTemplateId = targetEl?.dataset.dockTemplateId;
-			if (!targetEl || !targetTemplateId || targetTemplateId === payload.templateId) {
+			if (
+				!targetEl ||
+				!targetTemplateId ||
+				targetTemplateId === payload.templateId
+			) {
 				return;
 			}
 			onReorderTemplate(
@@ -203,7 +214,7 @@
 			);
 			return;
 		}
-		const targetEl = target.closest<HTMLElement>("[data-dock-note-path]");
+		const targetEl = target.closest<HTMLElement>('[data-dock-note-path]');
 		const targetPath = targetEl?.dataset.dockNotePath;
 		if (!targetEl || !targetPath || targetPath === payload.notePath) {
 			return;
@@ -222,7 +233,8 @@
 		if (
 			!event.ctrlKey ||
 			event.button !== 0 ||
-			(event.target instanceof HTMLElement && event.target.closest("button"))
+			(event.target instanceof HTMLElement &&
+				event.target.closest('button'))
 		) {
 			return;
 		}
@@ -252,8 +264,8 @@
 	/>
 	<ObsidianButton
 		class="knowledge-workspace-dock-toggle"
-		icon={dockOpen ? "panel-right-close" : "panel-right-open"}
-		ariaLabel={dockOpen ? "Close dock" : "Open dock"}
+		icon={dockOpen ? 'panel-right-close' : 'panel-right-open'}
+		ariaLabel={dockOpen ? 'Close dock' : 'Open dock'}
 		onClick={onToggleDock}
 	/>
 	{#if dockOpen}
@@ -295,12 +307,12 @@
 			class="knowledge-workspace-dock-status"
 		>
 			{targetNodeId || graphTargetNotePath || graphTargetTemplateId
-				? "Release to connect"
+				? 'Release to connect'
 				: linking
-					? "Choose target"
+					? 'Choose target'
 					: draggingKey
-						? "Drag to reorder"
-						: "Ready"}
+						? 'Drag to reorder'
+						: 'Ready'}
 		</span>
 	{/if}
 </aside>

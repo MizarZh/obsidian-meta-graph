@@ -20,7 +20,10 @@ export interface WorkspaceConnectionAdapter<FileEntry> {
 		file: FileEntry,
 		callback: (frontmatter: Record<string, unknown>) => void,
 	): Promise<void>;
-	resolveLink(linkText: string, sourcePath: string): FileEntry | null | undefined;
+	resolveLink(
+		linkText: string,
+		sourcePath: string,
+	): FileEntry | null | undefined;
 }
 
 export interface ConnectionUndoChange {
@@ -36,7 +39,9 @@ type ConnectionUndoEntry = ConnectionUndoChange[];
 export class WorkspaceConnectionService<FileEntry> {
 	private readonly undoStack: ConnectionUndoEntry[] = [];
 
-	constructor(private readonly adapter: WorkspaceConnectionAdapter<FileEntry>) {}
+	constructor(
+		private readonly adapter: WorkspaceConnectionAdapter<FileEntry>,
+	) {}
 
 	get undoCount(): number {
 		return this.undoStack.length;
@@ -67,7 +72,11 @@ export class WorkspaceConnectionService<FileEntry> {
 		field: string,
 		mode: ConnectionFieldMode,
 	): Promise<boolean> {
-		const request = normalizeConnectionRequest(field, sourceNodeId, targetNodeId);
+		const request = normalizeConnectionRequest(
+			field,
+			sourceNodeId,
+			targetNodeId,
+		);
 		if (!request) {
 			return false;
 		}
@@ -80,7 +89,10 @@ export class WorkspaceConnectionService<FileEntry> {
 	): Promise<boolean> {
 		const sourceFile = this.adapter.getFile(request.sourceNodeId);
 		const targetFile = this.adapter.getFile(request.targetNodeId);
-		if (!this.adapter.isFile(sourceFile) || !this.adapter.isFile(targetFile)) {
+		if (
+			!this.adapter.isFile(sourceFile) ||
+			!this.adapter.isFile(targetFile)
+		) {
 			return false;
 		}
 
@@ -158,8 +170,9 @@ export class WorkspaceConnectionService<FileEntry> {
 		const linkText = extractLinkText(value);
 		const resolved = this.adapter.resolveLink(linkText, sourcePath);
 		return (
-			normalizePath(resolved ? this.adapter.getPath(resolved) : linkText) ===
-			normalizePath(targetPath)
+			normalizePath(
+				resolved ? this.adapter.getPath(resolved) : linkText,
+			) === normalizePath(targetPath)
 		);
 	}
 
@@ -220,7 +233,10 @@ export class WorkspaceConnectionService<FileEntry> {
 				}
 
 				const previousValues = toFrontmatterArray(undo.previousValue);
-				if (undo.hadField && valuesEqual(remainingValues, previousValues)) {
+				if (
+					undo.hadField &&
+					valuesEqual(remainingValues, previousValues)
+				) {
 					data[undo.field] = undo.previousValue;
 				} else if (!undo.hadField && remainingValues.length === 0) {
 					delete data[undo.field];

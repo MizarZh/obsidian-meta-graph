@@ -19,7 +19,13 @@ export function createCubeNodeSprite(
 		context.clearRect(0, 0, canvasSize, canvasSize);
 		context.fillStyle = color;
 		context.beginPath();
-		context.arc(canvasSize / 2, canvasSize / 2, canvasSize * 0.38, 0, Math.PI * 2);
+		context.arc(
+			canvasSize / 2,
+			canvasSize / 2,
+			canvasSize * 0.38,
+			0,
+			Math.PI * 2,
+		);
 		context.fill();
 	}
 	const material = new three.SpriteMaterial({

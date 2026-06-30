@@ -1,14 +1,14 @@
 <script lang="ts">
-	import type { App } from "obsidian";
-	import type { DockDragPayload } from "../dock/types";
-	import ObsidianButton from "../obsidian/ObsidianButton.svelte";
-	import ObsidianSuggestInput from "../obsidian/ObsidianSuggestInput.svelte";
-	import type { SuggestionOption } from "../obsidian/ObsidianSuggestInput.svelte";
+	import type { App } from 'obsidian';
+	import type { DockDragPayload } from '../dock/types';
+	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
+	import ObsidianSuggestInput from '../obsidian/ObsidianSuggestInput.svelte';
+	import type { SuggestionOption } from '../obsidian/ObsidianSuggestInput.svelte';
 	import {
 		dragKey,
 		noteDragPayload,
 		type DockNoteEntry,
-	} from "./dock-panel-state";
+	} from './dock-panel-state';
 
 	let {
 		app,
@@ -41,14 +41,14 @@
 	} = $props();
 
 	let notesOpen = $state(true);
-	let noteSearch = $state("");
+	let noteSearch = $state('');
 </script>
 
 <section class:knowledge-workspace-dock-section-collapsed={!notesOpen}>
 	<header>
 		<ObsidianButton
-			icon={notesOpen ? "chevron-down" : "chevron-right"}
-			ariaLabel={notesOpen ? "Collapse notes" : "Expand notes"}
+			icon={notesOpen ? 'chevron-down' : 'chevron-right'}
+			ariaLabel={notesOpen ? 'Collapse notes' : 'Expand notes'}
 			onClick={() => (notesOpen = !notesOpen)}
 		/>
 		<h3>Selected notes</h3>
@@ -57,8 +57,8 @@
 			icon="crosshair"
 			active={focusOnSelect}
 			ariaLabel={focusOnSelect
-				? "Auto-focus on click (enabled)"
-				: "Auto-focus on click (disabled)"}
+				? 'Auto-focus on click (enabled)'
+				: 'Auto-focus on click (disabled)'}
 			tooltip="Auto-focus on click"
 			class="knowledge-workspace-dock-focus-toggle"
 			onClick={onToggleFocusOnSelect}
@@ -78,19 +78,25 @@
 				}}
 				onSelect={(option) => {
 					onAddNote(option.value);
-					noteSearch = "";
+					noteSearch = '';
 				}}
 			/>
 		</div>
 		<div class="knowledge-workspace-dock-list">
 			{#if notes.length === 0}
-				<span class="knowledge-workspace-dock-empty">No selected notes</span>
+				<span class="knowledge-workspace-dock-empty"
+					>No selected notes</span
+				>
 			{:else}
 				{#each notes as entry (entry.path)}
-					{@const payload = noteDragPayload(entry, activeConnectionField)}
+					{@const payload = noteDragPayload(
+						entry,
+						activeConnectionField,
+					)}
 					<div
 						class:dragging={activeDraggingKey === dragKey(payload)}
-						class:target={!entry.broken && graphTargetNotePath === entry.path}
+						class:target={!entry.broken &&
+							graphTargetNotePath === entry.path}
 						class="knowledge-workspace-dock-node note"
 						class:broken={entry.broken}
 						data-dock-note-path={entry.path}
@@ -99,9 +105,13 @@
 						aria-label={entry.broken
 							? `${entry.title} (file not found)`
 							: entry.title}
-						title={entry.broken ? `File not found: ${entry.path}` : undefined}
+						title={entry.broken
+							? `File not found: ${entry.path}`
+							: undefined}
 						onpointerdown={(event) => onPointerDown(payload, event)}
-						ondblclick={entry.broken ? undefined : () => onOpenNote(entry.id)}
+						ondblclick={entry.broken
+							? undefined
+							: () => onOpenNote(entry.id)}
 					>
 						<span
 							style={entry.broken
@@ -111,7 +121,9 @@
 						<div class="knowledge-workspace-dock-node-title">
 							<strong>{entry.title}</strong>
 							{#if (notesTitleCounts[entry.title] ?? 0) > 1}
-								<span class="knowledge-workspace-dock-node-path">{entry.path}</span>
+								<span class="knowledge-workspace-dock-node-path"
+									>{entry.path}</span
+								>
 							{/if}
 						</div>
 						<ObsidianButton

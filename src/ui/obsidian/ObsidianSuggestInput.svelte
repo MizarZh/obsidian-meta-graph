@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { AbstractInputSuggest, type App } from "obsidian";
-	import { onMount } from "svelte";
-	import ObsidianTextInput from "./ObsidianTextInput.svelte";
+	import { AbstractInputSuggest, type App } from 'obsidian';
+	import { onMount } from 'svelte';
+	import ObsidianTextInput from './ObsidianTextInput.svelte';
 
 	export interface SuggestionOption {
 		value: string;
@@ -14,10 +14,10 @@
 		app,
 		value,
 		options,
-		type = "text",
-		placeholder = "",
+		type = 'text',
+		placeholder = '',
 		ariaLabel,
-		class: className = "",
+		class: className = '',
 		showOnEmpty = false,
 		onInput,
 		onSelect,
@@ -49,7 +49,7 @@
 			label: option.label.toLocaleLowerCase(),
 			text: (
 				option.searchText ??
-				[option.label, option.detail].filter(Boolean).join(" ")
+				[option.label, option.detail].filter(Boolean).join(' ')
 			).toLocaleLowerCase(),
 		})),
 	);
@@ -57,11 +57,11 @@
 	class MetaGraphInputSuggest extends AbstractInputSuggest<IndexedSuggestion> {
 		limit = 12;
 
-			protected getSuggestions(query: string): IndexedSuggestion[] {
-				const normalized = query.trim().toLocaleLowerCase();
-				if (!normalized) {
-					return showOnEmpty ? indexedOptions.slice(0, this.limit) : [];
-				}
+		protected getSuggestions(query: string): IndexedSuggestion[] {
+			const normalized = query.trim().toLocaleLowerCase();
+			if (!normalized) {
+				return showOnEmpty ? indexedOptions.slice(0, this.limit) : [];
+			}
 			const results: IndexedSuggestion[] = [];
 			const seen = new Set<string>();
 			for (const item of indexedOptions) {
@@ -91,14 +91,14 @@
 		}
 
 		renderSuggestion(value: IndexedSuggestion, el: HTMLElement): void {
-			el.addClass("knowledge-workspace-suggest-item");
+			el.addClass('knowledge-workspace-suggest-item');
 			el.createDiv({
-				cls: "knowledge-workspace-suggest-title",
+				cls: 'knowledge-workspace-suggest-title',
 				text: value.option.label,
 			});
 			if (value.option.detail) {
 				el.createDiv({
-					cls: "knowledge-workspace-suggest-detail",
+					cls: 'knowledge-workspace-suggest-detail',
 					text: value.option.detail,
 				});
 			}
@@ -119,7 +119,7 @@
 
 	function openSuggestions(): void {
 		if (showOnEmpty) {
-			inputEl?.dispatchEvent(new Event("input", { bubbles: true }));
+			inputEl?.dispatchEvent(new Event('input', { bubbles: true }));
 		}
 	}
 
@@ -133,15 +133,15 @@
 	});
 </script>
 
-	<ObsidianTextInput
+<ObsidianTextInput
 	{type}
 	{placeholder}
 	{ariaLabel}
 	class={className}
 	{value}
-		{onInput}
-		onFocus={openSuggestions}
-		onInputEl={(element) => {
+	{onInput}
+	onFocus={openSuggestions}
+	onInputEl={(element) => {
 		inputEl = element;
 	}}
 />

@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { Snippet } from "svelte";
-	import { onDestroy, onMount } from "svelte";
-	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
+	import type { Snippet } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
+	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 
 	let {
 		open,
 		title,
-		subtitle = "",
+		subtitle = '',
 		ariaLabel = title,
 		children,
 		onClose,
@@ -20,7 +20,7 @@
 	} = $props();
 
 	function handleKeyDown(event: KeyboardEvent): void {
-		if (!open || event.key !== "Escape") {
+		if (!open || event.key !== 'Escape') {
 			return;
 		}
 		event.preventDefault();
@@ -28,11 +28,11 @@
 	}
 
 	onMount(() => {
-		window.addEventListener("keydown", handleKeyDown, { capture: true });
+		window.addEventListener('keydown', handleKeyDown, { capture: true });
 	});
 
 	onDestroy(() => {
-		window.removeEventListener("keydown", handleKeyDown, { capture: true });
+		window.removeEventListener('keydown', handleKeyDown, { capture: true });
 	});
 </script>
 
@@ -42,7 +42,12 @@
 		role="presentation"
 		onclick={onClose}
 	></div>
-	<div class="knowledge-workspace-modal" role="dialog" aria-modal="true" aria-label={ariaLabel}>
+	<div
+		class="knowledge-workspace-modal"
+		role="dialog"
+		aria-modal="true"
+		aria-label={ariaLabel}
+	>
 		<header>
 			<div>
 				<h3>{title}</h3>
@@ -50,7 +55,11 @@
 					<span>{subtitle}</span>
 				{/if}
 			</div>
-			<ObsidianButton icon="x" ariaLabel={`Close ${title}`} onClick={onClose} />
+			<ObsidianButton
+				icon="x"
+				ariaLabel={`Close ${title}`}
+				onClick={onClose}
+			/>
 		</header>
 		<div class="knowledge-workspace-modal-body">
 			{#if children}

@@ -1,5 +1,8 @@
 import type { Cube3DRenderer } from './cube-3d-renderer';
-import type { ConnectionDragState, GraphEventCallbacks } from '../renderer-events';
+import type {
+	ConnectionDragState,
+	GraphEventCallbacks,
+} from '../renderer-events';
 import {
 	createConnectionDragState,
 	getFinishedConnection,
@@ -33,9 +36,13 @@ export function bindCube3DEvents(
 			connectionDrag = createConnectionDragState(renderer, nodeId, point);
 			callbacks.onSelect(nodeId);
 			callbacks.onConnectionDrag?.(connectionDrag);
-			window.addEventListener('pointermove', pointerMove, { capture: true });
+			window.addEventListener('pointermove', pointerMove, {
+				capture: true,
+			});
 			window.addEventListener('pointerup', pointerUp, { capture: true });
-			window.addEventListener('pointercancel', pointerCancel, { capture: true });
+			window.addEventListener('pointercancel', pointerCancel, {
+				capture: true,
+			});
 			return;
 		}
 		if (event.button === 2) {
@@ -43,9 +50,13 @@ export function bindCube3DEvents(
 			event.stopImmediatePropagation();
 			panning = true;
 			panned = false;
-			window.addEventListener('pointermove', pointerMove, { capture: true });
+			window.addEventListener('pointermove', pointerMove, {
+				capture: true,
+			});
 			window.addEventListener('pointerup', pointerUp, { capture: true });
-			window.addEventListener('pointercancel', pointerCancel, { capture: true });
+			window.addEventListener('pointercancel', pointerCancel, {
+				capture: true,
+			});
 			return;
 		}
 		if (event.button !== 0) {
@@ -62,7 +73,9 @@ export function bindCube3DEvents(
 		}
 		window.addEventListener('pointermove', pointerMove, { capture: true });
 		window.addEventListener('pointerup', pointerUp, { capture: true });
-		window.addEventListener('pointercancel', pointerCancel, { capture: true });
+		window.addEventListener('pointercancel', pointerCancel, {
+			capture: true,
+		});
 	};
 
 	const pointerMove = (event: PointerEvent) => {
@@ -70,7 +83,11 @@ export function bindCube3DEvents(
 		if (connectionDrag) {
 			event.preventDefault();
 			event.stopImmediatePropagation();
-			connectionDrag = updateConnectionDragState(renderer, connectionDrag, event);
+			connectionDrag = updateConnectionDragState(
+				renderer,
+				connectionDrag,
+				event,
+			);
 			callbacks.onConnectionDrag?.(connectionDrag);
 			return;
 		}
@@ -87,7 +104,10 @@ export function bindCube3DEvents(
 		if (rotating && lastPointer) {
 			event.preventDefault();
 			event.stopImmediatePropagation();
-			renderer.rotate(event.clientX - lastPointer.x, event.clientY - lastPointer.y);
+			renderer.rotate(
+				event.clientX - lastPointer.x,
+				event.clientY - lastPointer.y,
+			);
 			lastPointer = { x: event.clientX, y: event.clientY };
 			rotated = true;
 			return;
@@ -95,7 +115,10 @@ export function bindCube3DEvents(
 		if (panning && lastPointer) {
 			event.preventDefault();
 			event.stopImmediatePropagation();
-			renderer.pan(event.clientX - lastPointer.x, event.clientY - lastPointer.y);
+			renderer.pan(
+				event.clientX - lastPointer.x,
+				event.clientY - lastPointer.y,
+			);
 			lastPointer = { x: event.clientX, y: event.clientY };
 			panned = true;
 			return;
@@ -111,7 +134,10 @@ export function bindCube3DEvents(
 			const finished = getFinishedConnection(connectionDrag);
 			endPointerState();
 			if (finished) {
-				callbacks.onConnect?.(finished.sourceNodeId, finished.targetNodeId);
+				callbacks.onConnect?.(
+					finished.sourceNodeId,
+					finished.targetNodeId,
+				);
 			}
 			return;
 		}
@@ -191,9 +217,13 @@ export function bindCube3DEvents(
 		panning = false;
 		panned = false;
 		lastPointer = undefined;
-		window.removeEventListener('pointermove', pointerMove, { capture: true });
+		window.removeEventListener('pointermove', pointerMove, {
+			capture: true,
+		});
 		window.removeEventListener('pointerup', pointerUp, { capture: true });
-		window.removeEventListener('pointercancel', pointerCancel, { capture: true });
+		window.removeEventListener('pointercancel', pointerCancel, {
+			capture: true,
+		});
 	}
 
 	element.addEventListener('pointerdown', pointerDown, { capture: true });
@@ -203,7 +233,9 @@ export function bindCube3DEvents(
 
 	return () => {
 		endPointerState();
-		element.removeEventListener('pointerdown', pointerDown, { capture: true });
+		element.removeEventListener('pointerdown', pointerDown, {
+			capture: true,
+		});
 		element.removeEventListener('pointermove', pointerMove);
 		element.removeEventListener('wheel', wheel);
 		element.removeEventListener('contextmenu', contextMenu);

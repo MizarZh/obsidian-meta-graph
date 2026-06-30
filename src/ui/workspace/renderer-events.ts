@@ -21,7 +21,9 @@ export interface WorkspaceRendererEventOptions {
 	mode: ViewMode;
 	enableForceLayout: boolean;
 	getLayoutSnapshot(): LayoutSnapshot;
-	getOrCreateForceLayoutSimulation(renderer: SigmaRenderer): D3ForceSimulation;
+	getOrCreateForceLayoutSimulation(
+		renderer: SigmaRenderer,
+	): D3ForceSimulation;
 	getForceLayoutSimulation(): D3ForceSimulation | undefined;
 	getSuppressNodeOpenUntil(): number;
 	setSuppressNodeOpenUntil(value: number): void;
@@ -61,7 +63,9 @@ export function bindWorkspaceRendererEvents(
 				options.getLayoutSnapshot().positions.set(nodeId, position);
 			},
 			onNodeDragEnd: (nodeId) => {
-				const position = options.getLayoutSnapshot().positions.get(nodeId);
+				const position = options
+					.getLayoutSnapshot()
+					.positions.get(nodeId);
 				if (position) {
 					options.onCommitManualNodePosition(
 						nodeId,
@@ -74,10 +78,16 @@ export function bindWorkspaceRendererEvents(
 		sigma: (sigmaRenderer) => ({
 			...baseCallbacks,
 			enableForceLayout:
-				capabilities.usesSigmaForceSimulation && options.enableForceLayout,
+				capabilities.usesSigmaForceSimulation &&
+				options.enableForceLayout,
 			enableNodeDragging: capabilities.supportsFreeNodeDrag,
 			onOpen: (nodeId) => {
-				if (!shouldOpenNode(Date.now(), options.getSuppressNodeOpenUntil())) {
+				if (
+					!shouldOpenNode(
+						Date.now(),
+						options.getSuppressNodeOpenUntil(),
+					)
+				) {
 					return;
 				}
 				options.onOpen(nodeId);
@@ -87,7 +97,9 @@ export function bindWorkspaceRendererEvents(
 					getNextNodeOpenSuppressUntil(Date.now()),
 				);
 				sigmaRenderer.holdCurrentBounds();
-				if (getSigmaDragAction(capabilities).kind === 'manual-position') {
+				if (
+					getSigmaDragAction(capabilities).kind === 'manual-position'
+				) {
 					sigmaRenderer.runtimeGraph.mergeNodeAttributes(nodeId, {
 						x: position.x,
 						y: position.y,
@@ -103,7 +115,9 @@ export function bindWorkspaceRendererEvents(
 					const viewportPosition =
 						sigmaRenderer.instance.graphToViewport(position);
 					const groupId =
-						sigmaRenderer.getGroupAtViewportPosition(viewportPosition);
+						sigmaRenderer.getGroupAtViewportPosition(
+							viewportPosition,
+						);
 					options.setActiveNodeDropGroupId(groupId);
 					sigmaRenderer.setActiveDropGroup(groupId);
 				}
@@ -117,7 +131,9 @@ export function bindWorkspaceRendererEvents(
 					getSigmaDragEndAction(capabilities).kind ===
 					'commit-manual-position'
 				) {
-					const position = options.getLayoutSnapshot().positions.get(nodeId);
+					const position = options
+						.getLayoutSnapshot()
+						.positions.get(nodeId);
 					if (position) {
 						options.onCommitManualNodePosition(
 							nodeId,

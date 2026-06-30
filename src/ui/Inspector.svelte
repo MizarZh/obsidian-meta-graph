@@ -1,25 +1,25 @@
 <script lang="ts">
-	import type { App } from "obsidian";
+	import type { App } from 'obsidian';
 	import type {
 		ChartGroup,
 		KnowledgeNode,
 		ManualLayoutConfig,
 		ViewMode,
-	} from "../core/types";
-	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
-	import ObsidianDropdown from "./obsidian/ObsidianDropdown.svelte";
+	} from '../core/types';
+	import ObsidianButton from './obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
 	import ObsidianSuggestInput, {
 		type SuggestionOption,
-	} from "./obsidian/ObsidianSuggestInput.svelte";
+	} from './obsidian/ObsidianSuggestInput.svelte';
 
 	let {
 		app,
 		node,
 		nodes = [],
 		nodeColor,
-		mode = "graph",
+		mode = 'graph',
 		manualLayout = { nodes: {}, groups: [] },
-		activeConnectionField = "",
+		activeConnectionField = '',
 		onOpenNote = () => {},
 		onOpenMetadataLink = () => {},
 		onSetNodeGroup = () => {},
@@ -43,15 +43,15 @@
 	} = $props();
 
 	type MetadataSegment =
-		| { kind: "text"; text: string }
-		| { kind: "link"; text: string; linkText: string };
+		| { kind: 'text'; text: string }
+		| { kind: 'link'; text: string; linkText: string };
 
 	const wikiLinkPattern = /\[\[([^\]]+)\]\]/gu;
 
-	let linkTargetPath = $state("");
+	let linkTargetPath = $state('');
 
-	const canAssignGroup = $derived(mode === "free" || mode === "cube");
-	const groupRequired = $derived(mode === "cube");
+	const canAssignGroup = $derived(mode === 'free' || mode === 'cube');
+	const groupRequired = $derived(mode === 'cube');
 	const groupOptions = $derived.by(() => {
 		const options = manualLayout.groups.map((group: ChartGroup) => ({
 			value: group.id,
@@ -59,10 +59,10 @@
 		}));
 		return groupRequired
 			? options
-			: [{ value: "", label: "No group" }, ...options];
+			: [{ value: '', label: 'No group' }, ...options];
 	});
 	const selectedGroupId = $derived(
-		node ? (manualLayout.nodes[node.path]?.groupId ?? "") : "",
+		node ? (manualLayout.nodes[node.path]?.groupId ?? '') : '',
 	);
 	const selectedGroupValue = $derived(
 		groupRequired && !selectedGroupId && groupOptions[0]
@@ -83,14 +83,14 @@
 	function renderMetadataValue(value: unknown): MetadataSegment[] {
 		if (Array.isArray(value)) {
 			return value.flatMap((item, index) => [
-				...(index > 0 ? [{ kind: "text" as const, text: ", " }] : []),
+				...(index > 0 ? [{ kind: 'text' as const, text: ', ' }] : []),
 				...renderMetadataValue(item),
 			]);
 		}
-		if (typeof value === "string") {
+		if (typeof value === 'string') {
 			return renderMetadataString(value);
 		}
-		return [{ kind: "text", text: String(value) }];
+		return [{ kind: 'text', text: String(value) }];
 	}
 
 	function renderMetadataString(value: string): MetadataSegment[] {
@@ -98,26 +98,29 @@
 		let lastIndex = 0;
 		for (const match of value.matchAll(wikiLinkPattern)) {
 			const index = match.index ?? 0;
-			const rawContent = match[1] ?? "";
+			const rawContent = match[1] ?? '';
 			if (index > lastIndex) {
-				segments.push({ kind: "text", text: value.slice(lastIndex, index) });
+				segments.push({
+					kind: 'text',
+					text: value.slice(lastIndex, index),
+				});
 			}
 			segments.push({
-				kind: "link",
+				kind: 'link',
 				text: readLinkLabel(rawContent),
 				linkText: readLinkTarget(rawContent),
 			});
 			lastIndex = index + match[0].length;
 		}
 		if (lastIndex < value.length) {
-			segments.push({ kind: "text", text: value.slice(lastIndex) });
+			segments.push({ kind: 'text', text: value.slice(lastIndex) });
 		}
 		if (segments.length > 0) {
 			return segments;
 		}
 		return isKnownMetadataLink(value)
-			? [{ kind: "link", text: value, linkText: value }]
-			: [{ kind: "text", text: value }];
+			? [{ kind: 'link', text: value, linkText: value }]
+			: [{ kind: 'text', text: value }];
 	}
 
 	function isKnownMetadataLink(value: string): boolean {
@@ -126,11 +129,11 @@
 	}
 
 	function readLinkTarget(value: string): string {
-		return (value.split("|")[0] ?? "").split("#")[0]?.trim() ?? "";
+		return (value.split('|')[0] ?? '').split('#')[0]?.trim() ?? '';
 	}
 
 	function readLinkLabel(value: string): string {
-		return (value.split("|")[1] ?? value).trim();
+		return (value.split('|')[1] ?? value).trim();
 	}
 
 	function addLink(): void {
@@ -138,7 +141,7 @@
 			return;
 		}
 		onConnectNode(node.path, linkTargetPath, activeConnectionField);
-		linkTargetPath = "";
+		linkTargetPath = '';
 	}
 </script>
 
@@ -159,7 +162,7 @@
 		</div>
 		<span>{node.path}</span>
 		{#if node.noteType}<span>Type: {node.noteType}</span>{/if}
-		{#if node.domains.length}<span>Domains: {node.domains.join(", ")}</span
+		{#if node.domains.length}<span>Domains: {node.domains.join(', ')}</span
 			>{/if}
 		{#if canAssignGroup && groupOptions.length > 0}
 			<hr />
@@ -205,13 +208,16 @@
 					<strong>{key}</strong>
 					<span>
 						{#each renderMetadataValue(value) as segment}
-							{#if segment.kind === "link"}
+							{#if segment.kind === 'link'}
 								<button
 									type="button"
 									class="knowledge-workspace-inspector-metadata-link"
 									title={segment.linkText}
 									onclick={() =>
-										onOpenMetadataLink(segment.linkText, node.path)}
+										onOpenMetadataLink(
+											segment.linkText,
+											node.path,
+										)}
 								>
 									{segment.text}
 								</button>

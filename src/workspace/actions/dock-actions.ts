@@ -60,7 +60,12 @@ export function reorderDockTemplateInState(
 ): WorkspaceState {
 	return setDockInState(
 		state,
-		reorderDockTemplate(state.dock, templateId, targetTemplateId, placement),
+		reorderDockTemplate(
+			state.dock,
+			templateId,
+			targetTemplateId,
+			placement,
+		),
 	);
 }
 

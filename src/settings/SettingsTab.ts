@@ -38,19 +38,24 @@ export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 
 		new Setting(this.containerEl)
 			.setName('Relayout flow after connecting nodes')
-			.setDesc('Run the flow layout after creating a metadata link. Off keeps existing node positions until you refresh manually.')
+			.setDesc(
+				'Run the flow layout after creating a metadata link. Off keeps existing node positions until you refresh manually.',
+			)
 			.addToggle((toggle) =>
 				toggle
 					.setValue(this.plugin.settings.relayoutFlowAfterConnection)
 					.onChange(async (value) => {
-						this.plugin.settings.relayoutFlowAfterConnection = value;
+						this.plugin.settings.relayoutFlowAfterConnection =
+							value;
 						await this.plugin.saveSettings();
 					}),
 			);
 
 		new Setting(this.containerEl)
 			.setName('Open template notes in new tab')
-			.setDesc('Automatically open notes created from templates in a new tab.')
+			.setDesc(
+				'Automatically open notes created from templates in a new tab.',
+			)
 			.addToggle((toggle) =>
 				toggle
 					.setValue(this.plugin.settings.openTemplateNoteInNewTab)

@@ -56,7 +56,10 @@ export interface DebugSnapshot {
 		incoming: Record<NodeId, EdgeId[]>;
 	};
 	state: Omit<WorkspaceState, 'projection'> & {
-		projection?: Omit<GraphProjection, 'rootIds' | 'primaryIds' | 'contextIds'> & {
+		projection?: Omit<
+			GraphProjection,
+			'rootIds' | 'primaryIds' | 'contextIds'
+		> & {
 			rootIds: NodeId[];
 			primaryIds?: NodeId[];
 			contextIds?: NodeId[];

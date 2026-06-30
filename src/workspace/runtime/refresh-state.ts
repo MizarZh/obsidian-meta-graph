@@ -18,7 +18,9 @@ export function applyWorkspaceIndexSnapshotToState(
 		state.charts,
 		new Set(indexSnapshot.index.nodes.keys()),
 	);
-	const activeChart = charts.find((chart) => chart.id === state.activeChartId);
+	const activeChart = charts.find(
+		(chart) => chart.id === state.activeChartId,
+	);
 	return {
 		...state,
 		charts,
@@ -75,7 +77,9 @@ function withCubeLayout(
 	return {
 		...state,
 		charts: updateChart(state.charts, { ...activeChart, layout }),
-		manualLayout: cloneSerializable(layout.manual ?? { nodes: {}, groups: [] }),
+		manualLayout: cloneSerializable(
+			layout.manual ?? { nodes: {}, groups: [] },
+		),
 		layoutRevision: state.layoutRevision + 1,
 	};
 }
@@ -84,5 +88,7 @@ function updateChart(
 	charts: MetaGraphChart[],
 	nextChart: MetaGraphChart,
 ): MetaGraphChart[] {
-	return charts.map((chart) => (chart.id === nextChart.id ? nextChart : chart));
+	return charts.map((chart) =>
+		chart.id === nextChart.id ? nextChart : chart,
+	);
 }

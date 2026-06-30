@@ -15,17 +15,17 @@ workspace connection panel.
 ```yaml
 ---
 domain:
-  - astronomy
+    - astronomy
 type: concept
 
 prerequisites:
-  - "[[Hydrostatic equilibrium]]"
+    - '[[Hydrostatic equilibrium]]'
 
 leads_to:
-  - "[[Stellar evolution]]"
+    - '[[Stellar evolution]]'
 
 related:
-  - "[[Hertzsprung–Russell diagram]]"
+    - '[[Hertzsprung–Russell diagram]]'
 ---
 ```
 
@@ -67,49 +67,49 @@ settings to report them in the developer console.
    and edit their Free-view region geometry. Groups are saved in the workspace
    file, not note frontmatter.
 10. Increase **Label density** in **Graph** settings when Sigma samples too few
-   labels while zoomed out. Enable **Always show labels** to force every visible
-   note label through Sigma's label grid.
+    labels while zoomed out. Enable **Always show labels** to force every visible
+    note label through Sigma's label grid.
 11. Use the bottom connection panel to select or add the metadata field used for
-   new links. Set the field direction to **One-way** or **Two-way** from the
-   direction dropdown.
+    new links. Set the field direction to **One-way** or **Two-way** from the
+    direction dropdown.
 12. Hold `Ctrl`, drag from one node to another, and release to add a link to the
-   selected metadata field. One-way writes the source note only; two-way writes
-   both notes so each note links to the other.
+    selected metadata field. One-way writes the source note only; two-way writes
+    both notes so each note links to the other.
 13. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
-   through the force-directed layout. Nearby nodes can move with the graph
-   forces, and the layout keeps settling briefly after release. Use
-   **Center force**, **Repel force**, **Link force**, **Drag link force**,
-   **Return force**, and **Link distance** to tune the graph toward Obsidian's
-   built-in graph behavior. The Graph view
-   only runs its initial ForceAtlas placement once for a chart; later refreshes,
-   force setting changes, added notes, and added links keep existing positions.
-   New nodes are placed near positioned neighbors when possible, then Force
-   layout can move them through the force field. `Ctrl`-drag still creates
-   links.
+    through the force-directed layout. Nearby nodes can move with the graph
+    forces, and the layout keeps settling briefly after release. Use
+    **Center force**, **Repel force**, **Link force**, **Drag link force**,
+    **Return force**, and **Link distance** to tune the graph toward Obsidian's
+    built-in graph behavior. The Graph view
+    only runs its initial ForceAtlas placement once for a chart; later refreshes,
+    force setting changes, added notes, and added links keep existing positions.
+    New nodes are placed near positioned neighbors when possible, then Force
+    layout can move them through the force field. `Ctrl`-drag still creates
+    links.
 14. In Free views, drag nodes directly to place them by hand. Free views do not
-   run an automatic layout after the first placement, and dragged node
-   positions are saved in the workspace file.
+    run an automatic layout after the first placement, and dragged node
+    positions are saved in the workspace file.
 15. In Free views, drag a group title to move the group. Notes already assigned
-   to that group move with it. Drag the bottom-right group handle to resize the
-   region.
+    to that group move with it. Drag the bottom-right group handle to resize the
+    region.
 16. Drag a node into a manual group and release to assign it to that group.
-   Drag it out and release over empty space to remove it from the group.
+    Drag it out and release over empty space to remove it from the group.
 17. In Cube graph views, each cube face is a group. Drag the background to
-   rotate the cube, drag nodes within their face to save their placement, use
-   `Shift`-click for local relationship focus, right-click for selection
-   details, and `Ctrl`-drag between nodes to add links. Use **Face opacity** in
-   **Graph** settings to control cube face transparency.
+    rotate the cube, drag nodes within their face to save their placement, use
+    `Shift`-click for local relationship focus, right-click for selection
+    details, and `Ctrl`-drag between nodes to add links. Use **Face opacity** in
+    **Graph** settings to control cube face transparency.
 18. Use the right dock panel to keep templates and selected notes in a compact
-   vertical list. Add or edit templates from the dock, choose an optional
-   default group for template-created notes, drag items in the dock to reorder
-   them, and hold `Ctrl` while dragging a dock item to connect it to a graph
-   node.
+    vertical list. Add or edit templates from the dock, choose an optional
+    default group for template-created notes, drag items in the dock to reorder
+    them, and hold `Ctrl` while dragging a dock item to connect it to a graph
+    node.
 19. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
-   workspace is focused, to undo connection edits made in the current workspace
-   session.
+    workspace is focused, to undo connection edits made in the current workspace
+    session.
 20. Select a node to open its note in a new tab.
 21. Select **Debug** to inspect or copy the current query, projection,
-   canonical index, adjacency maps, and unresolved links as JSON.
+    canonical index, adjacency maps, and unresolved links as JSON.
 
 Style fallback is field-by-field:
 
@@ -128,87 +128,86 @@ Markdown files with this frontmatter open as graph workspaces:
 meta-graph: workspace
 meta-graph-version: 1
 ---
-
 charts:
-  - id: knowledge-map
-    name: Knowledge map
-    type: graph
-    source: query
-    query:
-      roots: []
-      folders: []
-      tags: []
-      domains: []
-      relations: [prerequisite, leads-to, related]
-      depth: 2
-      direction: both
-      maxNodes: 200
-    curated:
-      files: []
-      context:
-        enabled: false
-        depth: 0
-        includeOutgoingLinks: true
-        includeBacklinks: true
-        includeMetadataRelations: true
-    layout:
-      engine: force-atlas
-      spacing: 1
-      centerForce: 1
-      repelForce: 10
-      linkForce: 1
-      dragLinkForce: 1
-      returnForce: 1
-      linkDistance: 250
-      manual:
-        nodes: {}
-        groups: []
-    display:
-      fadeDistance: 1.5
-      enableForceLayout: false
-      showInspector: true
-      showFilters: true
-    style:
-      nodeOverrides: {}
-      linkOverrides: {}
-      nodeRules: []
-      linkRules: []
+    - id: knowledge-map
+      name: Knowledge map
+      type: graph
+      source: query
+      query:
+          roots: []
+          folders: []
+          tags: []
+          domains: []
+          relations: [prerequisite, leads-to, related]
+          depth: 2
+          direction: both
+          maxNodes: 200
+      curated:
+          files: []
+          context:
+              enabled: false
+              depth: 0
+              includeOutgoingLinks: true
+              includeBacklinks: true
+              includeMetadataRelations: true
+      layout:
+          engine: force-atlas
+          spacing: 1
+          centerForce: 1
+          repelForce: 10
+          linkForce: 1
+          dragLinkForce: 1
+          returnForce: 1
+          linkDistance: 250
+          manual:
+              nodes: {}
+              groups: []
+      display:
+          fadeDistance: 1.5
+          enableForceLayout: false
+          showInspector: true
+          showFilters: true
+      style:
+          nodeOverrides: {}
+          linkOverrides: {}
+          nodeRules: []
+          linkRules: []
 
 globalQuery:
-  roots: []
-  folders: []
-  tags: []
-  domains: []
-  relations: []
-  hiddenNodeRules: []
-  depth: 2
-  direction: both
-  maxNodes: 200
+    roots: []
+    folders: []
+    tags: []
+    domains: []
+    relations: []
+    hiddenNodeRules: []
+    depth: 2
+    direction: both
+    maxNodes: 200
 globalStyle:
-  defaultNodeStyle:
-    color: "#7c6ff0"
-    size: 7
-  defaultLinkStyle:
-    color: "#888888"
-    size: 1.5
-    lineStyle: solid
-    label: ""
-    showLabel: false
-    hidden: false
-  nodeRules: []
-  linkRules: []
+    defaultNodeStyle:
+        color: '#7c6ff0'
+        size: 7
+    defaultLinkStyle:
+        color: '#888888'
+        size: 1.5
+        lineStyle: solid
+        label: ''
+        showLabel: false
+        hidden: false
+    nodeRules: []
+    linkRules: []
 activeChart: knowledge-map
 connectionFields:
-  - leads-to
+    - leads-to
 connectionFieldSpecs:
-  - id: leads-to:directed
-    field: leads-to
-    mode: directed
-  - id: leads-to:bidirectional
-    field: leads-to
-    mode: bidirectional
+    - id: leads-to:directed
+      field: leads-to
+      mode: directed
+    - id: leads-to:bidirectional
+      field: leads-to
+      mode: bidirectional
 connectionFieldModes:
-  leads-to: directed
+    leads-to: directed
 activeConnectionFieldSpecId: leads-to:directed
 activeConnectionField: leads-to
 ```

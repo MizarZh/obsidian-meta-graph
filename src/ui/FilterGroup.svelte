@@ -62,7 +62,6 @@
 			operator ?? '',
 		);
 	}
-
 </script>
 
 <div class:root class="knowledge-workspace-filter-group">
@@ -108,12 +107,12 @@
 			{#if child.kind === 'group'}
 				<FilterGroupSelf
 					{app}
-						group={child}
-						{fieldOptions}
-						{getOperatorOptions}
-						{getDefaultOperator}
-						{getFieldType}
-						{groupModeOptions}
+					group={child}
+					{fieldOptions}
+					{getOperatorOptions}
+					{getDefaultOperator}
+					{getFieldType}
+					{groupModeOptions}
 					{getValueOptions}
 					{onAddCondition}
 					{onAddGroup}
@@ -126,29 +125,32 @@
 						<PropertyPicker
 							value={child.field}
 							options={fieldOptions}
-								onSelect={(value) =>
-									onUpdate(child.id, {
-										field: value as NodeFilterField,
-										operator: getDefaultOperator(value as NodeFilterField),
-										value: '',
-									})}
-							/>
+							onSelect={(value) =>
+								onUpdate(child.id, {
+									field: value as NodeFilterField,
+									operator: getDefaultOperator(
+										value as NodeFilterField,
+									),
+									value: '',
+								})}
+						/>
 						<ObsidianDropdown
-							value={child.operator ?? getDefaultOperator(child.field)}
+							value={child.operator ??
+								getDefaultOperator(child.field)}
 							options={getOperatorOptions(child.field)}
+							onChange={(value) =>
+								onUpdate(child.id, {
+									operator: value as NodeFilterOperator,
+								})}
+						/>
+						{#if shouldShowFilterValue(child.operator) && getFieldType(child.field) === 'checkbox'}
+							<ObsidianToggle
+								value={(child.value || 'true') === 'true'}
 								onChange={(value) =>
 									onUpdate(child.id, {
-										operator: value as NodeFilterOperator,
+										value: String(value),
 									})}
 							/>
-							{#if shouldShowFilterValue(child.operator) && getFieldType(child.field) === 'checkbox'}
-								<ObsidianToggle
-									value={(child.value || 'true') === 'true'}
-									onChange={(value) =>
-										onUpdate(child.id, {
-											value: String(value),
-										})}
-								/>
 						{:else if shouldShowFilterValue(child.operator) && getFieldType(child.field) === 'date'}
 							<ObsidianTextInput
 								type="date"
@@ -175,7 +177,10 @@
 								type="text"
 								placeholder="Value"
 								value={child.value}
-								options={getValueOptions(child.field, child.operator)}
+								options={getValueOptions(
+									child.field,
+									child.operator,
+								)}
 								showOnEmpty={true}
 								onInput={(value) =>
 									onUpdate(child.id, {
@@ -189,8 +194,14 @@
 						{:else}
 							<ObsidianTextInput
 								type="text"
-								placeholder={shouldShowFilterValue(child.operator) ? 'Value' : ''}
-								disabled={!shouldShowFilterValue(child.operator)}
+								placeholder={shouldShowFilterValue(
+									child.operator,
+								)
+									? 'Value'
+									: ''}
+								disabled={!shouldShowFilterValue(
+									child.operator,
+								)}
 								value={child.value}
 								onInput={(value) =>
 									onUpdate(child.id, {

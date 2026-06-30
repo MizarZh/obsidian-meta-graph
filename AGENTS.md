@@ -9,9 +9,9 @@ This repository is an Obsidian community plugin named **Meta Graph**.
 - UI framework: Svelte 5.
 - Graph renderer: Sigma.js with Graphology.
 - Layout engines:
-  - Graph: ForceAtlas2.
-  - Flow: ELK layered layout.
-  - Arc: deterministic arc layout.
+    - Graph: ForceAtlas2.
+    - Flow: ELK layered layout.
+    - Arc: deterministic arc layout.
 - Plugin entry point: `src/main.ts`.
 - Built release artifact: `main.js` at the plugin root.
 - Do not commit generated artifacts such as `main.js`, `node_modules/`, or build output unless explicitly requested.
@@ -80,18 +80,17 @@ Workspace Markdown files use:
 meta-graph: workspace
 meta-graph-version: 1
 ---
-
 charts:
-  - id: knowledge-map
-    type: graph
-    query: ...
-    layout: ...
-    display: ...
-    style: ...
+    - id: knowledge-map
+      type: graph
+      query: ...
+      layout: ...
+      display: ...
+      style: ...
 
 activeChart: knowledge-map
 connectionFields:
-  - leads-to
+    - leads-to
 activeConnectionField: leads-to
 ```
 

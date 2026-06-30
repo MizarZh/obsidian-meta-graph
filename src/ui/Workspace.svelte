@@ -1,38 +1,38 @@
 <script lang="ts">
-	import type { App } from "obsidian";
-	import { onMount } from "svelte";
+	import type { App } from 'obsidian';
+	import { onMount } from 'svelte';
 	import type {
 		DebugSnapshot,
 		DockConnectionDirection,
 		MetaGraphDocument,
 		SettingsPanelMode,
 		WorkspaceState,
-	} from "../core/types";
-	import { formatError as formatErrorMessage } from "../core/errors";
-	import type { ConnectionDragState } from "../graph/renderers/renderer-events";
-	import { readGraphPalette } from "../graph/styles/graph-styles";
+	} from '../core/types';
+	import { formatError as formatErrorMessage } from '../core/errors';
+	import type { ConnectionDragState } from '../graph/renderers/renderer-events';
+	import { readGraphPalette } from '../graph/styles/graph-styles';
 	import {
 		refreshRendererGraphStyles,
 		type GraphRenderer,
-	} from "../graph/renderers/renderer-adapter";
+	} from '../graph/renderers/renderer-adapter';
 	import {
 		LayoutSnapshotStore,
 		type LayoutSnapshot,
-	} from "../layouts/stable-layout";
-	import type { WorkspaceController } from "../workspace/workspace-controller";
-	import DebugPanel from "./DebugPanel.svelte";
-	import type { DockDragPayload } from "./dock/types";
-	import type { DockPayloadGraphAction } from "./dock/connection";
+	} from '../layouts/stable-layout';
+	import type { WorkspaceController } from '../workspace/workspace-controller';
+	import DebugPanel from './DebugPanel.svelte';
+	import type { DockDragPayload } from './dock/types';
+	import type { DockPayloadGraphAction } from './dock/connection';
 	import {
 		getMetadataFieldSuggestions,
 		getMetadataFieldTypes,
 		getMetadataFieldValueSuggestions,
-	} from "./filter-config";
+	} from './filter-config';
 	import {
 		type GraphConnectionDropTarget,
 		type GraphConnectionDropAction,
-	} from "./interactions/graph-connection-drop";
-	import { shouldHandleConnectionUndoShortcut } from "./interactions/keyboard-shortcuts";
+	} from './interactions/graph-connection-drop';
+	import { shouldHandleConnectionUndoShortcut } from './interactions/keyboard-shortcuts';
 	import {
 		getDockNoteCandidates,
 		getDockNoteEntries,
@@ -40,36 +40,36 @@
 		getSelectedDockNodes,
 		getWorkspaceNodeColor,
 		getWorkspaceNodeColors,
-	} from "./workspace/derived";
-	import { syncRendererDisplaySettings } from "./workspace/renderer-display-sync";
-	import { shouldCloseSettingsPanelForChartSource } from "./workspace/settings-panel";
+	} from './workspace/derived';
+	import { syncRendererDisplaySettings } from './workspace/renderer-display-sync';
+	import { shouldCloseSettingsPanelForChartSource } from './workspace/settings-panel';
 	import {
 		readInteractiveAccentColor,
 		readThemeSignature,
-	} from "./workspace/theme";
-	import { openResolvedMetadataLink } from "./workspace/metadata-link-actions";
-	import { openWorkspaceCreateTemplateNote } from "./workspace/workspace-template-flow";
-	import { WorkspaceAutoSave } from "./workspace/autosave";
-		import {
-			analyzeWorkspaceStateChanges,
-			createWorkspaceRenderBaseline,
-			syncWorkspaceRenderBaselineStyles,
-			type WorkspaceRenderBaseline,
-		} from "./workspace/change-tracker";
-	import { syncWorkspaceRuntimeGraphStyles } from "./workspace/runtime-graph";
-	import { bindWorkspaceRendererEvents } from "./workspace/renderer-events";
+	} from './workspace/theme';
+	import { openResolvedMetadataLink } from './workspace/metadata-link-actions';
+	import { openWorkspaceCreateTemplateNote } from './workspace/workspace-template-flow';
+	import { WorkspaceAutoSave } from './workspace/autosave';
+	import {
+		analyzeWorkspaceStateChanges,
+		createWorkspaceRenderBaseline,
+		syncWorkspaceRenderBaselineStyles,
+		type WorkspaceRenderBaseline,
+	} from './workspace/change-tracker';
+	import { syncWorkspaceRuntimeGraphStyles } from './workspace/runtime-graph';
+	import { bindWorkspaceRendererEvents } from './workspace/renderer-events';
 	import {
 		moveWorkspaceRuntimeGroupNodes,
 		syncWorkspaceRendererGroups,
-	} from "./workspace/renderer-groups";
-	import { WorkspaceRendererLifecycle } from "./workspace/renderer-lifecycle";
-	import { DockGraphDragController } from "./workspace/dock-graph-drag";
-	import { GraphDockConnectionController } from "./workspace/graph-dock-connection";
-	import WorkspaceSettingsPopover from "./workspace/WorkspaceSettingsPopover.svelte";
-	import WorkspaceMainPanels from "./workspace/WorkspaceMainPanels.svelte";
+	} from './workspace/renderer-groups';
+	import { WorkspaceRendererLifecycle } from './workspace/renderer-lifecycle';
+	import { DockGraphDragController } from './workspace/dock-graph-drag';
+	import { GraphDockConnectionController } from './workspace/graph-dock-connection';
+	import WorkspaceSettingsPopover from './workspace/WorkspaceSettingsPopover.svelte';
+	import WorkspaceMainPanels from './workspace/WorkspaceMainPanels.svelte';
 
-	import { ConfirmDeleteViewModal } from "./ConfirmDeleteWorkspaceModal";
-	import Toolbar from "./Toolbar.svelte";
+	import { ConfirmDeleteViewModal } from './ConfirmDeleteWorkspaceModal';
+	import Toolbar from './Toolbar.svelte';
 
 	let {
 		app,
@@ -89,7 +89,7 @@
 	let workspaceState: WorkspaceState = $state(getInitialState());
 	let workspaceRoot: HTMLDivElement;
 	let canvas: HTMLDivElement;
-	let lastThemeSignature = "";
+	let lastThemeSignature = '';
 	let lastCanvasWidth = 0;
 	let lastCanvasHeight = 0;
 	let renderBaseline: WorkspaceRenderBaseline = {};
@@ -118,7 +118,8 @@
 		waitForCanvasSize: () => waitForCanvasSize(),
 		bindEvents: (targetRenderer) => bindEventsForRenderer(targetRenderer),
 		syncRendererGroups: () => syncRendererGroups(),
-		setRendererDebugState: (state) => controller.setRendererDebugState(state),
+		setRendererDebugState: (state) =>
+			controller.setRendererDebugState(state),
 	});
 	const dockGraphDrag = new DockGraphDragController({
 		window,
@@ -151,114 +152,131 @@
 		onDrop: (action) => handleGraphConnectionDropAction(action),
 	});
 
-		function handleGraphConnectionDropAction(
-			action: GraphConnectionDropAction,
-		): void {
-			if (action.kind === "add-curated") {
-				controller.addCuratedFile(action.sourceNodeId);
-				return;
-			}
-			if (action.kind === "create-from-template") {
-				openCreateFromTemplateId(
-					action.templateId,
-					action.sourceNodeId,
-					undefined,
-					"from-graph-to-dock",
-				);
-				return;
-			}
-			if (action.kind === "connect-note") {
-				void controller
-					.connectNodes(
-						action.sourceNodeId,
-						action.notePath,
-						workspaceState.activeConnectionField,
-					)
-					.then(() => {
-						controller.addCuratedFile(action.notePath);
-					})
-					.catch((error: unknown) =>
-						controller.setRendererDebugState({
-							status: "error",
-							error: formatError(error),
-						}),
-					);
-			}
+	function handleGraphConnectionDropAction(
+		action: GraphConnectionDropAction,
+	): void {
+		if (action.kind === 'add-curated') {
+			controller.addCuratedFile(action.sourceNodeId);
+			return;
 		}
-
-		function connectVisibleNodes(sourceNodeId: string, targetNodeId: string): void {
+		if (action.kind === 'create-from-template') {
+			openCreateFromTemplateId(
+				action.templateId,
+				action.sourceNodeId,
+				undefined,
+				'from-graph-to-dock',
+			);
+			return;
+		}
+		if (action.kind === 'connect-note') {
 			void controller
 				.connectNodes(
-					sourceNodeId,
-					targetNodeId,
+					action.sourceNodeId,
+					action.notePath,
 					workspaceState.activeConnectionField,
 				)
+				.then(() => {
+					controller.addCuratedFile(action.notePath);
+				})
 				.catch((error: unknown) =>
 					controller.setRendererDebugState({
-						status: "error",
+						status: 'error',
 						error: formatError(error),
 					}),
 				);
 		}
+	}
 
-		function setGraphConnectionDrag(state: ConnectionDragState | undefined): void {
-			connectionDrag = state;
-			if (!state) {
-				graphDockConnection.resetTarget();
-			}
+	function connectVisibleNodes(
+		sourceNodeId: string,
+		targetNodeId: string,
+	): void {
+		void controller
+			.connectNodes(
+				sourceNodeId,
+				targetNodeId,
+				workspaceState.activeConnectionField,
+			)
+			.catch((error: unknown) =>
+				controller.setRendererDebugState({
+					status: 'error',
+					error: formatError(error),
+				}),
+			);
+	}
+
+	function setGraphConnectionDrag(
+		state: ConnectionDragState | undefined,
+	): void {
+		connectionDrag = state;
+		if (!state) {
+			graphDockConnection.resetTarget();
 		}
+	}
 
-		function getInitialState(): WorkspaceState {
+	function getInitialState(): WorkspaceState {
 		return controller.snapshot;
 	}
 
 	onMount(() => {
 		const autoSave = new WorkspaceAutoSave(onAutoSave, 350, window);
 		autoSave.initialize(controller.snapshot);
-			const resizeObserver = new ResizeObserver((entries) => {
-				const entry = entries[0];
-				if (
-					entry &&
-					entry.contentRect.width > 0 &&
-					entry.contentRect.height > 0 &&
-					(entry.contentRect.width !== lastCanvasWidth ||
-						entry.contentRect.height !== lastCanvasHeight)
-				) {
-					lastCanvasWidth = entry.contentRect.width;
-					lastCanvasHeight = entry.contentRect.height;
-						rendererLifecycle.resize();
-				}
-			});
+		const resizeObserver = new ResizeObserver((entries) => {
+			const entry = entries[0];
+			if (
+				entry &&
+				entry.contentRect.width > 0 &&
+				entry.contentRect.height > 0 &&
+				(entry.contentRect.width !== lastCanvasWidth ||
+					entry.contentRect.height !== lastCanvasHeight)
+			) {
+				lastCanvasWidth = entry.contentRect.width;
+				lastCanvasHeight = entry.contentRect.height;
+				rendererLifecycle.resize();
+			}
+		});
 		resizeObserver.observe(canvas);
-			lastThemeSignature = readThemeSignature(readWorkspaceDocument());
+		lastThemeSignature = readThemeSignature(readWorkspaceDocument());
 		const themeObserver = new MutationObserver(() => {
 			refreshRendererTheme();
 		});
-			themeObserver.observe(readWorkspaceDocument().body, {
+		themeObserver.observe(readWorkspaceDocument().body, {
 			attributes: true,
-			attributeFilter: ["class"],
+			attributeFilter: ['class'],
 		});
-			themeObserver.observe(readWorkspaceDocument().documentElement, {
+		themeObserver.observe(readWorkspaceDocument().documentElement, {
 			attributes: true,
-			attributeFilter: ["class"],
+			attributeFilter: ['class'],
 		});
-		workspaceRoot.addEventListener("keydown", handleWorkspaceKeydown);
+		workspaceRoot.addEventListener('keydown', handleWorkspaceKeydown);
 		workspaceRoot.addEventListener(
-			"pointerdown",
+			'pointerdown',
 			focusWorkspaceForShortcuts,
 		);
-		window.addEventListener("mousemove", graphDockConnection.handleMouseMove, {
+		window.addEventListener(
+			'mousemove',
+			graphDockConnection.handleMouseMove,
+			{
+				capture: true,
+			},
+		);
+		window.addEventListener('mouseup', graphDockConnection.handleMouseUp, {
 			capture: true,
 		});
-		window.addEventListener("mouseup", graphDockConnection.handleMouseUp, {
-			capture: true,
-		});
-		window.addEventListener("pointermove", graphDockConnection.handlePointerMove, {
-			capture: true,
-		});
-		window.addEventListener("pointerup", graphDockConnection.handlePointerUp, {
-			capture: true,
-		});
+		window.addEventListener(
+			'pointermove',
+			graphDockConnection.handlePointerMove,
+			{
+				capture: true,
+			},
+		);
+		window.addEventListener(
+			'pointerup',
+			graphDockConnection.handlePointerUp,
+			{
+				capture: true,
+			},
+		);
 
 		const unsubscribe = controller.subscribe((nextState) => {
 			const changes = analyzeWorkspaceStateChanges(
@@ -308,15 +326,14 @@
 			}
 			if (changes.shouldRebuild) {
 				renderBaseline = createWorkspaceRenderBaseline(nextState);
-				void rendererLifecycle.rebuild(
-					changes.fitAfterRender,
-					changes.forceLayout,
-				).catch((error: unknown) => {
+				void rendererLifecycle
+					.rebuild(changes.fitAfterRender, changes.forceLayout)
+					.catch((error: unknown) => {
 						controller.setRendererDebugState({
-							status: "error",
+							status: 'error',
 							error: formatError(error),
 						});
-				});
+					});
 			} else {
 				rendererLifecycle.setSelected(nextState.selectedNodeId);
 				rendererLifecycle.setHovered(nextState.hoveredNodeId);
@@ -329,42 +346,42 @@
 			resizeObserver.disconnect();
 			themeObserver.disconnect();
 			workspaceRoot.removeEventListener(
-				"keydown",
+				'keydown',
 				handleWorkspaceKeydown,
 			);
 			workspaceRoot.removeEventListener(
-				"pointerdown",
+				'pointerdown',
 				focusWorkspaceForShortcuts,
 			);
 			window.removeEventListener(
-				"mousemove",
+				'mousemove',
 				graphDockConnection.handleMouseMove,
 				{
 					capture: true,
 				},
 			);
 			window.removeEventListener(
-				"mouseup",
+				'mouseup',
 				graphDockConnection.handleMouseUp,
 				{
 					capture: true,
 				},
 			);
 			window.removeEventListener(
-				"pointermove",
+				'pointermove',
 				graphDockConnection.handlePointerMove,
 				{
 					capture: true,
 				},
 			);
 			window.removeEventListener(
-				"pointerup",
+				'pointerup',
 				graphDockConnection.handlePointerUp,
 				{
 					capture: true,
 				},
 			);
-				dockGraphDrag.resetConnectionDrag();
+			dockGraphDrag.resetConnectionDrag();
 			rendererLifecycle.dispose();
 		};
 	});
@@ -378,88 +395,94 @@
 		rendererLifecycle.refreshPalette();
 	}
 
-		function bindEventsForRenderer(targetRenderer: GraphRenderer): () => void {
-			return bindWorkspaceRendererEvents({
-				renderer: targetRenderer,
-				mode: workspaceState.mode,
-				enableForceLayout: workspaceState.enableForceLayout,
+	function bindEventsForRenderer(targetRenderer: GraphRenderer): () => void {
+		return bindWorkspaceRendererEvents({
+			renderer: targetRenderer,
+			mode: workspaceState.mode,
+			enableForceLayout: workspaceState.enableForceLayout,
 			getLayoutSnapshot,
 			getOrCreateForceLayoutSimulation: (renderer) =>
 				rendererLifecycle.getOrCreateForceLayoutSimulation(renderer),
 			getForceLayoutSimulation: () =>
 				rendererLifecycle.getForceLayoutSimulation(),
-				getSuppressNodeOpenUntil: () => suppressNodeOpenUntil,
-				setSuppressNodeOpenUntil: (value) => {
-					suppressNodeOpenUntil = value;
-				},
-				getActiveNodeDropGroupId: () => activeNodeDropGroupId,
-				setActiveNodeDropGroupId: (groupId) => {
-					activeNodeDropGroupId = groupId;
-				},
-				onSelect: (nodeId?: string) => controller.selectNode(nodeId),
-				onHover: (nodeId?: string) => controller.hoverNode(nodeId),
-				onOpen: (nodeId: string) => void controller.openNode(nodeId),
-				onConnectionDrag: setGraphConnectionDrag,
-				onConnect: connectVisibleNodes,
-				onCommitManualNodePosition: (nodeId, position, groupId) => {
-					controller.setManualNodePosition(nodeId, position, groupId);
-				},
-			});
-		}
+			getSuppressNodeOpenUntil: () => suppressNodeOpenUntil,
+			setSuppressNodeOpenUntil: (value) => {
+				suppressNodeOpenUntil = value;
+			},
+			getActiveNodeDropGroupId: () => activeNodeDropGroupId,
+			setActiveNodeDropGroupId: (groupId) => {
+				activeNodeDropGroupId = groupId;
+			},
+			onSelect: (nodeId?: string) => controller.selectNode(nodeId),
+			onHover: (nodeId?: string) => controller.hoverNode(nodeId),
+			onOpen: (nodeId: string) => void controller.openNode(nodeId),
+			onConnectionDrag: setGraphConnectionDrag,
+			onConnect: connectVisibleNodes,
+			onCommitManualNodePosition: (nodeId, position, groupId) => {
+				controller.setManualNodePosition(nodeId, position, groupId);
+			},
+		});
+	}
 
 	function syncRendererGroups(): void {
 		syncWorkspaceRendererGroups(
 			rendererLifecycle.renderer,
-				workspaceState.mode,
-				workspaceState.manualLayout,
-				{
-					onMovePreview: moveRuntimeGroupNodes,
-					onMoveCommit: (groupId, delta) =>
-						controller.moveGroup(groupId, delta),
-					onResizeCommit: (groupId, geometry) =>
-						controller.resizeGroup(groupId, geometry),
-				},
-			);
-		}
+			workspaceState.mode,
+			workspaceState.manualLayout,
+			{
+				onMovePreview: moveRuntimeGroupNodes,
+				onMoveCommit: (groupId, delta) =>
+					controller.moveGroup(groupId, delta),
+				onResizeCommit: (groupId, geometry) =>
+					controller.resizeGroup(groupId, geometry),
+			},
+		);
+	}
 
-		function moveRuntimeGroupNodes(
-			groupId: string,
-			delta: { x: number; y: number },
-		): void {
+	function moveRuntimeGroupNodes(
+		groupId: string,
+		delta: { x: number; y: number },
+	): void {
 		moveWorkspaceRuntimeGroupNodes(
 			rendererLifecycle.renderer,
-				getLayoutSnapshot(),
-				workspaceState.manualLayout,
-				groupId,
-				delta,
-			);
-		}
-
-		const selectedNode = $derived(
-			workspaceState.projection?.nodes.find(
-				(node) => node.id === workspaceState.selectedNodeId,
-			),
+			getLayoutSnapshot(),
+			workspaceState.manualLayout,
+			groupId,
+			delta,
 		);
-		const selectedNodeColor = $derived.by(() => {
+	}
+
+	const selectedNode = $derived(
+		workspaceState.projection?.nodes.find(
+			(node) => node.id === workspaceState.selectedNodeId,
+		),
+	);
+	const selectedNodeColor = $derived.by(() => {
 		if (!selectedNode) {
 			return undefined;
 		}
-		const defaultColor = readInteractiveAccentColor(readWorkspaceDocument());
-		return getWorkspaceNodeColor(selectedNode, workspaceState, defaultColor);
+		const defaultColor = readInteractiveAccentColor(
+			readWorkspaceDocument(),
+		);
+		return getWorkspaceNodeColor(
+			selectedNode,
+			workspaceState,
+			defaultColor,
+		);
 	});
-		const searchableNodes = $derived(workspaceState.projection?.nodes ?? []);
+	const searchableNodes = $derived(workspaceState.projection?.nodes ?? []);
 	const atNodeLimit = $derived(
-		workspaceState.chartSource === "query" && workspaceState.projection
+		workspaceState.chartSource === 'query' && workspaceState.projection
 			? workspaceState.projection.nodes.length >=
-				workspaceState.query.maxNodes
+					workspaceState.query.maxNodes
 			: false,
 	);
-		const debugSnapshot: DebugSnapshot = $derived(
-			controller.getDebugSnapshot(workspaceState),
-		);
-		const selectedDockNodes = $derived(
-			getSelectedDockNodes(debugSnapshot, workspaceState.dock.notes),
-		);
+	const debugSnapshot: DebugSnapshot = $derived(
+		controller.getDebugSnapshot(workspaceState),
+	);
+	const selectedDockNodes = $derived(
+		getSelectedDockNodes(debugSnapshot, workspaceState.dock.notes),
+	);
 	const dockNoteCandidates = $derived(
 		getDockNoteCandidates(
 			debugSnapshot,
@@ -468,7 +491,9 @@
 		),
 	);
 	const nodeColors = $derived.by(() => {
-		const defaultColor = readInteractiveAccentColor(readWorkspaceDocument());
+		const defaultColor = readInteractiveAccentColor(
+			readWorkspaceDocument(),
+		);
 		return getWorkspaceNodeColors(
 			[...selectedDockNodes, ...dockNoteCandidates],
 			workspaceState,
@@ -476,21 +501,25 @@
 		);
 	});
 	const dockNoteEntries = $derived(
-		getDockNoteEntries(debugSnapshot, workspaceState.dock.notes, nodeColors),
+		getDockNoteEntries(
+			debugSnapshot,
+			workspaceState.dock.notes,
+			nodeColors,
+		),
 	);
-		const metadataFieldSuggestions = $derived(
-			getMetadataFieldSuggestions(debugSnapshot.index.nodes),
-		);
-		const metadataFieldTypes = $derived(
-			getMetadataFieldTypes(debugSnapshot.index.nodes),
-		);
-		const metadataFieldValueSuggestions = $derived(
-			getMetadataFieldValueSuggestions(
-				debugSnapshot.index.nodes,
-				metadataFieldTypes,
-			),
-		);
-		const filePathSuggestions = $derived(getFilePathSuggestions(debugSnapshot));
+	const metadataFieldSuggestions = $derived(
+		getMetadataFieldSuggestions(debugSnapshot.index.nodes),
+	);
+	const metadataFieldTypes = $derived(
+		getMetadataFieldTypes(debugSnapshot.index.nodes),
+	);
+	const metadataFieldValueSuggestions = $derived(
+		getMetadataFieldValueSuggestions(
+			debugSnapshot.index.nodes,
+			metadataFieldTypes,
+		),
+	);
+	const filePathSuggestions = $derived(getFilePathSuggestions(debugSnapshot));
 
 	function toggleDebug(): void {
 		debugOpen = !debugOpen;
@@ -534,19 +563,19 @@
 		return { width, height };
 	}
 
-		function getLayoutSnapshot(): LayoutSnapshot {
-			return layoutSnapshots.get({
-				activeChartId: workspaceState.activeChartId,
-				mode: workspaceState.mode,
-				arcDirection: workspaceState.arcDirection,
-				flowEdgeStyle: workspaceState.flowEdgeStyle,
-				flowDirection: workspaceState.flowDirection,
-			});
-		}
+	function getLayoutSnapshot(): LayoutSnapshot {
+		return layoutSnapshots.get({
+			activeChartId: workspaceState.activeChartId,
+			mode: workspaceState.mode,
+			arcDirection: workspaceState.arcDirection,
+			flowEdgeStyle: workspaceState.flowEdgeStyle,
+			flowDirection: workspaceState.flowDirection,
+		});
+	}
 
-			function formatError(error: unknown): string {
-			return formatErrorMessage(error, { includeStack: true });
-		}
+	function formatError(error: unknown): string {
+		return formatErrorMessage(error, { includeStack: true });
+	}
 
 	function confirmDeleteActiveChart(): void {
 		if (workspaceState.charts.length <= 1) {
@@ -568,34 +597,34 @@
 		window.requestAnimationFrame(() => rendererLifecycle.focusNode(nodeId));
 	}
 
-		function handleDockPayloadGraphAction(
-			action: DockPayloadGraphAction,
-		): void {
-			if (action.kind === "create-from-template") {
-				void openCreateFromTemplateId(
-					action.payload.templateId,
-					action.targetNodeId,
-					action.payload.label,
-					action.direction,
-				);
-				return;
-			}
-			if (action.kind === "none") {
-				return;
-			}
-			void controller
-				.connectDockNote(
-					action.notePath,
-					action.targetNodeId,
-					action.direction,
-					action.relationField,
-				)
-				.then(() => {
-					controller.addCuratedFile(action.notePath);
-				})
+	function handleDockPayloadGraphAction(
+		action: DockPayloadGraphAction,
+	): void {
+		if (action.kind === 'create-from-template') {
+			void openCreateFromTemplateId(
+				action.payload.templateId,
+				action.targetNodeId,
+				action.payload.label,
+				action.direction,
+			);
+			return;
+		}
+		if (action.kind === 'none') {
+			return;
+		}
+		void controller
+			.connectDockNote(
+				action.notePath,
+				action.targetNodeId,
+				action.direction,
+				action.relationField,
+			)
+			.then(() => {
+				controller.addCuratedFile(action.notePath);
+			})
 			.catch((error: unknown) =>
 				controller.setRendererDebugState({
-					status: "error",
+					status: 'error',
 					error: formatError(error),
 				}),
 			);
@@ -605,7 +634,7 @@
 		templateId: string,
 		targetNodeId: string,
 		label?: string,
-		direction: DockConnectionDirection = "from-dock-to-graph",
+		direction: DockConnectionDirection = 'from-dock-to-graph',
 	): Promise<void> {
 		await openWorkspaceCreateTemplateNote({
 			app,
@@ -624,30 +653,30 @@
 		return canvas?.ownerDocument ?? document;
 	}
 
-		async function openMetadataLink(
-			linkText: string,
-			sourcePath: string,
-		): Promise<void> {
-			await openResolvedMetadataLink(linkText, sourcePath, {
-				resolveLink: (resolvedLinkText, resolvedSourcePath) =>
-					app.metadataCache.getFirstLinkpathDest(
-						resolvedLinkText,
-						resolvedSourcePath,
-					),
-				openFile: (file) => app.workspace.getLeaf("tab").openFile(file),
-			});
-		}
-
-		function isGraphOverlayTarget(target: EventTarget | null): boolean {
-			if (!(target instanceof HTMLElement)) {
-				return false;
-			}
-			return Boolean(
-				target.closest(
-					".knowledge-workspace-dock-panel, .knowledge-workspace-display-controls, .knowledge-workspace-inspector, .knowledge-workspace-connection-panel",
+	async function openMetadataLink(
+		linkText: string,
+		sourcePath: string,
+	): Promise<void> {
+		await openResolvedMetadataLink(linkText, sourcePath, {
+			resolveLink: (resolvedLinkText, resolvedSourcePath) =>
+				app.metadataCache.getFirstLinkpathDest(
+					resolvedLinkText,
+					resolvedSourcePath,
 				),
-			);
+			openFile: (file) => app.workspace.getLeaf('tab').openFile(file),
+		});
+	}
+
+	function isGraphOverlayTarget(target: EventTarget | null): boolean {
+		if (!(target instanceof HTMLElement)) {
+			return false;
 		}
+		return Boolean(
+			target.closest(
+				'.knowledge-workspace-dock-panel, .knowledge-workspace-display-controls, .knowledge-workspace-inspector, .knowledge-workspace-connection-panel',
+			),
+		);
+	}
 
 	function focusWorkspaceForShortcuts(event: PointerEvent): void {
 		if (isEditableTarget(event.target)) {
@@ -656,8 +685,9 @@
 		workspaceRoot?.focus({ preventScroll: true });
 	}
 
-		function handleWorkspaceKeydown(event: KeyboardEvent): void {
-			if (!shouldHandleConnectionUndoShortcut({
+	function handleWorkspaceKeydown(event: KeyboardEvent): void {
+		if (
+			!shouldHandleConnectionUndoShortcut({
 				key: event.key,
 				ctrlKey: event.ctrlKey,
 				metaKey: event.metaKey,
@@ -665,13 +695,14 @@
 				shiftKey: event.shiftKey,
 				connectionUndoCount: workspaceState.connectionUndoCount,
 				editableTarget: isEditableTarget(event.target),
-			})) {
-				return;
-			}
+			})
+		) {
+			return;
+		}
 		event.preventDefault();
 		void controller.undoLastConnection().catch((error: unknown) =>
 			controller.setRendererDebugState({
-				status: "error",
+				status: 'error',
 				error: formatError(error),
 			}),
 		);
@@ -716,27 +747,28 @@
 		class="knowledge-workspace-body"
 		class:knowledge-workspace-hidden={debugOpen}
 	>
-			{#if settingsPanel}
-				<WorkspaceSettingsPopover
-					{app}
-					{controller}
-					{workspaceState}
-					{settingsPanel}
-					{settingsPopoverLeft}
-					{metadataFieldSuggestions}
-					{metadataFieldTypes}
-					{metadataFieldValueSuggestions}
-					{filePathSuggestions}
-					onClose={() => {
-						settingsPanel = undefined;
-					}}
-				/>
-			{/if}
+		{#if settingsPanel}
+			<WorkspaceSettingsPopover
+				{app}
+				{controller}
+				{workspaceState}
+				{settingsPanel}
+				{settingsPopoverLeft}
+				{metadataFieldSuggestions}
+				{metadataFieldTypes}
+				{metadataFieldValueSuggestions}
+				{filePathSuggestions}
+				onClose={() => {
+					settingsPanel = undefined;
+				}}
+			/>
+		{/if}
 		<main
 			class="knowledge-workspace-main"
 			class:dock-node-dragging={Boolean(dockDrag)}
 			class:connection-collapsed={!connectionOpen}
-			class:curated-panel-visible={workspaceState.chartSource === "curated"}
+			class:curated-panel-visible={workspaceState.chartSource ===
+				'curated'}
 			style="--dock-panel-width: {dockOpen
 				? `${workspaceState.dock.dockWidth}px`
 				: '32px'}; --curated-panel-width: {workspaceState.chartSource ===
@@ -746,41 +778,41 @@
 					? '32px'
 					: '0px'}"
 		>
-				<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
-				<WorkspaceMainPanels
-					{app}
-					{controller}
-					{workspaceState}
-					{debugSnapshot}
-					{workspaceFilePath}
-					{nodeColors}
-					{dockNoteEntries}
-					{dockNoteCandidates}
-					{selectedNode}
-					{selectedNodeColor}
-					{searchableNodes}
-					{atNodeLimit}
-					{metadataFieldSuggestions}
-					{connectionDrag}
-					{graphConnectionTargetNotePath}
-					{graphConnectionTargetTemplateId}
-					{graphConnectionTargetCurated}
-					{dockDrag}
-					{dockConnectionDrag}
-					{dockTargetNodeId}
-					{dockOpen}
-					{curatedPanelOpen}
-					{connectionOpen}
-					onToggleDock={() => (dockOpen = !dockOpen)}
-					onToggleCuratedPanel={() =>
-						(curatedPanelOpen = !curatedPanelOpen)}
-					onToggleConnection={() => (connectionOpen = !connectionOpen)}
-					onLinkPointerDown={dockGraphDrag.handlePointerDown}
-					onFocusNode={(nodeId) => rendererLifecycle.focusNode(nodeId)}
-					onOpenMetadataLink={(linkText, sourcePath) =>
-						void openMetadataLink(linkText, sourcePath)}
-					{formatError}
-				/>
+			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+			<WorkspaceMainPanels
+				{app}
+				{controller}
+				{workspaceState}
+				{debugSnapshot}
+				{workspaceFilePath}
+				{nodeColors}
+				{dockNoteEntries}
+				{dockNoteCandidates}
+				{selectedNode}
+				{selectedNodeColor}
+				{searchableNodes}
+				{atNodeLimit}
+				{metadataFieldSuggestions}
+				{connectionDrag}
+				{graphConnectionTargetNotePath}
+				{graphConnectionTargetTemplateId}
+				{graphConnectionTargetCurated}
+				{dockDrag}
+				{dockConnectionDrag}
+				{dockTargetNodeId}
+				{dockOpen}
+				{curatedPanelOpen}
+				{connectionOpen}
+				onToggleDock={() => (dockOpen = !dockOpen)}
+				onToggleCuratedPanel={() =>
+					(curatedPanelOpen = !curatedPanelOpen)}
+				onToggleConnection={() => (connectionOpen = !connectionOpen)}
+				onLinkPointerDown={dockGraphDrag.handlePointerDown}
+				onFocusNode={(nodeId) => rendererLifecycle.focusNode(nodeId)}
+				onOpenMetadataLink={(linkText, sourcePath) =>
+					void openMetadataLink(linkText, sourcePath)}
+				{formatError}
+			/>
 		</main>
 	</div>
 	{#if debugOpen}

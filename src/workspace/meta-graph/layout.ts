@@ -166,8 +166,9 @@ function normalizeManualLayout(
 	const groups = Array.isArray(record.groups)
 		? record.groups
 				.map((group, index) => normalizeChartGroup(group, index))
-				.filter((group): group is ManualLayoutConfig['groups'][number] =>
-					Boolean(group),
+				.filter(
+					(group): group is ManualLayoutConfig['groups'][number] =>
+						Boolean(group),
 				)
 		: [];
 	return {
@@ -231,7 +232,9 @@ function normalizeChartGroup(
 		color,
 		mode,
 		padding,
-		rule: isRecord(record.rule) ? normalizeFilterGroup(record.rule) : undefined,
+		rule: isRecord(record.rule)
+			? normalizeFilterGroup(record.rule)
+			: undefined,
 	};
 }
 
@@ -242,12 +245,72 @@ function normalizeGroupSize(value: unknown, fallback: number): number {
 
 function createDefaultCubeGroups(): ManualLayoutConfig['groups'] {
 	return [
-		{ id: 'cube-front', name: 'Front', x: -1, y: -1, width: 2, height: 2, color: '#009b48', mode: 'manual', padding: 0.22 },
-		{ id: 'cube-back', name: 'Back', x: -1, y: -1, width: 2, height: 2, color: '#0046ad', mode: 'manual', padding: 0.22 },
-		{ id: 'cube-left', name: 'Left', x: -1, y: -1, width: 2, height: 2, color: '#ff5800', mode: 'manual', padding: 0.22 },
-		{ id: 'cube-right', name: 'Right', x: -1, y: -1, width: 2, height: 2, color: '#b71234', mode: 'manual', padding: 0.22 },
-		{ id: 'cube-top', name: 'Top', x: -1, y: -1, width: 2, height: 2, color: '#ffffff', mode: 'manual', padding: 0.22 },
-		{ id: 'cube-bottom', name: 'Bottom', x: -1, y: -1, width: 2, height: 2, color: '#ffd500', mode: 'manual', padding: 0.22 },
+		{
+			id: 'cube-front',
+			name: 'Front',
+			x: -1,
+			y: -1,
+			width: 2,
+			height: 2,
+			color: '#009b48',
+			mode: 'manual',
+			padding: 0.22,
+		},
+		{
+			id: 'cube-back',
+			name: 'Back',
+			x: -1,
+			y: -1,
+			width: 2,
+			height: 2,
+			color: '#0046ad',
+			mode: 'manual',
+			padding: 0.22,
+		},
+		{
+			id: 'cube-left',
+			name: 'Left',
+			x: -1,
+			y: -1,
+			width: 2,
+			height: 2,
+			color: '#ff5800',
+			mode: 'manual',
+			padding: 0.22,
+		},
+		{
+			id: 'cube-right',
+			name: 'Right',
+			x: -1,
+			y: -1,
+			width: 2,
+			height: 2,
+			color: '#b71234',
+			mode: 'manual',
+			padding: 0.22,
+		},
+		{
+			id: 'cube-top',
+			name: 'Top',
+			x: -1,
+			y: -1,
+			width: 2,
+			height: 2,
+			color: '#ffffff',
+			mode: 'manual',
+			padding: 0.22,
+		},
+		{
+			id: 'cube-bottom',
+			name: 'Bottom',
+			x: -1,
+			y: -1,
+			width: 2,
+			height: 2,
+			color: '#ffd500',
+			mode: 'manual',
+			padding: 0.22,
+		},
 	];
 }
 

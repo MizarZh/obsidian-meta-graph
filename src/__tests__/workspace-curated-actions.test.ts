@@ -28,10 +28,9 @@ describe('workspace curated actions', () => {
 	});
 
 	it('reports no-op curated file changes', () => {
-		const state = addCuratedFilesActionInState(
-			createWorkspaceState(100),
-			['Note.md'],
-		).state;
+		const state = addCuratedFilesActionInState(createWorkspaceState(100), [
+			'Note.md',
+		]).state;
 
 		expect(addCuratedFilesActionInState(state, ['Note.md'])).toEqual({
 			state,
@@ -88,7 +87,10 @@ describe('workspace curated actions', () => {
 	});
 
 	it('updates curated paths without query refresh intent', () => {
-		const state = addCuratedFileInState(createWorkspaceState(100), 'Old.md').state;
+		const state = addCuratedFileInState(
+			createWorkspaceState(100),
+			'Old.md',
+		).state;
 
 		const result = updateCuratedFilePathActionInState(
 			state,

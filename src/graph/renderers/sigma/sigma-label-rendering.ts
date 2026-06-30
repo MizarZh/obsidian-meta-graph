@@ -115,10 +115,10 @@ export function createEdgeLabelDrawer(
 
 function drawNodeLabel(
 	context: CanvasRenderingContext2D,
-	data: Pick<
-		NodeDisplayData,
-		'x' | 'y' | 'label' | 'size'
-	> & { labelRotation?: number; labelDirection?: 1 | -1 },
+	data: Pick<NodeDisplayData, 'x' | 'y' | 'label' | 'size'> & {
+		labelRotation?: number;
+		labelDirection?: 1 | -1;
+	},
 	width: number,
 	height: number,
 	paddingX: number,

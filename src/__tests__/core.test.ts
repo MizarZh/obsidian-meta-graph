@@ -139,10 +139,7 @@ describe('breadth-first neighborhood query', () => {
 	it('projects all connected components when roots are empty', () => {
 		const index = buildIndex(
 			[node('A'), node('B'), node('C'), node('D'), node('E')],
-			[
-				edge('A', 'B'),
-				edge('C', 'D'),
-			],
+			[edge('A', 'B'), edge('C', 'D')],
 		);
 		expect(projectIds(index, query({ roots: [] }))).toEqual([
 			'A',
@@ -247,7 +244,10 @@ describe('breadth-first neighborhood query', () => {
 			index,
 			query({ roots: [], maxNodes: 2 }),
 		);
-		expect(projection.nodes.map((item) => item.id).sort()).toEqual(['A', 'B']);
+		expect(projection.nodes.map((item) => item.id).sort()).toEqual([
+			'A',
+			'B',
+		]);
 		expect(projection.edges).toHaveLength(1);
 	});
 
@@ -277,11 +277,7 @@ describe('breadth-first neighborhood query', () => {
 	it('honors BFS depth', () => {
 		const index = buildIndex(
 			[node('A'), node('B'), node('C'), node('D')],
-			[
-				edge('A', 'B'),
-				edge('B', 'C'),
-				edge('C', 'D'),
-			],
+			[edge('A', 'B'), edge('B', 'C'), edge('C', 'D')],
 		);
 		expect(projectIds(index, query({ depth: 2 }))).toEqual(['A', 'B', 'C']);
 	});
@@ -291,7 +287,11 @@ describe('breadth-first neighborhood query', () => {
 			[node('A'), node('B'), node('C')],
 			[edge('A', 'B'), edge('B', 'C'), edge('C', 'A')],
 		);
-		expect(projectIds(index, query({ depth: 10 }))).toEqual(['A', 'B', 'C']);
+		expect(projectIds(index, query({ depth: 10 }))).toEqual([
+			'A',
+			'B',
+			'C',
+		]);
 	});
 
 	it.each<[DirectionMode, string[]]>([
@@ -303,16 +303,14 @@ describe('breadth-first neighborhood query', () => {
 			[node('A'), node('B'), node('C')],
 			[edge('A', 'B'), edge('C', 'A')],
 		);
-		expect(projectIds(index, query({ direction, depth: 1 }))).toEqual(expected);
+		expect(projectIds(index, query({ direction, depth: 1 }))).toEqual(
+			expected,
+		);
 	});
 
 	it('applies folder filters while retaining the root', () => {
 		const index = buildIndex(
-			[
-				node('A', 'root'),
-				node('B', 'included'),
-				node('C', 'excluded'),
-			],
+			[node('A', 'root'), node('B', 'included'), node('C', 'excluded')],
 			[edge('A', 'B'), edge('A', 'C')],
 		);
 		expect(projectIds(index, query({ folders: ['included'] }))).toEqual([
@@ -473,14 +471,12 @@ describe('breadth-first neighborhood query', () => {
 	it('applies relation filters', () => {
 		const index = buildIndex(
 			[node('A'), node('B'), node('C')],
-			[
-				edge('A', 'B', 'leads-to'),
-				edge('A', 'C', 'related', false),
-			],
+			[edge('A', 'B', 'leads-to'), edge('A', 'C', 'related', false)],
 		);
-		expect(
-			projectIds(index, query({ relations: ['related'] })),
-		).toEqual(['A', 'C']);
+		expect(projectIds(index, query({ relations: ['related'] }))).toEqual([
+			'A',
+			'C',
+		]);
 	});
 });
 
@@ -498,7 +494,10 @@ describe('curated workspace projection', () => {
 			},
 		});
 
-		expect(projection.nodes.map((item) => item.id).sort()).toEqual(['A', 'B']);
+		expect(projection.nodes.map((item) => item.id).sort()).toEqual([
+			'A',
+			'B',
+		]);
 		expect(projection.edges).toEqual([]);
 		expect(projection.primaryIds).toEqual(new Set(['A', 'B']));
 	});
@@ -519,18 +518,17 @@ describe('curated workspace projection', () => {
 			},
 		});
 
-		expect(projection.nodes.map((item) => item.id).sort()).toEqual(['A', 'B']);
+		expect(projection.nodes.map((item) => item.id).sort()).toEqual([
+			'A',
+			'B',
+		]);
 		expect(projection.edges.map((item) => item.id)).toEqual([
 			createEdgeId('A', 'leads-to', 'B', true),
 		]);
 	});
 });
 
-function node(
-	id: string,
-	folder = '',
-	domains: string[] = [],
-): KnowledgeNode {
+function node(id: string, folder = '', domains: string[] = []): KnowledgeNode {
 	return {
 		id,
 		path: id,

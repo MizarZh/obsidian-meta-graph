@@ -26,19 +26,23 @@ describe('ArcLayout', () => {
 	});
 
 	it('splits visible links into arc segments', async () => {
-		const graph = new GraphologyAdapter(palette, [], [
-			{
-				id: 'styled',
-				field: 'relation',
-				value: 'leads-to',
-				color: '#ff0000',
-				size: 3,
-				lineStyle: 'dashed',
-				label: 'Next',
-				showLabel: true,
-				hidden: false,
-			},
-		]).fromProjection(projection);
+		const graph = new GraphologyAdapter(
+			palette,
+			[],
+			[
+				{
+					id: 'styled',
+					field: 'relation',
+					value: 'leads-to',
+					color: '#ff0000',
+					size: 3,
+					lineStyle: 'dashed',
+					label: 'Next',
+					showLabel: true,
+					hidden: false,
+				},
+			],
+		).fromProjection(projection);
 
 		await new ArcLayout().apply(graph);
 

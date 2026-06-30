@@ -19,10 +19,7 @@ export function getActiveLinkStyleRules(
 }
 
 export function getActiveDefaultNodeStyle(
-	state: Pick<
-		WorkspaceState,
-		'nodeStyleOverrides' | 'defaultNodeStyle'
-	>,
+	state: Pick<WorkspaceState, 'nodeStyleOverrides' | 'defaultNodeStyle'>,
 	fallbackColor: string,
 ): Required<DefaultNodeStyle> {
 	return {
@@ -35,10 +32,7 @@ export function getActiveDefaultNodeStyle(
 }
 
 export function getActiveDefaultLinkStyle(
-	state: Pick<
-		WorkspaceState,
-		'linkStyleOverrides' | 'defaultLinkStyle'
-	>,
+	state: Pick<WorkspaceState, 'linkStyleOverrides' | 'defaultLinkStyle'>,
 	fallbackColor: string,
 ): Required<DefaultLinkStyle> {
 	return {
@@ -48,11 +42,13 @@ export function getActiveDefaultLinkStyle(
 			fallbackColor,
 		size: state.linkStyleOverrides.size ?? state.defaultLinkStyle.size,
 		lineStyle:
-			state.linkStyleOverrides.lineStyle ?? state.defaultLinkStyle.lineStyle,
+			state.linkStyleOverrides.lineStyle ??
+			state.defaultLinkStyle.lineStyle,
 		label: state.linkStyleOverrides.label ?? state.defaultLinkStyle.label,
 		showLabel:
 			state.linkStyleOverrides.showLabel ??
 			state.defaultLinkStyle.showLabel,
-		hidden: state.linkStyleOverrides.hidden ?? state.defaultLinkStyle.hidden,
+		hidden:
+			state.linkStyleOverrides.hidden ?? state.defaultLinkStyle.hidden,
 	};
 }

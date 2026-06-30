@@ -1,18 +1,18 @@
 <script lang="ts">
-	import type { App } from "obsidian";
+	import type { App } from 'obsidian';
 	import type {
 		DebugSnapshot,
 		KnowledgeNode,
 		WorkspaceState,
-	} from "../../core/types";
-	import type { ConnectionDragState } from "../../graph/renderers/renderer-events";
-	import type { WorkspaceController } from "../../workspace/workspace-controller";
-	import ConnectionPanel from "../ConnectionPanel.svelte";
-	import CuratedPanel from "../CuratedPanel.svelte";
-	import DockGraphPanel from "../DockGraphPanel.svelte";
-	import Inspector from "../Inspector.svelte";
-	import type { DockDragPayload } from "../dock/types";
-	import type { DockNoteEntry } from "./derived";
+	} from '../../core/types';
+	import type { ConnectionDragState } from '../../graph/renderers/renderer-events';
+	import type { WorkspaceController } from '../../workspace/workspace-controller';
+	import ConnectionPanel from '../ConnectionPanel.svelte';
+	import CuratedPanel from '../CuratedPanel.svelte';
+	import DockGraphPanel from '../DockGraphPanel.svelte';
+	import Inspector from '../Inspector.svelte';
+	import type { DockDragPayload } from '../dock/types';
+	import type { DockNoteEntry } from './derived';
 
 	let {
 		app,
@@ -72,7 +72,10 @@
 		onToggleDock: () => void;
 		onToggleCuratedPanel: () => void;
 		onToggleConnection: () => void;
-		onLinkPointerDown: (payload: DockDragPayload, event: PointerEvent) => void;
+		onLinkPointerDown: (
+			payload: DockDragPayload,
+			event: PointerEvent,
+		) => void;
 		onFocusNode: (nodeId: string) => void;
 		onOpenMetadataLink: (linkText: string, sourcePath: string) => void;
 		formatError: (error: unknown) => string;
@@ -87,20 +90,20 @@
 
 	function reportError(error: unknown): void {
 		controller.setRendererDebugState({
-			status: "error",
+			status: 'error',
 			error: formatError(error),
 		});
 	}
 </script>
 
-{#if workspaceState.chartSource === "curated"}
+{#if workspaceState.chartSource === 'curated'}
 	<CuratedPanel
 		{app}
 		curated={workspaceState.curated}
 		nodes={debugSnapshot.index.nodes}
 		groups={workspaceState.manualLayout.groups}
 		manualLayout={workspaceState.manualLayout}
-		groupRequired={workspaceState.mode === "cube"}
+		groupRequired={workspaceState.mode === 'cube'}
 		folders={workspaceState.availableFolders}
 		{nodeColors}
 		{workspaceFilePath}
@@ -113,7 +116,8 @@
 			controller.setDockFocusOnSelect(!workspaceState.dock.focusOnSelect)}
 		dropTarget={graphConnectionTargetCurated}
 		onAddFile={(path, groupId) => controller.addCuratedFile(path, groupId)}
-		onAddFiles={(paths, groupId) => controller.addCuratedFiles(paths, groupId)}
+		onAddFiles={(paths, groupId) =>
+			controller.addCuratedFiles(paths, groupId)}
 		onRemoveFile={(path) => controller.removeCuratedFile(path)}
 		onRemoveFiles={(paths) => controller.removeCuratedFiles(paths)}
 		onMoveFilesToGroup={(paths, groupId) =>
@@ -130,9 +134,9 @@
 		<line
 			class:target={Boolean(
 				connectionDrag.targetNodeId ||
-					graphConnectionTargetNotePath ||
-					graphConnectionTargetTemplateId ||
-					graphConnectionTargetCurated,
+				graphConnectionTargetNotePath ||
+				graphConnectionTargetTemplateId ||
+				graphConnectionTargetCurated,
 			)}
 			x1={connectionDrag.x1}
 			y1={connectionDrag.y1}
@@ -154,12 +158,12 @@
 	groups={workspaceState.manualLayout.groups}
 	{nodeColors}
 	{dockOpen}
-	onToggleDock={onToggleDock}
+	{onToggleDock}
 	dockWidth={workspaceState.dock.dockWidth}
 	onResizeDock={(width) => controller.setDockWidth(width)}
 	activeConnectionField={workspaceState.activeConnectionField}
 	draggingKey={dockDrag
-		? dockDrag.kind === "template"
+		? dockDrag.kind === 'template'
 			? `template:${dockDrag.templateId}`
 			: `note:${dockDrag.notePath}`
 		: undefined}
@@ -177,7 +181,7 @@
 		controller.reorderDockTemplate(templateId, targetTemplateId, placement)}
 	onReorderNote={(path, targetPath, placement) =>
 		controller.reorderDockNote(path, targetPath, placement)}
-	onLinkPointerDown={onLinkPointerDown}
+	{onLinkPointerDown}
 	onOpenNote={(nodeId) => void controller.openNode(nodeId)}
 	focusOnSelect={workspaceState.dock.focusOnSelect}
 	onToggleFocusOnSelect={() =>
@@ -204,7 +208,10 @@
 />
 {#if atNodeLimit}
 	<section class="knowledge-workspace-notice">
-		<span>Node limit ({workspaceState.query.maxNodes}) reached. Some notes may be hidden.</span>
+		<span
+			>Node limit ({workspaceState.query.maxNodes}) reached. Some notes
+			may be hidden.</span
+		>
 	</section>
 {/if}
 <ConnectionPanel
@@ -224,13 +231,11 @@
 		}
 		controller.setActiveConnectionField(field);
 	}}
-	onFieldMode={(field, mode) => controller.setConnectionFieldMode(field, mode)}
+	onFieldMode={(field, mode) =>
+		controller.setConnectionFieldMode(field, mode)}
 	onAddField={(field) => controller.addConnectionField(field)}
 	onRemoveField={(field) => controller.removeConnectionField(field)}
 	onReorderField={(id, targetId, placement) =>
 		controller.reorderConnectionField(id, targetId, placement)}
-	onUndo={() =>
-		void controller
-			.undoLastConnection()
-			.catch(reportError)}
+	onUndo={() => void controller.undoLastConnection().catch(reportError)}
 />

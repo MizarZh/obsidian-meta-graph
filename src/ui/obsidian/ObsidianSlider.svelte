@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { SliderComponent } from "obsidian";
-	import { onMount } from "svelte";
+	import { SliderComponent } from 'obsidian';
+	import { onMount } from 'svelte';
 
 	let {
 		value,
@@ -10,14 +10,14 @@
 		disabled = false,
 		instant = true,
 		format,
-		class: className = "",
+		class: className = '',
 		onChange,
 		onCommit,
 	}: {
 		value: number;
 		min: number | null;
 		max: number | null;
-		step: number | "any";
+		step: number | 'any';
 		disabled?: boolean;
 		instant?: boolean;
 		format?: (value: number) => string;
@@ -38,11 +38,11 @@
 			}
 			onChange(nextValue);
 		});
-		slider.sliderEl.addEventListener("change", handleCommit);
+		slider.sliderEl.addEventListener('change', handleCommit);
 
 		return () => {
-			slider?.sliderEl.removeEventListener("change", handleCommit);
-			containerEl.textContent = "";
+			slider?.sliderEl.removeEventListener('change', handleCommit);
+			containerEl.textContent = '';
 			slider = undefined;
 		};
 	});
@@ -65,10 +65,13 @@
 		slider.setDisabled(disabled);
 		syncing = false;
 		if (className) {
-			slider.sliderEl.classList.add(...className.split(/\s+/u).filter(Boolean));
+			slider.sliderEl.classList.add(
+				...className.split(/\s+/u).filter(Boolean),
+			);
 		}
 		void format;
 	});
 </script>
 
-<span class="knowledge-workspace-obsidian-control" bind:this={containerEl}></span>
+<span class="knowledge-workspace-obsidian-control" bind:this={containerEl}
+></span>

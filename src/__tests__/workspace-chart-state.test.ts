@@ -89,8 +89,8 @@ describe('workspace chart state', () => {
 
 		expect(result.runQuery).toBe(true);
 		expect(result.state.activeChartId).toBe('knowledge-map');
-		expect(result.state.charts.some((chart) => chart.id === 'knowledge-map-2')).toBe(
-			false,
-		);
+		expect(
+			result.state.charts.some((chart) => chart.id === 'knowledge-map-2'),
+		).toBe(false);
 	});
 });

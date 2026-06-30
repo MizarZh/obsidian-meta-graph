@@ -44,9 +44,7 @@ export {
 	normalizeMetaGraphDocument,
 	serializeMetaGraphState,
 } from './meta-graph/document';
-export {
-	createDefaultChart,
-} from './meta-graph/chart';
+export { createDefaultChart } from './meta-graph/chart';
 export {
 	createDefaultLinkStyleRule,
 	createDefaultNodeStyleRule,

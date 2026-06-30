@@ -18,24 +18,18 @@ export class CreateFromTemplateModal extends Modal {
 		this.contentEl.createEl('p', {
 			text: `Create a ${this.templateLabel} note linked to ${this.targetTitle}.`,
 		});
-		new Setting(this.contentEl)
-			.setName('Name')
-			.addText((text) =>
-				text
-					.setPlaceholder('New note name')
-					.onChange((value) => {
-						this.name = value;
-						this.setError('');
-					}),
-			);
+		new Setting(this.contentEl).setName('Name').addText((text) =>
+			text.setPlaceholder('New note name').onChange((value) => {
+				this.name = value;
+				this.setError('');
+			}),
+		);
 		this.errorEl = this.contentEl.createEl('div', {
 			cls: 'knowledge-workspace-modal-error',
 		});
 		new Setting(this.contentEl)
 			.addButton((button) =>
-				button
-					.setButtonText('Cancel')
-					.onClick(() => this.close()),
+				button.setButtonText('Cancel').onClick(() => this.close()),
 			)
 			.addButton((button) =>
 				button
@@ -61,7 +55,9 @@ export class CreateFromTemplateModal extends Modal {
 			await this.onSubmit(normalized);
 			this.close();
 		} catch (error) {
-			this.setError(error instanceof Error ? error.message : String(error));
+			this.setError(
+				error instanceof Error ? error.message : String(error),
+			);
 		}
 	}
 

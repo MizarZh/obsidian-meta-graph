@@ -78,7 +78,9 @@ function normalizeCuratedContext(value: unknown): CuratedWorkspaceContext {
 		enabled: readBoolean(record.enabled, DEFAULT_CURATED_CONTEXT.enabled),
 		depth: Math.max(
 			0,
-			Math.floor(readFiniteNumber(record.depth, DEFAULT_CURATED_CONTEXT.depth)),
+			Math.floor(
+				readFiniteNumber(record.depth, DEFAULT_CURATED_CONTEXT.depth),
+			),
 		),
 		includeOutgoingLinks: readBoolean(
 			record.includeOutgoingLinks,

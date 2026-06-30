@@ -27,7 +27,9 @@ export function syncWorkspaceRendererGroups(
 		return;
 	}
 	renderer.setGroups(
-		getModeCapabilities(mode).supportsManualGroups ? manualLayout.groups : [],
+		getModeCapabilities(mode).supportsManualGroups
+			? manualLayout.groups
+			: [],
 		{
 			...callbacks,
 			getGroupNodeIds: (groupId) =>

@@ -21,7 +21,9 @@ describe('workspace template actions', () => {
 	});
 
 	it('does not open when the setting is disabled', async () => {
-		const { opener, getFile, openFile } = createOpener(createFile('Created.md'));
+		const { opener, getFile, openFile } = createOpener(
+			createFile('Created.md'),
+		);
 
 		await openCreatedTemplateNote('Created.md', false, opener);
 
@@ -69,7 +71,8 @@ function createOpener(file: VaultEntry | null | undefined): {
 	return {
 		opener: {
 			getFile,
-			isOpenableFile: (entry): entry is VaultFile => entry.kind === 'file',
+			isOpenableFile: (entry): entry is VaultFile =>
+				entry.kind === 'file',
 			openFile: async (entry) => {
 				openFile(entry);
 			},

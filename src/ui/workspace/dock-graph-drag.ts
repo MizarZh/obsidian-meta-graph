@@ -120,12 +120,18 @@ export class DockGraphDragController {
 		const payload = this.dockConnectionDrag;
 		const targetNodeId =
 			this.dockTargetNodeId ??
-			this.readNodeAtClientPosition(event.clientX, event.clientY, payload);
+			this.readNodeAtClientPosition(
+				event.clientX,
+				event.clientY,
+				payload,
+			);
 		this.resetConnectionDrag();
 		if (!targetNodeId) {
 			return;
 		}
-		this.options.onDrop(resolveDockPayloadGraphAction(payload, targetNodeId));
+		this.options.onDrop(
+			resolveDockPayloadGraphAction(payload, targetNodeId),
+		);
 	};
 
 	private resetDockDrag(): void {
@@ -153,7 +159,10 @@ export class DockGraphDragController {
 		return canDockPayloadTargetNode(payload, nodeId) ? nodeId : undefined;
 	}
 
-	private readViewportPoint(clientX: number, clientY: number): {
+	private readViewportPoint(
+		clientX: number,
+		clientY: number,
+	): {
 		x: number;
 		y: number;
 	} {

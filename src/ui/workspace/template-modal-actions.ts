@@ -67,5 +67,9 @@ export async function openWorkspaceTemplateNote<
 	if (filePath) {
 		options.addCuratedFile(filePath);
 	}
-	await openCreatedTemplateNote(filePath, options.openInNewTab, options.opener);
+	await openCreatedTemplateNote(
+		filePath,
+		options.openInNewTab,
+		options.opener,
+	);
 }

@@ -62,10 +62,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		void this.unmountWorkspace();
 	}
 
-	async setState(
-		state: unknown,
-		result: ViewStateResult,
-	): Promise<void> {
+	async setState(state: unknown, result: ViewStateResult): Promise<void> {
 		await super.setState(state, result);
 	}
 
@@ -78,18 +75,22 @@ export class KnowledgeWorkspaceView extends TextFileView {
 			),
 		);
 		this.registerEvent(
-			this.app.vault.on('create', () => this.controller?.scheduleRefresh()),
+			this.app.vault.on('create', () =>
+				this.controller?.scheduleRefresh(),
+			),
 		);
 		this.registerEvent(
-			this.app.vault.on('delete', () => this.controller?.scheduleRefresh()),
+			this.app.vault.on('delete', () =>
+				this.controller?.scheduleRefresh(),
+			),
 		);
-			this.registerEvent(
-				this.app.vault.on('rename', (file, oldPath) => {
-					this.controller?.updateDockNotePath(oldPath, file.path);
-					this.controller?.updateCuratedFilePath(oldPath, file.path);
-					this.controller?.scheduleRefresh();
-				}),
-			);
+		this.registerEvent(
+			this.app.vault.on('rename', (file, oldPath) => {
+				this.controller?.updateDockNotePath(oldPath, file.path);
+				this.controller?.updateCuratedFilePath(oldPath, file.path);
+				this.controller?.scheduleRefresh();
+			}),
+		);
 		this.registerEvent(
 			this.app.workspace.on('file-open', (file: TFile | null) =>
 				this.controller?.setCurrentFile(file),
@@ -145,7 +146,8 @@ export class KnowledgeWorkspaceView extends TextFileView {
 				controller: this.controller,
 				workspaceFilePath: this.file?.path,
 				showDebugButton: this.plugin.settings.showDebugButton,
-				openTemplateNoteInNewTab: this.plugin.settings.openTemplateNoteInNewTab,
+				openTemplateNoteInNewTab:
+					this.plugin.settings.openTemplateNoteInNewTab,
 				onAutoSave: (nextDocument: MetaGraphDocument) =>
 					this.persistDocument(nextDocument),
 			},

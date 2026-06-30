@@ -73,7 +73,8 @@
 		{ value: 'reverse', label: 'Reverse' },
 	];
 	const activeMode = $derived(
-		fields.find((field) => field.id === activeFieldSpecId)?.mode ?? 'directed',
+		fields.find((field) => field.id === activeFieldSpecId)?.mode ??
+			'directed',
 	);
 
 	function addField(): void {
@@ -111,7 +112,9 @@
 		if (
 			event.button !== 0 ||
 			(event.target instanceof HTMLElement &&
-				event.target.closest('.knowledge-workspace-obsidian-control button'))
+				event.target.closest(
+					'.knowledge-workspace-obsidian-control button',
+				))
 		) {
 			return;
 		}
@@ -156,12 +159,18 @@
 		});
 	}
 
-	function reorderAtPoint(id: string, clientX: number, clientY: number): void {
+	function reorderAtPoint(
+		id: string,
+		clientX: number,
+		clientY: number,
+	): void {
 		const target = document.elementFromPoint(clientX, clientY);
 		if (!(target instanceof HTMLElement)) {
 			return;
 		}
-		const targetEl = target.closest<HTMLElement>('[data-connection-field-id]');
+		const targetEl = target.closest<HTMLElement>(
+			'[data-connection-field-id]',
+		);
 		const targetId = targetEl?.dataset.connectionFieldId;
 		if (!targetEl || !targetId || targetId === id) {
 			return;
@@ -195,56 +204,66 @@
 		/>
 		<div class="knowledge-workspace-connection-body">
 			<div class="knowledge-workspace-connection-picker">
-				<span class="knowledge-workspace-connection-label">Connection</span>
-				<div class="knowledge-workspace-connection-tags" aria-label="Connection metadata fields">
+				<span class="knowledge-workspace-connection-label"
+					>Connection</span
+				>
+				<div
+					class="knowledge-workspace-connection-tags"
+					aria-label="Connection metadata fields"
+				>
 					{#each fields as field}
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<span
-								class:active={field.id === activeFieldSpecId}
-								class:reordering={reorderDrag?.id === field.id &&
-									reorderDrag.active}
-								class="knowledge-workspace-connection-tag"
-								data-connection-field-id={field.id}
-								onpointerdown={(event) =>
-									handleFieldPointerDown(field.id, event)}
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<span
+							class:active={field.id === activeFieldSpecId}
+							class:reordering={reorderDrag?.id === field.id &&
+								reorderDrag.active}
+							class="knowledge-workspace-connection-tag"
+							data-connection-field-id={field.id}
+							onpointerdown={(event) =>
+								handleFieldPointerDown(field.id, event)}
+						>
+							<button
+								type="button"
+								aria-pressed={field.id === activeFieldSpecId}
+								aria-label={`${field.field} ${directionLabel(field.mode)}`}
+								onclick={() =>
+									onSelectField(field.field, field.mode)}
 							>
-								<button
-									type="button"
-									aria-pressed={field.id === activeFieldSpecId}
-									aria-label={`${field.field} ${directionLabel(field.mode)}`}
-									onclick={() => onSelectField(field.field, field.mode)}
-								>
-									<span
-										class="knowledge-workspace-connection-direction-icon"
-										use:obsidianIcon={directionIcon(field.mode)}
-										aria-hidden="true"
-									></span>
-									<span>{field.field}</span>
-								</button>
-								<ObsidianButton
-									icon="x"
-									ariaLabel={`Remove ${field.field}`}
-									onClick={() => onRemoveField(field.id)}
-								/>
-							</span>
+								<span
+									class="knowledge-workspace-connection-direction-icon"
+									use:obsidianIcon={directionIcon(field.mode)}
+									aria-hidden="true"
+								></span>
+								<span>{field.field}</span>
+							</button>
+							<ObsidianButton
+								icon="x"
+								ariaLabel={`Remove ${field.field}`}
+								onClick={() => onRemoveField(field.id)}
+							/>
+						</span>
 					{/each}
 					{#if fields.length === 0}
-						<span class="knowledge-workspace-connection-empty">No metadata</span>
+						<span class="knowledge-workspace-connection-empty"
+							>No metadata</span
+						>
 					{/if}
 				</div>
-				</div>
-				<label class="knowledge-workspace-connection-direction">
-					<span class="knowledge-workspace-connection-label">Direction</span>
-					<ObsidianDropdown
-						value={activeMode}
-						options={directionOptions}
-						disabled={!activeField}
-						ariaLabel="Connection direction"
-						onChange={(value) =>
-							onFieldMode(activeField, value as ConnectionFieldMode)}
-					/>
-				</label>
-				<form
+			</div>
+			<label class="knowledge-workspace-connection-direction">
+				<span class="knowledge-workspace-connection-label"
+					>Direction</span
+				>
+				<ObsidianDropdown
+					value={activeMode}
+					options={directionOptions}
+					disabled={!activeField}
+					ariaLabel="Connection direction"
+					onChange={(value) =>
+						onFieldMode(activeField, value as ConnectionFieldMode)}
+				/>
+			</label>
+			<form
 				class="knowledge-workspace-connection-custom"
 				onsubmit={(event) => {
 					event.preventDefault();
@@ -282,7 +301,11 @@
 				class:target={Boolean(dragTarget)}
 				class="knowledge-workspace-connection-status"
 			>
-				{dragTarget ? 'Release to connect' : dragging ? 'Choose target' : 'Ctrl drag'}
+				{dragTarget
+					? 'Release to connect'
+					: dragging
+						? 'Choose target'
+						: 'Ctrl drag'}
 			</span>
 			<ObsidianButton
 				class="knowledge-workspace-connection-undo"

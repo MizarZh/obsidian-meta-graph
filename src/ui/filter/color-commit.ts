@@ -54,7 +54,8 @@ export function cssColorToHex(document: Document, color: string): string {
 	probe.style.color = color;
 	probe.hidden = true;
 	document.body.appendChild(probe);
-	const normalized = document.defaultView?.getComputedStyle(probe).color ?? '';
+	const normalized =
+		document.defaultView?.getComputedStyle(probe).color ?? '';
 	probe.remove();
 	const channels = normalized.match(/\d+/gu);
 	if (!channels || channels.length < 3) {

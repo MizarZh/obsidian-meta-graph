@@ -32,10 +32,7 @@ describe('workspace template note actions', () => {
 		});
 
 		expect(path).toBe('Created.md');
-		expect(createNoteFile).toHaveBeenCalledWith(
-			template,
-			'Created',
-		);
+		expect(createNoteFile).toHaveBeenCalledWith(template, 'Created');
 		expect(connectDockNote).toHaveBeenCalledWith(
 			'Created.md',
 			'Target.md',

@@ -16,17 +16,13 @@ export class ConfirmDeleteViewModal extends Modal {
 		});
 		new Setting(this.contentEl)
 			.addButton((button) =>
-				button
-					.setButtonText('Cancel')
-					.onClick(() => this.close()),
+				button.setButtonText('Cancel').onClick(() => this.close()),
 			)
 			.addButton((button) =>
-				button
-					.setButtonText('Delete')
-					.onClick(() => {
-						this.onConfirm();
-						this.close();
-					}),
+				button.setButtonText('Delete').onClick(() => {
+					this.onConfirm();
+					this.close();
+				}),
 			);
 	}
 

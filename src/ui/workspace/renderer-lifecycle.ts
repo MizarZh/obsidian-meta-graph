@@ -109,7 +109,9 @@ export class WorkspaceRendererLifecycle {
 				state.graphSpacing,
 				getWorkspaceGraphForceSettings(state),
 				(nodeId, position) => {
-					this.options.readLayoutSnapshot().positions.set(nodeId, position);
+					this.options
+						.readLayoutSnapshot()
+						.positions.set(nodeId, position);
 				},
 			);
 		}
@@ -177,7 +179,9 @@ export class WorkspaceRendererLifecycle {
 			state,
 			palette,
 		);
-		const newNodeIds = graph.nodes().filter((nodeId) => !positions.has(nodeId));
+		const newNodeIds = graph
+			.nodes()
+			.filter((nodeId) => !positions.has(nodeId));
 		this.options.setRendererDebugState({
 			status: 'layout',
 			mode: state.mode,

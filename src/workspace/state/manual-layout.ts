@@ -42,9 +42,9 @@ export function addManualPlacements(
 	}
 	const isCubeLayout = layout.engine === 'cube-3d';
 	const group = groupId
-		? (isCubeLayout
-				? CUBE_FACE_GROUPS_BY_ID.get(groupId)
-				: manual.groups.find((item) => item.id === groupId))
+		? isCubeLayout
+			? CUBE_FACE_GROUPS_BY_ID.get(groupId)
+			: manual.groups.find((item) => item.id === groupId)
 		: undefined;
 	if (groupId && !group) {
 		return layout;
@@ -55,9 +55,9 @@ export function addManualPlacements(
 		const placementGroupId =
 			groupId ?? (isCubeLayout ? getCubeFaceIdForNode(path) : undefined);
 		const placementGroup = placementGroupId
-			? (isCubeLayout
-					? CUBE_FACE_GROUPS_BY_ID.get(placementGroupId)
-					: manual.groups.find((item) => item.id === placementGroupId))
+			? isCubeLayout
+				? CUBE_FACE_GROUPS_BY_ID.get(placementGroupId)
+				: manual.groups.find((item) => item.id === placementGroupId)
 			: undefined;
 		if (placementGroupId && !placementGroup) {
 			continue;
@@ -73,7 +73,10 @@ export function addManualPlacements(
 			)
 			.map(([, placement]) => ({ x: placement.x, y: placement.y }));
 		const existing = nodes[path];
-		if (existing && (!placementGroupId || existing.groupId === placementGroupId)) {
+		if (
+			existing &&
+			(!placementGroupId || existing.groupId === placementGroupId)
+		) {
 			continue;
 		}
 		const position = findManualPlacement(
@@ -83,12 +86,16 @@ export function addManualPlacements(
 			CUBE_FACE_IDS,
 		);
 		newPositions.push(position);
-		nodes[path] = placementGroupId ? { ...position, groupId: placementGroupId } : position;
+		nodes[path] = placementGroupId
+			? { ...position, groupId: placementGroupId }
+			: position;
 	}
 	const groups =
 		group && newPositions.length > 0 && !CUBE_FACE_IDS.has(group.id)
 			? manual.groups.map((item) =>
-					item.id === group.id ? expandGroupToPositions(item, newPositions) : item,
+					item.id === group.id
+						? expandGroupToPositions(item, newPositions)
+						: item,
 				)
 			: manual.groups;
 	return {
@@ -135,9 +142,9 @@ export function moveManualNodesToGroup(
 	const manual = layout.manual ?? { nodes: {}, groups: [] };
 	const movingPaths = new Set(paths);
 	const group = groupId
-		? (layout.engine === 'cube-3d'
-				? CUBE_FACE_GROUPS_BY_ID.get(groupId)
-				: manual.groups.find((item) => item.id === groupId))
+		? layout.engine === 'cube-3d'
+			? CUBE_FACE_GROUPS_BY_ID.get(groupId)
+			: manual.groups.find((item) => item.id === groupId)
 		: undefined;
 	if (groupId && !group) {
 		return layout;
@@ -154,7 +161,9 @@ export function moveManualNodesToGroup(
 			if (movingPaths.has(nodeId)) {
 				return false;
 			}
-			return group ? placement.groupId === group.id : placement.groupId === undefined;
+			return group
+				? placement.groupId === group.id
+				: placement.groupId === undefined;
 		})
 		.map(([, placement]) => ({ x: placement.x, y: placement.y }));
 	const nodes = { ...manual.nodes };
@@ -185,7 +194,9 @@ export function moveManualNodesToGroup(
 	const groups =
 		group && newPositions.length > 0 && !CUBE_FACE_IDS.has(group.id)
 			? manual.groups.map((item) =>
-					item.id === group.id ? expandGroupToPositions(item, newPositions) : item,
+					item.id === group.id
+						? expandGroupToPositions(item, newPositions)
+						: item,
 				)
 			: manual.groups;
 	return {

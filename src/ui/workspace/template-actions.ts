@@ -1,10 +1,16 @@
-export interface CreatedTemplateNoteOpener<FileEntry, OpenableFile extends FileEntry> {
+export interface CreatedTemplateNoteOpener<
+	FileEntry,
+	OpenableFile extends FileEntry,
+> {
 	getFile: (path: string) => FileEntry | null | undefined;
 	isOpenableFile: (file: FileEntry) => file is OpenableFile;
 	openFile: (file: OpenableFile) => Promise<void>;
 }
 
-export async function openCreatedTemplateNote<FileEntry, OpenableFile extends FileEntry>(
+export async function openCreatedTemplateNote<
+	FileEntry,
+	OpenableFile extends FileEntry,
+>(
 	filePath: string | undefined,
 	openInNewTab: boolean,
 	opener: CreatedTemplateNoteOpener<FileEntry, OpenableFile>,

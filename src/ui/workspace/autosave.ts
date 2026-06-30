@@ -2,7 +2,10 @@ import type { MetaGraphDocument, WorkspaceState } from '../../core/types';
 import { serializeMetaGraphState } from '../../workspace/meta-graph-model';
 
 interface AutoSaveTimers {
-	setTimeout(handler: () => void, timeout: number): ReturnType<typeof setTimeout>;
+	setTimeout(
+		handler: () => void,
+		timeout: number,
+	): ReturnType<typeof setTimeout>;
 	clearTimeout(handle: ReturnType<typeof setTimeout>): void;
 }
 
@@ -18,7 +21,9 @@ export class WorkspaceAutoSave {
 	) {}
 
 	initialize(state: WorkspaceState): void {
-		this.lastSavedFingerprint = this.fingerprint(serializeMetaGraphState(state));
+		this.lastSavedFingerprint = this.fingerprint(
+			serializeMetaGraphState(state),
+		);
 	}
 
 	schedule(state: WorkspaceState): void {

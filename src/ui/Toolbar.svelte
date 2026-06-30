@@ -1,16 +1,16 @@
 <script lang="ts">
-	import { setIcon, type App, type IconName } from "obsidian";
-	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
-	import ObsidianDropdown from "./obsidian/ObsidianDropdown.svelte";
-	import ObsidianSuggestInput from "./obsidian/ObsidianSuggestInput.svelte";
-	import ObsidianTextInput from "./obsidian/ObsidianTextInput.svelte";
+	import { setIcon, type App, type IconName } from 'obsidian';
+	import ObsidianButton from './obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
+	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
+	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
 	import type {
 		ChartSource,
 		KnowledgeNode,
 		MetaGraphChart,
 		SettingsPanelMode,
 		ViewMode,
-	} from "../core/types";
+	} from '../core/types';
 
 	let {
 		app,
@@ -59,9 +59,9 @@
 	let pickerOpen = $state(false);
 	let configOpen = $state(false);
 	let creatingView = $state(false);
-	let viewSearch = $state("");
-	let nodeSearch = $state("");
-	let draftName = $state("");
+	let viewSearch = $state('');
+	let nodeSearch = $state('');
+	let draftName = $state('');
 
 	const activeChart = $derived(
 		charts.find((chart) => chart.id === activeChartId) ?? charts[0],
@@ -79,52 +79,60 @@
 			label: node.title,
 			detail: formatNodeSearchDetail(node),
 			searchText: [node.title, node.path, ...(node.aliases ?? [])].join(
-				" ",
+				' ',
 			),
 		})),
 	);
-			const VIEW_ICONS: Record<ViewMode, IconName> = {
-					graph: "chart-scatter",
-					"graph-3d": "box",
-					cube: "cuboid",
-					free: "move",
-					flow: "git-fork",
-				arc: "route",
-			"hierarchical-edge-bundling": "git-merge",
-		};
-			const VIEW_MODE_OPTIONS = [
-					{ value: "graph", label: "Graph" },
-					{ value: "graph-3d", label: "3D graph" },
-					{ value: "cube", label: "Cube graph" },
-					{ value: "free", label: "Free" },
-					{ value: "flow", label: "Flow" },
-			{ value: "arc", label: "Arc diagram" },
-			{
-				value: "hierarchical-edge-bundling",
-				label: "Hierarchical edge bundling",
-			},
-		];
-	const SOURCE_OPTIONS = [
-		{ value: "query", label: "Query" },
-		{ value: "curated", label: "Curated" },
+	const VIEW_ICONS: Record<ViewMode, IconName> = {
+		graph: 'chart-scatter',
+		'graph-3d': 'box',
+		cube: 'cuboid',
+		free: 'move',
+		flow: 'git-fork',
+		arc: 'route',
+		'hierarchical-edge-bundling': 'git-merge',
+	};
+	const VIEW_MODE_OPTIONS = [
+		{ value: 'graph', label: 'Graph' },
+		{ value: 'graph-3d', label: '3D graph' },
+		{ value: 'cube', label: 'Cube graph' },
+		{ value: 'free', label: 'Free' },
+		{ value: 'flow', label: 'Flow' },
+		{ value: 'arc', label: 'Arc diagram' },
+		{
+			value: 'hierarchical-edge-bundling',
+			label: 'Hierarchical edge bundling',
+		},
 	];
-	const SETTINGS_TABS = $derived<Array<{
-		mode: SettingsPanelMode;
-		icon: IconName;
-		label: string;
-	}>>([
-			{ mode: "graph", icon: "settings-2", label: "Graph" },
-			...(chartSource === "query"
-				? [{ mode: "filters", icon: "list-filter", label: "Filter" } as const]
-				: []),
-			{ mode: "groups", icon: "group", label: "Group" },
-			{ mode: "text-style", icon: "type", label: "Text style" },
-		{ mode: "note-style", icon: "palette", label: "Note style" },
-		{ mode: "link-style", icon: "route", label: "Link style" },
+	const SOURCE_OPTIONS = [
+		{ value: 'query', label: 'Query' },
+		{ value: 'curated', label: 'Curated' },
+	];
+	const SETTINGS_TABS = $derived<
+		Array<{
+			mode: SettingsPanelMode;
+			icon: IconName;
+			label: string;
+		}>
+	>([
+		{ mode: 'graph', icon: 'settings-2', label: 'Graph' },
+		...(chartSource === 'query'
+			? [
+					{
+						mode: 'filters',
+						icon: 'list-filter',
+						label: 'Filter',
+					} as const,
+				]
+			: []),
+		{ mode: 'groups', icon: 'group', label: 'Group' },
+		{ mode: 'text-style', icon: 'type', label: 'Text style' },
+		{ mode: 'note-style', icon: 'palette', label: 'Note style' },
+		{ mode: 'link-style', icon: 'route', label: 'Link style' },
 	]);
 
 	function getViewIcon(type: ViewMode | undefined): IconName {
-		return VIEW_ICONS[type ?? "graph"];
+		return VIEW_ICONS[type ?? 'graph'];
 	}
 
 	function obsidianIcon(node: HTMLElement, icon: IconName) {
@@ -141,11 +149,11 @@
 		pickerOpen = !pickerOpen;
 		configOpen = false;
 		creatingView = false;
-		viewSearch = "";
+		viewSearch = '';
 	}
 
 	function openConfig(isCreating = false): void {
-		draftName = activeChart?.name ?? "";
+		draftName = activeChart?.name ?? '';
 		configOpen = true;
 		creatingView = isCreating;
 		pickerOpen = false;
@@ -179,7 +187,7 @@
 
 	function formatNodeSearchDetail(node: KnowledgeNode): string {
 		return node.aliases && node.aliases.length > 0
-			? `${node.path} · ${node.aliases.join(", ")}`
+			? `${node.path} · ${node.aliases.join(', ')}`
 			: node.path;
 	}
 
@@ -197,13 +205,13 @@
 			onclick={togglePicker}
 		>
 			<span
-				class:curated={activeChart?.source === "curated"}
+				class:curated={activeChart?.source === 'curated'}
 				class="knowledge-workspace-view-icon"
 				use:obsidianIcon={getViewIcon(activeChart?.type)}
 				aria-hidden="true"
 			></span>
 			<span class="knowledge-workspace-view-name"
-				>{activeChart?.name ?? "View"}</span
+				>{activeChart?.name ?? 'View'}</span
 			>
 			<span class="knowledge-workspace-view-caret" aria-hidden="true"
 			></span>
@@ -242,7 +250,7 @@
 					{#each filteredCharts as chart (chart.id)}
 						<div
 							class:active={chart.id === activeChartId}
-							class:curated={chart.source === "curated"}
+							class:curated={chart.source === 'curated'}
 							class="knowledge-workspace-view-row"
 						>
 							<button
@@ -250,7 +258,7 @@
 								onclick={() => selectChart(chart.id)}
 							>
 								<span
-									class:curated={chart.source === "curated"}
+									class:curated={chart.source === 'curated'}
 									class="knowledge-workspace-view-icon"
 									use:obsidianIcon={getViewIcon(chart.type)}
 									aria-hidden="true"
@@ -302,7 +310,7 @@
 							pickerOpen = true;
 						}}
 					/>
-					<div>{creatingView ? "Create view" : "Configure view"}</div>
+					<div>{creatingView ? 'Create view' : 'Configure view'}</div>
 					<ObsidianButton
 						class="knowledge-workspace-icon-button close"
 						ariaLabel="Close"
@@ -374,7 +382,7 @@
 			}}
 			onSelect={(option) => {
 				focusSearchNode(option.value);
-				nodeSearch = "";
+				nodeSearch = '';
 			}}
 		/>
 	</div>

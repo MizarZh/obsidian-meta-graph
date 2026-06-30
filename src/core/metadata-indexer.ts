@@ -33,12 +33,17 @@ export class MetadataIndexer {
 		this.metadataSources.length = 0;
 		const index = createKnowledgeIndex();
 		const files = this.app.vault.getMarkdownFiles();
-		const filePaths = new Set(files.map((file) => normalizePath(file.path)));
+		const filePaths = new Set(
+			files.map((file) => normalizePath(file.path)),
+		);
 
 		for (const file of files) {
 			addNode(
 				index,
-				this.createNode(file, this.app.metadataCache.getFileCache(file)),
+				this.createNode(
+					file,
+					this.app.metadataCache.getFileCache(file),
+				),
 			);
 		}
 
@@ -46,11 +51,13 @@ export class MetadataIndexer {
 		for (const file of files) {
 			const cache = this.app.metadataCache.getFileCache(file);
 			const frontmatter = asFrontmatter(cache?.frontmatter);
-			const frontmatterLinks = (cache?.frontmatterLinks ?? []).map((link) => ({
-				key: link.key,
-				link: link.link,
-				original: link.original,
-			}));
+			const frontmatterLinks = (cache?.frontmatterLinks ?? []).map(
+				(link) => ({
+					key: link.key,
+					link: link.link,
+					original: link.original,
+				}),
+			);
 			const relationFrontmatterLinks = frontmatterLinks.filter((link) =>
 				isRelationField(
 					link.key.split(/[.[\]]/u)[0] ?? link.key,
@@ -97,22 +104,26 @@ export class MetadataIndexer {
 		return index;
 	}
 
-	private createNode(file: TFile, cache: CachedMetadata | null): KnowledgeNode {
+	private createNode(
+		file: TFile,
+		cache: CachedMetadata | null,
+	): KnowledgeNode {
 		const frontmatter = asFrontmatter(cache?.frontmatter);
-		const metadataFields = Object.keys(frontmatter ?? {}).sort((left, right) =>
+		const metadataFields = Object.keys(frontmatter ?? {}).sort(
+			(left, right) =>
+				left.localeCompare(right, undefined, { sensitivity: 'base' }),
+		);
+		const links = uniqueStrings([
+			...(cache?.links ?? []).map((link) => link.link),
+			...(cache?.frontmatterLinks ?? []).map((link) => link.link),
+		]).sort((left, right) =>
 			left.localeCompare(right, undefined, { sensitivity: 'base' }),
 		);
-			const links = uniqueStrings([
-				...(cache?.links ?? []).map((link) => link.link),
-				...(cache?.frontmatterLinks ?? []).map((link) => link.link),
-			]).sort((left, right) =>
-				left.localeCompare(right, undefined, { sensitivity: 'base' }),
-			);
-			const embeds = uniqueStrings(
-				(cache?.embeds ?? []).map((embed) => embed.link),
-			).sort((left, right) =>
-				left.localeCompare(right, undefined, { sensitivity: 'base' }),
-			);
+		const embeds = uniqueStrings(
+			(cache?.embeds ?? []).map((embed) => embed.link),
+		).sort((left, right) =>
+			left.localeCompare(right, undefined, { sensitivity: 'base' }),
+		);
 		const tags = new Set(toStringArray(frontmatter?.tags));
 		for (const tag of cache?.tags ?? []) {
 			tags.add(tag.tag.replace(/^#/, ''));
@@ -126,19 +137,19 @@ export class MetadataIndexer {
 		return {
 			id,
 			path: id,
-				title: file.basename,
-				fileName: file.name,
-				extension: file.extension,
-				fileSize: file.stat.size,
-				createdTime: file.stat.ctime,
-				modifiedTime: file.stat.mtime,
-				aliases,
+			title: file.basename,
+			fileName: file.name,
+			extension: file.extension,
+			fileSize: file.stat.size,
+			createdTime: file.stat.ctime,
+			modifiedTime: file.stat.mtime,
+			aliases,
 			folder: file.parent?.path === '/' ? '' : (file.parent?.path ?? ''),
 			domains: toStringArray(frontmatter?.domain),
-				tags: [...tags],
-				links,
-				embeds,
-				noteType: firstString(frontmatter?.type),
+			tags: [...tags],
+			links,
+			embeds,
+			noteType: firstString(frontmatter?.type),
 			metadataFields,
 			metadata: frontmatter ?? {},
 		};

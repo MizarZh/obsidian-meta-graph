@@ -41,7 +41,13 @@ export function openWorkspaceCreateTemplateNote({
 		activeConnectionField: workspaceState.activeConnectionField,
 		openInNewTab: openTemplateNoteInNewTab,
 		createNoteFromTemplate: (id, target, name, linkDirection, field) =>
-			controller.createNoteFromTemplate(id, target, name, linkDirection, field),
+			controller.createNoteFromTemplate(
+				id,
+				target,
+				name,
+				linkDirection,
+				field,
+			),
 		addCuratedFile: (path) => controller.addCuratedFile(path),
 		opener: {
 			getFile: (path) => app.vault.getAbstractFileByPath(path),

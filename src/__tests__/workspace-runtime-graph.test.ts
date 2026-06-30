@@ -109,7 +109,12 @@ describe('workspace runtime graph', () => {
 			],
 		} satisfies typeof state;
 
-		syncWorkspaceRuntimeGraphStyles(graph, styledProjection, nextState, palette);
+		syncWorkspaceRuntimeGraphStyles(
+			graph,
+			styledProjection,
+			nextState,
+			palette,
+		);
 
 		expect(graph.getNodeAttributes('A.md')).toMatchObject({
 			color: '#ff0000',

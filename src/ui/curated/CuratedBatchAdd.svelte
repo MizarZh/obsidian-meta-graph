@@ -1,7 +1,7 @@
 <script lang="ts">
-	import ObsidianButton from "../obsidian/ObsidianButton.svelte";
-	import ObsidianDropdown from "../obsidian/ObsidianDropdown.svelte";
-	import type { DropdownOption } from "../obsidian/ObsidianDropdown.svelte";
+	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
+	import type { DropdownOption } from '../obsidian/ObsidianDropdown.svelte';
 
 	let {
 		open,
@@ -28,8 +28,8 @@
 
 <div class="knowledge-workspace-curated-batch-header">
 	<ObsidianButton
-		icon={open ? "chevron-down" : "chevron-right"}
-		ariaLabel={open ? "Collapse batch add" : "Expand batch add"}
+		icon={open ? 'chevron-down' : 'chevron-right'}
+		ariaLabel={open ? 'Collapse batch add' : 'Expand batch add'}
 		onClick={onToggle}
 	/>
 	<h3>Batch add</h3>
@@ -45,8 +45,7 @@
 			if (event.currentTarget instanceof HTMLTextAreaElement) {
 				onInput(event.currentTarget.value);
 			}
-		}}
-	></textarea>
+		}}></textarea>
 	<div class="knowledge-workspace-curated-actions">
 		<ObsidianButton
 			text="Add all"

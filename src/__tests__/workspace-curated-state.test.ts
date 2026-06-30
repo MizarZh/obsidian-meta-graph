@@ -34,14 +34,18 @@ describe('workspace curated state', () => {
 			files: [{ path: 'Old.md' }],
 		});
 
-		expect(updateCuratedFilePathInState(state, 'Missing.md', 'New.md')).toEqual({
+		expect(
+			updateCuratedFilePathInState(state, 'Missing.md', 'New.md'),
+		).toEqual({
 			state,
 			changed: false,
 		});
-		expect(updateCuratedFilePathInState(state, 'Old.md', 'Old.md')).toEqual({
-			state,
-			changed: false,
-		});
+		expect(updateCuratedFilePathInState(state, 'Old.md', 'Old.md')).toEqual(
+			{
+				state,
+				changed: false,
+			},
+		);
 	});
 
 	it('adds curated files and creates manual placements in the requested group', () => {
@@ -65,13 +69,17 @@ describe('workspace curated state', () => {
 	});
 
 	it('keeps duplicate curated additions stable', () => {
-		const state = addCuratedFilesToState(createWorkspaceState(100), ['Note.md']);
+		const state = addCuratedFilesToState(createWorkspaceState(100), [
+			'Note.md',
+		]);
 
 		expect(addCuratedFilesToState(state, ['Note.md'])).toBe(state);
 	});
 
 	it('removes curated files and manual placements', () => {
-		const state = addCuratedFilesToState(createWorkspaceState(100), ['Note.md']);
+		const state = addCuratedFilesToState(createWorkspaceState(100), [
+			'Note.md',
+		]);
 
 		const nextState = removeCuratedFilesFromState(state, ['Note.md']);
 

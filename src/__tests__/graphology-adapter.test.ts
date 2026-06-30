@@ -135,12 +135,18 @@ describe('GraphologyAdapter positions', () => {
 		expect(graph.hasEdge('A-to-B')).toBe(false);
 		expect(graph.order).toBe(4);
 		expect(graph.size).toBe(3);
-		expect(graph.getEdgeAttribute('A-to-B__segment_1', 'type')).toBe('line');
-		expect(graph.getEdgeAttribute('A-to-B__segment_2', 'type')).toBe('line');
-		expect(graph.getEdgeAttribute('A-to-B__segment_3', 'type')).toBe('arrow');
-		expect(
-			graph.getNodeAttribute('__flow-bend__A-to-B__1', 'isBend'),
-		).toBe(true);
+		expect(graph.getEdgeAttribute('A-to-B__segment_1', 'type')).toBe(
+			'line',
+		);
+		expect(graph.getEdgeAttribute('A-to-B__segment_2', 'type')).toBe(
+			'line',
+		);
+		expect(graph.getEdgeAttribute('A-to-B__segment_3', 'type')).toBe(
+			'arrow',
+		);
+		expect(graph.getNodeAttribute('__flow-bend__A-to-B__1', 'isBend')).toBe(
+			true,
+		);
 	});
 
 	it('uses ELK section points for orthogonal segments', () => {
@@ -180,12 +186,12 @@ describe('GraphologyAdapter positions', () => {
 			},
 		]);
 
-		expect(
-			graph.getNodeAttributes('__flow-bend__A-to-B__2'),
-		).toMatchObject({ x: 120, y: 0 });
-		expect(
-			graph.getNodeAttributes('__flow-bend__A-to-B__3'),
-		).toMatchObject({ x: 120, y: 100 });
+		expect(graph.getNodeAttributes('__flow-bend__A-to-B__2')).toMatchObject(
+			{ x: 120, y: 0 },
+		);
+		expect(graph.getNodeAttributes('__flow-bend__A-to-B__3')).toMatchObject(
+			{ x: 120, y: 100 },
+		);
 	});
 
 	it('reuses cached ELK routes when link styles change', () => {
@@ -218,27 +224,31 @@ describe('GraphologyAdapter positions', () => {
 				],
 			},
 		]);
-		const graph = new GraphologyAdapter(palette, [], [
-			{
-				id: 'styled',
-				field: 'relation',
-				value: 'leads-to',
-				color: '#ff0000',
-				size: 4,
-				lineStyle: 'dashed',
-				label: 'Styled',
-				showLabel: true,
-				hidden: false,
-			},
-		]).fromProjection(edgeProjection);
+		const graph = new GraphologyAdapter(
+			palette,
+			[],
+			[
+				{
+					id: 'styled',
+					field: 'relation',
+					value: 'leads-to',
+					color: '#ff0000',
+					size: 4,
+					lineStyle: 'dashed',
+					label: 'Styled',
+					showLabel: true,
+					hidden: false,
+				},
+			],
+		).fromProjection(edgeProjection);
 		graph.mergeNodeAttributes('A.md', { x: 0, y: 0 });
 		graph.mergeNodeAttributes('B.md', { x: 200, y: 100 });
 
 		applyOrthogonalFlowEdges(graph, routes);
 
-		expect(
-			graph.getNodeAttributes('__flow-bend__A-to-B__2'),
-		).toMatchObject({ x: 120, y: 60 });
+		expect(graph.getNodeAttributes('__flow-bend__A-to-B__2')).toMatchObject(
+			{ x: 120, y: 60 },
+		);
 		expect(graph.getEdgeAttributes('A-to-B__segment_2')).toMatchObject({
 			color: '#ff0000',
 			size: 4,
@@ -268,19 +278,23 @@ describe('GraphologyAdapter positions', () => {
 				},
 			],
 		};
-		const graph = new GraphologyAdapter(palette, [], [
-			{
-				id: 'related-style',
-				field: 'relation',
-				value: 'related',
-				color: '#00ffff',
-				size: 3,
-				lineStyle: 'dotted',
-				label: 'Related',
-				showLabel: true,
-				hidden: false,
-			},
-		]).fromProjection(relatedProjection);
+		const graph = new GraphologyAdapter(
+			palette,
+			[],
+			[
+				{
+					id: 'related-style',
+					field: 'relation',
+					value: 'related',
+					color: '#00ffff',
+					size: 3,
+					lineStyle: 'dotted',
+					label: 'Related',
+					showLabel: true,
+					hidden: false,
+				},
+			],
+		).fromProjection(relatedProjection);
 		graph.mergeNodeAttributes('A.md', { x: 0, y: 0 });
 		graph.mergeNodeAttributes('B.md', { x: 200, y: 100 });
 

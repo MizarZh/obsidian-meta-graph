@@ -7,7 +7,9 @@ export function updateActiveChartState(
 	patch: Partial<MetaGraphChart>,
 	forceLayout = false,
 ): WorkspaceState {
-	const activeChart = state.charts.find((item) => item.id === state.activeChartId);
+	const activeChart = state.charts.find(
+		(item) => item.id === state.activeChartId,
+	);
 	if (!activeChart) {
 		throw new Error('Active chart is missing from workspace state.');
 	}

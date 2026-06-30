@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { ChartGroup, ManualLayoutConfig } from "../core/types";
-	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
-	import ObsidianDropdown from "./obsidian/ObsidianDropdown.svelte";
-	import ObsidianTextInput from "./obsidian/ObsidianTextInput.svelte";
+	import type { ChartGroup, ManualLayoutConfig } from '../core/types';
+	import ObsidianButton from './obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
+	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
 
 	let {
 		manualLayout,
@@ -19,8 +19,8 @@
 	} = $props();
 
 	const MODE_OPTIONS = [
-		{ value: "manual", label: "Manual" },
-		{ value: "rule", label: "Rule" },
+		{ value: 'manual', label: 'Manual' },
+		{ value: 'rule', label: 'Rule' },
 	];
 
 	const memberCounts = $derived.by(() => {
@@ -38,7 +38,7 @@
 
 	function updateNumber(
 		group: ChartGroup,
-		field: "x" | "y" | "width" | "height" | "padding",
+		field: 'x' | 'y' | 'width' | 'height' | 'padding',
 		value: string,
 	): void {
 		const nextValue = Number(value);
@@ -51,21 +51,21 @@
 <aside class="knowledge-workspace-filters knowledge-workspace-groups">
 	<section>
 		<header>
-				<div>
-					<h3>Groups</h3>
-					<p>
-						{locked
-							? "Cube uses six fixed face groups."
-							: "Organize visible notes into chart-local regions."}
-					</p>
-				</div>
-				{#if !locked}
-					<ObsidianButton
-						icon="plus"
-						text="Add group"
-						onClick={onAddGroup}
-					/>
-				{/if}
+			<div>
+				<h3>Groups</h3>
+				<p>
+					{locked
+						? 'Cube uses six fixed face groups.'
+						: 'Organize visible notes into chart-local regions.'}
+				</p>
+			</div>
+			{#if !locked}
+				<ObsidianButton
+					icon="plus"
+					text="Add group"
+					onClick={onAddGroup}
+				/>
+			{/if}
 		</header>
 
 		{#if manualLayout.groups.length === 0}
@@ -85,7 +85,9 @@
 									value={group.name}
 									ariaLabel="Group name"
 									onChange={(value) =>
-										onUpdateGroup(group.id, { name: value })}
+										onUpdateGroup(group.id, {
+											name: value,
+										})}
 								/>
 							</label>
 							{#if !locked}
@@ -100,7 +102,11 @@
 
 						<div class="knowledge-workspace-group-meta">
 							<span>{memberCounts.get(group.id) ?? 0} nodes</span>
-							<span>{group.mode === "rule" ? "Rule group" : "Manual group"}</span>
+							<span
+								>{group.mode === 'rule'
+									? 'Rule group'
+									: 'Manual group'}</span
+							>
 						</div>
 
 						<div class="knowledge-workspace-group-grid">
@@ -122,7 +128,10 @@
 									options={MODE_OPTIONS}
 									onChange={(value) =>
 										onUpdateGroup(group.id, {
-											mode: value === "rule" ? "rule" : "manual",
+											mode:
+												value === 'rule'
+													? 'rule'
+													: 'manual',
 										})}
 								/>
 							</label>
@@ -132,7 +141,8 @@
 									type="number"
 									value={group.x}
 									step="0.1"
-									onChange={(value) => updateNumber(group, "x", value)}
+									onChange={(value) =>
+										updateNumber(group, 'x', value)}
 								/>
 							</label>
 							<label>
@@ -141,7 +151,8 @@
 									type="number"
 									value={group.y}
 									step="0.1"
-									onChange={(value) => updateNumber(group, "y", value)}
+									onChange={(value) =>
+										updateNumber(group, 'y', value)}
 								/>
 							</label>
 							<label>
@@ -151,7 +162,8 @@
 									min="0.8"
 									step="0.1"
 									value={group.width}
-									onChange={(value) => updateNumber(group, "width", value)}
+									onChange={(value) =>
+										updateNumber(group, 'width', value)}
 								/>
 							</label>
 							<label>
@@ -161,7 +173,8 @@
 									min="0.6"
 									step="0.1"
 									value={group.height}
-									onChange={(value) => updateNumber(group, "height", value)}
+									onChange={(value) =>
+										updateNumber(group, 'height', value)}
 								/>
 							</label>
 							<label>
@@ -171,14 +184,16 @@
 									min="0"
 									step="0.01"
 									value={group.padding}
-									onChange={(value) => updateNumber(group, "padding", value)}
+									onChange={(value) =>
+										updateNumber(group, 'padding', value)}
 								/>
 							</label>
 						</div>
 
-						{#if group.mode === "rule"}
+						{#if group.mode === 'rule'}
 							<p class="knowledge-workspace-group-note">
-								Rule membership uses the saved rule model. Rule editor comes next.
+								Rule membership uses the saved rule model. Rule
+								editor comes next.
 							</p>
 						{/if}
 					</article>

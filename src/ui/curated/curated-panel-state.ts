@@ -5,11 +5,11 @@ import type {
 	ManualLayoutConfig,
 	NodeFilterGroup,
 	NodeFilterItem,
-} from "../../core/types";
-import { nodeMatchesFilterGroup } from "../../query/filters";
+} from '../../core/types';
+import { nodeMatchesFilterGroup } from '../../query/filters';
 
-export type ReorderPlacement = "before" | "after";
-export type ConditionalMode = "add" | "remove";
+export type ReorderPlacement = 'before' | 'after';
+export type ConditionalMode = 'add' | 'remove';
 
 interface SuggestionOption {
 	value: string;
@@ -33,9 +33,9 @@ export interface CuratedFileEntry {
 
 export function createConditionFilterRoot(): NodeFilterGroup {
 	return {
-		id: "root",
-		kind: "group",
-		mode: "all",
+		id: 'root',
+		kind: 'group',
+		mode: 'all',
 		children: [],
 	};
 }
@@ -45,7 +45,7 @@ export function createRuleId(): string {
 }
 
 export function formatFileTitle(path: string): string {
-	return path.split("/").pop()?.replace(/\.md$/u, "") ?? path;
+	return path.split('/').pop()?.replace(/\.md$/u, '') ?? path;
 }
 
 export function countTitles<T extends { title: string }>(
@@ -57,12 +57,14 @@ export function countTitles<T extends { title: string }>(
 	}, {});
 }
 
-export function buildTitleIndex(nodes: KnowledgeNode[]): Map<string, KnowledgeNode[]> {
+export function buildTitleIndex(
+	nodes: KnowledgeNode[],
+): Map<string, KnowledgeNode[]> {
 	const index = new Map<string, KnowledgeNode[]>();
 	for (const node of nodes) {
 		const keys = [
 			node.title,
-			node.path.replace(/\.md$/u, ""),
+			node.path.replace(/\.md$/u, ''),
 			...(node.aliases ?? []),
 		];
 		for (const key of keys) {
@@ -94,8 +96,8 @@ export function buildSelectedCuratedFiles(
 			detail: file.path,
 			missing: !node,
 			color: node ? nodeColors.get(node.path) : undefined,
-			groupId: groupId ?? "",
-			groupName: group?.name ?? (groupId ? "Missing group" : "No group"),
+			groupId: groupId ?? '',
+			groupName: group?.name ?? (groupId ? 'Missing group' : 'No group'),
 			groupColor: group?.color,
 			missingGroup: Boolean(groupId && !group),
 			selected: selected.has(file.path),
@@ -112,7 +114,8 @@ export function buildFileOptions(
 	return nodes
 		.filter(
 			(node) =>
-				node.path !== workspaceFilePath && !selectedPaths.has(node.path),
+				node.path !== workspaceFilePath &&
+				!selectedPaths.has(node.path),
 		)
 		.map((node) => ({
 			value: node.path,
@@ -121,7 +124,9 @@ export function buildFileOptions(
 					? `${node.folder}/${node.title}`
 					: node.title,
 			detail: node.path,
-			searchText: [node.title, node.path, ...(node.aliases ?? [])].join(" "),
+			searchText: [node.title, node.path, ...(node.aliases ?? [])].join(
+				' ',
+			),
 		}));
 }
 
@@ -145,7 +150,12 @@ export function parseBatchInput(
 	nodesByPath: Map<string, KnowledgeNode>,
 	titleIndex: Map<string, KnowledgeNode[]>,
 	selectedPaths: Set<string>,
-): { uniquePaths: string[]; skipped: number; unresolved: string[]; lineCount: number } {
+): {
+	uniquePaths: string[];
+	skipped: number;
+	unresolved: string[];
+	lineCount: number;
+} {
 	const lines = input
 		.split(/\r?\n/u)
 		.map((line) => line.trim())
@@ -160,7 +170,9 @@ export function parseBatchInput(
 			unresolved.push(line);
 		}
 	}
-	const uniquePaths = [...new Set(paths)].filter((path) => !selectedPaths.has(path));
+	const uniquePaths = [...new Set(paths)].filter(
+		(path) => !selectedPaths.has(path),
+	);
 	return {
 		uniquePaths,
 		unresolved,
@@ -177,14 +189,14 @@ export function getConditionalMatches(
 	root: NodeFilterGroup,
 ): KnowledgeNode[] {
 	const pool =
-		mode === "add"
+		mode === 'add'
 			? nodes.filter((node) => node.path !== workspaceFilePath)
 			: nodes.filter((node) => selectedPaths.has(node.path));
 	return pool
 		.filter((node) => nodeMatchesFilterGroup(node, root))
 		.sort((first, second) =>
 			first.title.localeCompare(second.title, undefined, {
-				sensitivity: "base",
+				sensitivity: 'base',
 			}),
 		);
 }
@@ -199,7 +211,7 @@ export function filterConditionalMatches(
 	}
 	return matches.filter((node) =>
 		[node.title, node.path, node.folder, ...(node.aliases ?? [])]
-			.join(" ")
+			.join(' ')
 			.toLocaleLowerCase()
 			.includes(query),
 	);
@@ -210,7 +222,7 @@ export function canApplyConditionToPath(
 	mode: ConditionalMode,
 	selectedPaths: Set<string>,
 ): boolean {
-	return mode === "add" ? !selectedPaths.has(path) : selectedPaths.has(path);
+	return mode === 'add' ? !selectedPaths.has(path) : selectedPaths.has(path);
 }
 
 export function updateFilterGroup(
@@ -224,7 +236,9 @@ export function updateFilterGroup(
 	return {
 		...root,
 		children: root.children.map((child) =>
-			child.kind === "group" ? updateFilterGroup(child, groupId, update) : child,
+			child.kind === 'group'
+				? updateFilterGroup(child, groupId, update)
+				: child,
 		),
 	};
 }
@@ -237,7 +251,7 @@ export function patchFilterItem(
 	if (item.id === itemId) {
 		return { ...item, ...patch } as NodeFilterItem;
 	}
-	if (item.kind === "group") {
+	if (item.kind === 'group') {
 		return {
 			...item,
 			children: item.children.map((child) =>
@@ -257,7 +271,7 @@ export function removeFilterItemFromGroup(
 		children: group.children
 			.filter((child) => child.id !== itemId)
 			.map((child) =>
-				child.kind === "group"
+				child.kind === 'group'
 					? removeFilterItemFromGroup(child, itemId)
 					: child,
 			),
@@ -269,5 +283,5 @@ export function readPointerPlacement(
 	clientY: number,
 ): ReorderPlacement {
 	const rect = targetEl.getBoundingClientRect();
-	return clientY > rect.top + rect.height / 2 ? "after" : "before";
+	return clientY > rect.top + rect.height / 2 ? 'after' : 'before';
 }

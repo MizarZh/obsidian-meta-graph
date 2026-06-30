@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { ButtonComponent, type IconName } from "obsidian";
-	import { onMount } from "svelte";
+	import { ButtonComponent, type IconName } from 'obsidian';
+	import { onMount } from 'svelte';
 
 	let {
-		text = "",
+		text = '',
 		icon,
 		disabled = false,
 		active = false,
@@ -12,7 +12,7 @@
 		tooltip,
 		ariaLabel,
 		role,
-		class: className = "",
+		class: className = '',
 		onClick,
 	}: {
 		text?: string;
@@ -32,10 +32,10 @@
 	let button: ButtonComponent | undefined;
 
 	function callOptionalButtonMethod(name: string): void {
-		const method = (button as unknown as Record<string, unknown> | undefined)?.[
-			name
-		];
-		if (typeof method === "function") {
+		const method = (
+			button as unknown as Record<string, unknown> | undefined
+		)?.[name];
+		if (typeof method === 'function') {
 			method.call(button);
 		}
 	}
@@ -45,7 +45,7 @@
 		button.onClick((event) => onClick?.(event));
 
 		return () => {
-			containerEl.textContent = "";
+			containerEl.textContent = '';
 			button = undefined;
 		};
 	});
@@ -61,34 +61,35 @@
 		}
 		button.setDisabled(disabled);
 		button.buttonEl.className = className;
-		button.buttonEl.classList.toggle("active", active);
-		button.buttonEl.setAttribute("type", "button");
+		button.buttonEl.classList.toggle('active', active);
+		button.buttonEl.setAttribute('type', 'button');
 		if (ariaLabel) {
-			button.buttonEl.setAttribute("aria-label", ariaLabel);
+			button.buttonEl.setAttribute('aria-label', ariaLabel);
 		} else {
-			button.buttonEl.removeAttribute("aria-label");
+			button.buttonEl.removeAttribute('aria-label');
 		}
 		if (role) {
-			button.buttonEl.setAttribute("role", role);
+			button.buttonEl.setAttribute('role', role);
 		} else {
-			button.buttonEl.removeAttribute("role");
+			button.buttonEl.removeAttribute('role');
 		}
 		if (tooltip) {
 			button.setTooltip(tooltip);
 		}
 		if (cta) {
-			callOptionalButtonMethod("setCta");
+			callOptionalButtonMethod('setCta');
 		} else {
-			callOptionalButtonMethod("removeCta");
+			callOptionalButtonMethod('removeCta');
 		}
 		if (destructive) {
-			callOptionalButtonMethod("setDestructive");
+			callOptionalButtonMethod('setDestructive');
 		} else {
-			callOptionalButtonMethod("removeDestructive");
+			callOptionalButtonMethod('removeDestructive');
 		}
-		button.buttonEl.classList.toggle("mod-cta", cta);
-		button.buttonEl.classList.toggle("mod-destructive", destructive);
+		button.buttonEl.classList.toggle('mod-cta', cta);
+		button.buttonEl.classList.toggle('mod-destructive', destructive);
 	});
 </script>
 
-<span class="knowledge-workspace-obsidian-control" bind:this={containerEl}></span>
+<span class="knowledge-workspace-obsidian-control" bind:this={containerEl}
+></span>

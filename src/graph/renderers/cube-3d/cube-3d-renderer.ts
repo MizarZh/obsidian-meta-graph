@@ -1,5 +1,5 @@
-import type * as Three from "three";
-import type { LabelPosition, ManualLayoutConfig } from "../../../core/types";
+import type * as Three from 'three';
+import type { LabelPosition, ManualLayoutConfig } from '../../../core/types';
 import {
 	type CubeFace,
 	type CubeFaceId,
@@ -7,34 +7,34 @@ import {
 	createCubeFaces,
 	getCubeFace,
 	getCubeFaceIdForNode,
-} from "./cube-faces";
+} from './cube-faces';
 import {
 	resolveCubeDisplayPositions,
 	shouldShowCubeLabel,
-} from "./cube-display";
+} from './cube-display';
 import {
 	clamp,
 	getCubeLocalLabelPosition,
 	getCubeLocalPosition,
 	getFaceVisibilityOpacity as readFaceVisibilityOpacity,
-} from "./cube-math";
+} from './cube-math';
 import {
 	createCubeArrowTexture,
 	createCubeNodeSprite,
 	createCubeTextSprite,
-} from "./cube-sprites";
-import type { ThreeModule } from "./cube-three";
-import { immediateNeighborhood } from "../../model/neighborhood";
+} from './cube-sprites';
+import type { ThreeModule } from './cube-three';
+import { immediateNeighborhood } from '../../model/neighborhood';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
-} from "../../model/graphology-adapter";
-import type { GraphPalette } from "../../styles/graph-styles";
+} from '../../model/graphology-adapter';
+import type { GraphPalette } from '../../styles/graph-styles';
 import {
 	findClosestScreenNode,
 	projectedToViewport,
 	readViewportPosition,
-} from "../renderer-interaction";
+} from '../renderer-interaction';
 
 interface CubeNodeObject {
 	id: string;
@@ -84,8 +84,8 @@ export class Cube3DRenderer {
 		manualLayout: ManualLayoutConfig,
 		_fadeDistance = 1.5,
 		labelSize = 14,
-		_labelPosition: LabelPosition = "right",
-		labelColor = "",
+		_labelPosition: LabelPosition = 'right',
+		labelColor = '',
 		labelBackgroundOpacity = 0.82,
 		labelDensity = 0.8,
 		cubeFaceOpacity = 0.55,
@@ -133,16 +133,25 @@ export class Cube3DRenderer {
 		this.cubeFaceOpacity = cubeFaceOpacity;
 		this.forceLabels = forceLabels;
 		this.scene = new this.three.Scene();
-		this.scene.background = new this.three.Color(this.palette.background ?? "#202020");
+		this.scene.background = new this.three.Color(
+			this.palette.background ?? '#202020',
+		);
 		this.camera = new this.three.PerspectiveCamera(45, 1, 1, 2000);
 		this.camera.position.set(0, 0, 620);
-		this.webgl = new this.three.WebGLRenderer({ antialias: true, alpha: true });
-			this.webgl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-			this.webgl.domElement.className = "meta-graph-cube-canvas";
-			this.webgl.domElement.addEventListener("dblclick", this.blockDoubleClick, {
+		this.webgl = new this.three.WebGLRenderer({
+			antialias: true,
+			alpha: true,
+		});
+		this.webgl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+		this.webgl.domElement.className = 'meta-graph-cube-canvas';
+		this.webgl.domElement.addEventListener(
+			'dblclick',
+			this.blockDoubleClick,
+			{
 				capture: true,
-			});
-			this.container.appendChild(this.webgl.domElement);
+			},
+		);
+		this.container.appendChild(this.webgl.domElement);
 		this.raycaster = new this.three.Raycaster();
 		this.pointer = new this.three.Vector2();
 		this.cubeGroup = new this.three.Group();
@@ -154,7 +163,12 @@ export class Cube3DRenderer {
 		this.edgeGroup.renderOrder = 2;
 		this.nodeGroup.renderOrder = 3;
 		this.labelGroup.renderOrder = 4;
-		this.cubeGroup.add(this.faceEdgeGroup, this.edgeGroup, this.nodeGroup, this.labelGroup);
+		this.cubeGroup.add(
+			this.faceEdgeGroup,
+			this.edgeGroup,
+			this.nodeGroup,
+			this.labelGroup,
+		);
 		this.scene.add(new this.three.AmbientLight(0xffffff, 1));
 		this.scene.add(this.cubeGroup);
 		this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -190,7 +204,9 @@ export class Cube3DRenderer {
 
 	setPalette(palette: GraphPalette): void {
 		this.palette = palette;
-		this.scene.background = new this.three.Color(this.palette.background ?? "#202020");
+		this.scene.background = new this.three.Color(
+			this.palette.background ?? '#202020',
+		);
 		this.buildFaces();
 		this.rebuildGraphObjects();
 		this.scheduleRender();
@@ -311,12 +327,16 @@ export class Cube3DRenderer {
 		// Sigma-only behavior.
 	}
 
-		kill(): void {
-			this.killed = true;
-			this.webgl.domElement.removeEventListener("dblclick", this.blockDoubleClick, {
+	kill(): void {
+		this.killed = true;
+		this.webgl.domElement.removeEventListener(
+			'dblclick',
+			this.blockDoubleClick,
+			{
 				capture: true,
-			});
-			if (this.animationFrame !== undefined) {
+			},
+		);
+		if (this.animationFrame !== undefined) {
 			window.cancelAnimationFrame(this.animationFrame);
 			this.animationFrame = undefined;
 		}
@@ -331,11 +351,17 @@ export class Cube3DRenderer {
 		this.webgl.domElement.remove();
 	}
 
-	getViewportPosition(event: MouseEvent | PointerEvent): { x: number; y: number } {
+	getViewportPosition(event: MouseEvent | PointerEvent): {
+		x: number;
+		y: number;
+	} {
 		return readViewportPosition(this.container, event);
 	}
 
-	getNodeAtViewportPosition(position: { x: number; y: number }): string | undefined {
+	getNodeAtViewportPosition(position: {
+		x: number;
+		y: number;
+	}): string | undefined {
 		const intersects = this.raycastNodes(position);
 		return (
 			this.getObjectNodeId(intersects[0]?.object) ??
@@ -343,7 +369,9 @@ export class Cube3DRenderer {
 		);
 	}
 
-	getNodeViewportPosition(nodeId: string): { x: number; y: number } | undefined {
+	getNodeViewportPosition(
+		nodeId: string,
+	): { x: number; y: number } | undefined {
 		const node = this.nodeObjects.get(nodeId);
 		if (!node) {
 			return undefined;
@@ -351,7 +379,10 @@ export class Cube3DRenderer {
 		this.updateWorldMatrices();
 		const world = node.mesh.getWorldPosition(new this.three.Vector3());
 		const projected = world.project(this.camera);
-		return projectedToViewport(projected, this.container.getBoundingClientRect());
+		return projectedToViewport(
+			projected,
+			this.container.getBoundingClientRect(),
+		);
 	}
 
 	rotate(deltaX: number, deltaY: number): void {
@@ -376,11 +407,18 @@ export class Cube3DRenderer {
 	}
 
 	zoom(deltaY: number): void {
-		this.camera.position.z = clamp(this.camera.position.z + deltaY * 0.45, 260, 1200);
+		this.camera.position.z = clamp(
+			this.camera.position.z + deltaY * 0.45,
+			260,
+			1200,
+		);
 		this.scheduleRender();
 	}
 
-	dragNodeToViewport(nodeId: string, position: { x: number; y: number }): { x: number; y: number } | undefined {
+	dragNodeToViewport(
+		nodeId: string,
+		position: { x: number; y: number },
+	): { x: number; y: number } | undefined {
 		const node = this.nodeObjects.get(nodeId);
 		if (!node) {
 			return undefined;
@@ -390,7 +428,9 @@ export class Cube3DRenderer {
 		const ray = this.createRay(position);
 		const planePoint = face.normal.clone().multiplyScalar(this.cubeSize);
 		const worldPoint = this.cubeGroup.localToWorld(planePoint.clone());
-		const worldNormal = face.normal.clone().transformDirection(this.cubeGroup.matrixWorld);
+		const worldNormal = face.normal
+			.clone()
+			.transformDirection(this.cubeGroup.matrixWorld);
 		const plane = new this.three.Plane().setFromNormalAndCoplanarPoint(
 			worldNormal,
 			worldPoint,
@@ -416,7 +456,10 @@ export class Cube3DRenderer {
 		return this.nodeObjects.get(nodeId)?.faceId;
 	}
 
-	scheduleConnectionMove(update: (event: PointerEvent) => void, event: PointerEvent): void {
+	scheduleConnectionMove(
+		update: (event: PointerEvent) => void,
+		event: PointerEvent,
+	): void {
 		update(event);
 	}
 
@@ -432,8 +475,13 @@ export class Cube3DRenderer {
 		this.clearObjectGroup(this.faceEdgeGroup);
 		this.faceMeshes.clear();
 		for (const face of this.getFaces()) {
-			const group = this.manualLayout.groups.find((item) => item.id === face.id);
-			const geometry = new this.three.PlaneGeometry(this.cubeSize * 2, this.cubeSize * 2);
+			const group = this.manualLayout.groups.find(
+				(item) => item.id === face.id,
+			);
+			const geometry = new this.three.PlaneGeometry(
+				this.cubeSize * 2,
+				this.cubeSize * 2,
+			);
 			const material = new this.three.MeshBasicMaterial({
 				color: group?.color ?? RUBIK_FACE_COLORS[face.id],
 				opacity: this.cubeFaceOpacity,
@@ -441,11 +489,10 @@ export class Cube3DRenderer {
 				depthWrite: false,
 				depthTest: true,
 			});
-			const mesh = new this.three.Mesh(
-				geometry,
-				material,
+			const mesh = new this.three.Mesh(geometry, material);
+			mesh.position.copy(
+				face.normal.clone().multiplyScalar(this.cubeSize),
 			);
-			mesh.position.copy(face.normal.clone().multiplyScalar(this.cubeSize));
 			mesh.lookAt(face.normal.clone().multiplyScalar(this.cubeSize * 2));
 			mesh.renderOrder = 0;
 			mesh.userData.faceId = face.id;
@@ -454,13 +501,15 @@ export class Cube3DRenderer {
 			const edge = new this.three.Line(
 				this.createFaceBorderGeometry(),
 				new this.three.LineBasicMaterial({
-					color: "#000000",
+					color: '#000000',
 					transparent: true,
 					opacity: 0.9,
 					linewidth: 3,
 				}),
 			);
-			edge.position.copy(face.normal.clone().multiplyScalar(this.cubeSize + 1));
+			edge.position.copy(
+				face.normal.clone().multiplyScalar(this.cubeSize + 1),
+			);
 			edge.rotation.copy(mesh.rotation);
 			edge.renderOrder = 1;
 			this.faceEdgeGroup.add(edge);
@@ -482,10 +531,10 @@ export class Cube3DRenderer {
 		this.clearObjectGroup(this.nodeGroup);
 		this.clearObjectGroup(this.labelGroup);
 		this.nodeObjects.clear();
-			const displayPositions = resolveCubeDisplayPositions(
-				this.graph,
-				this.manualLayout,
-			);
+		const displayPositions = resolveCubeDisplayPositions(
+			this.graph,
+			this.manualLayout,
+		);
 		for (const nodeId of this.graph.nodes()) {
 			const attributes = this.graph.getNodeAttributes(nodeId);
 			if (attributes.isBend) {
@@ -494,10 +543,11 @@ export class Cube3DRenderer {
 			const display = displayPositions.get(nodeId);
 			const faceId = display?.faceId ?? this.getFaceIdForNode(nodeId);
 			const face = this.getFace(faceId);
-			const position = display ?? this.manualLayout.nodes[nodeId] ?? {
-				x: attributes.x,
-				y: attributes.y,
-			};
+			const position = display ??
+				this.manualLayout.nodes[nodeId] ?? {
+					x: attributes.x,
+					y: attributes.y,
+				};
 			const nodeSize = Math.max(5, attributes.size * 1.25);
 			const mesh = createCubeNodeSprite(
 				this.three,
@@ -505,29 +555,36 @@ export class Cube3DRenderer {
 				attributes.color,
 				nodeSize,
 			);
-		mesh.position.copy(this.localPosition(face, position.x, position.y, 8));
-		mesh.renderOrder = 3;
-		mesh.userData.nodeId = nodeId;
+			mesh.position.copy(
+				this.localPosition(face, position.x, position.y, 8),
+			);
+			mesh.renderOrder = 3;
+			mesh.userData.nodeId = nodeId;
 			this.nodeGroup.add(mesh);
-				const label = shouldShowCubeLabel(
-					attributes,
-					this.labelDensity,
-					this.forceLabels,
-				)
-					? createCubeTextSprite(
-							this.three,
-							this.container.ownerDocument,
-							attributes.label,
-							this.labelSize,
-							attributes,
-							this.palette,
-							this.labelColor,
-							this.labelBackgroundOpacity,
-						)
-					: undefined;
+			const label = shouldShowCubeLabel(
+				attributes,
+				this.labelDensity,
+				this.forceLabels,
+			)
+				? createCubeTextSprite(
+						this.three,
+						this.container.ownerDocument,
+						attributes.label,
+						this.labelSize,
+						attributes,
+						this.palette,
+						this.labelColor,
+						this.labelBackgroundOpacity,
+					)
+				: undefined;
 			if (label) {
 				label.position.copy(
-					this.localLabelPosition(face, position.x, position.y, nodeSize),
+					this.localLabelPosition(
+						face,
+						position.x,
+						position.y,
+						nodeSize,
+					),
 				);
 				label.renderOrder = 4;
 				this.labelGroup.add(label);
@@ -538,7 +595,7 @@ export class Cube3DRenderer {
 		this.refreshNodeColors();
 	}
 
-		private rebuildEdges(): void {
+	private rebuildEdges(): void {
 		this.clearObjectGroup(this.edgeGroup);
 		for (const edgeId of this.graph.edges()) {
 			const attributes = this.graph.getEdgeAttributes(edgeId);
@@ -602,31 +659,37 @@ export class Cube3DRenderer {
 	}
 
 	private getArrowTexture(color: string): Three.CanvasTexture {
-			const cached = this.arrowTextures.get(color);
-			if (cached) {
-				return cached;
-			}
-			const texture = createCubeArrowTexture(
-				this.three,
-				this.container.ownerDocument,
-				color,
-			);
-			this.arrowTextures.set(color, texture);
-			return texture;
+		const cached = this.arrowTextures.get(color);
+		if (cached) {
+			return cached;
 		}
+		const texture = createCubeArrowTexture(
+			this.three,
+			this.container.ownerDocument,
+			color,
+		);
+		this.arrowTextures.set(color, texture);
+		return texture;
+	}
 
 	private refreshNodeColors(): void {
 		for (const [nodeId, node] of this.nodeObjects.entries()) {
 			this.setObjectOpacity(
 				node.mesh,
 				this.getNodeOpacity(nodeId) *
-					this.getFaceVisibilityOpacity(node.faceId, node.mesh.position),
+					this.getFaceVisibilityOpacity(
+						node.faceId,
+						node.mesh.position,
+					),
 			);
 			if (node.label) {
 				this.setObjectOpacity(
 					node.label,
 					this.getNodeOpacity(nodeId) *
-						this.getFaceVisibilityOpacity(node.faceId, node.label.position),
+						this.getFaceVisibilityOpacity(
+							node.faceId,
+							node.label.position,
+						),
 				);
 			}
 		}
@@ -654,13 +717,13 @@ export class Cube3DRenderer {
 			: new Set();
 	}
 
-		private localPosition(
+	private localPosition(
 		face: CubeFace,
 		x: number,
 		y: number,
 		offset = 6,
 	): Three.Vector3 {
-			return getCubeLocalPosition(face, this.cubeSize, x, y, offset);
+		return getCubeLocalPosition(face, this.cubeSize, x, y, offset);
 	}
 
 	private localLabelPosition(
@@ -669,28 +732,28 @@ export class Cube3DRenderer {
 		y: number,
 		nodeRadius: number,
 	): Three.Vector3 {
-			return getCubeLocalLabelPosition(
-				face,
-				this.cubeSize,
-				x,
-				y,
-				nodeRadius,
-				this.labelSize,
-			);
+		return getCubeLocalLabelPosition(
+			face,
+			this.cubeSize,
+			x,
+			y,
+			nodeRadius,
+			this.labelSize,
+		);
 	}
 
 	private getFaceVisibilityOpacity(
 		faceId: CubeFaceId,
 		localPosition: Three.Vector3,
 	): number {
-			const face = this.getFace(faceId);
-			this.updateWorldMatrices();
-			return readFaceVisibilityOpacity(
-				face,
-				localPosition,
-				this.cubeGroup,
-				this.camera,
-			);
+		const face = this.getFace(faceId);
+		this.updateWorldMatrices();
+		return readFaceVisibilityOpacity(
+			face,
+			localPosition,
+			this.cubeGroup,
+			this.camera,
+		);
 	}
 
 	private setObjectOpacity(object: Three.Object3D, opacity: number): void {
@@ -729,21 +792,34 @@ export class Cube3DRenderer {
 		);
 	}
 
-	private getObjectNodeId(object: Three.Object3D | undefined): string | undefined {
+	private getObjectNodeId(
+		object: Three.Object3D | undefined,
+	): string | undefined {
 		const userData = object?.userData as { nodeId?: unknown } | undefined;
-		return typeof userData?.nodeId === "string" ? userData.nodeId : undefined;
+		return typeof userData?.nodeId === 'string'
+			? userData.nodeId
+			: undefined;
 	}
 
 	private getNearestNodeAtViewportPosition(position: {
 		x: number;
 		y: number;
 	}): string | undefined {
-		const nodes = [...this.nodeObjects.entries()].flatMap(([nodeId, node]) => {
-			const screen = this.getNodeViewportPosition(nodeId);
-			return screen
-				? [{ id: nodeId, x: screen.x, y: screen.y, size: node.mesh.scale.x * 0.6 }]
-				: [];
-		});
+		const nodes = [...this.nodeObjects.entries()].flatMap(
+			([nodeId, node]) => {
+				const screen = this.getNodeViewportPosition(nodeId);
+				return screen
+					? [
+							{
+								id: nodeId,
+								x: screen.x,
+								y: screen.y,
+								size: node.mesh.scale.x * 0.6,
+							},
+						]
+					: [];
+			},
+		);
 		return findClosestScreenNode(
 			nodes,
 			position,
@@ -751,7 +827,10 @@ export class Cube3DRenderer {
 		);
 	}
 
-	private createRay(position: { x: number; y: number }): Three.Raycaster["ray"] {
+	private createRay(position: {
+		x: number;
+		y: number;
+	}): Three.Raycaster['ray'] {
 		const { width, height } = this.container.getBoundingClientRect();
 		if (width <= 0 || height <= 0) {
 			return this.raycaster.ray;
@@ -785,19 +864,22 @@ export class Cube3DRenderer {
 			if (!(object instanceof this.three.Sprite)) {
 				continue;
 			}
-				const arrowData = object.userData as {
-					arrowStart?: unknown;
-					arrowEnd?: unknown;
-				};
-				const start = arrowData.arrowStart;
-				const end = arrowData.arrowEnd;
-				if (!(start instanceof this.three.Vector3) || !(end instanceof this.three.Vector3)) {
-					continue;
-				}
-				const startScreen = this.localToViewport(start);
-				const endScreen = this.localToViewport(end);
-				const material = object.material;
-				material.rotation = -Math.atan2(
+			const arrowData = object.userData as {
+				arrowStart?: unknown;
+				arrowEnd?: unknown;
+			};
+			const start = arrowData.arrowStart;
+			const end = arrowData.arrowEnd;
+			if (
+				!(start instanceof this.three.Vector3) ||
+				!(end instanceof this.three.Vector3)
+			) {
+				continue;
+			}
+			const startScreen = this.localToViewport(start);
+			const endScreen = this.localToViewport(end);
+			const material = object.material;
+			material.rotation = -Math.atan2(
 				endScreen.y - startScreen.y,
 				endScreen.x - startScreen.x,
 			);
@@ -808,7 +890,10 @@ export class Cube3DRenderer {
 		const projected = this.cubeGroup
 			.localToWorld(position.clone())
 			.project(this.camera);
-		return projectedToViewport(projected, this.container.getBoundingClientRect());
+		return projectedToViewport(
+			projected,
+			this.container.getBoundingClientRect(),
+		);
 	}
 
 	private clearObjectGroup(group: Three.Group): void {
@@ -833,6 +918,6 @@ export class Cube3DRenderer {
 }
 
 async function loadThree(): Promise<ThreeModule> {
-	const module = await import("three");
+	const module = await import('three');
 	return module;
 }

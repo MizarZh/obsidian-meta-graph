@@ -1,4 +1,9 @@
-import type { ChartSource, MetaGraphChart, ViewMode, WorkspaceState } from '../../core/types';
+import type {
+	ChartSource,
+	MetaGraphChart,
+	ViewMode,
+	WorkspaceState,
+} from '../../core/types';
 import {
 	createDefaultChart,
 	createDefaultCuratedWorkspace,
@@ -64,7 +69,9 @@ export function setActiveChartInState(
 	};
 }
 
-export function addChartInState(state: WorkspaceState): WorkspaceChartStateResult {
+export function addChartInState(
+	state: WorkspaceState,
+): WorkspaceChartStateResult {
 	const chart = createDefaultChart(
 		'graph',
 		state.query.maxNodes,
@@ -151,7 +158,9 @@ export function deleteActiveChartInState(
 	if (state.charts.length <= 1) {
 		return { state, runQuery: false };
 	}
-	const charts = state.charts.filter((chart) => chart.id !== state.activeChartId);
+	const charts = state.charts.filter(
+		(chart) => chart.id !== state.activeChartId,
+	);
 	const nextActiveChart = charts[0];
 	if (!nextActiveChart) {
 		return { state, runQuery: false };

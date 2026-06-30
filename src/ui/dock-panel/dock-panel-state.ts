@@ -1,8 +1,12 @@
-import type { App } from "obsidian";
-import type { ChartGroup, DockTemplateNode, KnowledgeNode } from "../../core/types";
-import type { DockDragPayload } from "../dock/types";
+import type { App } from 'obsidian';
+import type {
+	ChartGroup,
+	DockTemplateNode,
+	KnowledgeNode,
+} from '../../core/types';
+import type { DockDragPayload } from '../dock/types';
 
-export type ReorderPlacement = "before" | "after";
+export type ReorderPlacement = 'before' | 'after';
 
 interface SuggestionOption {
 	value: string;
@@ -39,14 +43,14 @@ export function buildTemplateEntries(
 ): DockTemplateEntry[] {
 	return templates.map((template) => {
 		const templateMissing =
-			template.templatePath !== "" &&
+			template.templatePath !== '' &&
 			!app.vault.getAbstractFileByPath(template.templatePath);
 		return {
 			...template,
 			templateMissing,
 			broken:
 				templateMissing ||
-				(template.targetFolder !== "" &&
+				(template.targetFolder !== '' &&
 					!app.vault.getAbstractFileByPath(template.targetFolder)),
 		};
 	});
@@ -63,20 +67,20 @@ export function buildNoteOptions(
 				? `${node.folder}/${node.title}`
 				: node.title,
 		detail: node.path,
-		searchText: [node.title, node.path, ...(node.aliases ?? [])].join(" "),
+		searchText: [node.title, node.path, ...(node.aliases ?? [])].join(' '),
 	}));
 }
 
 export function buildTargetFolderOptions(app: App): SuggestionOption[] {
 	const folderPaths = app.vault
 		.getAllFolders()
-		.map((folder) => (folder.path === "/" ? "" : folder.path))
+		.map((folder) => (folder.path === '/' ? '' : folder.path))
 		.filter(Boolean)
 		.sort((left, right) =>
-			left.localeCompare(right, undefined, { sensitivity: "base" }),
+			left.localeCompare(right, undefined, { sensitivity: 'base' }),
 		);
 	return [
-		{ value: "", label: "Vault root", searchText: "vault root" },
+		{ value: '', label: 'Vault root', searchText: 'vault root' },
 		...folderPaths.map((path) => ({
 			value: path,
 			label: path,
@@ -87,9 +91,9 @@ export function buildTargetFolderOptions(app: App): SuggestionOption[] {
 
 export function buildGroupOptions(groups: ChartGroup[]) {
 	return [
-		{ value: "", label: "No group" },
+		{ value: '', label: 'No group' },
 		...groups
-			.filter((group) => group.mode === "manual")
+			.filter((group) => group.mode === 'manual')
 			.map((group) => ({
 				value: group.id,
 				label: group.name,
@@ -101,7 +105,7 @@ export function templateDragPayload(
 	template: DockTemplateNode,
 ): DockDragPayload {
 	return {
-		kind: "template",
+		kind: 'template',
 		templateId: template.id,
 		label: template.label,
 	};
@@ -113,21 +117,21 @@ export function noteDragPayload(
 ): DockDragPayload {
 	return entry.broken
 		? {
-				kind: "broken-note",
+				kind: 'broken-note',
 				notePath: entry.path,
 				label: entry.title,
 			}
 		: {
-				kind: "note",
+				kind: 'note',
 				notePath: entry.path,
 				label: entry.title,
-				direction: "from-dock-to-graph",
+				direction: 'from-dock-to-graph',
 				relationField: activeConnectionField,
 			};
 }
 
 export function dragKey(payload: DockDragPayload): string {
-	if (payload.kind === "template") {
+	if (payload.kind === 'template') {
 		return `template:${payload.templateId}`;
 	}
 	return `note:${payload.notePath}`;
@@ -138,5 +142,5 @@ export function readPointerPlacement(
 	clientY: number,
 ): ReorderPlacement {
 	const rect = targetEl.getBoundingClientRect();
-	return clientY > rect.top + rect.height / 2 ? "after" : "before";
+	return clientY > rect.top + rect.height / 2 ? 'after' : 'before';
 }

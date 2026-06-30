@@ -1,8 +1,4 @@
-import type {
-	DockTemplateNode,
-	MetaGraphDock,
-	NodeId,
-} from '../../core/types';
+import type { DockTemplateNode, MetaGraphDock, NodeId } from '../../core/types';
 import {
 	normalizeDockNotes,
 	normalizeDockTemplates,
@@ -58,7 +54,9 @@ export function removeDockTemplate(
 	const templates = dock.templates.filter(
 		(template) => template.id !== templateId,
 	);
-	return templates.length === dock.templates.length ? dock : { ...dock, templates };
+	return templates.length === dock.templates.length
+		? dock
+		: { ...dock, templates };
 }
 
 export function reorderDockTemplate(
@@ -167,7 +165,11 @@ export function moveRelative<T>(
 	if (targetIndex < 0) {
 		return items;
 	}
-	next.splice(placement === 'after' ? targetIndex + 1 : targetIndex, 0, moved);
+	next.splice(
+		placement === 'after' ? targetIndex + 1 : targetIndex,
+		0,
+		moved,
+	);
 	if (next.every((item, index) => item === items[index])) {
 		return items;
 	}

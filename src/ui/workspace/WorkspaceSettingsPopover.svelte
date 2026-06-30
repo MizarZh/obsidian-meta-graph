@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { App } from "obsidian";
-	import type { SettingsPanelMode, WorkspaceState } from "../../core/types";
-	import type { WorkspaceController } from "../../workspace/workspace-controller";
-	import FilterPanel from "../FilterPanel.svelte";
-	import GroupPanel from "../GroupPanel.svelte";
+	import type { App } from 'obsidian';
+	import type { SettingsPanelMode, WorkspaceState } from '../../core/types';
+	import type { WorkspaceController } from '../../workspace/workspace-controller';
+	import FilterPanel from '../FilterPanel.svelte';
+	import GroupPanel from '../GroupPanel.svelte';
 
 	let {
 		app,
@@ -43,12 +43,13 @@
 	class="knowledge-workspace-settings-popover"
 	style:--knowledge-workspace-settings-left={`${settingsPopoverLeft}px`}
 >
-	{#if settingsPanel === "groups"}
+	{#if settingsPanel === 'groups'}
 		<GroupPanel
 			manualLayout={workspaceState.manualLayout}
-			locked={workspaceState.mode === "cube"}
+			locked={workspaceState.mode === 'cube'}
 			onAddGroup={() => controller.addGroup()}
-			onUpdateGroup={(groupId, patch) => controller.updateGroup(groupId, patch)}
+			onUpdateGroup={(groupId, patch) =>
+				controller.updateGroup(groupId, patch)}
 			onDeleteGroup={(groupId) => controller.deleteGroup(groupId)}
 		/>
 	{:else}
@@ -94,39 +95,53 @@
 			linkStyleOverrides={workspaceState.linkStyleOverrides}
 			linkStyleRules={workspaceState.linkStyleRules}
 			onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
-			onFlowDirection={(direction) => controller.setFlowDirection(direction)}
-			onArcDirection={(direction) => controller.setArcDirection(direction)}
+			onFlowDirection={(direction) =>
+				controller.setFlowDirection(direction)}
+			onArcDirection={(direction) =>
+				controller.setArcDirection(direction)}
 			onFadeDistance={(value) => controller.setFadeDistance(value)}
 			onLabelSize={(value) => controller.setLabelSize(value)}
-			onLabelPosition={(position) => controller.setLabelPosition(position)}
+			onLabelPosition={(position) =>
+				controller.setLabelPosition(position)}
 			onLabelColor={(color) => controller.setLabelColor(color)}
 			onLabelBackgroundOpacity={(value) =>
 				controller.setLabelBackgroundOpacity(value)}
 			onLabelDensity={(value) => controller.setLabelDensity(value)}
 			onCubeFaceOpacity={(value) => controller.setCubeFaceOpacity(value)}
 			onForceLabels={(value) => controller.setForceLabels(value)}
-			onEnableForceLayout={(value) => controller.setEnableForceLayout(value)}
+			onEnableForceLayout={(value) =>
+				controller.setEnableForceLayout(value)}
 			onGraphSpacing={(spacing) => controller.setGraphSpacing(spacing)}
-			onGraphCenterForce={(value) => controller.setGraphCenterForce(value)}
+			onGraphCenterForce={(value) =>
+				controller.setGraphCenterForce(value)}
 			onGraphRepelForce={(value) => controller.setGraphRepelForce(value)}
 			onGraphLinkForce={(value) => controller.setGraphLinkForce(value)}
-			onGraphDragLinkForce={(value) => controller.setGraphDragLinkForce(value)}
-			onGraphReturnForce={(value) => controller.setGraphReturnForce(value)}
-			onGraphLinkDistance={(value) => controller.setGraphLinkDistance(value)}
+			onGraphDragLinkForce={(value) =>
+				controller.setGraphDragLinkForce(value)}
+			onGraphReturnForce={(value) =>
+				controller.setGraphReturnForce(value)}
+			onGraphLinkDistance={(value) =>
+				controller.setGraphLinkDistance(value)}
 			onFlowSpacing={(spacing) => controller.setFlowSpacing(spacing)}
 			onArcSpacing={(spacing) => controller.setArcSpacing(spacing)}
 			onChange={(patch) => controller.updateQuery(patch)}
 			onGlobalChange={(patch) => controller.updateGlobalQuery(patch)}
-			onDefaultNodeStyle={(style) => controller.setDefaultNodeStyle(style)}
-			onDefaultLinkStyle={(style) => controller.setDefaultLinkStyle(style)}
+			onDefaultNodeStyle={(style) =>
+				controller.setDefaultNodeStyle(style)}
+			onDefaultLinkStyle={(style) =>
+				controller.setDefaultLinkStyle(style)}
 			onGlobalNodeStyleRulesChange={(rules) =>
 				controller.setGlobalNodeStyleRules(rules)}
-			onNodeStyleOverrides={(style) => controller.setNodeStyleOverrides(style)}
-			onNodeStyleRulesChange={(rules) => controller.setNodeStyleRules(rules)}
+			onNodeStyleOverrides={(style) =>
+				controller.setNodeStyleOverrides(style)}
+			onNodeStyleRulesChange={(rules) =>
+				controller.setNodeStyleRules(rules)}
 			onGlobalLinkStyleRulesChange={(rules) =>
 				controller.setGlobalLinkStyleRules(rules)}
-			onLinkStyleOverrides={(style) => controller.setLinkStyleOverrides(style)}
-			onLinkStyleRulesChange={(rules) => controller.setLinkStyleRules(rules)}
+			onLinkStyleOverrides={(style) =>
+				controller.setLinkStyleOverrides(style)}
+			onLinkStyleRulesChange={(rules) =>
+				controller.setLinkStyleRules(rules)}
 		/>
 	{/if}
 </div>

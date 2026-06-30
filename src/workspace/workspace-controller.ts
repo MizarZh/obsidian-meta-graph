@@ -13,9 +13,9 @@ import type {
 	GraphQuery,
 	KnowledgeIndex,
 	LabelPosition,
-		LinkStyleRule,
-		MetaGraphDocument,
-		DockConnectionDirection,
+	LinkStyleRule,
+	MetaGraphDocument,
+	DockConnectionDirection,
 	DockTemplateNode,
 	MetadataDebugEntry,
 	NodeId,
@@ -265,19 +265,27 @@ export class WorkspaceController {
 	}
 
 	setFlowEdgeStyle(flowEdgeStyle: FlowEdgeStyle): void {
-		this.setWorkspaceState(setFlowEdgeStyleInState(this.state, flowEdgeStyle));
+		this.setWorkspaceState(
+			setFlowEdgeStyleInState(this.state, flowEdgeStyle),
+		);
 	}
 
 	setFlowDirection(flowDirection: FlowDirection): void {
-		this.setWorkspaceState(setFlowDirectionInState(this.state, flowDirection));
+		this.setWorkspaceState(
+			setFlowDirectionInState(this.state, flowDirection),
+		);
 	}
 
 	setArcDirection(arcDirection: ArcDirection): void {
-		this.setWorkspaceState(setArcDirectionInState(this.state, arcDirection));
+		this.setWorkspaceState(
+			setArcDirectionInState(this.state, arcDirection),
+		);
 	}
 
 	setFadeDistance(fadeDistance: number): void {
-		this.setWorkspaceState(setFadeDistanceInState(this.state, fadeDistance));
+		this.setWorkspaceState(
+			setFadeDistanceInState(this.state, fadeDistance),
+		);
 	}
 
 	setLabelSize(labelSize: number): void {
@@ -285,7 +293,9 @@ export class WorkspaceController {
 	}
 
 	setLabelPosition(labelPosition: LabelPosition): void {
-		this.setWorkspaceState(setLabelPositionInState(this.state, labelPosition));
+		this.setWorkspaceState(
+			setLabelPositionInState(this.state, labelPosition),
+		);
 	}
 
 	setLabelColor(labelColor: string): void {
@@ -294,12 +304,17 @@ export class WorkspaceController {
 
 	setLabelBackgroundOpacity(labelBackgroundOpacity: number): void {
 		this.setWorkspaceState(
-			setLabelBackgroundOpacityInState(this.state, labelBackgroundOpacity),
+			setLabelBackgroundOpacityInState(
+				this.state,
+				labelBackgroundOpacity,
+			),
 		);
 	}
 
 	setLabelDensity(labelDensity: number): void {
-		this.setWorkspaceState(setLabelDensityInState(this.state, labelDensity));
+		this.setWorkspaceState(
+			setLabelDensityInState(this.state, labelDensity),
+		);
 	}
 
 	setCubeFaceOpacity(cubeFaceOpacity: number): void {
@@ -329,7 +344,9 @@ export class WorkspaceController {
 	}
 
 	setNodeGroup(nodeId: NodeId, groupId?: string): void {
-		this.setWorkspaceState(setNodeGroupInState(this.state, nodeId, groupId));
+		this.setWorkspaceState(
+			setNodeGroupInState(this.state, nodeId, groupId),
+		);
 	}
 
 	addGroup(): void {
@@ -348,7 +365,9 @@ export class WorkspaceController {
 		groupId: string,
 		geometry: Pick<ChartGroup, 'x' | 'y' | 'width' | 'height'>,
 	): void {
-		this.setWorkspaceState(resizeGroupInState(this.state, groupId, geometry));
+		this.setWorkspaceState(
+			resizeGroupInState(this.state, groupId, geometry),
+		);
 	}
 
 	moveCuratedFilesToGroup(paths: NodeId[], groupId?: string): void {
@@ -362,7 +381,9 @@ export class WorkspaceController {
 	}
 
 	setGraphSpacing(graphSpacing: number): void {
-		this.setWorkspaceState(setGraphSpacingInState(this.state, graphSpacing));
+		this.setWorkspaceState(
+			setGraphSpacingInState(this.state, graphSpacing),
+		);
 	}
 
 	setGraphCenterForce(centerForce: number): void {
@@ -410,7 +431,9 @@ export class WorkspaceController {
 	}
 
 	removeCuratedFile(path: NodeId): void {
-		this.applyCuratedActionResult(removeCuratedFileInState(this.state, path));
+		this.applyCuratedActionResult(
+			removeCuratedFileInState(this.state, path),
+		);
 	}
 
 	removeCuratedFiles(paths: NodeId[]): void {
@@ -435,7 +458,9 @@ export class WorkspaceController {
 	}
 
 	clearCuratedFiles(): void {
-		this.applyCuratedActionResult(clearCuratedFilesActionInState(this.state));
+		this.applyCuratedActionResult(
+			clearCuratedFilesActionInState(this.state),
+		);
 	}
 
 	updateCuratedWorkspace(patch: Partial<CuratedWorkspaceConfig>): void {
@@ -464,7 +489,9 @@ export class WorkspaceController {
 	}
 
 	removeDockTemplate(templateId: string): void {
-		this.setWorkspaceState(removeDockTemplateInState(this.state, templateId));
+		this.setWorkspaceState(
+			removeDockTemplateInState(this.state, templateId),
+		);
 	}
 
 	reorderDockTemplate(
@@ -578,8 +605,18 @@ export class WorkspaceController {
 			field,
 			createNoteFile: (template, title) =>
 				createTemplateNoteFile(this.app, template, title),
-			connectDockNote: (notePath, target, dockDirection, connectionField) =>
-				this.connectDockNote(notePath, target, dockDirection, connectionField),
+			connectDockNote: (
+				notePath,
+				target,
+				dockDirection,
+				connectionField,
+			) =>
+				this.connectDockNote(
+					notePath,
+					target,
+					dockDirection,
+					connectionField,
+				),
 			placeTemplateNoteInDefaultGroup: (path, groupId) => {
 				this.setWorkspaceState(
 					placeNodeInDefaultGroupInState(this.state, path, groupId),
@@ -593,7 +630,10 @@ export class WorkspaceController {
 	}
 
 	updateGlobalQuery(patch: Partial<Omit<GraphQuery, 'roots'>>): void {
-		this.setWorkspaceState(updateGlobalQueryInState(this.state, patch), true);
+		this.setWorkspaceState(
+			updateGlobalQueryInState(this.state, patch),
+			true,
+		);
 	}
 
 	setGlobalNodeStyleRules(nodeStyleRules: NodeStyleRule[]): void {
@@ -633,11 +673,15 @@ export class WorkspaceController {
 	}
 
 	setNodeStyleRules(nodeStyleRules: NodeStyleRule[]): void {
-		this.setWorkspaceState(setNodeStyleRulesInState(this.state, nodeStyleRules));
+		this.setWorkspaceState(
+			setNodeStyleRulesInState(this.state, nodeStyleRules),
+		);
 	}
 
 	setLinkStyleRules(linkStyleRules: LinkStyleRule[]): void {
-		this.setWorkspaceState(setLinkStyleRulesInState(this.state, linkStyleRules));
+		this.setWorkspaceState(
+			setLinkStyleRulesInState(this.state, linkStyleRules),
+		);
 	}
 
 	setActiveConnectionField(field: string): void {
@@ -686,7 +730,8 @@ export class WorkspaceController {
 		await openWorkspaceNode(nodeId, {
 			getFile: (path) => this.app.vault.getAbstractFileByPath(path),
 			isFile: (value): value is TFile => value instanceof TFile,
-			openFile: (file) => this.app.workspace.getLeaf('tab').openFile(file),
+			openFile: (file) =>
+				this.app.workspace.getLeaf('tab').openFile(file),
 		});
 	}
 
@@ -739,7 +784,10 @@ export class WorkspaceController {
 		this.emit();
 	}
 
-	private setWorkspaceState(state: WorkspaceState, runQuery = false): boolean {
+	private setWorkspaceState(
+		state: WorkspaceState,
+		runQuery = false,
+	): boolean {
 		if (state === this.state) {
 			return false;
 		}
@@ -767,7 +815,9 @@ export class WorkspaceController {
 		}
 	}
 
-	private applyCuratedActionResult(result: WorkspaceCuratedActionResult): void {
+	private applyCuratedActionResult(
+		result: WorkspaceCuratedActionResult,
+	): void {
 		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
@@ -775,7 +825,8 @@ export class WorkspaceController {
 		key: GraphForceSettingKey,
 		value: number,
 	): void {
-		this.setWorkspaceState(setGraphForceSettingInState(this.state, key, value));
+		this.setWorkspaceState(
+			setGraphForceSettingInState(this.state, key, value),
+		);
 	}
-
 }

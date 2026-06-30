@@ -1,4 +1,8 @@
-import type { LabelPosition, ManualLayoutConfig, ViewMode } from '../../core/types';
+import type {
+	LabelPosition,
+	ManualLayoutConfig,
+	ViewMode,
+} from '../../core/types';
 import type { RuntimeGraph } from '../model/graphology-adapter';
 import type { GraphPalette } from '../styles/graph-styles';
 import { Cube3DRenderer } from './cube-3d/cube-3d-renderer';
