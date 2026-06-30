@@ -1,18 +1,23 @@
 <script lang="ts">
 	import type { App } from "obsidian";
 	import { onDestroy } from "svelte";
+	import type { ChartGroup, DockTemplateNode, KnowledgeNode } from "../core/types";
+	import type { DockDragPayload } from "./dock/types";
+	import DockNotesSection from "./dock-panel/DockNotesSection.svelte";
+	import DockResizeHandle from "./dock-panel/DockResizeHandle.svelte";
+	import DockTemplateSection from "./dock-panel/DockTemplateSection.svelte";
+	import {
+		buildGroupOptions,
+		buildNoteOptions,
+		buildTargetFolderOptions,
+		buildTemplateEntries,
+		countTitles,
+		dragKey,
+		readPointerPlacement,
+		type DockNoteEntry,
+		type ReorderPlacement,
+	} from "./dock-panel/dock-panel-state";
 	import ObsidianButton from "./obsidian/ObsidianButton.svelte";
-	import ObsidianDropdown from "./obsidian/ObsidianDropdown.svelte";
-	import ObsidianSuggestInput from "./obsidian/ObsidianSuggestInput.svelte";
-	import ObsidianTextInput from "./obsidian/ObsidianTextInput.svelte";
-	import type {
-		ChartGroup,
-			DockTemplateNode,
-			KnowledgeNode,
-		} from "../core/types";
-		import type { DockDragPayload } from "./dock/types";
-
-		type ReorderPlacement = "before" | "after";
 
 	let {
 		app,
@@ -46,13 +51,7 @@
 	}: {
 		app: App;
 		templates: DockTemplateNode[];
-		notes: Array<{
-			id: string;
-			path: string;
-			title: string;
-			broken: boolean;
-			color?: string;
-		}>;
+		notes: DockNoteEntry[];
 		availableNotes: KnowledgeNode[];
 		groups: ChartGroup[];
 		nodeColors: Map<string, string>;
@@ -94,15 +93,6 @@
 		onToggleFocusOnSelect: () => void;
 	} = $props();
 
-	let templateFormOpen = $state(false);
-	let templatesOpen = $state(true);
-	let notesOpen = $state(true);
-	let noteSearch = $state("");
-	let templateLabel = $state("");
-	let templatePath = $state("");
-	let targetFolder = $state("");
-	let templateDefaultGroupId = $state("");
-	let editingTemplateId = $state<string | undefined>(undefined);
 	let reorderDrag = $state<
 		| {
 				payload: DockDragPayload;
@@ -112,159 +102,20 @@
 		  }
 		| undefined
 	>(undefined);
+
 	const activeDraggingKey = $derived(
-		draggingKey ??
-			(reorderDrag?.active ? dragKey(reorderDrag.payload) : undefined),
+		draggingKey ?? (reorderDrag?.active ? dragKey(reorderDrag.payload) : undefined),
 	);
-
-	const notesTitleCounts = $derived(
-		notes.reduce<Record<string, number>>((acc, entry) => {
-			acc[entry.title] = (acc[entry.title] ?? 0) + 1;
-			return acc;
-		}, {}),
-	);
-
-	const templateEntries = $derived(
-		templates.map((t) => ({
-			...t,
-			templateMissing:
-				t.templatePath !== "" &&
-				!app.vault.getAbstractFileByPath(t.templatePath),
-			broken:
-				(t.templatePath !== "" &&
-					!app.vault.getAbstractFileByPath(t.templatePath)) ||
-				(t.targetFolder !== "" &&
-					!app.vault.getAbstractFileByPath(t.targetFolder)),
-		})),
-	);
-
-	const titleCounts = $derived(
-		availableNotes.reduce<Record<string, number>>((acc, node) => {
-			acc[node.title] = (acc[node.title] ?? 0) + 1;
-			return acc;
-		}, {}),
-	);
-
-	const noteOptions = $derived(
-		availableNotes.map((node) => ({
-			value: node.path,
-			label:
-				(titleCounts[node.title] ?? 0) > 1
-					? `${node.folder}/${node.title}`
-					: node.title,
-			detail: node.path,
-			searchText: [node.title, node.path, ...(node.aliases ?? [])].join(
-				" ",
-			),
-		})),
-	);
+	const notesTitleCounts = $derived(countTitles(notes));
+	const titleCounts = $derived(countTitles(availableNotes));
+	const noteOptions = $derived(buildNoteOptions(availableNotes, titleCounts));
 	const targetFolderOptions = $derived.by(() => {
 		// Reference availableNotes so this re-runs when the graph refreshes.
 		void availableNotes;
-		const folderPaths = app.vault
-			.getAllFolders()
-			.map((f) => (f.path === "/" ? "" : f.path))
-			.filter(Boolean)
-			.sort((left, right) =>
-				left.localeCompare(right, undefined, { sensitivity: "base" }),
-			);
-		return [
-			{ value: "", label: "Vault root", searchText: "vault root" },
-			...folderPaths.map((path) => ({
-				value: path,
-				label: path,
-				searchText: path,
-			})),
-		];
+		return buildTargetFolderOptions(app);
 	});
-	const groupOptions = $derived([
-		{ value: "", label: "No group" },
-		...groups
-			.filter((group) => group.mode === "manual")
-			.map((group) => ({
-				value: group.id,
-				label: group.name,
-			})),
-	]);
-
-	function saveTemplate(): void {
-		const label = templateLabel.trim();
-		const path = templatePath.trim();
-		if (!label || !path) {
-			return;
-		}
-			const template = {
-				label,
-				templatePath: path,
-				targetFolder: targetFolder.trim(),
-				relationField: activeConnectionField,
-				direction: "from-dock-to-graph",
-				defaultGroupId: templateDefaultGroupId || undefined,
-			} satisfies Omit<DockTemplateNode, "id">;
-		if (editingTemplateId) {
-			onUpdateTemplate(editingTemplateId, template);
-		} else {
-			onAddTemplate(template);
-		}
-		closeTemplateForm();
-	}
-
-	function selectTemplateNote(path: string, title: string): void {
-		templatePath = path;
-		if (!templateLabel.trim()) {
-			templateLabel = title;
-		}
-	}
-
-	function selectTargetFolder(folder: string): void {
-		targetFolder = folder;
-	}
-
-	function openAddTemplateForm(): void {
-		if (templateFormOpen && !editingTemplateId) {
-			closeTemplateForm();
-			return;
-		}
-		editingTemplateId = undefined;
-		templateLabel = "";
-		templatePath = "";
-		targetFolder = "";
-		templateDefaultGroupId = "";
-		templateFormOpen = true;
-	}
-
-	function openEditTemplateForm(template: DockTemplateNode): void {
-		editingTemplateId = template.id;
-		templateLabel = template.label;
-		templatePath = template.templatePath;
-		targetFolder = template.targetFolder;
-		templateDefaultGroupId = template.defaultGroupId ?? "";
-		templateFormOpen = true;
-	}
-
-	function closeTemplateForm(): void {
-		templateLabel = "";
-		templatePath = "";
-		targetFolder = "";
-		templateDefaultGroupId = "";
-		editingTemplateId = undefined;
-		templateFormOpen = false;
-	}
-
-	function templateDragPayload(template: DockTemplateNode): DockDragPayload {
-		return {
-			kind: "template",
-			templateId: template.id,
-			label: template.label,
-		};
-	}
-
-	function dragKey(payload: DockDragPayload): string {
-		if (payload.kind === "template") {
-			return `template:${payload.templateId}`;
-		}
-		return `note:${payload.notePath}`;
-	}
+	const groupOptions = $derived(buildGroupOptions(groups));
+	const templateEntries = $derived(buildTemplateEntries(app, templates));
 
 	function handleNodePointerDown(
 		payload: DockDragPayload,
@@ -340,15 +191,9 @@
 			return;
 		}
 		if (payload.kind === "template") {
-			const targetEl = target.closest<HTMLElement>(
-				"[data-dock-template-id]",
-			);
+			const targetEl = target.closest<HTMLElement>("[data-dock-template-id]");
 			const targetTemplateId = targetEl?.dataset.dockTemplateId;
-			if (
-				!targetEl ||
-				!targetTemplateId ||
-				targetTemplateId === payload.templateId
-			) {
+			if (!targetEl || !targetTemplateId || targetTemplateId === payload.templateId) {
 				return;
 			}
 			onReorderTemplate(
@@ -370,14 +215,6 @@
 		);
 	}
 
-	function readPointerPlacement(
-		targetEl: HTMLElement,
-		clientY: number,
-	): ReorderPlacement {
-		const rect = targetEl.getBoundingClientRect();
-		return clientY > rect.top + rect.height / 2 ? "after" : "before";
-	}
-
 	function handleLinkPointerDown(
 		payload: DockDragPayload,
 		event: PointerEvent,
@@ -385,8 +222,7 @@
 		if (
 			!event.ctrlKey ||
 			event.button !== 0 ||
-			(event.target instanceof HTMLElement &&
-				event.target.closest("button"))
+			(event.target instanceof HTMLElement && event.target.closest("button"))
 		) {
 			return;
 		}
@@ -398,25 +234,6 @@
 	onDestroy(() => {
 		handleReorderPointerUp();
 	});
-
-	function handleResizePointerDown(event: PointerEvent): void {
-		event.preventDefault();
-		const startX = event.clientX;
-		const startWidth = dockWidth;
-		function onMove(e: PointerEvent): void {
-			const newWidth = Math.max(
-				180,
-				Math.min(480, startWidth + startX - e.clientX),
-			);
-			onResizeDock(newWidth);
-		}
-		function onUp(): void {
-			window.removeEventListener("pointermove", onMove);
-			window.removeEventListener("pointerup", onUp);
-		}
-		window.addEventListener("pointermove", onMove);
-		window.addEventListener("pointerup", onUp);
-	}
 </script>
 
 <aside
@@ -424,12 +241,15 @@
 	class:knowledge-workspace-dock-panel-collapsed={!dockOpen}
 	style="width: {dockOpen ? `${dockWidth}px` : undefined}"
 >
-	<div
+	<DockResizeHandle
+		width={dockWidth}
+		minWidth={180}
+		maxWidth={480}
+		ariaLabel="Resize dock"
 		class="knowledge-workspace-dock-resize-handle"
-		role="separator"
-		aria-label="Resize dock"
-		onpointerdown={handleResizePointerDown}
-	></div>
+		readDelta={(startX, currentX) => startX - currentX}
+		onResize={onResizeDock}
+	/>
 	<ObsidianButton
 		class="knowledge-workspace-dock-toggle"
 		icon={dockOpen ? "panel-right-close" : "panel-right-open"}
@@ -437,280 +257,36 @@
 		onClick={onToggleDock}
 	/>
 	{#if dockOpen}
-		<section
-			class:knowledge-workspace-dock-section-collapsed={!templatesOpen}
-		>
-			<header>
-				<ObsidianButton
-					icon={templatesOpen ? "chevron-down" : "chevron-right"}
-					ariaLabel={templatesOpen
-						? "Collapse templates"
-						: "Expand templates"}
-					onClick={() => (templatesOpen = !templatesOpen)}
-				/>
-				<h3>Templates</h3>
-				<ObsidianButton
-					icon={templateFormOpen ? "x" : "plus"}
-					ariaLabel={templateFormOpen
-						? "Close template form"
-						: "Add template"}
-					onClick={templateFormOpen
-						? closeTemplateForm
-						: openAddTemplateForm}
-				/>
-			</header>
-			{#if templatesOpen}
-				{#if templateFormOpen}
-					<form
-						class="knowledge-workspace-dock-form"
-						onsubmit={(event) => {
-							event.preventDefault();
-							saveTemplate();
-						}}
-					>
-						<ObsidianTextInput
-							type="text"
-							placeholder="Label"
-							value={templateLabel}
-							onInput={(value) => {
-								templateLabel = value;
-							}}
-						/>
-						<label class="knowledge-workspace-dock-suggest">
-							<ObsidianSuggestInput
-								{app}
-								type="text"
-								placeholder="Template note..."
-								value={templatePath}
-								options={noteOptions}
-								onInput={(value) => {
-									templatePath = value;
-								}}
-								onSelect={(option) => {
-									selectTemplateNote(
-										option.value,
-										option.label,
-									);
-								}}
-							/>
-						</label>
-							<label class="knowledge-workspace-dock-suggest">
-								<ObsidianSuggestInput
-									{app}
-									type="text"
-									placeholder="Target folder..."
-								value={targetFolder}
-								options={targetFolderOptions}
-								onInput={(value) => {
-									targetFolder = value;
-								}}
-								onSelect={(option) => {
-									selectTargetFolder(option.value);
-									}}
-								/>
-							</label>
-							<label class="knowledge-workspace-dock-field">
-								<span>Default group</span>
-								<ObsidianDropdown
-									value={templateDefaultGroupId}
-									options={groupOptions}
-									onChange={(value) => {
-										templateDefaultGroupId = value;
-									}}
-								/>
-							</label>
-							<ObsidianButton
-								icon={editingTemplateId ? "check" : "plus"}
-							text={editingTemplateId
-								? "Save template"
-								: "Add template"}
-							onClick={saveTemplate}
-						/>
-					</form>
-				{/if}
-				<div class="knowledge-workspace-dock-list">
-					{#if templateEntries.length === 0}
-						<span class="knowledge-workspace-dock-empty"
-							>No templates</span
-						>
-					{:else}
-						{#each templateEntries as template (template.id)}
-							{@const payload = templateDragPayload(template)}
-							<div
-								class:dragging={activeDraggingKey ===
-									dragKey(payload)}
-								class:target={!template.broken &&
-									graphTargetTemplateId === template.id}
-								class="knowledge-workspace-dock-node template"
-								class:broken={template.broken}
-								data-dock-template-id={template.id}
-								data-dock-template-broken={template.broken
-									? ""
-									: undefined}
-								role="button"
-								tabindex="0"
-								aria-label={
-									template.broken
-										? `${template.label} (template note or target folder not found)`
-										: template.label
-								}
-								title={
-									template.broken
-										? `Template note or target folder not found`
-										: undefined
-								}
-								onpointerdown={(event) => {
-									if (template.broken && event.ctrlKey)
-										return;
-									handleNodePointerDown(payload, event);
-								}}
-							>
-								<span></span>
-								<strong>{template.label}</strong>
-								<ObsidianButton
-									icon="file-text"
-									ariaLabel={`Open template note for ${template.label}`}
-									disabled={template.templateMissing}
-									onClick={() => {
-										if (!template.templateMissing) {
-											onOpenNote(template.templatePath);
-										}
-									}}
-								/>
-								<ObsidianButton
-									icon="pencil"
-									ariaLabel={`Edit ${template.label}`}
-									onClick={() =>
-										openEditTemplateForm(template)}
-								/>
-								<ObsidianButton
-									icon="x"
-									ariaLabel={`Remove ${template.label}`}
-									onClick={() => {
-										if (editingTemplateId === template.id) {
-											closeTemplateForm();
-										}
-										onRemoveTemplate(template.id);
-									}}
-								/>
-							</div>
-						{/each}
-					{/if}
-				</div>
-			{/if}
-		</section>
-
-			<section class:knowledge-workspace-dock-section-collapsed={!notesOpen}>
-			<header>
-				<ObsidianButton
-					icon={notesOpen ? "chevron-down" : "chevron-right"}
-					ariaLabel={notesOpen ? "Collapse notes" : "Expand notes"}
-					onClick={() => (notesOpen = !notesOpen)}
-				/>
-				<h3>Selected notes</h3>
-				<span>{notes.length}</span>
-				<ObsidianButton
-					icon="crosshair"
-					active={focusOnSelect}
-					ariaLabel={
-						focusOnSelect
-							? "Auto-focus on click (enabled)"
-							: "Auto-focus on click (disabled)"
-					}
-					tooltip="Auto-focus on click"
-					class="knowledge-workspace-dock-focus-toggle"
-					onClick={onToggleFocusOnSelect}
-				/>
-			</header>
-			{#if notesOpen}
-				<div class="knowledge-workspace-dock-search">
-					<ObsidianSuggestInput
-						{app}
-						type="search"
-						placeholder="Add note..."
-						ariaLabel="Add selected note"
-						value={noteSearch}
-						options={noteOptions}
-						onInput={(value) => {
-							noteSearch = value;
-						}}
-						onSelect={(option) => {
-							onAddNote(option.value);
-							noteSearch = "";
-						}}
-					/>
-				</div>
-				<div class="knowledge-workspace-dock-list">
-					{#if notes.length === 0}
-						<span class="knowledge-workspace-dock-empty"
-							>No selected notes</span
-						>
-					{:else}
-						{#each notes as entry (entry.path)}
-							{@const payload = entry.broken
-								? ({
-										kind: "broken-note",
-										notePath: entry.path,
-										label: entry.title,
-									} satisfies DockDragPayload)
-								: ({
-										kind: "note",
-										notePath: entry.path,
-										label: entry.title,
-										direction: "from-dock-to-graph",
-										relationField: activeConnectionField,
-									} satisfies DockDragPayload)}
-							<div
-								class:dragging={activeDraggingKey ===
-									dragKey(payload)}
-								class:target={!entry.broken &&
-									graphTargetNotePath === entry.path}
-								class="knowledge-workspace-dock-node note"
-								class:broken={entry.broken}
-								data-dock-note-path={entry.path}
-								role="button"
-								tabindex="0"
-								aria-label={entry.broken
-									? `${entry.title} (file not found)`
-									: entry.title}
-								title={entry.broken
-									? `File not found: ${entry.path}`
-									: undefined}
-								onpointerdown={(event) =>
-									handleNodePointerDown(payload, event)}
-								ondblclick={entry.broken
-									? undefined
-									: () => onOpenNote(entry.id)}
-							>
-								<span
-									style={entry.broken
-										? undefined
-										: `background: ${entry.color ?? 'var(--color-green, #44a37f)'}`}
-								></span>
-								<div class="knowledge-workspace-dock-node-title">
-									<strong>{entry.title}</strong>
-									{#if (notesTitleCounts[entry.title] ?? 0) > 1}
-										<span class="knowledge-workspace-dock-node-path">{entry.path}</span>
-									{/if}
-								</div>
-								<ObsidianButton
-									icon="file-text"
-									ariaLabel={`Open ${entry.title}`}
-									disabled={entry.broken}
-									onClick={() => onOpenNote(entry.path)}
-								/>
-								<ObsidianButton
-									icon="x"
-									ariaLabel={`Remove ${entry.title}`}
-									onClick={() => onRemoveNote(entry.path)}
-								/>
-							</div>
-						{/each}
-					{/if}
-				</div>
-			{/if}
-		</section>
-
+		<DockTemplateSection
+			{app}
+			templates={templateEntries}
+			{noteOptions}
+			{targetFolderOptions}
+			{groupOptions}
+			{activeConnectionField}
+			{activeDraggingKey}
+			{graphTargetTemplateId}
+			{onAddTemplate}
+			{onUpdateTemplate}
+			{onRemoveTemplate}
+			onPointerDown={handleNodePointerDown}
+			{onOpenNote}
+		/>
+		<DockNotesSection
+			{app}
+			{notes}
+			{noteOptions}
+			{notesTitleCounts}
+			{activeConnectionField}
+			{activeDraggingKey}
+			{graphTargetNotePath}
+			{focusOnSelect}
+			{onToggleFocusOnSelect}
+			{onAddNote}
+			{onRemoveNote}
+			onPointerDown={handleNodePointerDown}
+			{onOpenNote}
+		/>
 		<span
 			class:active={linking}
 			class:target={Boolean(
