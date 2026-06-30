@@ -63,6 +63,7 @@ export class D3ForceSimulation {
 			.alpha(Math.max(simulation.alpha(), 0.12))
 			.alphaTarget(0)
 			.restart();
+		this.scheduleStop();
 	}
 
 	drag(nodeId: string, position: { x: number; y: number }): void {
@@ -116,6 +117,7 @@ export class D3ForceSimulation {
 		this.settleTimer = undefined;
 		this.simulation?.stop();
 		this.simulation = undefined;
+		this.renderer.clearHeldBounds();
 	}
 
 	private ensureSimulation(): void {

@@ -241,7 +241,6 @@ export class WorkspaceRendererLifecycle {
 		this.options.syncRendererGroups();
 		this.currentRenderer.setSelected(state.selectedNodeId);
 		this.currentRenderer.setHovered(state.hoveredNodeId);
-		this.restartSigmaForceLayoutIfNeeded();
 		if (firstRender || fitAfterRender) {
 			this.currentRenderer.fit();
 		}

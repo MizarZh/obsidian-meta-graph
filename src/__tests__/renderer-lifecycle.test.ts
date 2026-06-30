@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WorkspaceState } from '../core/types';
-import type { GraphRenderer } from '../graph/renderers/renderer-adapter';
+import {
+	getModeCapabilities,
+	type GraphRenderer,
+} from '../graph/renderers/renderer-adapter';
 import type { LayoutSnapshot } from '../layouts/stable-layout';
+import { D3ForceSimulation } from '../layouts/d3-force-simulation';
 import { WorkspaceRendererLifecycle } from '../ui/workspace/renderer-lifecycle';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
 import { createWorkspaceRuntimeGraph } from '../ui/workspace/runtime-graph';
@@ -44,6 +48,13 @@ vi.mock('../graph/model/runtime-graph-debug', () => ({
 vi.mock('../layouts/stable-layout', () => ({
 	hydrateManualLayoutPositions: vi.fn(),
 	applyStableLayout: vi.fn(async () => undefined),
+}));
+
+vi.mock('../layouts/d3-force-simulation', () => ({
+	D3ForceSimulation: vi.fn(() => ({
+		start: vi.fn(),
+		stop: vi.fn(),
+	})),
 }));
 
 vi.mock('../ui/workspace/runtime-graph', () => ({
@@ -100,6 +111,12 @@ function createLayoutSnapshot(): LayoutSnapshot {
 describe('WorkspaceRendererLifecycle', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.mocked(getModeCapabilities).mockReturnValue({
+			rendererKind: 'sigma',
+			usesSigmaForceSimulation: false,
+			supportsFreeNodeDrag: false,
+			supportsManualGroups: false,
+		});
 		vi.mocked(createWorkspaceRuntimeGraph).mockReturnValue({
 			nodes: () => ['a'],
 		} as never);
@@ -136,6 +153,36 @@ describe('WorkspaceRendererLifecycle', () => {
 		expect(setRendererDebugState).toHaveBeenLastCalledWith(
 			expect.objectContaining({ status: 'rendered' }),
 		);
+	});
+
+	it('does not start sigma force layout automatically after render', async () => {
+		vi.mocked(getModeCapabilities).mockReturnValue({
+			rendererKind: 'sigma',
+			usesSigmaForceSimulation: true,
+			supportsFreeNodeDrag: false,
+			supportsManualGroups: false,
+		});
+		const state = { ...createState(), enableForceLayout: true };
+		const renderer = createRenderer();
+		vi.mocked(createWorkspaceGraphRenderer).mockResolvedValue(renderer);
+
+		const lifecycle = new WorkspaceRendererLifecycle({
+			readState: () => state,
+			readCanvas: () =>
+				({
+					getBoundingClientRect: () => ({ width: 800, height: 600 }),
+				}) as HTMLDivElement,
+			readLayoutSnapshot: () => createLayoutSnapshot(),
+			readContainerSize: () => ({ width: 800, height: 600 }),
+			waitForCanvasSize: async () => true,
+			bindEvents: () => vi.fn(),
+			syncRendererGroups: vi.fn(),
+			setRendererDebugState: vi.fn(),
+		});
+
+		await lifecycle.rebuild();
+
+		expect(D3ForceSimulation).not.toHaveBeenCalled();
 	});
 
 	it('unbinds events and kills the renderer on dispose', async () => {
