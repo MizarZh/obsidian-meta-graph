@@ -5,8 +5,8 @@ import {
 	moveCuratedFilesToGroupInState,
 	moveGroupInState,
 	setManualNodePositionInState,
-} from '../workspace/workspace-manual-layout-state';
-import { createWorkspaceState } from '../workspace/workspace-state';
+} from '../workspace/state/manual-layout-state';
+import { createWorkspaceState } from '../workspace/state/workspace-state';
 
 describe('workspace manual layout state', () => {
 	it('keeps no-op node position updates referentially stable', () => {

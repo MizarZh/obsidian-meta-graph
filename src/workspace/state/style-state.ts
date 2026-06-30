@@ -5,15 +5,15 @@ import type {
 	MetaGraphChart,
 	NodeStyleRule,
 	WorkspaceState,
-} from '../core/types';
+} from '../../core/types';
 import {
 	normalizeGlobalLinkStyleRules,
 	normalizeGlobalNodeStyleRules,
 	normalizeLinkStyleRules,
 	normalizeNodeStyleRules,
-} from './meta-graph-model';
-import { cloneSerializable } from './workspace-persistence';
-import { updateActiveChartState } from './workspace-state-updaters';
+} from '../meta-graph-model';
+import { cloneSerializable } from './persistence';
+import { updateActiveChartState } from './state-updaters';
 
 type ChartStyleKey = keyof MetaGraphChart['style'];
 

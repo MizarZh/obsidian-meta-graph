@@ -10,7 +10,7 @@ import type {
 	MetaGraphDock,
 	NodeStyleRule,
 } from '../../core/types';
-import { cloneSerializable } from '../workspace-persistence';
+import { cloneSerializable } from '../state/persistence';
 import { createChartId, createDefaultCharts, normalizeChart } from './chart';
 import {
 	DEFAULT_CONNECTION_FIELD,

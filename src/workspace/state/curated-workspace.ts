@@ -1,6 +1,6 @@
-import { normalizePath } from '../core/knowledge-index';
-import type { CuratedWorkspaceConfig } from '../core/types';
-import { normalizeCuratedWorkspace } from './meta-graph-model';
+import { normalizePath } from '../../core/knowledge-index';
+import type { CuratedWorkspaceConfig } from '../../core/types';
+import { normalizeCuratedWorkspace } from '../meta-graph-model';
 
 export interface CuratedPathUpdate {
 	curated: CuratedWorkspaceConfig;

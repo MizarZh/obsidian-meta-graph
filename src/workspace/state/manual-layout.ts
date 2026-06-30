@@ -1,5 +1,5 @@
-import type { ChartGroup, ChartLayoutConfig } from '../core/types';
-import { normalizePath } from '../core/knowledge-index';
+import type { ChartGroup, ChartLayoutConfig } from '../../core/types';
+import { normalizePath } from '../../core/knowledge-index';
 
 export const CUBE_FACE_GROUPS: ChartGroup[] = [
 	{

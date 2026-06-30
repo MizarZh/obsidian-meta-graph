@@ -5,9 +5,9 @@ import {
 	setCubeFaceOpacityInState,
 	setFlowSpacingInState,
 	setLabelDensityInState,
-} from '../workspace/workspace-chart-settings';
-import { createWorkspaceState } from '../workspace/workspace-state';
-import { updateActiveChartState } from '../workspace/workspace-state-updaters';
+} from '../workspace/state/chart-settings';
+import { createWorkspaceState } from '../workspace/state/workspace-state';
+import { updateActiveChartState } from '../workspace/state/state-updaters';
 
 function getActiveChart(state: WorkspaceState): MetaGraphChart {
 	const chart = state.charts.find((item) => item.id === state.activeChartId);

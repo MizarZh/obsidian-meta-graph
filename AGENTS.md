@@ -45,8 +45,12 @@ Do not run `pnpm dev`, `pnpm build`, or `git diff` if the user explicitly asks n
 - `src/settings/settings.ts`: plugin-wide settings and defaults.
 - `src/settings/SettingsTab.ts`: Obsidian Settings UI.
 - `src/workspace/KnowledgeWorkspaceView.ts`: custom TextFileView for workspace Markdown files.
-- `src/workspace/workspace-controller.ts`: state orchestration, indexing, query refresh, connection editing, undo stack.
+- `src/workspace/workspace-controller.ts`: workspace facade, lifecycle, refresh scheduling, and listener emission.
 - `src/workspace/meta-graph-model.ts`: workspace document defaults, normalization, serialization.
+- `src/workspace/actions/`: controller action facades for connections, curated files, dock actions, file selection/opening, and template-note orchestration.
+- `src/workspace/state/`: pure workspace state reducers/selectors for charts, settings, connection fields, curated files, dock data, manual layout, query, style, and active workspace state.
+- `src/workspace/services/`: Obsidian/IO-backed services for metadata indexing, connection frontmatter writes, and template note creation.
+- `src/workspace/runtime/`: refresh/projection state application and debug snapshot serialization.
 - `src/core/relation-parser.ts`: frontmatter relationship parsing.
 - `src/core/metadata-indexer.ts`: Obsidian metadata cache -> canonical knowledge index.
 - `src/query/neighborhood.ts`: query projection.

@@ -3,7 +3,7 @@ import type {
 	MetaGraphChart,
 	NodeId,
 	WorkspaceState,
-} from '../core/types';
+} from '../../core/types';
 import {
 	createUniqueDefaultGroup,
 	findManualPlacement,
@@ -11,8 +11,8 @@ import {
 	moveManualNodesToGroup,
 	normalizeGroupPatch,
 	readGroupPlacementBounds,
-} from './workspace-manual-layout';
-import { updateActiveChartState } from './workspace-state-updaters';
+} from './manual-layout';
+import { updateActiveChartState } from './state-updaters';
 
 type Position = { x: number; y: number };
 

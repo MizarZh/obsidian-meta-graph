@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createWorkspaceState } from '../workspace/workspace-state';
-import { cloneSerializable } from '../workspace/workspace-persistence';
+import { createWorkspaceState } from '../workspace/state/workspace-state';
+import { cloneSerializable } from '../workspace/state/persistence';
 import {
 	createDefaultMetaGraphDocument,
 	normalizeMetaGraphDocument,
@@ -10,7 +10,7 @@ import {
 	addCuratedFilePaths,
 	removeCuratedFilePaths,
 	renameCuratedFilePath,
-} from '../workspace/curated-workspace';
+} from '../workspace/state/curated-workspace';
 
 describe('workspace persistence', () => {
 	it('serializes editable chart configuration without runtime state', () => {

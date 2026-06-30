@@ -1,7 +1,7 @@
-import type { MetaGraphDocument, WorkspaceState } from '../core/types';
-import { createInitialActiveChartStateFields } from './workspace-active-chart-state';
-import { cloneSerializable } from './workspace-persistence';
-import { createDefaultMetaGraphDocument } from './meta-graph-model';
+import type { MetaGraphDocument, WorkspaceState } from '../../core/types';
+import { createInitialActiveChartStateFields } from './active-chart-state';
+import { cloneSerializable } from './persistence';
+import { createDefaultMetaGraphDocument } from '../meta-graph-model';
 
 export function createWorkspaceState(
 	maxNodes: number,

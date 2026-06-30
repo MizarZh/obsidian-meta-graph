@@ -4,8 +4,8 @@ import {
 	setDefaultNodeStyleInState,
 	setGlobalNodeStyleRulesInState,
 	setNodeStyleRulesInState,
-} from '../workspace/workspace-style-state';
-import { createWorkspaceState } from '../workspace/workspace-state';
+} from '../workspace/state/style-state';
+import { createWorkspaceState } from '../workspace/state/workspace-state';
 
 function getActiveChart(state: WorkspaceState): MetaGraphChart {
 	const chart = state.charts.find((item) => item.id === state.activeChartId);

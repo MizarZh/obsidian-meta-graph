@@ -2,12 +2,12 @@ import type {
 	DockTemplateNode,
 	MetaGraphDock,
 	NodeId,
-} from '../core/types';
+} from '../../core/types';
 import {
 	normalizeDockNotes,
 	normalizeDockTemplates,
-} from './meta-graph-model';
-import { createDockId } from './meta-graph/utils';
+} from '../meta-graph-model';
+import { createDockId } from '../meta-graph/utils';
 
 export type ReorderPlacement = 'before' | 'after';
 

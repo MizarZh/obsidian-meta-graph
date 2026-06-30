@@ -5,7 +5,7 @@ import type {
 	NodeFilterGroupMode,
 	NodeFilterOperator,
 } from '../../core/types';
-import { cloneSerializable } from '../workspace-persistence';
+import { cloneSerializable } from '../state/persistence';
 
 const FILTER_FIELDS = new Set<string>([
 	'file.file',

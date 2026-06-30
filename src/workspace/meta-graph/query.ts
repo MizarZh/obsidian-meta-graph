@@ -6,7 +6,7 @@ import type {
 	NodeFilterRule,
 } from '../../core/types';
 import { DEFAULT_GRAPH_QUERY } from '../../query/graph-query';
-import { cloneSerializable } from '../workspace-persistence';
+import { cloneSerializable } from '../state/persistence';
 import {
 	createRuleId,
 	isRecord,

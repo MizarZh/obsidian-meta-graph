@@ -1,14 +1,14 @@
 import { TFolder, type App } from 'obsidian';
-import { MetadataIndexer } from '../core/metadata-indexer';
+import { MetadataIndexer } from '../../core/metadata-indexer';
 import type {
 	GraphProjection,
 	KnowledgeIndex,
 	MetadataDebugEntry,
 	UnresolvedLink,
 	WorkspaceState,
-} from '../core/types';
-import { CuratedProjectionEngine } from '../query/curated';
-import { GraphQueryEngine } from '../query/neighborhood';
+} from '../../core/types';
+import { CuratedProjectionEngine } from '../../query/curated';
+import { GraphQueryEngine } from '../../query/neighborhood';
 
 export interface WorkspaceIndexSnapshot {
 	index: KnowledgeIndex;

@@ -7,7 +7,7 @@ import type {
 } from '../core/types';
 import { resolveLinkStyle, resolveNodeStyle } from '../graph/styles/style-rules';
 import { normalizeMetaGraphDocument } from '../workspace/meta-graph-model';
-import { createWorkspaceState } from '../workspace/workspace-state';
+import { createWorkspaceState } from '../workspace/state/workspace-state';
 
 const node: KnowledgeNode = {
 	id: 'science/Star.md',

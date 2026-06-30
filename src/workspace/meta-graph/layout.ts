@@ -3,7 +3,7 @@ import type {
 	ManualLayoutConfig,
 	ViewMode,
 } from '../../core/types';
-import { cloneSerializable } from '../workspace-persistence';
+import { cloneSerializable } from '../state/persistence';
 import {
 	DEFAULT_GRAPH_CENTER_FORCE,
 	DEFAULT_GRAPH_DRAG_LINK_FORCE,

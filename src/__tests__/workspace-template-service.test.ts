@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DockTemplateNode } from '../core/types';
-import { resolveTemplateNoteRequest } from '../workspace/workspace-template-request';
+import { resolveTemplateNoteRequest } from '../workspace/actions/template-request';
 
 const template: DockTemplateNode = {
 	id: 'template-1',

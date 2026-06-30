@@ -1,10 +1,15 @@
-import { normalizePath } from '../core/knowledge-index';
-import { extractLinkText } from '../core/link-resolver';
+import { normalizePath } from '../../core/knowledge-index';
+import { extractLinkText } from '../../core/link-resolver';
 import type {
 	ConnectionFieldMode,
 	DockConnectionDirection,
 	NodeId,
-} from '../core/types';
+} from '../../core/types';
+import {
+	normalizeConnectionRequest,
+	normalizeDockConnectionRequest,
+	type NormalizedConnectionRequest,
+} from '../actions/connection-request';
 
 export interface WorkspaceConnectionAdapter<FileEntry> {
 	getFile(path: string): unknown;
@@ -44,11 +49,16 @@ export class WorkspaceConnectionService<FileEntry> {
 		field: string,
 		mode: ConnectionFieldMode,
 	): Promise<boolean> {
-		const [sourceNodeId, targetPath] =
-			direction === 'from-dock-to-graph'
-				? [notePath, targetNodeId]
-				: [targetNodeId, notePath];
-		return this.connectNodes(sourceNodeId, targetPath, field, mode);
+		const request = normalizeDockConnectionRequest(
+			notePath,
+			targetNodeId,
+			direction,
+			field,
+		);
+		if (!request) {
+			return false;
+		}
+		return this.writeConnection(request, mode);
 	}
 
 	async connectNodes(
@@ -57,12 +67,19 @@ export class WorkspaceConnectionService<FileEntry> {
 		field: string,
 		mode: ConnectionFieldMode,
 	): Promise<boolean> {
-		const normalizedField = field.trim();
-		if (!normalizedField || sourceNodeId === targetNodeId) {
+		const request = normalizeConnectionRequest(field, sourceNodeId, targetNodeId);
+		if (!request) {
 			return false;
 		}
-		const sourceFile = this.adapter.getFile(sourceNodeId);
-		const targetFile = this.adapter.getFile(targetNodeId);
+		return this.writeConnection(request, mode);
+	}
+
+	private async writeConnection(
+		request: NormalizedConnectionRequest,
+		mode: ConnectionFieldMode,
+	): Promise<boolean> {
+		const sourceFile = this.adapter.getFile(request.sourceNodeId);
+		const targetFile = this.adapter.getFile(request.targetNodeId);
 		if (!this.adapter.isFile(sourceFile) || !this.adapter.isFile(targetFile)) {
 			return false;
 		}
@@ -76,7 +93,7 @@ export class WorkspaceConnectionService<FileEntry> {
 				await this.addFrontmatterConnection(
 					targetFile,
 					sourceFile,
-					normalizedField,
+					request.field,
 					reverseLink,
 				),
 			);
@@ -89,7 +106,7 @@ export class WorkspaceConnectionService<FileEntry> {
 		const undo = await this.addFrontmatterConnection(
 			sourceFile,
 			targetFile,
-			normalizedField,
+			request.field,
 			link,
 		);
 		if (mode === 'bidirectional') {
@@ -101,7 +118,7 @@ export class WorkspaceConnectionService<FileEntry> {
 				...(await this.addFrontmatterConnection(
 					targetFile,
 					sourceFile,
-					normalizedField,
+					request.field,
 					reverseLink,
 				)),
 			);

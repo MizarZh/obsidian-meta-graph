@@ -1,11 +1,11 @@
-import type { ChartSource, MetaGraphChart, ViewMode, WorkspaceState } from '../core/types';
+import type { ChartSource, MetaGraphChart, ViewMode, WorkspaceState } from '../../core/types';
 import {
 	createDefaultChart,
 	createDefaultCuratedWorkspace,
-} from './meta-graph-model';
-import { normalizeCubeLayout } from './workspace-manual-layout';
+} from '../meta-graph-model';
+import { normalizeCubeLayout } from './manual-layout';
 import { createWorkspaceState } from './workspace-state';
-import { updateActiveChartState } from './workspace-state-updaters';
+import { updateActiveChartState } from './state-updaters';
 
 export interface WorkspaceChartStateResult {
 	state: WorkspaceState;

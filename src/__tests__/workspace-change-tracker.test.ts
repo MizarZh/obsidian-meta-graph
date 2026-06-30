@@ -4,7 +4,7 @@ import {
 	createWorkspaceRenderBaseline,
 	syncWorkspaceRenderBaselineStyles,
 } from '../ui/workspace/change-tracker';
-import { createWorkspaceState } from '../workspace/workspace-state';
+import { createWorkspaceState } from '../workspace/state/workspace-state';
 
 describe('workspace change tracker', () => {
 	it('requests initial rebuild against empty baseline', () => {

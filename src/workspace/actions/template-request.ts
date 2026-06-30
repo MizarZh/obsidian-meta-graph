@@ -1,4 +1,4 @@
-import type { DockTemplateNode } from '../core/types';
+import type { DockTemplateNode } from '../../core/types';
 
 export interface TemplateNoteRequest {
 	template: DockTemplateNode;

@@ -1,5 +1,5 @@
-import type { GraphQuery, WorkspaceState } from '../core/types';
-import { updateActiveChartState } from './workspace-state-updaters';
+import type { GraphQuery, WorkspaceState } from '../../core/types';
+import { updateActiveChartState } from './state-updaters';
 
 type QueryPatch = Partial<Omit<GraphQuery, 'roots'>>;
 

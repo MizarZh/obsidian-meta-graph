@@ -5,8 +5,8 @@ import type {
 	LabelPosition,
 	MetaGraphChart,
 	WorkspaceState,
-} from '../core/types';
-import { updateActiveChartState } from './workspace-state-updaters';
+} from '../../core/types';
+import { updateActiveChartState } from './state-updaters';
 
 export type GraphForceSettingKey =
 	| 'centerForce'

@@ -1,20 +1,25 @@
-import { normalizePath } from '../core/knowledge-index';
+import { normalizePath } from '../../core/knowledge-index';
 import type {
 	CuratedWorkspaceConfig,
 	MetaGraphChart,
 	NodeId,
 	WorkspaceState,
-} from '../core/types';
+} from '../../core/types';
 import {
 	addCuratedFilePaths,
 	removeCuratedFilePaths,
 	renameCuratedFilePath,
 } from './curated-workspace';
-import { normalizeCuratedWorkspace } from './meta-graph-model';
-import { cloneSerializable } from './workspace-persistence';
-import { addManualPlacements, removeManualPlacements } from './workspace-manual-layout';
-import { moveRelative, type ReorderPlacement } from './workspace-dock-state';
-import { updateActiveChartState } from './workspace-state-updaters';
+import { normalizeCuratedWorkspace } from '../meta-graph-model';
+import { cloneSerializable } from './persistence';
+import { addManualPlacements, removeManualPlacements } from './manual-layout';
+import { moveRelative, type ReorderPlacement } from './dock-state';
+import { updateActiveChartState } from './state-updaters';
+
+export interface WorkspaceCuratedUpdateResult {
+	state: WorkspaceState;
+	changed: boolean;
+}
 
 export function addCuratedFilesToState(
 	state: WorkspaceState,
@@ -143,6 +148,17 @@ export function renameCuratedFilePathInState(
 		charts,
 		curated: cloneSerializable(activeChart?.curated ?? state.curated),
 	};
+}
+
+export function updateCuratedFilePathInState(
+	state: WorkspaceState,
+	oldPath: string,
+	newPath: string,
+): WorkspaceCuratedUpdateResult {
+	const nextState = renameCuratedFilePathInState(state, oldPath, newPath);
+	return nextState === state
+		? { state, changed: false }
+		: { state: nextState, changed: true };
 }
 
 export function pruneMissingCuratedFiles(

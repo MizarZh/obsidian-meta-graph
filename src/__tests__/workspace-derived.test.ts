@@ -10,7 +10,7 @@ import {
 	getWorkspaceNodeColor,
 	getWorkspaceNodeColors,
 } from '../ui/workspace/derived';
-import { createWorkspaceState } from '../workspace/workspace-state';
+import { createWorkspaceState } from '../workspace/state/workspace-state';
 
 const nodes = [
 	node('B.md', 'beta'),

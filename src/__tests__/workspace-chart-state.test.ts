@@ -6,8 +6,8 @@ import {
 	setActiveChartNameInState,
 	setActiveChartSourceInState,
 	setActiveChartTypeInState,
-} from '../workspace/workspace-chart-state';
-import { createWorkspaceState } from '../workspace/workspace-state';
+} from '../workspace/state/chart-state';
+import { createWorkspaceState } from '../workspace/state/workspace-state';
 
 describe('workspace chart state', () => {
 	it('switches active charts while preserving runtime-only state', () => {

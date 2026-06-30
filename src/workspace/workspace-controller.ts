@@ -1,11 +1,9 @@
 import { TFile, type App } from 'obsidian';
-import { normalizePath } from '../core/knowledge-index';
 import type {
 	ArcDirection,
 	ChartSource,
 	ChartGroup,
 	ConnectionFieldMode,
-	ConnectionFieldSpec,
 	CuratedWorkspaceConfig,
 	DefaultLinkStyle,
 	DefaultNodeStyle,
@@ -13,11 +11,9 @@ import type {
 	FlowDirection,
 	FlowEdgeStyle,
 	GraphQuery,
-	GraphProjection,
 	KnowledgeIndex,
 	LabelPosition,
 		LinkStyleRule,
-		MetaGraphChart,
 		MetaGraphDocument,
 		DockConnectionDirection,
 	DockTemplateNode,
@@ -29,11 +25,8 @@ import type {
 	ViewMode,
 	WorkspaceState,
 } from '../core/types';
-import { createWorkspaceState } from './workspace-state';
-import {
-	DEFAULT_CONNECTION_FIELD_MODE,
-	serializeMetaGraphState,
-} from './meta-graph-model';
+import { createWorkspaceState } from './state/workspace-state';
+import { serializeMetaGraphState } from './meta-graph-model';
 import {
 	setArcDirectionInState,
 	setArcSpacingInState,
@@ -52,7 +45,7 @@ import {
 	setLabelPositionInState,
 	setLabelSizeInState,
 	type GraphForceSettingKey,
-} from './workspace-chart-settings';
+} from './state/chart-settings';
 import {
 	setDefaultLinkStyleInState,
 	setDefaultNodeStyleInState,
@@ -62,24 +55,35 @@ import {
 	setLinkStyleRulesInState,
 	setNodeStyleOverridesInState,
 	setNodeStyleRulesInState,
-} from './workspace-style-state';
+} from './state/style-state';
 import {
-	addConnectionFieldToState,
+	addConnectionFieldAndSelectInState,
+	getActiveConnectionModeInState,
 	removeConnectionFieldFromState,
 	reorderConnectionFieldInState,
 	setActiveConnectionFieldInState,
 	setConnectionFieldModeInState,
-} from './workspace-connection-fields';
-import { WorkspaceConnectionService } from './workspace-connection-service';
+} from './state/connection-fields';
+import { WorkspaceConnectionService } from './services/connection-service';
+import { createObsidianConnectionService } from './services/connection-adapter';
 import {
-	addCuratedFilesToState,
-	clearCuratedFilesInState,
-	pruneMissingCuratedFiles,
-	removeCuratedFilesFromState,
-	renameCuratedFilePathInState,
-	reorderCuratedFileInState,
-	updateCuratedWorkspaceInState,
-} from './workspace-curated-state';
+	connectPreparedNodesInState,
+	prepareConnectDockNoteInState,
+	prepareConnectNodesInState,
+	undoLastConnectionInState,
+	type WorkspaceConnectionActionResult,
+} from './actions/connection-actions';
+import {
+	addCuratedFileInState,
+	addCuratedFilesActionInState,
+	clearCuratedFilesActionInState,
+	removeCuratedFileInState,
+	removeCuratedFilesActionInState,
+	reorderCuratedFileActionInState,
+	updateCuratedFilePathActionInState,
+	updateCuratedWorkspaceActionInState,
+	type WorkspaceCuratedActionResult,
+} from './actions/curated-actions';
 import {
 	addDockNoteInState,
 	addDockTemplateInState,
@@ -93,10 +97,7 @@ import {
 	updateDockNotePathInState,
 	updateDockTemplateInState,
 	type ReorderPlacement,
-} from './workspace-dock-actions';
-import {
-	normalizeCubeLayout,
-} from './workspace-manual-layout';
+} from './actions/dock-actions';
 import {
 	addGroupInState,
 	deleteGroupInState,
@@ -107,15 +108,26 @@ import {
 	setManualNodePositionInState,
 	setNodeGroupInState,
 	updateGroupInState,
-} from './workspace-manual-layout-state';
+} from './state/manual-layout-state';
 import {
 	WorkspaceProjectionService,
 	buildWorkspaceIndex,
-} from './workspace-query-service';
+} from './services/query-service';
+import {
+	applyWorkspaceIndexSnapshotToState,
+	projectWorkspaceState,
+} from './runtime/refresh-state';
+import { createWorkspaceDebugSnapshot } from './runtime/debug-snapshot';
+import {
+	hoverNodeInState,
+	openWorkspaceNode,
+	selectNodeInState,
+	setCurrentFileInState,
+} from './actions/file-actions';
 import {
 	updateGlobalQueryInState,
 	updateQueryInState,
-} from './workspace-query-state';
+} from './state/query-state';
 import {
 	addChartInState,
 	deleteActiveChartInState,
@@ -123,11 +135,9 @@ import {
 	setActiveChartNameInState,
 	setActiveChartSourceInState,
 	setActiveChartTypeInState,
-} from './workspace-chart-state';
-import { updateActiveChartState } from './workspace-state-updaters';
-import { createTemplateNoteFile } from './workspace-template-service';
-import { resolveTemplateNoteRequest } from './workspace-template-request';
-import { cloneSerializable } from './workspace-persistence';
+} from './state/chart-state';
+import { createTemplateNoteFile } from './services/template-service';
+import { createWorkspaceTemplateNote } from './actions/template-actions';
 
 type StateListener = (state: WorkspaceState) => void;
 
@@ -153,17 +163,7 @@ export class WorkspaceController {
 		document?: MetaGraphDocument,
 	) {
 		this.state = createWorkspaceState(maxNodes, fadeDistance, document);
-		this.connectionService = new WorkspaceConnectionService<TFile>({
-			getFile: (path) => this.app.vault.getAbstractFileByPath(path),
-			isFile: (value): value is TFile => value instanceof TFile,
-			getPath: (file) => file.path,
-			generateMarkdownLink: (targetFile, sourcePath) =>
-				this.app.fileManager.generateMarkdownLink(targetFile, sourcePath),
-			processFrontMatter: (file, callback) =>
-				this.app.fileManager.processFrontMatter(file, callback),
-			resolveLink: (linkText, sourcePath) =>
-				this.app.metadataCache.getFirstLinkpathDest(linkText, sourcePath),
-		});
+		this.connectionService = createObsidianConnectionService(this.app);
 	}
 
 	get snapshot(): WorkspaceState {
@@ -171,35 +171,13 @@ export class WorkspaceController {
 	}
 
 	getDebugSnapshot(state: WorkspaceState = this.state): DebugSnapshot {
-		return {
-			generatedAt: new Date().toISOString(),
-			index: {
-				nodeCount: this.index?.nodes.size ?? 0,
-				edgeCount: this.index?.edges.size ?? 0,
-				nodes: [...(this.index?.nodes.values() ?? [])],
-				edges: [...(this.index?.edges.values() ?? [])],
-				outgoing: mapSetsToRecord(this.index?.outgoing),
-				incoming: mapSetsToRecord(this.index?.incoming),
-			},
-			state: {
-				...state,
-				projection: state.projection
-					? {
-							...state.projection,
-							rootIds: [...state.projection.rootIds],
-							primaryIds: state.projection.primaryIds
-								? [...state.projection.primaryIds]
-								: undefined,
-							contextIds: state.projection.contextIds
-								? [...state.projection.contextIds]
-								: undefined,
-						}
-					: undefined,
-			},
+		return createWorkspaceDebugSnapshot({
+			state,
+			index: this.index,
 			unresolvedLinks: this.unresolvedLinks,
 			metadataSources: this.metadataSources,
-			renderer: this.rendererDebugState,
-		};
+			rendererDebugState: this.rendererDebugState,
+		});
 	}
 
 	setRendererDebugState(rendererDebugState: RendererDebugState): void {
@@ -244,36 +222,16 @@ export class WorkspaceController {
 		this.index = indexSnapshot.index;
 		this.unresolvedLinks = indexSnapshot.unresolvedLinks;
 		this.metadataSources = indexSnapshot.metadataSources;
-		const charts = pruneMissingCuratedFiles(
-			this.state.charts,
-			new Set(this.index.nodes.keys()),
+		this.state = applyWorkspaceIndexSnapshotToState(
+			this.state,
+			indexSnapshot,
+			forceLayout,
 		);
-		const activeChart = charts.find(
-			(chart) => chart.id === this.state.activeChartId,
-		);
-		this.state = {
-			...this.state,
-			charts,
-			curated: activeChart?.curated ?? this.state.curated,
-				layoutRevision:
-					this.state.layoutRevision + (forceLayout ? 1 : 0),
-				availableFolders: indexSnapshot.availableFolders,
-				availableTags: indexSnapshot.availableTags,
-				availableDomains: indexSnapshot.availableDomains,
-			};
-			this.runQuery();
+		this.runQuery();
 	}
 
 	setCurrentFile(file: TFile | null): void {
-		if (!file) {
-			return;
-		}
-		const currentNoteId = normalizePath(file.path);
-		if (currentNoteId === this.state.currentNoteId) {
-			return;
-		}
-		this.state = { ...this.state, currentNoteId };
-		this.emit();
+		this.setWorkspaceState(setCurrentFileInState(this.state, file?.path));
 	}
 
 	setActiveChart(activeChartId: string): void {
@@ -399,15 +357,6 @@ export class WorkspaceController {
 		);
 	}
 
-	private placeTemplateNoteInDefaultGroup(
-		path: NodeId,
-		groupId?: string,
-	): void {
-		this.setWorkspaceState(
-			placeNodeInDefaultGroupInState(this.state, path, groupId),
-		);
-	}
-
 	deleteGroup(groupId: string): void {
 		this.setWorkspaceState(deleteGroupInState(this.state, groupId));
 	}
@@ -449,22 +398,25 @@ export class WorkspaceController {
 	}
 
 	addCuratedFile(path: NodeId, groupId?: string): void {
-		this.addCuratedFiles([path], groupId);
+		this.applyCuratedActionResult(
+			addCuratedFileInState(this.state, path, groupId),
+		);
 	}
 
 	addCuratedFiles(paths: NodeId[], groupId?: string): void {
-		this.setWorkspaceState(
-			addCuratedFilesToState(this.state, paths, groupId),
-			true,
+		this.applyCuratedActionResult(
+			addCuratedFilesActionInState(this.state, paths, groupId),
 		);
 	}
 
 	removeCuratedFile(path: NodeId): void {
-		this.removeCuratedFiles([path]);
+		this.applyCuratedActionResult(removeCuratedFileInState(this.state, path));
 	}
 
 	removeCuratedFiles(paths: NodeId[]): void {
-		this.setWorkspaceState(removeCuratedFilesFromState(this.state, paths), true);
+		this.applyCuratedActionResult(
+			removeCuratedFilesActionInState(this.state, paths),
+		);
 	}
 
 	reorderCuratedFile(
@@ -472,18 +424,24 @@ export class WorkspaceController {
 		targetPath: NodeId,
 		placement: ReorderPlacement,
 	): void {
-		this.setWorkspaceState(
-			reorderCuratedFileInState(this.state, path, targetPath, placement),
-			true,
+		this.applyCuratedActionResult(
+			reorderCuratedFileActionInState(
+				this.state,
+				path,
+				targetPath,
+				placement,
+			),
 		);
 	}
 
 	clearCuratedFiles(): void {
-		this.setWorkspaceState(clearCuratedFilesInState(this.state), true);
+		this.applyCuratedActionResult(clearCuratedFilesActionInState(this.state));
 	}
 
 	updateCuratedWorkspace(patch: Partial<CuratedWorkspaceConfig>): void {
-		this.setWorkspaceState(updateCuratedWorkspaceInState(this.state, patch), true);
+		this.applyCuratedActionResult(
+			updateCuratedWorkspaceActionInState(this.state, patch),
+		);
 	}
 
 	getDocument(): MetaGraphDocument {
@@ -551,11 +509,15 @@ export class WorkspaceController {
 	}
 
 	updateCuratedFilePath(oldPath: string, newPath: string): boolean {
-		const state = renameCuratedFilePathInState(this.state, oldPath, newPath);
-		if (state === this.state) {
+		const result = updateCuratedFilePathActionInState(
+			this.state,
+			oldPath,
+			newPath,
+		);
+		if (!result.changed) {
 			return false;
 		}
-		this.setWorkspaceState(state);
+		this.applyCuratedActionResult(result);
 		return true;
 	}
 
@@ -579,19 +541,25 @@ export class WorkspaceController {
 		direction: DockConnectionDirection = 'from-graph-to-dock',
 		field = this.state.activeConnectionField,
 	): Promise<void> {
-		const normalizedField = field.trim();
-		if (!normalizedField) {
-			return;
-		}
-		this.setActiveConnectionField(normalizedField);
-		const changed = await this.connectionService.connectDockNote(
+		const action = prepareConnectDockNoteInState(
+			this.state,
 			notePath,
 			targetNodeId,
 			direction,
-			normalizedField,
-			this.getConnectionModeForField(normalizedField),
+			field,
 		);
-		this.afterConnectionChange(changed);
+		if (!action) {
+			return;
+		}
+		this.setWorkspaceState(action.state, action.runQuery);
+		this.applyConnectionActionResult(
+			await connectPreparedNodesInState(
+				this.state,
+				this.connectionService,
+				action,
+				this.relayoutFlowAfterConnection,
+			),
+		);
 	}
 
 	async createNoteFromTemplate(
@@ -601,21 +569,23 @@ export class WorkspaceController {
 		direction: DockConnectionDirection = 'from-dock-to-graph',
 		field = this.state.activeConnectionField,
 	): Promise<string> {
-		const { template, title } = resolveTemplateNoteRequest(
-			this.state.dock.templates,
+		return createWorkspaceTemplateNote({
+			templates: this.state.dock.templates,
 			templateId,
-			name,
-		);
-		const file = await createTemplateNoteFile(this.app, template, title);
-
-		await this.connectDockNote(
-			file.path,
 			targetNodeId,
+			name,
 			direction,
 			field,
-		);
-		this.placeTemplateNoteInDefaultGroup(file.path, template.defaultGroupId);
-		return file.path;
+			createNoteFile: (template, title) =>
+				createTemplateNoteFile(this.app, template, title),
+			connectDockNote: (notePath, target, dockDirection, connectionField) =>
+				this.connectDockNote(notePath, target, dockDirection, connectionField),
+			placeTemplateNoteInDefaultGroup: (path, groupId) => {
+				this.setWorkspaceState(
+					placeNodeInDefaultGroupInState(this.state, path, groupId),
+				);
+			},
+		});
 	}
 
 	updateQuery(patch: Partial<Omit<GraphQuery, 'roots'>>): void {
@@ -676,16 +646,12 @@ export class WorkspaceController {
 	}
 
 	addConnectionField(field: string): void {
-		const update = addConnectionFieldToState(
+		const result = addConnectionFieldAndSelectInState(
 			this.state,
 			field,
-			this.getActiveConnectionMode(),
+			getActiveConnectionModeInState(this.state),
 		);
-		if (!update.normalized) {
-			return;
-		}
-		this.state = update.state;
-		this.setActiveConnectionField(update.normalized);
+		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
 	removeConnectionField(id: string): void {
@@ -709,20 +675,19 @@ export class WorkspaceController {
 	}
 
 	selectNode(selectedNodeId?: NodeId): void {
-		this.state = { ...this.state, selectedNodeId };
-		this.emit();
+		this.setWorkspaceState(selectNodeInState(this.state, selectedNodeId));
 	}
 
 	hoverNode(hoveredNodeId?: NodeId): void {
-		this.state = { ...this.state, hoveredNodeId };
-		this.emit();
+		this.setWorkspaceState(hoverNodeInState(this.state, hoveredNodeId));
 	}
 
 	async openNode(nodeId: NodeId): Promise<void> {
-		const file = this.app.vault.getAbstractFileByPath(nodeId);
-		if (file instanceof TFile) {
-			await this.app.workspace.getLeaf('tab').openFile(file);
-		}
+		await openWorkspaceNode(nodeId, {
+			getFile: (path) => this.app.vault.getAbstractFileByPath(path),
+			isFile: (value): value is TFile => value instanceof TFile,
+			openFile: (file) => this.app.workspace.getLeaf('tab').openFile(file),
+		});
 	}
 
 	async connectNodes(
@@ -730,26 +695,30 @@ export class WorkspaceController {
 		targetNodeId: NodeId,
 		field = this.state.activeConnectionField,
 	): Promise<void> {
-		const normalizedField = field.trim();
-		if (!normalizedField || sourceNodeId === targetNodeId) {
-			return;
-		}
-		this.setActiveConnectionField(normalizedField);
-		const changed = await this.connectionService.connectNodes(
+		const action = prepareConnectNodesInState(
+			this.state,
 			sourceNodeId,
 			targetNodeId,
-			normalizedField,
-			this.getConnectionModeForField(normalizedField),
+			field,
 		);
-		this.afterConnectionChange(changed);
+		if (!action) {
+			return;
+		}
+		this.setWorkspaceState(action.state, action.runQuery);
+		this.applyConnectionActionResult(
+			await connectPreparedNodesInState(
+				this.state,
+				this.connectionService,
+				action,
+				this.relayoutFlowAfterConnection,
+			),
+		);
 	}
 
 	async undoLastConnection(): Promise<void> {
-		const changed = await this.connectionService.undoLastConnection();
-		this.updateConnectionUndoCount();
-		if (changed) {
-			this.scheduleRefresh();
-		}
+		this.applyConnectionActionResult(
+			await undoLastConnectionInState(this.state, this.connectionService),
+		);
 	}
 
 	dispose(): void {
@@ -762,45 +731,12 @@ export class WorkspaceController {
 		if (!this.index || this.destroyed) {
 			return;
 		}
-		const projection = this.projectionService.project(this.index, this.state);
-		const selectedNodeId =
-			this.state.selectedNodeId &&
-			projection.nodes.some((node) => node.id === this.state.selectedNodeId)
-				? this.state.selectedNodeId
-				: undefined;
-		this.state = this.withCubeLayout(
-			{ ...this.state, projection, selectedNodeId },
-			projection,
+		this.state = projectWorkspaceState(
+			this.state,
+			this.index,
+			(index, state) => this.projectionService.project(index, state),
 		);
 		this.emit();
-	}
-
-	private withCubeLayout(
-		state: WorkspaceState,
-		projection: GraphProjection,
-	): WorkspaceState {
-		const activeChart = state.charts.find(
-			(chart) => chart.id === state.activeChartId,
-		);
-		if (!activeChart || activeChart.type !== 'cube') {
-			return state;
-		}
-		const layout = normalizeCubeLayout(
-			activeChart.layout,
-			projection.nodes.map((node) => node.id),
-		);
-		if (layout === activeChart.layout) {
-			return state;
-		}
-		const nextChart = { ...activeChart, layout };
-		return {
-			...state,
-			charts: state.charts.map((chart) =>
-				chart.id === nextChart.id ? nextChart : chart,
-			),
-			manualLayout: cloneSerializable(layout.manual ?? { nodes: {}, groups: [] }),
-			layoutRevision: state.layoutRevision + 1,
-			};
 	}
 
 	private setWorkspaceState(state: WorkspaceState, runQuery = false): boolean {
@@ -822,49 +758,17 @@ export class WorkspaceController {
 		}
 	}
 
-	private afterConnectionChange(changed: boolean): void {
-		if (!changed) {
-			return;
+	private applyConnectionActionResult(
+		result: WorkspaceConnectionActionResult,
+	): void {
+		this.setWorkspaceState(result.state);
+		if (result.refresh) {
+			this.scheduleRefresh(result.forceLayout);
 		}
-		this.updateConnectionUndoCount();
-		this.scheduleRefresh(
-			this.state.mode === 'flow' && this.relayoutFlowAfterConnection,
-		);
 	}
 
-	private updateConnectionUndoCount(): void {
-		const connectionUndoCount = this.connectionService.undoCount;
-		if (this.state.connectionUndoCount === connectionUndoCount) {
-			return;
-		}
-		this.state = { ...this.state, connectionUndoCount };
-		this.emit();
-	}
-
-	private getActiveChart(): MetaGraphChart {
-		const chart = this.state.charts.find(
-			(item) => item.id === this.state.activeChartId,
-		);
-		if (!chart) {
-			throw new Error('Active chart is missing from workspace state.');
-		}
-		return chart;
-	}
-
-	private getActiveConnectionSpec(
-		specs = this.state.connectionFieldSpecs,
-	): ConnectionFieldSpec | undefined {
-		return (
-			specs.find(
-				(item) => item.id === this.state.activeConnectionFieldSpecId,
-			) ??
-			specs.find((item) => item.field === this.state.activeConnectionField) ??
-			specs[0]
-		);
-	}
-
-	private getActiveConnectionMode(): ConnectionFieldMode {
-		return this.getActiveConnectionSpec()?.mode ?? DEFAULT_CONNECTION_FIELD_MODE;
+	private applyCuratedActionResult(result: WorkspaceCuratedActionResult): void {
+		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
 	private setGraphForceSetting(
@@ -874,27 +778,4 @@ export class WorkspaceController {
 		this.setWorkspaceState(setGraphForceSettingInState(this.state, key, value));
 	}
 
-	private getConnectionModeForField(field: string): ConnectionFieldMode {
-		const activeSpec = this.getActiveConnectionSpec();
-		if (activeSpec?.field === field) {
-			return activeSpec.mode;
-		}
-		return DEFAULT_CONNECTION_FIELD_MODE;
-	}
-
-	private updateActiveChart(
-		patch: Partial<MetaGraphChart>,
-		forceLayout = false,
-	): WorkspaceState {
-		return updateActiveChartState(this.state, patch, forceLayout);
-	}
-
-}
-
-function mapSetsToRecord(
-	map: Map<string, Set<string>> | undefined,
-): Record<string, string[]> {
-	return Object.fromEntries(
-		[...(map?.entries() ?? [])].map(([key, values]) => [key, [...values]]),
-	);
 }

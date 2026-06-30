@@ -3,16 +3,16 @@ import type {
 	ConnectionFieldSpec,
 	MetaGraphChart,
 	WorkspaceState,
-} from '../core/types';
+} from '../../core/types';
 import {
 	DEFAULT_CONNECTION_FIELD_MODE,
 	createConnectionFieldSpec,
 	normalizeConnectionFieldModes,
 	normalizeConnectionFields,
 	normalizeConnectionFieldSpecs,
-} from './meta-graph-model';
-import { moveRelative, type ReorderPlacement } from './workspace-dock-state';
-import { updateActiveChartState } from './workspace-state-updaters';
+} from '../meta-graph-model';
+import { moveRelative, type ReorderPlacement } from './dock-state';
+import { updateActiveChartState } from './state-updaters';
 
 export interface ConnectionFieldStateResult {
 	state: WorkspaceState;
@@ -49,6 +49,17 @@ export function addConnectionFieldToState(
 		},
 		normalized,
 	};
+}
+
+export function addConnectionFieldAndSelectInState(
+	state: WorkspaceState,
+	field: string,
+	mode: ConnectionFieldMode,
+): ConnectionFieldStateResult {
+	const update = addConnectionFieldToState(state, field, mode);
+	return update.normalized
+		? setActiveConnectionFieldInState(update.state, update.normalized)
+		: { state, runQuery: false };
 }
 
 export function removeConnectionFieldFromState(
@@ -124,7 +135,7 @@ export function setActiveConnectionFieldInState(
 	if (!normalized) {
 		return { state, runQuery: false };
 	}
-	const activeMode = getActiveConnectionMode(state);
+	const activeMode = getActiveConnectionModeInState(state);
 	const activeSpec =
 		findConnectionFieldSpec(state.connectionFieldSpecs, normalized, activeMode) ??
 		state.connectionFieldSpecs.find((item) => item.field === normalized);
@@ -172,6 +183,23 @@ export function findConnectionFieldSpec(
 	mode: ConnectionFieldMode,
 ): ConnectionFieldSpec | undefined {
 	return specs.find((spec) => spec.field === field && spec.mode === mode);
+}
+
+export function getActiveConnectionModeInState(
+	state: WorkspaceState,
+): ConnectionFieldMode {
+	return getActiveConnectionSpec(state)?.mode ?? DEFAULT_CONNECTION_FIELD_MODE;
+}
+
+export function getConnectionModeForFieldInState(
+	state: WorkspaceState,
+	field: string,
+): ConnectionFieldMode {
+	const activeSpec = getActiveConnectionSpec(state);
+	if (activeSpec?.field === field) {
+		return activeSpec.mode;
+	}
+	return DEFAULT_CONNECTION_FIELD_MODE;
 }
 
 function removeConnectionFieldSpec(
@@ -237,10 +265,6 @@ function getActiveConnectionSpec(
 		specs.find((item) => item.field === state.activeConnectionField) ??
 		specs[0]
 	);
-}
-
-function getActiveConnectionMode(state: WorkspaceState): ConnectionFieldMode {
-	return getActiveConnectionSpec(state)?.mode ?? DEFAULT_CONNECTION_FIELD_MODE;
 }
 
 function getActiveChart(state: WorkspaceState): MetaGraphChart {

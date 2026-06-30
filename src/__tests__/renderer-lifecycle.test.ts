@@ -3,7 +3,7 @@ import type { WorkspaceState } from '../core/types';
 import type { GraphRenderer } from '../graph/renderers/renderer-adapter';
 import type { LayoutSnapshot } from '../layouts/stable-layout';
 import { WorkspaceRendererLifecycle } from '../ui/workspace/renderer-lifecycle';
-import { createWorkspaceState } from '../workspace/workspace-state';
+import { createWorkspaceState } from '../workspace/state/workspace-state';
 import { createWorkspaceRuntimeGraph } from '../ui/workspace/runtime-graph';
 import { createWorkspaceGraphRenderer } from '../ui/workspace/renderer-factory';
 

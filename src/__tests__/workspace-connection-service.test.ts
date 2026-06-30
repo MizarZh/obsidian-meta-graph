@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	WorkspaceConnectionService,
 	type WorkspaceConnectionAdapter,
-} from '../workspace/workspace-connection-service';
+} from '../workspace/services/connection-service';
 
 interface TestFile {
 	path: string;

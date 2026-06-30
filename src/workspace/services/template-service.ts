@@ -1,6 +1,6 @@
 import { TFile, TFolder, type App } from 'obsidian';
-import { normalizePath } from '../core/knowledge-index';
-import type { DockTemplateNode } from '../core/types';
+import { normalizePath } from '../../core/knowledge-index';
+import type { DockTemplateNode } from '../../core/types';
 
 export async function createTemplateNoteFile(
 	app: App,

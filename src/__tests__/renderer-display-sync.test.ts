@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { syncRendererDisplaySettings } from '../ui/workspace/renderer-display-sync';
 import type { WorkspaceStateChanges } from '../ui/workspace/change-tracker';
-import { createWorkspaceState } from '../workspace/workspace-state';
+import { createWorkspaceState } from '../workspace/state/workspace-state';
 
 describe('renderer display sync', () => {
 	it('applies changed display settings to renderer', () => {
