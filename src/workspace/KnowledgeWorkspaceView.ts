@@ -47,7 +47,11 @@ export class KnowledgeWorkspaceView extends TextFileView {
 	}
 
 	setViewData(data: string, clear: boolean): void {
+		const previousData = this.data;
 		this.data = data;
+		if (!clear && this.component && data === previousData) {
+			return;
+		}
 		if (clear) {
 			void this.unmountWorkspace();
 		}

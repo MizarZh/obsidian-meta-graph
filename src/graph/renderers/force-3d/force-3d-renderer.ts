@@ -26,6 +26,7 @@ import { createThreeTextSprite } from '../renderer-labels';
 
 interface ThreeRuntime {
 	CanvasTexture: typeof Three.CanvasTexture;
+	Color: typeof Three.Color;
 	SpriteMaterial: typeof Three.SpriteMaterial;
 	Sprite: typeof Three.Sprite;
 }
@@ -50,6 +51,8 @@ export class Force3DRenderer {
 	private pendingConnectionMoveFrame: number | undefined;
 	private screenPositionCacheFrame = -1;
 	private screenPositionCache: ScreenNode[] = [];
+	private readonly nodeLabelSprites = new Map<string, Three.Sprite>();
+	private readonly linkLabelSprites = new Map<string, Three.Sprite>();
 	private readonly blockDoubleClick = (event: MouseEvent): void => {
 		event.preventDefault();
 		event.stopPropagation();
@@ -163,9 +166,15 @@ export class Force3DRenderer {
 			.nodeOpacity(0.94)
 			.nodeResolution(18)
 			.nodeThreeObjectExtend(true)
-			.nodeThreeObject((node: Force3DNode) =>
-				this.createTextSprite(node.label, this.labelSize, 1),
-			)
+			.nodeThreeObject((node: Force3DNode) => {
+				const sprite = this.createTextSprite(
+					node.label,
+					this.labelSize,
+					1,
+				);
+				this.nodeLabelSprites.set(node.id, sprite);
+				return sprite;
+			})
 			.nodePositionUpdate((object: Object3D, coordinates, node) => {
 				this.positionNodeLabel(object, coordinates, node);
 				return true;
@@ -175,15 +184,17 @@ export class Force3DRenderer {
 			.linkColor((link) => this.getLinkColor(link))
 			.linkWidth((link) => Math.max(0.4, link.size))
 			.linkThreeObjectExtend(true)
-			.linkThreeObject((link: Force3DLink) =>
-				this.shouldShowLinkLabel(link)
+			.linkThreeObject((link: Force3DLink) => {
+				const sprite = this.shouldShowLinkLabel(link)
 					? this.createTextSprite(
 							link.label,
 							Math.max(10, this.labelSize - 2),
 							0.86,
 						)
-					: this.createTextSprite('', 1, 0),
-			)
+					: this.createTextSprite('', 1, 0);
+				this.linkLabelSprites.set(link.id, sprite);
+				return sprite;
+			})
 			.linkPositionUpdate((object, { start, end }) => {
 				object.position.set(
 					(start.x + end.x) / 2,
@@ -218,24 +229,35 @@ export class Force3DRenderer {
 			this.scheduleGraphData(graph);
 			return;
 		}
+		this.nodeLabelSprites.clear();
+		this.linkLabelSprites.clear();
 		this.instance.graphData(toForce3DData(graph));
 		this.refreshWhenReady();
 	}
 
 	setPalette(palette: GraphPalette): void {
 		this.palette = palette;
-		this.instance.backgroundColor(palette.background ?? '#202020');
+		this.instance.scene().background = new this.three.Color(
+			palette.background ?? '#202020',
+		);
 		this.applyTooltipStyles();
 		this.refreshColorsWhenReady();
-		this.refreshLabelsWhenReady();
+		this.updateLabelSprites();
+		this.renderFrame();
 	}
 
 	setSelected(nodeId?: string): void {
+		if (this.selectedNodeId === nodeId) {
+			return;
+		}
 		this.selectedNodeId = nodeId;
 		this.refreshColorsWhenReady();
 	}
 
 	setHovered(nodeId?: string): void {
+		if (this.hoveredNodeId === nodeId) {
+			return;
+		}
 		this.hoveredNodeId = nodeId;
 		this.updateHoveredNeighborhood();
 		this.refreshColorsWhenReady();
@@ -247,43 +269,50 @@ export class Force3DRenderer {
 
 	setLabelSize(_labelSize: number): void {
 		this.labelSize = _labelSize;
-		this.refreshLabelsWhenReady();
+		this.updateLabelSprites();
+		this.updateNodeLabelPositions();
+		this.renderFrame();
 	}
 
 	setLabelPosition(_labelPosition: LabelPosition): void {
 		this.labelPosition = _labelPosition;
-		this.refreshWhenReady();
+		this.updateNodeLabelPositions();
+		this.renderFrame();
 	}
 
 	setLabelOffset(labelOffset: number): void {
 		this.labelOffset = labelOffset;
-		this.refreshWhenReady();
+		this.updateNodeLabelPositions();
+		this.renderFrame();
 	}
 
 	setLabelColor(labelColor: string): void {
 		this.labelColor = labelColor;
 		this.applyTooltipStyles();
-		this.refreshLabelsWhenReady();
+		this.updateLabelSprites();
+		this.renderFrame();
 	}
 
 	setLabelTheme(labelTheme: LabelThemeConfig): void {
 		this.labelTheme = labelTheme;
 		this.applyTooltipStyles();
-		this.refreshLabelsWhenReady();
+		this.updateLabelSprites();
+		this.renderFrame();
 	}
 
 	setLabelBackgroundOpacity(labelBackgroundOpacity: number): void {
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.applyTooltipStyles();
-		this.refreshLabelsWhenReady();
+		this.updateLabelSprites();
+		this.renderFrame();
 	}
 
 	setLabelDensity(_labelDensity: number): void {
-		this.refreshLabelsWhenReady();
+		this.renderFrame();
 	}
 
 	setForceLabels(_forceLabels: boolean): void {
-		this.refreshLabelsWhenReady();
+		this.renderFrame();
 	}
 
 	setEnableForceLayout(enableForceLayout: boolean): void {
@@ -453,6 +482,8 @@ export class Force3DRenderer {
 			if (this.killed) {
 				return;
 			}
+			this.nodeLabelSprites.clear();
+			this.linkLabelSprites.clear();
 			this.instance.graphData(toForce3DData(graph));
 			this.initialized = true;
 			this.instance.resumeAnimation();
@@ -477,23 +508,65 @@ export class Force3DRenderer {
 			);
 	}
 
-	private refreshLabelsWhenReady(): void {
+	private updateLabelSprites(): void {
+		if (!this.initialized || this.killed) {
+			return;
+		}
+		for (const node of this.instance.graphData().nodes) {
+			const sprite = this.nodeLabelSprites.get(node.id);
+			if (!sprite) {
+				continue;
+			}
+			const next = this.createTextSprite(node.label, this.labelSize, 1);
+			this.replaceSpriteTexture(sprite, next);
+		}
+		for (const link of this.instance.graphData().links) {
+			const sprite = this.linkLabelSprites.get(link.id);
+			if (!sprite) {
+				continue;
+			}
+			const next = this.shouldShowLinkLabel(link)
+				? this.createTextSprite(
+						link.label,
+						Math.max(10, this.labelSize - 2),
+						0.86,
+					)
+				: this.createTextSprite('', 1, 0);
+			this.replaceSpriteTexture(sprite, next);
+		}
+	}
+
+	private replaceSpriteTexture(
+		target: Three.Sprite,
+		source: Three.Sprite,
+	): void {
+		const targetMaterial = target.material;
+		target.material = source.material;
+		target.scale.copy(source.scale);
+		targetMaterial.map?.dispose();
+		targetMaterial.dispose();
+	}
+
+	private updateNodeLabelPositions(): void {
+		if (!this.initialized || this.killed) {
+			return;
+		}
+		for (const node of this.instance.graphData().nodes) {
+			const sprite = this.nodeLabelSprites.get(node.id);
+			if (!sprite || !hasFiniteCoordinates(node)) {
+				continue;
+			}
+			this.positionNodeLabel(sprite, node, node);
+		}
+	}
+
+	private renderFrame(): void {
 		if (!this.initialized || this.killed) {
 			return;
 		}
 		this.instance
-			.nodeThreeObject((node: Force3DNode) =>
-				this.createTextSprite(node.label, this.labelSize, 1),
-			)
-			.linkThreeObject((link: Force3DLink) =>
-				this.shouldShowLinkLabel(link)
-					? this.createTextSprite(
-							link.label,
-							Math.max(10, this.labelSize - 2),
-							0.86,
-						)
-					: this.createTextSprite('', 1, 0),
-			);
+			.renderer()
+			.render(this.instance.scene(), this.instance.camera());
 	}
 
 	private getActiveHoverNodeId(): string | undefined {
@@ -544,7 +617,7 @@ export class Force3DRenderer {
 		text: string,
 		fontSize: number,
 		scaleFactor: number,
-	): Object3D {
+	): Three.Sprite {
 		const labelStyle = resolveThreeLabelStyle(
 			this.palette,
 			this.labelTheme,
@@ -569,9 +642,9 @@ export class Force3DRenderer {
 		const offset = Math.max(4, node.size + this.labelSize * this.labelOffset);
 		const direction = this.readLabelDirection(coordinates);
 		object.position.set(
-			coordinates.x + direction.x * offset,
-			coordinates.y + direction.y * offset,
-			coordinates.z + direction.z * offset,
+			direction.x * offset,
+			direction.y * offset,
+			direction.z * offset,
 		);
 	}
 
