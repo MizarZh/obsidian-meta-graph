@@ -24,6 +24,7 @@ import {
 	normalizeConnectionFields,
 	normalizeConnectionFieldSpecs,
 } from './connections';
+import { serializeChartForDocument } from './curated-layout';
 import { normalizeDock } from './dock';
 import { createDefaultGlobalQuery, normalizeQuery } from './query';
 import { createDefaultGlobalStyle, normalizeGlobalStyle } from './style';
@@ -147,7 +148,7 @@ export function serializeMetaGraphState(state: {
 			nodeRules: state.globalNodeStyleRules,
 			linkRules: state.globalLinkStyleRules,
 		},
-		charts: state.charts,
+		charts: state.charts.map((chart) => serializeChartForDocument(chart)),
 		activeChart: state.activeChartId,
 		connectionFields: state.connectionFields,
 		connectionFieldSpecs: state.connectionFieldSpecs,

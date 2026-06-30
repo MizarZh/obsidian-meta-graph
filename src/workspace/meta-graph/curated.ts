@@ -55,8 +55,14 @@ function normalizeCuratedFile(
 	const result: CuratedWorkspaceFile = {
 		path: normalizeTextPath(rawPath),
 	};
-	if (typeof record.group === 'string' && record.group.trim()) {
-		result.group = record.group.trim();
+	const groupId =
+		typeof record.groupId === 'string' && record.groupId.trim()
+			? record.groupId.trim()
+			: typeof record.group === 'string' && record.group.trim()
+				? record.group.trim()
+				: undefined;
+	if (groupId) {
+		result.groupId = groupId;
 	}
 	if (typeof record.note === 'string' && record.note.trim()) {
 		result.note = record.note.trim();

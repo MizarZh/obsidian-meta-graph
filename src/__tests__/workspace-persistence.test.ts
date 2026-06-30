@@ -195,6 +195,118 @@ describe('workspace persistence', () => {
 		expect(saved.charts[1]?.source).toBe('query');
 	});
 
+	it('hydrates curated file coordinates into manual layout state', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		const graphChart = document.charts[0];
+		if (!graphChart) {
+			throw new Error('Expected default chart.');
+		}
+		graphChart.type = 'free';
+		graphChart.source = 'curated';
+		graphChart.curated.files = [
+			{
+				path: 'Projects/A.md',
+				x: 1.2345,
+				y: -0.0004,
+				groupId: 'group-a',
+			},
+		];
+		graphChart.layout = {
+			engine: 'free',
+			spacing: 1,
+			manual: {
+				nodes: {},
+				groups: [],
+			},
+		};
+
+		const restoredDocument = normalizeMetaGraphDocument(document, 300, 1.5);
+		const restoredChart = restoredDocument.charts[0];
+
+		expect(restoredChart?.curated.files).toEqual([
+			{ path: 'Projects/A.md' },
+		]);
+		expect(restoredChart?.layout.manual?.nodes).toEqual({
+			'Projects/A.md': {
+				x: 1.2345,
+				y: -0.0004,
+				groupId: 'group-a',
+			},
+		});
+	});
+
+	it('stores curated manual placements on curated files with rounded coordinates', () => {
+		const state = createWorkspaceState(200, 2);
+		const graphChart = state.charts[0];
+		if (!graphChart) {
+			throw new Error('Expected default chart.');
+		}
+		state.charts[0] = {
+			...graphChart,
+			type: 'free',
+			source: 'curated',
+			curated: {
+				...graphChart.curated,
+				files: [{ path: 'Projects/A.md' }],
+			},
+			layout: {
+				engine: 'free',
+				spacing: 1,
+				manual: {
+					nodes: {
+						'Projects/A.md': {
+							x: 1.23456,
+							y: -0.0004,
+							groupId: 'group-a',
+						},
+						'Projects/B.md': {
+							x: -2.34567,
+							y: 9.87654,
+						},
+					},
+					groups: [
+						{
+							id: 'group-a',
+							name: 'Group A',
+							x: 0.12345,
+							y: 1.98765,
+							width: 3.33333,
+							height: 2.22222,
+							color: '#7c6ff0',
+							mode: 'manual',
+							padding: 0.32109,
+						},
+					],
+				},
+			},
+		};
+
+		const saved = serializeMetaGraphState(state);
+		const savedChart = saved.charts[0];
+
+		expect(savedChart?.curated.files).toEqual([
+			{
+				path: 'Projects/A.md',
+				x: 1.235,
+				y: 0,
+				groupId: 'group-a',
+			},
+		]);
+		expect(savedChart?.layout.manual?.nodes).toEqual({
+			'Projects/B.md': {
+				x: -2.346,
+				y: 9.877,
+			},
+		});
+		expect(savedChart?.layout.manual?.groups[0]).toMatchObject({
+			x: 0.123,
+			y: 1.988,
+			width: 3.333,
+			height: 2.222,
+			padding: 0.321,
+		});
+	});
+
 	it('migrates legacy filter rules into a root filter group', () => {
 		const document = createDefaultMetaGraphDocument(200, 2);
 		const graphChart = document.charts.find(

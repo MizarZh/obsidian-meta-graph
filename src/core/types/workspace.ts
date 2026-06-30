@@ -108,10 +108,10 @@ export interface ChartDisplayConfig {
 
 export interface CuratedWorkspaceFile {
 	path: NodeId;
-	group?: string;
 	note?: string;
 	x?: number;
 	y?: number;
+	groupId?: string;
 }
 
 export interface CuratedWorkspaceContext {

@@ -12,7 +12,7 @@ describe('workspace curated state', () => {
 	it('renames curated paths across charts and mirrors the active chart', () => {
 		const state = createStateWithCuratedFiles(
 			{ files: [{ path: 'Old.md', note: 'active note' }] },
-			{ files: [{ path: 'Old.md', group: 'group-a' }] },
+			{ files: [{ path: 'Old.md', groupId: 'group-a' }] },
 		);
 
 		const result = updateCuratedFilePathInState(state, 'Old.md', 'New.md');
@@ -22,7 +22,7 @@ describe('workspace curated state', () => {
 			{ path: 'New.md', note: 'active note' },
 		]);
 		expect(result.state.charts[1]?.curated.files).toEqual([
-			{ path: 'New.md', group: 'group-a' },
+			{ path: 'New.md', groupId: 'group-a' },
 		]);
 		expect(result.state.curated.files).toEqual([
 			{ path: 'New.md', note: 'active note' },

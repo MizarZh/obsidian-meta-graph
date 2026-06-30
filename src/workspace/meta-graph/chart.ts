@@ -17,6 +17,7 @@ import {
 	createDefaultCuratedWorkspace,
 	normalizeCuratedWorkspace,
 } from './curated';
+import { hydrateCuratedManualLayout } from './curated-layout';
 import { createDefaultLayout, normalizeLayout } from './layout';
 import { createDefaultQuery, normalizeQuery } from './query';
 import {
@@ -110,6 +111,11 @@ export function normalizeChart(
 		typeof record.id === 'string' && record.id.trim()
 			? record.id.trim()
 			: `${fallback.id}-${index + 1}`;
+	const curated = normalizeCuratedWorkspace(
+		record.curated ?? record.workspace,
+	);
+	const layout = normalizeLayout(record.layout, fallback.layout, type);
+	const hydrated = hydrateCuratedManualLayout(source, curated, layout);
 	return {
 		id,
 		name:
@@ -119,8 +125,8 @@ export function normalizeChart(
 		type,
 		source,
 		query: normalizeQuery(record.query, fallback.query, maxNodes),
-		curated: normalizeCuratedWorkspace(record.curated ?? record.workspace),
-		layout: normalizeLayout(record.layout, fallback.layout, type),
+		curated: hydrated.curated,
+		layout: hydrated.layout,
 		display: {
 			fadeDistance: readFiniteNumber(
 				display.fadeDistance,
