@@ -1,15 +1,23 @@
 import type {
 	ConnectionFieldMode,
 	ConnectionFieldSpec,
+	MetaGraphChart,
 	WorkspaceState,
 } from '../core/types';
 import {
+	DEFAULT_CONNECTION_FIELD_MODE,
 	createConnectionFieldSpec,
 	normalizeConnectionFieldModes,
 	normalizeConnectionFields,
 	normalizeConnectionFieldSpecs,
 } from './meta-graph-model';
 import { moveRelative, type ReorderPlacement } from './workspace-dock-state';
+import { updateActiveChartState } from './workspace-state-updaters';
+
+export interface ConnectionFieldStateResult {
+	state: WorkspaceState;
+	runQuery: boolean;
+}
 
 export function addConnectionFieldToState(
 	state: WorkspaceState,
@@ -108,6 +116,50 @@ export function setConnectionFieldModeInState(
 	};
 }
 
+export function setActiveConnectionFieldInState(
+	state: WorkspaceState,
+	field: string,
+): ConnectionFieldStateResult {
+	const normalized = field.trim();
+	if (!normalized) {
+		return { state, runQuery: false };
+	}
+	const activeMode = getActiveConnectionMode(state);
+	const activeSpec =
+		findConnectionFieldSpec(state.connectionFieldSpecs, normalized, activeMode) ??
+		state.connectionFieldSpecs.find((item) => item.field === normalized);
+	const activeChart = getActiveChart(state);
+	if (activeChart.source === 'curated') {
+		return {
+			state: {
+				...state,
+				activeConnectionFieldSpecId:
+					activeSpec?.id ?? state.activeConnectionFieldSpecId,
+				activeConnectionField: normalized,
+			},
+			runQuery: false,
+		};
+	}
+	const relations = activeChart.query.relations.includes(normalized)
+		? activeChart.query.relations
+		: [...activeChart.query.relations, normalized];
+	const nextState = updateActiveChartState(state, {
+		query: {
+			...activeChart.query,
+			relations,
+		},
+	});
+	return {
+		state: {
+			...nextState,
+			activeConnectionFieldSpecId:
+				activeSpec?.id ?? nextState.activeConnectionFieldSpecId,
+			activeConnectionField: normalized,
+		},
+		runQuery: true,
+	};
+}
+
 export function getConnectionSpecFields(
 	specs: ConnectionFieldSpec[],
 ): string[] {
@@ -185,4 +237,16 @@ function getActiveConnectionSpec(
 		specs.find((item) => item.field === state.activeConnectionField) ??
 		specs[0]
 	);
+}
+
+function getActiveConnectionMode(state: WorkspaceState): ConnectionFieldMode {
+	return getActiveConnectionSpec(state)?.mode ?? DEFAULT_CONNECTION_FIELD_MODE;
+}
+
+function getActiveChart(state: WorkspaceState): MetaGraphChart {
+	const chart = state.charts.find((item) => item.id === state.activeChartId);
+	if (!chart) {
+		throw new Error('Active chart is missing from workspace state.');
+	}
+	return chart;
 }

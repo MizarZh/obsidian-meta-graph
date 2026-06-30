@@ -39,16 +39,12 @@ import {
 	setArcDirectionInState,
 	setArcSpacingInState,
 	setCubeFaceOpacityInState,
-	setDefaultLinkStyleInState,
-	setDefaultNodeStyleInState,
 	setEnableForceLayoutInState,
 	setFadeDistanceInState,
 	setFlowDirectionInState,
 	setFlowEdgeStyleInState,
 	setFlowSpacingInState,
 	setForceLabelsInState,
-	setGlobalLinkStyleRulesInState,
-	setGlobalNodeStyleRulesInState,
 	setGraphForceSettingInState,
 	setGraphSpacingInState,
 	setLabelBackgroundOpacityInState,
@@ -56,17 +52,23 @@ import {
 	setLabelDensityInState,
 	setLabelPositionInState,
 	setLabelSizeInState,
+	type GraphForceSettingKey,
+} from './workspace-chart-settings';
+import {
+	setDefaultLinkStyleInState,
+	setDefaultNodeStyleInState,
+	setGlobalLinkStyleRulesInState,
+	setGlobalNodeStyleRulesInState,
 	setLinkStyleOverridesInState,
 	setLinkStyleRulesInState,
 	setNodeStyleOverridesInState,
 	setNodeStyleRulesInState,
-	type GraphForceSettingKey,
-} from './workspace-chart-settings';
+} from './workspace-style-state';
 import {
 	addConnectionFieldToState,
-	findConnectionFieldSpec,
 	removeConnectionFieldFromState,
 	reorderConnectionFieldInState,
+	setActiveConnectionFieldInState,
 	setConnectionFieldModeInState,
 } from './workspace-connection-fields';
 import { WorkspaceConnectionService } from './workspace-connection-service';
@@ -94,18 +96,27 @@ import {
 	type ReorderPlacement,
 } from './workspace-dock-state';
 import {
-	createUniqueDefaultGroup,
-	findManualPlacement,
-	getManualGroup,
-	moveManualNodesToGroup,
 	normalizeCubeLayout,
-	normalizeGroupPatch,
-	readGroupPlacementBounds,
 } from './workspace-manual-layout';
+import {
+	addGroupInState,
+	deleteGroupInState,
+	moveCuratedFilesToGroupInState,
+	moveGroupInState,
+	placeNodeInDefaultGroupInState,
+	resizeGroupInState,
+	setManualNodePositionInState,
+	setNodeGroupInState,
+	updateGroupInState,
+} from './workspace-manual-layout-state';
 import {
 	WorkspaceProjectionService,
 	buildWorkspaceIndex,
 } from './workspace-query-service';
+import {
+	updateGlobalQueryInState,
+	updateQueryInState,
+} from './workspace-query-state';
 import {
 	addChartInState,
 	deleteActiveChartInState,
@@ -354,202 +365,51 @@ export class WorkspaceController {
 		position: { x: number; y: number },
 		groupId?: string,
 	): void {
-		const activeChart = this.getActiveChart();
-		const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
-		const previous = manual.nodes[nodeId];
-		const nextPlacement = groupId
-			? { x: position.x, y: position.y, groupId }
-			: { x: position.x, y: position.y };
-		if (
-			previous?.x === nextPlacement.x &&
-			previous?.y === nextPlacement.y &&
-			previous?.groupId === nextPlacement.groupId
-		) {
-			return;
-		}
-		this.state = this.updateActiveChart({
-			layout: {
-				...activeChart.layout,
-				manual: {
-					...manual,
-					nodes: {
-						...manual.nodes,
-						[nodeId]: nextPlacement,
-					},
-				},
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(
+			setManualNodePositionInState(this.state, nodeId, position, groupId),
+		);
 	}
 
 	setNodeGroup(nodeId: NodeId, groupId?: string): void {
-		const activeChart = this.getActiveChart();
-		if (activeChart.type !== 'free' && activeChart.type !== 'cube') {
-			return;
-		}
-		if (activeChart.type === 'cube' && !groupId) {
-			return;
-		}
-		const layout = moveManualNodesToGroup(
-			activeChart.layout,
-			[nodeId],
-			groupId || undefined,
-		);
-		if (layout === activeChart.layout) {
-			return;
-		}
-		this.state = this.updateActiveChart({ layout });
-		this.emit();
+		this.setWorkspaceState(setNodeGroupInState(this.state, nodeId, groupId));
 	}
 
 	addGroup(): void {
-		const activeChart = this.getActiveChart();
-		if (activeChart.type === 'cube') {
-			return;
-		}
-		const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
-		const group = createUniqueDefaultGroup(manual.groups);
-		this.state = this.updateActiveChart({
-			layout: {
-				...activeChart.layout,
-				manual: {
-					...manual,
-					groups: [...manual.groups, group],
-				},
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(addGroupInState(this.state));
 	}
 
 	updateGroup(groupId: string, patch: Partial<ChartGroup>): void {
-		const activeChart = this.getActiveChart();
-		const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
-		const groups = manual.groups.map((group) =>
-			group.id === groupId ? normalizeGroupPatch(group, patch) : group,
-		);
-		this.state = this.updateActiveChart({
-			layout: {
-				...activeChart.layout,
-				manual: {
-					...manual,
-					groups,
-				},
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(updateGroupInState(this.state, groupId, patch));
 	}
 
 	moveGroup(groupId: string, delta: { x: number; y: number }): void {
-		if (delta.x === 0 && delta.y === 0) {
-			return;
-		}
-		const activeChart = this.getActiveChart();
-		const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
-		const groups = manual.groups.map((group) =>
-			group.id === groupId
-				? {
-						...group,
-						x: group.x + delta.x,
-						y: group.y + delta.y,
-					}
-				: group,
-		);
-		const nodes = Object.fromEntries(
-			Object.entries(manual.nodes).map(([nodeId, placement]) => [
-				nodeId,
-				placement.groupId === groupId
-					? {
-							...placement,
-							x: placement.x + delta.x,
-							y: placement.y + delta.y,
-						}
-					: placement,
-			]),
-		);
-		this.state = this.updateActiveChart({
-			layout: {
-				...activeChart.layout,
-				manual: {
-					...manual,
-					nodes,
-					groups,
-				},
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(moveGroupInState(this.state, groupId, delta));
 	}
 
 	resizeGroup(
 		groupId: string,
 		geometry: Pick<ChartGroup, 'x' | 'y' | 'width' | 'height'>,
 	): void {
-		this.updateGroup(groupId, geometry);
+		this.setWorkspaceState(resizeGroupInState(this.state, groupId, geometry));
 	}
 
 	moveCuratedFilesToGroup(paths: NodeId[], groupId?: string): void {
-		if (paths.length === 0) {
-			return;
-		}
-		const activeChart = this.getActiveChart();
-		const layout = moveManualNodesToGroup(activeChart.layout, paths, groupId);
-		if (layout === activeChart.layout) {
-			return;
-		}
-		this.state = this.updateActiveChart({ layout }, true);
-		this.emit();
+		this.setWorkspaceState(
+			moveCuratedFilesToGroupInState(this.state, paths, groupId),
+		);
 	}
 
 	private placeTemplateNoteInDefaultGroup(
 		path: NodeId,
 		groupId?: string,
 	): void {
-		if (!groupId) {
-			return;
-		}
-		const activeChart = this.getActiveChart();
-		const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
-		const group = getManualGroup(activeChart.layout, activeChart.type, groupId);
-		if (!group) {
-			return;
-		}
-		const occupied = Object.entries(manual.nodes)
-			.filter(([nodeId, placement]) =>
-				nodeId !== path && placement.groupId === group.id,
-			)
-			.map(([, placement]) => ({ x: placement.x, y: placement.y }));
-		this.setManualNodePosition(
-			path,
-			findManualPlacement(readGroupPlacementBounds(group), occupied, group.id),
-			group.id,
+		this.setWorkspaceState(
+			placeNodeInDefaultGroupInState(this.state, path, groupId),
 		);
 	}
 
 	deleteGroup(groupId: string): void {
-		const activeChart = this.getActiveChart();
-		if (activeChart.type === 'cube') {
-			return;
-		}
-		const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
-		const groups = manual.groups.filter((group) => group.id !== groupId);
-		const nodes = Object.fromEntries(
-			Object.entries(manual.nodes).map(([nodeId, placement]) => [
-				nodeId,
-				placement.groupId === groupId
-					? { x: placement.x, y: placement.y }
-					: placement,
-			]),
-		);
-		this.state = this.updateActiveChart({
-			layout: {
-				...activeChart.layout,
-				manual: {
-					...manual,
-					nodes,
-					groups,
-				},
-			},
-		});
-		this.emit();
+		this.setWorkspaceState(deleteGroupInState(this.state, groupId));
 	}
 
 	setGraphSpacing(graphSpacing: number): void {
@@ -776,18 +636,11 @@ export class WorkspaceController {
 	}
 
 	updateQuery(patch: Partial<Omit<GraphQuery, 'roots'>>): void {
-		this.state = this.updateActiveChart({
-			query: { ...this.state.query, ...patch },
-		});
-		this.runQuery();
+		this.setWorkspaceState(updateQueryInState(this.state, patch), true);
 	}
 
 	updateGlobalQuery(patch: Partial<Omit<GraphQuery, 'roots'>>): void {
-		this.state = {
-			...this.state,
-			globalQuery: { ...this.state.globalQuery, ...patch, roots: [] },
-		};
-		this.runQuery();
+		this.setWorkspaceState(updateGlobalQueryInState(this.state, patch), true);
 	}
 
 	setGlobalNodeStyleRules(nodeStyleRules: NodeStyleRule[]): void {
@@ -835,44 +688,8 @@ export class WorkspaceController {
 	}
 
 	setActiveConnectionField(field: string): void {
-		const normalized = field.trim();
-		if (!normalized) {
-			return;
-		}
-		const activeMode = this.getActiveConnectionMode();
-		const activeSpec =
-			findConnectionFieldSpec(
-				this.state.connectionFieldSpecs,
-				normalized,
-				activeMode,
-			) ?? this.state.connectionFieldSpecs.find((item) => item.field === normalized);
-		const activeChart = this.getActiveChart();
-		if (activeChart.source === 'curated') {
-			this.state = {
-				...this.state,
-				activeConnectionFieldSpecId:
-					activeSpec?.id ?? this.state.activeConnectionFieldSpecId,
-				activeConnectionField: normalized,
-			};
-			this.emit();
-			return;
-		}
-		const relations = activeChart.query.relations.includes(normalized)
-			? activeChart.query.relations
-			: [...activeChart.query.relations, normalized];
-		const nextState = this.updateActiveChart({
-			query: {
-				...activeChart.query,
-				relations,
-			},
-		});
-		this.state = {
-			...nextState,
-			activeConnectionFieldSpecId:
-				activeSpec?.id ?? nextState.activeConnectionFieldSpecId,
-			activeConnectionField: normalized,
-		};
-		this.runQuery();
+		const result = setActiveConnectionFieldInState(this.state, field);
+		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
 	addConnectionField(field: string): void {
@@ -889,12 +706,7 @@ export class WorkspaceController {
 	}
 
 	removeConnectionField(id: string): void {
-		const state = removeConnectionFieldFromState(this.state, id);
-		if (state === this.state) {
-			return;
-		}
-		this.state = state;
-		this.emit();
+		this.setWorkspaceState(removeConnectionFieldFromState(this.state, id));
 	}
 
 	reorderConnectionField(
@@ -902,26 +714,15 @@ export class WorkspaceController {
 		targetId: string,
 		placement: ReorderPlacement,
 	): void {
-		const state = reorderConnectionFieldInState(
-			this.state,
-			id,
-			targetId,
-			placement,
+		this.setWorkspaceState(
+			reorderConnectionFieldInState(this.state, id, targetId, placement),
 		);
-		if (state === this.state) {
-			return;
-		}
-		this.state = state;
-		this.emit();
 	}
 
 	setConnectionFieldMode(field: string, mode: ConnectionFieldMode): void {
-		const state = setConnectionFieldModeInState(this.state, field, mode);
-		if (state === this.state) {
-			return;
-		}
-		this.state = state;
-		this.emit();
+		this.setWorkspaceState(
+			setConnectionFieldModeInState(this.state, field, mode),
+		);
 	}
 
 	selectNode(selectedNodeId?: NodeId): void {

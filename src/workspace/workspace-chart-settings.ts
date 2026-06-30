@@ -1,22 +1,11 @@
 import type {
 	ArcDirection,
-	DefaultLinkStyle,
-	DefaultNodeStyle,
 	FlowDirection,
 	FlowEdgeStyle,
 	LabelPosition,
-	LinkStyleRule,
 	MetaGraphChart,
-	NodeStyleRule,
 	WorkspaceState,
 } from '../core/types';
-import {
-	normalizeGlobalLinkStyleRules,
-	normalizeGlobalNodeStyleRules,
-	normalizeLinkStyleRules,
-	normalizeNodeStyleRules,
-} from './meta-graph-model';
-import { cloneSerializable } from './workspace-persistence';
 import { updateActiveChartState } from './workspace-state-updaters';
 
 export type GraphForceSettingKey =
@@ -27,7 +16,6 @@ export type GraphForceSettingKey =
 	| 'returnForce'
 	| 'linkDistance';
 type ChartDisplayKey = keyof MetaGraphChart['display'];
-type ChartStyleKey = keyof MetaGraphChart['style'];
 
 export function setFlowEdgeStyleInState(
 	state: WorkspaceState,
@@ -152,82 +140,6 @@ export function setGraphForceSettingInState(
 		: updateActiveChartLayout(state, { [key]: normalized });
 }
 
-export function setGlobalNodeStyleRulesInState(
-	state: WorkspaceState,
-	nodeStyleRules: NodeStyleRule[],
-): WorkspaceState {
-	return {
-		...state,
-		globalNodeStyleRules: normalizeGlobalNodeStyleRules(nodeStyleRules),
-	};
-}
-
-export function setGlobalLinkStyleRulesInState(
-	state: WorkspaceState,
-	linkStyleRules: LinkStyleRule[],
-): WorkspaceState {
-	return {
-		...state,
-		globalLinkStyleRules: normalizeGlobalLinkStyleRules(linkStyleRules),
-	};
-}
-
-export function setDefaultNodeStyleInState(
-	state: WorkspaceState,
-	defaultNodeStyle: Required<DefaultNodeStyle>,
-): WorkspaceState {
-	return {
-		...state,
-		defaultNodeStyle: cloneSerializable(defaultNodeStyle),
-	};
-}
-
-export function setDefaultLinkStyleInState(
-	state: WorkspaceState,
-	defaultLinkStyle: Required<DefaultLinkStyle>,
-): WorkspaceState {
-	return {
-		...state,
-		defaultLinkStyle: cloneSerializable(defaultLinkStyle),
-	};
-}
-
-export function setNodeStyleOverridesInState(
-	state: WorkspaceState,
-	nodeStyleOverrides: DefaultNodeStyle,
-): WorkspaceState {
-	return updateActiveChartStyle(state, {
-		nodeOverrides: cloneSerializable(nodeStyleOverrides),
-	});
-}
-
-export function setLinkStyleOverridesInState(
-	state: WorkspaceState,
-	linkStyleOverrides: DefaultLinkStyle,
-): WorkspaceState {
-	return updateActiveChartStyle(state, {
-		linkOverrides: cloneSerializable(linkStyleOverrides),
-	});
-}
-
-export function setNodeStyleRulesInState(
-	state: WorkspaceState,
-	nodeStyleRules: NodeStyleRule[],
-): WorkspaceState {
-	return updateActiveChartStyle(state, {
-		nodeRules: normalizeNodeStyleRules(nodeStyleRules),
-	});
-}
-
-export function setLinkStyleRulesInState(
-	state: WorkspaceState,
-	linkStyleRules: LinkStyleRule[],
-): WorkspaceState {
-	return updateActiveChartStyle(state, {
-		linkRules: normalizeLinkStyleRules(linkStyleRules),
-	});
-}
-
 function setDisplayValue<Key extends ChartDisplayKey>(
 	state: WorkspaceState,
 	key: Key,
@@ -277,19 +189,6 @@ function updateActiveChartDisplay(
 	return updateActiveChartState(state, {
 		display: {
 			...chart.display,
-			...patch,
-		},
-	});
-}
-
-function updateActiveChartStyle(
-	state: WorkspaceState,
-	patch: Partial<Pick<MetaGraphChart['style'], ChartStyleKey>>,
-): WorkspaceState {
-	const chart = getActiveChart(state);
-	return updateActiveChartState(state, {
-		style: {
-			...chart.style,
 			...patch,
 		},
 	});

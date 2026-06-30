@@ -5,7 +5,6 @@ import {
 	setCubeFaceOpacityInState,
 	setFlowSpacingInState,
 	setLabelDensityInState,
-	setNodeStyleRulesInState,
 } from '../workspace/workspace-chart-settings';
 import { createWorkspaceState } from '../workspace/workspace-state';
 import { updateActiveChartState } from '../workspace/workspace-state-updaters';
@@ -90,38 +89,4 @@ describe('workspace chart settings', () => {
 		expect(nextState.graphRepelForce).toBe(6);
 	});
 
-	it('writes normalized style rules to state and active chart style', () => {
-		const state = createWorkspaceState(100, 1.5);
-		const nextState = setNodeStyleRulesInState(state, [
-			{
-				id: 'base',
-				field: 'all',
-				value: '',
-				color: '#111111',
-				size: 10,
-			},
-			{
-				id: 'tag-rule',
-				field: 'tag',
-				operator: 'contains',
-				value: '#project',
-				color: '#ff0000',
-				size: 14,
-			},
-		]);
-
-		expect(nextState.nodeStyleRules).toEqual([
-			{
-				id: 'tag-rule',
-				field: 'tag',
-				operator: 'contains',
-				value: '#project',
-				color: '#ff0000',
-				size: 14,
-			},
-		]);
-		expect(getActiveChart(nextState).style.nodeRules).toEqual(
-			nextState.nodeStyleRules,
-		);
-	});
 });
