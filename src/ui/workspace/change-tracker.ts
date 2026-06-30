@@ -1,7 +1,8 @@
-import type { WorkspaceState } from '../../core/types';
+import type { GraphProjection, WorkspaceState } from '../../core/types';
 
 export interface WorkspaceRenderBaseline {
 	projection?: WorkspaceState['projection'];
+	projectionSignature?: string;
 	activeChartId?: string;
 	mode?: WorkspaceState['mode'];
 	chartSource?: WorkspaceState['chartSource'];
@@ -40,6 +41,10 @@ export interface WorkspaceStateChanges {
 
 type WorkspaceStateKey = keyof WorkspaceState;
 type WorkspaceBaselineKey = keyof WorkspaceRenderBaseline;
+type WorkspaceStateBaselineKey = Extract<
+	WorkspaceBaselineKey,
+	WorkspaceStateKey
+>;
 
 const GRAPH_FORCE_SETTING_KEYS = [
 	'graphSpacing',
@@ -60,18 +65,17 @@ const STYLE_RULE_KEYS = [
 	'globalLinkStyleRules',
 	'nodeStyleRules',
 	'linkStyleRules',
-] as const satisfies readonly WorkspaceBaselineKey[];
+] as const satisfies readonly WorkspaceStateBaselineKey[];
 
 const REBUILD_BASELINE_KEYS = [
 	'activeChartId',
-	'projection',
 	'mode',
 	'chartSource',
 	'flowEdgeStyle',
 	'flowDirection',
 	'arcDirection',
 	'layoutRevision',
-] as const satisfies readonly WorkspaceBaselineKey[];
+] as const satisfies readonly WorkspaceStateBaselineKey[];
 
 export function analyzeWorkspaceStateChanges(
 	nextState: WorkspaceState,
@@ -104,6 +108,10 @@ export function analyzeWorkspaceStateChanges(
 		baseline,
 		'arcDirection',
 	);
+	const projectionChanged =
+		baseline.projectionSignature !== undefined &&
+		readProjectionSignature(nextState.projection) !==
+			baseline.projectionSignature;
 	const layoutRevisionChanged = baselineValueChanged(
 		nextState,
 		baseline,
@@ -165,15 +173,18 @@ export function analyzeWorkspaceStateChanges(
 			'enableForceLayout',
 		),
 		styleRulesChanged,
-		shouldRebuild: stateDiffersFromBaseline(
-			nextState,
-			baseline,
-			REBUILD_BASELINE_KEYS,
-		),
+		shouldRebuild:
+			projectionChanged ||
+			stateDiffersFromBaseline(
+				nextState,
+				baseline,
+				REBUILD_BASELINE_KEYS,
+			),
 		fitAfterRender:
 			activeChartChanged ||
 			modeChanged ||
 			chartSourceChanged ||
+			projectionChanged ||
 			flowStyleChanged ||
 			flowDirectionChanged ||
 			arcDirectionChanged ||
@@ -195,7 +206,7 @@ function stateValueChanged<Key extends WorkspaceStateKey>(
 	return nextState[key] !== currentState[key];
 }
 
-function baselineValueChanged<Key extends WorkspaceBaselineKey>(
+function baselineValueChanged<Key extends WorkspaceStateBaselineKey>(
 	nextState: WorkspaceState,
 	baseline: WorkspaceRenderBaseline,
 	key: Key,
@@ -211,7 +222,7 @@ function stateDiffers<Key extends WorkspaceStateKey>(
 	return keys.some((key) => stateValueChanged(nextState, currentState, key));
 }
 
-function stateDiffersFromBaseline<Key extends WorkspaceBaselineKey>(
+function stateDiffersFromBaseline<Key extends WorkspaceStateBaselineKey>(
 	nextState: WorkspaceState,
 	baseline: WorkspaceRenderBaseline,
 	keys: readonly Key[],
@@ -224,19 +235,20 @@ export function createWorkspaceRenderBaseline(
 ): WorkspaceRenderBaseline {
 	return {
 		projection: state.projection,
+		projectionSignature: readProjectionSignature(state.projection),
 		activeChartId: state.activeChartId,
 		mode: state.mode,
 		chartSource: state.chartSource,
 		flowEdgeStyle: state.flowEdgeStyle,
 		flowDirection: state.flowDirection,
 		arcDirection: state.arcDirection,
-			manualLayout: state.manualLayout,
-			layoutRevision: state.layoutRevision,
-			defaultNodeStyle: state.defaultNodeStyle,
-			defaultLinkStyle: state.defaultLinkStyle,
-			nodeStyleOverrides: state.nodeStyleOverrides,
-			linkStyleOverrides: state.linkStyleOverrides,
-			globalNodeStyleRules: state.globalNodeStyleRules,
+		manualLayout: state.manualLayout,
+		layoutRevision: state.layoutRevision,
+		defaultNodeStyle: state.defaultNodeStyle,
+		defaultLinkStyle: state.defaultLinkStyle,
+		nodeStyleOverrides: state.nodeStyleOverrides,
+		linkStyleOverrides: state.linkStyleOverrides,
+		globalNodeStyleRules: state.globalNodeStyleRules,
 		globalLinkStyleRules: state.globalLinkStyleRules,
 		nodeStyleRules: state.nodeStyleRules,
 		linkStyleRules: state.linkStyleRules,
@@ -252,10 +264,51 @@ export function syncWorkspaceRenderBaselineStyles(
 	}
 }
 
-function syncBaselineValue<Key extends WorkspaceBaselineKey>(
+function syncBaselineValue<Key extends WorkspaceStateBaselineKey>(
 	baseline: WorkspaceRenderBaseline,
 	state: WorkspaceState,
 	key: Key,
 ): void {
 	baseline[key] = state[key];
+}
+
+function readProjectionSignature(projection: GraphProjection | undefined): string {
+	if (!projection) {
+		return '';
+	}
+	const nodeParts = projection.nodes
+		.map((node) =>
+			[
+				node.id,
+				node.path,
+				node.title,
+				node.folder,
+				...(node.domains ?? []),
+				...(node.tags ?? []),
+			].join('\u001f'),
+		)
+		.sort();
+	const edgeParts = projection.edges
+		.map((edge) =>
+			[
+				edge.id,
+				edge.source,
+				edge.target,
+				edge.relation,
+				edge.directed ? '1' : '0',
+				edge.sourcePath,
+				edge.sourceField,
+			].join('\u001f'),
+		)
+		.sort();
+	const rootParts = [...projection.rootIds].sort();
+	const primaryParts = [...(projection.primaryIds ?? new Set<string>())].sort();
+	const contextParts = [...(projection.contextIds ?? new Set<string>())].sort();
+	return [
+		`n:${nodeParts.join('\u001e')}`,
+		`e:${edgeParts.join('\u001e')}`,
+		`r:${rootParts.join('\u001e')}`,
+		`p:${primaryParts.join('\u001e')}`,
+		`c:${contextParts.join('\u001e')}`,
+	].join('\u001d');
 }

@@ -5,6 +5,7 @@ import {
 	syncWorkspaceRenderBaselineStyles,
 } from '../ui/workspace/change-tracker';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
+import type { GraphProjection } from '../core/types';
 
 describe('workspace change tracker', () => {
 	it('requests initial rebuild against empty baseline', () => {
@@ -55,6 +56,63 @@ describe('workspace change tracker', () => {
 
 		expect(changes.styleRulesChanged).toBe(true);
 		expect(changes.shouldRebuild).toBe(false);
+	});
+
+	it('ignores equivalent projection objects from refresh', () => {
+		const projection = createTestProjection();
+		const state = { ...createWorkspaceState(200), projection };
+		const nextState = {
+			...state,
+			projection: {
+				nodes: projection.nodes.map((node) => ({ ...node })),
+				edges: projection.edges.map((edge) => ({ ...edge })),
+				rootIds: new Set(projection.rootIds),
+				primaryIds: new Set(projection.primaryIds),
+				contextIds: new Set(projection.contextIds),
+			},
+		} satisfies typeof state;
+
+		const changes = analyzeWorkspaceStateChanges(
+			nextState,
+			state,
+			createWorkspaceRenderBaseline(state),
+		);
+
+		expect(nextState.projection).not.toBe(state.projection);
+		expect(changes.shouldRebuild).toBe(false);
+		expect(changes.fitAfterRender).toBe(false);
+	});
+
+	it('rebuilds when projection content changes', () => {
+		const projection = createTestProjection();
+		const state = { ...createWorkspaceState(200), projection };
+		const nextState = {
+			...state,
+			projection: {
+				...projection,
+				edges: [
+					...projection.edges,
+					{
+						id: 'b->c',
+						source: 'b.md',
+						target: 'c.md',
+						relation: 'related',
+						directed: false,
+						sourcePath: 'b.md',
+						sourceField: 'related',
+					},
+				],
+			},
+		} satisfies typeof state;
+
+		const changes = analyzeWorkspaceStateChanges(
+			nextState,
+			state,
+			createWorkspaceRenderBaseline(state),
+		);
+
+		expect(changes.shouldRebuild).toBe(true);
+		expect(changes.fitAfterRender).toBe(true);
 	});
 
 	it('detects default and override style updates without rebuild', () => {
@@ -123,3 +181,48 @@ describe('workspace change tracker', () => {
 		expect(changes.forceLayout).toBe(true);
 	});
 });
+
+function createTestProjection(): GraphProjection {
+	return {
+		nodes: [
+			{
+				id: 'a.md',
+				path: 'a.md',
+				title: 'A',
+				folder: '',
+				domains: [],
+				tags: ['#test'],
+			},
+			{
+				id: 'b.md',
+				path: 'b.md',
+				title: 'B',
+				folder: '',
+				domains: [],
+				tags: [],
+			},
+			{
+				id: 'c.md',
+				path: 'c.md',
+				title: 'C',
+				folder: '',
+				domains: [],
+				tags: [],
+			},
+		],
+		edges: [
+			{
+				id: 'a->b',
+				source: 'a.md',
+				target: 'b.md',
+				relation: 'leads-to',
+				directed: true,
+				sourcePath: 'a.md',
+				sourceField: 'leads-to',
+			},
+		],
+		rootIds: new Set(['a.md']),
+		primaryIds: new Set(['a.md']),
+		contextIds: new Set(['b.md']),
+	};
+}
