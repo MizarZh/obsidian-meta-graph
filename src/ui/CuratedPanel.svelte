@@ -397,57 +397,65 @@
 				/>
 			</div>
 			<div class="knowledge-workspace-curated-actions">
-				<ObsidianButton
-					text="Filter files"
-					icon="list-filter"
-					onClick={openConditionModal}
-				/>
-				<CuratedBatchAdd
-					open={batchOpen}
-					input={batchInput}
-					status={batchStatus}
-					groupId={addGroupId}
-					groupOptions={addGroupOptions}
-					onOpen={() => (batchOpen = true)}
-					onClose={() => (batchOpen = false)}
-					onInput={(value) => (batchInput = value)}
-					onAdd={addBatch}
-					onGroupChange={(value) => (addGroupId = value)}
-				/>
-				<ObsidianButton
-					text={`Remove selected${selectedCount ? ` (${selectedCount})` : ''}`}
-					icon="trash-2"
-					disabled={selectedCount === 0}
-					destructive={true}
-					onClick={removeSelected}
-				/>
-				<ObsidianButton
-					text="Clear selection"
-					icon="circle-off"
-					disabled={selectedCount === 0}
-					onClick={clearSelection}
-				/>
-				<ObsidianDropdown
-					value="__move__"
-					options={[
-						{ value: '__move__', label: 'Move to group' },
-						...groupOptions,
-					]}
-					disabled={selectedCount === 0}
-					ariaLabel="Move selected to group"
-					onChange={(value) => {
-						if (value !== '__move__') {
-							moveSelectedToGroup(value);
-						}
-					}}
-				/>
-				<ObsidianButton
-					text="Clear all"
-					icon="x"
-					disabled={curated.files.length === 0}
-					destructive={true}
-					onClick={clearAll}
-				/>
+				{#if selectedCount > 0}
+					<span class="knowledge-workspace-curated-selection-count">
+						{selectedCount} selected
+					</span>
+					<label class="knowledge-workspace-curated-selection-group">
+						<span>Group</span>
+						<ObsidianDropdown
+							value="__move__"
+							options={[
+								{ value: '__move__', label: 'Move to group' },
+								...groupOptions,
+							]}
+							ariaLabel="Move selected to group"
+							onChange={(value) => {
+								if (value !== '__move__') {
+									moveSelectedToGroup(value);
+								}
+							}}
+						/>
+					</label>
+					<ObsidianButton
+						icon="trash-2"
+						ariaLabel="Remove selected"
+						tooltip="Remove selected"
+						destructive={true}
+						onClick={removeSelected}
+					/>
+					<ObsidianButton
+						icon="circle-off"
+						ariaLabel="Clear selection"
+						tooltip="Clear selection"
+						onClick={clearSelection}
+					/>
+				{:else}
+					<ObsidianButton
+						text="Filter files"
+						icon="list-filter"
+						onClick={openConditionModal}
+					/>
+					<CuratedBatchAdd
+						open={batchOpen}
+						input={batchInput}
+						status={batchStatus}
+						groupId={addGroupId}
+						groupOptions={addGroupOptions}
+						onOpen={() => (batchOpen = true)}
+						onClose={() => (batchOpen = false)}
+						onInput={(value) => (batchInput = value)}
+						onAdd={addBatch}
+						onGroupChange={(value) => (addGroupId = value)}
+					/>
+					<ObsidianButton
+						text="Clear all"
+						icon="x"
+						disabled={curated.files.length === 0}
+						destructive={true}
+						onClick={clearAll}
+					/>
+				{/if}
 			</div>
 			<CuratedFileList
 				files={selectedFiles}
