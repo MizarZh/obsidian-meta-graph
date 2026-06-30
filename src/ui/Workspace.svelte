@@ -10,28 +10,15 @@
 	} from "../core/types";
 	import { formatError as formatErrorMessage } from "../core/errors";
 	import type { ConnectionDragState } from "../graph/renderers/renderer-events";
-	import type { RuntimeGraph } from "../graph/model/graphology-adapter";
 	import { readGraphPalette } from "../graph/styles/graph-styles";
 	import {
-		getModeCapabilities,
-		getRendererKind,
-		getRendererKindForMode,
-		isCube3DRenderer,
-		isForce3DRenderer,
 		refreshRendererGraphStyles,
-		setRendererManualLayout,
-		setRendererPalette,
 		type GraphRenderer,
 	} from "../graph/renderers/renderer-adapter";
-	import { serializeRuntimeGraph } from "../graph/model/runtime-graph-debug";
-	import { SigmaRenderer } from "../graph/renderers/sigma/sigma-renderer";
 	import {
-		applyStableLayout as applyStableRuntimeLayout,
-		hydrateManualLayoutPositions,
 		LayoutSnapshotStore,
 		type LayoutSnapshot,
 	} from "../layouts/stable-layout";
-	import { D3ForceSimulation } from "../layouts/d3-force-simulation";
 	import type { WorkspaceController } from "../workspace/workspace-controller";
 	import CuratedPanel from "./CuratedPanel.svelte";
 	import FilterPanel from "./FilterPanel.svelte";
@@ -66,7 +53,6 @@
 	} from "./workspace/theme";
 	import { openWorkspaceTemplateNote } from "./workspace/template-modal-actions";
 	import { openResolvedMetadataLink } from "./workspace/metadata-link-actions";
-	import { getWorkspaceGraphForceSettings } from "./workspace/graph-settings";
 	import { WorkspaceAutoSave } from "./workspace/autosave";
 		import {
 			analyzeWorkspaceStateChanges,
@@ -74,16 +60,13 @@
 			syncWorkspaceRenderBaselineStyles,
 			type WorkspaceRenderBaseline,
 		} from "./workspace/change-tracker";
-	import {
-		createWorkspaceRuntimeGraph,
-		syncWorkspaceRuntimeGraphStyles,
-	} from "./workspace/runtime-graph";
+	import { syncWorkspaceRuntimeGraphStyles } from "./workspace/runtime-graph";
 	import { bindWorkspaceRendererEvents } from "./workspace/renderer-events";
 	import {
 		moveWorkspaceRuntimeGroupNodes,
 		syncWorkspaceRendererGroups,
 	} from "./workspace/renderer-groups";
-	import { createWorkspaceGraphRenderer } from "./workspace/renderer-factory";
+	import { WorkspaceRendererLifecycle } from "./workspace/renderer-lifecycle";
 	import { DockGraphDragController } from "./workspace/dock-graph-drag";
 	import { GraphDockConnectionController } from "./workspace/graph-dock-connection";
 
@@ -110,12 +93,9 @@
 	let workspaceState: WorkspaceState = $state(getInitialState());
 	let workspaceRoot: HTMLDivElement;
 	let canvas: HTMLDivElement;
-	let renderer: GraphRenderer | undefined;
-	let unbindEvents: (() => void) | undefined;
-	let renderVersion = 0;
-		let lastThemeSignature = "";
-		let lastCanvasWidth = 0;
-		let lastCanvasHeight = 0;
+	let lastThemeSignature = "";
+	let lastCanvasWidth = 0;
+	let lastCanvasHeight = 0;
 	let renderBaseline: WorkspaceRenderBaseline = {};
 	let debugOpen = $state(false);
 	let settingsPanel = $state<SettingsPanelMode | undefined>(undefined);
@@ -127,18 +107,27 @@
 	let dockDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockConnectionDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockTargetNodeId = $state<string | undefined>(undefined);
-		let dockOpen = $state(true);
-		let curatedPanelOpen = $state(true);
-		let connectionOpen = $state(true);
-		let forceLayoutSimulation: D3ForceSimulation | undefined;
-		let suppressNodeOpenUntil = 0;
-		let activeNodeDropGroupId: string | undefined;
+	let dockOpen = $state(true);
+	let curatedPanelOpen = $state(true);
+	let connectionOpen = $state(true);
+	let suppressNodeOpenUntil = 0;
+	let activeNodeDropGroupId: string | undefined;
 
 	const layoutSnapshots = new LayoutSnapshotStore();
+	const rendererLifecycle = new WorkspaceRendererLifecycle({
+		readState: () => workspaceState,
+		readCanvas: () => canvas,
+		readLayoutSnapshot: () => getLayoutSnapshot(),
+		readContainerSize: () => readContainerSize(),
+		waitForCanvasSize: () => waitForCanvasSize(),
+		bindEvents: (targetRenderer) => bindEventsForRenderer(targetRenderer),
+		syncRendererGroups: () => syncRendererGroups(),
+		setRendererDebugState: (state) => controller.setRendererDebugState(state),
+	});
 	const dockGraphDrag = new DockGraphDragController({
 		window,
 		readCanvas: () => canvas,
-		readRenderer: () => renderer,
+		readRenderer: () => rendererLifecycle.renderer,
 		readHoveredNodeId: () => workspaceState.hoveredNodeId,
 		setDockDrag: (payload) => {
 			dockDrag = payload;
@@ -241,7 +230,7 @@
 				) {
 					lastCanvasWidth = entry.contentRect.width;
 					lastCanvasHeight = entry.contentRect.height;
-					renderer?.resize();
+						rendererLifecycle.resize();
 				}
 			});
 		resizeObserver.observe(canvas);
@@ -295,61 +284,50 @@
 				settingsPanel = undefined;
 			}
 			autoSave.schedule(nextState);
-			syncRendererDisplaySettings(renderer, nextState, changes);
+			const currentRenderer = rendererLifecycle.renderer;
+			syncRendererDisplaySettings(currentRenderer, nextState, changes);
 			if (
 				changes.styleRulesChanged &&
 				!changes.shouldRebuild &&
-				renderer &&
+				currentRenderer &&
 				nextState.projection &&
 				canvas
 			) {
 				syncWorkspaceRuntimeGraphStyles(
-					renderer.runtimeGraph,
+					currentRenderer.runtimeGraph,
 					nextState.projection,
 					nextState,
 					readGraphPalette(canvas),
 				);
-				refreshRendererGraphStyles(renderer);
-					syncWorkspaceRenderBaselineStyles(renderBaseline, nextState);
-				}
-			if (changes.forceLayoutChanged && renderer) {
-				if (isForce3DRenderer(renderer)) {
-					renderer.setEnableForceLayout(nextState.enableForceLayout);
-				}
-				unbindEvents?.();
-				unbindEvents = bindEventsForRenderer(renderer);
-				stopForceLayoutSimulation();
-				}
-				if (
-					changes.graphForceSettingsChanged &&
-					getModeCapabilities(nextState.mode).usesSigmaForceSimulation &&
-					nextState.enableForceLayout &&
-					renderer &&
-				!isForce3DRenderer(renderer) &&
-				!isCube3DRenderer(renderer)
-			) {
-				stopForceLayoutSimulation();
-				getOrCreateForceLayoutSimulation(renderer).start();
+				refreshRendererGraphStyles(currentRenderer);
+				syncWorkspaceRenderBaselineStyles(renderBaseline, nextState);
+			}
+			if (changes.forceLayoutChanged) {
+				rendererLifecycle.handleForceLayoutToggle(
+					nextState.enableForceLayout,
+				);
+			}
+			if (changes.graphForceSettingsChanged) {
+				rendererLifecycle.restartSigmaForceLayoutIfNeeded();
 			}
 			if (changes.shouldRebuild) {
 				renderBaseline = createWorkspaceRenderBaseline(nextState);
-					void rebuildGraph(
-						changes.fitAfterRender,
-						changes.forceLayout,
-					).catch((error: unknown) => {
+				void rendererLifecycle.rebuild(
+					changes.fitAfterRender,
+					changes.forceLayout,
+				).catch((error: unknown) => {
 						controller.setRendererDebugState({
 							status: "error",
 							error: formatError(error),
 						});
-					});
+				});
 			} else {
-				renderer?.setSelected(nextState.selectedNodeId);
-				renderer?.setHovered(nextState.hoveredNodeId);
+				rendererLifecycle.setSelected(nextState.selectedNodeId);
+				rendererLifecycle.setHovered(nextState.hoveredNodeId);
 			}
 		});
 
 		return () => {
-			renderVersion += 1;
 			autoSave.flush();
 			unsubscribe();
 			resizeObserver.disconnect();
@@ -391,9 +369,7 @@
 				},
 			);
 				dockGraphDrag.resetConnectionDrag();
-				unbindEvents?.();
-				stopForceLayoutSimulation();
-				renderer?.kill();
+			rendererLifecycle.dispose();
 		};
 	});
 
@@ -403,149 +379,19 @@
 			return;
 		}
 		lastThemeSignature = themeSignature;
-				if (renderer && canvas) {
-					setRendererPalette(renderer, readGraphPalette(canvas));
-				}
+		rendererLifecycle.refreshPalette();
 	}
-
-	async function rebuildGraph(
-		fitAfterRender = false,
-		forceLayout = false,
-	): Promise<void> {
-		const version = ++renderVersion;
-
-		if (
-			!workspaceState.projection ||
-			workspaceState.projection.nodes.length === 0 ||
-			!canvas
-		) {
-			unbindEvents?.();
-			unbindEvents = undefined;
-			stopForceLayoutSimulation();
-			renderer?.kill();
-			renderer = undefined;
-			controller.setRendererDebugState({ status: "idle" });
-			return;
-		}
-
-			controller.setRendererDebugState({
-				status: "waiting-for-size",
-				mode: workspaceState.mode,
-			container: readContainerSize(),
-		});
-		const hasSize = await waitForCanvasSize();
-		if (!hasSize || version !== renderVersion) {
-			if (!hasSize) {
-				throw new Error(
-					"The Sigma container has zero width or height after waiting for layout.",
-				);
-			}
-			return;
-		}
-
-			const palette = readGraphPalette(canvas);
-			const layoutSnapshot = getLayoutSnapshot();
-				hydrateManualLayoutPositions(
-					layoutSnapshot,
-					workspaceState.mode,
-					workspaceState.manualLayout,
-				);
-			const positions = layoutSnapshot.positions;
-			const graph = createWorkspaceRuntimeGraph(
-				workspaceState.projection,
-				positions,
-				workspaceState,
-				palette,
-			);
-		const newNodeIds = graph
-			.nodes()
-			.filter((nodeId) => !positions.has(nodeId));
-		controller.setRendererDebugState({
-			status: "layout",
-			mode: workspaceState.mode,
-			container: readContainerSize(),
-			runtimeGraph: serializeRuntimeGraph(graph),
-		});
-			await applyStableRuntimeLayout(graph, layoutSnapshot, newNodeIds, {
-				mode: workspaceState.mode,
-				forceLayout,
-				graphSpacing: workspaceState.graphSpacing,
-				graphForceSettings: getWorkspaceGraphForceSettings(workspaceState),
-				flowEdgeStyle: workspaceState.flowEdgeStyle,
-				flowDirection: workspaceState.flowDirection,
-				flowSpacing: workspaceState.flowSpacing,
-				arcSpacing: workspaceState.arcSpacing,
-				arcDirection: workspaceState.arcDirection,
-			});
-		if (version !== renderVersion) {
-			return;
-		}
-
-			const rendererKind = getRendererKindForMode(workspaceState.mode);
-			if (renderer && getRendererKind(renderer) !== rendererKind) {
-				unbindEvents?.();
-				unbindEvents = undefined;
-				stopForceLayoutSimulation();
-				renderer.kill();
-				renderer = undefined;
-			}
-			const firstRender = !renderer;
-			if (renderer) {
-				unbindEvents?.();
-				stopForceLayoutSimulation();
-				setRendererPalette(renderer, palette);
-				setRendererManualLayout(renderer, workspaceState.manualLayout);
-				renderer.setGraph(graph);
-				unbindEvents = bindEventsForRenderer(renderer);
-			} else {
-				const nextRenderer = await createWorkspaceGraphRenderer({
-					graph,
-					container: canvas,
-					palette,
-					state: workspaceState,
-					isStale: () => version !== renderVersion,
-				});
-				if (!nextRenderer) {
-					return;
-				}
-				if (version !== renderVersion) {
-					nextRenderer.kill();
-					return;
-				}
-				renderer = nextRenderer;
-				unbindEvents = bindEventsForRenderer(nextRenderer);
-			}
-			syncRendererGroups();
-			renderer.setSelected(workspaceState.selectedNodeId);
-			renderer.setHovered(workspaceState.hoveredNodeId);
-				if (
-					getModeCapabilities(workspaceState.mode)
-						.usesSigmaForceSimulation &&
-					workspaceState.enableForceLayout &&
-					!isForce3DRenderer(renderer) &&
-					!isCube3DRenderer(renderer)
-			) {
-				getOrCreateForceLayoutSimulation(renderer).start();
-			}
-			if (firstRender || fitAfterRender) {
-				renderer.fit();
-			}
-			controller.setRendererDebugState({
-				status: "rendered",
-				mode: workspaceState.mode,
-				container: readContainerSize(),
-				runtimeGraph: serializeRuntimeGraph(graph),
-			});
-		}
 
 		function bindEventsForRenderer(targetRenderer: GraphRenderer): () => void {
 			return bindWorkspaceRendererEvents({
 				renderer: targetRenderer,
 				mode: workspaceState.mode,
 				enableForceLayout: workspaceState.enableForceLayout,
-				getLayoutSnapshot,
-				getOrCreateForceLayoutSimulation,
-				getForceLayoutSimulation: () => forceLayoutSimulation,
+			getLayoutSnapshot,
+			getOrCreateForceLayoutSimulation: (renderer) =>
+				rendererLifecycle.getOrCreateForceLayoutSimulation(renderer),
+			getForceLayoutSimulation: () =>
+				rendererLifecycle.getForceLayoutSimulation(),
 				getSuppressNodeOpenUntil: () => suppressNodeOpenUntil,
 				setSuppressNodeOpenUntil: (value) => {
 					suppressNodeOpenUntil = value;
@@ -565,9 +411,9 @@
 			});
 		}
 
-		function syncRendererGroups(): void {
-			syncWorkspaceRendererGroups(
-				renderer,
+	function syncRendererGroups(): void {
+		syncWorkspaceRendererGroups(
+			rendererLifecycle.renderer,
 				workspaceState.mode,
 				workspaceState.manualLayout,
 				{
@@ -584,45 +430,13 @@
 			groupId: string,
 			delta: { x: number; y: number },
 		): void {
-			moveWorkspaceRuntimeGroupNodes(
-				renderer,
+		moveWorkspaceRuntimeGroupNodes(
+			rendererLifecycle.renderer,
 				getLayoutSnapshot(),
 				workspaceState.manualLayout,
 				groupId,
 				delta,
 			);
-		}
-
-		function getOrCreateForceLayoutSimulation(
-			targetRenderer: SigmaRenderer,
-		): D3ForceSimulation {
-			if (!forceLayoutSimulation) {
-				forceLayoutSimulation = new D3ForceSimulation(
-					targetRenderer.runtimeGraph,
-					targetRenderer,
-					workspaceState.graphSpacing,
-					getWorkspaceGraphForceSettings(workspaceState),
-					(nodeId, position) => {
-						getLayoutSnapshot().positions.set(nodeId, position);
-					},
-				);
-			}
-			return forceLayoutSimulation;
-		}
-
-		function stopForceLayoutSimulation(): void {
-			forceLayoutSimulation?.stop();
-			forceLayoutSimulation = undefined;
-			renderer?.clearHeldBounds();
-		}
-
-		function snapshotCurrentGraphPositions(graph: RuntimeGraph): void {
-			const positions = getLayoutSnapshot().positions;
-			graph.forEachNode((nodeId, attributes) => {
-				if (!attributes.isBend) {
-					positions.set(nodeId, { x: attributes.x, y: attributes.y });
-				}
-			});
 		}
 
 		const selectedNode = $derived(
@@ -685,7 +499,7 @@
 	function toggleDebug(): void {
 		debugOpen = !debugOpen;
 		if (!debugOpen) {
-			window.requestAnimationFrame(() => renderer?.resize());
+			window.requestAnimationFrame(() => rendererLifecycle.resize());
 		}
 	}
 
@@ -755,7 +569,7 @@
 
 	function focusNodeFromSearch(nodeId: string): void {
 		controller.selectNode(nodeId);
-		window.requestAnimationFrame(() => renderer?.focusNode(nodeId));
+		window.requestAnimationFrame(() => rendererLifecycle.focusNode(nodeId));
 	}
 
 		function handleDockPayloadGraphAction(
@@ -920,7 +734,7 @@
 		onChartSource={(source) => controller.setActiveChartSource(source)}
 		onDeleteChart={confirmDeleteActiveChart}
 		onFocusNode={focusNodeFromSearch}
-		onFit={() => renderer?.fit()}
+		onFit={() => rendererLifecycle.fit()}
 		onRefresh={() => controller.refresh(true)}
 		{settingsPanel}
 		onSettingsPanel={openSettingsPanel}
@@ -1118,7 +932,7 @@
 						controller.selectNode(path);
 						if (workspaceState.dock.focusOnSelect) {
 							window.requestAnimationFrame(() =>
-								renderer?.focusNode(path),
+								rendererLifecycle.focusNode(path),
 							);
 						}
 					}}
@@ -1196,7 +1010,7 @@
 					controller.selectNode(nodeId);
 					if (workspaceState.dock.focusOnSelect) {
 						window.requestAnimationFrame(() =>
-							renderer?.focusNode(nodeId),
+							rendererLifecycle.focusNode(nodeId),
 						);
 					}
 				}}

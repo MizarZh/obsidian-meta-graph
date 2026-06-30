@@ -32,8 +32,6 @@ import type {
 } from '../core/types';
 import { createWorkspaceState } from './workspace-state';
 import {
-	createDefaultCuratedWorkspace,
-	createDefaultChart,
 	DEFAULT_CONNECTION_FIELD_MODE,
 	serializeMetaGraphState,
 } from './meta-graph-model';
@@ -108,6 +106,14 @@ import {
 	WorkspaceProjectionService,
 	buildWorkspaceIndex,
 } from './workspace-query-service';
+import {
+	addChartInState,
+	deleteActiveChartInState,
+	setActiveChartInState,
+	setActiveChartNameInState,
+	setActiveChartSourceInState,
+	setActiveChartTypeInState,
+} from './workspace-chart-state';
 import { updateActiveChartState } from './workspace-state-updaters';
 import { createTemplateNoteFile } from './workspace-template-service';
 import { cloneSerializable } from './workspace-persistence';
@@ -260,132 +266,33 @@ export class WorkspaceController {
 	}
 
 	setActiveChart(activeChartId: string): void {
-		const chart = this.state.charts.find((item) => item.id === activeChartId);
-		if (!chart || chart.id === this.state.activeChartId) {
-			return;
-		}
-		const nextState = createWorkspaceState(
-			this.state.query.maxNodes,
-			chart.display.fadeDistance,
-					{
-						charts: this.state.charts,
-						globalQuery: this.state.globalQuery,
-						globalStyle: {
-							defaultNodeStyle: this.state.defaultNodeStyle,
-							defaultLinkStyle: this.state.defaultLinkStyle,
-							nodeRules: this.state.globalNodeStyleRules,
-							linkRules: this.state.globalLinkStyleRules,
-						},
-					activeChart: chart.id,
-					connectionFields: this.state.connectionFields,
-					connectionFieldSpecs: this.state.connectionFieldSpecs,
-					connectionFieldModes: this.state.connectionFieldModes,
-					activeConnectionFieldSpecId:
-						this.state.activeConnectionFieldSpecId,
-					activeConnectionField: this.state.activeConnectionField,
-					dock: this.state.dock,
-				},
-			);
-		this.state = {
-			...nextState,
-			currentNoteId: this.state.currentNoteId,
-			layoutRevision: this.state.layoutRevision + 1,
-			availableFolders: this.state.availableFolders,
-			availableTags: this.state.availableTags,
-			availableDomains: this.state.availableDomains,
-			globalQuery: this.state.globalQuery,
-			globalNodeStyleRules: this.state.globalNodeStyleRules,
-			globalLinkStyleRules: this.state.globalLinkStyleRules,
-			connectionFields: this.state.connectionFields,
-			connectionFieldSpecs: this.state.connectionFieldSpecs,
-			connectionFieldModes: this.state.connectionFieldModes,
-			activeConnectionFieldSpecId: this.state.activeConnectionFieldSpecId,
-			activeConnectionField: this.state.activeConnectionField,
-			dock: this.state.dock,
-			connectionUndoCount: this.state.connectionUndoCount,
-		};
-		this.runQuery();
+		const result = setActiveChartInState(this.state, activeChartId);
+		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
 	addChart(): void {
-		const chart = createDefaultChart(
-			'graph',
-			this.state.query.maxNodes,
-			this.state.fadeDistance,
-			this.state.charts,
-		);
-		this.state = {
-			...this.state,
-			charts: [...this.state.charts, chart],
-		};
-		this.setActiveChart(chart.id);
+		const result = addChartInState(this.state);
+		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
 	setActiveChartName(name: string): void {
-		const normalized = name.trim();
-		if (!normalized) {
-			return;
-		}
-		this.state = this.updateActiveChart({ name: normalized });
-		this.emit();
+		const result = setActiveChartNameInState(this.state, name);
+		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
 	setActiveChartType(type: ViewMode): void {
-		const activeChart = this.getActiveChart();
-		if (activeChart.type === type) {
-			return;
-		}
-		const defaultChart = createDefaultChart(
-			type,
-			this.state.query.maxNodes,
-			this.state.fadeDistance,
-			this.state.charts.filter((chart) => chart.id !== activeChart.id),
-		);
-		const layout =
-			type === 'cube'
-				? normalizeCubeLayout(
-						defaultChart.layout,
-						this.state.projection?.nodes.map((node) => node.id) ?? [],
-					)
-				: defaultChart.layout;
-		this.state = this.updateActiveChart(
-			{
-				type,
-				layout,
-			},
-			true,
-		);
-		this.runQuery();
+		const result = setActiveChartTypeInState(this.state, type);
+		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
 	setActiveChartSource(source: ChartSource): void {
-		const activeChart = this.getActiveChart();
-		if (activeChart.source === source) {
-			return;
-		}
-		this.state = this.updateActiveChart({
-			source,
-			curated: activeChart.curated ?? createDefaultCuratedWorkspace(),
-		});
-		this.runQuery();
+		const result = setActiveChartSourceInState(this.state, source);
+		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
 	deleteActiveChart(): void {
-		if (this.state.charts.length <= 1) {
-			return;
-		}
-		const charts = this.state.charts.filter(
-			(chart) => chart.id !== this.state.activeChartId,
-		);
-		const nextActiveChart = charts[0];
-		if (!nextActiveChart) {
-			return;
-		}
-		this.state = {
-			...this.state,
-			charts,
-		};
-		this.setActiveChart(nextActiveChart.id);
+		const result = deleteActiveChartInState(this.state);
+		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
 	setFlowEdgeStyle(flowEdgeStyle: FlowEdgeStyle): void {
