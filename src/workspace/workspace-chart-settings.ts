@@ -26,6 +26,8 @@ export type GraphForceSettingKey =
 	| 'dragLinkForce'
 	| 'returnForce'
 	| 'linkDistance';
+type ChartDisplayKey = keyof MetaGraphChart['display'];
+type ChartStyleKey = keyof MetaGraphChart['style'];
 
 export function setFlowEdgeStyleInState(
 	state: WorkspaceState,
@@ -52,44 +54,39 @@ export function setFadeDistanceInState(
 	state: WorkspaceState,
 	fadeDistance: number,
 ): WorkspaceState {
-	const chart = getActiveChart(state);
-	return chart.display.fadeDistance === fadeDistance
-		? state
-		: updateActiveChartDisplay(state, { fadeDistance });
+	return setDisplayValue(state, 'fadeDistance', fadeDistance);
 }
 
 export function setLabelSizeInState(
 	state: WorkspaceState,
 	labelSize: number,
 ): WorkspaceState {
-	const chart = getActiveChart(state);
-	return chart.display.labelSize === labelSize
-		? state
-		: updateActiveChartDisplay(state, { labelSize });
+	return setDisplayValue(state, 'labelSize', labelSize);
 }
 
 export function setLabelPositionInState(
 	state: WorkspaceState,
 	labelPosition: LabelPosition,
 ): WorkspaceState {
-	return updateActiveChartDisplay(state, { labelPosition });
+	return setDisplayValue(state, 'labelPosition', labelPosition);
 }
 
 export function setLabelColorInState(
 	state: WorkspaceState,
 	labelColor: string,
 ): WorkspaceState {
-	return updateActiveChartDisplay(state, { labelColor });
+	return setDisplayValue(state, 'labelColor', labelColor);
 }
 
 export function setLabelBackgroundOpacityInState(
 	state: WorkspaceState,
 	labelBackgroundOpacity: number,
 ): WorkspaceState {
-	const chart = getActiveChart(state);
-	return chart.display.labelBackgroundOpacity === labelBackgroundOpacity
-		? state
-		: updateActiveChartDisplay(state, { labelBackgroundOpacity });
+	return setDisplayValue(
+		state,
+		'labelBackgroundOpacity',
+		labelBackgroundOpacity,
+	);
 }
 
 export function setLabelDensityInState(
@@ -97,10 +94,7 @@ export function setLabelDensityInState(
 	labelDensity: number,
 ): WorkspaceState {
 	const density = Math.max(0, Math.min(1, labelDensity));
-	const chart = getActiveChart(state);
-	return chart.display.labelDensity === density
-		? state
-		: updateActiveChartDisplay(state, { labelDensity: density });
+	return setDisplayValue(state, 'labelDensity', density);
 }
 
 export function setCubeFaceOpacityInState(
@@ -108,30 +102,21 @@ export function setCubeFaceOpacityInState(
 	cubeFaceOpacity: number,
 ): WorkspaceState {
 	const opacity = Math.max(0.05, Math.min(1, cubeFaceOpacity));
-	const chart = getActiveChart(state);
-	return chart.display.cubeFaceOpacity === opacity
-		? state
-		: updateActiveChartDisplay(state, { cubeFaceOpacity: opacity });
+	return setDisplayValue(state, 'cubeFaceOpacity', opacity);
 }
 
 export function setForceLabelsInState(
 	state: WorkspaceState,
 	forceLabels: boolean,
 ): WorkspaceState {
-	const chart = getActiveChart(state);
-	return chart.display.forceLabels === forceLabels
-		? state
-		: updateActiveChartDisplay(state, { forceLabels });
+	return setDisplayValue(state, 'forceLabels', forceLabels);
 }
 
 export function setEnableForceLayoutInState(
 	state: WorkspaceState,
 	enableForceLayout: boolean,
 ): WorkspaceState {
-	const chart = getActiveChart(state);
-	return chart.display.enableForceLayout === enableForceLayout
-		? state
-		: updateActiveChartDisplay(state, { enableForceLayout });
+	return setDisplayValue(state, 'enableForceLayout', enableForceLayout);
 }
 
 export function setGraphSpacingInState(
@@ -211,12 +196,8 @@ export function setNodeStyleOverridesInState(
 	state: WorkspaceState,
 	nodeStyleOverrides: DefaultNodeStyle,
 ): WorkspaceState {
-	const chart = getActiveChart(state);
-	return updateActiveChartState(state, {
-		style: {
-			...chart.style,
-			nodeOverrides: cloneSerializable(nodeStyleOverrides),
-		},
+	return updateActiveChartStyle(state, {
+		nodeOverrides: cloneSerializable(nodeStyleOverrides),
 	});
 }
 
@@ -224,12 +205,8 @@ export function setLinkStyleOverridesInState(
 	state: WorkspaceState,
 	linkStyleOverrides: DefaultLinkStyle,
 ): WorkspaceState {
-	const chart = getActiveChart(state);
-	return updateActiveChartState(state, {
-		style: {
-			...chart.style,
-			linkOverrides: cloneSerializable(linkStyleOverrides),
-		},
+	return updateActiveChartStyle(state, {
+		linkOverrides: cloneSerializable(linkStyleOverrides),
 	});
 }
 
@@ -237,12 +214,8 @@ export function setNodeStyleRulesInState(
 	state: WorkspaceState,
 	nodeStyleRules: NodeStyleRule[],
 ): WorkspaceState {
-	const chart = getActiveChart(state);
-	return updateActiveChartState(state, {
-		style: {
-			...chart.style,
-			nodeRules: normalizeNodeStyleRules(nodeStyleRules),
-		},
+	return updateActiveChartStyle(state, {
+		nodeRules: normalizeNodeStyleRules(nodeStyleRules),
 	});
 }
 
@@ -250,13 +223,20 @@ export function setLinkStyleRulesInState(
 	state: WorkspaceState,
 	linkStyleRules: LinkStyleRule[],
 ): WorkspaceState {
-	const chart = getActiveChart(state);
-	return updateActiveChartState(state, {
-		style: {
-			...chart.style,
-			linkRules: normalizeLinkStyleRules(linkStyleRules),
-		},
+	return updateActiveChartStyle(state, {
+		linkRules: normalizeLinkStyleRules(linkStyleRules),
 	});
+}
+
+function setDisplayValue<Key extends ChartDisplayKey>(
+	state: WorkspaceState,
+	key: Key,
+	value: MetaGraphChart['display'][Key],
+): WorkspaceState {
+	const chart = getActiveChart(state);
+	return chart.display[key] === value
+		? state
+		: updateActiveChartDisplay(state, { [key]: value });
 }
 
 function setLayoutSpacingInState(
@@ -297,6 +277,19 @@ function updateActiveChartDisplay(
 	return updateActiveChartState(state, {
 		display: {
 			...chart.display,
+			...patch,
+		},
+	});
+}
+
+function updateActiveChartStyle(
+	state: WorkspaceState,
+	patch: Partial<Pick<MetaGraphChart['style'], ChartStyleKey>>,
+): WorkspaceState {
+	const chart = getActiveChart(state);
+	return updateActiveChartState(state, {
+		style: {
+			...chart.style,
 			...patch,
 		},
 	});

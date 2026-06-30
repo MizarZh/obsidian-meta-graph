@@ -1,0 +1,169 @@
+import type { MetaGraphChart, ViewMode, WorkspaceState } from '../core/types';
+import {
+	DEFAULT_GRAPH_CENTER_FORCE,
+	DEFAULT_GRAPH_DRAG_LINK_FORCE,
+	DEFAULT_GRAPH_LINK_DISTANCE,
+	DEFAULT_GRAPH_LINK_FORCE,
+	DEFAULT_GRAPH_REPEL_FORCE,
+	DEFAULT_GRAPH_RETURN_FORCE,
+} from './meta-graph-model';
+import { cloneSerializable } from './workspace-persistence';
+
+type ActiveChartStateFields = Pick<
+	WorkspaceState,
+	| 'mode'
+	| 'chartSource'
+	| 'flowEdgeStyle'
+	| 'flowDirection'
+	| 'arcDirection'
+	| 'fadeDistance'
+	| 'labelSize'
+	| 'labelPosition'
+	| 'labelColor'
+	| 'labelBackgroundOpacity'
+	| 'labelDensity'
+	| 'cubeFaceOpacity'
+	| 'forceLabels'
+	| 'enableForceLayout'
+	| 'graphSpacing'
+	| 'graphCenterForce'
+	| 'graphRepelForce'
+	| 'graphLinkForce'
+	| 'graphDragLinkForce'
+	| 'graphReturnForce'
+	| 'graphLinkDistance'
+	| 'flowSpacing'
+	| 'arcSpacing'
+	| 'manualLayout'
+	| 'query'
+	| 'curated'
+	| 'nodeStyleOverrides'
+	| 'linkStyleOverrides'
+	| 'nodeStyleRules'
+	| 'linkStyleRules'
+>;
+
+type ActiveChartFallback = Pick<
+	WorkspaceState,
+	| 'graphSpacing'
+	| 'graphCenterForce'
+	| 'graphRepelForce'
+	| 'graphLinkForce'
+	| 'graphDragLinkForce'
+	| 'graphReturnForce'
+	| 'graphLinkDistance'
+	| 'flowSpacing'
+	| 'arcSpacing'
+>;
+
+const INITIAL_ACTIVE_CHART_FALLBACK: ActiveChartFallback = {
+	graphSpacing: 1,
+	graphCenterForce: DEFAULT_GRAPH_CENTER_FORCE,
+	graphRepelForce: DEFAULT_GRAPH_REPEL_FORCE,
+	graphLinkForce: DEFAULT_GRAPH_LINK_FORCE,
+	graphDragLinkForce: DEFAULT_GRAPH_DRAG_LINK_FORCE,
+	graphReturnForce: DEFAULT_GRAPH_RETURN_FORCE,
+	graphLinkDistance: DEFAULT_GRAPH_LINK_DISTANCE,
+	flowSpacing: 1,
+	arcSpacing: 1,
+};
+
+export function createInitialActiveChartStateFields(
+	chart: MetaGraphChart,
+): ActiveChartStateFields {
+	return createActiveChartStateFields(chart, INITIAL_ACTIVE_CHART_FALLBACK, {
+		useChartForceSettingsForAnyChart: true,
+	});
+}
+
+export function createUpdatedActiveChartStateFields(
+	chart: MetaGraphChart,
+	currentState: WorkspaceState,
+): ActiveChartStateFields {
+	return createActiveChartStateFields(chart, currentState, {
+		useChartForceSettingsForAnyChart: false,
+	});
+}
+
+function createActiveChartStateFields(
+	chart: MetaGraphChart,
+	fallback: ActiveChartFallback,
+	options: { useChartForceSettingsForAnyChart: boolean },
+): ActiveChartStateFields {
+	const forceGraphType = isForceGraphType(chart.type);
+	const useChartForceSettings =
+		forceGraphType || options.useChartForceSettingsForAnyChart;
+
+	return {
+		mode: chart.type,
+		chartSource: chart.source,
+		flowEdgeStyle: chart.layout.edgeStyle ?? 'orthogonal',
+		flowDirection: chart.layout.direction ?? 'LR',
+		arcDirection: chart.layout.arcDirection ?? 'right',
+		fadeDistance: chart.display.fadeDistance,
+		labelSize: chart.display.labelSize,
+		labelPosition: chart.display.labelPosition,
+		labelColor: chart.display.labelColor,
+		labelBackgroundOpacity: chart.display.labelBackgroundOpacity,
+		labelDensity: chart.display.labelDensity,
+		cubeFaceOpacity: chart.display.cubeFaceOpacity,
+		forceLabels: chart.display.forceLabels,
+		enableForceLayout: chart.display.enableForceLayout,
+		graphSpacing: forceGraphType
+			? chart.layout.spacing
+			: fallback.graphSpacing,
+		graphCenterForce: readGraphForceSetting(
+			useChartForceSettings,
+			chart.layout.centerForce,
+			fallback.graphCenterForce,
+		),
+		graphRepelForce: readGraphForceSetting(
+			useChartForceSettings,
+			chart.layout.repelForce,
+			fallback.graphRepelForce,
+		),
+		graphLinkForce: readGraphForceSetting(
+			useChartForceSettings,
+			chart.layout.linkForce,
+			fallback.graphLinkForce,
+		),
+		graphDragLinkForce: readGraphForceSetting(
+			useChartForceSettings,
+			chart.layout.dragLinkForce,
+			fallback.graphDragLinkForce,
+		),
+		graphReturnForce: readGraphForceSetting(
+			useChartForceSettings,
+			chart.layout.returnForce,
+			fallback.graphReturnForce,
+		),
+		graphLinkDistance: readGraphForceSetting(
+			useChartForceSettings,
+			chart.layout.linkDistance,
+			fallback.graphLinkDistance,
+		),
+		flowSpacing: chart.type === 'flow' ? chart.layout.spacing : fallback.flowSpacing,
+		arcSpacing: chart.type === 'arc' ? chart.layout.spacing : fallback.arcSpacing,
+		manualLayout: cloneSerializable(
+			chart.layout.manual ?? { nodes: {}, groups: [] },
+		),
+		query: cloneSerializable(chart.query),
+		curated: cloneSerializable(chart.curated),
+		nodeStyleOverrides: cloneSerializable(chart.style.nodeOverrides),
+		linkStyleOverrides: cloneSerializable(chart.style.linkOverrides),
+		nodeStyleRules: cloneSerializable(chart.style.nodeRules),
+		linkStyleRules: cloneSerializable(chart.style.linkRules),
+	};
+}
+
+function readGraphForceSetting(
+	useChartValue: boolean,
+	value: number | undefined,
+	fallback: number,
+): number {
+	return useChartValue && value !== undefined ? value : fallback;
+}
+
+function isForceGraphType(type: ViewMode): boolean {
+	return type === 'graph' || type === 'graph-3d' || type === 'cube';
+}

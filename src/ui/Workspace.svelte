@@ -68,11 +68,12 @@
 	import { openResolvedMetadataLink } from "./workspace/metadata-link-actions";
 	import { getWorkspaceGraphForceSettings } from "./workspace/graph-settings";
 	import { WorkspaceAutoSave } from "./workspace/autosave";
-	import {
-		analyzeWorkspaceStateChanges,
-		createWorkspaceRenderBaseline,
-		type WorkspaceRenderBaseline,
-	} from "./workspace/change-tracker";
+		import {
+			analyzeWorkspaceStateChanges,
+			createWorkspaceRenderBaseline,
+			syncWorkspaceRenderBaselineStyles,
+			type WorkspaceRenderBaseline,
+		} from "./workspace/change-tracker";
 	import {
 		createWorkspaceRuntimeGraph,
 		syncWorkspaceRuntimeGraphStyles,
@@ -309,17 +310,8 @@
 					readGraphPalette(canvas),
 				);
 				refreshRendererGraphStyles(renderer);
-				renderBaseline.defaultNodeStyle = nextState.defaultNodeStyle;
-				renderBaseline.defaultLinkStyle = nextState.defaultLinkStyle;
-				renderBaseline.nodeStyleOverrides = nextState.nodeStyleOverrides;
-				renderBaseline.linkStyleOverrides = nextState.linkStyleOverrides;
-				renderBaseline.globalNodeStyleRules =
-					nextState.globalNodeStyleRules;
-				renderBaseline.globalLinkStyleRules =
-					nextState.globalLinkStyleRules;
-				renderBaseline.nodeStyleRules = nextState.nodeStyleRules;
-				renderBaseline.linkStyleRules = nextState.linkStyleRules;
-			}
+					syncWorkspaceRenderBaselineStyles(renderBaseline, nextState);
+				}
 			if (changes.forceLayoutChanged && renderer) {
 				if (isForce3DRenderer(renderer)) {
 					renderer.setEnableForceLayout(nextState.enableForceLayout);

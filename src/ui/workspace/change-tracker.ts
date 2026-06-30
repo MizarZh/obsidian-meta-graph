@@ -38,77 +38,138 @@ export interface WorkspaceStateChanges {
 	forceLayout: boolean;
 }
 
+type WorkspaceStateKey = keyof WorkspaceState;
+type WorkspaceBaselineKey = keyof WorkspaceRenderBaseline;
+
+const GRAPH_FORCE_SETTING_KEYS = [
+	'graphSpacing',
+	'graphCenterForce',
+	'graphRepelForce',
+	'graphLinkForce',
+	'graphDragLinkForce',
+	'graphReturnForce',
+	'graphLinkDistance',
+] as const satisfies readonly WorkspaceStateKey[];
+
+const STYLE_RULE_KEYS = [
+	'defaultNodeStyle',
+	'defaultLinkStyle',
+	'nodeStyleOverrides',
+	'linkStyleOverrides',
+	'globalNodeStyleRules',
+	'globalLinkStyleRules',
+	'nodeStyleRules',
+	'linkStyleRules',
+] as const satisfies readonly WorkspaceBaselineKey[];
+
+const REBUILD_BASELINE_KEYS = [
+	'activeChartId',
+	'projection',
+	'mode',
+	'chartSource',
+	'flowEdgeStyle',
+	'flowDirection',
+	'arcDirection',
+	'layoutRevision',
+] as const satisfies readonly WorkspaceBaselineKey[];
+
 export function analyzeWorkspaceStateChanges(
 	nextState: WorkspaceState,
 	currentState: WorkspaceState,
 	baseline: WorkspaceRenderBaseline,
 ): WorkspaceStateChanges {
-	const activeChartChanged =
-		baseline.activeChartId !== undefined &&
-		nextState.activeChartId !== baseline.activeChartId;
-	const modeChanged =
-		baseline.mode !== undefined && nextState.mode !== baseline.mode;
-	const chartSourceChanged =
-		baseline.chartSource !== undefined &&
-		nextState.chartSource !== baseline.chartSource;
-	const flowStyleChanged =
-		baseline.flowEdgeStyle !== undefined &&
-		nextState.flowEdgeStyle !== baseline.flowEdgeStyle;
-	const flowDirectionChanged =
-		baseline.flowDirection !== undefined &&
-		nextState.flowDirection !== baseline.flowDirection;
-	const arcDirectionChanged =
-		baseline.arcDirection !== undefined &&
-		nextState.arcDirection !== baseline.arcDirection;
-	const layoutRevisionChanged =
-		baseline.layoutRevision !== undefined &&
-		nextState.layoutRevision !== baseline.layoutRevision;
-	const styleRulesChanged =
-		nextState.defaultNodeStyle !== baseline.defaultNodeStyle ||
-		nextState.defaultLinkStyle !== baseline.defaultLinkStyle ||
-		nextState.nodeStyleOverrides !== baseline.nodeStyleOverrides ||
-		nextState.linkStyleOverrides !== baseline.linkStyleOverrides ||
-		nextState.globalNodeStyleRules !== baseline.globalNodeStyleRules ||
-		nextState.globalLinkStyleRules !== baseline.globalLinkStyleRules ||
-		nextState.nodeStyleRules !== baseline.nodeStyleRules ||
-		nextState.linkStyleRules !== baseline.linkStyleRules;
+	const activeChartChanged = baselineValueChanged(
+		nextState,
+		baseline,
+		'activeChartId',
+	);
+	const modeChanged = baselineValueChanged(nextState, baseline, 'mode');
+	const chartSourceChanged = baselineValueChanged(
+		nextState,
+		baseline,
+		'chartSource',
+	);
+	const flowStyleChanged = baselineValueChanged(
+		nextState,
+		baseline,
+		'flowEdgeStyle',
+	);
+	const flowDirectionChanged = baselineValueChanged(
+		nextState,
+		baseline,
+		'flowDirection',
+	);
+	const arcDirectionChanged = baselineValueChanged(
+		nextState,
+		baseline,
+		'arcDirection',
+	);
+	const layoutRevisionChanged = baselineValueChanged(
+		nextState,
+		baseline,
+		'layoutRevision',
+	);
+	const styleRulesChanged = stateDiffersFromBaseline(
+		nextState,
+		baseline,
+		STYLE_RULE_KEYS,
+	);
 
 	return {
-		manualLayoutChanged:
-			baseline.manualLayout !== undefined &&
-			nextState.manualLayout !== baseline.manualLayout,
-		fadeDistanceChanged: nextState.fadeDistance !== currentState.fadeDistance,
-		labelSizeChanged: nextState.labelSize !== currentState.labelSize,
-		labelPositionChanged:
-			nextState.labelPosition !== currentState.labelPosition,
-		labelColorChanged: nextState.labelColor !== currentState.labelColor,
-		labelBackgroundOpacityChanged:
-			nextState.labelBackgroundOpacity !==
-			currentState.labelBackgroundOpacity,
-		labelDensityChanged: nextState.labelDensity !== currentState.labelDensity,
+		manualLayoutChanged: baselineValueChanged(
+			nextState,
+			baseline,
+			'manualLayout',
+		),
+		fadeDistanceChanged: stateValueChanged(
+			nextState,
+			currentState,
+			'fadeDistance',
+		),
+		labelSizeChanged: stateValueChanged(nextState, currentState, 'labelSize'),
+		labelPositionChanged: stateValueChanged(
+			nextState,
+			currentState,
+			'labelPosition',
+		),
+		labelColorChanged: stateValueChanged(
+			nextState,
+			currentState,
+			'labelColor',
+		),
+		labelBackgroundOpacityChanged: stateValueChanged(
+			nextState,
+			currentState,
+			'labelBackgroundOpacity',
+		),
+		labelDensityChanged: stateValueChanged(
+			nextState,
+			currentState,
+			'labelDensity',
+		),
 		cubeFaceOpacityChanged:
 			nextState.cubeFaceOpacity !== currentState.cubeFaceOpacity,
-		forceLabelsChanged: nextState.forceLabels !== currentState.forceLabels,
-			graphForceSettingsChanged:
-				nextState.graphSpacing !== currentState.graphSpacing ||
-			nextState.graphCenterForce !== currentState.graphCenterForce ||
-			nextState.graphRepelForce !== currentState.graphRepelForce ||
-			nextState.graphLinkForce !== currentState.graphLinkForce ||
-			nextState.graphDragLinkForce !== currentState.graphDragLinkForce ||
-			nextState.graphReturnForce !== currentState.graphReturnForce ||
-			nextState.graphLinkDistance !== currentState.graphLinkDistance,
-			forceLayoutChanged:
-				nextState.enableForceLayout !== currentState.enableForceLayout,
-			styleRulesChanged,
-			shouldRebuild:
-				nextState.activeChartId !== baseline.activeChartId ||
-				nextState.projection !== baseline.projection ||
-			nextState.mode !== baseline.mode ||
-			nextState.chartSource !== baseline.chartSource ||
-			nextState.flowEdgeStyle !== baseline.flowEdgeStyle ||
-			nextState.flowDirection !== baseline.flowDirection ||
-				nextState.arcDirection !== baseline.arcDirection ||
-				nextState.layoutRevision !== baseline.layoutRevision,
+		forceLabelsChanged: stateValueChanged(
+			nextState,
+			currentState,
+			'forceLabels',
+		),
+		graphForceSettingsChanged: stateDiffers(
+			nextState,
+			currentState,
+			GRAPH_FORCE_SETTING_KEYS,
+		),
+		forceLayoutChanged: stateValueChanged(
+			nextState,
+			currentState,
+			'enableForceLayout',
+		),
+		styleRulesChanged,
+		shouldRebuild: stateDiffersFromBaseline(
+			nextState,
+			baseline,
+			REBUILD_BASELINE_KEYS,
+		),
 		fitAfterRender:
 			activeChartChanged ||
 			modeChanged ||
@@ -124,6 +185,38 @@ export function analyzeWorkspaceStateChanges(
 			layoutRevisionChanged ||
 			chartSourceChanged,
 	};
+}
+
+function stateValueChanged<Key extends WorkspaceStateKey>(
+	nextState: WorkspaceState,
+	currentState: WorkspaceState,
+	key: Key,
+): boolean {
+	return nextState[key] !== currentState[key];
+}
+
+function baselineValueChanged<Key extends WorkspaceBaselineKey>(
+	nextState: WorkspaceState,
+	baseline: WorkspaceRenderBaseline,
+	key: Key,
+): boolean {
+	return baseline[key] !== undefined && nextState[key] !== baseline[key];
+}
+
+function stateDiffers<Key extends WorkspaceStateKey>(
+	nextState: WorkspaceState,
+	currentState: WorkspaceState,
+	keys: readonly Key[],
+): boolean {
+	return keys.some((key) => stateValueChanged(nextState, currentState, key));
+}
+
+function stateDiffersFromBaseline<Key extends WorkspaceBaselineKey>(
+	nextState: WorkspaceState,
+	baseline: WorkspaceRenderBaseline,
+	keys: readonly Key[],
+): boolean {
+	return keys.some((key) => nextState[key] !== baseline[key]);
 }
 
 export function createWorkspaceRenderBaseline(
@@ -148,4 +241,21 @@ export function createWorkspaceRenderBaseline(
 		nodeStyleRules: state.nodeStyleRules,
 		linkStyleRules: state.linkStyleRules,
 	};
+}
+
+export function syncWorkspaceRenderBaselineStyles(
+	baseline: WorkspaceRenderBaseline,
+	state: WorkspaceState,
+): void {
+	for (const key of STYLE_RULE_KEYS) {
+		syncBaselineValue(baseline, state, key);
+	}
+}
+
+function syncBaselineValue<Key extends WorkspaceBaselineKey>(
+	baseline: WorkspaceRenderBaseline,
+	state: WorkspaceState,
+	key: Key,
+): void {
+	baseline[key] = state[key];
 }
