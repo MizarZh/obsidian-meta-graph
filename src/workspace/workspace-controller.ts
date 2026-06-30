@@ -16,11 +16,10 @@ import type {
 	GraphProjection,
 	KnowledgeIndex,
 	LabelPosition,
-	LinkStyleRule,
-	MetaGraphChart,
-	MetaGraphDocument,
-	MetaGraphDock,
-	DockConnectionDirection,
+		LinkStyleRule,
+		MetaGraphChart,
+		MetaGraphDocument,
+		DockConnectionDirection,
 	DockTemplateNode,
 	MetadataDebugEntry,
 	NodeId,
@@ -82,19 +81,19 @@ import {
 	updateCuratedWorkspaceInState,
 } from './workspace-curated-state';
 import {
-	addDockNote as addDockNoteToState,
-	addDockTemplate as addDockTemplateToState,
-	removeDockNote as removeDockNoteFromState,
-	removeDockTemplate as removeDockTemplateFromState,
-	reorderDockNote as reorderDockNoteInState,
-	reorderDockTemplate as reorderDockTemplateInState,
-	setCuratedPanelWidth as setCuratedPanelWidthInState,
-	setDockFocusOnSelect as setDockFocusOnSelectInState,
-	setDockWidth as setDockWidthInState,
-	updateDockNotePath as updateDockNotePathInState,
-	updateDockTemplate as updateDockTemplateInState,
+	addDockNoteInState,
+	addDockTemplateInState,
+	removeDockNoteInState,
+	removeDockTemplateInState,
+	reorderDockNoteInState,
+	reorderDockTemplateInState,
+	setCuratedPanelWidthInState,
+	setDockFocusOnSelectInState,
+	setDockWidthInState,
+	updateDockNotePathInState,
+	updateDockTemplateInState,
 	type ReorderPlacement,
-} from './workspace-dock-state';
+} from './workspace-dock-actions';
 import {
 	normalizeCubeLayout,
 } from './workspace-manual-layout';
@@ -127,6 +126,7 @@ import {
 } from './workspace-chart-state';
 import { updateActiveChartState } from './workspace-state-updaters';
 import { createTemplateNoteFile } from './workspace-template-service';
+import { resolveTemplateNoteRequest } from './workspace-template-request';
 import { cloneSerializable } from './workspace-persistence';
 
 type StateListener = (state: WorkspaceState) => void;
@@ -493,20 +493,20 @@ export class WorkspaceController {
 	addDockTemplate(
 		template: Omit<DockTemplateNode, 'id'> & { id?: string },
 	): void {
-		this.setDockState(addDockTemplateToState(this.state.dock, template));
+		this.setWorkspaceState(addDockTemplateInState(this.state, template));
 	}
 
 	updateDockTemplate(
 		templateId: string,
 		patch: Omit<DockTemplateNode, 'id'>,
 	): void {
-		this.setDockState(
-			updateDockTemplateInState(this.state.dock, templateId, patch),
+		this.setWorkspaceState(
+			updateDockTemplateInState(this.state, templateId, patch),
 		);
 	}
 
 	removeDockTemplate(templateId: string): void {
-		this.setDockState(removeDockTemplateFromState(this.state.dock, templateId));
+		this.setWorkspaceState(removeDockTemplateInState(this.state, templateId));
 	}
 
 	reorderDockTemplate(
@@ -514,9 +514,9 @@ export class WorkspaceController {
 		targetTemplateId: string,
 		placement: ReorderPlacement,
 	): void {
-		this.setDockState(
+		this.setWorkspaceState(
 			reorderDockTemplateInState(
-				this.state.dock,
+				this.state,
 				templateId,
 				targetTemplateId,
 				placement,
@@ -525,41 +525,29 @@ export class WorkspaceController {
 	}
 
 	addDockNote(path: NodeId): void {
-		this.setDockState(addDockNoteToState(this.state.dock, path));
+		this.setWorkspaceState(addDockNoteInState(this.state, path));
 	}
 
 	setDockWidth(dockWidth: number): void {
-		this.setDockState(setDockWidthInState(this.state.dock, dockWidth));
+		this.setWorkspaceState(setDockWidthInState(this.state, dockWidth));
 	}
 
 	setCuratedPanelWidth(curatedPanelWidth: number): void {
-		this.setDockState(
-			setCuratedPanelWidthInState(this.state.dock, curatedPanelWidth),
+		this.setWorkspaceState(
+			setCuratedPanelWidthInState(this.state, curatedPanelWidth),
 		);
 	}
 
 	setDockFocusOnSelect(focusOnSelect: boolean): void {
-		this.setDockState(
-			setDockFocusOnSelectInState(this.state.dock, focusOnSelect),
+		this.setWorkspaceState(
+			setDockFocusOnSelectInState(this.state, focusOnSelect),
 		);
 	}
 
 	updateDockNotePath(oldPath: string, newPath: string): boolean {
-		const normalizedOld = normalizePath(oldPath);
-		const normalizedNew = normalizePath(newPath);
-		if (normalizedOld === normalizedNew) {
-			return false;
-		}
-		const dock = updateDockNotePathInState(
-			this.state.dock,
-			normalizedOld,
-			normalizedNew,
-		);
-		if (dock === this.state.dock) {
-			return false;
-		}
-		this.setDockState(dock);
-		return true;
+		const result = updateDockNotePathInState(this.state, oldPath, newPath);
+		this.setWorkspaceState(result.state);
+		return result.changed;
 	}
 
 	updateCuratedFilePath(oldPath: string, newPath: string): boolean {
@@ -572,7 +560,7 @@ export class WorkspaceController {
 	}
 
 	removeDockNote(path: NodeId): void {
-		this.setDockState(removeDockNoteFromState(this.state.dock, path));
+		this.setWorkspaceState(removeDockNoteInState(this.state, path));
 	}
 
 	reorderDockNote(
@@ -580,8 +568,8 @@ export class WorkspaceController {
 		targetPath: NodeId,
 		placement: ReorderPlacement,
 	): void {
-		this.setDockState(
-			reorderDockNoteInState(this.state.dock, path, targetPath, placement),
+		this.setWorkspaceState(
+			reorderDockNoteInState(this.state, path, targetPath, placement),
 		);
 	}
 
@@ -613,16 +601,11 @@ export class WorkspaceController {
 		direction: DockConnectionDirection = 'from-dock-to-graph',
 		field = this.state.activeConnectionField,
 	): Promise<string> {
-		const template = this.state.dock.templates.find(
-			(item) => item.id === templateId,
+		const { template, title } = resolveTemplateNoteRequest(
+			this.state.dock.templates,
+			templateId,
+			name,
 		);
-		if (!template) {
-			throw new Error('Template is missing.');
-		}
-		const title = name.trim();
-		if (!title) {
-			throw new Error('Note name is required.');
-		}
 		const file = await createTemplateNoteFile(this.app, template, title);
 
 		await this.connectDockNote(
@@ -831,17 +814,6 @@ export class WorkspaceController {
 			this.emit();
 		}
 		return true;
-	}
-
-	private setDockState(dock: MetaGraphDock): void {
-		if (dock === this.state.dock) {
-			return;
-		}
-		this.state = {
-			...this.state,
-			dock,
-		};
-		this.emit();
 	}
 
 	private emit(): void {
