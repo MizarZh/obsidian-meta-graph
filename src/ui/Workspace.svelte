@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { TFile, type App } from "obsidian";
+	import type { App } from "obsidian";
 	import { onMount } from "svelte";
 	import type {
 		DebugSnapshot,
@@ -20,11 +20,7 @@
 		type LayoutSnapshot,
 	} from "../layouts/stable-layout";
 	import type { WorkspaceController } from "../workspace/workspace-controller";
-	import CuratedPanel from "./CuratedPanel.svelte";
-	import FilterPanel from "./FilterPanel.svelte";
-	import GroupPanel from "./GroupPanel.svelte";
 	import DebugPanel from "./DebugPanel.svelte";
-	import DockGraphPanel from "./DockGraphPanel.svelte";
 	import type { DockDragPayload } from "./dock/types";
 	import type { DockPayloadGraphAction } from "./dock/connection";
 	import {
@@ -51,8 +47,8 @@
 		readInteractiveAccentColor,
 		readThemeSignature,
 	} from "./workspace/theme";
-	import { openWorkspaceTemplateNote } from "./workspace/template-modal-actions";
 	import { openResolvedMetadataLink } from "./workspace/metadata-link-actions";
+	import { openWorkspaceCreateTemplateNote } from "./workspace/workspace-template-flow";
 	import { WorkspaceAutoSave } from "./workspace/autosave";
 		import {
 			analyzeWorkspaceStateChanges,
@@ -69,9 +65,9 @@
 	import { WorkspaceRendererLifecycle } from "./workspace/renderer-lifecycle";
 	import { DockGraphDragController } from "./workspace/dock-graph-drag";
 	import { GraphDockConnectionController } from "./workspace/graph-dock-connection";
+	import WorkspaceSettingsPopover from "./workspace/WorkspaceSettingsPopover.svelte";
+	import WorkspaceMainPanels from "./workspace/WorkspaceMainPanels.svelte";
 
-	import Inspector from "./Inspector.svelte";
-	import ConnectionPanel from "./ConnectionPanel.svelte";
 	import { ConfirmDeleteViewModal } from "./ConfirmDeleteWorkspaceModal";
 	import Toolbar from "./Toolbar.svelte";
 
@@ -576,9 +572,10 @@
 			action: DockPayloadGraphAction,
 		): void {
 			if (action.kind === "create-from-template") {
-				openCreateFromTemplateModal(
-					action.payload,
+				void openCreateFromTemplateId(
+					action.payload.templateId,
 					action.targetNodeId,
+					action.payload.label,
 					action.direction,
 				);
 				return;
@@ -604,49 +601,22 @@
 			);
 	}
 
-	function openCreateFromTemplateModal(
-		payload: Extract<DockDragPayload, { kind: "template" }>,
-		targetNodeId: string,
-		direction: DockConnectionDirection,
-	): void {
-		openCreateFromTemplateId(
-			payload.templateId,
-			targetNodeId,
-			payload.label,
-			direction,
-		);
-	}
-
 	async function openCreateFromTemplateId(
 		templateId: string,
 		targetNodeId: string,
 		label?: string,
 		direction: DockConnectionDirection = "from-dock-to-graph",
 	): Promise<void> {
-		await openWorkspaceTemplateNote({
+		await openWorkspaceCreateTemplateNote({
 			app,
+			controller,
+			workspaceState,
+			debugSnapshot,
+			openTemplateNoteInNewTab,
 			templateId,
 			targetNodeId,
 			label,
 			direction,
-			templates: workspaceState.dock.templates,
-			debugSnapshot,
-			activeConnectionField: workspaceState.activeConnectionField,
-			openInNewTab: openTemplateNoteInNewTab,
-			createNoteFromTemplate: (id, target, name, linkDirection, field) =>
-				controller.createNoteFromTemplate(
-					id,
-					target,
-					name,
-					linkDirection,
-					field,
-				),
-			addCuratedFile: (path) => controller.addCuratedFile(path),
-			opener: {
-				getFile: (path) => app.vault.getAbstractFileByPath(path),
-				isOpenableFile: (file): file is TFile => file instanceof TFile,
-				openFile: (file) => app.workspace.getLeaf("tab").openFile(file),
-			},
 		});
 	}
 
@@ -746,134 +716,22 @@
 		class="knowledge-workspace-body"
 		class:knowledge-workspace-hidden={debugOpen}
 	>
-		{#if settingsPanel}
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div
-				class="knowledge-workspace-settings-backdrop"
-				onpointerdown={() => {
-					settingsPanel = undefined;
-				}}
-				oncontextmenu={(e) => {
-					e.preventDefault();
-					settingsPanel = undefined;
-				}}
-			></div>
-			<div
-				class="knowledge-workspace-settings-popover"
-				style:--knowledge-workspace-settings-left={`${settingsPopoverLeft}px`}
-			>
-					{#if settingsPanel === "groups"}
-						<GroupPanel
-							manualLayout={workspaceState.manualLayout}
-							locked={workspaceState.mode === "cube"}
-							onAddGroup={() => controller.addGroup()}
-							onUpdateGroup={(groupId, patch) =>
-								controller.updateGroup(groupId, patch)}
-							onDeleteGroup={(groupId) => controller.deleteGroup(groupId)}
-						/>
-					{:else}
-						<FilterPanel
-								{app}
-								panel={settingsPanel}
-						mode={workspaceState.mode}
-							fadeDistance={workspaceState.fadeDistance}
-							labelSize={workspaceState.labelSize}
-					labelPosition={workspaceState.labelPosition}
-					labelColor={workspaceState.labelColor}
-					labelBackgroundOpacity={workspaceState.labelBackgroundOpacity}
-					labelDensity={workspaceState.labelDensity}
-					cubeFaceOpacity={workspaceState.cubeFaceOpacity}
-					forceLabels={workspaceState.forceLabels}
-					enableForceLayout={workspaceState.enableForceLayout}
-							flowEdgeStyle={workspaceState.flowEdgeStyle}
-					flowDirection={workspaceState.flowDirection}
-					arcDirection={workspaceState.arcDirection}
-						graphSpacing={workspaceState.graphSpacing}
-						graphCenterForce={workspaceState.graphCenterForce}
-						graphRepelForce={workspaceState.graphRepelForce}
-						graphLinkForce={workspaceState.graphLinkForce}
-						graphDragLinkForce={workspaceState.graphDragLinkForce}
-						graphReturnForce={workspaceState.graphReturnForce}
-						graphLinkDistance={workspaceState.graphLinkDistance}
-						flowSpacing={workspaceState.flowSpacing}
-						arcSpacing={workspaceState.arcSpacing}
-					query={workspaceState.query}
-					globalQuery={workspaceState.globalQuery}
-						folders={workspaceState.availableFolders}
-							tags={workspaceState.availableTags}
-								{metadataFieldSuggestions}
-								{metadataFieldTypes}
-								{metadataFieldValueSuggestions}
-								{filePathSuggestions}
-							defaultNodeStyle={workspaceState.defaultNodeStyle}
-							defaultLinkStyle={workspaceState.defaultLinkStyle}
-							globalNodeStyleRules={workspaceState.globalNodeStyleRules}
-					nodeStyleOverrides={workspaceState.nodeStyleOverrides}
-					nodeStyleRules={workspaceState.nodeStyleRules}
-					globalLinkStyleRules={workspaceState.globalLinkStyleRules}
-					linkStyleOverrides={workspaceState.linkStyleOverrides}
-					linkStyleRules={workspaceState.linkStyleRules}
-					onFlowEdgeStyle={(style) =>
-						controller.setFlowEdgeStyle(style)}
-					onFlowDirection={(direction) =>
-						controller.setFlowDirection(direction)}
-					onArcDirection={(direction) =>
-						controller.setArcDirection(direction)}
-						onFadeDistance={(value) =>
-							controller.setFadeDistance(value)}
-							onLabelSize={(value) => controller.setLabelSize(value)}
-							onLabelPosition={(position) =>
-								controller.setLabelPosition(position)}
-							onLabelColor={(color) => controller.setLabelColor(color)}
-					onLabelBackgroundOpacity={(value) =>
-						controller.setLabelBackgroundOpacity(value)}
-					onLabelDensity={(value) => controller.setLabelDensity(value)}
-					onCubeFaceOpacity={(value) =>
-						controller.setCubeFaceOpacity(value)}
-					onForceLabels={(value) => controller.setForceLabels(value)}
-					onEnableForceLayout={(value) =>
-						controller.setEnableForceLayout(value)}
-							onGraphSpacing={(spacing) =>
-								controller.setGraphSpacing(spacing)}
-							onGraphCenterForce={(value) =>
-								controller.setGraphCenterForce(value)}
-							onGraphRepelForce={(value) =>
-								controller.setGraphRepelForce(value)}
-							onGraphLinkForce={(value) =>
-								controller.setGraphLinkForce(value)}
-							onGraphDragLinkForce={(value) =>
-								controller.setGraphDragLinkForce(value)}
-							onGraphReturnForce={(value) =>
-								controller.setGraphReturnForce(value)}
-							onGraphLinkDistance={(value) =>
-								controller.setGraphLinkDistance(value)}
-							onFlowSpacing={(spacing) =>
-								controller.setFlowSpacing(spacing)}
-					onArcSpacing={(spacing) =>
-						controller.setArcSpacing(spacing)}
-					onChange={(patch) => controller.updateQuery(patch)}
-					onGlobalChange={(patch) =>
-						controller.updateGlobalQuery(patch)}
-					onDefaultNodeStyle={(style) =>
-						controller.setDefaultNodeStyle(style)}
-					onDefaultLinkStyle={(style) =>
-						controller.setDefaultLinkStyle(style)}
-					onGlobalNodeStyleRulesChange={(rules) =>
-						controller.setGlobalNodeStyleRules(rules)}
-					onNodeStyleOverrides={(style) =>
-						controller.setNodeStyleOverrides(style)}
-					onNodeStyleRulesChange={(rules) =>
-						controller.setNodeStyleRules(rules)}
-					onGlobalLinkStyleRulesChange={(rules) =>
-						controller.setGlobalLinkStyleRules(rules)}
-					onLinkStyleOverrides={(style) =>
-						controller.setLinkStyleOverrides(style)}
-							onLinkStyleRulesChange={(rules) =>
-								controller.setLinkStyleRules(rules)}
-						/>
-					{/if}
-				</div>
-		{/if}
+			{#if settingsPanel}
+				<WorkspaceSettingsPopover
+					{app}
+					{controller}
+					{workspaceState}
+					{settingsPanel}
+					{settingsPopoverLeft}
+					{metadataFieldSuggestions}
+					{metadataFieldTypes}
+					{metadataFieldValueSuggestions}
+					{filePathSuggestions}
+					onClose={() => {
+						settingsPanel = undefined;
+					}}
+				/>
+			{/if}
 		<main
 			class="knowledge-workspace-main"
 			class:dock-node-dragging={Boolean(dockDrag)}
@@ -888,196 +746,41 @@
 					? '32px'
 					: '0px'}"
 		>
-					<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
-					{#if workspaceState.chartSource === "curated"}
-				<CuratedPanel
+				<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+				<WorkspaceMainPanels
 					{app}
-					curated={workspaceState.curated}
-					nodes={debugSnapshot.index.nodes}
-					groups={workspaceState.manualLayout.groups}
-					manualLayout={workspaceState.manualLayout}
-					groupRequired={workspaceState.mode === "cube"}
-					folders={workspaceState.availableFolders}
-					{nodeColors}
+					{controller}
+					{workspaceState}
+					{debugSnapshot}
 					{workspaceFilePath}
-					panelOpen={curatedPanelOpen}
-					onTogglePanel={() => (curatedPanelOpen = !curatedPanelOpen)}
-					panelWidth={workspaceState.dock.curatedPanelWidth}
-					onResizePanel={(w: number) =>
-						controller.setCuratedPanelWidth(w)}
-					focusOnSelect={workspaceState.dock.focusOnSelect}
-					onToggleFocusOnSelect={() =>
-						controller.setDockFocusOnSelect(
-							!workspaceState.dock.focusOnSelect,
-						)}
-					dropTarget={graphConnectionTargetCurated}
-					onAddFile={(path, groupId) =>
-						controller.addCuratedFile(path, groupId)}
-					onAddFiles={(paths, groupId) =>
-						controller.addCuratedFiles(paths, groupId)}
-					onRemoveFile={(path) => controller.removeCuratedFile(path)}
-					onRemoveFiles={(paths) =>
-						controller.removeCuratedFiles(paths)}
-					onMoveFilesToGroup={(paths, groupId) =>
-						controller.moveCuratedFilesToGroup(paths, groupId)}
-					onClearFiles={() => controller.clearCuratedFiles()}
-					onReorderFile={(path, targetPath, placement) =>
-						controller.reorderCuratedFile(
-							path,
-							targetPath,
-							placement,
-						)}
-					onOpenNote={(path) => void controller.openNode(path)}
-					onSelectNote={(path) => {
-						controller.selectNode(path);
-						if (workspaceState.dock.focusOnSelect) {
-							window.requestAnimationFrame(() =>
-								rendererLifecycle.focusNode(path),
-							);
-						}
-					}}
-				/>
-			{/if}
-			{#if connectionDrag}
-				<svg
-					class="knowledge-workspace-connection-preview"
-					aria-hidden="true"
-				>
-					<line
-						class:target={Boolean(
-							connectionDrag.targetNodeId ||
-								graphConnectionTargetNotePath ||
-								graphConnectionTargetTemplateId ||
-								graphConnectionTargetCurated,
-						)}
-						x1={connectionDrag.x1}
-						y1={connectionDrag.y1}
-						x2={connectionDrag.x2}
-						y2={connectionDrag.y2}
-					/>
-				</svg>
-			{/if}
-			{#if workspaceState.projection?.nodes.length === 0}
-				<div class="knowledge-workspace-empty">
-					No matching metadata relationships.
-				</div>
-			{/if}
-			<DockGraphPanel
-				{app}
-					templates={workspaceState.dock.templates}
-					notes={dockNoteEntries}
-					availableNotes={dockNoteCandidates}
-					groups={workspaceState.manualLayout.groups}
 					{nodeColors}
-				{dockOpen}
-				onToggleDock={() => (dockOpen = !dockOpen)}
-				dockWidth={workspaceState.dock.dockWidth}
-				onResizeDock={(w: number) => controller.setDockWidth(w)}
-				activeConnectionField={workspaceState.activeConnectionField}
-				draggingKey={dockDrag
-					? dockDrag.kind === "template"
-						? `template:${dockDrag.templateId}`
-						: `note:${dockDrag.notePath}`
-					: undefined}
-				linking={Boolean(dockConnectionDrag)}
-				targetNodeId={dockTargetNodeId}
-				graphTargetNotePath={graphConnectionTargetNotePath}
-				graphTargetTemplateId={graphConnectionTargetTemplateId}
-				onAddTemplate={(template) =>
-					controller.addDockTemplate(template)}
-				onUpdateTemplate={(templateId, template) =>
-					controller.updateDockTemplate(templateId, template)}
-				onRemoveTemplate={(templateId) =>
-					controller.removeDockTemplate(templateId)}
-				onAddNote={(path) => controller.addDockNote(path)}
-				onRemoveNote={(path) => controller.removeDockNote(path)}
-				onReorderTemplate={(templateId, targetTemplateId, placement) =>
-					controller.reorderDockTemplate(
-						templateId,
-						targetTemplateId,
-						placement,
-					)}
-				onReorderNote={(path, targetPath, placement) =>
-					controller.reorderDockNote(path, targetPath, placement)}
-				onLinkPointerDown={dockGraphDrag.handlePointerDown}
-				onOpenNote={(nodeId) => void controller.openNode(nodeId)}
-				focusOnSelect={workspaceState.dock.focusOnSelect}
-				onToggleFocusOnSelect={() =>
-					controller.setDockFocusOnSelect(
-						!workspaceState.dock.focusOnSelect,
-					)}
-				onSelectNote={(nodeId) => {
-					controller.selectNode(nodeId);
-					if (workspaceState.dock.focusOnSelect) {
-						window.requestAnimationFrame(() =>
-							rendererLifecycle.focusNode(nodeId),
-						);
-					}
-				}}
-			/>
-			<Inspector
-				{app}
-				node={selectedNode}
-				nodes={searchableNodes}
-				nodeColor={selectedNodeColor}
-				mode={workspaceState.mode}
-				manualLayout={workspaceState.manualLayout}
-				activeConnectionField={workspaceState.activeConnectionField}
-				onOpenNote={(path) => void controller.openNode(path)}
-				onOpenMetadataLink={(linkText, sourcePath) =>
-					void openMetadataLink(linkText, sourcePath)}
-				onSetNodeGroup={(path, groupId) =>
-					controller.setNodeGroup(path, groupId)}
-				onConnectNode={(sourcePath, targetPath, field) => {
-					void controller
-						.connectNodes(sourcePath, targetPath, field)
-						.catch((error: unknown) =>
-							controller.setRendererDebugState({
-								status: "error",
-								error: formatError(error),
-							}),
-						);
-				}}
-			/>
-			{#if atNodeLimit}
-				<section class="knowledge-workspace-notice">
-					<span>Node limit ({workspaceState.query.maxNodes}) reached. Some notes may be hidden.</span>
-				</section>
-			{/if}
-			<ConnectionPanel
-				{app}
-				fields={workspaceState.connectionFieldSpecs}
-				{metadataFieldSuggestions}
-				activeFieldSpecId={workspaceState.activeConnectionFieldSpecId}
-				activeField={workspaceState.activeConnectionField}
-				dragging={Boolean(connectionDrag)}
-				dragTarget={connectionDrag?.targetNodeId}
-				undoCount={workspaceState.connectionUndoCount}
-				collapsed={!connectionOpen}
-				onToggle={() => (connectionOpen = !connectionOpen)}
-				onSelectField={(field, mode) => {
-					if (mode) {
-						controller.setConnectionFieldMode(field, mode);
-					}
-					controller.setActiveConnectionField(field);
-				}}
-				onFieldMode={(field, mode) =>
-					controller.setConnectionFieldMode(field, mode)}
-				onAddField={(field) => controller.addConnectionField(field)}
-				onRemoveField={(field) =>
-					controller.removeConnectionField(field)}
-				onReorderField={(id, targetId, placement) =>
-					controller.reorderConnectionField(id, targetId, placement)}
-				onUndo={() =>
-					void controller
-						.undoLastConnection()
-						.catch((error: unknown) =>
-							controller.setRendererDebugState({
-								status: "error",
-								error: formatError(error),
-							}),
-						)}
-			/>
+					{dockNoteEntries}
+					{dockNoteCandidates}
+					{selectedNode}
+					{selectedNodeColor}
+					{searchableNodes}
+					{atNodeLimit}
+					{metadataFieldSuggestions}
+					{connectionDrag}
+					{graphConnectionTargetNotePath}
+					{graphConnectionTargetTemplateId}
+					{graphConnectionTargetCurated}
+					{dockDrag}
+					{dockConnectionDrag}
+					{dockTargetNodeId}
+					{dockOpen}
+					{curatedPanelOpen}
+					{connectionOpen}
+					onToggleDock={() => (dockOpen = !dockOpen)}
+					onToggleCuratedPanel={() =>
+						(curatedPanelOpen = !curatedPanelOpen)}
+					onToggleConnection={() => (connectionOpen = !connectionOpen)}
+					onLinkPointerDown={dockGraphDrag.handlePointerDown}
+					onFocusNode={(nodeId) => rendererLifecycle.focusNode(nodeId)}
+					onOpenMetadataLink={(linkText, sourcePath) =>
+						void openMetadataLink(linkText, sourcePath)}
+					{formatError}
+				/>
 		</main>
 	</div>
 	{#if debugOpen}
