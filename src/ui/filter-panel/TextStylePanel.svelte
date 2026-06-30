@@ -1,10 +1,8 @@
 <script lang="ts">
+	import CollapsibleSettingsGroup from './CollapsibleSettingsGroup.svelte';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
 	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
-	import type {
-		LabelPosition,
-		ViewMode,
-	} from '../../core/types';
+	import type { LabelPosition, ViewMode } from '../../core/types';
 
 	const LABEL_POSITION_OPTIONS: Array<{
 		value: LabelPosition;
@@ -85,6 +83,8 @@
 	} = $props();
 
 	const usesThemeProfiles = true;
+	let lightProfileOpen = $state(true);
+	let darkProfileOpen = $state(true);
 </script>
 
 <section>
@@ -134,122 +134,131 @@
 		</label>
 	{/if}
 	{#if usesThemeProfiles}
-		<header><h4>Light profile</h4></header>
-		<label class="knowledge-workspace-rule-label">
-			<span>Text</span>
-			<input
-				type="color"
-				value={labelLightTextColor}
-				oninput={(event) =>
-					scheduleColorCommit(
-						'text:light-text',
-						labelLightTextColor,
-						event.currentTarget.value,
-						onLabelLightTextColor,
-					)}
-				onchange={(event) =>
-					commitColor(
-						'text:light-text',
-						labelLightTextColor,
-						event.currentTarget.value,
-						onLabelLightTextColor,
-					)}
-			/>
-		</label>
-		<label class="knowledge-workspace-rule-label">
-			<span>Background</span>
-			<input
-				type="color"
-				value={labelLightBackgroundColor}
-				oninput={(event) =>
-					scheduleColorCommit(
-						'text:light-background',
-						labelLightBackgroundColor,
-						event.currentTarget.value,
-						onLabelLightBackgroundColor,
-					)}
-				onchange={(event) =>
-					commitColor(
-						'text:light-background',
-						labelLightBackgroundColor,
-						event.currentTarget.value,
-						onLabelLightBackgroundColor,
-					)}
-			/>
-		</label>
-		<label class="knowledge-workspace-rule-label">
-			<span>Background opacity</span>
-			<div class="knowledge-workspace-slider-value">
-				<ObsidianSlider
-					value={labelLightBackgroundOpacity}
-					min={0}
-					max={1}
-					step={0.05}
-					format={(value) => `${Math.round(value * 100)}%`}
-					onChange={onLabelLightBackgroundOpacity}
-					onCommit={onLabelLightBackgroundOpacity}
+		<CollapsibleSettingsGroup
+			title="Light profile"
+			bind:open={lightProfileOpen}
+		>
+			<label class="knowledge-workspace-rule-label">
+				<span>Text</span>
+				<input
+					type="color"
+					value={labelLightTextColor}
+					oninput={(event) =>
+						scheduleColorCommit(
+							'text:light-text',
+							labelLightTextColor,
+							event.currentTarget.value,
+							onLabelLightTextColor,
+						)}
+					onchange={(event) =>
+						commitColor(
+							'text:light-text',
+							labelLightTextColor,
+							event.currentTarget.value,
+							onLabelLightTextColor,
+						)}
 				/>
-				<span>{Math.round(labelLightBackgroundOpacity * 100)}%</span>
-			</div>
-		</label>
-		<header><h4>Dark profile</h4></header>
-		<label class="knowledge-workspace-rule-label">
-			<span>Text</span>
-			<input
-				type="color"
-				value={labelDarkTextColor}
-				oninput={(event) =>
-					scheduleColorCommit(
-						'text:dark-text',
-						labelDarkTextColor,
-						event.currentTarget.value,
-						onLabelDarkTextColor,
-					)}
-				onchange={(event) =>
-					commitColor(
-						'text:dark-text',
-						labelDarkTextColor,
-						event.currentTarget.value,
-						onLabelDarkTextColor,
-					)}
-			/>
-		</label>
-		<label class="knowledge-workspace-rule-label">
-			<span>Background</span>
-			<input
-				type="color"
-				value={labelDarkBackgroundColor}
-				oninput={(event) =>
-					scheduleColorCommit(
-						'text:dark-background',
-						labelDarkBackgroundColor,
-						event.currentTarget.value,
-						onLabelDarkBackgroundColor,
-					)}
-				onchange={(event) =>
-					commitColor(
-						'text:dark-background',
-						labelDarkBackgroundColor,
-						event.currentTarget.value,
-						onLabelDarkBackgroundColor,
-					)}
-			/>
-		</label>
-		<label class="knowledge-workspace-rule-label">
-			<span>Background opacity</span>
-			<div class="knowledge-workspace-slider-value">
-				<ObsidianSlider
-					value={labelDarkBackgroundOpacity}
-					min={0}
-					max={1}
-					step={0.05}
-					format={(value) => `${Math.round(value * 100)}%`}
-					onChange={onLabelDarkBackgroundOpacity}
-					onCommit={onLabelDarkBackgroundOpacity}
+			</label>
+			<label class="knowledge-workspace-rule-label">
+				<span>Background</span>
+				<input
+					type="color"
+					value={labelLightBackgroundColor}
+					oninput={(event) =>
+						scheduleColorCommit(
+							'text:light-background',
+							labelLightBackgroundColor,
+							event.currentTarget.value,
+							onLabelLightBackgroundColor,
+						)}
+					onchange={(event) =>
+						commitColor(
+							'text:light-background',
+							labelLightBackgroundColor,
+							event.currentTarget.value,
+							onLabelLightBackgroundColor,
+						)}
 				/>
-				<span>{Math.round(labelDarkBackgroundOpacity * 100)}%</span>
-			</div>
-		</label>
+			</label>
+			<label class="knowledge-workspace-rule-label">
+				<span>Background opacity</span>
+				<div class="knowledge-workspace-slider-value">
+					<ObsidianSlider
+						value={labelLightBackgroundOpacity}
+						min={0}
+						max={1}
+						step={0.05}
+						format={(value) => `${Math.round(value * 100)}%`}
+						onChange={onLabelLightBackgroundOpacity}
+						onCommit={onLabelLightBackgroundOpacity}
+					/>
+					<span>{Math.round(labelLightBackgroundOpacity * 100)}%</span
+					>
+				</div>
+			</label>
+		</CollapsibleSettingsGroup>
+		<CollapsibleSettingsGroup
+			title="Dark profile"
+			bind:open={darkProfileOpen}
+		>
+			<label class="knowledge-workspace-rule-label">
+				<span>Text</span>
+				<input
+					type="color"
+					value={labelDarkTextColor}
+					oninput={(event) =>
+						scheduleColorCommit(
+							'text:dark-text',
+							labelDarkTextColor,
+							event.currentTarget.value,
+							onLabelDarkTextColor,
+						)}
+					onchange={(event) =>
+						commitColor(
+							'text:dark-text',
+							labelDarkTextColor,
+							event.currentTarget.value,
+							onLabelDarkTextColor,
+						)}
+				/>
+			</label>
+			<label class="knowledge-workspace-rule-label">
+				<span>Background</span>
+				<input
+					type="color"
+					value={labelDarkBackgroundColor}
+					oninput={(event) =>
+						scheduleColorCommit(
+							'text:dark-background',
+							labelDarkBackgroundColor,
+							event.currentTarget.value,
+							onLabelDarkBackgroundColor,
+						)}
+					onchange={(event) =>
+						commitColor(
+							'text:dark-background',
+							labelDarkBackgroundColor,
+							event.currentTarget.value,
+							onLabelDarkBackgroundColor,
+						)}
+				/>
+			</label>
+			<label class="knowledge-workspace-rule-label">
+				<span>Background opacity</span>
+				<div class="knowledge-workspace-slider-value">
+					<ObsidianSlider
+						value={labelDarkBackgroundOpacity}
+						min={0}
+						max={1}
+						step={0.05}
+						format={(value) => `${Math.round(value * 100)}%`}
+						onChange={onLabelDarkBackgroundOpacity}
+						onCommit={onLabelDarkBackgroundOpacity}
+					/>
+					<span>{Math.round(labelDarkBackgroundOpacity * 100)}%</span>
+				</div>
+			</label>
+		</CollapsibleSettingsGroup>
 	{:else}
 		<label class="knowledge-workspace-rule-label">
 			<span>Font color</span>

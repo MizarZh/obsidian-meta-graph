@@ -1,4 +1,5 @@
 <script lang="ts">
+	import CollapsibleSettingsGroup from './CollapsibleSettingsGroup.svelte';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
 	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
@@ -88,6 +89,13 @@
 		onChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
 	} = $props();
 
+	let queryOpen = $state(true);
+	let layoutOpen = $state(true);
+	let forcesOpen = $state(true);
+	let displayOpen = $state(true);
+	let flowDetailsOpen = $state(true);
+	let arcDetailsOpen = $state(true);
+
 	function formatCompact(value: number, precision: number): string {
 		return value.toFixed(precision).replace(/\.?0+$/u, '');
 	}
@@ -103,8 +111,7 @@
 
 <section>
 	<header><h3>Graph settings</h3></header>
-	<div class="knowledge-workspace-settings-group">
-		<h4>Query</h4>
+	<CollapsibleSettingsGroup title="Query" bind:open={queryOpen}>
 		<label class="knowledge-workspace-rule-label">
 			<span>Max nodes</span>
 			<ObsidianTextInput
@@ -128,10 +135,9 @@
 				onChange={(value) => onChange({ showIsolatedNodes: value })}
 			/>
 		</label>
-	</div>
+	</CollapsibleSettingsGroup>
 	{#if mode === 'graph' || mode === 'graph-3d' || mode === 'cube'}
-		<div class="knowledge-workspace-settings-group">
-			<h4>Layout</h4>
+		<CollapsibleSettingsGroup title="Layout" bind:open={layoutOpen}>
 			<label class="knowledge-workspace-rule-label">
 				<span>Force layout</span>
 				<ObsidianToggle
@@ -154,9 +160,8 @@
 					<span>{Math.round(graphLinkDistance)}</span>
 				</div>
 			</label>
-		</div>
-		<div class="knowledge-workspace-settings-group">
-			<h4>Forces</h4>
+		</CollapsibleSettingsGroup>
+		<CollapsibleSettingsGroup title="Forces" bind:open={forcesOpen}>
 			<label class="knowledge-workspace-rule-label">
 				<span>Center force</span>
 				<div class="knowledge-workspace-slider-value">
@@ -232,10 +237,9 @@
 					<span>{formatCompact(graphReturnForce, 2)}</span>
 				</div>
 			</label>
-		</div>
+		</CollapsibleSettingsGroup>
 	{:else if mode === 'flow' || mode === 'arc'}
-		<div class="knowledge-workspace-settings-group">
-			<h4>Layout</h4>
+		<CollapsibleSettingsGroup title="Layout" bind:open={layoutOpen}>
 			<label class="knowledge-workspace-rule-label">
 				<span>Spacing</span>
 				<div class="knowledge-workspace-slider-value">
@@ -256,10 +260,9 @@
 					>
 				</div>
 			</label>
-		</div>
+		</CollapsibleSettingsGroup>
 	{/if}
-	<div class="knowledge-workspace-settings-group">
-		<h4>Display</h4>
+	<CollapsibleSettingsGroup title="Display" bind:open={displayOpen}>
 		<label class="knowledge-workspace-rule-label">
 			<span>Fade distance</span>
 			<div class="knowledge-workspace-slider-value">
@@ -311,10 +314,12 @@
 			<span>Always show labels</span>
 			<ObsidianToggle value={forceLabels} onChange={onForceLabels} />
 		</label>
-	</div>
+	</CollapsibleSettingsGroup>
 	{#if mode === 'flow'}
-		<div class="knowledge-workspace-settings-group">
-			<h4>Flow details</h4>
+		<CollapsibleSettingsGroup
+			title="Flow details"
+			bind:open={flowDetailsOpen}
+		>
 			<div class="knowledge-workspace-rule-label segmented">
 				<span>Direction</span>
 				<div class="knowledge-workspace-segmented">
@@ -343,10 +348,12 @@
 					/>
 				</div>
 			</div>
-		</div>
+		</CollapsibleSettingsGroup>
 	{:else if mode === 'arc'}
-		<div class="knowledge-workspace-settings-group">
-			<h4>Arc details</h4>
+		<CollapsibleSettingsGroup
+			title="Arc details"
+			bind:open={arcDetailsOpen}
+		>
 			<label class="knowledge-workspace-rule-label">
 				<span>Direction</span>
 				<ObsidianDropdown
@@ -360,6 +367,6 @@
 					onChange={(value) => onArcDirection(value as ArcDirection)}
 				/>
 			</label>
-		</div>
+		</CollapsibleSettingsGroup>
 	{/if}
 </section>

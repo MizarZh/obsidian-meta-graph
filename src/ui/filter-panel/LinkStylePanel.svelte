@@ -1,4 +1,5 @@
 <script lang="ts">
+	import CollapsibleSettingsGroup from './CollapsibleSettingsGroup.svelte';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
 	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
@@ -32,6 +33,10 @@
 		{ value: 'dashed', label: 'Dashed' },
 		{ value: 'dotted', label: 'Dotted' },
 	];
+	const LINK_STYLE_SECTIONS = [
+		{ scope: 'global', title: 'Global link rules' },
+		{ scope: 'current', title: 'Chart link rules' },
+	] as const;
 
 	let {
 		defaultLinkStyle,
@@ -66,6 +71,26 @@
 			commit: (color: string) => void,
 		) => void;
 	} = $props();
+
+	let workspaceDefaultOpen = $state(true);
+	let chartOverridesOpen = $state(true);
+	let ruleSectionsOpen = $state<Record<StyleRuleScope, boolean>>({
+		global: true,
+		current: true,
+	});
+	let previousHadLinkOverride = $state<boolean | undefined>(undefined);
+
+	$effect(() => {
+		const hasOverride = hasStyleOverride(linkStyleOverrides);
+		if (previousHadLinkOverride === undefined) {
+			workspaceDefaultOpen = !hasOverride;
+		} else if (hasOverride && !previousHadLinkOverride) {
+			workspaceDefaultOpen = false;
+		} else if (!hasOverride && previousHadLinkOverride) {
+			workspaceDefaultOpen = true;
+		}
+		previousHadLinkOverride = hasOverride;
+	});
 
 	function addLinkRule(scope: 'global' | 'current'): void {
 		updateLinkRules(scope, [
@@ -114,10 +139,13 @@
 	}
 
 	function addLinkOverride(): void {
+		workspaceDefaultOpen = false;
+		chartOverridesOpen = true;
 		onLinkStyleOverrides({ ...defaultLinkStyle });
 	}
 
 	function clearLinkOverride(): void {
+		workspaceDefaultOpen = true;
 		onLinkStyleOverrides({});
 	}
 
@@ -167,8 +195,10 @@
 <section>
 	<header><h3>Link styles</h3></header>
 </section>
-<section>
-	<header><h3>Workspace default</h3></header>
+<CollapsibleSettingsGroup
+	title="Workspace default"
+	bind:open={workspaceDefaultOpen}
+>
 	<div class="knowledge-workspace-rule">
 		<div class="knowledge-workspace-rule-row compact">
 			<label>
@@ -251,10 +281,12 @@
 			</label>
 		</div>
 	</div>
-</section>
-<section>
-	<header>
-		<h3>Chart overrides</h3>
+</CollapsibleSettingsGroup>
+<CollapsibleSettingsGroup
+	title="Chart overrides"
+	bind:open={chartOverridesOpen}
+>
+	{#snippet actions()}
 		{#if !hasLinkOverride()}
 			<ObsidianButton
 				class="knowledge-workspace-add-rule-button"
@@ -263,7 +295,7 @@
 				onClick={addLinkOverride}
 			/>
 		{/if}
-	</header>
+	{/snippet}
 	{#if hasLinkOverride()}
 		<div class="knowledge-workspace-rule">
 			<div class="knowledge-workspace-rule-row override-heading">
@@ -357,21 +389,21 @@
 			</div>
 		</div>
 	{/if}
-</section>
-{#each ['global', 'current'] as scope}
-	<section>
-		<header>
-			<h3>
-				{scope === 'global' ? 'Global link rules' : 'Chart link rules'}
-			</h3>
+</CollapsibleSettingsGroup>
+{#each LINK_STYLE_SECTIONS as section}
+	<CollapsibleSettingsGroup
+		title={section.title}
+		bind:open={ruleSectionsOpen[section.scope]}
+	>
+		{#snippet actions()}
 			<ObsidianButton
 				class="knowledge-workspace-add-rule-button"
 				ariaLabel="Add link style rule"
 				icon="plus"
-				onClick={() => addLinkRule(scope as 'global' | 'current')}
+				onClick={() => addLinkRule(section.scope)}
 			/>
-		</header>
-		{#each getLinkRules(scope as 'global' | 'current') as rule (rule.id)}
+		{/snippet}
+		{#each getLinkRules(section.scope) as rule (rule.id)}
 			<div class="knowledge-workspace-rule">
 				<div class="knowledge-workspace-rule-row">
 					<div class="knowledge-workspace-move-rule-buttons">
@@ -379,67 +411,47 @@
 							icon="chevron-up"
 							ariaLabel="Move link style rule up"
 							disabled={!canMoveRule(
-								getLinkRules(scope as StyleRuleScope),
+								getLinkRules(section.scope),
 								rule.id,
 								-1,
 							)}
 							onClick={() =>
-								moveLinkRule(
-									scope as StyleRuleScope,
-									rule.id,
-									-1,
-								)}
+								moveLinkRule(section.scope, rule.id, -1)}
 						/>
 						<ObsidianButton
 							icon="chevron-down"
 							ariaLabel="Move link style rule down"
 							disabled={!canMoveRule(
-								getLinkRules(scope as StyleRuleScope),
+								getLinkRules(section.scope),
 								rule.id,
 								1,
 							)}
 							onClick={() =>
-								moveLinkRule(
-									scope as StyleRuleScope,
-									rule.id,
-									1,
-								)}
+								moveLinkRule(section.scope, rule.id, 1)}
 						/>
 					</div>
 					<ObsidianDropdown
 						value={rule.field}
 						options={LINK_STYLE_FIELD_OPTIONS}
 						onChange={(value) =>
-							updateLinkRule(
-								scope as 'global' | 'current',
-								rule.id,
-								{
-									field: value as LinkStyleField,
-								},
-							)}
+							updateLinkRule(section.scope, rule.id, {
+								field: value as LinkStyleField,
+							})}
 					/>
 					<ObsidianTextInput
 						type="text"
 						placeholder="Metadata value"
 						value={rule.value}
 						onInput={(value) =>
-							updateLinkRule(
-								scope as 'global' | 'current',
-								rule.id,
-								{
-									value,
-								},
-							)}
+							updateLinkRule(section.scope, rule.id, {
+								value,
+							})}
 					/>
 					<ObsidianButton
 						class="knowledge-workspace-remove-rule-button"
 						ariaLabel="Remove link style rule"
 						icon="trash-2"
-						onClick={() =>
-							removeLinkRule(
-								scope as 'global' | 'current',
-								rule.id,
-							)}
+						onClick={() => removeLinkRule(section.scope, rule.id)}
 					/>
 				</div>
 				<div class="knowledge-workspace-rule-row compact">
@@ -450,31 +462,23 @@
 							value={rule.color}
 							oninput={(event) =>
 								scheduleColorCommit(
-									`link:${scope}:${rule.id}`,
+									`link:${section.scope}:${rule.id}`,
 									rule.color,
 									event.currentTarget.value,
 									(color) =>
-										updateLinkRule(
-											scope as 'global' | 'current',
-											rule.id,
-											{
-												color,
-											},
-										),
+										updateLinkRule(section.scope, rule.id, {
+											color,
+										}),
 								)}
 							onchange={(event) =>
 								commitColor(
-									`link:${scope}:${rule.id}`,
+									`link:${section.scope}:${rule.id}`,
 									rule.color,
 									event.currentTarget.value,
 									(color) =>
-										updateLinkRule(
-											scope as 'global' | 'current',
-											rule.id,
-											{
-												color,
-											},
-										),
+										updateLinkRule(section.scope, rule.id, {
+											color,
+										}),
 								)}
 						/>
 					</label>
@@ -488,13 +492,9 @@
 								value={rule.size}
 								format={(value) => value.toFixed(1)}
 								onChange={(value) =>
-									updateLinkRule(
-										scope as 'global' | 'current',
-										rule.id,
-										{
-											size: value,
-										},
-									)}
+									updateLinkRule(section.scope, rule.id, {
+										size: value,
+									})}
 							/>
 							<span>{rule.size.toFixed(1)}</span>
 						</div>
@@ -508,14 +508,10 @@
 								active={rule.lineStyle === option.value}
 								text={option.label}
 								onClick={() =>
-									updateLinkRule(
-										scope as 'global' | 'current',
-										rule.id,
-										{
-											lineStyle:
-												option.value as LinkLineStyle,
-										},
-									)}
+									updateLinkRule(section.scope, rule.id, {
+										lineStyle:
+											option.value as LinkLineStyle,
+									})}
 							/>
 						{/each}
 					</div>
@@ -528,13 +524,9 @@
 							placeholder="Optional label"
 							value={rule.label}
 							onInput={(value) =>
-								updateLinkRule(
-									scope as 'global' | 'current',
-									rule.id,
-									{
-										label: value,
-									},
-								)}
+								updateLinkRule(section.scope, rule.id, {
+									label: value,
+								})}
 						/>
 					</label>
 				</div>
@@ -543,13 +535,9 @@
 						<ObsidianToggle
 							value={rule.showLabel}
 							onChange={(value) =>
-								updateLinkRule(
-									scope as 'global' | 'current',
-									rule.id,
-									{
-										showLabel: value,
-									},
-								)}
+								updateLinkRule(section.scope, rule.id, {
+									showLabel: value,
+								})}
 						/>
 						<span>Show label</span>
 					</label>
@@ -557,18 +545,14 @@
 						<ObsidianToggle
 							value={rule.hidden}
 							onChange={(value) =>
-								updateLinkRule(
-									scope as 'global' | 'current',
-									rule.id,
-									{
-										hidden: value,
-									},
-								)}
+								updateLinkRule(section.scope, rule.id, {
+									hidden: value,
+								})}
 						/>
 						<span>Hidden</span>
 					</label>
 				</div>
 			</div>
 		{/each}
-	</section>
+	</CollapsibleSettingsGroup>
 {/each}

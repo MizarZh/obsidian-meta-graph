@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
+	import CollapsibleSettingsGroup from './CollapsibleSettingsGroup.svelte';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
 	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
@@ -40,6 +41,10 @@
 		...FILE_FILTER_FIELD_OPTIONS,
 	];
 	const STYLE_FILTER_OPERATOR_OPTIONS = TEXT_FILTER_OPERATOR_OPTIONS;
+	const NODE_STYLE_SECTIONS = [
+		{ scope: 'global', title: 'Global note rules' },
+		{ scope: 'current', title: 'Chart note rules' },
+	] as const;
 
 	let {
 		app,
@@ -89,6 +94,26 @@
 		) => void;
 	} = $props();
 
+	let workspaceDefaultOpen = $state(true);
+	let chartOverridesOpen = $state(true);
+	let ruleSectionsOpen = $state<Record<StyleRuleScope, boolean>>({
+		global: true,
+		current: true,
+	});
+	let previousHadNodeOverride = $state<boolean | undefined>(undefined);
+
+	$effect(() => {
+		const hasOverride = hasStyleOverride(nodeStyleOverrides);
+		if (previousHadNodeOverride === undefined) {
+			workspaceDefaultOpen = !hasOverride;
+		} else if (hasOverride && !previousHadNodeOverride) {
+			workspaceDefaultOpen = false;
+		} else if (!hasOverride && previousHadNodeOverride) {
+			workspaceDefaultOpen = true;
+		}
+		previousHadNodeOverride = hasOverride;
+	});
+
 	function addNodeRule(scope: 'global' | 'current'): void {
 		updateNodeRules(scope, [
 			...getNodeRules(scope),
@@ -136,10 +161,13 @@
 	}
 
 	function addNodeOverride(): void {
+		workspaceDefaultOpen = false;
+		chartOverridesOpen = true;
 		onNodeStyleOverrides({ ...defaultNodeStyle });
 	}
 
 	function clearNodeOverride(): void {
+		workspaceDefaultOpen = true;
 		onNodeStyleOverrides({});
 	}
 
@@ -187,8 +215,10 @@
 <section>
 	<header><h3>Note styles</h3></header>
 </section>
-<section>
-	<header><h3>Workspace default</h3></header>
+<CollapsibleSettingsGroup
+	title="Workspace default"
+	bind:open={workspaceDefaultOpen}
+>
 	<div class="knowledge-workspace-rule">
 		<div class="knowledge-workspace-rule-row compact">
 			<label>
@@ -227,10 +257,12 @@
 			</label>
 		</div>
 	</div>
-</section>
-<section>
-	<header>
-		<h3>Chart overrides</h3>
+</CollapsibleSettingsGroup>
+<CollapsibleSettingsGroup
+	title="Chart overrides"
+	bind:open={chartOverridesOpen}
+>
+	{#snippet actions()}
 		{#if !hasNodeOverride()}
 			<ObsidianButton
 				class="knowledge-workspace-add-rule-button"
@@ -239,7 +271,7 @@
 				onClick={addNodeOverride}
 			/>
 		{/if}
-	</header>
+	{/snippet}
 	{#if hasNodeOverride()}
 		<div class="knowledge-workspace-rule">
 			<div class="knowledge-workspace-rule-row override-heading">
@@ -289,21 +321,21 @@
 			</div>
 		</div>
 	{/if}
-</section>
-{#each ['global', 'current'] as scope}
-	<section>
-		<header>
-			<h3>
-				{scope === 'global' ? 'Global note rules' : 'Chart note rules'}
-			</h3>
+</CollapsibleSettingsGroup>
+{#each NODE_STYLE_SECTIONS as section}
+	<CollapsibleSettingsGroup
+		title={section.title}
+		bind:open={ruleSectionsOpen[section.scope]}
+	>
+		{#snippet actions()}
 			<ObsidianButton
 				class="knowledge-workspace-add-rule-button"
 				ariaLabel="Add note style rule"
 				icon="plus"
-				onClick={() => addNodeRule(scope as 'global' | 'current')}
+				onClick={() => addNodeRule(section.scope)}
 			/>
-		</header>
-		{#each getNodeRules(scope as 'global' | 'current') as rule (rule.id)}
+		{/snippet}
+		{#each getNodeRules(section.scope) as rule (rule.id)}
 			<div class="knowledge-workspace-rule">
 				<div class="knowledge-workspace-rule-row style-condition">
 					<div class="knowledge-workspace-move-rule-buttons">
@@ -311,56 +343,40 @@
 							icon="chevron-up"
 							ariaLabel="Move note style rule up"
 							disabled={!canMoveRule(
-								getNodeRules(scope as StyleRuleScope),
+								getNodeRules(section.scope),
 								rule.id,
 								-1,
 							)}
 							onClick={() =>
-								moveNodeRule(
-									scope as StyleRuleScope,
-									rule.id,
-									-1,
-								)}
+								moveNodeRule(section.scope, rule.id, -1)}
 						/>
 						<ObsidianButton
 							icon="chevron-down"
 							ariaLabel="Move note style rule down"
 							disabled={!canMoveRule(
-								getNodeRules(scope as StyleRuleScope),
+								getNodeRules(section.scope),
 								rule.id,
 								1,
 							)}
 							onClick={() =>
-								moveNodeRule(
-									scope as StyleRuleScope,
-									rule.id,
-									1,
-								)}
+								moveNodeRule(section.scope, rule.id, 1)}
 						/>
 					</div>
 					<ObsidianDropdown
 						value={rule.field}
 						options={NODE_STYLE_FIELD_OPTIONS}
 						onChange={(value) =>
-							updateNodeRule(
-								scope as 'global' | 'current',
-								rule.id,
-								{
-									field: value as NodeStyleField,
-								},
-							)}
+							updateNodeRule(section.scope, rule.id, {
+								field: value as NodeStyleField,
+							})}
 					/>
 					<ObsidianDropdown
 						value={rule.operator ?? 'is'}
 						options={STYLE_FILTER_OPERATOR_OPTIONS}
 						onChange={(value) =>
-							updateNodeRule(
-								scope as 'global' | 'current',
-								rule.id,
-								{
-									operator: value as NodeFilterOperator,
-								},
-							)}
+							updateNodeRule(section.scope, rule.id, {
+								operator: value as NodeFilterOperator,
+							})}
 					/>
 					{#if shouldShowFilterValue(rule.operator) && getNodeValueOptions(rule.field).length > 0}
 						<ObsidianSuggestInput
@@ -370,21 +386,13 @@
 							value={rule.value}
 							options={getNodeValueOptions(rule.field)}
 							onInput={(value) =>
-								updateNodeRule(
-									scope as 'global' | 'current',
-									rule.id,
-									{
-										value,
-									},
-								)}
+								updateNodeRule(section.scope, rule.id, {
+									value,
+								})}
 							onSelect={(option) =>
-								updateNodeRule(
-									scope as 'global' | 'current',
-									rule.id,
-									{
-										value: option.value,
-									},
-								)}
+								updateNodeRule(section.scope, rule.id, {
+									value: option.value,
+								})}
 						/>
 					{:else}
 						<ObsidianTextInput
@@ -395,24 +403,16 @@
 							disabled={!shouldShowFilterValue(rule.operator)}
 							value={rule.value}
 							onInput={(value) =>
-								updateNodeRule(
-									scope as 'global' | 'current',
-									rule.id,
-									{
-										value,
-									},
-								)}
+								updateNodeRule(section.scope, rule.id, {
+									value,
+								})}
 						/>
 					{/if}
 					<ObsidianButton
 						class="knowledge-workspace-remove-rule-button"
 						ariaLabel="Remove note style rule"
 						icon="trash-2"
-						onClick={() =>
-							removeNodeRule(
-								scope as 'global' | 'current',
-								rule.id,
-							)}
+						onClick={() => removeNodeRule(section.scope, rule.id)}
 					/>
 				</div>
 				<div class="knowledge-workspace-rule-row compact">
@@ -423,31 +423,23 @@
 							value={rule.color}
 							oninput={(event) =>
 								scheduleColorCommit(
-									`node:${scope}:${rule.id}`,
+									`node:${section.scope}:${rule.id}`,
 									rule.color,
 									event.currentTarget.value,
 									(color) =>
-										updateNodeRule(
-											scope as 'global' | 'current',
-											rule.id,
-											{
-												color,
-											},
-										),
+										updateNodeRule(section.scope, rule.id, {
+											color,
+										}),
 								)}
 							onchange={(event) =>
 								commitColor(
-									`node:${scope}:${rule.id}`,
+									`node:${section.scope}:${rule.id}`,
 									rule.color,
 									event.currentTarget.value,
 									(color) =>
-										updateNodeRule(
-											scope as 'global' | 'current',
-											rule.id,
-											{
-												color,
-											},
-										),
+										updateNodeRule(section.scope, rule.id, {
+											color,
+										}),
 								)}
 						/>
 					</label>
@@ -460,13 +452,9 @@
 								step={0.5}
 								value={rule.size}
 								onChange={(value) =>
-									updateNodeRule(
-										scope as 'global' | 'current',
-										rule.id,
-										{
-											size: value,
-										},
-									)}
+									updateNodeRule(section.scope, rule.id, {
+										size: value,
+									})}
 							/>
 							<span>{rule.size.toFixed(1)}</span>
 						</div>
@@ -474,5 +462,5 @@
 				</div>
 			</div>
 		{/each}
-	</section>
+	</CollapsibleSettingsGroup>
 {/each}
