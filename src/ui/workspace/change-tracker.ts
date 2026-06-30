@@ -26,7 +26,9 @@ export interface WorkspaceStateChanges {
 	fadeDistanceChanged: boolean;
 	labelSizeChanged: boolean;
 	labelPositionChanged: boolean;
+	labelOffsetChanged: boolean;
 	labelColorChanged: boolean;
+	labelThemeChanged: boolean;
 	labelBackgroundOpacityChanged: boolean;
 	labelDensityChanged: boolean;
 	cubeFaceOpacityChanged: boolean;
@@ -139,26 +141,54 @@ export function analyzeWorkspaceStateChanges(
 			currentState,
 			'labelSize',
 		),
-		labelPositionChanged: stateValueChanged(
-			nextState,
-			currentState,
-			'labelPosition',
-		),
-		labelColorChanged: stateValueChanged(
-			nextState,
-			currentState,
-			'labelColor',
-		),
+			labelPositionChanged: stateValueChanged(
+				nextState,
+				currentState,
+				'labelPosition',
+			),
+			labelOffsetChanged: stateValueChanged(
+				nextState,
+				currentState,
+				'labelOffset',
+			),
+			labelColorChanged: stateValueChanged(
+				nextState,
+				currentState,
+				'labelColor',
+			),
+			labelThemeChanged:
+			stateValueChanged(nextState, currentState, 'labelLightTextColor') ||
+				stateValueChanged(
+					nextState,
+					currentState,
+					'labelLightBackgroundColor',
+				) ||
+				stateValueChanged(
+					nextState,
+					currentState,
+					'labelLightBackgroundOpacity',
+				) ||
+				stateValueChanged(nextState, currentState, 'labelDarkTextColor') ||
+				stateValueChanged(
+					nextState,
+					currentState,
+					'labelDarkBackgroundColor',
+				) ||
+				stateValueChanged(
+					nextState,
+					currentState,
+					'labelDarkBackgroundOpacity',
+				),
 		labelBackgroundOpacityChanged: stateValueChanged(
 			nextState,
 			currentState,
 			'labelBackgroundOpacity',
 		),
-		labelDensityChanged: stateValueChanged(
-			nextState,
-			currentState,
-			'labelDensity',
-		),
+			labelDensityChanged: stateValueChanged(
+				nextState,
+				currentState,
+				'labelDensity',
+			),
 		cubeFaceOpacityChanged:
 			nextState.cubeFaceOpacity !== currentState.cubeFaceOpacity,
 		forceLabelsChanged: stateValueChanged(

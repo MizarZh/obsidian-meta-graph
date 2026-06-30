@@ -161,7 +161,9 @@ export function readLabelPosition(
 	return value === 'right' ||
 		value === 'left' ||
 		value === 'top' ||
-		value === 'bottom'
+		value === 'bottom' ||
+		value === 'auto' ||
+		value === 'center'
 		? value
 		: fallback;
 }

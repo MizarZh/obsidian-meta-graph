@@ -21,12 +21,19 @@ type ActiveChartStateFields = Pick<
 	| 'flowDirection'
 	| 'arcDirection'
 	| 'fadeDistance'
-	| 'labelSize'
-	| 'labelPosition'
-	| 'labelColor'
-	| 'labelBackgroundOpacity'
-	| 'labelDensity'
-	| 'cubeFaceOpacity'
+		| 'labelSize'
+		| 'labelPosition'
+		| 'labelOffset'
+		| 'labelColor'
+		| 'labelLightTextColor'
+		| 'labelLightBackgroundColor'
+		| 'labelLightBackgroundOpacity'
+		| 'labelDarkTextColor'
+		| 'labelDarkBackgroundColor'
+		| 'labelDarkBackgroundOpacity'
+		| 'labelBackgroundOpacity'
+		| 'labelDensity'
+		| 'cubeFaceOpacity'
 	| 'forceLabels'
 	| 'enableForceLayout'
 	| 'graphSpacing'
@@ -105,12 +112,21 @@ function createActiveChartStateFields(
 		flowDirection: chart.layout.direction ?? 'LR',
 		arcDirection: chart.layout.arcDirection ?? 'right',
 		fadeDistance: chart.display.fadeDistance,
-		labelSize: chart.display.labelSize,
-		labelPosition: chart.display.labelPosition,
-		labelColor: chart.display.labelColor,
-		labelBackgroundOpacity: chart.display.labelBackgroundOpacity,
-		labelDensity: chart.display.labelDensity,
-		cubeFaceOpacity: chart.display.cubeFaceOpacity,
+			labelSize: chart.display.labelSize,
+			labelPosition: chart.display.labelPosition,
+			labelOffset: chart.display.labelOffset,
+			labelColor: chart.display.labelColor,
+			labelLightTextColor: chart.display.labelLightTextColor,
+			labelLightBackgroundColor: chart.display.labelLightBackgroundColor,
+			labelLightBackgroundOpacity:
+				chart.display.labelLightBackgroundOpacity,
+			labelDarkTextColor: chart.display.labelDarkTextColor,
+			labelDarkBackgroundColor: chart.display.labelDarkBackgroundColor,
+			labelDarkBackgroundOpacity:
+				chart.display.labelDarkBackgroundOpacity,
+			labelBackgroundOpacity: chart.display.labelBackgroundOpacity,
+			labelDensity: chart.display.labelDensity,
+			cubeFaceOpacity: chart.display.cubeFaceOpacity,
 		forceLabels: chart.display.forceLabels,
 		enableForceLayout: chart.display.enableForceLayout,
 		graphSpacing: forceGraphType

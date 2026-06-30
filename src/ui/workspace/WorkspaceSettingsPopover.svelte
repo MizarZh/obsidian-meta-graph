@@ -58,12 +58,19 @@
 			panel={settingsPanel}
 			mode={workspaceState.mode}
 			fadeDistance={workspaceState.fadeDistance}
-			labelSize={workspaceState.labelSize}
-			labelPosition={workspaceState.labelPosition}
-			labelColor={workspaceState.labelColor}
-			labelBackgroundOpacity={workspaceState.labelBackgroundOpacity}
-			labelDensity={workspaceState.labelDensity}
-			cubeFaceOpacity={workspaceState.cubeFaceOpacity}
+				labelSize={workspaceState.labelSize}
+				labelPosition={workspaceState.labelPosition}
+				labelOffset={workspaceState.labelOffset}
+				labelColor={workspaceState.labelColor}
+				labelLightTextColor={workspaceState.labelLightTextColor}
+				labelLightBackgroundColor={workspaceState.labelLightBackgroundColor}
+				labelLightBackgroundOpacity={workspaceState.labelLightBackgroundOpacity}
+				labelDarkTextColor={workspaceState.labelDarkTextColor}
+				labelDarkBackgroundColor={workspaceState.labelDarkBackgroundColor}
+				labelDarkBackgroundOpacity={workspaceState.labelDarkBackgroundOpacity}
+				labelBackgroundOpacity={workspaceState.labelBackgroundOpacity}
+				labelDensity={workspaceState.labelDensity}
+				cubeFaceOpacity={workspaceState.cubeFaceOpacity}
 			forceLabels={workspaceState.forceLabels}
 			enableForceLayout={workspaceState.enableForceLayout}
 			flowEdgeStyle={workspaceState.flowEdgeStyle}
@@ -101,13 +108,26 @@
 				controller.setArcDirection(direction)}
 			onFadeDistance={(value) => controller.setFadeDistance(value)}
 			onLabelSize={(value) => controller.setLabelSize(value)}
-			onLabelPosition={(position) =>
-				controller.setLabelPosition(position)}
-			onLabelColor={(color) => controller.setLabelColor(color)}
-			onLabelBackgroundOpacity={(value) =>
-				controller.setLabelBackgroundOpacity(value)}
-			onLabelDensity={(value) => controller.setLabelDensity(value)}
-			onCubeFaceOpacity={(value) => controller.setCubeFaceOpacity(value)}
+				onLabelPosition={(position) =>
+					controller.setLabelPosition(position)}
+				onLabelOffset={(value) => controller.setLabelOffset(value)}
+				onLabelColor={(color) => controller.setLabelColor(color)}
+				onLabelLightTextColor={(color) =>
+					controller.setLabelLightTextColor(color)}
+				onLabelLightBackgroundColor={(color) =>
+					controller.setLabelLightBackgroundColor(color)}
+				onLabelLightBackgroundOpacity={(value) =>
+					controller.setLabelLightBackgroundOpacity(value)}
+				onLabelDarkTextColor={(color) =>
+					controller.setLabelDarkTextColor(color)}
+				onLabelDarkBackgroundColor={(color) =>
+					controller.setLabelDarkBackgroundColor(color)}
+				onLabelDarkBackgroundOpacity={(value) =>
+					controller.setLabelDarkBackgroundOpacity(value)}
+				onLabelBackgroundOpacity={(value) =>
+					controller.setLabelBackgroundOpacity(value)}
+				onLabelDensity={(value) => controller.setLabelDensity(value)}
+				onCubeFaceOpacity={(value) => controller.setCubeFaceOpacity(value)}
 			onForceLabels={(value) => controller.setForceLabels(value)}
 			onEnableForceLayout={(value) =>
 				controller.setEnableForceLayout(value)}

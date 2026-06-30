@@ -1,6 +1,6 @@
 import type {
 	ConnectionFieldMode,
-	CuratedWorkspaceContext,
+		CuratedWorkspaceContext,
 	DefaultLinkStyle,
 	DefaultNodeStyle,
 	LabelPosition,
@@ -22,8 +22,15 @@ export const DEFAULT_GRAPH_LINK_FORCE = 1;
 export const DEFAULT_GRAPH_DRAG_LINK_FORCE = 1;
 export const DEFAULT_GRAPH_RETURN_FORCE = 1;
 export const DEFAULT_GRAPH_LINK_DISTANCE = 250;
-export const DEFAULT_LABEL_POSITION: LabelPosition = 'right';
+export const DEFAULT_LABEL_POSITION: LabelPosition = 'auto';
+export const DEFAULT_LABEL_OFFSET = 1;
 export const DEFAULT_LABEL_COLOR = '';
+export const DEFAULT_LABEL_LIGHT_TEXT_COLOR = '#111111';
+export const DEFAULT_LABEL_LIGHT_BACKGROUND_COLOR = '#ffffff';
+export const DEFAULT_LABEL_LIGHT_BACKGROUND_OPACITY = 0.82;
+export const DEFAULT_LABEL_DARK_TEXT_COLOR = '#ffffff';
+export const DEFAULT_LABEL_DARK_BACKGROUND_COLOR = '#000000';
+export const DEFAULT_LABEL_DARK_BACKGROUND_OPACITY = 0.62;
 export const DEFAULT_LABEL_BACKGROUND_OPACITY = 0.82;
 export const DEFAULT_LABEL_DENSITY = 0.8;
 export const DEFAULT_CUBE_FACE_OPACITY = 0.55;

@@ -28,7 +28,14 @@ export interface GraphRendererOptions {
 	fadeDistance: number;
 	labelSize: number;
 	labelPosition: LabelPosition;
+	labelOffset: number;
 	labelColor: string;
+	labelLightTextColor: string;
+	labelLightBackgroundColor: string;
+	labelLightBackgroundOpacity: number;
+	labelDarkTextColor: string;
+	labelDarkBackgroundColor: string;
+	labelDarkBackgroundOpacity: number;
 	labelBackgroundOpacity: number;
 	labelDensity: number;
 	cubeFaceOpacity: number;
@@ -120,7 +127,9 @@ export function setRendererPalette(
 ): void {
 	if (isForce3DRenderer(renderer) || isCube3DRenderer(renderer)) {
 		renderer.setPalette(palette);
+		return;
 	}
+	renderer.setPalette(palette);
 }
 
 export function setRendererManualLayout(
@@ -157,6 +166,13 @@ export async function createGraphRenderer(
 			options.enableForceLayout,
 			options.forceLabels,
 			options.isStale,
+			options.labelOffset,
+			options.labelLightTextColor,
+			options.labelLightBackgroundColor,
+			options.labelLightBackgroundOpacity,
+			options.labelDarkTextColor,
+			options.labelDarkBackgroundColor,
+			options.labelDarkBackgroundOpacity,
 		);
 	}
 
@@ -176,6 +192,13 @@ export async function createGraphRenderer(
 			options.enableForceLayout,
 			options.forceLabels,
 			options.isStale,
+			options.labelOffset,
+			options.labelLightTextColor,
+			options.labelLightBackgroundColor,
+			options.labelLightBackgroundOpacity,
+			options.labelDarkTextColor,
+			options.labelDarkBackgroundColor,
+			options.labelDarkBackgroundOpacity,
 		);
 	}
 
@@ -190,5 +213,11 @@ export async function createGraphRenderer(
 		options.labelBackgroundOpacity,
 		options.labelDensity,
 		options.forceLabels,
+		options.labelLightTextColor,
+		options.labelLightBackgroundColor,
+		options.labelLightBackgroundOpacity,
+		options.labelDarkTextColor,
+		options.labelDarkBackgroundColor,
+		options.labelDarkBackgroundOpacity,
 	);
 }

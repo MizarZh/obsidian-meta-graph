@@ -1,6 +1,5 @@
 import type * as Three from 'three';
 import type { RuntimeNodeAttributes } from '../../model/graphology-adapter';
-import type { GraphPalette } from '../../styles/graph-styles';
 import { createThreeTextSprite } from '../renderer-labels';
 import type { ThreeModule } from './cube-three';
 
@@ -69,17 +68,16 @@ export function createCubeTextSprite(
 	text: string,
 	size: number,
 	attributes: RuntimeNodeAttributes,
-	palette: GraphPalette,
-	labelColor: string,
-	labelBackgroundOpacity: number,
+	textColor: string,
+	backgroundColor: string,
 ): Three.Sprite {
 	const fontSize = Math.max(10, size);
 	const padding = Math.ceil(fontSize * 0.45);
 	return createThreeTextSprite(three, {
 		text,
 		fontSize,
-		textColor: labelColor || palette.label,
-		backgroundColor: `rgba(0, 0, 0, ${labelBackgroundOpacity})`,
+		textColor,
+		backgroundColor,
 		ownerDocument,
 		paddingX: padding,
 		paddingY: padding,

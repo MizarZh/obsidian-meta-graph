@@ -59,11 +59,76 @@ export function setLabelPositionInState(
 	return setDisplayValue(state, 'labelPosition', labelPosition);
 }
 
+export function setLabelOffsetInState(
+	state: WorkspaceState,
+	labelOffset: number,
+): WorkspaceState {
+	return setDisplayValue(state, 'labelOffset', Math.max(0, labelOffset));
+}
+
 export function setLabelColorInState(
 	state: WorkspaceState,
 	labelColor: string,
 ): WorkspaceState {
 	return setDisplayValue(state, 'labelColor', labelColor);
+}
+
+export function setLabelLightTextColorInState(
+	state: WorkspaceState,
+	labelLightTextColor: string,
+): WorkspaceState {
+	return setDisplayValue(state, 'labelLightTextColor', labelLightTextColor);
+}
+
+export function setLabelLightBackgroundColorInState(
+	state: WorkspaceState,
+	labelLightBackgroundColor: string,
+): WorkspaceState {
+	return setDisplayValue(
+		state,
+		'labelLightBackgroundColor',
+		labelLightBackgroundColor,
+	);
+}
+
+export function setLabelLightBackgroundOpacityInState(
+	state: WorkspaceState,
+	labelLightBackgroundOpacity: number,
+): WorkspaceState {
+	return setDisplayValue(
+		state,
+		'labelLightBackgroundOpacity',
+		Math.max(0, Math.min(1, labelLightBackgroundOpacity)),
+	);
+}
+
+export function setLabelDarkTextColorInState(
+	state: WorkspaceState,
+	labelDarkTextColor: string,
+): WorkspaceState {
+	return setDisplayValue(state, 'labelDarkTextColor', labelDarkTextColor);
+}
+
+export function setLabelDarkBackgroundColorInState(
+	state: WorkspaceState,
+	labelDarkBackgroundColor: string,
+): WorkspaceState {
+	return setDisplayValue(
+		state,
+		'labelDarkBackgroundColor',
+		labelDarkBackgroundColor,
+	);
+}
+
+export function setLabelDarkBackgroundOpacityInState(
+	state: WorkspaceState,
+	labelDarkBackgroundOpacity: number,
+): WorkspaceState {
+	return setDisplayValue(
+		state,
+		'labelDarkBackgroundOpacity',
+		Math.max(0, Math.min(1, labelDarkBackgroundOpacity)),
+	);
 }
 
 export function setLabelBackgroundOpacityInState(

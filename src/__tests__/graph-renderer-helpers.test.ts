@@ -79,6 +79,7 @@ describe('graph renderer helpers', () => {
 				color: '#333333',
 				size: 2,
 				label: 'custom',
+				forceLabel: true,
 				directed: true,
 				hidden: false,
 			},

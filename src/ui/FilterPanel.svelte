@@ -31,7 +31,14 @@
 		fadeDistance,
 		labelSize,
 		labelPosition,
+		labelOffset,
 		labelColor,
+		labelLightTextColor,
+		labelLightBackgroundColor,
+		labelLightBackgroundOpacity,
+		labelDarkTextColor,
+		labelDarkBackgroundColor,
+		labelDarkBackgroundOpacity,
 		labelBackgroundOpacity,
 		labelDensity,
 		cubeFaceOpacity,
@@ -71,7 +78,14 @@
 		onFadeDistance,
 		onLabelSize,
 		onLabelPosition,
+		onLabelOffset,
 		onLabelColor,
+		onLabelLightTextColor,
+		onLabelLightBackgroundColor,
+		onLabelLightBackgroundOpacity,
+		onLabelDarkTextColor,
+		onLabelDarkBackgroundColor,
+		onLabelDarkBackgroundOpacity,
 		onLabelBackgroundOpacity,
 		onLabelDensity,
 		onCubeFaceOpacity,
@@ -103,7 +117,14 @@
 		fadeDistance: number;
 		labelSize: number;
 		labelPosition: LabelPosition;
+		labelOffset: number;
 		labelColor: string;
+		labelLightTextColor: string;
+		labelLightBackgroundColor: string;
+		labelLightBackgroundOpacity: number;
+		labelDarkTextColor: string;
+		labelDarkBackgroundColor: string;
+		labelDarkBackgroundOpacity: number;
 		labelBackgroundOpacity: number;
 		labelDensity: number;
 		cubeFaceOpacity: number;
@@ -143,7 +164,14 @@
 		onFadeDistance: (value: number) => void;
 		onLabelSize: (value: number) => void;
 		onLabelPosition: (position: LabelPosition) => void;
+		onLabelOffset: (value: number) => void;
 		onLabelColor: (color: string) => void;
+		onLabelLightTextColor: (color: string) => void;
+		onLabelLightBackgroundColor: (color: string) => void;
+		onLabelLightBackgroundOpacity: (value: number) => void;
+		onLabelDarkTextColor: (color: string) => void;
+		onLabelDarkBackgroundColor: (color: string) => void;
+		onLabelDarkBackgroundOpacity: (value: number) => void;
 		onLabelBackgroundOpacity: (value: number) => void;
 		onLabelDensity: (value: number) => void;
 		onCubeFaceOpacity: (value: number) => void;
@@ -244,11 +272,25 @@
 			{mode}
 			{labelSize}
 			{labelPosition}
+			{labelOffset}
 			{labelColor}
+			{labelLightTextColor}
+			{labelLightBackgroundColor}
+			{labelLightBackgroundOpacity}
+			{labelDarkTextColor}
+			{labelDarkBackgroundColor}
+			{labelDarkBackgroundOpacity}
 			{labelBackgroundOpacity}
 			{onLabelSize}
 			{onLabelPosition}
+			{onLabelOffset}
 			{onLabelColor}
+			{onLabelLightTextColor}
+			{onLabelLightBackgroundColor}
+			{onLabelLightBackgroundOpacity}
+			{onLabelDarkTextColor}
+			{onLabelDarkBackgroundColor}
+			{onLabelDarkBackgroundOpacity}
 			{onLabelBackgroundOpacity}
 			{scheduleColorCommit}
 			{commitColor}

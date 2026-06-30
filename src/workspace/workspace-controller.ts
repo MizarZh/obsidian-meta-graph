@@ -40,8 +40,15 @@ import {
 	setGraphForceSettingInState,
 	setGraphSpacingInState,
 	setLabelBackgroundOpacityInState,
+	setLabelDarkBackgroundColorInState,
+	setLabelDarkBackgroundOpacityInState,
+	setLabelDarkTextColorInState,
 	setLabelColorInState,
 	setLabelDensityInState,
+	setLabelLightBackgroundColorInState,
+	setLabelLightBackgroundOpacityInState,
+	setLabelLightTextColorInState,
+	setLabelOffsetInState,
 	setLabelPositionInState,
 	setLabelSizeInState,
 	type GraphForceSettingKey,
@@ -298,8 +305,54 @@ export class WorkspaceController {
 		);
 	}
 
+	setLabelOffset(labelOffset: number): void {
+		this.setWorkspaceState(setLabelOffsetInState(this.state, labelOffset));
+	}
+
 	setLabelColor(labelColor: string): void {
 		this.setWorkspaceState(setLabelColorInState(this.state, labelColor));
+	}
+
+	setLabelLightTextColor(labelLightTextColor: string): void {
+		this.setWorkspaceState(
+			setLabelLightTextColorInState(this.state, labelLightTextColor),
+		);
+	}
+
+	setLabelLightBackgroundColor(labelLightBackgroundColor: string): void {
+		this.setWorkspaceState(
+			setLabelLightBackgroundColorInState(
+				this.state,
+				labelLightBackgroundColor,
+			),
+		);
+	}
+
+	setLabelLightBackgroundOpacity(value: number): void {
+		this.setWorkspaceState(
+			setLabelLightBackgroundOpacityInState(this.state, value),
+		);
+	}
+
+	setLabelDarkTextColor(labelDarkTextColor: string): void {
+		this.setWorkspaceState(
+			setLabelDarkTextColorInState(this.state, labelDarkTextColor),
+		);
+	}
+
+	setLabelDarkBackgroundColor(labelDarkBackgroundColor: string): void {
+		this.setWorkspaceState(
+			setLabelDarkBackgroundColorInState(
+				this.state,
+				labelDarkBackgroundColor,
+			),
+		);
+	}
+
+	setLabelDarkBackgroundOpacity(value: number): void {
+		this.setWorkspaceState(
+			setLabelDarkBackgroundOpacityInState(this.state, value),
+		);
 	}
 
 	setLabelBackgroundOpacity(labelBackgroundOpacity: number): void {

@@ -7,7 +7,11 @@ import {
 	type RuntimeNodeAttributes,
 } from '../../model/graphology-adapter';
 import { immediateNeighborhood } from '../../model/neighborhood';
-import { withAlpha, type GraphPalette } from '../../styles/graph-styles';
+import type { GraphPalette } from '../../styles/graph-styles';
+import {
+	resolveThreeLabelStyle,
+	type LabelThemeConfig,
+} from '../renderer-label-style';
 import { calculateLabelOpacity } from './label-opacity';
 import {
 	DashedArrowEdgeProgram,
@@ -39,6 +43,7 @@ export class SigmaRenderer {
 	private fadeDistance: number;
 	private labelPosition: LabelPosition;
 	private labelColor: string;
+	private labelTheme: LabelThemeConfig;
 	private labelBackgroundOpacity: number;
 	private forceLabels: boolean;
 	private readonly groupOverlayLayer: GroupOverlayLayer;
@@ -46,7 +51,7 @@ export class SigmaRenderer {
 	constructor(
 		private graph: RuntimeGraph,
 		container: HTMLElement,
-		private readonly palette: GraphPalette,
+		private palette: GraphPalette,
 		fadeDistance = 1.5,
 		labelSize = 14,
 		labelPosition: LabelPosition = 'right',
@@ -54,10 +59,24 @@ export class SigmaRenderer {
 		labelBackgroundOpacity = 0.82,
 		labelDensity = 0.8,
 		forceLabels = false,
+		labelLightTextColor = '#111111',
+		labelLightBackgroundColor = '#ffffff',
+		labelLightBackgroundOpacity = 0.82,
+		labelDarkTextColor = '#ffffff',
+		labelDarkBackgroundColor = '#000000',
+		labelDarkBackgroundOpacity = 0.62,
 	) {
 		this.fadeDistance = fadeDistance;
 		this.labelPosition = labelPosition;
 		this.labelColor = labelColor;
+		this.labelTheme = {
+			labelLightTextColor,
+			labelLightBackgroundColor,
+			labelLightBackgroundOpacity,
+			labelDarkTextColor,
+			labelDarkBackgroundColor,
+			labelDarkBackgroundOpacity,
+		};
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.forceLabels = forceLabels;
 		this.instance = new Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>(
@@ -145,6 +164,12 @@ export class SigmaRenderer {
 		this.groupOverlayLayer.update();
 	}
 
+	setPalette(palette: GraphPalette): void {
+		this.palette = palette;
+		this.instance.setSetting('labelColor', { color: this.getLabelColor() });
+		this.instance.refresh();
+	}
+
 	setGroups(
 		groups: ChartGroup[],
 		callbacks?: GroupInteractionCallbacks,
@@ -188,8 +213,18 @@ export class SigmaRenderer {
 		this.instance.refresh();
 	}
 
+	setLabelOffset(_labelOffset: number): void {
+		this.instance.refresh();
+	}
+
 	setLabelColor(labelColor: string): void {
 		this.labelColor = labelColor;
+		this.instance.refresh();
+	}
+
+	setLabelTheme(labelTheme: LabelThemeConfig): void {
+		this.labelTheme = labelTheme;
+		this.instance.setSetting('labelColor', { color: this.getLabelColor() });
 		this.instance.refresh();
 	}
 
@@ -342,13 +377,11 @@ export class SigmaRenderer {
 	}
 
 	private getLabelBackground(): string {
-		return withAlpha(
-			this.palette.labelBackground,
-			this.labelBackgroundOpacity,
-		);
+		return resolveThreeLabelStyle(this.palette, this.labelTheme)
+			.backgroundColor;
 	}
 
 	private getLabelColor(): string {
-		return this.labelColor || this.palette.label;
+		return resolveThreeLabelStyle(this.palette, this.labelTheme).textColor;
 	}
 }

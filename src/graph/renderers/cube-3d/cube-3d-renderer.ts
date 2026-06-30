@@ -1,5 +1,8 @@
 import type * as Three from 'three';
-import type { LabelPosition, ManualLayoutConfig } from '../../../core/types';
+import type {
+	LabelPosition,
+	ManualLayoutConfig,
+} from '../../../core/types';
 import {
 	type CubeFace,
 	type CubeFaceId,
@@ -26,7 +29,6 @@ import {
 import {
 	createCubeArrowTexture,
 	createCubeNodeSprite,
-	createCubeTextSprite,
 } from './cube-sprites';
 import type { ThreeModule } from './cube-three';
 import { immediateNeighborhood } from '../../model/neighborhood';
@@ -36,10 +38,15 @@ import type {
 } from '../../model/graphology-adapter';
 import type { GraphPalette } from '../../styles/graph-styles';
 import {
+	resolveThreeLabelStyle,
+	type LabelThemeConfig,
+} from '../renderer-label-style';
+import {
 	findClosestScreenNode,
 	projectedToViewport,
 	readViewportPosition,
 } from '../renderer-interaction';
+import { createThreeTextSprite } from '../renderer-labels';
 
 interface CubeNodeObject {
 	id: string;
@@ -70,6 +77,9 @@ export class Cube3DRenderer {
 	private animationFrame: number | undefined;
 	private resizeObserver: ResizeObserver;
 	private labelColor: string;
+	private labelPosition: LabelPosition;
+	private labelOffset: number;
+	private labelTheme: LabelThemeConfig;
 	private labelBackgroundOpacity: number;
 	private labelSize: number;
 	private labelDensity: number;
@@ -89,7 +99,7 @@ export class Cube3DRenderer {
 		manualLayout: ManualLayoutConfig,
 		_fadeDistance = 1.5,
 		labelSize = 14,
-		_labelPosition: LabelPosition = 'right',
+		labelPosition: LabelPosition = 'right',
 		labelColor = '',
 		labelBackgroundOpacity = 0.82,
 		labelDensity = 0.8,
@@ -97,6 +107,13 @@ export class Cube3DRenderer {
 		_forceLayout = false,
 		forceLabels = false,
 		isStale: () => boolean = () => false,
+		labelOffset = 1,
+		labelLightTextColor = '#111111',
+		labelLightBackgroundColor = '#ffffff',
+		labelLightBackgroundOpacity = 0.82,
+		labelDarkTextColor = '#ffffff',
+		labelDarkBackgroundColor = '#000000',
+		labelDarkBackgroundOpacity = 0.62,
 	): Promise<Cube3DRenderer | undefined> {
 		const three = await loadThree();
 		if (isStale()) {
@@ -109,11 +126,19 @@ export class Cube3DRenderer {
 			palette,
 			manualLayout,
 			labelSize,
+			labelPosition,
 			labelColor,
 			labelBackgroundOpacity,
 			labelDensity,
 			cubeFaceOpacity,
 			forceLabels,
+			labelOffset,
+			labelLightTextColor,
+			labelLightBackgroundColor,
+			labelLightBackgroundOpacity,
+			labelDarkTextColor,
+			labelDarkBackgroundColor,
+			labelDarkBackgroundOpacity,
 		);
 	}
 
@@ -124,15 +149,33 @@ export class Cube3DRenderer {
 		private palette: GraphPalette,
 		manualLayout: ManualLayoutConfig,
 		labelSize: number,
+		labelPosition: LabelPosition,
 		labelColor: string,
 		labelBackgroundOpacity: number,
 		labelDensity: number,
 		cubeFaceOpacity: number,
 		forceLabels: boolean,
+		labelOffset: number,
+		labelLightTextColor: string,
+		labelLightBackgroundColor: string,
+		labelLightBackgroundOpacity: number,
+		labelDarkTextColor: string,
+		labelDarkBackgroundColor: string,
+		labelDarkBackgroundOpacity: number,
 	) {
 		this.manualLayout = manualLayout;
 		this.labelSize = labelSize;
+		this.labelPosition = labelPosition;
+		this.labelOffset = labelOffset;
 		this.labelColor = labelColor;
+		this.labelTheme = {
+			labelLightTextColor,
+			labelLightBackgroundColor,
+			labelLightBackgroundOpacity,
+			labelDarkTextColor,
+			labelDarkBackgroundColor,
+			labelDarkBackgroundOpacity,
+		};
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.labelDensity = labelDensity;
 		this.cubeFaceOpacity = cubeFaceOpacity;
@@ -240,12 +283,26 @@ export class Cube3DRenderer {
 		this.scheduleRender();
 	}
 
-	setLabelPosition(_labelPosition: LabelPosition): void {
+	setLabelPosition(labelPosition: LabelPosition): void {
+		this.labelPosition = labelPosition;
+		this.rebuildGraphObjects();
+		this.scheduleRender();
+	}
+
+	setLabelOffset(labelOffset: number): void {
+		this.labelOffset = labelOffset;
+		this.rebuildGraphObjects();
 		this.scheduleRender();
 	}
 
 	setLabelColor(labelColor: string): void {
 		this.labelColor = labelColor;
+		this.rebuildGraphObjects();
+		this.scheduleRender();
+	}
+
+	setLabelTheme(labelTheme: LabelThemeConfig): void {
+		this.labelTheme = labelTheme;
 		this.rebuildGraphObjects();
 		this.scheduleRender();
 	}
@@ -611,15 +668,10 @@ export class Cube3DRenderer {
 				this.labelDensity,
 				this.forceLabels,
 			)
-				? createCubeTextSprite(
-						this.three,
-						this.container.ownerDocument,
+				? this.createLabelSprite(
 						attributes.label,
 						this.labelSize,
-						attributes,
-						this.palette,
-						this.labelColor,
-						this.labelBackgroundOpacity,
+						attributes.isPrimary ? 1.1 : 1,
 					)
 				: undefined;
 			if (label) {
@@ -668,6 +720,16 @@ export class Cube3DRenderer {
 			this.edgeGroup.add(line);
 			if (this.graph.isDirected(edgeId)) {
 				this.addArrow(start, end, attributes);
+			}
+			if (this.shouldShowLinkLabel(attributes)) {
+				const label = this.createLabelSprite(
+					attributes.label,
+					Math.max(10, this.labelSize - 2),
+					0.86,
+				);
+				label.position.copy(start.clone().add(end).multiplyScalar(0.5));
+				label.renderOrder = 4;
+				this.edgeGroup.add(label);
 			}
 		}
 	}
@@ -777,14 +839,55 @@ export class Cube3DRenderer {
 		y: number,
 		nodeRadius: number,
 	): Three.Vector3 {
-		return getCubeLocalLabelPosition(
-			face,
-			this.cubeSize,
-			x,
-			y,
-			nodeRadius,
-			this.labelSize,
+		if (this.labelPosition === 'auto' || this.labelPosition === 'top') {
+			return getCubeLocalLabelPosition(
+				face,
+				this.cubeSize,
+				x,
+				y,
+				nodeRadius,
+				this.labelSize * this.labelOffset,
+			);
+		}
+		const base = this.localPosition(face, x, y, 9);
+		const offset = nodeRadius + this.labelSize * this.labelOffset;
+		if (this.labelPosition === 'center') {
+			return base;
+		}
+		if (this.labelPosition === 'left') {
+			return base.add(face.u.clone().multiplyScalar(-offset));
+		}
+		if (this.labelPosition === 'right') {
+			return base.add(face.u.clone().multiplyScalar(offset));
+		}
+		return base.add(face.v.clone().multiplyScalar(-offset));
+	}
+
+	private createLabelSprite(
+		text: string,
+		size: number,
+		scale: number,
+	): Three.Sprite {
+		const fontSize = Math.max(10, size);
+		const labelStyle = resolveThreeLabelStyle(
+			this.palette,
+			this.labelTheme,
 		);
+		return createThreeTextSprite(this.three, {
+			text,
+			fontSize,
+			textColor: labelStyle.textColor,
+			backgroundColor: labelStyle.backgroundColor,
+			ownerDocument: this.container.ownerDocument,
+			paddingX: Math.ceil(fontSize * 0.45),
+			paddingY: Math.ceil(fontSize * 0.45),
+			scale,
+			scaleMultiplier: 0.28,
+		});
+	}
+
+	private shouldShowLinkLabel(attributes: RuntimeEdgeAttributes): boolean {
+		return Boolean(attributes.label) && attributes.forceLabel && !attributes.hidden;
 	}
 
 	private getFaceVisibilityOpacity(

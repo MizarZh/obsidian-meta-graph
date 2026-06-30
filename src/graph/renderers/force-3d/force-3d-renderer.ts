@@ -14,6 +14,10 @@ import { immediateNeighborhood } from '../../model/neighborhood';
 import type { GraphPalette } from '../../styles/graph-styles';
 import { withAlpha } from '../../styles/graph-styles';
 import {
+	resolveThreeLabelStyle,
+	type LabelThemeConfig,
+} from '../renderer-label-style';
+import {
 	findClosestScreenNode,
 	readViewportPosition,
 	type ScreenNode,
@@ -33,6 +37,9 @@ export class Force3DRenderer {
 	private pinnedNodeId?: string;
 	private hoveredNeighborhood = new Set<string>();
 	private labelColor: string;
+	private labelPosition: LabelPosition;
+	private labelOffset: number;
+	private labelTheme: LabelThemeConfig;
 	private labelBackgroundOpacity: number;
 	private labelSize: number;
 	private readonly three: ThreeRuntime;
@@ -61,6 +68,13 @@ export class Force3DRenderer {
 		enableNodeDrag = false,
 		forceLabels = false,
 		isStale: () => boolean = () => false,
+		labelOffset = 1,
+		labelLightTextColor = '#111111',
+		labelLightBackgroundColor = '#ffffff',
+		labelLightBackgroundOpacity = 0.82,
+		labelDarkTextColor = '#ffffff',
+		labelDarkBackgroundColor = '#000000',
+		labelDarkBackgroundOpacity = 0.62,
 	): Promise<Force3DRenderer | undefined> {
 		const [ForceGraph3D, three] = await Promise.all([
 			loadForceGraph3D(),
@@ -86,6 +100,13 @@ export class Force3DRenderer {
 			enableNodeDrag,
 			forceLabels,
 			three,
+			labelOffset,
+			labelLightTextColor,
+			labelLightBackgroundColor,
+			labelLightBackgroundOpacity,
+			labelDarkTextColor,
+			labelDarkBackgroundColor,
+			labelDarkBackgroundOpacity,
 		);
 	}
 
@@ -103,8 +124,25 @@ export class Force3DRenderer {
 		enableNodeDrag = false,
 		_forceLabels = false,
 		three: ThreeRuntime,
+		labelOffset = 1,
+		labelLightTextColor = '#111111',
+		labelLightBackgroundColor = '#ffffff',
+		labelLightBackgroundOpacity = 0.82,
+		labelDarkTextColor = '#ffffff',
+		labelDarkBackgroundColor = '#000000',
+		labelDarkBackgroundOpacity = 0.62,
 	) {
 		this.labelColor = labelColor;
+		this.labelPosition = _labelPosition;
+		this.labelOffset = labelOffset;
+		this.labelTheme = {
+			labelLightTextColor,
+			labelLightBackgroundColor,
+			labelLightBackgroundOpacity,
+			labelDarkTextColor,
+			labelDarkBackgroundColor,
+			labelDarkBackgroundOpacity,
+		};
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.labelSize = _labelSize;
 		this.three = three;
@@ -128,13 +166,17 @@ export class Force3DRenderer {
 			.nodeThreeObject((node: Force3DNode) =>
 				this.createTextSprite(node.label, this.labelSize, 1),
 			)
+			.nodePositionUpdate((object: Object3D, coordinates, node) => {
+				this.positionNodeLabel(object, coordinates, node);
+				return true;
+			})
 			.linkLabel((link) => link.label || '')
 			.linkVisibility((link) => !link.hidden)
 			.linkColor((link) => this.getLinkColor(link))
 			.linkWidth((link) => Math.max(0.4, link.size))
 			.linkThreeObjectExtend(true)
 			.linkThreeObject((link: Force3DLink) =>
-				link.label && !link.hidden
+				this.shouldShowLinkLabel(link)
 					? this.createTextSprite(
 							link.label,
 							Math.max(10, this.labelSize - 2),
@@ -209,11 +251,23 @@ export class Force3DRenderer {
 	}
 
 	setLabelPosition(_labelPosition: LabelPosition): void {
+		this.labelPosition = _labelPosition;
+		this.refreshWhenReady();
+	}
+
+	setLabelOffset(labelOffset: number): void {
+		this.labelOffset = labelOffset;
 		this.refreshWhenReady();
 	}
 
 	setLabelColor(labelColor: string): void {
 		this.labelColor = labelColor;
+		this.applyTooltipStyles();
+		this.refreshLabelsWhenReady();
+	}
+
+	setLabelTheme(labelTheme: LabelThemeConfig): void {
+		this.labelTheme = labelTheme;
 		this.applyTooltipStyles();
 		this.refreshLabelsWhenReady();
 	}
@@ -432,7 +486,7 @@ export class Force3DRenderer {
 				this.createTextSprite(node.label, this.labelSize, 1),
 			)
 			.linkThreeObject((link: Force3DLink) =>
-				link.label && !link.hidden
+				this.shouldShowLinkLabel(link)
 					? this.createTextSprite(
 							link.label,
 							Math.max(10, this.labelSize - 2),
@@ -491,17 +545,15 @@ export class Force3DRenderer {
 		fontSize: number,
 		scaleFactor: number,
 	): Object3D {
+		const labelStyle = resolveThreeLabelStyle(
+			this.palette,
+			this.labelTheme,
+		);
 		return createThreeTextSprite(this.three, {
 			text,
 			fontSize,
-			textColor: this.labelColor || this.palette.label,
-			backgroundColor:
-				this.labelBackgroundOpacity <= 0
-					? 'transparent'
-					: withAlpha(
-							this.palette.labelBackground,
-							this.labelBackgroundOpacity,
-						),
+			textColor: labelStyle.textColor,
+			backgroundColor: labelStyle.backgroundColor,
 			ownerDocument: this.container.ownerDocument,
 			scale: scaleFactor,
 			scaleMultiplier: 0.24,
@@ -509,19 +561,58 @@ export class Force3DRenderer {
 		});
 	}
 
+	private positionNodeLabel(
+		object: Object3D,
+		coordinates: { x: number; y: number; z: number },
+		node: Force3DNode,
+	): void {
+		const offset = Math.max(4, node.size + this.labelSize * this.labelOffset);
+		const direction = this.readLabelDirection(coordinates);
+		object.position.set(
+			coordinates.x + direction.x * offset,
+			coordinates.y + direction.y * offset,
+			coordinates.z + direction.z * offset,
+		);
+	}
+
+	private readLabelDirection(coordinates: {
+		x: number;
+		y: number;
+		z: number;
+	}): { x: number; y: number; z: number } {
+		const position = this.labelPosition === 'auto' ? 'right' : this.labelPosition;
+		if (position === 'center') {
+			return { x: 0, y: 0, z: 0 };
+		}
+		if (position === 'left') return { x: -1, y: 0, z: 0 };
+		if (position === 'right') return { x: 1, y: 0, z: 0 };
+		if (position === 'top') return { x: 0, y: 1, z: 0 };
+		if (position === 'bottom') return { x: 0, y: -1, z: 0 };
+		const length =
+			Math.hypot(coordinates.x, coordinates.y, coordinates.z) || 1;
+		return {
+			x: coordinates.x / length,
+			y: coordinates.y / length,
+			z: coordinates.z / length,
+		};
+	}
+
+	private shouldShowLinkLabel(link: Force3DLink): boolean {
+		return Boolean(link.label) && link.forceLabel && !link.hidden;
+	}
+
 	private applyTooltipStyles(): void {
+		const labelStyle = resolveThreeLabelStyle(
+			this.palette,
+			this.labelTheme,
+		);
 		this.container.style.setProperty(
 			'--meta-graph-3d-label-color',
-			this.labelColor || this.palette.label,
+			labelStyle.textColor,
 		);
 		this.container.style.setProperty(
 			'--meta-graph-3d-label-background',
-			this.labelBackgroundOpacity <= 0
-				? 'transparent'
-				: withAlpha(
-						this.palette.labelBackground,
-						this.labelBackgroundOpacity,
-					),
+			labelStyle.backgroundColor,
 		);
 	}
 }

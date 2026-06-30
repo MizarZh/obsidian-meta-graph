@@ -22,6 +22,7 @@ export interface Force3DLink extends LinkObject<Force3DNode> {
 	color: string;
 	size: number;
 	label: string;
+	forceLabel: boolean;
 	directed: boolean;
 	hidden: boolean;
 }
@@ -100,7 +101,8 @@ function toForce3DLink(
 		target: attributes.logicalTarget ?? target,
 		color: attributes.color,
 		size: attributes.size,
-		label: attributes.label || attributes.relation,
+			label: attributes.label,
+			forceLabel: attributes.forceLabel,
 		directed: attributes.type.includes('arrow'),
 		hidden: attributes.hidden,
 	};

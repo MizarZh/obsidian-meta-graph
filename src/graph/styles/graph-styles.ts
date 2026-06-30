@@ -49,6 +49,21 @@ function normalizeCssColor(
 }
 
 export function withAlpha(color: string, alpha: number): string {
+	const hex = color.trim().match(/^#([\da-f]{3}|[\da-f]{6})$/iu);
+	if (hex) {
+		const value = hex[1] ?? '';
+		const expanded =
+			value.length === 3
+				? value
+						.split('')
+						.map((channel) => `${channel}${channel}`)
+						.join('')
+				: value;
+		const r = Number.parseInt(expanded.slice(0, 2), 16);
+		const g = Number.parseInt(expanded.slice(2, 4), 16);
+		const b = Number.parseInt(expanded.slice(4, 6), 16);
+		return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+	}
 	const channels = color.match(/[\d.]+/gu);
 	if (!channels || channels.length < 3) {
 		return `rgba(32, 32, 32, ${alpha})`;

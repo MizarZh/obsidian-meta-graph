@@ -34,7 +34,13 @@ export type SettingsPanelMode =
 export type FlowEdgeStyle = 'straight' | 'orthogonal';
 export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
 export type ArcDirection = 'right' | 'left' | 'up' | 'down';
-export type LabelPosition = 'right' | 'left' | 'top' | 'bottom';
+export type LabelPosition =
+	| 'auto'
+	| 'right'
+	| 'left'
+	| 'top'
+	| 'bottom'
+	| 'center';
 export type ChartType = ViewMode;
 export type ConnectionFieldMode = 'directed' | 'bidirectional' | 'reverse';
 
@@ -96,7 +102,14 @@ export interface ChartDisplayConfig {
 	fadeDistance: number;
 	labelSize: number;
 	labelPosition: LabelPosition;
+	labelOffset: number;
 	labelColor: string;
+	labelLightTextColor: string;
+	labelLightBackgroundColor: string;
+	labelLightBackgroundOpacity: number;
+	labelDarkTextColor: string;
+	labelDarkBackgroundColor: string;
+	labelDarkBackgroundOpacity: number;
 	labelBackgroundOpacity: number;
 	labelDensity: number;
 	cubeFaceOpacity: number;
@@ -163,7 +176,14 @@ export interface WorkspaceState {
 	fadeDistance: number;
 	labelSize: number;
 	labelPosition: LabelPosition;
+	labelOffset: number;
 	labelColor: string;
+	labelLightTextColor: string;
+	labelLightBackgroundColor: string;
+	labelLightBackgroundOpacity: number;
+	labelDarkTextColor: string;
+	labelDarkBackgroundColor: string;
+	labelDarkBackgroundOpacity: number;
 	labelBackgroundOpacity: number;
 	labelDensity: number;
 	cubeFaceOpacity: number;
