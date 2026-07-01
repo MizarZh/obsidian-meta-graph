@@ -397,6 +397,38 @@ describe('style rules', () => {
 		});
 	});
 
+	it('matches link frontmatter field with text operators', () => {
+		const rules: LinkStyleRule[] = [
+			{
+				id: 'field',
+				field: 'source-field',
+				operator: 'contains',
+				value: 'leads',
+				color: '#444444',
+				size: 3,
+				lineStyle: 'dotted',
+				label: 'Flow',
+				showLabel: true,
+				hidden: true,
+			},
+		];
+		expect(
+			resolveLinkStyle(edge, rules, {
+				color: '#000000',
+				size: 1,
+				lineStyle: 'solid',
+				label: '',
+				hidden: false,
+			}),
+		).toEqual({
+			color: '#444444',
+			size: 3,
+			lineStyle: 'dotted',
+			label: 'Flow',
+			hidden: true,
+		});
+	});
+
 	it('uses the same default link color for every relation', () => {
 		const prerequisiteEdge = {
 			...edge,

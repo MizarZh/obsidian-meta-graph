@@ -78,6 +78,8 @@ describe('filter panel helpers', () => {
 		]);
 		expect(linkRule).toMatchObject({
 			field: 'source-field',
+			operator: 'is',
+			value: '',
 			lineStyle: 'solid',
 			showLabel: false,
 		});

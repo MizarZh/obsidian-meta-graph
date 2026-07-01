@@ -3,7 +3,7 @@ import type {
 	KnowledgeNode,
 	LinkLineStyle,
 	LinkStyleRule,
-	NodeFilterField,
+	NodeFilterOperator,
 	NodeStyleRule,
 } from '../../core/types';
 import { matchesNodeCriterion } from '../../query/filters';
@@ -81,12 +81,7 @@ function matchesNodeRule(
 	if (rule.field === 'group') {
 		return matchesNodeGroup(context, operator, rule.value);
 	}
-	return matchesNodeCriterion(
-		node,
-		rule.field as NodeFilterField,
-		operator,
-		rule.value,
-	);
+	return matchesNodeCriterion(node, rule.field, operator, rule.value);
 }
 
 function matchesNodeGroup(
@@ -147,11 +142,58 @@ function matchesLinkRule(edge: KnowledgeEdge, rule: LinkStyleRule): boolean {
 	if (rule.field === 'all') {
 		return true;
 	}
-	const value = rule.value.trim().toLocaleLowerCase();
-	if (!value) {
+	const operator = rule.operator ?? 'is';
+	if (
+		!rule.value.trim() &&
+		!['has-value', 'empty', 'is-empty', 'is-not-empty'].includes(operator)
+	) {
 		return false;
 	}
-	return rule.field === 'relation'
-		? edge.relation.toLocaleLowerCase() === value
-		: edge.sourceField.toLocaleLowerCase() === value;
+	const candidate =
+		rule.field === 'relation' ? edge.relation : edge.sourceField;
+	return matchesLinkValue(candidate, operator, rule.value);
+}
+
+function matchesLinkValue(
+	candidate: string,
+	operator: NodeFilterOperator,
+	value: string,
+): boolean {
+	const normalizedCandidate = candidate.trim().toLocaleLowerCase();
+	const normalizedValue = value.trim().toLocaleLowerCase();
+	if (operator === 'has-value' || operator === 'is-not-empty') {
+		return normalizedCandidate.length > 0;
+	}
+	if (operator === 'empty' || operator === 'is-empty') {
+		return normalizedCandidate.length === 0;
+	}
+	if (!normalizedValue) {
+		return false;
+	}
+	switch (operator) {
+		case 'is':
+		case 'eq':
+		case 'is-exactly':
+			return normalizedCandidate === normalizedValue;
+		case 'is-not':
+		case 'neq':
+		case 'is-not-exactly':
+			return normalizedCandidate !== normalizedValue;
+		case 'contains':
+		case 'contains-any-of':
+			return normalizedCandidate.includes(normalizedValue);
+		case 'does-not-contain':
+		case 'does-not-contain-any-of':
+			return !normalizedCandidate.includes(normalizedValue);
+		case 'starts-with':
+			return normalizedCandidate.startsWith(normalizedValue);
+		case 'does-not-start-with':
+			return !normalizedCandidate.startsWith(normalizedValue);
+		case 'ends-with':
+			return normalizedCandidate.endsWith(normalizedValue);
+		case 'does-not-end-with':
+			return !normalizedCandidate.endsWith(normalizedValue);
+		default:
+			return normalizedCandidate === normalizedValue;
+	}
 }

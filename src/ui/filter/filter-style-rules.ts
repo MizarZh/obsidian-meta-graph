@@ -24,7 +24,8 @@ export function createLinkStyleRule(id: string): LinkStyleRule {
 	return {
 		id,
 		field: 'source-field',
-		value: 'leads-to',
+		operator: 'is',
+		value: '',
 		color: '#888888',
 		size: 1.5,
 		lineStyle: 'solid',

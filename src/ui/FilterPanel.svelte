@@ -336,6 +336,8 @@
 		/>
 	{:else}
 		<LinkStylePanel
+			{app}
+			{metadataFieldSuggestions}
 			{defaultLinkStyle}
 			{globalLinkStyleRules}
 			{linkStyleOverrides}

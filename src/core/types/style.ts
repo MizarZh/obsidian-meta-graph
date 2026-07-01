@@ -16,6 +16,7 @@ export interface NodeStyleRule {
 export interface LinkStyleRule {
 	id: string;
 	field: LinkStyleField;
+	operator?: NodeFilterOperator;
 	value: string;
 	color: string;
 	size: number;

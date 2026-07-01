@@ -1,15 +1,23 @@
 <script lang="ts">
+	import type { App } from 'obsidian';
 	import CollapsibleSettingsGroup from './CollapsibleSettingsGroup.svelte';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
 	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
+	import ObsidianSuggestInput, {
+		type SuggestionOption,
+	} from '../obsidian/ObsidianSuggestInput.svelte';
 	import ObsidianTextInput from '../obsidian/ObsidianTextInput.svelte';
 	import ObsidianToggle from '../obsidian/ObsidianToggle.svelte';
+	import PropertyPicker, {
+		type PropertyPickerOption,
+	} from '../PropertyPicker.svelte';
 	import type {
 		DefaultLinkStyle,
 		LinkLineStyle,
 		LinkStyleField,
 		LinkStyleRule,
+		NodeFilterOperator,
 	} from '../../core/types';
 	import { createRuleId } from '../filter/filter-tree';
 	import {
@@ -23,11 +31,20 @@
 		removeRule,
 		type StyleRuleScope,
 	} from '../filter/filter-style-rules';
+	import { TEXT_FILTER_OPERATOR_OPTIONS } from '../filter-config';
 
 	const LINK_STYLE_FIELD_OPTIONS = [
-		{ value: 'relation', label: 'Relation' },
-		{ value: 'source-field', label: 'Metadata field' },
-	];
+		{
+			value: 'source-field',
+			label: 'metadata',
+			detail: 'source-field',
+			icon: 'braces',
+		},
+	] satisfies PropertyPickerOption[];
+	const LINK_STYLE_OPERATOR_OPTIONS = TEXT_FILTER_OPERATOR_OPTIONS as Array<{
+		value: NodeFilterOperator;
+		label: string;
+	}>;
 	const LINE_STYLE_OPTIONS = [
 		{ value: 'solid', label: 'Solid' },
 		{ value: 'dashed', label: 'Dashed' },
@@ -39,6 +56,8 @@
 	] as const;
 
 	let {
+		app,
+		metadataFieldSuggestions,
 		defaultLinkStyle,
 		globalLinkStyleRules,
 		linkStyleOverrides,
@@ -50,6 +69,8 @@
 		scheduleColorCommit,
 		commitColor,
 	}: {
+		app: App;
+		metadataFieldSuggestions: string[];
 		defaultLinkStyle: Required<DefaultLinkStyle>;
 		globalLinkStyleRules: LinkStyleRule[];
 		linkStyleOverrides: DefaultLinkStyle;
@@ -79,6 +100,13 @@
 		current: true,
 	});
 	let previousHadLinkOverride = $state<boolean | undefined>(undefined);
+	const metadataFieldOptions = $derived(
+		metadataFieldSuggestions.map((field) => ({
+			value: field,
+			label: field,
+			searchText: field,
+		})),
+	);
 
 	$effect(() => {
 		const hasOverride = hasStyleOverride(linkStyleOverrides);
@@ -105,6 +133,18 @@
 		patch: Partial<LinkStyleRule>,
 	): void {
 		updateLinkRules(scope, patchRule(getLinkRules(scope), id, patch));
+	}
+
+	function updateLinkRuleField(
+		scope: 'global' | 'current',
+		id: string,
+		field: LinkStyleField,
+	): void {
+		updateLinkRule(scope, id, {
+			field,
+			operator: 'is',
+			value: '',
+		});
 	}
 
 	function updateLinkRules(
@@ -189,6 +229,37 @@
 
 	function removeLinkRule(scope: 'global' | 'current', id: string): void {
 		updateLinkRules(scope, removeRule(getLinkRules(scope), id));
+	}
+
+	function getLinkRuleOperator(rule: LinkStyleRule): NodeFilterOperator {
+		return rule.operator ?? 'is';
+	}
+
+	function getVisibleLinkRuleField(rule: LinkStyleRule): LinkStyleField {
+		return rule.field === 'relation' ? 'source-field' : rule.field;
+	}
+
+	function shouldShowLinkRuleValue(rule: LinkStyleRule): boolean {
+		return !['has-value', 'empty', 'is-empty', 'is-not-empty'].includes(
+			getLinkRuleOperator(rule),
+		);
+	}
+
+	function getMetadataValueOptions(rule: LinkStyleRule): SuggestionOption[] {
+		if (
+			rule.value &&
+			!metadataFieldOptions.some((option) => option.value === rule.value)
+		) {
+			return [
+				{
+					value: rule.value,
+					label: rule.value,
+					searchText: rule.value,
+				},
+				...metadataFieldOptions,
+			];
+		}
+		return metadataFieldOptions;
 	}
 </script>
 
@@ -405,7 +476,7 @@
 		{/snippet}
 		{#each getLinkRules(section.scope) as rule (rule.id)}
 			<div class="knowledge-workspace-rule">
-				<div class="knowledge-workspace-rule-row">
+				<div class="knowledge-workspace-rule-row style-condition">
 					<div class="knowledge-workspace-move-rule-buttons">
 						<ObsidianButton
 							icon="chevron-up"
@@ -430,23 +501,57 @@
 								moveLinkRule(section.scope, rule.id, 1)}
 						/>
 					</div>
-					<ObsidianDropdown
-						value={rule.field}
+					<PropertyPicker
+						value={getVisibleLinkRuleField(rule)}
 						options={LINK_STYLE_FIELD_OPTIONS}
+						onSelect={(value) =>
+							updateLinkRuleField(
+								section.scope,
+								rule.id,
+								value as LinkStyleField,
+							)}
+					/>
+					<ObsidianDropdown
+						value={getLinkRuleOperator(rule)}
+						options={LINK_STYLE_OPERATOR_OPTIONS}
 						onChange={(value) =>
 							updateLinkRule(section.scope, rule.id, {
-								field: value as LinkStyleField,
+								field: getVisibleLinkRuleField(rule),
+								operator: value as NodeFilterOperator,
 							})}
 					/>
-					<ObsidianTextInput
-						type="text"
-						placeholder="Metadata value"
-						value={rule.value}
-						onInput={(value) =>
-							updateLinkRule(section.scope, rule.id, {
-								value,
-							})}
-					/>
+					{#if shouldShowLinkRuleValue(rule)}
+						<ObsidianSuggestInput
+							{app}
+							type="text"
+							placeholder="Value"
+							value={rule.value}
+							options={getMetadataValueOptions(rule)}
+							showOnEmpty={true}
+							onInput={(value) =>
+								updateLinkRule(section.scope, rule.id, {
+									field: getVisibleLinkRuleField(rule),
+									value,
+								})}
+							onSelect={(option) =>
+								updateLinkRule(section.scope, rule.id, {
+									field: getVisibleLinkRuleField(rule),
+									value: option.value,
+								})}
+						/>
+					{:else}
+						<ObsidianTextInput
+							type="text"
+							placeholder=""
+							disabled={true}
+							value={rule.value}
+							onInput={(value) =>
+								updateLinkRule(section.scope, rule.id, {
+									field: getVisibleLinkRuleField(rule),
+									value,
+								})}
+						/>
+					{/if}
 					<ObsidianButton
 						class="knowledge-workspace-remove-rule-button"
 						ariaLabel="Remove link style rule"
