@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-meta-graph",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"description": "Visualize and edit metadata-linked relationships between notes as an interactive graph.",
 	"main": "main.js",
 	"type": "module",
