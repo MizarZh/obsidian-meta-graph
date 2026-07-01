@@ -87,7 +87,7 @@ describe('workspace runtime graph', () => {
 			nodeStyleRules: [
 				{
 					id: 'node',
-					field: 'title',
+					field: 'file.basename',
 					operator: 'is',
 					value: 'A',
 					color: '#ff0000',

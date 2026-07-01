@@ -1,21 +1,6 @@
-import type { NodeFilterOperator } from './graph';
+import type { NodeFilterField, NodeFilterOperator } from './graph';
 
-export type NodeStyleField =
-	| 'all'
-	| 'folder'
-	| 'tag'
-	| 'file.name'
-	| 'file.basename'
-	| 'file.path'
-	| 'file.folder'
-	| 'file.ext'
-	| 'file.links'
-	| 'file.tags'
-	| 'metadata-field'
-	| 'domain'
-	| 'group'
-	| 'type'
-	| 'title';
+export type NodeStyleField = 'all' | NodeFilterField | 'group';
 export type LinkStyleField = 'all' | 'relation' | 'source-field';
 export type LinkLineStyle = 'solid' | 'dashed' | 'dotted';
 

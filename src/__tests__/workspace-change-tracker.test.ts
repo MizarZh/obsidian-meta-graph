@@ -39,7 +39,7 @@ describe('workspace change tracker', () => {
 			nodeStyleRules: [
 				{
 					id: 'red',
-					field: 'title',
+					field: 'file.basename',
 					operator: 'contains',
 					value: 'A',
 					color: '#ff0000',
@@ -150,7 +150,7 @@ describe('workspace change tracker', () => {
 			nodeStyleRules: [
 				{
 					id: 'important',
-					field: 'title',
+					field: 'file.basename',
 					operator: 'contains',
 					value: 'Important',
 					color: '#ff0000',

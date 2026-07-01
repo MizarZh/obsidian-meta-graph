@@ -3,6 +3,7 @@ import type {
 	KnowledgeNode,
 	LinkLineStyle,
 	LinkStyleRule,
+	NodeFilterField,
 	NodeStyleRule,
 } from '../../core/types';
 import { matchesNodeCriterion } from '../../query/filters';
@@ -70,37 +71,22 @@ function matchesNodeRule(
 	if (rule.field === 'all') {
 		return true;
 	}
-	const value = rule.value.trim().toLocaleLowerCase();
 	const operator = rule.operator ?? 'is';
 	if (
-		!value &&
+		!rule.value.trim() &&
 		!['has-value', 'empty', 'is-empty', 'is-not-empty'].includes(operator)
 	) {
 		return false;
 	}
-	switch (rule.field) {
-		case 'folder':
-		case 'tag':
-		case 'file.name':
-		case 'file.basename':
-		case 'file.path':
-		case 'file.folder':
-		case 'file.ext':
-		case 'file.links':
-		case 'file.tags':
-		case 'metadata-field':
-			return matchesNodeCriterion(node, rule.field, operator, rule.value);
-		case 'domain':
-			return node.domains.some(
-				(domain) => domain.toLocaleLowerCase() === value,
-			);
-		case 'group':
-			return matchesNodeGroup(context, operator, rule.value);
-		case 'type':
-			return node.noteType?.toLocaleLowerCase() === value;
-		case 'title':
-			return node.title.toLocaleLowerCase() === value;
+	if (rule.field === 'group') {
+		return matchesNodeGroup(context, operator, rule.value);
 	}
+	return matchesNodeCriterion(
+		node,
+		rule.field as NodeFilterField,
+		operator,
+		rule.value,
+	);
 }
 
 function matchesNodeGroup(

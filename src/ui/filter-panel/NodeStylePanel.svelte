@@ -32,7 +32,6 @@
 		type StyleRuleScope,
 	} from '../filter/filter-style-rules';
 
-	const NODE_STYLE_FIELD_OPTIONS = getNodeStyleFieldOptions();
 	const NODE_STYLE_SECTIONS = [
 		{ scope: 'global', title: 'Global note rules' },
 		{ scope: 'current', title: 'Chart note rules' },
@@ -96,6 +95,9 @@
 		current: true,
 	});
 	let previousHadNodeOverride = $state<boolean | undefined>(undefined);
+	let nodeStyleFieldOptions = $derived(
+		getNodeStyleFieldOptions(metadataFieldSuggestions, metadataFieldTypes),
+	);
 
 	$effect(() => {
 		const hasOverride = hasStyleOverride(nodeStyleOverrides);
@@ -447,7 +449,7 @@
 					field={rule.field}
 					operator={rule.operator}
 					value={rule.value}
-					fieldOptions={NODE_STYLE_FIELD_OPTIONS}
+					fieldOptions={nodeStyleFieldOptions}
 					getOperatorOptions={getNodeStyleOperatorOptionsForField}
 					getDefaultOperator={getDefaultNodeStyleOperatorForField}
 					getFieldType={getNodeStyleFieldTypeForField}

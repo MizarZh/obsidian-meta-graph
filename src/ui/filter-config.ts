@@ -52,25 +52,12 @@ export const FILE_FILTER_FIELD_OPTIONS = SYSTEM_FILTER_FIELD_OPTIONS.map(
 	({ value, label }) => ({ value, label }),
 );
 
-const NODE_STYLE_SYSTEM_FIELD_VALUES = new Set<NodeStyleField>([
-	'file.name',
-	'file.basename',
-	'file.path',
-	'file.folder',
-	'file.ext',
-	'file.links',
-	'file.tags',
-	'metadata-field',
-]);
-
-const NODE_STYLE_EXTRA_FIELD_OPTIONS = [
-	{ value: 'folder', label: 'Folder', detail: 'folder', icon: 'folder' },
-	{ value: 'tag', label: 'Tag', detail: 'tag', icon: 'tags' },
-	{ value: 'domain', label: 'Domain', detail: 'domain', icon: 'globe' },
-	{ value: 'group', label: 'Group', detail: 'group', icon: 'box' },
-	{ value: 'type', label: 'Type', detail: 'type', icon: 'badge' },
-	{ value: 'title', label: 'Title', detail: 'title', icon: 'align-left' },
-] satisfies PropertyPickerOption[];
+const NODE_STYLE_GROUP_FIELD_OPTION = {
+	value: 'group',
+	label: 'Group',
+	detail: 'group',
+	icon: 'box',
+} satisfies PropertyPickerOption;
 
 export const FILE_FILTER_OPERATOR_OPTIONS = [
 	{ value: 'links-to', label: 'links to' },
@@ -160,17 +147,13 @@ export function getFilterFieldOptions(
 	];
 }
 
-export function getNodeStyleFieldOptions(): PropertyPickerOption[] {
+export function getNodeStyleFieldOptions(
+	metadataFieldSuggestions: string[],
+	metadataFieldTypes: Record<string, string>,
+): PropertyPickerOption[] {
 	return [
-		...NODE_STYLE_EXTRA_FIELD_OPTIONS,
-		...SYSTEM_FILTER_FIELD_OPTIONS.filter((field) =>
-			NODE_STYLE_SYSTEM_FIELD_VALUES.has(field.value as NodeStyleField),
-		).map((field) => ({
-			value: field.value,
-			label: field.label,
-			detail: field.value,
-			icon: field.icon,
-		})),
+		...getFilterFieldOptions(metadataFieldSuggestions, metadataFieldTypes),
+		NODE_STYLE_GROUP_FIELD_OPTION,
 	];
 }
 
@@ -198,12 +181,7 @@ export function getNodeStyleOperatorOptions(
 	field: NodeStyleField,
 	metadataFieldTypes: Record<string, string>,
 ): Array<{ value: NodeFilterOperator; label: string }> {
-	if (
-		field === 'domain' ||
-		field === 'group' ||
-		field === 'type' ||
-		field === 'title'
-	) {
+	if (field === 'all' || field === 'group') {
 		return TEXT_FILTER_OPERATOR_OPTIONS as Array<{
 			value: NodeFilterOperator;
 			label: string;
@@ -258,12 +236,7 @@ export function getNodeStyleFieldType(
 	field: NodeStyleField,
 	metadataFieldTypes: Record<string, string>,
 ): string {
-	if (
-		field === 'domain' ||
-		field === 'group' ||
-		field === 'type' ||
-		field === 'title'
-	) {
+	if (field === 'all' || field === 'group') {
 		return 'text';
 	}
 	return getFilterFieldType(field as NodeFilterField, metadataFieldTypes);
