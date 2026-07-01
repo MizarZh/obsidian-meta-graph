@@ -15,6 +15,7 @@ import {
 import {
 	getLinkEndpointId,
 	hasFiniteCoordinates,
+	syncForce3DDataStyles,
 	toForce3DData,
 } from '../graph/renderers/force-3d/force-3d-data';
 import {
@@ -84,6 +85,47 @@ describe('graph renderer helpers', () => {
 				hidden: false,
 			},
 		]);
+	});
+
+	it('syncs Force 3D style fields without replacing graph data', () => {
+		const graph = createRuntimeGraph();
+		const data = toForce3DData(graph);
+		const source = data.nodes[0]!;
+		const target = data.nodes[1]!;
+		data.links[0]!.source = source;
+		data.links[0]!.target = target;
+
+		graph.mergeNodeAttributes('A.md', {
+			color: '#abcdef',
+			size: 12,
+			isContext: true,
+		});
+		graph.mergeEdgeAttributes('A-to-B', {
+			color: '#fedcba',
+			size: 4,
+			label: 'updated',
+			forceLabel: true,
+			type: 'line',
+			hidden: true,
+		});
+
+		syncForce3DDataStyles(graph, data);
+
+		expect(data.nodes[0]).toBe(source);
+		expect(data.links[0]!.source).toBe(source);
+		expect(data.links[0]!.target).toBe(target);
+		expect(data.nodes[0]).toMatchObject({
+			color: '#abcdef',
+			size: 12,
+			isContext: true,
+		});
+		expect(data.links[0]).toMatchObject({
+			color: '#fedcba',
+			size: 4,
+			label: 'updated',
+			directed: false,
+			hidden: true,
+		});
 	});
 
 	it('reads Force 3D endpoint ids and finite coordinates', () => {

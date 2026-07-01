@@ -50,6 +50,37 @@ export function toForce3DData(graph: RuntimeGraph): {
 	};
 }
 
+export function syncForce3DDataStyles(
+	graph: RuntimeGraph,
+	data: { nodes: Force3DNode[]; links: Force3DLink[] },
+): void {
+	for (const node of data.nodes) {
+		if (!graph.hasNode(node.id)) {
+			continue;
+		}
+		const attributes = graph.getNodeAttributes(node.id);
+		node.label = attributes.label;
+		node.color = attributes.color;
+		node.size = attributes.size;
+		node.path = attributes.path;
+		node.isPrimary = attributes.isPrimary;
+		node.isContext = attributes.isContext;
+	}
+
+	for (const link of data.links) {
+		if (!graph.hasEdge(link.id)) {
+			continue;
+		}
+		const attributes = graph.getEdgeAttributes(link.id);
+		link.color = attributes.color;
+		link.size = attributes.size;
+		link.label = attributes.label;
+		link.forceLabel = attributes.forceLabel;
+		link.directed = attributes.type.includes('arrow');
+		link.hidden = attributes.hidden;
+	}
+}
+
 export function getLinkEndpointId(
 	endpoint: string | number | Force3DNode | undefined,
 ): string {

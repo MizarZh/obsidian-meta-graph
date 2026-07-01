@@ -8,6 +8,7 @@ import {
 	type Force3DNode,
 	getLinkEndpointId,
 	hasFiniteCoordinates,
+	syncForce3DDataStyles,
 	toForce3DData,
 } from './force-3d-data';
 import { immediateNeighborhood } from '../../model/neighborhood';
@@ -235,6 +236,17 @@ export class Force3DRenderer {
 		this.refreshWhenReady();
 	}
 
+	refreshGraphStyles(): void {
+		if (!this.initialized || this.killed) {
+			return;
+		}
+		syncForce3DDataStyles(this.graph, this.instance.graphData());
+		this.refreshVisualAccessorsWhenReady();
+		this.updateLabelSprites();
+		this.updateNodeLabelPositions();
+		this.renderFrame();
+	}
+
 	setPalette(palette: GraphPalette): void {
 		this.palette = palette;
 		this.instance.scene().background = new this.three.Color(
@@ -264,7 +276,7 @@ export class Force3DRenderer {
 	}
 
 	setFadeDistance(_fadeDistance: number): void {
-		this.refreshWhenReady();
+		// 3D labels do not use Sigma camera fade distance.
 	}
 
 	setLabelSize(_labelSize: number): void {
@@ -308,11 +320,11 @@ export class Force3DRenderer {
 	}
 
 	setLabelDensity(_labelDensity: number): void {
-		this.renderFrame();
+		// 3D labels are scene objects, not density-filtered canvas labels.
 	}
 
 	setForceLabels(_forceLabels: boolean): void {
-		this.renderFrame();
+		// 3D graph renders node labels as sprites for every visible node.
 	}
 
 	setEnableForceLayout(enableForceLayout: boolean): void {
@@ -503,6 +515,24 @@ export class Force3DRenderer {
 		this.instance
 			.nodeColor((node: Force3DNode) => this.getNodeColor(node))
 			.linkColor((link: Force3DLink) => this.getLinkColor(link))
+			.linkDirectionalArrowColor((link: Force3DLink) =>
+				this.getLinkColor(link),
+			);
+	}
+
+	private refreshVisualAccessorsWhenReady(): void {
+		if (!this.initialized || this.killed) {
+			return;
+		}
+		this.instance
+			.nodeVal((node: Force3DNode) => node.size)
+			.nodeColor((node: Force3DNode) => this.getNodeColor(node))
+			.linkVisibility((link: Force3DLink) => !link.hidden)
+			.linkColor((link: Force3DLink) => this.getLinkColor(link))
+			.linkWidth((link: Force3DLink) => Math.max(0.4, link.size))
+			.linkDirectionalArrowLength((link: Force3DLink) =>
+				link.directed && !link.hidden ? Math.max(2.5, link.size * 2.5) : 0,
+			)
 			.linkDirectionalArrowColor((link: Force3DLink) =>
 				this.getLinkColor(link),
 			);

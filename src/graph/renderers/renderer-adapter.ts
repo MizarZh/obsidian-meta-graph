@@ -142,7 +142,11 @@ export function setRendererManualLayout(
 }
 
 export function refreshRendererGraphStyles(renderer: GraphRenderer): void {
-	if (isForce3DRenderer(renderer) || isCube3DRenderer(renderer)) {
+	if (isForce3DRenderer(renderer)) {
+		renderer.refreshGraphStyles();
+		return;
+	}
+	if (isCube3DRenderer(renderer)) {
 		renderer.setGraph(renderer.runtimeGraph);
 		return;
 	}
@@ -206,11 +210,11 @@ export async function createGraphRenderer(
 		options.graph,
 		options.container,
 		options.palette,
-			options.fadeDistance,
-			options.labelSize,
-			options.labelPosition,
-			options.labelOffset,
-			options.labelColor,
+		options.fadeDistance,
+		options.labelSize,
+		options.labelPosition,
+		options.labelOffset,
+		options.labelColor,
 		options.labelBackgroundOpacity,
 		options.labelDensity,
 		options.forceLabels,
