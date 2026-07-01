@@ -45,6 +45,7 @@
 		onReorderTemplates,
 		onReorderNotes,
 		onLinkPointerDown,
+		onCuratedPointerDown,
 		onOpenNote,
 		onSelectNote,
 		focusOnSelect,
@@ -80,6 +81,10 @@
 			payload: DockDragPayload,
 			event: PointerEvent,
 		) => void;
+		onCuratedPointerDown: (
+			payload: DockDragPayload,
+			event: PointerEvent,
+		) => boolean;
 		onOpenNote: (nodeId: string) => void;
 		onSelectNote: (nodeId: string) => void;
 		focusOnSelect: boolean;
@@ -114,6 +119,7 @@
 			handleLinkPointerDown(payload, event);
 			return;
 		}
+		onCuratedPointerDown(payload, event);
 		if (payload.kind === 'note') {
 			onSelectNote(payload.notePath);
 		}
@@ -127,7 +133,9 @@
 			!event.ctrlKey ||
 			event.button !== 0 ||
 			(event.target instanceof HTMLElement &&
-				event.target.closest('button, .knowledge-workspace-drag-handle'))
+				event.target.closest(
+					'button, .knowledge-workspace-drag-handle',
+				))
 		) {
 			return;
 		}
@@ -202,7 +210,7 @@
 				: linking
 					? 'Choose target'
 					: draggingKey
-						? 'Drag to reorder'
+						? 'Drop on graph'
 						: 'Ready'}
 		</span>
 	{/if}

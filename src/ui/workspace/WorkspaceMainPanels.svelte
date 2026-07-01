@@ -14,6 +14,7 @@
 	import Inspector from '../Inspector.svelte';
 	import type { DockDragPayload } from '../dock/types';
 	import type { CuratedConditionDraft } from '../curated/curated-panel-state';
+	import type { DockCuratedDropPreview } from './dock-curated-drop';
 	import type { DockNoteEntry } from './derived';
 
 	let {
@@ -37,6 +38,7 @@
 		curatedSelection,
 		curatedConditionDraft,
 		dockDrag,
+		dockCuratedDropPreview,
 		dockConnectionDrag,
 		dockTargetNodeId,
 		dockOpen,
@@ -46,6 +48,7 @@
 		onToggleCuratedPanel,
 		onToggleConnection,
 		onLinkPointerDown,
+		onCuratedPointerDown,
 		onFocusNode,
 		onOpenMetadataLink,
 		onCuratedSelectionChange,
@@ -72,6 +75,7 @@
 		curatedSelection: Set<string>;
 		curatedConditionDraft: CuratedConditionDraft;
 		dockDrag?: DockDragPayload;
+		dockCuratedDropPreview?: DockCuratedDropPreview;
 		dockConnectionDrag?: DockDragPayload;
 		dockTargetNodeId?: string;
 		dockOpen: boolean;
@@ -84,6 +88,10 @@
 			payload: DockDragPayload,
 			event: PointerEvent,
 		) => void;
+		onCuratedPointerDown: (
+			payload: DockDragPayload,
+			event: PointerEvent,
+		) => boolean;
 		onFocusNode: (nodeId: string) => void;
 		onOpenMetadataLink: (linkText: string, sourcePath: string) => void;
 		onCuratedSelectionChange: (paths: Set<string>) => void;
@@ -201,6 +209,16 @@
 		No matching metadata relationships.
 	</div>
 {/if}
+{#if dockCuratedDropPreview}
+	<div
+		class="knowledge-workspace-curated-drop-preview"
+		class:target={Boolean(dockCuratedDropPreview.groupId)}
+		style={`--drop-x: ${dockCuratedDropPreview.x}px; --drop-y: ${dockCuratedDropPreview.y}px;`}
+		aria-hidden="true"
+	>
+		<span></span>
+	</div>
+{/if}
 <DockGraphPanel
 	{app}
 	templates={workspaceState.dock.templates}
@@ -232,6 +250,7 @@
 		controller.reorderDockTemplates(templateIds)}
 	onReorderNotes={(paths) => controller.reorderDockNotes(paths)}
 	{onLinkPointerDown}
+	{onCuratedPointerDown}
 	onOpenNote={(nodeId) => void controller.openNode(nodeId)}
 	focusOnSelect={workspaceState.dock.focusOnSelect}
 	onToggleFocusOnSelect={() =>

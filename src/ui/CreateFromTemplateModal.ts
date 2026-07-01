@@ -7,7 +7,7 @@ export class CreateFromTemplateModal extends Modal {
 	constructor(
 		app: App,
 		private readonly templateLabel: string,
-		private readonly targetTitle: string,
+		private readonly targetTitle: string | undefined,
 		private readonly onSubmit: (name: string) => Promise<void>,
 	) {
 		super(app);
@@ -16,7 +16,9 @@ export class CreateFromTemplateModal extends Modal {
 	onOpen(): void {
 		this.setTitle('Create note');
 		this.contentEl.createEl('p', {
-			text: `Create a ${this.templateLabel} note linked to ${this.targetTitle}.`,
+			text: this.targetTitle
+				? `Create a ${this.templateLabel} note linked to ${this.targetTitle}.`
+				: `Create a ${this.templateLabel} note.`,
 		});
 		new Setting(this.contentEl).setName('Name').addText((text) =>
 			text.setPlaceholder('New note name').onChange((value) => {

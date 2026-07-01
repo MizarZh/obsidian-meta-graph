@@ -50,7 +50,10 @@
 		readThemeSignature,
 	} from './workspace/theme';
 	import { openResolvedMetadataLink } from './workspace/metadata-link-actions';
-	import { openWorkspaceCreateTemplateNote } from './workspace/workspace-template-flow';
+	import {
+		openWorkspaceCreateStandaloneTemplateNote,
+		openWorkspaceCreateTemplateNote,
+	} from './workspace/workspace-template-flow';
 	import { WorkspaceAutoSave } from './workspace/autosave';
 	import {
 		analyzeWorkspaceStateChanges,
@@ -65,6 +68,11 @@
 		syncWorkspaceRendererGroups,
 	} from './workspace/renderer-groups';
 	import { WorkspaceRendererLifecycle } from './workspace/renderer-lifecycle';
+	import {
+		DockCuratedDropController,
+		type DockCuratedDropAction,
+		type DockCuratedDropPreview,
+	} from './workspace/dock-curated-drop';
 	import { DockGraphDragController } from './workspace/dock-graph-drag';
 	import { GraphDockConnectionController } from './workspace/graph-dock-connection';
 	import WorkspaceSettingsPopover from './workspace/WorkspaceSettingsPopover.svelte';
@@ -116,6 +124,9 @@
 		{},
 	);
 	let dockDrag = $state<DockDragPayload | undefined>(undefined);
+	let dockCuratedDropPreview = $state<DockCuratedDropPreview | undefined>(
+		undefined,
+	);
 	let dockConnectionDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockTargetNodeId = $state<string | undefined>(undefined);
 	let dockOpen = $state(true);
@@ -154,6 +165,25 @@
 			dockTargetNodeId = nodeId;
 		},
 		onDrop: (action) => handleDockPayloadGraphAction(action),
+	});
+	const dockCuratedDrop = new DockCuratedDropController({
+		window,
+		readCanvas: () => canvas,
+		readRenderer: () => rendererLifecycle.renderer,
+		readChartSource: () => workspaceState.chartSource,
+		readElementAtPoint: (clientX, clientY) =>
+			readWorkspaceDocument().elementFromPoint(clientX, clientY),
+		canStartDrag: (payload) => canStartCuratedDrop(payload),
+		setDockDrag: (payload) => {
+			dockDrag = payload;
+		},
+		setPreview: (preview) => {
+			dockCuratedDropPreview = preview;
+		},
+		setActiveNodeDropGroupId: (groupId) => {
+			activeNodeDropGroupId = groupId;
+		},
+		onDrop: (action) => handleDockCuratedDropAction(action),
 	});
 	const graphDockConnection = new GraphDockConnectionController({
 		readConnectionDrag: () => connectionDrag,
@@ -399,6 +429,7 @@
 				},
 			);
 			dockGraphDrag.resetConnectionDrag();
+			dockCuratedDrop.reset();
 			rendererLifecycle.dispose();
 		};
 	});
@@ -687,6 +718,42 @@
 			);
 	}
 
+	function handleDockCuratedDropAction(action: DockCuratedDropAction): void {
+		if (action.kind === 'add-note') {
+			controller.addCuratedFile(action.notePath, action.groupId);
+			controller.setManualNodePosition(
+				action.notePath,
+				action.position,
+				action.groupId,
+			);
+			return;
+		}
+		void openWorkspaceCreateStandaloneTemplateNote({
+			app,
+			controller,
+			workspaceState,
+			openTemplateNoteInNewTab,
+			templateId: action.templateId,
+			label: action.label,
+			position: action.position,
+			groupId: action.groupId,
+		}).catch((error: unknown) =>
+			controller.setRendererDebugState({
+				status: 'error',
+				error: formatError(error),
+			}),
+		);
+	}
+
+	function canStartCuratedDrop(payload: DockDragPayload): boolean {
+		if (payload.kind === 'note') {
+			return !workspaceState.projection?.nodes.some(
+				(node) => node.id === payload.notePath,
+			);
+		}
+		return payload.kind === 'template';
+	}
+
 	async function openCreateFromTemplateId(
 		templateId: string,
 		targetNodeId: string,
@@ -857,6 +924,7 @@
 				{curatedSelection}
 				{curatedConditionDraft}
 				{dockDrag}
+				{dockCuratedDropPreview}
 				{dockConnectionDrag}
 				{dockTargetNodeId}
 				{dockOpen}
@@ -867,6 +935,7 @@
 					(curatedPanelOpen = !curatedPanelOpen)}
 				onToggleConnection={() => (connectionOpen = !connectionOpen)}
 				onLinkPointerDown={dockGraphDrag.handlePointerDown}
+				onCuratedPointerDown={dockCuratedDrop.handlePointerDown}
 				onFocusNode={(nodeId) => rendererLifecycle.focusNode(nodeId)}
 				onOpenMetadataLink={(linkText, sourcePath) =>
 					void openMetadataLink(linkText, sourcePath)}

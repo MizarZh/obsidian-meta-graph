@@ -265,7 +265,7 @@
 							? `Template note or target folder not found`
 							: undefined}
 						onpointerdown={(event) => {
-							if (template.broken && event.ctrlKey) {
+							if (template.broken) {
 								return;
 							}
 							onPointerDown(payload, event);

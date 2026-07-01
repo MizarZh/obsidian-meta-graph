@@ -5,6 +5,9 @@ import type {
 	WorkspaceState,
 } from '../../core/types';
 import type { WorkspaceController } from '../../workspace/workspace-controller';
+import { CreateFromTemplateModal } from '../CreateFromTemplateModal';
+import { findDockTemplateLabel } from './derived';
+import { openCreatedTemplateNote } from './template-actions';
 import { openWorkspaceTemplateNote } from './template-modal-actions';
 
 export interface WorkspaceCreateTemplateFlowOptions {
@@ -17,6 +20,17 @@ export interface WorkspaceCreateTemplateFlowOptions {
 	targetNodeId: string;
 	label?: string;
 	direction?: DockConnectionDirection;
+}
+
+export interface WorkspaceCreateStandaloneTemplateFlowOptions {
+	app: App;
+	controller: WorkspaceController;
+	workspaceState: WorkspaceState;
+	openTemplateNoteInNewTab: boolean;
+	templateId: string;
+	label?: string;
+	position: { x: number; y: number };
+	groupId?: string;
 }
 
 export function openWorkspaceCreateTemplateNote({
@@ -54,5 +68,47 @@ export function openWorkspaceCreateTemplateNote({
 			isOpenableFile: (file): file is TFile => file instanceof TFile,
 			openFile: (file) => app.workspace.getLeaf('tab').openFile(file),
 		},
+	});
+}
+
+export async function openWorkspaceCreateStandaloneTemplateNote({
+	app,
+	controller,
+	workspaceState,
+	openTemplateNoteInNewTab,
+	templateId,
+	label,
+	position,
+	groupId,
+}: WorkspaceCreateStandaloneTemplateFlowOptions): Promise<void> {
+	const templateLabel =
+		label ??
+		findDockTemplateLabel(workspaceState.dock.templates, templateId);
+	if (!templateLabel) {
+		return;
+	}
+	const filePath = await new Promise<string | undefined>((resolve) => {
+		new CreateFromTemplateModal(
+			app,
+			templateLabel,
+			undefined,
+			async (name) => {
+				const path = await controller.createStandaloneNoteFromTemplate(
+					templateId,
+					name,
+				);
+				resolve(path);
+			},
+		).open();
+	});
+	if (!filePath) {
+		return;
+	}
+	controller.addCuratedFile(filePath, groupId);
+	controller.setManualNodePosition(filePath, position, groupId);
+	await openCreatedTemplateNote(filePath, openTemplateNoteInNewTab, {
+		getFile: (path) => app.vault.getAbstractFileByPath(path),
+		isOpenableFile: (file): file is TFile => file instanceof TFile,
+		openFile: (file) => app.workspace.getLeaf('tab').openFile(file),
 	});
 }

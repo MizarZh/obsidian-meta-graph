@@ -153,6 +153,7 @@ import {
 } from './state/chart-state';
 import { createTemplateNoteFile } from './services/template-service';
 import { createWorkspaceTemplateNote } from './actions/template-actions';
+import { resolveTemplateNoteRequest } from './actions/template-request';
 
 type StateListener = (state: WorkspaceState) => void;
 
@@ -733,6 +734,19 @@ export class WorkspaceController {
 				);
 			},
 		});
+	}
+
+	async createStandaloneNoteFromTemplate(
+		templateId: string,
+		name: string,
+	): Promise<string> {
+		const { template, title } = resolveTemplateNoteRequest(
+			this.state.dock.templates,
+			templateId,
+			name,
+		);
+		const file = await createTemplateNoteFile(this.app, template, title);
+		return file.path;
 	}
 
 	updateQuery(patch: Partial<Omit<GraphQuery, 'roots'>>): void {

@@ -114,20 +114,20 @@ export class SigmaRenderer {
 						this.palette,
 						this.graph.extremities(edge),
 					),
-					defaultDrawNodeLabel: createNodeLabelDrawer(
-						() => this.getCurrentLabelOpacity(),
-						() => this.labelPosition,
-						() => this.labelOffset,
-						() => this.getLabelColor(),
-						() => this.getLabelBackground(),
-					),
-					defaultDrawNodeHover: createNodeHoverDrawer(
-						() => this.getCurrentLabelOpacity(),
-						() => this.labelPosition,
-						() => this.labelOffset,
-						() => this.getLabelColor(),
-						() => this.getLabelBackground(),
-					),
+				defaultDrawNodeLabel: createNodeLabelDrawer(
+					() => this.getCurrentLabelOpacity(),
+					() => this.labelPosition,
+					() => this.labelOffset,
+					() => this.getLabelColor(),
+					() => this.getLabelBackground(),
+				),
+				defaultDrawNodeHover: createNodeHoverDrawer(
+					() => this.getCurrentLabelOpacity(),
+					() => this.labelPosition,
+					() => this.labelOffset,
+					() => this.getLabelColor(),
+					() => this.getLabelBackground(),
+				),
 				defaultDrawEdgeLabel: createEdgeLabelDrawer(() =>
 					this.getCurrentLabelOpacity(),
 				),
@@ -187,6 +187,13 @@ export class SigmaRenderer {
 		y: number;
 	}): string | undefined {
 		return this.groupOverlayLayer.getGroupAtViewportPosition(position);
+	}
+
+	viewportToGraphPosition(position: { x: number; y: number }): {
+		x: number;
+		y: number;
+	} {
+		return this.instance.viewportToGraph(position);
 	}
 
 	setActiveDropGroup(groupId?: string): void {
