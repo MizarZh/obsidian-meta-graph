@@ -223,10 +223,24 @@ describe('graph renderer helpers', () => {
 			textY: 20,
 			textAlign: 'left',
 		});
+		expect(getNodeLabelBox(10, 20, 5, 30, 12, 5, 'right', 14)).toEqual({
+			x: 24,
+			y: 14,
+			textX: 29,
+			textY: 20,
+			textAlign: 'left',
+		});
 		expect(getRotatedNodeLabelBox(5, 30, 12, 5, 7, -1, 'left')).toEqual({
 			x: 12,
 			y: -6,
 			textX: 17,
+			textY: 0,
+			textAlign: 'left',
+		});
+		expect(getRotatedNodeLabelBox(5, 30, 12, 5, 14, -1, 'left')).toEqual({
+			x: 19,
+			y: -6,
+			textX: 24,
 			textY: 0,
 			textAlign: 'left',
 		});

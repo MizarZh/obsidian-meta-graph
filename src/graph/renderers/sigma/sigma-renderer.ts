@@ -42,6 +42,7 @@ export class SigmaRenderer {
 	private hoveredNeighborhood = new Set<string>();
 	private fadeDistance: number;
 	private labelPosition: LabelPosition;
+	private labelOffset: number;
 	private labelColor: string;
 	private labelTheme: LabelThemeConfig;
 	private labelBackgroundOpacity: number;
@@ -55,6 +56,7 @@ export class SigmaRenderer {
 		fadeDistance = 1.5,
 		labelSize = 14,
 		labelPosition: LabelPosition = 'right',
+		labelOffset = 1,
 		labelColor = '',
 		labelBackgroundOpacity = 0.82,
 		labelDensity = 0.8,
@@ -68,6 +70,7 @@ export class SigmaRenderer {
 	) {
 		this.fadeDistance = fadeDistance;
 		this.labelPosition = labelPosition;
+		this.labelOffset = labelOffset;
 		this.labelColor = labelColor;
 		this.labelTheme = {
 			labelLightTextColor,
@@ -111,18 +114,20 @@ export class SigmaRenderer {
 						this.palette,
 						this.graph.extremities(edge),
 					),
-				defaultDrawNodeLabel: createNodeLabelDrawer(
-					() => this.getCurrentLabelOpacity(),
-					() => this.labelPosition,
-					() => this.getLabelColor(),
-					() => this.getLabelBackground(),
-				),
-				defaultDrawNodeHover: createNodeHoverDrawer(
-					() => this.getCurrentLabelOpacity(),
-					() => this.labelPosition,
-					() => this.getLabelColor(),
-					() => this.getLabelBackground(),
-				),
+					defaultDrawNodeLabel: createNodeLabelDrawer(
+						() => this.getCurrentLabelOpacity(),
+						() => this.labelPosition,
+						() => this.labelOffset,
+						() => this.getLabelColor(),
+						() => this.getLabelBackground(),
+					),
+					defaultDrawNodeHover: createNodeHoverDrawer(
+						() => this.getCurrentLabelOpacity(),
+						() => this.labelPosition,
+						() => this.labelOffset,
+						() => this.getLabelColor(),
+						() => this.getLabelBackground(),
+					),
 				defaultDrawEdgeLabel: createEdgeLabelDrawer(() =>
 					this.getCurrentLabelOpacity(),
 				),
@@ -213,7 +218,8 @@ export class SigmaRenderer {
 		this.instance.refresh();
 	}
 
-	setLabelOffset(_labelOffset: number): void {
+	setLabelOffset(labelOffset: number): void {
+		this.labelOffset = labelOffset;
 		this.instance.refresh();
 	}
 

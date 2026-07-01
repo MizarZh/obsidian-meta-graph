@@ -21,6 +21,7 @@ import {
 export function createNodeLabelDrawer(
 	getOpacity: () => number,
 	getLabelPosition: () => LabelPosition,
+	getLabelOffset: () => number,
 	getLabelColor: () => string,
 	getLabelBackground: () => string,
 ): NodeLabelDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
@@ -44,12 +45,13 @@ export function createNodeLabelDrawer(
 			context,
 			data,
 			width,
-			height,
-			paddingX,
-			getLabelPosition(),
-			getLabelBackground(),
-			getLabelColor(),
-		);
+				height,
+				paddingX,
+				getLabelPosition(),
+				getLabelGap(labelSize, getLabelOffset()),
+				getLabelBackground(),
+				getLabelColor(),
+			);
 		context.restore();
 	};
 }
@@ -57,6 +59,7 @@ export function createNodeLabelDrawer(
 export function createNodeHoverDrawer(
 	getOpacity: () => number,
 	getLabelPosition: () => LabelPosition,
+	getLabelOffset: () => number,
 	getLabelColor: () => string,
 	getLabelBackground: () => string,
 ): NodeHoverDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
@@ -85,12 +88,13 @@ export function createNodeHoverDrawer(
 			context,
 			data,
 			width,
-			height,
-			paddingX,
-			getLabelPosition(),
-			getLabelBackground(),
-			getLabelColor(),
-		);
+				height,
+				paddingX,
+				getLabelPosition(),
+				getLabelGap(size, getLabelOffset()),
+				getLabelBackground(),
+				getLabelColor(),
+			);
 
 		context.restore();
 	};
@@ -123,6 +127,7 @@ function drawNodeLabel(
 	height: number,
 	paddingX: number,
 	labelPosition: LabelPosition,
+	labelGap: number,
 	labelBackground: string,
 	labelColor: string,
 ): void {
@@ -130,17 +135,16 @@ function drawNodeLabel(
 		return;
 	}
 	if (typeof data.labelRotation === 'number') {
-		const gap = 7;
 		const direction = data.labelDirection ?? 1;
 		const box = getRotatedNodeLabelBox(
 			data.size,
 			width,
-			height,
-			paddingX,
-			gap,
-			direction,
-			labelPosition,
-		);
+				height,
+				paddingX,
+				labelGap,
+				direction,
+				labelPosition,
+			);
 		context.save();
 		context.translate(data.x, data.y);
 		context.rotate(data.labelRotation);
@@ -162,10 +166,11 @@ function drawNodeLabel(
 		data.y,
 		data.size,
 		width,
-		height,
-		paddingX,
-		labelPosition,
-	);
+			height,
+			paddingX,
+			labelPosition,
+			labelGap,
+		);
 	context.textBaseline = 'middle';
 	context.textAlign = box.textAlign;
 	context.beginPath();
@@ -175,6 +180,10 @@ function drawNodeLabel(
 	context.shadowBlur = 0;
 	context.fillStyle = labelColor;
 	context.fillText(data.label, box.textX, box.textY);
+}
+
+function getLabelGap(labelSize: number, labelOffset: number): number {
+	return Math.max(0, labelSize * labelOffset * 0.5);
 }
 
 function drawRoundedRect(

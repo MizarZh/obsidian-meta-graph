@@ -71,6 +71,7 @@ export function getNodeLabelBox(
 	height: number,
 	paddingX: number,
 	position: LabelPosition,
+	gap = 5,
 ): {
 	x: number;
 	y: number;
@@ -78,7 +79,6 @@ export function getNodeLabelBox(
 	textY: number;
 	textAlign: CanvasTextAlign;
 } {
-	const gap = 5;
 	if (position === 'left') {
 		const textX = nodeX - nodeSize - gap;
 		return {
