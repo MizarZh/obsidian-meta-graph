@@ -74,6 +74,18 @@ export function reorderDockTemplate(
 	return templates === dock.templates ? dock : { ...dock, templates };
 }
 
+export function reorderDockTemplates(
+	dock: MetaGraphDock,
+	orderedTemplateIds: string[],
+): MetaGraphDock {
+	const templates = reorderByIds(
+		dock.templates,
+		orderedTemplateIds,
+		(template) => template.id,
+	);
+	return templates === dock.templates ? dock : { ...dock, templates };
+}
+
 export function addDockNote(dock: MetaGraphDock, path: NodeId): MetaGraphDock {
 	return {
 		...dock,
@@ -104,6 +116,14 @@ export function reorderDockNote(
 		(note) => note.path === targetPath,
 		placement,
 	);
+	return notes === dock.notes ? dock : { ...dock, notes };
+}
+
+export function reorderDockNotes(
+	dock: MetaGraphDock,
+	orderedPaths: NodeId[],
+): MetaGraphDock {
+	const notes = reorderByIds(dock.notes, orderedPaths, (note) => note.path);
 	return notes === dock.notes ? dock : { ...dock, notes };
 }
 
@@ -174,4 +194,24 @@ export function moveRelative<T>(
 		return items;
 	}
 	return next;
+}
+
+function reorderByIds<T>(
+	items: T[],
+	orderedIds: string[],
+	getId: (item: T) => string,
+): T[] {
+	const orderedIdSet = new Set(orderedIds);
+	if (orderedIdSet.size !== items.length) {
+		return items;
+	}
+	const itemsById = new Map(items.map((item) => [getId(item), item]));
+	const orderedItems = orderedIds.map((id) => itemsById.get(id));
+	if (orderedItems.some((item) => item === undefined)) {
+		return items;
+	}
+	if (orderedItems.every((item, index) => item === items[index])) {
+		return items;
+	}
+	return orderedItems as T[];
 }

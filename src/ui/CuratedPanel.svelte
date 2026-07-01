@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import { onDestroy } from 'svelte';
 	import type {
 		ChartGroup,
 		CuratedWorkspaceConfig,
@@ -16,9 +15,7 @@
 		buildTitleIndex,
 		countTitles,
 		parseBatchInput,
-		readPointerPlacement,
 		type CuratedConditionDraft,
-		type ReorderPlacement,
 	} from './curated/curated-panel-state';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
@@ -52,7 +49,7 @@
 		onSetFilesHidden,
 		onMoveFilesToGroup,
 		onClearFiles,
-		onReorderFile,
+		onReorderFiles,
 		onOpenNote,
 		onSelectNote,
 	}: {
@@ -83,11 +80,7 @@
 		onSetFilesHidden: (paths: string[], hidden: boolean) => void;
 		onMoveFilesToGroup: (paths: string[], groupId?: string) => void;
 		onClearFiles: () => void;
-		onReorderFile: (
-			path: string,
-			targetPath: string,
-			placement: ReorderPlacement,
-		) => void;
+		onReorderFiles: (paths: string[]) => void;
 		onOpenNote: (path: string) => void;
 		onSelectNote: (path: string) => void;
 	} = $props();
@@ -98,19 +91,7 @@
 	let batchOpen = $state(false);
 	let conditionModalOpen = $state(false);
 	let batchStatus = $state('');
-	let reorderDrag = $state<
-		| {
-				path: string;
-				startX: number;
-				startY: number;
-				active: boolean;
-		  }
-		| undefined
-	>(undefined);
 
-	const activeDraggingPath = $derived(
-		reorderDrag?.active ? reorderDrag.path : undefined,
-	);
 	const addGroupOptions = $derived([
 		...(groupRequired ? [] : [{ value: '', label: 'No group' }]),
 		...groups.map((group) => ({ value: group.id, label: group.name })),
@@ -261,77 +242,11 @@
 	function handleFilePointerDown(path: string, event: PointerEvent): void {
 		if (
 			event.target instanceof HTMLElement &&
-			event.target.closest('button, input')
+			event.target.closest('button, input, .knowledge-workspace-drag-handle')
 		) {
 			return;
 		}
 		onSelectNote(path);
-		if (event.button !== 0) {
-			return;
-		}
-		event.preventDefault();
-		reorderDrag = {
-			path,
-			startX: event.clientX,
-			startY: event.clientY,
-			active: false,
-		};
-		window.addEventListener('pointermove', handleReorderPointerMove, {
-			capture: true,
-		});
-		window.addEventListener('pointerup', handleReorderPointerUp, {
-			capture: true,
-			once: true,
-		});
-	}
-
-	function handleReorderPointerMove(event: PointerEvent): void {
-		if (!reorderDrag) {
-			return;
-		}
-		const distance = Math.hypot(
-			event.clientX - reorderDrag.startX,
-			event.clientY - reorderDrag.startY,
-		);
-		if (!reorderDrag.active && distance < 4) {
-			return;
-		}
-		event.preventDefault();
-		reorderDrag = { ...reorderDrag, active: true };
-		reorderAtPoint(reorderDrag.path, event.clientX, event.clientY);
-	}
-
-	function handleReorderPointerUp(): void {
-		reorderDrag = undefined;
-		window.removeEventListener('pointermove', handleReorderPointerMove, {
-			capture: true,
-		});
-		window.removeEventListener('pointerup', handleReorderPointerUp, {
-			capture: true,
-		});
-	}
-
-	function reorderAtPoint(
-		path: string,
-		clientX: number,
-		clientY: number,
-	): void {
-		const target = document.elementFromPoint(clientX, clientY);
-		if (!(target instanceof HTMLElement)) {
-			return;
-		}
-		const targetEl = target.closest<HTMLElement>(
-			'[data-curated-file-path]',
-		);
-		const targetPath = targetEl?.dataset.curatedFilePath;
-		if (!targetEl || !targetPath || targetPath === path) {
-			return;
-		}
-		onReorderFile(
-			path,
-			targetPath,
-			readPointerPlacement(targetEl, clientY),
-		);
 	}
 
 	function handleResizePointerDown(event: PointerEvent): void {
@@ -352,10 +267,6 @@
 		window.addEventListener('pointermove', onMove);
 		window.addEventListener('pointerup', onUp);
 	}
-
-	onDestroy(() => {
-		handleReorderPointerUp();
-	});
 </script>
 
 <aside
@@ -492,10 +403,10 @@
 			<CuratedFileList
 				files={selectedFiles}
 				{selectedTitleCounts}
-				{activeDraggingPath}
 				{getGroupOptions}
 				onToggleSelected={toggleSelected}
 				onPointerDown={handleFilePointerDown}
+				{onReorderFiles}
 				{onOpenNote}
 				{onSelectNote}
 				onMoveFileToGroup={moveFileToGroup}

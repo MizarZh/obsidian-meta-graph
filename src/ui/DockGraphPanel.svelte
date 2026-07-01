@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import { onDestroy } from 'svelte';
 	import type {
 		ChartGroup,
 		DockTemplateNode,
@@ -17,9 +16,7 @@
 		buildTemplateEntries,
 		countTitles,
 		dragKey,
-		readPointerPlacement,
 		type DockNoteEntry,
-		type ReorderPlacement,
 	} from './dock-panel/dock-panel-state';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 
@@ -45,8 +42,8 @@
 		onRemoveTemplate,
 		onAddNote,
 		onRemoveNote,
-		onReorderTemplate,
-		onReorderNote,
+		onReorderTemplates,
+		onReorderNotes,
 		onLinkPointerDown,
 		onOpenNote,
 		onSelectNote,
@@ -77,16 +74,8 @@
 		onRemoveTemplate: (templateId: string) => void;
 		onAddNote: (path: string) => void;
 		onRemoveNote: (path: string) => void;
-		onReorderTemplate: (
-			templateId: string,
-			targetTemplateId: string,
-			placement: ReorderPlacement,
-		) => void;
-		onReorderNote: (
-			path: string,
-			targetPath: string,
-			placement: ReorderPlacement,
-		) => void;
+		onReorderTemplates: (templateIds: string[]) => void;
+		onReorderNotes: (paths: string[]) => void;
 		onLinkPointerDown: (
 			payload: DockDragPayload,
 			event: PointerEvent,
@@ -97,20 +86,7 @@
 		onToggleFocusOnSelect: () => void;
 	} = $props();
 
-	let reorderDrag = $state<
-		| {
-				payload: DockDragPayload;
-				startX: number;
-				startY: number;
-				active: boolean;
-		  }
-		| undefined
-	>(undefined);
-
-	const activeDraggingKey = $derived(
-		draggingKey ??
-			(reorderDrag?.active ? dragKey(reorderDrag.payload) : undefined),
-	);
+	const activeDraggingKey = $derived(draggingKey);
 	const notesTitleCounts = $derived(countTitles(notes));
 	const titleCounts = $derived(countTitles(availableNotes));
 	const noteOptions = $derived(buildNoteOptions(availableNotes, titleCounts));
@@ -128,7 +104,7 @@
 	): void {
 		if (
 			event.target instanceof HTMLElement &&
-			event.target.closest('button')
+			event.target.closest('button, .knowledge-workspace-drag-handle')
 		) {
 			return;
 		}
@@ -141,89 +117,6 @@
 		if (payload.kind === 'note') {
 			onSelectNote(payload.notePath);
 		}
-		if (event.button !== 0) {
-			return;
-		}
-		event.preventDefault();
-		reorderDrag = {
-			payload,
-			startX: event.clientX,
-			startY: event.clientY,
-			active: false,
-		};
-		window.addEventListener('pointermove', handleReorderPointerMove, {
-			capture: true,
-		});
-		window.addEventListener('pointerup', handleReorderPointerUp, {
-			capture: true,
-			once: true,
-		});
-	}
-
-	function handleReorderPointerMove(event: PointerEvent): void {
-		if (!reorderDrag) {
-			return;
-		}
-		const distance = Math.hypot(
-			event.clientX - reorderDrag.startX,
-			event.clientY - reorderDrag.startY,
-		);
-		if (!reorderDrag.active && distance < 4) {
-			return;
-		}
-		event.preventDefault();
-		reorderDrag = { ...reorderDrag, active: true };
-		reorderAtPoint(reorderDrag.payload, event.clientX, event.clientY);
-	}
-
-	function handleReorderPointerUp(): void {
-		reorderDrag = undefined;
-		window.removeEventListener('pointermove', handleReorderPointerMove, {
-			capture: true,
-		});
-		window.removeEventListener('pointerup', handleReorderPointerUp, {
-			capture: true,
-		});
-	}
-
-	function reorderAtPoint(
-		payload: DockDragPayload,
-		clientX: number,
-		clientY: number,
-	): void {
-		const target = document.elementFromPoint(clientX, clientY);
-		if (!(target instanceof HTMLElement)) {
-			return;
-		}
-		if (payload.kind === 'template') {
-			const targetEl = target.closest<HTMLElement>(
-				'[data-dock-template-id]',
-			);
-			const targetTemplateId = targetEl?.dataset.dockTemplateId;
-			if (
-				!targetEl ||
-				!targetTemplateId ||
-				targetTemplateId === payload.templateId
-			) {
-				return;
-			}
-			onReorderTemplate(
-				payload.templateId,
-				targetTemplateId,
-				readPointerPlacement(targetEl, clientY),
-			);
-			return;
-		}
-		const targetEl = target.closest<HTMLElement>('[data-dock-note-path]');
-		const targetPath = targetEl?.dataset.dockNotePath;
-		if (!targetEl || !targetPath || targetPath === payload.notePath) {
-			return;
-		}
-		onReorderNote(
-			payload.notePath,
-			targetPath,
-			readPointerPlacement(targetEl, clientY),
-		);
 	}
 
 	function handleLinkPointerDown(
@@ -234,7 +127,7 @@
 			!event.ctrlKey ||
 			event.button !== 0 ||
 			(event.target instanceof HTMLElement &&
-				event.target.closest('button'))
+				event.target.closest('button, .knowledge-workspace-drag-handle'))
 		) {
 			return;
 		}
@@ -242,10 +135,6 @@
 		event.stopPropagation();
 		onLinkPointerDown(payload, event);
 	}
-
-	onDestroy(() => {
-		handleReorderPointerUp();
-	});
 </script>
 
 <aside
@@ -282,6 +171,7 @@
 			{onUpdateTemplate}
 			{onRemoveTemplate}
 			onPointerDown={handleNodePointerDown}
+			{onReorderTemplates}
 			{onOpenNote}
 		/>
 		<DockNotesSection
@@ -297,6 +187,7 @@
 			{onAddNote}
 			{onRemoveNote}
 			onPointerDown={handleNodePointerDown}
+			{onReorderNotes}
 			{onOpenNote}
 		/>
 		<span

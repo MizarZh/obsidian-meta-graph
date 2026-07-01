@@ -11,7 +11,9 @@ import {
 	removeDockNote,
 	removeDockTemplate,
 	reorderDockNote,
+	reorderDockNotes,
 	reorderDockTemplate,
+	reorderDockTemplates,
 	setCuratedPanelWidth,
 	setDockFocusOnSelect,
 	setDockWidth,
@@ -69,6 +71,16 @@ export function reorderDockTemplateInState(
 	);
 }
 
+export function reorderDockTemplatesInState(
+	state: WorkspaceState,
+	orderedTemplateIds: string[],
+): WorkspaceState {
+	return setDockInState(
+		state,
+		reorderDockTemplates(state.dock, orderedTemplateIds),
+	);
+}
+
 export function addDockNoteInState(
 	state: WorkspaceState,
 	path: NodeId,
@@ -93,6 +105,13 @@ export function reorderDockNoteInState(
 		state,
 		reorderDockNote(state.dock, path, targetPath, placement),
 	);
+}
+
+export function reorderDockNotesInState(
+	state: WorkspaceState,
+	orderedPaths: NodeId[],
+): WorkspaceState {
+	return setDockInState(state, reorderDockNotes(state.dock, orderedPaths));
 }
 
 export function setDockWidthInState(

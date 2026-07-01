@@ -8,6 +8,7 @@ import {
 	clearCuratedFilesInState,
 	removeCuratedFilesFromState,
 	reorderCuratedFileInState,
+	reorderCuratedFilesInState,
 	setCuratedFilesHiddenInState,
 	updateCuratedFilePathInState,
 	updateCuratedWorkspaceInState,
@@ -71,6 +72,13 @@ export function reorderCuratedFileActionInState(
 		reorderCuratedFileInState(state, path, targetPath, placement),
 		state,
 	);
+}
+
+export function reorderCuratedFilesActionInState(
+	state: WorkspaceState,
+	orderedPaths: NodeId[],
+): WorkspaceCuratedActionResult {
+	return withRunQuery(reorderCuratedFilesInState(state, orderedPaths), state);
 }
 
 export function clearCuratedFilesActionInState(

@@ -167,8 +167,7 @@
 		onMoveFilesToGroup={(paths, groupId) =>
 			controller.moveCuratedFilesToGroup(paths, groupId)}
 		onClearFiles={() => controller.clearCuratedFiles()}
-		onReorderFile={(path, targetPath, placement) =>
-			controller.reorderCuratedFile(path, targetPath, placement)}
+		onReorderFiles={(paths) => controller.reorderCuratedFiles(paths)}
 		onOpenNote={(path) => void controller.openNode(path)}
 		onSelectNote={selectAndMaybeFocusNode}
 	/>
@@ -229,10 +228,9 @@
 	onRemoveTemplate={(templateId) => controller.removeDockTemplate(templateId)}
 	onAddNote={(path) => controller.addDockNote(path)}
 	onRemoveNote={(path) => controller.removeDockNote(path)}
-	onReorderTemplate={(templateId, targetTemplateId, placement) =>
-		controller.reorderDockTemplate(templateId, targetTemplateId, placement)}
-	onReorderNote={(path, targetPath, placement) =>
-		controller.reorderDockNote(path, targetPath, placement)}
+	onReorderTemplates={(templateIds) =>
+		controller.reorderDockTemplates(templateIds)}
+	onReorderNotes={(paths) => controller.reorderDockNotes(paths)}
 	{onLinkPointerDown}
 	onOpenNote={(nodeId) => void controller.openNode(nodeId)}
 	focusOnSelect={workspaceState.dock.focusOnSelect}

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
 	addDockNoteInState,
 	addDockTemplateInState,
+	reorderDockNotesInState,
+	reorderDockTemplatesInState,
 	setDockWidthInState,
 	updateDockNotePathInState,
 } from '../workspace/actions/dock-actions';
@@ -35,6 +37,51 @@ describe('workspace dock actions', () => {
 
 		expect(result.changed).toBe(true);
 		expect(result.state.dock.notes[0]?.path).toBe('New.md');
+	});
+
+	it('reorders dock notes from a complete ordered path list', () => {
+		const state = ['A.md', 'B.md', 'C.md'].reduce(
+			(nextState, path) => addDockNoteInState(nextState, path),
+			createWorkspaceState(100),
+		);
+
+		const result = reorderDockNotesInState(state, ['C.md', 'A.md', 'B.md']);
+
+		expect(result.dock.notes.map((note) => note.path)).toEqual([
+			'C.md',
+			'A.md',
+			'B.md',
+		]);
+		expect(reorderDockNotesInState(result, ['C.md', 'A.md'])).toBe(result);
+	});
+
+	it('reorders dock templates from a complete ordered id list', () => {
+		const state = ['First', 'Second', 'Third'].reduce(
+			(nextState, label) =>
+				addDockTemplateInState(nextState, {
+					label,
+					templatePath: `${label}.md`,
+					targetFolder: '',
+					relationField: 'leads-to',
+					direction: 'from-dock-to-graph',
+					defaultGroupId: '',
+				}),
+			createWorkspaceState(100),
+		);
+		const templateIds = state.dock.templates.map((template) => template.id);
+
+		const result = reorderDockTemplatesInState(state, [
+			templateIds[2] ?? '',
+			templateIds[0] ?? '',
+			templateIds[1] ?? '',
+		]);
+
+		expect(result.dock.templates.map((template) => template.label)).toEqual(
+			['Third', 'First', 'Second'],
+		);
+		expect(
+			reorderDockTemplatesInState(result, templateIds.slice(0, 2)),
+		).toBe(result);
 	});
 
 	it('keeps unchanged dock note paths referentially stable', () => {

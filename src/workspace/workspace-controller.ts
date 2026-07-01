@@ -87,6 +87,7 @@ import {
 	removeCuratedFileInState,
 	removeCuratedFilesActionInState,
 	reorderCuratedFileActionInState,
+	reorderCuratedFilesActionInState,
 	setCuratedFilesHiddenActionInState,
 	updateCuratedFilePathActionInState,
 	updateCuratedWorkspaceActionInState,
@@ -98,7 +99,9 @@ import {
 	removeDockNoteInState,
 	removeDockTemplateInState,
 	reorderDockNoteInState,
+	reorderDockNotesInState,
 	reorderDockTemplateInState,
+	reorderDockTemplatesInState,
 	setCuratedPanelWidthInState,
 	setDockFocusOnSelectInState,
 	setDockWidthInState,
@@ -532,6 +535,12 @@ export class WorkspaceController {
 		);
 	}
 
+	reorderCuratedFiles(orderedPaths: NodeId[]): void {
+		this.applyCuratedActionResult(
+			reorderCuratedFilesActionInState(this.state, orderedPaths),
+		);
+	}
+
 	clearCuratedFiles(): void {
 		this.applyCuratedActionResult(
 			clearCuratedFilesActionInState(this.state),
@@ -581,6 +590,12 @@ export class WorkspaceController {
 				targetTemplateId,
 				placement,
 			),
+		);
+	}
+
+	reorderDockTemplates(orderedTemplateIds: string[]): void {
+		this.setWorkspaceState(
+			reorderDockTemplatesInState(this.state, orderedTemplateIds),
 		);
 	}
 
@@ -634,6 +649,12 @@ export class WorkspaceController {
 	): void {
 		this.setWorkspaceState(
 			reorderDockNoteInState(this.state, path, targetPath, placement),
+		);
+	}
+
+	reorderDockNotes(orderedPaths: NodeId[]): void {
+		this.setWorkspaceState(
+			reorderDockNotesInState(this.state, orderedPaths),
 		);
 	}
 

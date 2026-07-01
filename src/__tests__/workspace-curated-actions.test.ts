@@ -6,6 +6,7 @@ import {
 	removeCuratedFileInState,
 	removeCuratedFilesActionInState,
 	reorderCuratedFileActionInState,
+	reorderCuratedFilesActionInState,
 	setCuratedFilesHiddenActionInState,
 	updateCuratedFilePathActionInState,
 	updateCuratedWorkspaceActionInState,
@@ -70,6 +71,35 @@ describe('workspace curated actions', () => {
 		expect(cleared.changed).toBe(true);
 		expect(cleared.runQuery).toBe(true);
 		expect(cleared.state.curated.files).toEqual([]);
+	});
+
+	it('reorders curated files from a complete ordered path list', () => {
+		const state = addCuratedFilesActionInState(createWorkspaceState(100), [
+			'A.md',
+			'B.md',
+			'C.md',
+		]).state;
+
+		const reordered = reorderCuratedFilesActionInState(state, [
+			'C.md',
+			'A.md',
+			'B.md',
+		]);
+
+		expect(reordered.changed).toBe(true);
+		expect(reordered.state.curated.files.map((file) => file.path)).toEqual([
+			'C.md',
+			'A.md',
+			'B.md',
+		]);
+
+		const invalid = reorderCuratedFilesActionInState(reordered.state, [
+			'C.md',
+			'A.md',
+		]);
+
+		expect(invalid.changed).toBe(false);
+		expect(invalid.state).toBe(reordered.state);
 	});
 
 	it('updates curated workspace settings with query refresh intent', () => {

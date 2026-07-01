@@ -85,7 +85,8 @@ export function setCuratedFilesHiddenInState(
 		if (hidden) {
 			return { ...file, hidden: true };
 		}
-		const { hidden: _hidden, ...visibleFile } = file;
+		const visibleFile = { ...file };
+		delete visibleFile.hidden;
 		return visibleFile;
 	});
 	if (!changed) {
@@ -118,6 +119,34 @@ export function reorderCuratedFileInState(
 	const curated = normalizeCuratedWorkspace({
 		...activeChart.curated,
 		files,
+	});
+	return updateActiveChartState(state, { curated });
+}
+
+export function reorderCuratedFilesInState(
+	state: WorkspaceState,
+	orderedPaths: NodeId[],
+): WorkspaceState {
+	const activeChart = getActiveChart(state);
+	const orderedPathSet = new Set(orderedPaths);
+	if (orderedPathSet.size !== activeChart.curated.files.length) {
+		return state;
+	}
+	const filesByPath = new Map(
+		activeChart.curated.files.map((file) => [file.path, file]),
+	);
+	const files = orderedPaths.map((path) => filesByPath.get(path));
+	if (files.some((file) => file === undefined)) {
+		return state;
+	}
+	if (
+		files.every((file, index) => file === activeChart.curated.files[index])
+	) {
+		return state;
+	}
+	const curated = normalizeCuratedWorkspace({
+		...activeChart.curated,
+		files: files as typeof activeChart.curated.files,
 	});
 	return updateActiveChartState(state, { curated });
 }

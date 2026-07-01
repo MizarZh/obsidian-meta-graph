@@ -1,5 +1,11 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
+	import {
+		SHADOW_PLACEHOLDER_ITEM_ID,
+		dragHandle,
+		dragHandleZone,
+		type DndEvent,
+	} from 'svelte-dnd-action';
 	import type { DockDragPayload } from '../dock/types';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
 	import ObsidianSuggestInput from '../obsidian/ObsidianSuggestInput.svelte';
@@ -9,6 +15,11 @@
 		noteDragPayload,
 		type DockNoteEntry,
 	} from './dock-panel-state';
+
+	type DockNoteDndEntry = Omit<DockNoteEntry, 'id'> & {
+		id: string;
+		nodeId: string;
+	};
 
 	let {
 		app,
@@ -23,6 +34,7 @@
 		onAddNote,
 		onRemoveNote,
 		onPointerDown,
+		onReorderNotes,
 		onOpenNote,
 	}: {
 		app: App;
@@ -37,11 +49,34 @@
 		onAddNote: (path: string) => void;
 		onRemoveNote: (path: string) => void;
 		onPointerDown: (payload: DockDragPayload, event: PointerEvent) => void;
+		onReorderNotes: (paths: string[]) => void;
 		onOpenNote: (nodeId: string) => void;
 	} = $props();
 
 	let notesOpen = $state(true);
 	let noteSearch = $state('');
+	let dndNotes = $state<DockNoteDndEntry[]>([]);
+
+	$effect(() => {
+		dndNotes = notes.map((entry) => ({
+			...entry,
+			id: entry.path,
+			nodeId: entry.id,
+		}));
+	});
+
+	function handleDndConsider(event: CustomEvent<DndEvent<DockNoteDndEntry>>) {
+		dndNotes = readRealItems(event.detail.items);
+	}
+
+	function handleDndFinalize(event: CustomEvent<DndEvent<DockNoteDndEntry>>) {
+		dndNotes = readRealItems(event.detail.items);
+		onReorderNotes(dndNotes.map((entry) => entry.path));
+	}
+
+	function readRealItems(items: DockNoteDndEntry[]): DockNoteDndEntry[] {
+		return items.filter((item) => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
+	}
 </script>
 
 <section class:knowledge-workspace-dock-section-collapsed={!notesOpen}>
@@ -82,13 +117,25 @@
 				}}
 			/>
 		</div>
-		<div class="knowledge-workspace-dock-list">
-			{#if notes.length === 0}
+		{#if dndNotes.length === 0}
+			<div class="knowledge-workspace-dock-list">
 				<span class="knowledge-workspace-dock-empty"
 					>No selected notes</span
 				>
-			{:else}
-				{#each notes as entry (entry.path)}
+			</div>
+		{:else}
+			<div
+				class="knowledge-workspace-dock-list"
+				aria-label="Selected notes"
+				use:dragHandleZone={{
+					items: dndNotes,
+					flipDurationMs: 120,
+					type: 'meta-graph-dock-notes',
+				}}
+				onconsider={handleDndConsider}
+				onfinalize={handleDndFinalize}
+			>
+				{#each dndNotes as entry (entry.id)}
 					{@const payload = noteDragPayload(
 						entry,
 						activeConnectionField,
@@ -109,10 +156,12 @@
 							? `File not found: ${entry.path}`
 							: undefined}
 						onpointerdown={(event) => onPointerDown(payload, event)}
-						ondblclick={entry.broken
-							? undefined
-							: () => onOpenNote(entry.id)}
 					>
+						<span
+							class="knowledge-workspace-drag-handle"
+							aria-label={`Drag ${entry.title}`}
+							use:dragHandle
+						></span>
 						<span
 							style={entry.broken
 								? undefined
@@ -139,7 +188,7 @@
 						/>
 					</div>
 				{/each}
-			{/if}
-		</div>
+			</div>
+		{/if}
 	{/if}
 </section>

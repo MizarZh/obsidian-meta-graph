@@ -1,5 +1,11 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
+	import {
+		SHADOW_PLACEHOLDER_ITEM_ID,
+		dragHandle,
+		dragHandleZone,
+		type DndEvent,
+	} from 'svelte-dnd-action';
 	import type { DockTemplateNode } from '../../core/types';
 	import type { DockDragPayload } from '../dock/types';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
@@ -27,6 +33,7 @@
 		onUpdateTemplate,
 		onRemoveTemplate,
 		onPointerDown,
+		onReorderTemplates,
 		onOpenNote,
 	}: {
 		app: App;
@@ -44,6 +51,7 @@
 		) => void;
 		onRemoveTemplate: (templateId: string) => void;
 		onPointerDown: (payload: DockDragPayload, event: PointerEvent) => void;
+		onReorderTemplates: (templateIds: string[]) => void;
 		onOpenNote: (nodeId: string) => void;
 	} = $props();
 
@@ -54,6 +62,11 @@
 	let targetFolder = $state('');
 	let templateDefaultGroupId = $state('');
 	let editingTemplateId = $state<string | undefined>(undefined);
+	let dndTemplates = $state<DockTemplateEntry[]>([]);
+
+	$effect(() => {
+		dndTemplates = templates;
+	});
 
 	function saveTemplate(): void {
 		const label = templateLabel.trim();
@@ -113,6 +126,23 @@
 		templateDefaultGroupId = '';
 		editingTemplateId = undefined;
 		templateFormOpen = false;
+	}
+
+	function handleDndConsider(
+		event: CustomEvent<DndEvent<DockTemplateEntry>>,
+	) {
+		dndTemplates = readRealItems(event.detail.items);
+	}
+
+	function handleDndFinalize(
+		event: CustomEvent<DndEvent<DockTemplateEntry>>,
+	) {
+		dndTemplates = readRealItems(event.detail.items);
+		onReorderTemplates(dndTemplates.map((template) => template.id));
+	}
+
+	function readRealItems(items: DockTemplateEntry[]): DockTemplateEntry[] {
+		return items.filter((item) => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 	}
 </script>
 
@@ -198,11 +228,23 @@
 				/>
 			</form>
 		{/if}
-		<div class="knowledge-workspace-dock-list">
-			{#if templates.length === 0}
+		{#if dndTemplates.length === 0}
+			<div class="knowledge-workspace-dock-list">
 				<span class="knowledge-workspace-dock-empty">No templates</span>
-			{:else}
-				{#each templates as template (template.id)}
+			</div>
+		{:else}
+			<div
+				class="knowledge-workspace-dock-list"
+				aria-label="Templates"
+				use:dragHandleZone={{
+					items: dndTemplates,
+					flipDurationMs: 120,
+					type: 'meta-graph-dock-templates',
+				}}
+				onconsider={handleDndConsider}
+				onfinalize={handleDndFinalize}
+			>
+				{#each dndTemplates as template (template.id)}
 					{@const payload = templateDragPayload(template)}
 					<div
 						class:dragging={activeDraggingKey === dragKey(payload)}
@@ -229,6 +271,11 @@
 							onPointerDown(payload, event);
 						}}
 					>
+						<span
+							class="knowledge-workspace-drag-handle"
+							aria-label={`Drag ${template.label}`}
+							use:dragHandle
+						></span>
 						<span></span>
 						<strong>{template.label}</strong>
 						<ObsidianButton
@@ -258,7 +305,7 @@
 						/>
 					</div>
 				{/each}
-			{/if}
-		</div>
+			</div>
+		{/if}
 	{/if}
 </section>
