@@ -9,7 +9,11 @@ import type {
 	DefaultNodeStyle,
 } from '../../core/types';
 import type { GraphPalette } from '../styles/graph-styles';
-import { resolveLinkStyle, resolveNodeStyle } from '../styles/style-rules';
+import {
+	resolveLinkStyle,
+	resolveNodeStyle,
+	type NodeStyleContext,
+} from '../styles/style-rules';
 
 export interface GraphPosition {
 	x: number;
@@ -69,6 +73,10 @@ export class GraphologyAdapter {
 			Required<DefaultLinkStyle> | LinkStyleRule[] = [],
 		nodeStyleRules: NodeStyleRule[] = [],
 		linkStyleRules: LinkStyleRule[] = [],
+		private readonly nodeStyleContexts: ReadonlyMap<
+			string,
+			NodeStyleContext
+		> = new Map(),
 	) {
 		const legacySignature = Array.isArray(defaultNodeStyleOrRules);
 		this.defaultNodeStyle = legacySignature
@@ -105,10 +113,15 @@ export class GraphologyAdapter {
 		for (const node of projection.nodes) {
 			const isPrimary = projection.primaryIds?.has(node.id) ?? false;
 			const isContext = projection.contextIds?.has(node.id) ?? false;
-			const style = resolveNodeStyle(node, this.nodeStyleRules, {
-				color: this.defaultNodeStyle.color || this.palette.node,
-				size: this.defaultNodeStyle.size,
-			});
+			const style = resolveNodeStyle(
+				node,
+				this.nodeStyleRules,
+				{
+					color: this.defaultNodeStyle.color || this.palette.node,
+					size: this.defaultNodeStyle.size,
+				},
+				this.nodeStyleContexts.get(node.id),
+			);
 			const position =
 				positions.get(node.id) ??
 				createInitialPosition(node.id, projection, positions);

@@ -2,6 +2,7 @@ import type {
 	GraphProjection,
 	KnowledgeEdge,
 	KnowledgeNode,
+	ManualLayoutConfig,
 	WorkspaceState,
 } from '../../core/types';
 import {
@@ -17,9 +18,11 @@ import {
 	type RuntimeGraph,
 } from '../../graph/model/graphology-adapter';
 import type { GraphPalette } from '../../graph/styles/graph-styles';
+import { resolveNodeStyleContext } from '../../graph/styles/node-style-context';
 import {
 	resolveLinkStyle,
 	resolveNodeStyle,
+	type NodeStyleContext,
 } from '../../graph/styles/style-rules';
 
 export function createWorkspaceRuntimeGraph(
@@ -34,6 +37,7 @@ export function createWorkspaceRuntimeGraph(
 		getActiveDefaultLinkStyle(state, palette.edge),
 		getActiveNodeStyleRules(state),
 		getActiveLinkStyleRules(state),
+		createNodeStyleContexts(projection, state.manualLayout),
 	).fromProjection(projection, positions);
 }
 
@@ -47,6 +51,10 @@ export function syncWorkspaceRuntimeGraphStyles(
 	const defaultLinkStyle = getActiveDefaultLinkStyle(state, palette.edge);
 	const nodeRules = getActiveNodeStyleRules(state);
 	const linkRules = getActiveLinkStyleRules(state);
+	const nodeStyleContexts = createNodeStyleContexts(
+		projection,
+		state.manualLayout,
+	);
 
 	for (const node of projection.nodes) {
 		if (!graph.hasNode(node.id)) {
@@ -58,6 +66,7 @@ export function syncWorkspaceRuntimeGraphStyles(
 			nodeRules,
 			defaultNodeStyle,
 			palette,
+			nodeStyleContexts.get(node.id),
 		);
 		graph.mergeNodeAttributes(node.id, style);
 	}
@@ -118,16 +127,34 @@ function resolveRuntimeNodeStyle(
 	nodeRules: ReturnType<typeof getActiveNodeStyleRules>,
 	defaultNodeStyle: ReturnType<typeof getActiveDefaultNodeStyle>,
 	palette: GraphPalette,
+	context: NodeStyleContext | undefined,
 ): { color: string; size: number } {
 	const isPrimary = projection.primaryIds?.has(node.id) ?? false;
-	const style = resolveNodeStyle(node, nodeRules, {
-		color: defaultNodeStyle.color || palette.node,
-		size: defaultNodeStyle.size,
-	});
+	const style = resolveNodeStyle(
+		node,
+		nodeRules,
+		{
+			color: defaultNodeStyle.color || palette.node,
+			size: defaultNodeStyle.size,
+		},
+		context,
+	);
 	return {
 		color: style.color,
 		size: isPrimary ? style.size * 1.2 : style.size,
 	};
+}
+
+function createNodeStyleContexts(
+	projection: GraphProjection,
+	manualLayout: ManualLayoutConfig,
+): ReadonlyMap<string, NodeStyleContext> {
+	return new Map(
+		projection.nodes.map((node) => [
+			node.id,
+			resolveNodeStyleContext(node, manualLayout),
+		]),
+	);
 }
 
 function resolveRuntimeLinkStyle(

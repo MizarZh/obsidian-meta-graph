@@ -1,26 +1,26 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
 	import CollapsibleSettingsGroup from './CollapsibleSettingsGroup.svelte';
+	import NodeConditionRow from '../filter/NodeConditionRow.svelte';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
-	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
 	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
-	import ObsidianSuggestInput, {
-		type SuggestionOption,
-	} from '../obsidian/ObsidianSuggestInput.svelte';
-	import ObsidianTextInput from '../obsidian/ObsidianTextInput.svelte';
 	import {
-		FILE_FILTER_FIELD_OPTIONS,
-		TEXT_FILTER_OPERATOR_OPTIONS,
+		getDefaultNodeStyleOperator,
+		getNodeStyleFieldOptions,
+		getNodeStyleFieldType,
+		getNodeStyleOperatorOptions,
 		getNodeValueOptions as resolveNodeValueOptions,
+		type SuggestionOption,
 	} from '../filter-config';
 	import type {
+		ChartGroup,
 		DefaultNodeStyle,
 		NodeFilterField,
 		NodeFilterOperator,
 		NodeStyleField,
 		NodeStyleRule,
 	} from '../../core/types';
-	import { createRuleId, shouldShowFilterValue } from '../filter/filter-tree';
+	import { createRuleId } from '../filter/filter-tree';
 	import {
 		activeNodeStyleValue as resolveActiveNodeStyleValue,
 		canMoveRule,
@@ -32,19 +32,12 @@
 		type StyleRuleScope,
 	} from '../filter/filter-style-rules';
 
-	const NODE_STYLE_FIELD_OPTIONS = [
-		{ value: 'folder', label: 'Folder' },
-		{ value: 'tag', label: 'Tag' },
-		{ value: 'domain', label: 'Domain' },
-		{ value: 'type', label: 'Type' },
-		{ value: 'title', label: 'Title' },
-		...FILE_FILTER_FIELD_OPTIONS,
-	];
-	const STYLE_FILTER_OPERATOR_OPTIONS = TEXT_FILTER_OPERATOR_OPTIONS;
+	const NODE_STYLE_FIELD_OPTIONS = getNodeStyleFieldOptions();
 	const NODE_STYLE_SECTIONS = [
 		{ scope: 'global', title: 'Global note rules' },
 		{ scope: 'current', title: 'Chart note rules' },
 	] as const;
+	type NodeConditionField = NodeFilterField | NodeStyleField;
 
 	let {
 		app,
@@ -54,6 +47,7 @@
 		metadataFieldTypes,
 		metadataFieldValueSuggestions,
 		filePathSuggestions,
+		groups,
 		defaultNodeStyle,
 		globalNodeStyleRules,
 		nodeStyleOverrides,
@@ -72,6 +66,7 @@
 		metadataFieldTypes: Record<string, string>;
 		metadataFieldValueSuggestions: Record<string, string[]>;
 		filePathSuggestions: string[];
+		groups: ChartGroup[];
 		defaultNodeStyle: Required<DefaultNodeStyle>;
 		globalNodeStyleRules: NodeStyleRule[];
 		nodeStyleOverrides: DefaultNodeStyle;
@@ -114,6 +109,19 @@
 		previousHadNodeOverride = hasOverride;
 	});
 
+	$effect(() => {
+		const firstGroupId = groups[0]?.id;
+		if (!firstGroupId) {
+			return;
+		}
+		autofillEmptyGroupRuleValues(
+			'global',
+			globalNodeStyleRules,
+			firstGroupId,
+		);
+		autofillEmptyGroupRuleValues('current', nodeStyleRules, firstGroupId);
+	});
+
 	function addNodeRule(scope: 'global' | 'current'): void {
 		updateNodeRules(scope, [
 			...getNodeRules(scope),
@@ -129,6 +137,22 @@
 		updateNodeRules(scope, patchRule(getNodeRules(scope), id, patch));
 	}
 
+	function updateNodeRuleField(
+		scope: 'global' | 'current',
+		id: string,
+		field: NodeStyleField,
+	): void {
+		const patch: Partial<NodeStyleRule> = {
+			field,
+			operator: getDefaultNodeStyleOperator(field, metadataFieldTypes),
+			value: '',
+		};
+		if (field === 'group') {
+			patch.value = groups[0]?.id ?? '';
+		}
+		updateNodeRule(scope, id, patch);
+	}
+
 	function updateNodeRules(
 		scope: 'global' | 'current',
 		rules: NodeStyleRule[],
@@ -137,6 +161,24 @@
 			onGlobalNodeStyleRulesChange(rules);
 		} else {
 			onNodeStyleRulesChange(rules);
+		}
+	}
+
+	function autofillEmptyGroupRuleValues(
+		scope: 'global' | 'current',
+		rules: NodeStyleRule[],
+		groupId: string,
+	): void {
+		const nextRules = rules.map((rule) =>
+			rule.field === 'group' && !rule.value.trim()
+				? { ...rule, value: groupId }
+				: rule,
+		);
+		if (
+			nextRules !== rules &&
+			nextRules.some((rule, index) => rule !== rules[index])
+		) {
+			updateNodeRules(scope, nextRules);
 		}
 	}
 
@@ -209,6 +251,68 @@
 			metadataFieldValueSuggestions,
 			filePathSuggestions,
 		});
+	}
+
+	function getGroupRuleOptions(value: string): Array<{
+		value: string;
+		label: string;
+		detail?: string;
+		searchText?: string;
+	}> {
+		const options = groups.map((group) => ({
+			value: group.id,
+			label: group.name || group.id,
+			detail:
+				group.name && group.name !== group.id ? group.id : undefined,
+			searchText: `${group.name} ${group.id}`,
+		}));
+		if (value && !options.some((option) => option.value === value)) {
+			return [
+				{ value, label: `${value} (missing)`, searchText: value },
+				...options,
+			];
+		}
+		return options.length > 0
+			? options
+			: [{ value: '', label: 'No groups' }];
+	}
+
+	function getNodeStyleOperatorOptionsForField(
+		field: NodeConditionField,
+	): Array<{ value: NodeFilterOperator; label: string }> {
+		return getNodeStyleOperatorOptions(
+			field as NodeStyleField,
+			metadataFieldTypes,
+		);
+	}
+
+	function getDefaultNodeStyleOperatorForField(
+		field: NodeConditionField,
+	): NodeFilterOperator {
+		return getDefaultNodeStyleOperator(
+			field as NodeStyleField,
+			metadataFieldTypes,
+		);
+	}
+
+	function getNodeStyleFieldTypeForField(field: NodeConditionField): string {
+		return getNodeStyleFieldType(
+			field as NodeStyleField,
+			metadataFieldTypes,
+		);
+	}
+
+	function getNodeStyleValueOptions(
+		field: NodeConditionField,
+		operator: NodeFilterOperator | undefined,
+	): SuggestionOption[] {
+		if (field === 'group') {
+			return getGroupRuleOptions('');
+		}
+		return getNodeValueOptions(
+			field as NodeFilterField | NodeStyleField,
+			operator,
+		);
 	}
 </script>
 
@@ -337,84 +441,68 @@
 		{/snippet}
 		{#each getNodeRules(section.scope) as rule (rule.id)}
 			<div class="knowledge-workspace-rule">
-				<div class="knowledge-workspace-rule-row style-condition">
-					<div class="knowledge-workspace-move-rule-buttons">
+				<NodeConditionRow
+					{app}
+					class="style-condition"
+					field={rule.field}
+					operator={rule.operator}
+					value={rule.value}
+					fieldOptions={NODE_STYLE_FIELD_OPTIONS}
+					getOperatorOptions={getNodeStyleOperatorOptionsForField}
+					getDefaultOperator={getDefaultNodeStyleOperatorForField}
+					getFieldType={getNodeStyleFieldTypeForField}
+					getValueOptions={getNodeStyleValueOptions}
+					onFieldChange={(value) =>
+						updateNodeRuleField(
+							section.scope,
+							rule.id,
+							value as NodeStyleField,
+						)}
+					onOperatorChange={(value) =>
+						updateNodeRule(section.scope, rule.id, {
+							operator: value,
+						})}
+					onValueChange={(value) =>
+						updateNodeRule(section.scope, rule.id, {
+							value,
+						})}
+				>
+					{#snippet leading()}
+						<div class="knowledge-workspace-move-rule-buttons">
+							<ObsidianButton
+								icon="chevron-up"
+								ariaLabel="Move note style rule up"
+								disabled={!canMoveRule(
+									getNodeRules(section.scope),
+									rule.id,
+									-1,
+								)}
+								onClick={() =>
+									moveNodeRule(section.scope, rule.id, -1)}
+							/>
+							<ObsidianButton
+								icon="chevron-down"
+								ariaLabel="Move note style rule down"
+								disabled={!canMoveRule(
+									getNodeRules(section.scope),
+									rule.id,
+									1,
+								)}
+								onClick={() =>
+									moveNodeRule(section.scope, rule.id, 1)}
+							/>
+						</div>
+					{/snippet}
+					{#snippet actions()}
 						<ObsidianButton
-							icon="chevron-up"
-							ariaLabel="Move note style rule up"
-							disabled={!canMoveRule(
-								getNodeRules(section.scope),
-								rule.id,
-								-1,
-							)}
+							class="knowledge-workspace-remove-rule-button"
+							ariaLabel="Remove note style rule"
+							icon="trash-2"
 							onClick={() =>
-								moveNodeRule(section.scope, rule.id, -1)}
+								removeNodeRule(section.scope, rule.id)}
 						/>
-						<ObsidianButton
-							icon="chevron-down"
-							ariaLabel="Move note style rule down"
-							disabled={!canMoveRule(
-								getNodeRules(section.scope),
-								rule.id,
-								1,
-							)}
-							onClick={() =>
-								moveNodeRule(section.scope, rule.id, 1)}
-						/>
-					</div>
-					<ObsidianDropdown
-						value={rule.field}
-						options={NODE_STYLE_FIELD_OPTIONS}
-						onChange={(value) =>
-							updateNodeRule(section.scope, rule.id, {
-								field: value as NodeStyleField,
-							})}
-					/>
-					<ObsidianDropdown
-						value={rule.operator ?? 'is'}
-						options={STYLE_FILTER_OPERATOR_OPTIONS}
-						onChange={(value) =>
-							updateNodeRule(section.scope, rule.id, {
-								operator: value as NodeFilterOperator,
-							})}
-					/>
-					{#if shouldShowFilterValue(rule.operator) && getNodeValueOptions(rule.field).length > 0}
-						<ObsidianSuggestInput
-							{app}
-							type="text"
-							placeholder="Value"
-							value={rule.value}
-							options={getNodeValueOptions(rule.field)}
-							onInput={(value) =>
-								updateNodeRule(section.scope, rule.id, {
-									value,
-								})}
-							onSelect={(option) =>
-								updateNodeRule(section.scope, rule.id, {
-									value: option.value,
-								})}
-						/>
-					{:else}
-						<ObsidianTextInput
-							type="text"
-							placeholder={shouldShowFilterValue(rule.operator)
-								? 'Value'
-								: ''}
-							disabled={!shouldShowFilterValue(rule.operator)}
-							value={rule.value}
-							onInput={(value) =>
-								updateNodeRule(section.scope, rule.id, {
-									value,
-								})}
-						/>
-					{/if}
-					<ObsidianButton
-						class="knowledge-workspace-remove-rule-button"
-						ariaLabel="Remove note style rule"
-						icon="trash-2"
-						onClick={() => removeNodeRule(section.scope, rule.id)}
-					/>
-				</div>
+					{/snippet}
+				</NodeConditionRow>
 				<div class="knowledge-workspace-rule-row compact">
 					<label>
 						<span>Color</span>

@@ -9,6 +9,7 @@ import {
 	resolveLinkStyle,
 	resolveNodeStyle,
 } from '../graph/styles/style-rules';
+import { resolveNodeStyleContext } from '../graph/styles/node-style-context';
 import { normalizeMetaGraphDocument } from '../workspace/meta-graph-model';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
 
@@ -273,6 +274,85 @@ describe('style rules', () => {
 		expect(
 			resolveNodeStyle(node, rules, { color: '#000000', size: 7 }),
 		).toEqual({ color: '#222222', size: 12 });
+	});
+
+	it('matches node style rules by chart group', () => {
+		const rules: NodeStyleRule[] = [
+			{
+				id: 'group',
+				field: 'group',
+				value: 'research',
+				color: '#555555',
+				size: 10,
+			},
+			{
+				id: 'group-name',
+				field: 'group',
+				value: 'Priority',
+				color: '#666666',
+				size: 12,
+			},
+		];
+
+		expect(
+			resolveNodeStyle(
+				node,
+				rules,
+				{ color: '#000000', size: 7 },
+				{ groupIds: ['research'], groupNames: ['Priority'] },
+			),
+		).toEqual({ color: '#666666', size: 12 });
+	});
+
+	it('resolves node style context from manual and rule groups', () => {
+		expect(
+			resolveNodeStyleContext(node, {
+				nodes: {
+					[node.id]: { x: 0, y: 0, groupId: 'manual-group' },
+				},
+				groups: [
+					{
+						id: 'manual-group',
+						name: 'Manual group',
+						x: 0,
+						y: 0,
+						width: 1,
+						height: 1,
+						color: '#111111',
+						mode: 'manual',
+						padding: 0.1,
+					},
+					{
+						id: 'rule-group',
+						name: 'Rule group',
+						x: 0,
+						y: 0,
+						width: 1,
+						height: 1,
+						color: '#222222',
+						mode: 'rule',
+						padding: 0.1,
+						rule: {
+							id: 'root',
+							kind: 'group',
+							mode: 'all',
+							children: [
+								{
+									id: 'tag',
+									kind: 'condition',
+									field: 'tag',
+									operator: 'is',
+									value: 'important',
+								},
+							],
+						},
+					},
+				],
+			}),
+		).toEqual({
+			groupIds: ['manual-group', 'rule-group'],
+			groupNames: ['Manual group', 'Rule group'],
+		});
 	});
 
 	it('matches link relation and frontmatter field', () => {

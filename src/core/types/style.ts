@@ -13,6 +13,7 @@ export type NodeStyleField =
 	| 'file.tags'
 	| 'metadata-field'
 	| 'domain'
+	| 'group'
 	| 'type'
 	| 'title';
 export type LinkStyleField = 'all' | 'relation' | 'source-field';

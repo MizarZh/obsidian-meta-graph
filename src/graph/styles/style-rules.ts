@@ -12,6 +12,11 @@ export interface NodeStyle {
 	size: number;
 }
 
+export interface NodeStyleContext {
+	groupIds?: readonly string[];
+	groupNames?: readonly string[];
+}
+
 export interface LinkStyle {
 	color: string;
 	size: number;
@@ -24,10 +29,11 @@ export function resolveNodeStyle(
 	node: KnowledgeNode,
 	rules: NodeStyleRule[],
 	defaults: NodeStyle,
+	context: NodeStyleContext = {},
 ): NodeStyle {
 	return rules.reduce(
 		(style, rule) =>
-			matchesNodeRule(node, rule)
+			matchesNodeRule(node, rule, context)
 				? { color: rule.color || style.color, size: rule.size }
 				: style,
 		{ ...defaults },
@@ -56,13 +62,20 @@ export function resolveLinkStyle(
 	);
 }
 
-function matchesNodeRule(node: KnowledgeNode, rule: NodeStyleRule): boolean {
+function matchesNodeRule(
+	node: KnowledgeNode,
+	rule: NodeStyleRule,
+	context: NodeStyleContext,
+): boolean {
 	if (rule.field === 'all') {
 		return true;
 	}
 	const value = rule.value.trim().toLocaleLowerCase();
 	const operator = rule.operator ?? 'is';
-	if (!value && operator !== 'has-value' && operator !== 'empty') {
+	if (
+		!value &&
+		!['has-value', 'empty', 'is-empty', 'is-not-empty'].includes(operator)
+	) {
 		return false;
 	}
 	switch (rule.field) {
@@ -81,10 +94,66 @@ function matchesNodeRule(node: KnowledgeNode, rule: NodeStyleRule): boolean {
 			return node.domains.some(
 				(domain) => domain.toLocaleLowerCase() === value,
 			);
+		case 'group':
+			return matchesNodeGroup(context, operator, rule.value);
 		case 'type':
 			return node.noteType?.toLocaleLowerCase() === value;
 		case 'title':
 			return node.title.toLocaleLowerCase() === value;
+	}
+}
+
+function matchesNodeGroup(
+	context: NodeStyleContext,
+	operator: string,
+	value: string,
+): boolean {
+	const values = [...(context.groupIds ?? []), ...(context.groupNames ?? [])]
+		.map((item) => item.trim().toLocaleLowerCase())
+		.filter(Boolean);
+	if (
+		operator === 'has-value' ||
+		operator === 'is-not-empty' ||
+		operator === 'has-property'
+	) {
+		return values.length > 0;
+	}
+	if (
+		operator === 'empty' ||
+		operator === 'is-empty' ||
+		operator === 'does-not-have-property'
+	) {
+		return values.length === 0;
+	}
+	const expected = value.trim().toLocaleLowerCase();
+	if (!expected) {
+		return false;
+	}
+	switch (operator) {
+		case 'is':
+		case 'eq':
+		case 'is-exactly':
+			return values.some((item) => item === expected);
+		case 'is-not':
+		case 'neq':
+		case 'is-not-exactly':
+			return values.every((item) => item !== expected);
+		case 'contains':
+		case 'contains-any-of':
+			return values.some((item) => item.includes(expected));
+		case 'does-not-contain':
+		case 'does-not-contain-any-of':
+			return values.every((item) => !item.includes(expected));
+		case 'starts-with':
+			return values.some((item) => item.startsWith(expected));
+		case 'does-not-start-with':
+			return values.every((item) => !item.startsWith(expected));
+		case 'ends-with':
+			return values.some((item) => item.endsWith(expected));
+		case 'does-not-end-with':
+			return values.every((item) => !item.endsWith(expected));
+		default:
+			return values.some((item) => item === expected);
 	}
 }
 

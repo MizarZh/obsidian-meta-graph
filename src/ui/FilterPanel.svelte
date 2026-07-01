@@ -12,6 +12,7 @@
 	} from './filter/color-commit';
 	import type {
 		ArcDirection,
+		ChartGroup,
 		DefaultLinkStyle,
 		DefaultNodeStyle,
 		FlowDirection,
@@ -64,6 +65,7 @@
 		metadataFieldTypes,
 		metadataFieldValueSuggestions,
 		filePathSuggestions,
+		groups,
 		defaultNodeStyle,
 		defaultLinkStyle,
 		globalNodeStyleRules,
@@ -150,6 +152,7 @@
 		metadataFieldTypes: Record<string, string>;
 		metadataFieldValueSuggestions: Record<string, string[]>;
 		filePathSuggestions: string[];
+		groups: ChartGroup[];
 		defaultNodeStyle: Required<DefaultNodeStyle>;
 		defaultLinkStyle: Required<DefaultLinkStyle>;
 		globalNodeStyleRules: NodeStyleRule[];
@@ -319,6 +322,7 @@
 			{metadataFieldTypes}
 			{metadataFieldValueSuggestions}
 			{filePathSuggestions}
+			{groups}
 			{defaultNodeStyle}
 			{globalNodeStyleRules}
 			{nodeStyleOverrides}

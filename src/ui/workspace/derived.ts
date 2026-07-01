@@ -7,6 +7,7 @@ import {
 	getActiveDefaultNodeStyle,
 	getActiveNodeStyleRules,
 } from '../../graph/styles/active-styles';
+import { resolveNodeStyleContext } from '../../graph/styles/node-style-context';
 import { resolveNodeStyle } from '../../graph/styles/style-rules';
 
 type DockNotes = WorkspaceState['dock']['notes'];
@@ -112,7 +113,12 @@ export function getWorkspaceNodeColor(
 ): string {
 	const rules = getActiveNodeStyleRules(state);
 	const defaultNodeStyle = getActiveDefaultNodeStyle(state, defaultColor);
-	return resolveNodeStyle(node, rules, defaultNodeStyle).color;
+	return resolveNodeStyle(
+		node,
+		rules,
+		defaultNodeStyle,
+		resolveNodeStyleContext(node, state.manualLayout),
+	).color;
 }
 
 export function findDockTemplateLabel(

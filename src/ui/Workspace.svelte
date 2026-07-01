@@ -301,7 +301,7 @@
 			const currentRenderer = rendererLifecycle.renderer;
 			syncRendererDisplaySettings(currentRenderer, nextState, changes);
 			if (
-				changes.styleRulesChanged &&
+				(changes.styleRulesChanged || changes.manualLayoutChanged) &&
 				!changes.shouldRebuild &&
 				currentRenderer &&
 				nextState.projection &&

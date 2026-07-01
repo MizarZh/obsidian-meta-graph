@@ -7,17 +7,12 @@
 		NodeFilterItem,
 		NodeFilterOperator,
 	} from '../core/types';
+	import NodeConditionRow from './filter/NodeConditionRow.svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
-	import ObsidianSuggestInput, {
-		type SuggestionOption,
-	} from './obsidian/ObsidianSuggestInput.svelte';
-	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
-	import ObsidianToggle from './obsidian/ObsidianToggle.svelte';
+	import type { SuggestionOption } from './obsidian/ObsidianSuggestInput.svelte';
 	import FilterGroupSelf from './FilterGroup.svelte';
-	import PropertyPicker, {
-		type PropertyPickerOption,
-	} from './PropertyPicker.svelte';
+	import type { PropertyPickerOption } from './PropertyPicker.svelte';
 
 	let {
 		app,
@@ -54,14 +49,6 @@
 		onUpdate: (id: string, patch: Partial<NodeFilterItem>) => void;
 		onRemove: (id: string) => void;
 	} = $props();
-
-	function shouldShowFilterValue(
-		operator: NodeFilterOperator | undefined,
-	): boolean {
-		return !['has-value', 'empty', 'is-empty', 'is-not-empty'].includes(
-			operator ?? '',
-		);
-	}
 </script>
 
 <div class:root class="knowledge-workspace-filter-group">
@@ -121,101 +108,47 @@
 				/>
 			{:else}
 				<div class="knowledge-workspace-filter-condition">
-					<div class="knowledge-workspace-rule-row filter bases">
-						<PropertyPicker
-							value={child.field}
-							options={fieldOptions}
-							onSelect={(value) =>
-								onUpdate(child.id, {
-									field: value as NodeFilterField,
-									operator: getDefaultOperator(
-										value as NodeFilterField,
-									),
-									value: '',
-								})}
-						/>
-						<ObsidianDropdown
-							value={child.operator ??
-								getDefaultOperator(child.field)}
-							options={getOperatorOptions(child.field)}
-							onChange={(value) =>
-								onUpdate(child.id, {
-									operator: value as NodeFilterOperator,
-								})}
-						/>
-						{#if shouldShowFilterValue(child.operator) && getFieldType(child.field) === 'checkbox'}
-							<ObsidianToggle
-								value={(child.value || 'true') === 'true'}
-								onChange={(value) =>
-									onUpdate(child.id, {
-										value: String(value),
-									})}
+					<NodeConditionRow
+						{app}
+						class="filter bases"
+						field={child.field}
+						operator={child.operator}
+						value={child.value}
+						{fieldOptions}
+						getOperatorOptions={(field) =>
+							getOperatorOptions(field as NodeFilterField)}
+						getDefaultOperator={(field) =>
+							getDefaultOperator(field as NodeFilterField)}
+						getFieldType={(field) =>
+							getFieldType(field as NodeFilterField)}
+						getValueOptions={(field, operator) =>
+							getValueOptions(field as NodeFilterField, operator)}
+						onFieldChange={(value) =>
+							onUpdate(child.id, {
+								field: value as NodeFilterField,
+								operator: getDefaultOperator(
+									value as NodeFilterField,
+								),
+								value: '',
+							})}
+						onOperatorChange={(value) =>
+							onUpdate(child.id, {
+								operator: value,
+							})}
+						onValueChange={(value) =>
+							onUpdate(child.id, {
+								value,
+							})}
+					>
+						{#snippet actions()}
+							<ObsidianButton
+								class="knowledge-workspace-remove-rule-button"
+								ariaLabel="Remove filter"
+								icon="trash-2"
+								onClick={() => onRemove(child.id)}
 							/>
-						{:else if shouldShowFilterValue(child.operator) && getFieldType(child.field) === 'date'}
-							<ObsidianTextInput
-								type="date"
-								placeholder="Value"
-								value={child.value}
-								onInput={(value) =>
-									onUpdate(child.id, {
-										value,
-									})}
-							/>
-						{:else if shouldShowFilterValue(child.operator) && getFieldType(child.field) === 'datetime'}
-							<ObsidianTextInput
-								type="datetime-local"
-								placeholder="Value"
-								value={child.value}
-								onInput={(value) =>
-									onUpdate(child.id, {
-										value,
-									})}
-							/>
-						{:else if shouldShowFilterValue(child.operator) && getValueOptions(child.field, child.operator).length > 0}
-							<ObsidianSuggestInput
-								{app}
-								type="text"
-								placeholder="Value"
-								value={child.value}
-								options={getValueOptions(
-									child.field,
-									child.operator,
-								)}
-								showOnEmpty={true}
-								onInput={(value) =>
-									onUpdate(child.id, {
-										value,
-									})}
-								onSelect={(option) =>
-									onUpdate(child.id, {
-										value: option.value,
-									})}
-							/>
-						{:else}
-							<ObsidianTextInput
-								type="text"
-								placeholder={shouldShowFilterValue(
-									child.operator,
-								)
-									? 'Value'
-									: ''}
-								disabled={!shouldShowFilterValue(
-									child.operator,
-								)}
-								value={child.value}
-								onInput={(value) =>
-									onUpdate(child.id, {
-										value,
-									})}
-							/>
-						{/if}
-						<ObsidianButton
-							class="knowledge-workspace-remove-rule-button"
-							ariaLabel="Remove filter"
-							icon="trash-2"
-							onClick={() => onRemove(child.id)}
-						/>
-					</div>
+						{/snippet}
+					</NodeConditionRow>
 				</div>
 			{/if}
 		{/each}
