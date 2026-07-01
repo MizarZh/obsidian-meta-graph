@@ -62,7 +62,10 @@ export function openWorkspaceCreateTemplateNote({
 				linkDirection,
 				field,
 			),
-		addCuratedFile: (path) => controller.addCuratedFile(path),
+		addCuratedFile: (path) => {
+			controller.addCuratedFile(path);
+			controller.refresh();
+		},
 		opener: {
 			getFile: (path) => app.vault.getAbstractFileByPath(path),
 			isOpenableFile: (file): file is TFile => file instanceof TFile,
@@ -106,6 +109,7 @@ export async function openWorkspaceCreateStandaloneTemplateNote({
 	}
 	controller.addCuratedFile(filePath, groupId);
 	controller.setManualNodePosition(filePath, position, groupId);
+	controller.refresh();
 	await openCreatedTemplateNote(filePath, openTemplateNoteInNewTab, {
 		getFile: (path) => app.vault.getAbstractFileByPath(path),
 		isOpenableFile: (file): file is TFile => file instanceof TFile,
