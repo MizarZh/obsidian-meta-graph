@@ -27,6 +27,12 @@ export interface Force3DLink extends LinkObject<Force3DNode> {
 	hidden: boolean;
 }
 
+export interface Force3DStyleSyncResult {
+	nodeLabelIds: Set<string>;
+	linkLabelIds: Set<string>;
+	nodeSizeChanged: boolean;
+}
+
 export function toForce3DData(graph: RuntimeGraph): {
 	nodes: Force3DNode[];
 	links: Force3DLink[];
@@ -53,12 +59,23 @@ export function toForce3DData(graph: RuntimeGraph): {
 export function syncForce3DDataStyles(
 	graph: RuntimeGraph,
 	data: { nodes: Force3DNode[]; links: Force3DLink[] },
-): void {
+): Force3DStyleSyncResult {
+	const result: Force3DStyleSyncResult = {
+		nodeLabelIds: new Set(),
+		linkLabelIds: new Set(),
+		nodeSizeChanged: false,
+	};
 	for (const node of data.nodes) {
 		if (!graph.hasNode(node.id)) {
 			continue;
 		}
 		const attributes = graph.getNodeAttributes(node.id);
+		if (node.label !== attributes.label) {
+			result.nodeLabelIds.add(node.id);
+		}
+		if (node.size !== attributes.size) {
+			result.nodeSizeChanged = true;
+		}
 		node.label = attributes.label;
 		node.color = attributes.color;
 		node.size = attributes.size;
@@ -72,13 +89,23 @@ export function syncForce3DDataStyles(
 			continue;
 		}
 		const attributes = graph.getEdgeAttributes(link.id);
+		const nextForceLabel = attributes.forceLabel;
+		const nextHidden = attributes.hidden;
+		if (
+			link.label !== attributes.label ||
+			link.forceLabel !== nextForceLabel ||
+			link.hidden !== nextHidden
+		) {
+			result.linkLabelIds.add(link.id);
+		}
 		link.color = attributes.color;
 		link.size = attributes.size;
 		link.label = attributes.label;
-		link.forceLabel = attributes.forceLabel;
+		link.forceLabel = nextForceLabel;
 		link.directed = attributes.type.includes('arrow');
-		link.hidden = attributes.hidden;
+		link.hidden = nextHidden;
 	}
+	return result;
 }
 
 export function getLinkEndpointId(

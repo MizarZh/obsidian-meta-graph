@@ -32,6 +32,14 @@ interface ThreeRuntime {
 	Sprite: typeof Three.Sprite;
 }
 
+interface ScheduledVisualUpdate {
+	refreshAccessors?: boolean;
+	allLabelSprites?: boolean;
+	nodeLabelIds?: ReadonlySet<string>;
+	linkLabelIds?: ReadonlySet<string>;
+	nodeLabelPositions?: boolean;
+}
+
 export class Force3DRenderer {
 	readonly instance: ForceGraph3DInstance<Force3DNode, Force3DLink>;
 	private selectedNodeId?: string;
@@ -50,6 +58,12 @@ export class Force3DRenderer {
 	private pendingFrame: number | undefined;
 	private pendingConnectionMove: PointerEvent | undefined;
 	private pendingConnectionMoveFrame: number | undefined;
+	private pendingVisualFrame: number | undefined;
+	private pendingRefreshAccessors = false;
+	private pendingAllLabelSprites = false;
+	private pendingNodeLabelPositions = false;
+	private pendingNodeLabelIds = new Set<string>();
+	private pendingLinkLabelIds = new Set<string>();
 	private screenPositionCacheFrame = -1;
 	private screenPositionCache: ScreenNode[] = [];
 	private readonly nodeLabelSprites = new Map<string, Three.Sprite>();
@@ -240,11 +254,13 @@ export class Force3DRenderer {
 		if (!this.initialized || this.killed) {
 			return;
 		}
-		syncForce3DDataStyles(this.graph, this.instance.graphData());
-		this.refreshVisualAccessorsWhenReady();
-		this.updateLabelSprites();
-		this.updateNodeLabelPositions();
-		this.renderFrame();
+		const result = syncForce3DDataStyles(this.graph, this.instance.graphData());
+		this.scheduleVisualUpdate({
+			refreshAccessors: true,
+			nodeLabelIds: result.nodeLabelIds,
+			linkLabelIds: result.linkLabelIds,
+			nodeLabelPositions: result.nodeSizeChanged,
+		});
 	}
 
 	setPalette(palette: GraphPalette): void {
@@ -254,8 +270,7 @@ export class Force3DRenderer {
 		);
 		this.applyTooltipStyles();
 		this.refreshColorsWhenReady();
-		this.updateLabelSprites();
-		this.renderFrame();
+		this.scheduleVisualUpdate({ allLabelSprites: true });
 	}
 
 	setSelected(nodeId?: string): void {
@@ -281,42 +296,38 @@ export class Force3DRenderer {
 
 	setLabelSize(_labelSize: number): void {
 		this.labelSize = _labelSize;
-		this.updateLabelSprites();
-		this.updateNodeLabelPositions();
-		this.renderFrame();
+		this.scheduleVisualUpdate({
+			allLabelSprites: true,
+			nodeLabelPositions: true,
+		});
 	}
 
 	setLabelPosition(_labelPosition: LabelPosition): void {
 		this.labelPosition = _labelPosition;
-		this.updateNodeLabelPositions();
-		this.renderFrame();
+		this.scheduleVisualUpdate({ nodeLabelPositions: true });
 	}
 
 	setLabelOffset(labelOffset: number): void {
 		this.labelOffset = labelOffset;
-		this.updateNodeLabelPositions();
-		this.renderFrame();
+		this.scheduleVisualUpdate({ nodeLabelPositions: true });
 	}
 
 	setLabelColor(labelColor: string): void {
 		this.labelColor = labelColor;
 		this.applyTooltipStyles();
-		this.updateLabelSprites();
-		this.renderFrame();
+		this.scheduleVisualUpdate({ allLabelSprites: true });
 	}
 
 	setLabelTheme(labelTheme: LabelThemeConfig): void {
 		this.labelTheme = labelTheme;
 		this.applyTooltipStyles();
-		this.updateLabelSprites();
-		this.renderFrame();
+		this.scheduleVisualUpdate({ allLabelSprites: true });
 	}
 
 	setLabelBackgroundOpacity(labelBackgroundOpacity: number): void {
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.applyTooltipStyles();
-		this.updateLabelSprites();
-		this.renderFrame();
+		this.scheduleVisualUpdate({ allLabelSprites: true });
 	}
 
 	setLabelDensity(_labelDensity: number): void {
@@ -479,6 +490,10 @@ export class Force3DRenderer {
 			window.cancelAnimationFrame(this.pendingConnectionMoveFrame);
 			this.pendingConnectionMoveFrame = undefined;
 		}
+		if (this.pendingVisualFrame !== undefined) {
+			window.cancelAnimationFrame(this.pendingVisualFrame);
+			this.pendingVisualFrame = undefined;
+		}
 		this.instance.pauseAnimation();
 		this.instance._destructor();
 		this.container.replaceChildren();
@@ -538,11 +553,22 @@ export class Force3DRenderer {
 			);
 	}
 
-	private updateLabelSprites(): void {
+	private updateLabelSprites({
+		all = true,
+		nodeIds,
+		linkIds,
+	}: {
+		all?: boolean;
+		nodeIds?: ReadonlySet<string>;
+		linkIds?: ReadonlySet<string>;
+	} = {}): void {
 		if (!this.initialized || this.killed) {
 			return;
 		}
 		for (const node of this.instance.graphData().nodes) {
+			if (!all && !nodeIds?.has(node.id)) {
+				continue;
+			}
 			const sprite = this.nodeLabelSprites.get(node.id);
 			if (!sprite) {
 				continue;
@@ -551,6 +577,9 @@ export class Force3DRenderer {
 			this.replaceSpriteTexture(sprite, next);
 		}
 		for (const link of this.instance.graphData().links) {
+			if (!all && !linkIds?.has(link.id)) {
+				continue;
+			}
 			const sprite = this.linkLabelSprites.get(link.id);
 			if (!sprite) {
 				continue;
@@ -564,6 +593,67 @@ export class Force3DRenderer {
 				: this.createTextSprite('', 1, 0);
 			this.replaceSpriteTexture(sprite, next);
 		}
+	}
+
+	private scheduleVisualUpdate(update: ScheduledVisualUpdate): void {
+		this.pendingRefreshAccessors ||= Boolean(update.refreshAccessors);
+		this.pendingAllLabelSprites ||= Boolean(update.allLabelSprites);
+		this.pendingNodeLabelPositions ||= Boolean(update.nodeLabelPositions);
+		if (!this.pendingAllLabelSprites) {
+			update.nodeLabelIds?.forEach((nodeId) =>
+				this.pendingNodeLabelIds.add(nodeId),
+			);
+			update.linkLabelIds?.forEach((linkId) =>
+				this.pendingLinkLabelIds.add(linkId),
+			);
+		}
+		if (this.pendingVisualFrame !== undefined) {
+			return;
+		}
+		this.pendingVisualFrame = window.requestAnimationFrame(() => {
+			this.pendingVisualFrame = undefined;
+			this.flushVisualUpdate();
+		});
+	}
+
+	private flushVisualUpdate(): void {
+		if (!this.initialized || this.killed) {
+			this.clearPendingVisualUpdate();
+			return;
+		}
+		const refreshAccessors = this.pendingRefreshAccessors;
+		const allLabelSprites = this.pendingAllLabelSprites;
+		const nodeLabelPositions = this.pendingNodeLabelPositions;
+		const nodeLabelIds = new Set(this.pendingNodeLabelIds);
+		const linkLabelIds = new Set(this.pendingLinkLabelIds);
+		this.clearPendingVisualUpdate();
+
+		if (refreshAccessors) {
+			this.refreshVisualAccessorsWhenReady();
+		}
+		if (
+			allLabelSprites ||
+			nodeLabelIds.size > 0 ||
+			linkLabelIds.size > 0
+		) {
+			this.updateLabelSprites({
+				all: allLabelSprites,
+				nodeIds: nodeLabelIds,
+				linkIds: linkLabelIds,
+			});
+		}
+		if (nodeLabelPositions) {
+			this.updateNodeLabelPositions();
+		}
+		this.renderFrame();
+	}
+
+	private clearPendingVisualUpdate(): void {
+		this.pendingRefreshAccessors = false;
+		this.pendingAllLabelSprites = false;
+		this.pendingNodeLabelPositions = false;
+		this.pendingNodeLabelIds.clear();
+		this.pendingLinkLabelIds.clear();
 	}
 
 	private replaceSpriteTexture(

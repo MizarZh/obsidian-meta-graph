@@ -109,11 +109,14 @@ describe('graph renderer helpers', () => {
 			hidden: true,
 		});
 
-		syncForce3DDataStyles(graph, data);
+		const result = syncForce3DDataStyles(graph, data);
 
 		expect(data.nodes[0]).toBe(source);
 		expect(data.links[0]!.source).toBe(source);
 		expect(data.links[0]!.target).toBe(target);
+		expect(result.nodeLabelIds.size).toBe(0);
+		expect(result.linkLabelIds).toEqual(new Set(['A-to-B']));
+		expect(result.nodeSizeChanged).toBe(true);
 		expect(data.nodes[0]).toMatchObject({
 			color: '#abcdef',
 			size: 12,
