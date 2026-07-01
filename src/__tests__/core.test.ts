@@ -38,29 +38,25 @@ describe('metadata relation parsing', () => {
 		]);
 		expect(
 			parseRelations(
-				{ leads_to: '[[B]]', related: ['[[C]]', '[[D]]'] },
+				{ 'leads-to': '[[B]]', related: ['[[C]]', '[[D]]'] },
 				'A.md',
 				resolver,
+				undefined,
+				[],
+				['leads-to', 'related'],
 			),
 		).toHaveLength(3);
 	});
 
-	it('reverses prerequisite direction', () => {
+	it('parses configured relation fields only', () => {
 		const [edge] = parseRelations(
-			{ prerequisites: '[[B]]' },
+			{ 'leads-to': '[[B]]', related: '[[C]]' },
 			'A.md',
 			resolver,
+			undefined,
+			[],
+			['leads-to'],
 		);
-		expect(edge).toMatchObject({
-			source: 'B.md',
-			target: 'A.md',
-			relation: 'prerequisite',
-			directed: true,
-		});
-	});
-
-	it('keeps leads-to direction', () => {
-		const [edge] = parseRelations({ leads_to: '[[B]]' }, 'A.md', resolver);
 		expect(edge).toMatchObject({
 			source: 'A.md',
 			target: 'B.md',
@@ -69,7 +65,7 @@ describe('metadata relation parsing', () => {
 		});
 	});
 
-	it('supports common relation property aliases', () => {
+	it('ignores unconfigured relation fields', () => {
 		expect(
 			parseRelations(
 				{
@@ -79,31 +75,22 @@ describe('metadata relation parsing', () => {
 				'A.md',
 				resolver,
 			),
-		).toHaveLength(2);
+		).toHaveLength(0);
 	});
 
 	it('uses cached frontmatter links when property values are unavailable', () => {
 		const [edge] = parseRelations(
-			{ related: null },
+			{ supports: null },
 			'A.md',
 			resolver,
 			undefined,
-			[{ key: 'related.0', link: 'B' }],
+			[{ key: 'supports.0', link: 'B' }],
+			['supports'],
 		);
 		expect(edge).toMatchObject({
 			source: 'A.md',
 			target: 'B.md',
-			relation: 'related',
-		});
-	});
-
-	it('creates an undirected related relation', () => {
-		const [edge] = parseRelations({ related: '[[B]]' }, 'A.md', resolver);
-		expect(edge).toMatchObject({
-			source: 'A.md',
-			target: 'B.md',
-			relation: 'related',
-			directed: false,
+			relation: 'supports',
 		});
 	});
 
@@ -112,23 +99,22 @@ describe('metadata relation parsing', () => {
 			{ related: ['[[B]]', '[[B]]'] },
 			'A.md',
 			resolver,
+			undefined,
+			[],
+			['related'],
 		);
 		expect(edges).toHaveLength(1);
-
-		const index = createKnowledgeIndex();
-		addEdge(index, edges[0] as KnowledgeEdge);
-		const reverse = parseRelations({ related: '[[A]]' }, 'B.md', resolver);
-		addEdge(index, reverse[0] as KnowledgeEdge);
-		expect(index.edges).toHaveLength(1);
 	});
 
 	it('ignores missing links and reports them', () => {
 		const onUnresolved = vi.fn();
 		const edges = parseRelations(
-			{ leads_to: '[[Missing]]' },
+			{ 'leads-to': '[[Missing]]' },
 			'A.md',
 			resolver,
 			onUnresolved,
+			[],
+			['leads-to'],
 		);
 		expect(edges).toEqual([]);
 		expect(onUnresolved).toHaveBeenCalledWith('Missing', 'A.md');

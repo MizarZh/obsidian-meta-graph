@@ -7,10 +7,10 @@ body.
 
 ## Metadata
 
-Add any of the supported properties to note frontmatter. Each property accepts a
-single string or an array. Meta Graph recognizes the built-in relationship
-properties below and any additional connection metadata fields added from the
-workspace connection panel.
+Add relationship properties to note frontmatter, then add those metadata field
+names in the workspace connection panel. Each property accepts a single string
+or an array. Meta Graph only parses connection metadata fields that the
+workspace lists explicitly.
 
 ```yaml
 ---
@@ -18,10 +18,10 @@ domain:
     - astronomy
 type: concept
 
-prerequisites:
+up:
     - '[[Hydrostatic equilibrium]]'
 
-leads_to:
+leads-to:
     - '[[Stellar evolution]]'
 
 related:
@@ -29,13 +29,11 @@ related:
 ---
 ```
 
-Relationship directions are:
+Parsed metadata relationship directions are:
 
-- `prerequisites`: linked note → current note
-- `leads_to`: current note → linked note
-- `related`: undirected
-- Custom connection fields: current note → linked note by default, or both
-  notes when the field is set to two-way in the connection panel
+- Configured connection fields: current note → linked note.
+- Two-way and reverse connection modes affect how new links are written from the
+  connection panel. Metadata parsing still follows the stored metadata link.
 
 Unresolved links are ignored. Enable **Debug unresolved links** in the plugin
 settings to report them in the developer console.
@@ -197,19 +195,11 @@ globalStyle:
     nodeRules: []
     linkRules: []
 activeChart: knowledge-map
-connectionFields:
-    - leads-to
-connectionFieldSpecs:
-    - id: leads-to:directed
-      field: leads-to
-      mode: directed
-    - id: leads-to:bidirectional
-      field: leads-to
-      mode: bidirectional
-connectionFieldModes:
-    leads-to: directed
-activeConnectionFieldSpecId: leads-to:directed
-activeConnectionField: leads-to
+connectionFields: []
+connectionFieldSpecs: []
+connectionFieldModes: {}
+activeConnectionFieldSpecId: ''
+activeConnectionField: ''
 ```
 
 Use **Open graph as Markdown** to edit the backing YAML directly.

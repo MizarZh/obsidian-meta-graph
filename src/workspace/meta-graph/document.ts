@@ -12,14 +12,8 @@ import type {
 } from '../../core/types';
 import { cloneSerializable } from '../state/persistence';
 import { createChartId, createDefaultCharts, normalizeChart } from './chart';
+import { DEFAULT_CONNECTION_FIELDS, DEFAULT_DOCK } from './constants';
 import {
-	DEFAULT_CONNECTION_FIELD,
-	DEFAULT_CONNECTION_FIELD_MODE,
-	DEFAULT_CONNECTION_FIELDS,
-	DEFAULT_DOCK,
-} from './constants';
-import {
-	createConnectionFieldSpec,
 	normalizeConnectionFieldModes,
 	normalizeConnectionFields,
 	normalizeConnectionFieldSpecs,
@@ -103,9 +97,7 @@ export function createDefaultMetaGraphDocument(
 	fadeDistance: number,
 ): MetaGraphDocument {
 	const charts = createDefaultCharts(maxNodes, fadeDistance);
-	const connectionFieldSpecs = DEFAULT_CONNECTION_FIELDS.map((field) =>
-		createConnectionFieldSpec(field, DEFAULT_CONNECTION_FIELD_MODE),
-	);
+	const connectionFieldSpecs: ConnectionFieldSpec[] = [];
 	return {
 		globalQuery: createDefaultGlobalQuery(maxNodes),
 		globalStyle: createDefaultGlobalStyle(),
@@ -113,14 +105,9 @@ export function createDefaultMetaGraphDocument(
 		activeChart: charts[0]?.id ?? 'knowledge-map',
 		connectionFields: [...DEFAULT_CONNECTION_FIELDS],
 		connectionFieldSpecs,
-		connectionFieldModes: Object.fromEntries(
-			DEFAULT_CONNECTION_FIELDS.map((field) => [
-				field,
-				DEFAULT_CONNECTION_FIELD_MODE,
-			]),
-		),
-		activeConnectionFieldSpecId: connectionFieldSpecs[0]?.id ?? '',
-		activeConnectionField: DEFAULT_CONNECTION_FIELD,
+		connectionFieldModes: {},
+		activeConnectionFieldSpecId: '',
+		activeConnectionField: '',
 		dock: cloneSerializable(DEFAULT_DOCK),
 	};
 }

@@ -1,6 +1,6 @@
 import type {
 	ConnectionFieldMode,
-		CuratedWorkspaceContext,
+	CuratedWorkspaceContext,
 	DefaultLinkStyle,
 	DefaultNodeStyle,
 	LabelPosition,
@@ -12,8 +12,8 @@ export const META_GRAPH_FRONTMATTER_VALUE = 'workspace';
 export const META_GRAPH_VERSION_KEY = 'meta-graph-version';
 export const META_GRAPH_VERSION = 1;
 export const BASE_STYLE_RULE_ID = 'all';
-export const DEFAULT_CONNECTION_FIELD = 'leads-to';
-export const DEFAULT_CONNECTION_FIELDS = [DEFAULT_CONNECTION_FIELD];
+export const DEFAULT_CONNECTION_FIELD = '';
+export const DEFAULT_CONNECTION_FIELDS: string[] = [];
 export const DEFAULT_CONNECTION_FIELD_MODE: ConnectionFieldMode = 'directed';
 export const DEFAULT_LABEL_SIZE = 14;
 export const DEFAULT_GRAPH_CENTER_FORCE = 1;

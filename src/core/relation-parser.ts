@@ -1,44 +1,15 @@
 import { createEdgeId, normalizePath } from './knowledge-index';
 import { extractLinkText, type LinkResolver } from './link-resolver';
-import type { KnowledgeEdge, RelationType } from './types';
+import type { KnowledgeEdge } from './types';
 
 interface RelationDefinition {
-	fields: string[];
-	relation: RelationType;
-	directed: boolean;
-	reverse: boolean;
+	field: string;
 }
 
 export interface CachedFrontmatterLink {
 	key: string;
 	link: string;
 }
-
-const RELATIONS: RelationDefinition[] = [
-	{
-		fields: ['prerequisites', 'prerequisite'],
-		relation: 'prerequisite',
-		directed: true,
-		reverse: true,
-	},
-	{
-		fields: ['leads_to', 'leads-to', 'leadsTo'],
-		relation: 'leads-to',
-		directed: true,
-		reverse: false,
-	},
-	{
-		fields: ['related'],
-		relation: 'related',
-		directed: false,
-		reverse: false,
-	},
-];
-const DEFAULT_RELATION_FIELDS = new Set(
-	RELATIONS.flatMap((definition) =>
-		definition.fields.map(normalizeFieldName),
-	),
-);
 
 export function toStringArray(value: unknown): string[] {
 	const values = Array.isArray(value) ? value : [value];
@@ -84,24 +55,15 @@ export function parseRelations(
 			}
 
 			const normalizedTargetPath = normalizePath(targetPath);
-			const source = definition.reverse
-				? normalizedTargetPath
-				: normalizedCurrentPath;
-			const target = definition.reverse
-				? normalizedCurrentPath
-				: normalizedTargetPath;
-			const id = createEdgeId(
-				source,
-				definition.relation,
-				target,
-				definition.directed,
-			);
+			const source = normalizedCurrentPath;
+			const target = normalizedTargetPath;
+			const id = createEdgeId(source, definition.field, target, true);
 			edges.set(id, {
 				id,
 				source,
 				target,
-				relation: definition.relation,
-				directed: definition.directed,
+				relation: definition.field,
+				directed: true,
 				sourcePath: normalizedCurrentPath,
 				sourceField,
 			});
@@ -116,38 +78,18 @@ export function isRelationField(
 	relationFields: string[] = [],
 ): boolean {
 	const normalized = normalizeFieldName(field);
-	return (
-		RELATIONS.some((definition) =>
-			definition.fields.some(
-				(candidate) => normalizeFieldName(candidate) === normalized,
-			),
-		) ||
-		relationFields.some(
-			(candidate) => normalizeFieldName(candidate) === normalized,
-		)
+	return relationFields.some(
+		(candidate) => normalizeFieldName(candidate) === normalized,
 	);
 }
 
 function createRelationDefinitions(
 	relationFields: string[],
 ): RelationDefinition[] {
-	const definitions = [...RELATIONS];
-	for (const field of relationFields) {
-		const trimmed = field.trim();
-		if (
-			!trimmed ||
-			DEFAULT_RELATION_FIELDS.has(normalizeFieldName(trimmed))
-		) {
-			continue;
-		}
-		definitions.push({
-			fields: [trimmed],
-			relation: trimmed,
-			directed: true,
-			reverse: false,
-		});
-	}
-	return definitions;
+	return relationFields
+		.map((field) => field.trim())
+		.filter(Boolean)
+		.map((field) => ({ field }));
 }
 
 function getRelationValues(
@@ -156,12 +98,10 @@ function getRelationValues(
 	definition: RelationDefinition,
 ): Array<{ value: string; sourceField: string }> {
 	const values: Array<{ value: string; sourceField: string }> = [];
-	const normalizedFields = new Set(
-		definition.fields.map((field) => normalizeFieldName(field)),
-	);
+	const normalizedField = normalizeFieldName(definition.field);
 
 	for (const [field, rawValue] of Object.entries(frontmatter)) {
-		if (!normalizedFields.has(normalizeFieldName(field))) {
+		if (normalizeFieldName(field) !== normalizedField) {
 			continue;
 		}
 		for (const value of toStringArray(rawValue)) {
@@ -171,7 +111,7 @@ function getRelationValues(
 
 	for (const link of frontmatterLinks) {
 		const sourceField = getRootField(link.key);
-		if (normalizedFields.has(normalizeFieldName(sourceField))) {
+		if (normalizeFieldName(sourceField) === normalizedField) {
 			values.push({ value: link.link, sourceField });
 		}
 	}
