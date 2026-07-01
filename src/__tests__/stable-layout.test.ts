@@ -136,6 +136,42 @@ describe('stable layout orchestration', () => {
 		expect(snapshot.positions.get('B.md')).toEqual({ x: 220, y: 0 });
 		expect(snapshot.edgeIds).toEqual(new Set(['A-to-B']));
 	});
+
+	it('reruns graph layout when force layout is requested', async () => {
+		const positions = new Map<string, GraphPosition>([
+			['A.md', { x: 100, y: 100 }],
+			['B.md', { x: 200, y: 100 }],
+		]);
+		const graph = new GraphologyAdapter(palette).fromProjection(
+			projection,
+			positions,
+		);
+		const snapshot = createLayoutSnapshot();
+		for (const [nodeId, position] of positions) {
+			snapshot.positions.set(nodeId, position);
+		}
+
+		await applyStableLayout(graph, snapshot, [], {
+			mode: 'graph',
+			forceLayout: true,
+			graphSpacing: 1,
+			graphForceSettings: DEFAULT_GRAPH_FORCE_SETTINGS,
+			flowEdgeStyle: 'straight',
+			flowDirection: 'LR',
+			flowSpacing: 1,
+			arcSpacing: 1,
+			arcDirection: 'right',
+		});
+
+		expect(graph.getNodeAttributes('A.md')).not.toMatchObject({
+			x: 100,
+			y: 100,
+		});
+		expect(snapshot.positions.get('A.md')).toEqual({
+			x: graph.getNodeAttribute('A.md', 'x'),
+			y: graph.getNodeAttribute('A.md', 'y'),
+		});
+	});
 });
 
 function node(id: string, title: string): GraphProjection['nodes'][number] {

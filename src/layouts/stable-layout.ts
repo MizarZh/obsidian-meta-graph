@@ -215,7 +215,7 @@ async function applyGraphLayout({
 	options,
 	firstLayout,
 }: StableLayoutContext): Promise<void> {
-	if (!firstLayout) {
+	if (!firstLayout && !options.forceLayout) {
 		return;
 	}
 
