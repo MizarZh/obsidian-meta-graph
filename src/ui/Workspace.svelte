@@ -2,10 +2,12 @@
 	import type { App } from 'obsidian';
 	import { onMount } from 'svelte';
 	import type {
+		ChartSource,
 		DebugSnapshot,
 		DockConnectionDirection,
 		MetaGraphDocument,
 		SettingsPanelMode,
+		ViewMode,
 		WorkspaceState,
 	} from '../core/types';
 	import { formatError as formatErrorMessage } from '../core/errors';
@@ -71,8 +73,13 @@
 		createCuratedConditionDraft,
 		type CuratedConditionDraft,
 	} from './curated/curated-panel-state';
+	import {
+		getChartSourceSwitchWarning,
+		getChartTypeSwitchWarning,
+	} from '../workspace/state/switch-warnings';
 
 	import { ConfirmDeleteViewModal } from './ConfirmDeleteWorkspaceModal';
+	import { SwitchModeWarningModal } from './SwitchModeWarningModal';
 	import Toolbar from './Toolbar.svelte';
 
 	let {
@@ -607,6 +614,34 @@
 		).open();
 	}
 
+	function requestChartTypeChange(type: ViewMode): void {
+		const warning = getChartTypeSwitchWarning(workspaceState, type);
+		if (!warning) {
+			controller.setActiveChartType(type);
+			return;
+		}
+		new SwitchModeWarningModal(
+			app,
+			warning,
+			() => controller.setActiveChartType(type),
+			() => controller.duplicateActiveChartAndSetType(type),
+		).open();
+	}
+
+	function requestChartSourceChange(source: ChartSource): void {
+		const warning = getChartSourceSwitchWarning(workspaceState, source);
+		if (!warning) {
+			controller.setActiveChartSource(source);
+			return;
+		}
+		new SwitchModeWarningModal(
+			app,
+			warning,
+			() => controller.setActiveChartSource(source),
+			() => controller.duplicateActiveChartAndSetSource(source),
+		).open();
+	}
+
 	function focusNodeFromSearch(nodeId: string): void {
 		controller.selectNode(nodeId);
 		window.requestAnimationFrame(() => rendererLifecycle.focusNode(nodeId));
@@ -753,8 +788,8 @@
 		onSelectChart={(id) => controller.setActiveChart(id)}
 		onAddChart={() => controller.addChart()}
 		onRenameChart={(name) => controller.setActiveChartName(name)}
-		onChartType={(mode) => controller.setActiveChartType(mode)}
-		onChartSource={(source) => controller.setActiveChartSource(source)}
+		onChartType={requestChartTypeChange}
+		onChartSource={requestChartSourceChange}
 		onDeleteChart={confirmDeleteActiveChart}
 		onFocusNode={focusNodeFromSearch}
 		onFit={() => rendererLifecycle.fit()}

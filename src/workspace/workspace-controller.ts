@@ -139,6 +139,8 @@ import {
 import {
 	addChartInState,
 	deleteActiveChartInState,
+	duplicateActiveChartAndSetSourceInState,
+	duplicateActiveChartAndSetTypeInState,
 	setActiveChartInState,
 	setActiveChartNameInState,
 	setActiveChartSourceInState,
@@ -264,6 +266,19 @@ export class WorkspaceController {
 
 	setActiveChartSource(source: ChartSource): void {
 		const result = setActiveChartSourceInState(this.state, source);
+		this.setWorkspaceState(result.state, result.runQuery);
+	}
+
+	duplicateActiveChartAndSetType(type: ViewMode): void {
+		const result = duplicateActiveChartAndSetTypeInState(this.state, type);
+		this.setWorkspaceState(result.state, result.runQuery);
+	}
+
+	duplicateActiveChartAndSetSource(source: ChartSource): void {
+		const result = duplicateActiveChartAndSetSourceInState(
+			this.state,
+			source,
+		);
 		this.setWorkspaceState(result.state, result.runQuery);
 	}
 

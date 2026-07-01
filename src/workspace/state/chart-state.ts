@@ -9,6 +9,7 @@ import {
 	createDefaultCuratedWorkspace,
 } from '../meta-graph-model';
 import { normalizeCubeLayout } from './manual-layout';
+import { cloneSerializable } from './persistence';
 import { createWorkspaceState } from './workspace-state';
 import { updateActiveChartState } from './state-updaters';
 
@@ -85,6 +86,22 @@ export function addChartInState(
 		},
 		chart.id,
 	);
+}
+
+export function duplicateActiveChartAndSetTypeInState(
+	state: WorkspaceState,
+	type: ViewMode,
+): WorkspaceChartStateResult {
+	const nextState = duplicateActiveChartInState(state);
+	return setActiveChartTypeInState(nextState, type);
+}
+
+export function duplicateActiveChartAndSetSourceInState(
+	state: WorkspaceState,
+	source: ChartSource,
+): WorkspaceChartStateResult {
+	const nextState = duplicateActiveChartInState(state);
+	return setActiveChartSourceInState(nextState, source);
 }
 
 export function setActiveChartNameInState(
@@ -180,4 +197,49 @@ function getActiveChart(state: WorkspaceState): MetaGraphChart {
 		throw new Error('Active chart is missing from workspace state.');
 	}
 	return chart;
+}
+
+function duplicateActiveChartInState(state: WorkspaceState): WorkspaceState {
+	const activeChart = getActiveChart(state);
+	const duplicate = cloneSerializable({
+		...activeChart,
+		id: createUniqueChartId(`${activeChart.id}-copy`, state.charts),
+		name: createUniqueChartName(`${activeChart.name} copy`, state.charts),
+	});
+	return {
+		...state,
+		charts: [...state.charts, duplicate],
+		activeChartId: duplicate.id,
+	};
+}
+
+function createUniqueChartId(
+	baseId: string,
+	existingCharts: MetaGraphChart[],
+): string {
+	return createUniqueValue(
+		baseId,
+		new Set(existingCharts.map((chart) => chart.id)),
+	);
+}
+
+function createUniqueChartName(
+	baseName: string,
+	existingCharts: MetaGraphChart[],
+): string {
+	return createUniqueValue(
+		baseName,
+		new Set(existingCharts.map((chart) => chart.name)),
+	);
+}
+
+function createUniqueValue(baseValue: string, existingValues: Set<string>): string {
+	if (!existingValues.has(baseValue)) {
+		return baseValue;
+	}
+	let index = 2;
+	while (existingValues.has(`${baseValue} ${index}`)) {
+		index += 1;
+	}
+	return `${baseValue} ${index}`;
 }

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
 	addChartInState,
 	deleteActiveChartInState,
+	duplicateActiveChartAndSetSourceInState,
+	duplicateActiveChartAndSetTypeInState,
 	setActiveChartInState,
 	setActiveChartNameInState,
 	setActiveChartSourceInState,
@@ -92,5 +94,50 @@ describe('workspace chart state', () => {
 		expect(
 			result.state.charts.some((chart) => chart.id === 'knowledge-map-2'),
 		).toBe(false);
+	});
+
+	it('duplicates the active chart before changing type', () => {
+		const state = {
+			...createWorkspaceState(100),
+			manualLayout: {
+				nodes: { 'a.md': { x: 1, y: 2 } },
+				groups: [],
+			},
+			charts: createWorkspaceState(100).charts.map((chart, index) =>
+				index === 0
+					? {
+							...chart,
+							layout: {
+								...chart.layout,
+								manual: { nodes: { 'a.md': { x: 1, y: 2 } }, groups: [] },
+							},
+						}
+					: chart,
+			),
+		};
+
+		const result = duplicateActiveChartAndSetTypeInState(state, 'flow');
+
+		expect(result.runQuery).toBe(true);
+		expect(result.state.charts).toHaveLength(state.charts.length + 1);
+		expect(result.state.activeChartId).toBe('knowledge-map-copy');
+		expect(result.state.mode).toBe('flow');
+		expect(result.state.charts[0]?.layout.manual?.nodes).toEqual({
+			'a.md': { x: 1, y: 2 },
+		});
+		expect(result.state.charts.at(-1)?.type).toBe('flow');
+	});
+
+	it('duplicates the active chart before changing source', () => {
+		const state = createWorkspaceState(100);
+
+		const result = duplicateActiveChartAndSetSourceInState(state, 'curated');
+
+		expect(result.runQuery).toBe(true);
+		expect(result.state.charts).toHaveLength(state.charts.length + 1);
+		expect(result.state.activeChartId).toBe('knowledge-map-copy');
+		expect(result.state.chartSource).toBe('curated');
+		expect(result.state.charts[0]?.source).toBe('query');
+		expect(result.state.charts.at(-1)?.source).toBe('curated');
 	});
 });
