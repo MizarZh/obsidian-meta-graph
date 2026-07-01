@@ -13,6 +13,7 @@
 	import DockGraphPanel from '../DockGraphPanel.svelte';
 	import Inspector from '../Inspector.svelte';
 	import type { DockDragPayload } from '../dock/types';
+	import type { CuratedConditionDraft } from '../curated/curated-panel-state';
 	import type { DockNoteEntry } from './derived';
 
 	let {
@@ -34,6 +35,7 @@
 		graphConnectionTargetTemplateId,
 		graphConnectionTargetCurated,
 		curatedSelection,
+		curatedConditionDraft,
 		dockDrag,
 		dockConnectionDrag,
 		dockTargetNodeId,
@@ -47,6 +49,7 @@
 		onFocusNode,
 		onOpenMetadataLink,
 		onCuratedSelectionChange,
+		onCuratedConditionDraftChange,
 		formatError,
 	}: {
 		app: App;
@@ -67,6 +70,7 @@
 		graphConnectionTargetTemplateId?: string;
 		graphConnectionTargetCurated: boolean;
 		curatedSelection: Set<string>;
+		curatedConditionDraft: CuratedConditionDraft;
 		dockDrag?: DockDragPayload;
 		dockConnectionDrag?: DockDragPayload;
 		dockTargetNodeId?: string;
@@ -83,6 +87,7 @@
 		onFocusNode: (nodeId: string) => void;
 		onOpenMetadataLink: (linkText: string, sourcePath: string) => void;
 		onCuratedSelectionChange: (paths: Set<string>) => void;
+		onCuratedConditionDraftChange: (draft: CuratedConditionDraft) => void;
 		formatError: (error: unknown) => string;
 	} = $props();
 
@@ -150,6 +155,8 @@
 		dropTarget={graphConnectionTargetCurated}
 		selectedPaths={curatedSelection}
 		onSelectedPathsChange={onCuratedSelectionChange}
+		conditionDraft={curatedConditionDraft}
+		onConditionDraftChange={onCuratedConditionDraftChange}
 		onAddFile={(path, groupId) => controller.addCuratedFile(path, groupId)}
 		onAddFiles={(paths, groupId) =>
 			controller.addCuratedFiles(paths, groupId)}

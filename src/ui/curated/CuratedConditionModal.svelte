@@ -28,7 +28,6 @@
 	import WorkspaceModal from '../WorkspaceModal.svelte';
 	import {
 		canApplyConditionToPath,
-		createConditionFilterRoot,
 		createRuleId,
 		filterConditionalMatches,
 		getConditionalMatches,
@@ -36,6 +35,7 @@
 		removeFilterItemFromGroup,
 		updateFilterGroup,
 		type ConditionalMode,
+		type CuratedConditionDraft,
 	} from './curated-panel-state';
 
 	let {
@@ -49,7 +49,9 @@
 		addGroupOptions,
 		selectedAddGroupId,
 		folders,
+		conditionDraft,
 		onGroupChange,
+		onConditionDraftChange,
 		onAddFiles,
 		onRemoveFiles,
 		onSelectFiles,
@@ -65,21 +67,21 @@
 		addGroupOptions: DropdownOption[];
 		selectedAddGroupId?: string;
 		folders: string[];
+		conditionDraft: CuratedConditionDraft;
 		onGroupChange: (value: string) => void;
+		onConditionDraftChange: (draft: CuratedConditionDraft) => void;
 		onAddFiles: (paths: string[], groupId?: string) => void;
 		onRemoveFiles: (paths: string[]) => void;
 		onSelectFiles: (paths: string[]) => void;
 		onClose: () => void;
 	} = $props();
 
-	let conditionMode = $state<ConditionalMode>('add');
-	let conditionFilterRoot = $state<NodeFilterGroup>(
-		createConditionFilterRoot(),
-	);
-	let conditionResultSearch = $state('');
 	let selectedMatchPaths = $state<Set<string>>(new Set());
 	let wasOpen = $state(false);
 
+	const conditionMode = $derived(conditionDraft.mode);
+	const conditionFilterRoot = $derived(conditionDraft.filterRoot);
+	const conditionResultSearch = $derived(conditionDraft.resultSearch);
 	const curatedFolderSuggestions = $derived(folders);
 	const curatedTagSuggestions = $derived(
 		uniqueSorted(nodes.flatMap((node) => node.tags)),
@@ -122,7 +124,6 @@
 
 	$effect(() => {
 		if (open && !wasOpen) {
-			conditionResultSearch = '';
 			resetConditionalSelection();
 		}
 		wasOpen = open;
@@ -144,8 +145,15 @@
 		window.requestAnimationFrame(resetConditionalSelection);
 	}
 
+	function updateConditionDraft(patch: Partial<CuratedConditionDraft>): void {
+		onConditionDraftChange({
+			...conditionDraft,
+			...patch,
+		});
+	}
+
 	function updateConditionMode(mode: ConditionalMode): void {
-		conditionMode = mode;
+		updateConditionDraft({ mode });
 		scheduleSelectionReset();
 	}
 
@@ -200,43 +208,47 @@
 	}
 
 	function addFilterCondition(groupId: string): void {
-		conditionFilterRoot = updateFilterGroup(
-			conditionFilterRoot,
-			groupId,
-			(group) => ({
-				...group,
-				children: [
-					...group.children,
-					{
-						id: createRuleId(),
-						kind: 'condition',
-						field: 'file.file',
-						operator: 'links-to',
-						value: '',
-					},
-				],
-			}),
-		);
+		updateConditionDraft({
+			filterRoot: updateFilterGroup(
+				conditionFilterRoot,
+				groupId,
+				(group) => ({
+					...group,
+					children: [
+						...group.children,
+						{
+							id: createRuleId(),
+							kind: 'condition',
+							field: 'file.file',
+							operator: 'links-to',
+							value: '',
+						},
+					],
+				}),
+			),
+		});
 		scheduleSelectionReset();
 	}
 
 	function addFilterGroup(groupId: string): void {
-		conditionFilterRoot = updateFilterGroup(
-			conditionFilterRoot,
-			groupId,
-			(group) => ({
-				...group,
-				children: [
-					...group.children,
-					{
-						id: createRuleId(),
-						kind: 'group',
-						mode: 'all',
-						children: [],
-					},
-				],
-			}),
-		);
+		updateConditionDraft({
+			filterRoot: updateFilterGroup(
+				conditionFilterRoot,
+				groupId,
+				(group) => ({
+					...group,
+					children: [
+						...group.children,
+						{
+							id: createRuleId(),
+							kind: 'group',
+							mode: 'all',
+							children: [],
+						},
+					],
+				}),
+			),
+		});
 		scheduleSelectionReset();
 	}
 
@@ -244,11 +256,13 @@
 		itemId: string,
 		patch: Partial<NodeFilterItem>,
 	): void {
-		conditionFilterRoot = patchFilterItem(
-			conditionFilterRoot,
-			itemId,
-			patch,
-		) as NodeFilterGroup;
+		updateConditionDraft({
+			filterRoot: patchFilterItem(
+				conditionFilterRoot,
+				itemId,
+				patch,
+			) as NodeFilterGroup,
+		});
 		scheduleSelectionReset();
 	}
 
@@ -256,10 +270,9 @@
 		if (itemId === conditionFilterRoot.id) {
 			return;
 		}
-		conditionFilterRoot = removeFilterItemFromGroup(
-			conditionFilterRoot,
-			itemId,
-		);
+		updateConditionDraft({
+			filterRoot: removeFilterItemFromGroup(conditionFilterRoot, itemId),
+		});
 		scheduleSelectionReset();
 	}
 
@@ -364,7 +377,7 @@
 			type="search"
 			placeholder="Search results..."
 			value={conditionResultSearch}
-			onInput={(value) => (conditionResultSearch = value)}
+			onInput={(value) => updateConditionDraft({ resultSearch: value })}
 		/>
 		<span>{selectedMatchCount} selected</span>
 		<ObsidianButton

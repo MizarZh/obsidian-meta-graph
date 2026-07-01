@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { KnowledgeNode, NodeFilterGroup } from '../core/types';
 import {
 	canApplyConditionToPath,
+	createCuratedConditionDraft,
 	getConditionalMatches,
 } from '../ui/curated/curated-panel-state';
 
@@ -29,6 +30,19 @@ describe('curated panel state', () => {
 		expect(canApplyConditionToPath('B.md', 'select', curatedPaths)).toBe(
 			false,
 		);
+	});
+
+	it('creates a reusable default condition draft', () => {
+		expect(createCuratedConditionDraft()).toEqual({
+			mode: 'add',
+			resultSearch: '',
+			filterRoot: {
+				id: 'root',
+				kind: 'group',
+				mode: 'all',
+				children: [],
+			},
+		});
 	});
 });
 

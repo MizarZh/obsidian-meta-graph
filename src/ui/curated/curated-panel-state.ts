@@ -11,6 +11,12 @@ import { nodeMatchesFilterGroup } from '../../query/filters';
 export type ReorderPlacement = 'before' | 'after';
 export type ConditionalMode = 'add' | 'remove' | 'select';
 
+export interface CuratedConditionDraft {
+	mode: ConditionalMode;
+	filterRoot: NodeFilterGroup;
+	resultSearch: string;
+}
+
 interface SuggestionOption {
 	value: string;
 	label: string;
@@ -37,6 +43,14 @@ export function createConditionFilterRoot(): NodeFilterGroup {
 		kind: 'group',
 		mode: 'all',
 		children: [],
+	};
+}
+
+export function createCuratedConditionDraft(): CuratedConditionDraft {
+	return {
+		mode: 'add',
+		filterRoot: createConditionFilterRoot(),
+		resultSearch: '',
 	};
 }
 

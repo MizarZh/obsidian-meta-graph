@@ -67,6 +67,10 @@
 	import { GraphDockConnectionController } from './workspace/graph-dock-connection';
 	import WorkspaceSettingsPopover from './workspace/WorkspaceSettingsPopover.svelte';
 	import WorkspaceMainPanels from './workspace/WorkspaceMainPanels.svelte';
+	import {
+		createCuratedConditionDraft,
+		type CuratedConditionDraft,
+	} from './curated/curated-panel-state';
 
 	import { ConfirmDeleteViewModal } from './ConfirmDeleteWorkspaceModal';
 	import Toolbar from './Toolbar.svelte';
@@ -101,6 +105,9 @@
 	let graphConnectionTargetTemplateId = $state<string | undefined>(undefined);
 	let graphConnectionTargetCurated = $state(false);
 	let curatedSelection = $state<Set<string>>(new Set());
+	let curatedConditionDrafts = $state<Record<string, CuratedConditionDraft>>(
+		{},
+	);
 	let dockDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockConnectionDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockTargetNodeId = $state<string | undefined>(undefined);
@@ -521,6 +528,11 @@
 		),
 	);
 	const filePathSuggestions = $derived(getFilePathSuggestions(debugSnapshot));
+	const curatedConditionDraft = $derived.by(
+		() =>
+			curatedConditionDrafts[workspaceState.activeChartId] ??
+			createCuratedConditionDraft(),
+	);
 
 	function toggleDebug(): void {
 		debugOpen = !debugOpen;
@@ -596,6 +608,13 @@
 	function focusNodeFromSearch(nodeId: string): void {
 		controller.selectNode(nodeId);
 		window.requestAnimationFrame(() => rendererLifecycle.focusNode(nodeId));
+	}
+
+	function updateCuratedConditionDraft(draft: CuratedConditionDraft): void {
+		curatedConditionDrafts = {
+			...curatedConditionDrafts,
+			[workspaceState.activeChartId]: draft,
+		};
 	}
 
 	function handleDockPayloadGraphAction(
@@ -799,6 +818,7 @@
 				{graphConnectionTargetTemplateId}
 				{graphConnectionTargetCurated}
 				{curatedSelection}
+				{curatedConditionDraft}
 				{dockDrag}
 				{dockConnectionDrag}
 				{dockTargetNodeId}
@@ -816,6 +836,7 @@
 				onCuratedSelectionChange={(paths) => {
 					curatedSelection = paths;
 				}}
+				onCuratedConditionDraftChange={updateCuratedConditionDraft}
 				{formatError}
 			/>
 		</main>

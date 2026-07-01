@@ -17,6 +17,7 @@
 		countTitles,
 		parseBatchInput,
 		readPointerPlacement,
+		type CuratedConditionDraft,
 		type ReorderPlacement,
 	} from './curated/curated-panel-state';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
@@ -42,6 +43,8 @@
 		dropTarget,
 		selectedPaths: selected,
 		onSelectedPathsChange,
+		conditionDraft,
+		onConditionDraftChange,
 		onAddFile,
 		onAddFiles,
 		onRemoveFile,
@@ -70,6 +73,8 @@
 		dropTarget: boolean;
 		selectedPaths: Set<string>;
 		onSelectedPathsChange: (paths: Set<string>) => void;
+		conditionDraft: CuratedConditionDraft;
+		onConditionDraftChange: (draft: CuratedConditionDraft) => void;
 		onAddFile: (path: string, groupId?: string) => void;
 		onAddFiles: (paths: string[], groupId?: string) => void;
 		onRemoveFile: (path: string) => void;
@@ -485,7 +490,9 @@
 		{addGroupOptions}
 		{selectedAddGroupId}
 		{folders}
+		{conditionDraft}
 		onGroupChange={(value) => (addGroupId = value)}
+		{onConditionDraftChange}
 		{onAddFiles}
 		onRemoveFiles={removeFiles}
 		onSelectFiles={(paths) => onSelectedPathsChange(new Set(paths))}
