@@ -44,7 +44,6 @@
 				: file.title}
 			title={file.missing ? `File not found: ${file.path}` : undefined}
 			onpointerdown={(event) => onPointerDown(file.path, event)}
-			ondblclick={file.missing ? undefined : () => onOpenNote(file.path)}
 			onkeydown={(event) => {
 				if (event.key === 'Enter' || event.key === ' ') {
 					event.preventDefault();

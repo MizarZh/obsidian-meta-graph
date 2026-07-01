@@ -33,6 +33,7 @@
 		graphConnectionTargetNotePath,
 		graphConnectionTargetTemplateId,
 		graphConnectionTargetCurated,
+		curatedSelection,
 		dockDrag,
 		dockConnectionDrag,
 		dockTargetNodeId,
@@ -45,6 +46,7 @@
 		onLinkPointerDown,
 		onFocusNode,
 		onOpenMetadataLink,
+		onCuratedSelectionChange,
 		formatError,
 	}: {
 		app: App;
@@ -64,6 +66,7 @@
 		graphConnectionTargetNotePath?: string;
 		graphConnectionTargetTemplateId?: string;
 		graphConnectionTargetCurated: boolean;
+		curatedSelection: Set<string>;
 		dockDrag?: DockDragPayload;
 		dockConnectionDrag?: DockDragPayload;
 		dockTargetNodeId?: string;
@@ -79,6 +82,7 @@
 		) => void;
 		onFocusNode: (nodeId: string) => void;
 		onOpenMetadataLink: (linkText: string, sourcePath: string) => void;
+		onCuratedSelectionChange: (paths: Set<string>) => void;
 		formatError: (error: unknown) => string;
 	} = $props();
 
@@ -144,6 +148,8 @@
 		onToggleFocusOnSelect={() =>
 			controller.setDockFocusOnSelect(!workspaceState.dock.focusOnSelect)}
 		dropTarget={graphConnectionTargetCurated}
+		selectedPaths={curatedSelection}
+		onSelectedPathsChange={onCuratedSelectionChange}
 		onAddFile={(path, groupId) => controller.addCuratedFile(path, groupId)}
 		onAddFiles={(paths, groupId) =>
 			controller.addCuratedFiles(paths, groupId)}

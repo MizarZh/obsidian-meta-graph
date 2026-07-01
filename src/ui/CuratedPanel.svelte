@@ -40,6 +40,8 @@
 		focusOnSelect,
 		onToggleFocusOnSelect,
 		dropTarget,
+		selectedPaths: selected,
+		onSelectedPathsChange,
 		onAddFile,
 		onAddFiles,
 		onRemoveFile,
@@ -66,6 +68,8 @@
 		focusOnSelect: boolean;
 		onToggleFocusOnSelect: () => void;
 		dropTarget: boolean;
+		selectedPaths: Set<string>;
+		onSelectedPathsChange: (paths: Set<string>) => void;
 		onAddFile: (path: string, groupId?: string) => void;
 		onAddFiles: (paths: string[], groupId?: string) => void;
 		onRemoveFile: (path: string) => void;
@@ -86,7 +90,6 @@
 	let batchInput = $state('');
 	let batchOpen = $state(false);
 	let conditionModalOpen = $state(false);
-	let selected = $state<Set<string>>(new Set());
 	let batchStatus = $state('');
 	let reorderDrag = $state<
 		| {
@@ -159,11 +162,11 @@
 		} else {
 			next.add(path);
 		}
-		selected = next;
+		onSelectedPathsChange(next);
 	}
 
 	function clearSelection(): void {
-		selected = new Set();
+		onSelectedPathsChange(new Set());
 	}
 
 	function removeSelected(): void {
@@ -179,8 +182,8 @@
 
 	function removeFiles(paths: string[]): void {
 		onRemoveFiles(paths);
-		selected = new Set(
-			[...selected].filter((path) => !paths.includes(path)),
+		onSelectedPathsChange(
+			new Set([...selected].filter((path) => !paths.includes(path))),
 		);
 	}
 
@@ -469,8 +472,8 @@
 				onMoveFileToGroup={moveFileToGroup}
 				{onRemoveFile}
 			/>
-			</section>
-		{/if}
+		</section>
+	{/if}
 	<CuratedConditionModal
 		{app}
 		open={conditionModalOpen}
@@ -485,6 +488,7 @@
 		onGroupChange={(value) => (addGroupId = value)}
 		{onAddFiles}
 		onRemoveFiles={removeFiles}
+		onSelectFiles={(paths) => onSelectedPathsChange(new Set(paths))}
 		onClose={() => (conditionModalOpen = false)}
 	/>
 </aside>

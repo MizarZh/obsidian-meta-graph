@@ -52,6 +52,7 @@
 		onGroupChange,
 		onAddFiles,
 		onRemoveFiles,
+		onSelectFiles,
 		onClose,
 	}: {
 		app: App;
@@ -67,6 +68,7 @@
 		onGroupChange: (value: string) => void;
 		onAddFiles: (paths: string[], groupId?: string) => void;
 		onRemoveFiles: (paths: string[]) => void;
+		onSelectFiles: (paths: string[]) => void;
 		onClose: () => void;
 	} = $props();
 
@@ -188,6 +190,8 @@
 		}
 		if (conditionMode === 'add') {
 			onAddFiles(paths, selectedAddGroupId);
+		} else if (conditionMode === 'select') {
+			onSelectFiles(paths);
 		} else {
 			onRemoveFiles(paths);
 		}
@@ -319,6 +323,14 @@
 				destructive={conditionMode === 'remove'}
 				onClick={() => updateConditionMode('remove')}
 			/>
+			<ObsidianButton
+				class="knowledge-workspace-condition-mode-button"
+				text="Select"
+				icon="list-checks"
+				active={conditionMode === 'select'}
+				cta={conditionMode === 'select'}
+				onClick={() => updateConditionMode('select')}
+			/>
 		</div>
 		{#if conditionMode === 'add'}
 			<label class="knowledge-workspace-curated-group-target">
@@ -390,7 +402,9 @@
 						? selectedPaths.has(node.path)
 							? 'Added'
 							: 'New'
-						: 'Selected'}
+						: conditionMode === 'select'
+							? 'Workspace file'
+							: 'Selected'}
 				</small>
 			</label>
 		{:else}
@@ -404,8 +418,14 @@
 		<ObsidianButton
 			text={conditionMode === 'add'
 				? `Add ${selectedMatchCount}`
-				: `Remove ${selectedMatchCount}`}
-			icon={conditionMode === 'add' ? 'plus' : 'trash-2'}
+				: conditionMode === 'select'
+					? `Select ${selectedMatchCount}`
+					: `Remove ${selectedMatchCount}`}
+			icon={conditionMode === 'add'
+				? 'plus'
+				: conditionMode === 'select'
+					? 'list-checks'
+					: 'trash-2'}
 			disabled={selectedMatchCount === 0}
 			destructive={conditionMode === 'remove'}
 			onClick={applyConditionalChange}

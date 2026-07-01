@@ -100,6 +100,7 @@
 	let graphConnectionTargetNotePath = $state<string | undefined>(undefined);
 	let graphConnectionTargetTemplateId = $state<string | undefined>(undefined);
 	let graphConnectionTargetCurated = $state(false);
+	let curatedSelection = $state<Set<string>>(new Set());
 	let dockDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockConnectionDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockTargetNodeId = $state<string | undefined>(undefined);
@@ -797,6 +798,7 @@
 				{graphConnectionTargetNotePath}
 				{graphConnectionTargetTemplateId}
 				{graphConnectionTargetCurated}
+				{curatedSelection}
 				{dockDrag}
 				{dockConnectionDrag}
 				{dockTargetNodeId}
@@ -811,6 +813,9 @@
 				onFocusNode={(nodeId) => rendererLifecycle.focusNode(nodeId)}
 				onOpenMetadataLink={(linkText, sourcePath) =>
 					void openMetadataLink(linkText, sourcePath)}
+				onCuratedSelectionChange={(paths) => {
+					curatedSelection = paths;
+				}}
 				{formatError}
 			/>
 		</main>

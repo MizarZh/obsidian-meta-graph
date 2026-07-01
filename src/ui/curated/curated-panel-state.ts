@@ -9,7 +9,7 @@ import type {
 import { nodeMatchesFilterGroup } from '../../query/filters';
 
 export type ReorderPlacement = 'before' | 'after';
-export type ConditionalMode = 'add' | 'remove';
+export type ConditionalMode = 'add' | 'remove' | 'select';
 
 interface SuggestionOption {
 	value: string;
@@ -222,7 +222,10 @@ export function canApplyConditionToPath(
 	mode: ConditionalMode,
 	selectedPaths: Set<string>,
 ): boolean {
-	return mode === 'add' ? !selectedPaths.has(path) : selectedPaths.has(path);
+	if (mode === 'add') {
+		return !selectedPaths.has(path);
+	}
+	return selectedPaths.has(path);
 }
 
 export function updateFilterGroup(
