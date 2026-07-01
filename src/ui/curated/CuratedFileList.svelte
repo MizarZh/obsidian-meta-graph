@@ -8,6 +8,7 @@
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
 	import type { DropdownOption } from '../obsidian/ObsidianDropdown.svelte';
+	import { buildCuratedMultiDragOrder } from './curated-multi-drag';
 	import type { CuratedFileEntry } from './curated-panel-state';
 
 	type CuratedDndEntry = CuratedFileEntry & { id: string };
@@ -16,7 +17,9 @@
 		files,
 		selectedTitleCounts,
 		getGroupOptions,
+		selectedPaths,
 		onToggleSelected,
+		onFileClick,
 		onPointerDown,
 		onReorderFiles,
 		onOpenNote,
@@ -28,7 +31,9 @@
 		files: CuratedFileEntry[];
 		selectedTitleCounts: Record<string, number>;
 		getGroupOptions: (currentGroupId: string) => DropdownOption[];
+		selectedPaths: Set<string>;
 		onToggleSelected: (path: string) => void;
+		onFileClick: (path: string, event: MouseEvent) => void;
 		onPointerDown: (path: string, event: PointerEvent) => void;
 		onReorderFiles: (paths: string[]) => void;
 		onOpenNote: (path: string) => void;
@@ -49,8 +54,20 @@
 	}
 
 	function handleDndFinalize(event: CustomEvent<DndEvent<CuratedDndEntry>>) {
-		dndFiles = readRealItems(event.detail.items);
-		onReorderFiles(dndFiles.map((file) => file.path));
+		const orderedPaths = files.map((file) => file.path);
+		const singleDraggedOrder = readRealItems(event.detail.items).map(
+			(file) => file.path,
+		);
+		const nextOrder = buildCuratedMultiDragOrder({
+			orderedPaths,
+			draggedPath: event.detail.info.id,
+			selectedPaths,
+			singleDraggedOrder,
+		});
+		dndFiles = nextOrder
+			.map((path) => dndFiles.find((file) => file.path === path))
+			.filter((file): file is CuratedDndEntry => file !== undefined);
+		onReorderFiles(nextOrder);
 	}
 
 	function readRealItems(items: CuratedDndEntry[]): CuratedDndEntry[] {
@@ -78,6 +95,8 @@
 		{#each dndFiles as file (file.id)}
 			<div
 				class="knowledge-workspace-curated-file"
+				class:dragging-set={selectedPaths.has(file.path) &&
+					selectedPaths.size > 1}
 				class:missing={file.missing}
 				class:hidden={file.hidden}
 				class:selected={file.selected}
@@ -90,6 +109,7 @@
 				title={file.missing
 					? `File not found: ${file.path}`
 					: undefined}
+				onclick={(event) => onFileClick(file.path, event)}
 				onpointerdown={(event) => onPointerDown(file.path, event)}
 				onkeydown={(event) => {
 					if (event.key === 'Enter' || event.key === ' ') {

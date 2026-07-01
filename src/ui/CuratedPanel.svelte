@@ -91,6 +91,7 @@
 	let batchOpen = $state(false);
 	let conditionModalOpen = $state(false);
 	let batchStatus = $state('');
+	let lastSelectedPath = $state<string | undefined>(undefined);
 
 	const addGroupOptions = $derived([
 		...(groupRequired ? [] : [{ value: '', label: 'No group' }]),
@@ -151,10 +152,53 @@
 			next.add(path);
 		}
 		onSelectedPathsChange(next);
+		lastSelectedPath = path;
+	}
+
+	function selectFileRange(path: string): void {
+		const paths = curated.files.map((file) => file.path);
+		const currentIndex = paths.indexOf(path);
+		const anchorIndex = lastSelectedPath
+			? paths.indexOf(lastSelectedPath)
+			: -1;
+		if (currentIndex < 0 || anchorIndex < 0) {
+			toggleSelected(path);
+			return;
+		}
+		const [start, end] =
+			currentIndex < anchorIndex
+				? [currentIndex, anchorIndex]
+				: [anchorIndex, currentIndex];
+		const next = new Set(selected);
+		for (const selectedPath of paths.slice(start, end + 1)) {
+			next.add(selectedPath);
+		}
+		onSelectedPathsChange(next);
+	}
+
+	function handleFileClick(path: string, event: MouseEvent): void {
+		if (
+			event.target instanceof HTMLElement &&
+			event.target.closest(
+				'button, input, .knowledge-workspace-drag-handle',
+			)
+		) {
+			return;
+		}
+		if (event.shiftKey) {
+			event.preventDefault();
+			selectFileRange(path);
+			return;
+		}
+		if (event.ctrlKey || event.metaKey) {
+			event.preventDefault();
+			toggleSelected(path);
+		}
 	}
 
 	function clearSelection(): void {
 		onSelectedPathsChange(new Set());
+		lastSelectedPath = undefined;
 	}
 
 	function removeSelected(): void {
@@ -242,7 +286,9 @@
 	function handleFilePointerDown(path: string, event: PointerEvent): void {
 		if (
 			event.target instanceof HTMLElement &&
-			event.target.closest('button, input, .knowledge-workspace-drag-handle')
+			event.target.closest(
+				'button, input, .knowledge-workspace-drag-handle',
+			)
 		) {
 			return;
 		}
@@ -404,7 +450,9 @@
 				files={selectedFiles}
 				{selectedTitleCounts}
 				{getGroupOptions}
+				selectedPaths={selected}
 				onToggleSelected={toggleSelected}
+				onFileClick={handleFileClick}
 				onPointerDown={handleFilePointerDown}
 				{onReorderFiles}
 				{onOpenNote}

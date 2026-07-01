@@ -1089,6 +1089,12 @@
 	background: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
 }
 
+.knowledge-workspace-curated-file.dragging-set {
+	box-shadow:
+		inset 3px 0 0 var(--interactive-accent),
+		var(--shadow-s);
+}
+
 .knowledge-workspace-curated-file.dragging {
 	border-color: var(--interactive-accent);
 	background: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
