@@ -66,6 +66,8 @@ export class Force3DRenderer {
 	private pendingLinkLabelIds = new Set<string>();
 	private screenPositionCacheFrame = -1;
 	private screenPositionCache: ScreenNode[] = [];
+	private readonly forceNodeCache = new Map<string, Force3DNode>();
+	private readonly forceLinkCache = new Map<string, Force3DLink>();
 	private readonly nodeLabelSprites = new Map<string, Three.Sprite>();
 	private readonly linkLabelSprites = new Map<string, Three.Sprite>();
 	private readonly blockDoubleClick = (event: MouseEvent): void => {
@@ -195,7 +197,6 @@ export class Force3DRenderer {
 				return true;
 			})
 			.linkLabel((link) => link.label || '')
-			.linkVisibility((link) => !link.hidden)
 			.linkColor((link) => this.getLinkColor(link))
 			.linkWidth((link) => Math.max(0.4, link.size))
 			.linkThreeObjectExtend(true)
@@ -219,9 +220,7 @@ export class Force3DRenderer {
 				return true;
 			})
 			.linkDirectionalArrowLength((link) =>
-				link.directed && !link.hidden
-					? Math.max(2.5, link.size * 2.5)
-					: 0,
+				link.directed ? Math.max(2.5, link.size * 2.5) : 0,
 			)
 			.linkDirectionalArrowRelPos(1)
 			.linkDirectionalArrowColor((link) => this.getLinkColor(link))
@@ -246,7 +245,10 @@ export class Force3DRenderer {
 		}
 		this.nodeLabelSprites.clear();
 		this.linkLabelSprites.clear();
-		this.instance.graphData(toForce3DData(graph));
+		this.snapshotForceData();
+		this.instance.graphData(
+			toForce3DData(graph, this.forceNodeCache, this.forceLinkCache),
+		);
 		this.refreshWhenReady();
 	}
 
@@ -254,12 +256,23 @@ export class Force3DRenderer {
 		if (!this.initialized || this.killed) {
 			return;
 		}
-		const result = syncForce3DDataStyles(this.graph, this.instance.graphData());
+		const result = syncForce3DDataStyles(
+			this.graph,
+			this.instance.graphData(),
+		);
+		const topologyChanged =
+			result.nodeVisibilityChanged || result.linkVisibilityChanged;
+		if (topologyChanged) {
+			this.applyVisibleGraphData();
+		}
 		this.scheduleVisualUpdate({
-			refreshAccessors: true,
+			refreshAccessors:
+				!topologyChanged &&
+				(result.nodeStyleChanged || result.linkStyleChanged),
 			nodeLabelIds: result.nodeLabelIds,
 			linkLabelIds: result.linkLabelIds,
-			nodeLabelPositions: result.nodeSizeChanged,
+			nodeLabelPositions:
+				result.nodeStyleChanged || result.nodeVisibilityChanged,
 		});
 	}
 
@@ -454,7 +467,7 @@ export class Force3DRenderer {
 		this.screenPositionCache = this.instance
 			.graphData()
 			.nodes.flatMap((node) => {
-				if (!hasFiniteCoordinates(node)) {
+				if (node.hidden || !hasFiniteCoordinates(node)) {
 					return [];
 				}
 				const screen = this.instance.graph2ScreenCoords(
@@ -511,7 +524,10 @@ export class Force3DRenderer {
 			}
 			this.nodeLabelSprites.clear();
 			this.linkLabelSprites.clear();
-			this.instance.graphData(toForce3DData(graph));
+			this.snapshotForceData();
+			this.instance.graphData(
+				toForce3DData(graph, this.forceNodeCache, this.forceLinkCache),
+			);
 			this.initialized = true;
 			this.instance.resumeAnimation();
 		});
@@ -542,11 +558,10 @@ export class Force3DRenderer {
 		this.instance
 			.nodeVal((node: Force3DNode) => node.size)
 			.nodeColor((node: Force3DNode) => this.getNodeColor(node))
-			.linkVisibility((link: Force3DLink) => !link.hidden)
 			.linkColor((link: Force3DLink) => this.getLinkColor(link))
 			.linkWidth((link: Force3DLink) => Math.max(0.4, link.size))
 			.linkDirectionalArrowLength((link: Force3DLink) =>
-				link.directed && !link.hidden ? Math.max(2.5, link.size * 2.5) : 0,
+				link.directed ? Math.max(2.5, link.size * 2.5) : 0,
 			)
 			.linkDirectionalArrowColor((link: Force3DLink) =>
 				this.getLinkColor(link),
@@ -631,11 +646,7 @@ export class Force3DRenderer {
 		if (refreshAccessors) {
 			this.refreshVisualAccessorsWhenReady();
 		}
-		if (
-			allLabelSprites ||
-			nodeLabelIds.size > 0 ||
-			linkLabelIds.size > 0
-		) {
+		if (allLabelSprites || nodeLabelIds.size > 0 || linkLabelIds.size > 0) {
 			this.updateLabelSprites({
 				all: allLabelSprites,
 				nodeIds: nodeLabelIds,
@@ -673,10 +684,32 @@ export class Force3DRenderer {
 		}
 		for (const node of this.instance.graphData().nodes) {
 			const sprite = this.nodeLabelSprites.get(node.id);
-			if (!sprite || !hasFiniteCoordinates(node)) {
+			if (!sprite || node.hidden || !hasFiniteCoordinates(node)) {
 				continue;
 			}
 			this.positionNodeLabel(sprite, node, node);
+		}
+	}
+
+	private applyVisibleGraphData(): void {
+		if (!this.initialized || this.killed) {
+			return;
+		}
+		this.snapshotForceData();
+		this.nodeLabelSprites.clear();
+		this.linkLabelSprites.clear();
+		this.instance.graphData(
+			toForce3DData(this.graph, this.forceNodeCache, this.forceLinkCache),
+		);
+		this.refreshWhenReady();
+	}
+
+	private snapshotForceData(): void {
+		for (const node of this.instance.graphData().nodes) {
+			this.forceNodeCache.set(node.id, node);
+		}
+		for (const link of this.instance.graphData().links) {
+			this.forceLinkCache.set(link.id, link);
 		}
 	}
 
@@ -703,7 +736,7 @@ export class Force3DRenderer {
 	private findNode(nodeId: string): Force3DNode | undefined {
 		return this.instance
 			.graphData()
-			.nodes.find((node) => node.id === nodeId);
+			.nodes.find((node) => node.id === nodeId && !node.hidden);
 	}
 
 	private getNodeColor(node: Force3DNode): string {
@@ -759,7 +792,10 @@ export class Force3DRenderer {
 		coordinates: { x: number; y: number; z: number },
 		node: Force3DNode,
 	): void {
-		const offset = Math.max(4, node.size + this.labelSize * this.labelOffset);
+		const offset = Math.max(
+			4,
+			node.size + this.labelSize * this.labelOffset,
+		);
 		const direction = this.readLabelDirection(coordinates);
 		object.position.set(
 			direction.x * offset,
@@ -773,7 +809,8 @@ export class Force3DRenderer {
 		y: number;
 		z: number;
 	}): { x: number; y: number; z: number } {
-		const position = this.labelPosition === 'auto' ? 'right' : this.labelPosition;
+		const position =
+			this.labelPosition === 'auto' ? 'right' : this.labelPosition;
 		if (position === 'center') {
 			return { x: 0, y: 0, z: 0 };
 		}

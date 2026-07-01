@@ -68,7 +68,10 @@ export function syncWorkspaceRuntimeGraphStyles(
 			palette,
 			nodeStyleContexts.get(node.id),
 		);
-		graph.mergeNodeAttributes(node.id, style);
+		graph.mergeNodeAttributes(node.id, {
+			...style,
+			hidden: projection.hiddenNodeIds?.has(node.id) ?? false,
+		});
 	}
 
 	const segmentsByLogicalEdge = new Map<string, string[]>();
@@ -93,6 +96,10 @@ export function syncWorkspaceRuntimeGraphStyles(
 			graph.mergeEdgeAttributes(edge.id, {
 				...style,
 				type: getEdgeType(style.lineStyle, edge.directed),
+				hidden:
+					style.hidden ||
+					Boolean(projection.hiddenNodeIds?.has(edge.source)) ||
+					Boolean(projection.hiddenNodeIds?.has(edge.target)),
 			});
 		}
 		const segments = (segmentsByLogicalEdge.get(edge.id) ?? []).sort(
@@ -112,6 +119,10 @@ export function syncWorkspaceRuntimeGraphStyles(
 				type,
 				label: index === labelSegment ? style.label : '',
 				forceLabel: index === labelSegment && Boolean(style.label),
+				hidden:
+					style.hidden ||
+					Boolean(projection.hiddenNodeIds?.has(edge.source)) ||
+					Boolean(projection.hiddenNodeIds?.has(edge.target)),
 			});
 		}
 	}

@@ -115,6 +115,28 @@ describe('workspace change tracker', () => {
 		expect(changes.fitAfterRender).toBe(true);
 	});
 
+	it('treats projection hidden node changes as visibility sync only', () => {
+		const projection = createTestProjection();
+		const state = { ...createWorkspaceState(200), projection };
+		const nextState = {
+			...state,
+			projection: {
+				...projection,
+				hiddenNodeIds: new Set(['b.md']),
+			},
+		} satisfies typeof state;
+
+		const changes = analyzeWorkspaceStateChanges(
+			nextState,
+			state,
+			createWorkspaceRenderBaseline(state),
+		);
+
+		expect(changes.graphVisibilityChanged).toBe(true);
+		expect(changes.shouldRebuild).toBe(false);
+		expect(changes.fitAfterRender).toBe(false);
+	});
+
 	it('detects default and override style updates without rebuild', () => {
 		const state = createWorkspaceState(200);
 		const baseline = createWorkspaceRenderBaseline(state);

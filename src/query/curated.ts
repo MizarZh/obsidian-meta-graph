@@ -12,9 +12,13 @@ export class CuratedProjectionEngine {
 		curated: CuratedWorkspaceConfig,
 	): GraphProjection {
 		const primaryIds = new Set<NodeId>();
+		const hiddenNodeIds = new Set<NodeId>();
 		for (const file of curated.files) {
-			if (!file.hidden && index.nodes.has(file.path)) {
+			if (index.nodes.has(file.path)) {
 				primaryIds.add(file.path);
+				if (file.hidden) {
+					hiddenNodeIds.add(file.path);
+				}
 			}
 		}
 
@@ -35,6 +39,7 @@ export class CuratedProjectionEngine {
 			rootIds: new Set(primaryIds),
 			primaryIds,
 			contextIds: new Set(),
+			hiddenNodeIds,
 		};
 	}
 }

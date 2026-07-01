@@ -91,16 +91,12 @@ export function setCuratedFilesHiddenInState(
 	if (!changed) {
 		return state;
 	}
-	return updateActiveChartState(
-		state,
-		{
-			curated: normalizeCuratedWorkspace({
-				...activeChart.curated,
-				files,
-			}),
-		},
-		true,
-	);
+	return updateActiveChartState(state, {
+		curated: normalizeCuratedWorkspace({
+			...activeChart.curated,
+			files,
+		}),
+	});
 }
 
 export function reorderCuratedFileInState(

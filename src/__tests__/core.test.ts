@@ -527,7 +527,7 @@ describe('curated workspace projection', () => {
 		]);
 	});
 
-	it('omits hidden curated files from projection', () => {
+	it('marks hidden curated files in projection', () => {
 		const index = buildIndex([node('A'), node('B')], [edge('A', 'B')]);
 		const projection = new CuratedProjectionEngine().project(index, {
 			files: [{ path: 'A' }, { path: 'B', hidden: true }],
@@ -540,9 +540,15 @@ describe('curated workspace projection', () => {
 			},
 		});
 
-		expect(projection.nodes.map((item) => item.id)).toEqual(['A']);
-		expect(projection.edges).toEqual([]);
-		expect(projection.primaryIds).toEqual(new Set(['A']));
+		expect(projection.nodes.map((item) => item.id).sort()).toEqual([
+			'A',
+			'B',
+		]);
+		expect(projection.edges.map((item) => item.id)).toEqual([
+			createEdgeId('A', 'leads-to', 'B', true),
+		]);
+		expect(projection.primaryIds).toEqual(new Set(['A', 'B']));
+		expect(projection.hiddenNodeIds).toEqual(new Set(['B']));
 	});
 });
 

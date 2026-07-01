@@ -87,6 +87,60 @@ describe('graph renderer helpers', () => {
 		]);
 	});
 
+	it('reuses cached Force 3D physics state when hidden nodes are restored', () => {
+		const graph = createRuntimeGraph();
+		const initialData = toForce3DData(graph);
+		const cachedNode = initialData.nodes.find(
+			(node) => node.id === 'B.md',
+		)!;
+		const cachedLink = initialData.links[0]!;
+		Object.assign(cachedNode, {
+			x: 30,
+			y: 40,
+			z: 50,
+			vx: 0.1,
+			vy: 0.2,
+			vz: 0.3,
+		});
+		cachedLink.source = initialData.nodes[0]!;
+		cachedLink.target = cachedNode;
+		const nodeCache = new Map(
+			initialData.nodes.map((node) => [node.id, node]),
+		);
+		const linkCache = new Map(
+			initialData.links.map((link) => [link.id, link]),
+		);
+
+		graph.mergeNodeAttributes('B.md', { hidden: true });
+
+		const hiddenData = toForce3DData(graph, nodeCache, linkCache);
+
+		expect(hiddenData.nodes.map((node) => node.id)).toEqual(['A.md']);
+		expect(hiddenData.links).toEqual([]);
+
+		graph.mergeNodeAttributes('B.md', { hidden: false });
+
+		const restoredData = toForce3DData(graph, nodeCache, linkCache);
+		const restoredNode = restoredData.nodes.find(
+			(node) => node.id === 'B.md',
+		);
+
+		expect(restoredNode).toBe(cachedNode);
+		expect(restoredNode).toMatchObject({
+			x: 30,
+			y: 40,
+			z: 50,
+			vx: 0.1,
+			vy: 0.2,
+			vz: 0.3,
+		});
+		expect(restoredData.links[0]).toBe(cachedLink);
+		expect(restoredData.links[0]).toMatchObject({
+			source: 'A.md',
+			target: 'B.md',
+		});
+	});
+
 	it('syncs Force 3D style fields without replacing graph data', () => {
 		const graph = createRuntimeGraph();
 		const data = toForce3DData(graph);
@@ -116,7 +170,9 @@ describe('graph renderer helpers', () => {
 		expect(data.links[0]!.target).toBe(target);
 		expect(result.nodeLabelIds.size).toBe(0);
 		expect(result.linkLabelIds).toEqual(new Set(['A-to-B']));
-		expect(result.nodeSizeChanged).toBe(true);
+		expect(result.nodeStyleChanged).toBe(true);
+		expect(result.linkStyleChanged).toBe(true);
+		expect(result.linkVisibilityChanged).toBe(true);
 		expect(data.nodes[0]).toMatchObject({
 			color: '#abcdef',
 			size: 12,
@@ -129,6 +185,23 @@ describe('graph renderer helpers', () => {
 			directed: false,
 			hidden: true,
 		});
+	});
+
+	it('tracks Force 3D visibility-only updates separately', () => {
+		const graph = createRuntimeGraph();
+		const data = toForce3DData(graph);
+
+		graph.mergeNodeAttributes('A.md', { hidden: true });
+		graph.mergeEdgeAttributes('A-to-B', { hidden: true });
+
+		const result = syncForce3DDataStyles(graph, data);
+
+		expect(result.nodeStyleChanged).toBe(false);
+		expect(result.linkStyleChanged).toBe(false);
+		expect(result.nodeVisibilityChanged).toBe(true);
+		expect(result.linkVisibilityChanged).toBe(true);
+		expect(data.nodes[0]?.hidden).toBe(true);
+		expect(data.links[0]?.hidden).toBe(true);
 	});
 
 	it('reads Force 3D endpoint ids and finite coordinates', () => {

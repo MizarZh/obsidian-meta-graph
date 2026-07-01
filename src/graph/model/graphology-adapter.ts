@@ -33,6 +33,7 @@ export interface RuntimeNodeAttributes {
 	noteType?: string;
 	isPrimary?: boolean;
 	isContext?: boolean;
+	hidden?: boolean;
 	fixed?: boolean;
 	isBend?: boolean;
 	labelRotation?: number;
@@ -113,6 +114,7 @@ export class GraphologyAdapter {
 		for (const node of projection.nodes) {
 			const isPrimary = projection.primaryIds?.has(node.id) ?? false;
 			const isContext = projection.contextIds?.has(node.id) ?? false;
+			const hidden = projection.hiddenNodeIds?.has(node.id) ?? false;
 			const style = resolveNodeStyle(
 				node,
 				this.nodeStyleRules,
@@ -138,6 +140,7 @@ export class GraphologyAdapter {
 				noteType: node.noteType,
 				isPrimary,
 				isContext,
+				hidden,
 				fixed: positions.has(node.id),
 			});
 		}
@@ -160,7 +163,10 @@ export class GraphologyAdapter {
 				label: style.label,
 				forceLabel: Boolean(style.label),
 				lineStyle: style.lineStyle,
-				hidden: style.hidden,
+				hidden:
+					style.hidden ||
+					Boolean(projection.hiddenNodeIds?.has(edge.source)) ||
+					Boolean(projection.hiddenNodeIds?.has(edge.target)),
 			};
 			if (edge.directed) {
 				graph.addDirectedEdgeWithKey(

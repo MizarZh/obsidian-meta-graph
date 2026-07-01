@@ -13,6 +13,8 @@ export interface Force3DNode extends NodeObject {
 	path: string;
 	isPrimary?: boolean;
 	isContext?: boolean;
+	hidden?: boolean;
+	__threeObj?: { visible: boolean };
 }
 
 export interface Force3DLink extends LinkObject<Force3DNode> {
@@ -25,34 +27,53 @@ export interface Force3DLink extends LinkObject<Force3DNode> {
 	forceLabel: boolean;
 	directed: boolean;
 	hidden: boolean;
+	__lineObj?: { visible: boolean };
+	__arrowObj?: { visible: boolean };
 }
 
 export interface Force3DStyleSyncResult {
 	nodeLabelIds: Set<string>;
 	linkLabelIds: Set<string>;
-	nodeSizeChanged: boolean;
+	nodeStyleChanged: boolean;
+	nodeVisibilityChanged: boolean;
+	linkStyleChanged: boolean;
+	linkVisibilityChanged: boolean;
 }
 
-export function toForce3DData(graph: RuntimeGraph): {
+export function toForce3DData(
+	graph: RuntimeGraph,
+	nodeCache: ReadonlyMap<string, Force3DNode> = new Map(),
+	linkCache: ReadonlyMap<string, Force3DLink> = new Map(),
+): {
 	nodes: Force3DNode[];
 	links: Force3DLink[];
 } {
+	const visibleNodeIds = new Set(
+		graph.nodes().filter((nodeId) => isVisibleForceNode(graph, nodeId)),
+	);
 	return {
-		nodes: graph
-			.nodes()
-			.filter((nodeId) => !graph.getNodeAttribute(nodeId, 'isBend'))
-			.map((nodeId) =>
-				toForce3DNode(nodeId, graph.getNodeAttributes(nodeId)),
+		nodes: [...visibleNodeIds].map((nodeId) =>
+			toForce3DNode(
+				nodeId,
+				graph.getNodeAttributes(nodeId),
+				nodeCache.get(nodeId),
 			),
-		links: graph.edges().map((edgeId) => {
-			const attributes = graph.getEdgeAttributes(edgeId);
-			return toForce3DLink(
-				edgeId,
-				graph.source(edgeId),
-				graph.target(edgeId),
-				attributes,
-			);
-		}),
+		),
+		links: graph
+			.edges()
+			.filter((edgeId) =>
+				isVisibleForceLink(graph, edgeId, visibleNodeIds),
+			)
+			.map((edgeId) => {
+				const attributes = graph.getEdgeAttributes(edgeId);
+				return toForce3DLink(
+					edgeId,
+					graph.source(edgeId),
+					graph.target(edgeId),
+					attributes,
+					linkCache.get(edgeId),
+				);
+			}),
 	};
 }
 
@@ -63,8 +84,29 @@ export function syncForce3DDataStyles(
 	const result: Force3DStyleSyncResult = {
 		nodeLabelIds: new Set(),
 		linkLabelIds: new Set(),
-		nodeSizeChanged: false,
+		nodeStyleChanged: false,
+		nodeVisibilityChanged: false,
+		linkStyleChanged: false,
+		linkVisibilityChanged: false,
 	};
+	const dataNodeIds = new Set(data.nodes.map((node) => node.id));
+	const visibleNodeIds = new Set(
+		graph.nodes().filter((nodeId) => isVisibleForceNode(graph, nodeId)),
+	);
+	if (!setsEqual(dataNodeIds, visibleNodeIds)) {
+		result.nodeVisibilityChanged = true;
+	}
+	const dataLinkIds = new Set(data.links.map((link) => link.id));
+	const visibleLinkIds = new Set(
+		graph
+			.edges()
+			.filter((edgeId) =>
+				isVisibleForceLink(graph, edgeId, visibleNodeIds),
+			),
+	);
+	if (!setsEqual(dataLinkIds, visibleLinkIds)) {
+		result.linkVisibilityChanged = true;
+	}
 	for (const node of data.nodes) {
 		if (!graph.hasNode(node.id)) {
 			continue;
@@ -72,9 +114,13 @@ export function syncForce3DDataStyles(
 		const attributes = graph.getNodeAttributes(node.id);
 		if (node.label !== attributes.label) {
 			result.nodeLabelIds.add(node.id);
+			result.nodeStyleChanged = true;
 		}
-		if (node.size !== attributes.size) {
-			result.nodeSizeChanged = true;
+		if (node.size !== attributes.size || node.color !== attributes.color) {
+			result.nodeStyleChanged = true;
+		}
+		if (Boolean(node.hidden) !== Boolean(attributes.hidden)) {
+			result.nodeVisibilityChanged = true;
 		}
 		node.label = attributes.label;
 		node.color = attributes.color;
@@ -82,6 +128,7 @@ export function syncForce3DDataStyles(
 		node.path = attributes.path;
 		node.isPrimary = attributes.isPrimary;
 		node.isContext = attributes.isContext;
+		node.hidden = attributes.hidden;
 	}
 
 	for (const link of data.links) {
@@ -93,10 +140,21 @@ export function syncForce3DDataStyles(
 		const nextHidden = attributes.hidden;
 		if (
 			link.label !== attributes.label ||
-			link.forceLabel !== nextForceLabel ||
-			link.hidden !== nextHidden
+			link.forceLabel !== nextForceLabel
 		) {
 			result.linkLabelIds.add(link.id);
+			result.linkStyleChanged = true;
+		}
+		if (
+			link.color !== attributes.color ||
+			link.size !== attributes.size ||
+			link.directed !== attributes.type.includes('arrow')
+		) {
+			result.linkStyleChanged = true;
+		}
+		if (link.hidden !== nextHidden) {
+			result.linkLabelIds.add(link.id);
+			result.linkVisibilityChanged = true;
 		}
 		link.color = attributes.color;
 		link.size = attributes.size;
@@ -133,18 +191,24 @@ export function hasFiniteCoordinates(
 function toForce3DNode(
 	nodeId: string,
 	attributes: RuntimeNodeAttributes,
+	reusable?: Force3DNode,
 ): Force3DNode {
-	return {
-		id: nodeId,
-		label: attributes.label,
-		color: attributes.color,
-		size: attributes.size,
-		path: attributes.path,
-		isPrimary: attributes.isPrimary,
-		isContext: attributes.isContext,
-		x: attributes.x,
-		y: attributes.y,
-	};
+	const node = reusable ?? ({} as Force3DNode);
+	node.id = nodeId;
+	node.label = attributes.label;
+	node.color = attributes.color;
+	node.size = attributes.size;
+	node.path = attributes.path;
+	node.isPrimary = attributes.isPrimary;
+	node.isContext = attributes.isContext;
+	node.hidden = attributes.hidden;
+	if (typeof node.x !== 'number' || !Number.isFinite(node.x)) {
+		node.x = attributes.x;
+	}
+	if (typeof node.y !== 'number' || !Number.isFinite(node.y)) {
+		node.y = attributes.y;
+	}
+	return node;
 }
 
 function toForce3DLink(
@@ -152,16 +216,46 @@ function toForce3DLink(
 	source: string,
 	target: string,
 	attributes: RuntimeEdgeAttributes,
+	reusable?: Force3DLink,
 ): Force3DLink {
-	return {
-		id: edgeId,
-		source: attributes.logicalSource ?? source,
-		target: attributes.logicalTarget ?? target,
-		color: attributes.color,
-		size: attributes.size,
-			label: attributes.label,
-			forceLabel: attributes.forceLabel,
-		directed: attributes.type.includes('arrow'),
-		hidden: attributes.hidden,
-	};
+	const link = reusable ?? ({} as Force3DLink);
+	link.id = edgeId;
+	link.source = attributes.logicalSource ?? source;
+	link.target = attributes.logicalTarget ?? target;
+	link.color = attributes.color;
+	link.size = attributes.size;
+	link.label = attributes.label;
+	link.forceLabel = attributes.forceLabel;
+	link.directed = attributes.type.includes('arrow');
+	link.hidden = attributes.hidden;
+	return link;
+}
+
+function isVisibleForceNode(graph: RuntimeGraph, nodeId: string): boolean {
+	const attributes = graph.getNodeAttributes(nodeId);
+	return !attributes.isBend && !attributes.hidden;
+}
+
+function isVisibleForceLink(
+	graph: RuntimeGraph,
+	edgeId: string,
+	visibleNodeIds: ReadonlySet<string>,
+): boolean {
+	return (
+		!graph.getEdgeAttribute(edgeId, 'hidden') &&
+		visibleNodeIds.has(graph.source(edgeId)) &&
+		visibleNodeIds.has(graph.target(edgeId))
+	);
+}
+
+function setsEqual<T>(left: ReadonlySet<T>, right: ReadonlySet<T>): boolean {
+	if (left.size !== right.size) {
+		return false;
+	}
+	for (const value of left) {
+		if (!right.has(value)) {
+			return false;
+		}
+	}
+	return true;
 }

@@ -153,4 +153,5 @@ export interface GraphProjection {
 	rootIds: Set<NodeId>;
 	primaryIds?: Set<NodeId>;
 	contextIds?: Set<NodeId>;
+	hiddenNodeIds?: Set<NodeId>;
 }

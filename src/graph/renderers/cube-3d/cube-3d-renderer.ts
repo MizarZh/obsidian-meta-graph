@@ -1,8 +1,5 @@
 import type * as Three from 'three';
-import type {
-	LabelPosition,
-	ManualLayoutConfig,
-} from '../../../core/types';
+import type { LabelPosition, ManualLayoutConfig } from '../../../core/types';
 import {
 	type CubeFace,
 	type CubeFaceId,
@@ -26,10 +23,7 @@ import {
 	CUBE_FACE_POINTER_LIMIT,
 	CUBE_FACE_POSITION_SCALE,
 } from './cube-constants';
-import {
-	createCubeArrowTexture,
-	createCubeNodeSprite,
-} from './cube-sprites';
+import { createCubeArrowTexture, createCubeNodeSprite } from './cube-sprites';
 import type { ThreeModule } from './cube-three';
 import { immediateNeighborhood } from '../../model/neighborhood';
 import type {
@@ -500,27 +494,27 @@ export class Cube3DRenderer {
 		const hit = ray.intersectPlane(plane, new this.three.Vector3());
 		if (!hit) {
 			return undefined;
-			}
-			const local = this.cubeGroup.worldToLocal(hit.clone());
-			const range = this.cubeSize * CUBE_FACE_POSITION_SCALE;
-			const rawX = local.dot(face.u) / range;
-			const rawY = local.dot(face.v) / range;
-			if (
-				Math.abs(rawX) > CUBE_FACE_POINTER_LIMIT ||
-				Math.abs(rawY) > CUBE_FACE_POINTER_LIMIT
-			) {
-				return this.getCurrentNodePlacement(nodeId);
-			}
-			const x = clamp(
-				rawX,
-				-CUBE_FACE_COORDINATE_LIMIT,
-				CUBE_FACE_COORDINATE_LIMIT,
-			);
-			const y = clamp(
-				rawY,
-				-CUBE_FACE_COORDINATE_LIMIT,
-				CUBE_FACE_COORDINATE_LIMIT,
-			);
+		}
+		const local = this.cubeGroup.worldToLocal(hit.clone());
+		const range = this.cubeSize * CUBE_FACE_POSITION_SCALE;
+		const rawX = local.dot(face.u) / range;
+		const rawY = local.dot(face.v) / range;
+		if (
+			Math.abs(rawX) > CUBE_FACE_POINTER_LIMIT ||
+			Math.abs(rawY) > CUBE_FACE_POINTER_LIMIT
+		) {
+			return this.getCurrentNodePlacement(nodeId);
+		}
+		const x = clamp(
+			rawX,
+			-CUBE_FACE_COORDINATE_LIMIT,
+			CUBE_FACE_COORDINATE_LIMIT,
+		);
+		const y = clamp(
+			rawY,
+			-CUBE_FACE_COORDINATE_LIMIT,
+			CUBE_FACE_COORDINATE_LIMIT,
+		);
 		this.manualLayout = {
 			...this.manualLayout,
 			nodes: {
@@ -543,9 +537,9 @@ export class Cube3DRenderer {
 		return this.manualLayout.nodes[nodeId];
 	}
 
-	private getCurrentNodePlacement(nodeId: string):
-		| { x: number; y: number }
-		| undefined {
+	private getCurrentNodePlacement(
+		nodeId: string,
+	): { x: number; y: number } | undefined {
 		const manual = this.manualLayout.nodes[nodeId];
 		if (manual) {
 			return { x: manual.x, y: manual.y };
@@ -639,7 +633,7 @@ export class Cube3DRenderer {
 		);
 		for (const nodeId of this.graph.nodes()) {
 			const attributes = this.graph.getNodeAttributes(nodeId);
-			if (attributes.isBend) {
+			if (attributes.isBend || attributes.hidden) {
 				continue;
 			}
 			const display = displayPositions.get(nodeId);
@@ -887,7 +881,11 @@ export class Cube3DRenderer {
 	}
 
 	private shouldShowLinkLabel(attributes: RuntimeEdgeAttributes): boolean {
-		return Boolean(attributes.label) && attributes.forceLabel && !attributes.hidden;
+		return (
+			Boolean(attributes.label) &&
+			attributes.forceLabel &&
+			!attributes.hidden
+		);
 	}
 
 	private getFaceVisibilityOpacity(

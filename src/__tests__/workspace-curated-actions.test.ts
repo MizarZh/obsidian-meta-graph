@@ -101,6 +101,7 @@ describe('workspace curated actions', () => {
 
 		expect(hidden.changed).toBe(true);
 		expect(hidden.runQuery).toBe(true);
+		expect(hidden.state.layoutRevision).toBe(state.layoutRevision);
 		expect(hidden.state.curated.files).toEqual([
 			{ path: 'A.md' },
 			{ path: 'B.md', hidden: true },
@@ -114,6 +115,7 @@ describe('workspace curated actions', () => {
 
 		expect(shown.changed).toBe(true);
 		expect(shown.runQuery).toBe(true);
+		expect(shown.state.layoutRevision).toBe(hidden.state.layoutRevision);
 		expect(shown.state.curated.files).toEqual([
 			{ path: 'A.md' },
 			{ path: 'B.md' },

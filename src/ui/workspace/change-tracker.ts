@@ -36,6 +36,7 @@ export interface WorkspaceStateChanges {
 	graphForceSettingsChanged: boolean;
 	forceLayoutChanged: boolean;
 	styleRulesChanged: boolean;
+	graphVisibilityChanged: boolean;
 	shouldRebuild: boolean;
 	fitAfterRender: boolean;
 	forceLayout: boolean;
@@ -124,6 +125,10 @@ export function analyzeWorkspaceStateChanges(
 		baseline,
 		STYLE_RULE_KEYS,
 	);
+	const graphVisibilityChanged = projectionHiddenNodeIdsChanged(
+		nextState.projection,
+		currentState.projection,
+	);
 
 	return {
 		manualLayoutChanged: baselineValueChanged(
@@ -141,54 +146,54 @@ export function analyzeWorkspaceStateChanges(
 			currentState,
 			'labelSize',
 		),
-			labelPositionChanged: stateValueChanged(
-				nextState,
-				currentState,
-				'labelPosition',
-			),
-			labelOffsetChanged: stateValueChanged(
-				nextState,
-				currentState,
-				'labelOffset',
-			),
-			labelColorChanged: stateValueChanged(
-				nextState,
-				currentState,
-				'labelColor',
-			),
-			labelThemeChanged:
+		labelPositionChanged: stateValueChanged(
+			nextState,
+			currentState,
+			'labelPosition',
+		),
+		labelOffsetChanged: stateValueChanged(
+			nextState,
+			currentState,
+			'labelOffset',
+		),
+		labelColorChanged: stateValueChanged(
+			nextState,
+			currentState,
+			'labelColor',
+		),
+		labelThemeChanged:
 			stateValueChanged(nextState, currentState, 'labelLightTextColor') ||
-				stateValueChanged(
-					nextState,
-					currentState,
-					'labelLightBackgroundColor',
-				) ||
-				stateValueChanged(
-					nextState,
-					currentState,
-					'labelLightBackgroundOpacity',
-				) ||
-				stateValueChanged(nextState, currentState, 'labelDarkTextColor') ||
-				stateValueChanged(
-					nextState,
-					currentState,
-					'labelDarkBackgroundColor',
-				) ||
-				stateValueChanged(
-					nextState,
-					currentState,
-					'labelDarkBackgroundOpacity',
-				),
+			stateValueChanged(
+				nextState,
+				currentState,
+				'labelLightBackgroundColor',
+			) ||
+			stateValueChanged(
+				nextState,
+				currentState,
+				'labelLightBackgroundOpacity',
+			) ||
+			stateValueChanged(nextState, currentState, 'labelDarkTextColor') ||
+			stateValueChanged(
+				nextState,
+				currentState,
+				'labelDarkBackgroundColor',
+			) ||
+			stateValueChanged(
+				nextState,
+				currentState,
+				'labelDarkBackgroundOpacity',
+			),
 		labelBackgroundOpacityChanged: stateValueChanged(
 			nextState,
 			currentState,
 			'labelBackgroundOpacity',
 		),
-			labelDensityChanged: stateValueChanged(
-				nextState,
-				currentState,
-				'labelDensity',
-			),
+		labelDensityChanged: stateValueChanged(
+			nextState,
+			currentState,
+			'labelDensity',
+		),
 		cubeFaceOpacityChanged:
 			nextState.cubeFaceOpacity !== currentState.cubeFaceOpacity,
 		forceLabelsChanged: stateValueChanged(
@@ -207,6 +212,7 @@ export function analyzeWorkspaceStateChanges(
 			'enableForceLayout',
 		),
 		styleRulesChanged,
+		graphVisibilityChanged,
 		shouldRebuild:
 			projectionChanged ||
 			stateDiffersFromBaseline(
@@ -230,6 +236,28 @@ export function analyzeWorkspaceStateChanges(
 			layoutRevisionChanged ||
 			chartSourceChanged,
 	};
+}
+
+function projectionHiddenNodeIdsChanged(
+	nextProjection: GraphProjection | undefined,
+	currentProjection: GraphProjection | undefined,
+): boolean {
+	return !setsEqual(
+		nextProjection?.hiddenNodeIds ?? new Set<string>(),
+		currentProjection?.hiddenNodeIds ?? new Set<string>(),
+	);
+}
+
+function setsEqual<T>(left: ReadonlySet<T>, right: ReadonlySet<T>): boolean {
+	if (left.size !== right.size) {
+		return false;
+	}
+	for (const value of left) {
+		if (!right.has(value)) {
+			return false;
+		}
+	}
+	return true;
 }
 
 function stateValueChanged<Key extends WorkspaceStateKey>(

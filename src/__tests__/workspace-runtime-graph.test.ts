@@ -129,4 +129,52 @@ describe('workspace runtime graph', () => {
 			forceLabel: true,
 		});
 	});
+
+	it('syncs projection hidden nodes without replacing the runtime graph', () => {
+		const styledProjection: GraphProjection = {
+			...projection,
+			nodes: [
+				...projection.nodes,
+				{
+					id: 'B.md',
+					path: 'B.md',
+					title: 'B',
+					folder: '',
+					domains: [],
+					tags: [],
+				},
+			],
+			edges: [
+				{
+					id: 'A->B',
+					source: 'A.md',
+					target: 'B.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'leads-to',
+				},
+			],
+		};
+		const state = createWorkspaceState(200);
+		const graph = createWorkspaceRuntimeGraph(
+			styledProjection,
+			new Map(),
+			state,
+			palette,
+		);
+
+		syncWorkspaceRuntimeGraphStyles(
+			graph,
+			{
+				...styledProjection,
+				hiddenNodeIds: new Set(['B.md']),
+			},
+			state,
+			palette,
+		);
+
+		expect(graph.getNodeAttribute('B.md', 'hidden')).toBe(true);
+		expect(graph.getEdgeAttribute('A->B', 'hidden')).toBe(true);
+	});
 });
