@@ -14,6 +14,7 @@
 		onOpenNote,
 		onSelectNote,
 		onMoveFileToGroup,
+		onSetFileHidden,
 		onRemoveFile,
 	}: {
 		files: CuratedFileEntry[];
@@ -25,6 +26,7 @@
 		onOpenNote: (path: string) => void;
 		onSelectNote: (path: string) => void;
 		onMoveFileToGroup: (path: string, groupId: string) => void;
+		onSetFileHidden: (path: string, hidden: boolean) => void;
 		onRemoveFile: (path: string) => void;
 	} = $props();
 </script>
@@ -35,6 +37,7 @@
 			class="knowledge-workspace-curated-file"
 			class:dragging={activeDraggingPath === file.path}
 			class:missing={file.missing}
+			class:hidden={file.hidden}
 			class:selected={file.selected}
 			data-curated-file-path={file.path}
 			role="button"
@@ -95,6 +98,17 @@
 					/>
 				</div>
 			</div>
+			<ObsidianButton
+				ariaLabel={file.hidden
+					? `Show ${file.title}`
+					: `Hide ${file.title}`}
+				icon={file.hidden ? 'eye-off' : 'eye'}
+				tooltip={file.hidden ? 'Show in graph' : 'Hide from graph'}
+				onClick={(event) => {
+					event.stopPropagation();
+					onSetFileHidden(file.path, !file.hidden);
+				}}
+			/>
 			<ObsidianButton
 				ariaLabel={`Open ${file.title}`}
 				icon="file-text"

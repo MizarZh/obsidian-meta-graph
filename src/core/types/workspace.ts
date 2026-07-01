@@ -35,12 +35,7 @@ export type FlowEdgeStyle = 'straight' | 'orthogonal';
 export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
 export type ArcDirection = 'right' | 'left' | 'up' | 'down';
 export type LabelPosition =
-	| 'auto'
-	| 'right'
-	| 'left'
-	| 'top'
-	| 'bottom'
-	| 'center';
+	'auto' | 'right' | 'left' | 'top' | 'bottom' | 'center';
 export type ChartType = ViewMode;
 export type ConnectionFieldMode = 'directed' | 'bidirectional' | 'reverse';
 
@@ -122,6 +117,7 @@ export interface ChartDisplayConfig {
 export interface CuratedWorkspaceFile {
 	path: NodeId;
 	note?: string;
+	hidden?: boolean;
 	x?: number;
 	y?: number;
 	groupId?: string;

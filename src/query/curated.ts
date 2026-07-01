@@ -13,7 +13,7 @@ export class CuratedProjectionEngine {
 	): GraphProjection {
 		const primaryIds = new Set<NodeId>();
 		for (const file of curated.files) {
-			if (index.nodes.has(file.path)) {
+			if (!file.hidden && index.nodes.has(file.path)) {
 				primaryIds.add(file.path);
 			}
 		}

@@ -6,6 +6,7 @@ import {
 	removeCuratedFileInState,
 	removeCuratedFilesActionInState,
 	reorderCuratedFileActionInState,
+	setCuratedFilesHiddenActionInState,
 	updateCuratedFilePathActionInState,
 	updateCuratedWorkspaceActionInState,
 } from '../workspace/actions/curated-actions';
@@ -84,6 +85,39 @@ describe('workspace curated actions', () => {
 		expect(result.changed).toBe(true);
 		expect(result.runQuery).toBe(true);
 		expect(result.state.curated.context.enabled).toBe(true);
+	});
+
+	it('hides and shows curated files with query refresh intent', () => {
+		const state = addCuratedFilesActionInState(createWorkspaceState(100), [
+			'A.md',
+			'B.md',
+		]).state;
+
+		const hidden = setCuratedFilesHiddenActionInState(
+			state,
+			['B.md'],
+			true,
+		);
+
+		expect(hidden.changed).toBe(true);
+		expect(hidden.runQuery).toBe(true);
+		expect(hidden.state.curated.files).toEqual([
+			{ path: 'A.md' },
+			{ path: 'B.md', hidden: true },
+		]);
+
+		const shown = setCuratedFilesHiddenActionInState(
+			hidden.state,
+			['B.md'],
+			false,
+		);
+
+		expect(shown.changed).toBe(true);
+		expect(shown.runQuery).toBe(true);
+		expect(shown.state.curated.files).toEqual([
+			{ path: 'A.md' },
+			{ path: 'B.md' },
+		]);
 	});
 
 	it('updates curated paths without query refresh intent', () => {

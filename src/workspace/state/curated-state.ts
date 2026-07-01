@@ -63,6 +63,46 @@ export function removeCuratedFilesFromState(
 	);
 }
 
+export function setCuratedFilesHiddenInState(
+	state: WorkspaceState,
+	paths: NodeId[],
+	hidden: boolean,
+): WorkspaceState {
+	const normalizedPaths = new Set(paths.map((path) => normalizePath(path)));
+	if (normalizedPaths.size === 0) {
+		return state;
+	}
+	const activeChart = getActiveChart(state);
+	let changed = false;
+	const files = activeChart.curated.files.map((file) => {
+		if (
+			!normalizedPaths.has(file.path) ||
+			Boolean(file.hidden) === hidden
+		) {
+			return file;
+		}
+		changed = true;
+		if (hidden) {
+			return { ...file, hidden: true };
+		}
+		const { hidden: _hidden, ...visibleFile } = file;
+		return visibleFile;
+	});
+	if (!changed) {
+		return state;
+	}
+	return updateActiveChartState(
+		state,
+		{
+			curated: normalizeCuratedWorkspace({
+				...activeChart.curated,
+				files,
+			}),
+		},
+		true,
+	);
+}
+
 export function reorderCuratedFileInState(
 	state: WorkspaceState,
 	path: NodeId,

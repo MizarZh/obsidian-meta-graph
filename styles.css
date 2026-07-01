@@ -1065,7 +1065,7 @@
 .knowledge-workspace-curated-file {
 	z-index: 1;
 	display: grid;
-	grid-template-columns: 18px 14px minmax(0, 1fr) 18px 18px;
+	grid-template-columns: 18px 14px minmax(0, 1fr) 18px 18px 18px;
 	gap: var(--size-4-1);
 	align-items: start;
 	width: 100%;
@@ -1100,6 +1100,16 @@
 	opacity: 0.35;
 	cursor: default;
 	user-select: none;
+}
+
+.knowledge-workspace-curated-file.hidden {
+	opacity: 0.55;
+}
+
+.knowledge-workspace-curated-file.hidden.selected,
+.knowledge-workspace-curated-file.hidden:hover,
+.knowledge-workspace-curated-file.hidden:focus {
+	opacity: 0.85;
 }
 
 .knowledge-workspace-curated-file.missing:hover {

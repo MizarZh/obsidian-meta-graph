@@ -128,6 +128,7 @@ function stripCuratedFilePlacement(
 	return {
 		path: file.path,
 		...(file.note ? { note: file.note } : {}),
+		...(file.hidden ? { hidden: true } : {}),
 	};
 }
 

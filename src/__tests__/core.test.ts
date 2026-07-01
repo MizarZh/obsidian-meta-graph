@@ -526,6 +526,24 @@ describe('curated workspace projection', () => {
 			createEdgeId('A', 'leads-to', 'B', true),
 		]);
 	});
+
+	it('omits hidden curated files from projection', () => {
+		const index = buildIndex([node('A'), node('B')], [edge('A', 'B')]);
+		const projection = new CuratedProjectionEngine().project(index, {
+			files: [{ path: 'A' }, { path: 'B', hidden: true }],
+			context: {
+				enabled: false,
+				depth: 0,
+				includeOutgoingLinks: true,
+				includeBacklinks: true,
+				includeMetadataRelations: true,
+			},
+		});
+
+		expect(projection.nodes.map((item) => item.id)).toEqual(['A']);
+		expect(projection.edges).toEqual([]);
+		expect(projection.primaryIds).toEqual(new Set(['A']));
+	});
 });
 
 function node(id: string, folder = '', domains: string[] = []): KnowledgeNode {

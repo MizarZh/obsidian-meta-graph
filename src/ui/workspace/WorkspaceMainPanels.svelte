@@ -162,6 +162,8 @@
 			controller.addCuratedFiles(paths, groupId)}
 		onRemoveFile={(path) => controller.removeCuratedFile(path)}
 		onRemoveFiles={(paths) => controller.removeCuratedFiles(paths)}
+		onSetFilesHidden={(paths, hidden) =>
+			controller.setCuratedFilesHidden(paths, hidden)}
 		onMoveFilesToGroup={(paths, groupId) =>
 			controller.moveCuratedFilesToGroup(paths, groupId)}
 		onClearFiles={() => controller.clearCuratedFiles()}

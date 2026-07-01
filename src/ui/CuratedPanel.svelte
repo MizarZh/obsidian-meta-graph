@@ -49,6 +49,7 @@
 		onAddFiles,
 		onRemoveFile,
 		onRemoveFiles,
+		onSetFilesHidden,
 		onMoveFilesToGroup,
 		onClearFiles,
 		onReorderFile,
@@ -79,6 +80,7 @@
 		onAddFiles: (paths: string[], groupId?: string) => void;
 		onRemoveFile: (path: string) => void;
 		onRemoveFiles: (paths: string[]) => void;
+		onSetFilesHidden: (paths: string[], hidden: boolean) => void;
 		onMoveFilesToGroup: (paths: string[], groupId?: string) => void;
 		onClearFiles: () => void;
 		onReorderFile: (
@@ -183,6 +185,16 @@
 		}
 		onRemoveFiles(paths);
 		clearSelection();
+	}
+
+	function setSelectedHidden(hidden: boolean): void {
+		const paths = curated.files
+			.map((file) => file.path)
+			.filter((path) => selected.has(path));
+		if (paths.length === 0) {
+			return;
+		}
+		onSetFilesHidden(paths, hidden);
 	}
 
 	function removeFiles(paths: string[]): void {
@@ -426,6 +438,18 @@
 						/>
 					</label>
 					<ObsidianButton
+						icon="eye-off"
+						ariaLabel="Hide selected"
+						tooltip="Hide selected from graph"
+						onClick={() => setSelectedHidden(true)}
+					/>
+					<ObsidianButton
+						icon="eye"
+						ariaLabel="Show selected"
+						tooltip="Show selected in graph"
+						onClick={() => setSelectedHidden(false)}
+					/>
+					<ObsidianButton
 						icon="trash-2"
 						ariaLabel="Remove selected"
 						tooltip="Remove selected"
@@ -475,6 +499,8 @@
 				{onOpenNote}
 				{onSelectNote}
 				onMoveFileToGroup={moveFileToGroup}
+				onSetFileHidden={(path, hidden) =>
+					onSetFilesHidden([path], hidden)}
 				{onRemoveFile}
 			/>
 		</section>

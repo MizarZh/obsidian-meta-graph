@@ -67,6 +67,9 @@ function normalizeCuratedFile(
 	if (typeof record.note === 'string' && record.note.trim()) {
 		result.note = record.note.trim();
 	}
+	if (readBoolean(record.hidden, false)) {
+		result.hidden = true;
+	}
 	const x = readOptionalFiniteNumber(record.x);
 	const y = readOptionalFiniteNumber(record.y);
 	if (x !== undefined) {

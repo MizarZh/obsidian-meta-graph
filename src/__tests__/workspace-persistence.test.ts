@@ -182,7 +182,9 @@ describe('workspace persistence', () => {
 		);
 		if (graphChart) {
 			graphChart.source = 'curated';
-			graphChart.curated.files = [{ path: 'Projects/A.md' }];
+			graphChart.curated.files = [
+				{ path: 'Projects/A.md', hidden: true },
+			];
 			document.activeChart = graphChart.id;
 		}
 
@@ -190,8 +192,13 @@ describe('workspace persistence', () => {
 		const saved = serializeMetaGraphState(restored);
 
 		expect(restored.chartSource).toBe('curated');
-		expect(restored.curated.files).toEqual([{ path: 'Projects/A.md' }]);
+		expect(restored.curated.files).toEqual([
+			{ path: 'Projects/A.md', hidden: true },
+		]);
 		expect(saved.charts[0]?.source).toBe('curated');
+		expect(saved.charts[0]?.curated.files).toEqual([
+			{ path: 'Projects/A.md', hidden: true },
+		]);
 		expect(saved.charts[1]?.source).toBe('query');
 	});
 

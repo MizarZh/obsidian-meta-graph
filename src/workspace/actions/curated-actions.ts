@@ -8,6 +8,7 @@ import {
 	clearCuratedFilesInState,
 	removeCuratedFilesFromState,
 	reorderCuratedFileInState,
+	setCuratedFilesHiddenInState,
 	updateCuratedFilePathInState,
 	updateCuratedWorkspaceInState,
 } from '../state/curated-state';
@@ -47,6 +48,17 @@ export function removeCuratedFilesActionInState(
 	paths: NodeId[],
 ): WorkspaceCuratedActionResult {
 	return withRunQuery(removeCuratedFilesFromState(state, paths), state);
+}
+
+export function setCuratedFilesHiddenActionInState(
+	state: WorkspaceState,
+	paths: NodeId[],
+	hidden: boolean,
+): WorkspaceCuratedActionResult {
+	return withRunQuery(
+		setCuratedFilesHiddenInState(state, paths, hidden),
+		state,
+	);
 }
 
 export function reorderCuratedFileActionInState(

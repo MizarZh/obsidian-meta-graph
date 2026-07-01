@@ -87,6 +87,7 @@ import {
 	removeCuratedFileInState,
 	removeCuratedFilesActionInState,
 	reorderCuratedFileActionInState,
+	setCuratedFilesHiddenActionInState,
 	updateCuratedFilePathActionInState,
 	updateCuratedWorkspaceActionInState,
 	type WorkspaceCuratedActionResult,
@@ -492,6 +493,12 @@ export class WorkspaceController {
 	removeCuratedFiles(paths: NodeId[]): void {
 		this.applyCuratedActionResult(
 			removeCuratedFilesActionInState(this.state, paths),
+		);
+	}
+
+	setCuratedFilesHidden(paths: NodeId[], hidden: boolean): void {
+		this.applyCuratedActionResult(
+			setCuratedFilesHiddenActionInState(this.state, paths, hidden),
 		);
 	}
 

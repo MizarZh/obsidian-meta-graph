@@ -34,6 +34,7 @@ export interface CuratedFileEntry {
 	groupName: string;
 	groupColor?: string;
 	missingGroup: boolean;
+	hidden: boolean;
 	selected: boolean;
 }
 
@@ -114,6 +115,7 @@ export function buildSelectedCuratedFiles(
 			groupName: group?.name ?? (groupId ? 'Missing group' : 'No group'),
 			groupColor: group?.color,
 			missingGroup: Boolean(groupId && !group),
+			hidden: Boolean(file.hidden),
 			selected: selected.has(file.path),
 		};
 	});
