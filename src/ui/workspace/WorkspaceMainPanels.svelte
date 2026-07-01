@@ -6,6 +6,7 @@
 		WorkspaceState,
 	} from '../../core/types';
 	import type { ConnectionDragState } from '../../graph/renderers/renderer-events';
+	import { withAlpha } from '../../graph/styles/graph-styles';
 	import type { WorkspaceController } from '../../workspace/workspace-controller';
 	import ConnectionPanel from '../ConnectionPanel.svelte';
 	import CuratedPanel from '../CuratedPanel.svelte';
@@ -94,6 +95,34 @@
 			error: formatError(error),
 		});
 	}
+
+	const connectionDragTargetLabel = $derived.by(() => {
+		if (!connectionDrag?.targetNodeId) {
+			return undefined;
+		}
+		const targetNode = workspaceState.projection?.nodes.find(
+			(node) => node.id === connectionDrag.targetNodeId,
+		);
+		return targetNode?.title ?? connectionDrag.targetNodeId;
+	});
+
+	const connectionDragTargetLabelStyle = $derived(
+		[
+			`--connection-label-x: ${connectionDrag?.x2 ?? 0}px`,
+			`--connection-label-y: ${connectionDrag?.y2 ?? 0}px`,
+			`--connection-label-size: ${workspaceState.labelSize}px`,
+			`--connection-label-light-text: ${workspaceState.labelLightTextColor}`,
+			`--connection-label-light-bg: ${withAlpha(
+				workspaceState.labelLightBackgroundColor,
+				workspaceState.labelLightBackgroundOpacity,
+			)}`,
+			`--connection-label-dark-text: ${workspaceState.labelDarkTextColor}`,
+			`--connection-label-dark-bg: ${withAlpha(
+				workspaceState.labelDarkBackgroundColor,
+				workspaceState.labelDarkBackgroundOpacity,
+			)}`,
+		].join('; '),
+	);
 </script>
 
 {#if workspaceState.chartSource === 'curated'}
@@ -144,6 +173,14 @@
 			y2={connectionDrag.y2}
 		/>
 	</svg>
+	{#if connectionDragTargetLabel}
+		<div
+			class="knowledge-workspace-connection-target-label"
+			style={connectionDragTargetLabelStyle}
+		>
+			{connectionDragTargetLabel}
+		</div>
+	{/if}
 {/if}
 {#if workspaceState.projection?.nodes.length === 0}
 	<div class="knowledge-workspace-empty">
