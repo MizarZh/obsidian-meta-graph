@@ -183,7 +183,35 @@ export function setFlowSpacingInState(
 	state: WorkspaceState,
 	flowSpacing: number,
 ): WorkspaceState {
-	return setLayoutSpacingInState(state, flowSpacing, true);
+	const spacing = normalizeSpacing(flowSpacing);
+	const chart = getActiveChart(state);
+	return chart.layout.spacing === spacing &&
+		chart.layout.layerSpacing === spacing &&
+		chart.layout.laneSpacing === spacing
+		? state
+		: updateActiveChartLayout(
+				state,
+				{
+					spacing,
+					layerSpacing: spacing,
+					laneSpacing: spacing,
+				},
+				true,
+			);
+}
+
+export function setFlowLayerSpacingInState(
+	state: WorkspaceState,
+	flowLayerSpacing: number,
+): WorkspaceState {
+	return setFlowAxisSpacingInState(state, 'layerSpacing', flowLayerSpacing);
+}
+
+export function setFlowLaneSpacingInState(
+	state: WorkspaceState,
+	flowLaneSpacing: number,
+): WorkspaceState {
+	return setFlowAxisSpacingInState(state, 'laneSpacing', flowLaneSpacing);
 }
 
 export function setArcSpacingInState(
@@ -226,6 +254,18 @@ function setLayoutSpacingInState(
 	return chart.layout.spacing === spacing
 		? state
 		: updateActiveChartLayout(state, { spacing }, forceLayout);
+}
+
+function setFlowAxisSpacingInState(
+	state: WorkspaceState,
+	key: 'layerSpacing' | 'laneSpacing',
+	value: number,
+): WorkspaceState {
+	const spacing = normalizeSpacing(value);
+	const chart = getActiveChart(state);
+	return chart.layout[key] === spacing
+		? state
+		: updateActiveChartLayout(state, { [key]: spacing }, true);
 }
 
 function updateActiveChartLayout(

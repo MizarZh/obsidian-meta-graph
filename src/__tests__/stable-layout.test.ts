@@ -123,7 +123,8 @@ describe('stable layout orchestration', () => {
 			graphForceSettings: DEFAULT_GRAPH_FORCE_SETTINGS,
 			flowEdgeStyle: 'straight',
 			flowDirection: 'LR',
-			flowSpacing: 1,
+			flowLayerSpacing: 1,
+			flowLaneSpacing: 1,
 			arcSpacing: 1,
 			arcDirection: 'right',
 		});
@@ -158,7 +159,8 @@ describe('stable layout orchestration', () => {
 			graphForceSettings: DEFAULT_GRAPH_FORCE_SETTINGS,
 			flowEdgeStyle: 'straight',
 			flowDirection: 'LR',
-			flowSpacing: 1,
+			flowLayerSpacing: 1,
+			flowLaneSpacing: 1,
 			arcSpacing: 1,
 			arcDirection: 'right',
 		});

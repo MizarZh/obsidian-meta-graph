@@ -61,6 +61,8 @@ export interface ChartLayoutConfig {
 	dragLinkForce?: number;
 	returnForce?: number;
 	linkDistance?: number;
+	layerSpacing?: number;
+	laneSpacing?: number;
 	direction?: FlowDirection;
 	arcDirection?: ArcDirection;
 	edgeStyle?: FlowEdgeStyle;
@@ -193,6 +195,8 @@ export interface WorkspaceState {
 	graphReturnForce: number;
 	graphLinkDistance: number;
 	flowSpacing: number;
+	flowLayerSpacing: number;
+	flowLaneSpacing: number;
 	arcSpacing: number;
 	manualLayout: ManualLayoutConfig;
 	layoutRevision: number;

@@ -12,7 +12,8 @@ const FLOW_SLOT_ATTEMPTS = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5];
 
 export interface FlowInsertionOptions {
 	flowDirection: FlowDirection;
-	flowSpacing: number;
+	flowLayerSpacing: number;
+	flowLaneSpacing: number;
 }
 
 interface FlowInsertionDirection {
@@ -101,8 +102,8 @@ export function findOpenFlowSlot(
 		options.flowDirection,
 		newNodeIsAfterAnchor,
 	);
-	const layerDistance = BASE_LAYER_DISTANCE * options.flowSpacing;
-	const crossStep = BASE_CROSS_STEP * options.flowSpacing;
+	const layerDistance = BASE_LAYER_DISTANCE * options.flowLayerSpacing;
+	const crossStep = BASE_CROSS_STEP * options.flowLaneSpacing;
 
 	for (const attempt of FLOW_SLOT_ATTEMPTS) {
 		const candidate = {

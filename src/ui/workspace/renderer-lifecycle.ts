@@ -195,7 +195,8 @@ export class WorkspaceRendererLifecycle {
 			graphForceSettings: getWorkspaceGraphForceSettings(state),
 			flowEdgeStyle: state.flowEdgeStyle,
 			flowDirection: state.flowDirection,
-			flowSpacing: state.flowSpacing,
+			flowLayerSpacing: state.flowLayerSpacing,
+			flowLaneSpacing: state.flowLaneSpacing,
 			arcSpacing: state.arcSpacing,
 			arcDirection: state.arcDirection,
 		});

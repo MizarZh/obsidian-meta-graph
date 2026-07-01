@@ -3,6 +3,8 @@ import type { MetaGraphChart, WorkspaceState } from '../core/types';
 import {
 	setArcSpacingInState,
 	setCubeFaceOpacityInState,
+	setFlowLaneSpacingInState,
+	setFlowLayerSpacingInState,
 	setFlowSpacingInState,
 	setLabelDensityInState,
 } from '../workspace/state/chart-settings';
@@ -50,6 +52,8 @@ describe('workspace chart settings', () => {
 		};
 
 		expect(setFlowSpacingInState(flowState, 2).layoutRevision).toBe(1);
+		expect(setFlowLayerSpacingInState(flowState, 2).layoutRevision).toBe(1);
+		expect(setFlowLaneSpacingInState(flowState, 2).layoutRevision).toBe(1);
 		expect(setArcSpacingInState(arcState, 2).layoutRevision).toBe(1);
 	});
 

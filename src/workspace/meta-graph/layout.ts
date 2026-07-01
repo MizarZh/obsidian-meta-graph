@@ -28,9 +28,18 @@ export function normalizeLayout(
 	type: ViewMode,
 ): ChartLayoutConfig {
 	const record = isRecord(value) ? value : {};
+	const spacing = readFiniteNumber(record.spacing, fallback.spacing);
 	return {
 		engine: readLayoutEngine(type),
-		spacing: readFiniteNumber(record.spacing, fallback.spacing),
+		spacing,
+		layerSpacing: readFiniteNumber(
+			record.layerSpacing,
+			fallback.layerSpacing ?? spacing,
+		),
+		laneSpacing: readFiniteNumber(
+			record.laneSpacing,
+			fallback.laneSpacing ?? spacing,
+		),
 		centerForce: normalizeForceSetting(
 			record.centerForce,
 			fallback.centerForce ?? DEFAULT_GRAPH_CENTER_FORCE,
@@ -82,6 +91,8 @@ export function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 			return {
 				engine: 'elk',
 				spacing: 1,
+				layerSpacing: 1,
+				laneSpacing: 1,
 				direction: 'LR',
 				edgeStyle: 'orthogonal',
 			};

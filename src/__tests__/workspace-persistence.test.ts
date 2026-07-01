@@ -56,6 +56,8 @@ describe('workspace persistence', () => {
 		);
 		if (flowChart) {
 			flowChart.layout.spacing = 2;
+			flowChart.layout.layerSpacing = 3;
+			flowChart.layout.laneSpacing = 1.5;
 			flowChart.query.maxNodes = 50;
 		}
 
@@ -65,6 +67,8 @@ describe('workspace persistence', () => {
 		expect(restored.mode).toBe('flow');
 		expect(restored.fadeDistance).toBe(2);
 		expect(restored.flowSpacing).toBe(2);
+		expect(restored.flowLayerSpacing).toBe(3);
+		expect(restored.flowLaneSpacing).toBe(1.5);
 		expect(restored.query.maxNodes).toBe(50);
 	});
 

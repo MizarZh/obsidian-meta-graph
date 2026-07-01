@@ -55,7 +55,8 @@
 		graphDragLinkForce,
 		graphReturnForce,
 		graphLinkDistance,
-		flowSpacing,
+		flowLayerSpacing,
+		flowLaneSpacing,
 		arcSpacing,
 		query,
 		globalQuery,
@@ -100,7 +101,8 @@
 		onGraphDragLinkForce,
 		onGraphReturnForce,
 		onGraphLinkDistance,
-		onFlowSpacing,
+		onFlowLayerSpacing,
+		onFlowLaneSpacing,
 		onArcSpacing,
 		onChange,
 		onGlobalChange,
@@ -142,7 +144,8 @@
 		graphDragLinkForce: number;
 		graphReturnForce: number;
 		graphLinkDistance: number;
-		flowSpacing: number;
+		flowLayerSpacing: number;
+		flowLaneSpacing: number;
 		arcSpacing: number;
 		query: GraphQuery;
 		globalQuery: GraphQuery;
@@ -187,7 +190,8 @@
 		onGraphDragLinkForce: (value: number) => void;
 		onGraphReturnForce: (value: number) => void;
 		onGraphLinkDistance: (value: number) => void;
-		onFlowSpacing: (spacing: number) => void;
+		onFlowLayerSpacing: (spacing: number) => void;
+		onFlowLaneSpacing: (spacing: number) => void;
 		onArcSpacing: (spacing: number) => void;
 		onChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
 		onGlobalChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
@@ -248,7 +252,8 @@
 			{graphDragLinkForce}
 			{graphReturnForce}
 			{graphLinkDistance}
-			{flowSpacing}
+			{flowLayerSpacing}
+			{flowLaneSpacing}
 			{arcSpacing}
 			{query}
 			{onFlowEdgeStyle}
@@ -266,7 +271,8 @@
 			{onGraphDragLinkForce}
 			{onGraphReturnForce}
 			{onGraphLinkDistance}
-			{onFlowSpacing}
+			{onFlowLayerSpacing}
+			{onFlowLaneSpacing}
 			{onArcSpacing}
 			{onChange}
 		/>

@@ -35,6 +35,8 @@ import {
 	setFadeDistanceInState,
 	setFlowDirectionInState,
 	setFlowEdgeStyleInState,
+	setFlowLaneSpacingInState,
+	setFlowLayerSpacingInState,
 	setFlowSpacingInState,
 	setForceLabelsInState,
 	setGraphForceSettingInState,
@@ -484,6 +486,18 @@ export class WorkspaceController {
 
 	setFlowSpacing(flowSpacing: number): void {
 		this.setWorkspaceState(setFlowSpacingInState(this.state, flowSpacing));
+	}
+
+	setFlowLayerSpacing(flowLayerSpacing: number): void {
+		this.setWorkspaceState(
+			setFlowLayerSpacingInState(this.state, flowLayerSpacing),
+		);
+	}
+
+	setFlowLaneSpacing(flowLaneSpacing: number): void {
+		this.setWorkspaceState(
+			setFlowLaneSpacingInState(this.state, flowLaneSpacing),
+		);
 	}
 
 	setArcSpacing(arcSpacing: number): void {

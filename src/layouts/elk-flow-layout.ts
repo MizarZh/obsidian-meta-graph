@@ -16,7 +16,8 @@ export class ElkFlowLayout implements LayoutEngine {
 	constructor(
 		private readonly edgeStyle: FlowEdgeStyle = 'orthogonal',
 		private readonly direction: FlowDirection = 'LR',
-		private readonly spacing = 1,
+		private readonly layerSpacing = 1,
+		private readonly laneSpacing = 1,
 	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
@@ -25,9 +26,9 @@ export class ElkFlowLayout implements LayoutEngine {
 			layoutOptions: {
 				'elk.algorithm': 'layered',
 				'elk.direction': toElkDirection(this.direction),
-				'elk.spacing.nodeNode': String(60 * this.spacing),
+				'elk.spacing.nodeNode': String(60 * this.laneSpacing),
 				'elk.layered.spacing.nodeNodeBetweenLayers': String(
-					100 * this.spacing,
+					100 * this.layerSpacing,
 				),
 				'elk.edgeRouting':
 					this.edgeStyle === 'orthogonal' ? 'ORTHOGONAL' : 'POLYLINE',

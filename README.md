@@ -211,6 +211,11 @@ links refreshes the visible edges without relaying out existing nodes. This
 keeps editing stable while you add multiple links. Select **Refresh** to run the
 Flow layout manually.
 
+Flow layout has two spacing controls. **Layer spacing** controls distance along
+the flow direction. **Lane spacing** controls distance across parallel lanes.
+For left-to-right and right-to-left flows, layer spacing is horizontal and lane
+spacing is vertical.
+
 Enable **Relayout Flow after connecting nodes** in the plugin settings if you
 want Flow charts to rerun layout immediately after each new connection.
 

@@ -83,7 +83,8 @@
 			graphDragLinkForce={workspaceState.graphDragLinkForce}
 			graphReturnForce={workspaceState.graphReturnForce}
 			graphLinkDistance={workspaceState.graphLinkDistance}
-			flowSpacing={workspaceState.flowSpacing}
+			flowLayerSpacing={workspaceState.flowLayerSpacing}
+			flowLaneSpacing={workspaceState.flowLaneSpacing}
 			arcSpacing={workspaceState.arcSpacing}
 			query={workspaceState.query}
 			globalQuery={workspaceState.globalQuery}
@@ -143,7 +144,10 @@
 				controller.setGraphReturnForce(value)}
 			onGraphLinkDistance={(value) =>
 				controller.setGraphLinkDistance(value)}
-			onFlowSpacing={(spacing) => controller.setFlowSpacing(spacing)}
+			onFlowLayerSpacing={(spacing) =>
+				controller.setFlowLayerSpacing(spacing)}
+			onFlowLaneSpacing={(spacing) =>
+				controller.setFlowLaneSpacing(spacing)}
 			onArcSpacing={(spacing) => controller.setArcSpacing(spacing)}
 			onChange={(patch) => controller.updateQuery(patch)}
 			onGlobalChange={(patch) => controller.updateGlobalQuery(patch)}

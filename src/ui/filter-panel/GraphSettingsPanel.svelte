@@ -29,7 +29,8 @@
 		graphDragLinkForce,
 		graphReturnForce,
 		graphLinkDistance,
-		flowSpacing,
+		flowLayerSpacing,
+		flowLaneSpacing,
 		arcSpacing,
 		query,
 		onFlowEdgeStyle,
@@ -47,7 +48,8 @@
 		onGraphDragLinkForce,
 		onGraphReturnForce,
 		onGraphLinkDistance,
-		onFlowSpacing,
+		onFlowLayerSpacing,
+		onFlowLaneSpacing,
 		onArcSpacing,
 		onChange,
 	}: {
@@ -66,7 +68,8 @@
 		graphDragLinkForce: number;
 		graphReturnForce: number;
 		graphLinkDistance: number;
-		flowSpacing: number;
+		flowLayerSpacing: number;
+		flowLaneSpacing: number;
 		arcSpacing: number;
 		query: GraphQuery;
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
@@ -84,7 +87,8 @@
 		onGraphDragLinkForce: (value: number) => void;
 		onGraphReturnForce: (value: number) => void;
 		onGraphLinkDistance: (value: number) => void;
-		onFlowSpacing: (spacing: number) => void;
+		onFlowLayerSpacing: (spacing: number) => void;
+		onFlowLaneSpacing: (spacing: number) => void;
 		onArcSpacing: (spacing: number) => void;
 		onChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
 	} = $props();
@@ -104,7 +108,6 @@
 		if (mode === 'graph' || mode === 'graph-3d' || mode === 'cube') {
 			onGraphSpacing(spacing);
 		}
-		if (mode === 'flow') onFlowSpacing(spacing);
 		if (mode === 'arc') onArcSpacing(spacing);
 	}
 </script>
@@ -238,7 +241,40 @@
 				</div>
 			</label>
 		</CollapsibleSettingsGroup>
-	{:else if mode === 'flow' || mode === 'arc'}
+	{:else if mode === 'flow'}
+		<CollapsibleSettingsGroup title="Layout" bind:open={layoutOpen}>
+			<label class="knowledge-workspace-rule-label">
+				<span>Layer spacing</span>
+				<div class="knowledge-workspace-slider-value">
+					<ObsidianSlider
+						min={0.25}
+						max={4}
+						step={0.25}
+						value={flowLayerSpacing}
+						format={(value) => formatCompact(value, 2)}
+						onChange={onFlowLayerSpacing}
+						onCommit={onFlowLayerSpacing}
+					/>
+					<span>{formatCompact(flowLayerSpacing, 2)}</span>
+				</div>
+			</label>
+			<label class="knowledge-workspace-rule-label">
+				<span>Lane spacing</span>
+				<div class="knowledge-workspace-slider-value">
+					<ObsidianSlider
+						min={0.25}
+						max={4}
+						step={0.25}
+						value={flowLaneSpacing}
+						format={(value) => formatCompact(value, 2)}
+						onChange={onFlowLaneSpacing}
+						onCommit={onFlowLaneSpacing}
+					/>
+					<span>{formatCompact(flowLaneSpacing, 2)}</span>
+				</div>
+			</label>
+		</CollapsibleSettingsGroup>
+	{:else if mode === 'arc'}
 		<CollapsibleSettingsGroup title="Layout" bind:open={layoutOpen}>
 			<label class="knowledge-workspace-rule-label">
 				<span>Spacing</span>
@@ -247,17 +283,12 @@
 						min={0.25}
 						max={4}
 						step={0.25}
-						value={mode === 'flow' ? flowSpacing : arcSpacing}
+						value={arcSpacing}
 						format={(value) => formatCompact(value, 2)}
 						onChange={commitSpacing}
 						onCommit={commitSpacing}
 					/>
-					<span
-						>{formatCompact(
-							mode === 'flow' ? flowSpacing : arcSpacing,
-							2,
-						)}</span
-					>
+					<span>{formatCompact(arcSpacing, 2)}</span>
 				</div>
 			</label>
 		</CollapsibleSettingsGroup>

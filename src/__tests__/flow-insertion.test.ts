@@ -68,7 +68,11 @@ describe('flow insertion layout', () => {
 				graph,
 				new Map<string, GraphPosition>([['A.md', { x: 0, y: 0 }]]),
 				['B.md'],
-				{ flowDirection, flowSpacing: 1 },
+				{
+					flowDirection,
+					flowLayerSpacing: 1,
+					flowLaneSpacing: 1,
+				},
 			);
 
 			expect(graph.getNodeAttributes('B.md')).toMatchObject({
@@ -90,11 +94,35 @@ describe('flow insertion layout', () => {
 
 		placeNewFlowNodes(graph, positions, ['B.md'], {
 			flowDirection: 'LR',
-			flowSpacing: 1,
+			flowLayerSpacing: 1,
+			flowLaneSpacing: 1,
 		});
 
 		expect(graph.getNodeAttributes('B.md')).toMatchObject({
 			x: 220,
+			y: 90,
+			fixed: true,
+		});
+	});
+
+	it('applies layer and lane spacing independently', () => {
+		const positions = new Map<string, GraphPosition>([
+			['A.md', { x: 0, y: 0 }],
+			['C.md', { x: 440, y: 0 }],
+		]);
+		const graph = new GraphologyAdapter(palette).fromProjection(
+			projection,
+			positions,
+		);
+
+		placeNewFlowNodes(graph, positions, ['B.md'], {
+			flowDirection: 'LR',
+			flowLayerSpacing: 2,
+			flowLaneSpacing: 0.5,
+		});
+
+		expect(graph.getNodeAttributes('B.md')).toMatchObject({
+			x: 440,
 			y: 90,
 			fixed: true,
 		});

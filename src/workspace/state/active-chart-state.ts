@@ -21,19 +21,19 @@ type ActiveChartStateFields = Pick<
 	| 'flowDirection'
 	| 'arcDirection'
 	| 'fadeDistance'
-		| 'labelSize'
-		| 'labelPosition'
-		| 'labelOffset'
-		| 'labelColor'
-		| 'labelLightTextColor'
-		| 'labelLightBackgroundColor'
-		| 'labelLightBackgroundOpacity'
-		| 'labelDarkTextColor'
-		| 'labelDarkBackgroundColor'
-		| 'labelDarkBackgroundOpacity'
-		| 'labelBackgroundOpacity'
-		| 'labelDensity'
-		| 'cubeFaceOpacity'
+	| 'labelSize'
+	| 'labelPosition'
+	| 'labelOffset'
+	| 'labelColor'
+	| 'labelLightTextColor'
+	| 'labelLightBackgroundColor'
+	| 'labelLightBackgroundOpacity'
+	| 'labelDarkTextColor'
+	| 'labelDarkBackgroundColor'
+	| 'labelDarkBackgroundOpacity'
+	| 'labelBackgroundOpacity'
+	| 'labelDensity'
+	| 'cubeFaceOpacity'
 	| 'forceLabels'
 	| 'enableForceLayout'
 	| 'graphSpacing'
@@ -44,6 +44,8 @@ type ActiveChartStateFields = Pick<
 	| 'graphReturnForce'
 	| 'graphLinkDistance'
 	| 'flowSpacing'
+	| 'flowLayerSpacing'
+	| 'flowLaneSpacing'
 	| 'arcSpacing'
 	| 'manualLayout'
 	| 'query'
@@ -64,6 +66,8 @@ type ActiveChartFallback = Pick<
 	| 'graphReturnForce'
 	| 'graphLinkDistance'
 	| 'flowSpacing'
+	| 'flowLayerSpacing'
+	| 'flowLaneSpacing'
 	| 'arcSpacing'
 >;
 
@@ -76,6 +80,8 @@ const INITIAL_ACTIVE_CHART_FALLBACK: ActiveChartFallback = {
 	graphReturnForce: DEFAULT_GRAPH_RETURN_FORCE,
 	graphLinkDistance: DEFAULT_GRAPH_LINK_DISTANCE,
 	flowSpacing: 1,
+	flowLayerSpacing: 1,
+	flowLaneSpacing: 1,
 	arcSpacing: 1,
 };
 
@@ -112,21 +118,19 @@ function createActiveChartStateFields(
 		flowDirection: chart.layout.direction ?? 'LR',
 		arcDirection: chart.layout.arcDirection ?? 'right',
 		fadeDistance: chart.display.fadeDistance,
-			labelSize: chart.display.labelSize,
-			labelPosition: chart.display.labelPosition,
-			labelOffset: chart.display.labelOffset,
-			labelColor: chart.display.labelColor,
-			labelLightTextColor: chart.display.labelLightTextColor,
-			labelLightBackgroundColor: chart.display.labelLightBackgroundColor,
-			labelLightBackgroundOpacity:
-				chart.display.labelLightBackgroundOpacity,
-			labelDarkTextColor: chart.display.labelDarkTextColor,
-			labelDarkBackgroundColor: chart.display.labelDarkBackgroundColor,
-			labelDarkBackgroundOpacity:
-				chart.display.labelDarkBackgroundOpacity,
-			labelBackgroundOpacity: chart.display.labelBackgroundOpacity,
-			labelDensity: chart.display.labelDensity,
-			cubeFaceOpacity: chart.display.cubeFaceOpacity,
+		labelSize: chart.display.labelSize,
+		labelPosition: chart.display.labelPosition,
+		labelOffset: chart.display.labelOffset,
+		labelColor: chart.display.labelColor,
+		labelLightTextColor: chart.display.labelLightTextColor,
+		labelLightBackgroundColor: chart.display.labelLightBackgroundColor,
+		labelLightBackgroundOpacity: chart.display.labelLightBackgroundOpacity,
+		labelDarkTextColor: chart.display.labelDarkTextColor,
+		labelDarkBackgroundColor: chart.display.labelDarkBackgroundColor,
+		labelDarkBackgroundOpacity: chart.display.labelDarkBackgroundOpacity,
+		labelBackgroundOpacity: chart.display.labelBackgroundOpacity,
+		labelDensity: chart.display.labelDensity,
+		cubeFaceOpacity: chart.display.cubeFaceOpacity,
 		forceLabels: chart.display.forceLabels,
 		enableForceLayout: chart.display.enableForceLayout,
 		graphSpacing: forceGraphType
@@ -164,6 +168,14 @@ function createActiveChartStateFields(
 		),
 		flowSpacing:
 			chart.type === 'flow' ? chart.layout.spacing : fallback.flowSpacing,
+		flowLayerSpacing:
+			chart.type === 'flow'
+				? (chart.layout.layerSpacing ?? chart.layout.spacing)
+				: fallback.flowLayerSpacing,
+		flowLaneSpacing:
+			chart.type === 'flow'
+				? (chart.layout.laneSpacing ?? chart.layout.spacing)
+				: fallback.flowLaneSpacing,
 		arcSpacing:
 			chart.type === 'arc' ? chart.layout.spacing : fallback.arcSpacing,
 		manualLayout: cloneSerializable(

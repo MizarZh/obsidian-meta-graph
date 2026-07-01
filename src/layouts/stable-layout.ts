@@ -40,7 +40,8 @@ export interface StableLayoutOptions {
 	graphForceSettings: GraphForceSettings;
 	flowEdgeStyle: FlowEdgeStyle;
 	flowDirection: FlowDirection;
-	flowSpacing: number;
+	flowLayerSpacing: number;
+	flowLaneSpacing: number;
 	arcSpacing: number;
 	arcDirection: ArcDirection;
 }
@@ -179,7 +180,8 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 		const layout = new ElkFlowLayout(
 			options.flowEdgeStyle,
 			options.flowDirection,
-			options.flowSpacing,
+			options.flowLayerSpacing,
+			options.flowLaneSpacing,
 		);
 		await layout.apply(graph);
 		snapshot.edgeIds = currentEdgeIds;
@@ -190,7 +192,8 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 	} else {
 		placeNewFlowNodes(graph, snapshot.positions, newNodeIds, {
 			flowDirection: options.flowDirection,
-			flowSpacing: options.flowSpacing,
+			flowLayerSpacing: options.flowLayerSpacing,
+			flowLaneSpacing: options.flowLaneSpacing,
 		});
 		if (options.flowEdgeStyle === 'orthogonal') {
 			applyOrthogonalFlowEdges(graph, snapshot.orthogonalRoutes);
