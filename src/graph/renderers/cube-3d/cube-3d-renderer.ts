@@ -7,6 +7,7 @@ import {
 	createCubeFaces,
 	getCubeFace,
 	getCubeFaceIdForNode,
+	isCubeFaceId,
 } from './cube-faces';
 import {
 	resolveCubeDisplayPositions,
@@ -349,7 +350,6 @@ export class Cube3DRenderer {
 	focusNode(nodeId: string): void {
 		const node = this.nodeObjects.get(nodeId);
 		if (!node) {
-			this.fit();
 			return;
 		}
 		const target = node.mesh.position.clone().normalize();
@@ -441,6 +441,30 @@ export class Cube3DRenderer {
 		);
 	}
 
+	getGroupAtViewportPosition(position: {
+		x: number;
+		y: number;
+	}): string | undefined {
+		return this.getFaceIdAtViewportPosition(position);
+	}
+
+	viewportToGraphPosition(
+		position: { x: number; y: number },
+		groupId?: string,
+	): { x: number; y: number } | undefined {
+		const faceId =
+			groupId && isCubeFaceId(groupId)
+				? groupId
+				: this.getFaceIdAtViewportPosition(position);
+		if (!faceId) {
+			return undefined;
+		}
+		const projected = this.readFacePositionAtViewport(faceId, position);
+		return projected && !projected.outsideFace
+			? projected.position
+			: undefined;
+	}
+
 	rotate(deltaX: number, deltaY: number): void {
 		this.cubeGroup.rotation.y += deltaX * 0.008;
 		this.cubeGroup.rotation.x += deltaY * 0.008;
@@ -479,42 +503,18 @@ export class Cube3DRenderer {
 		if (!node) {
 			return undefined;
 		}
-		const face = this.getFace(node.faceId);
-		this.updateWorldMatrices();
-		const ray = this.createRay(position);
-		const planePoint = face.normal.clone().multiplyScalar(this.cubeSize);
-		const worldPoint = this.cubeGroup.localToWorld(planePoint.clone());
-		const worldNormal = face.normal
-			.clone()
-			.transformDirection(this.cubeGroup.matrixWorld);
-		const plane = new this.three.Plane().setFromNormalAndCoplanarPoint(
-			worldNormal,
-			worldPoint,
+		const projected = this.readFacePositionAtViewport(
+			node.faceId,
+			position,
 		);
-		const hit = ray.intersectPlane(plane, new this.three.Vector3());
-		if (!hit) {
+		if (!projected) {
 			return undefined;
 		}
-		const local = this.cubeGroup.worldToLocal(hit.clone());
-		const range = this.cubeSize * CUBE_FACE_POSITION_SCALE;
-		const rawX = local.dot(face.u) / range;
-		const rawY = local.dot(face.v) / range;
-		if (
-			Math.abs(rawX) > CUBE_FACE_POINTER_LIMIT ||
-			Math.abs(rawY) > CUBE_FACE_POINTER_LIMIT
-		) {
+		if (projected.outsideFace) {
 			return this.getCurrentNodePlacement(nodeId);
 		}
-		const x = clamp(
-			rawX,
-			-CUBE_FACE_COORDINATE_LIMIT,
-			CUBE_FACE_COORDINATE_LIMIT,
-		);
-		const y = clamp(
-			rawY,
-			-CUBE_FACE_COORDINATE_LIMIT,
-			CUBE_FACE_COORDINATE_LIMIT,
-		);
+		const { x, y } = projected.position;
+		const face = this.getFace(node.faceId);
 		this.manualLayout = {
 			...this.manualLayout,
 			nodes: {
@@ -928,6 +928,66 @@ export class Cube3DRenderer {
 
 	private getFace(faceId: CubeFaceId): CubeFace {
 		return getCubeFace(this.getFaces(), faceId);
+	}
+
+	private getFaceIdAtViewportPosition(position: {
+		x: number;
+		y: number;
+	}): CubeFaceId | undefined {
+		this.updateWorldMatrices();
+		this.createRay(position);
+		const object = this.raycaster.intersectObjects([
+			...this.faceMeshes.values(),
+		])[0]?.object;
+		const faceId = object?.userData.faceId;
+		return typeof faceId === 'string' && isCubeFaceId(faceId)
+			? faceId
+			: undefined;
+	}
+
+	private readFacePositionAtViewport(
+		faceId: CubeFaceId,
+		position: { x: number; y: number },
+	):
+		| { position: { x: number; y: number }; outsideFace: boolean }
+		| undefined {
+		const face = this.getFace(faceId);
+		this.updateWorldMatrices();
+		const ray = this.createRay(position);
+		const planePoint = face.normal.clone().multiplyScalar(this.cubeSize);
+		const worldPoint = this.cubeGroup.localToWorld(planePoint.clone());
+		const worldNormal = face.normal
+			.clone()
+			.transformDirection(this.cubeGroup.matrixWorld);
+		const plane = new this.three.Plane().setFromNormalAndCoplanarPoint(
+			worldNormal,
+			worldPoint,
+		);
+		const hit = ray.intersectPlane(plane, new this.three.Vector3());
+		if (!hit) {
+			return undefined;
+		}
+		const local = this.cubeGroup.worldToLocal(hit.clone());
+		const range = this.cubeSize * CUBE_FACE_POSITION_SCALE;
+		const rawX = local.dot(face.u) / range;
+		const rawY = local.dot(face.v) / range;
+		return {
+			position: {
+				x: clamp(
+					rawX,
+					-CUBE_FACE_COORDINATE_LIMIT,
+					CUBE_FACE_COORDINATE_LIMIT,
+				),
+				y: clamp(
+					rawY,
+					-CUBE_FACE_COORDINATE_LIMIT,
+					CUBE_FACE_COORDINATE_LIMIT,
+				),
+			},
+			outsideFace:
+				Math.abs(rawX) > CUBE_FACE_POINTER_LIMIT ||
+				Math.abs(rawY) > CUBE_FACE_POINTER_LIMIT,
+		};
 	}
 
 	private raycastNodes(position: { x: number; y: number }) {

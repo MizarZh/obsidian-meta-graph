@@ -426,6 +426,23 @@ export class Force3DRenderer {
 		return { x: screen.x, y: screen.y };
 	}
 
+	viewportToGraphPosition(position: { x: number; y: number }): {
+		x: number;
+		y: number;
+	} {
+		const camera = this.instance.cameraPosition();
+		const distance = Math.max(
+			1,
+			Math.hypot(camera.x ?? 0, camera.y ?? 0, camera.z ?? 0),
+		);
+		const graphPosition = this.instance.screen2GraphCoords(
+			position.x,
+			position.y,
+			distance,
+		);
+		return { x: graphPosition.x, y: graphPosition.y };
+	}
+
 	getViewportPosition(event: MouseEvent | PointerEvent): {
 		x: number;
 		y: number;

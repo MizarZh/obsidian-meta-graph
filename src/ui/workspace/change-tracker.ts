@@ -224,7 +224,7 @@ export function analyzeWorkspaceStateChanges(
 			activeChartChanged ||
 			modeChanged ||
 			chartSourceChanged ||
-			projectionChanged ||
+			(projectionChanged && nextState.mode !== 'cube') ||
 			flowStyleChanged ||
 			flowDirectionChanged ||
 			arcDirectionChanged ||

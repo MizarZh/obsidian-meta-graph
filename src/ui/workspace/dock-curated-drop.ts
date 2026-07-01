@@ -25,16 +25,16 @@ export interface DockCuratedDropPreview {
 	groupId?: string;
 }
 
-interface GroupDropRenderer {
-	getGroupAtViewportPosition(position: {
+interface CuratedDropRenderer {
+	getGroupAtViewportPosition?(position: {
 		x: number;
 		y: number;
 	}): string | undefined;
-	viewportToGraphPosition(position: { x: number; y: number }): {
-		x: number;
-		y: number;
-	};
-	setActiveDropGroup(groupId?: string): void;
+	viewportToGraphPosition(
+		position: { x: number; y: number },
+		groupId?: string,
+	): { x: number; y: number } | undefined;
+	setActiveDropGroup?(groupId?: string): void;
 }
 
 export interface DockCuratedDropControllerOptions {
@@ -72,7 +72,7 @@ export class DockCuratedDropController {
 			this.options.readChartSource() !== 'curated' ||
 			!this.options.canStartDrag(payload) ||
 			!this.options.readCanvas() ||
-			!this.options.readRenderer()
+			!readCuratedDropRenderer(this.options.readRenderer())
 		) {
 			return false;
 		}
@@ -127,12 +127,16 @@ export class DockCuratedDropController {
 			this.options.setDockDrag(this.payload);
 		}
 		const groupId = this.readGroupAtClientPosition(event);
+		const position = this.readGraphPositionAtClientPosition(event, groupId);
 		const canvas = this.options.readCanvas();
 		if (!canvas) {
 			this.reset();
 			return;
 		}
-		if (!this.isValidDropTarget(event.clientX, event.clientY)) {
+		if (
+			!this.isValidDropTarget(event.clientX, event.clientY) ||
+			!position
+		) {
 			this.setActiveGroup(undefined);
 			this.options.setPreview(undefined);
 			return;
@@ -151,7 +155,7 @@ export class DockCuratedDropController {
 			return;
 		}
 		const groupId = this.readGroupAtClientPosition(event);
-		const position = this.readGraphPositionAtClientPosition(event);
+		const position = this.readGraphPositionAtClientPosition(event, groupId);
 		const canvasTargeted = this.isValidDropTarget(
 			event.clientX,
 			event.clientY,
@@ -196,10 +200,11 @@ export class DockCuratedDropController {
 
 	private readGroupAtClientPosition(event: PointerEvent): string | undefined {
 		const canvas = this.options.readCanvas();
-		const renderer = readGroupDropRenderer(this.options.readRenderer());
+		const renderer = readCuratedDropRenderer(this.options.readRenderer());
 		if (
 			!canvas ||
 			!renderer ||
+			!renderer.getGroupAtViewportPosition ||
 			!this.isValidDropTarget(event.clientX, event.clientY)
 		) {
 			return undefined;
@@ -211,9 +216,10 @@ export class DockCuratedDropController {
 
 	private readGraphPositionAtClientPosition(
 		event: PointerEvent,
+		groupId?: string,
 	): { x: number; y: number } | undefined {
 		const canvas = this.options.readCanvas();
-		const renderer = readGroupDropRenderer(this.options.readRenderer());
+		const renderer = readCuratedDropRenderer(this.options.readRenderer());
 		if (
 			!canvas ||
 			!renderer ||
@@ -223,6 +229,7 @@ export class DockCuratedDropController {
 		}
 		return renderer.viewportToGraphPosition(
 			readViewportPoint(canvas, event.clientX, event.clientY),
+			groupId,
 		);
 	}
 
@@ -253,9 +260,9 @@ export class DockCuratedDropController {
 		}
 		this.activeGroupId = groupId;
 		this.options.setActiveNodeDropGroupId(groupId);
-		readGroupDropRenderer(this.options.readRenderer())?.setActiveDropGroup(
-			groupId,
-		);
+		readCuratedDropRenderer(
+			this.options.readRenderer(),
+		)?.setActiveDropGroup?.(groupId);
 	}
 }
 
@@ -267,13 +274,11 @@ function isCancelTarget(target: Element | null): boolean {
 	);
 }
 
-function readGroupDropRenderer(
+function readCuratedDropRenderer(
 	renderer: GraphRenderer | undefined,
-): GroupDropRenderer | undefined {
-	const candidate = renderer as Partial<GroupDropRenderer> | undefined;
-	return typeof candidate?.getGroupAtViewportPosition === 'function' &&
-		typeof candidate.viewportToGraphPosition === 'function' &&
-		typeof candidate.setActiveDropGroup === 'function'
-		? (candidate as GroupDropRenderer)
+): CuratedDropRenderer | undefined {
+	const candidate = renderer as Partial<CuratedDropRenderer> | undefined;
+	return typeof candidate?.viewportToGraphPosition === 'function'
+		? (candidate as CuratedDropRenderer)
 		: undefined;
 }

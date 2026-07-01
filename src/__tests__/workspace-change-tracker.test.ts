@@ -115,6 +115,41 @@ describe('workspace change tracker', () => {
 		expect(changes.fitAfterRender).toBe(true);
 	});
 
+	it('does not refit cube after projection content changes', () => {
+		const projection = createTestProjection();
+		const state = {
+			...createWorkspaceState(200),
+			mode: 'cube' as const,
+			projection,
+		};
+		const nextState = {
+			...state,
+			projection: {
+				...projection,
+				nodes: [
+					...projection.nodes,
+					{
+						id: 'd.md',
+						path: 'd.md',
+						title: 'D',
+						folder: '',
+						domains: [],
+						tags: [],
+					},
+				],
+			},
+		} satisfies typeof state;
+
+		const changes = analyzeWorkspaceStateChanges(
+			nextState,
+			state,
+			createWorkspaceRenderBaseline(state),
+		);
+
+		expect(changes.shouldRebuild).toBe(true);
+		expect(changes.fitAfterRender).toBe(false);
+	});
+
 	it('treats projection hidden node changes as visibility sync only', () => {
 		const projection = createTestProjection();
 		const state = { ...createWorkspaceState(200), projection };

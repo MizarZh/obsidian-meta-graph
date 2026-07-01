@@ -21,6 +21,7 @@ describe('DockCuratedDropController', () => {
 
 		expect(harness.rendererGroups).toEqual(['group-a', undefined]);
 		expect(harness.activeNodeGroups).toEqual(['group-a', undefined]);
+		expect(harness.positionGroups).toEqual(['group-a', 'group-a']);
 		expect(harness.actions).toEqual([
 			{
 				kind: 'add-note',
@@ -121,6 +122,46 @@ describe('DockCuratedDropController', () => {
 		expect(harness.actions).toEqual([]);
 		expect(harness.previews).toEqual([undefined, undefined]);
 	});
+
+	it('drops with a renderer that does not expose groups', () => {
+		const harness = createHarness('curated', {
+			renderer: {
+				viewportToGraphPosition: ({
+					x,
+					y,
+				}: {
+					x: number;
+					y: number;
+				}) => ({
+					x: x + 1,
+					y: y + 2,
+				}),
+			},
+		});
+		const payload: DockDragPayload = {
+			kind: 'template',
+			templateId: 'template-1',
+			label: 'Template',
+		};
+
+		expect(
+			harness.controller.handlePointerDown(payload, pointerEvent(10, 10)),
+		).toBe(true);
+		harness.dispatch('pointermove', pointerEvent(120, 160));
+		harness.dispatch('pointerup', pointerEvent(120, 160));
+
+		expect(harness.actions).toEqual([
+			{
+				kind: 'create-template-note',
+				templateId: 'template-1',
+				label: 'Template',
+				position: { x: 21, y: 62 },
+				groupId: undefined,
+			},
+		]);
+		expect(harness.activeNodeGroups).toEqual([]);
+		expect(harness.rendererGroups).toEqual([]);
+	});
 });
 
 function createHarness(
@@ -128,11 +169,13 @@ function createHarness(
 	options: {
 		canStartDrag?: boolean;
 		readElementAtPoint?: () => Element | null;
+		renderer?: unknown;
 	} = {},
 ) {
 	const listeners = new Map<string, (event: PointerEvent) => void>();
 	const rendererGroups: Array<string | undefined> = [];
 	const activeNodeGroups: Array<string | undefined> = [];
+	const positionGroups: Array<string | undefined> = [];
 	const previews: unknown[] = [];
 	const actions: unknown[] = [];
 	const canvas = {
@@ -145,13 +188,16 @@ function createHarness(
 			height: 200,
 		}),
 	} as HTMLElement;
-	const renderer = {
+	const renderer = options.renderer ?? {
 		getGroupAtViewportPosition: ({ x, y }: { x: number; y: number }) =>
 			x >= 0 && y >= 0 ? 'group-a' : undefined,
-		viewportToGraphPosition: ({ x, y }: { x: number; y: number }) => ({
-			x,
-			y,
-		}),
+		viewportToGraphPosition: (
+			{ x, y }: { x: number; y: number },
+			groupId?: string,
+		) => {
+			positionGroups.push(groupId);
+			return { x, y };
+		},
 		setActiveDropGroup: (groupId?: string) => {
 			rendererGroups.push(groupId);
 		},
@@ -188,6 +234,7 @@ function createHarness(
 		controller,
 		rendererGroups,
 		activeNodeGroups,
+		positionGroups,
 		previews,
 		actions,
 		dispatch(type: string, event: PointerEvent) {
