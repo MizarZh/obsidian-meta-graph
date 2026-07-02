@@ -39,10 +39,18 @@ describe('bindWorkspaceRendererEvents', () => {
 			getOrCreateForceLayoutSimulation: () => simulation,
 		});
 
-		rendererEventMock.callbacks?.onNodeDrag?.('A', { x: 1, y: 2 });
+		rendererEventMock.callbacks?.onNodeDrag?.(
+			'A',
+			{ x: 1, y: 2 },
+			{ x: 10, y: 20 },
+		);
 
 		expect(renderer.holdCurrentBounds).not.toHaveBeenCalled();
-		expect(simulation.drag).toHaveBeenCalledWith('A', { x: 1, y: 2 });
+		expect(simulation.drag).toHaveBeenCalledWith(
+			'A',
+			{ x: 1, y: 2 },
+			{ x: 10, y: 20 },
+		);
 	});
 
 	it('keeps held bounds for manual free dragging', () => {

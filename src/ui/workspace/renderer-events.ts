@@ -93,7 +93,7 @@ export function bindWorkspaceRendererEvents(
 				}
 				options.onOpen(nodeId);
 			},
-			onNodeDrag: (nodeId, position) => {
+			onNodeDrag: (nodeId, position, viewportPosition) => {
 				options.setSuppressNodeOpenUntil(
 					getNextNodeOpenSuppressUntil(Date.now()),
 				);
@@ -108,7 +108,7 @@ export function bindWorkspaceRendererEvents(
 				} else {
 					options
 						.getOrCreateForceLayoutSimulation(sigmaRenderer)
-						.drag(nodeId, position);
+						.drag(nodeId, position, viewportPosition);
 				}
 				options.getLayoutSnapshot().positions.set(nodeId, position);
 				if (capabilities.supportsFreeNodeDrag) {

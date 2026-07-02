@@ -36,6 +36,11 @@ export class D3ForceSimulation {
 		{ x: number; y: number; expiresAt: number }
 	>();
 	private draggedNodePosition?: { nodeId: string; x: number; y: number };
+	private draggedNodeViewportTarget?: {
+		nodeId: string;
+		x: number;
+		y: number;
+	};
 	private settleTimer?: number;
 
 	constructor(
@@ -65,7 +70,11 @@ export class D3ForceSimulation {
 		this.scheduleStop();
 	}
 
-	drag(nodeId: string, position: { x: number; y: number }): void {
+	drag(
+		nodeId: string,
+		position: { x: number; y: number },
+		viewportPosition?: { x: number; y: number },
+	): void {
 		this.ensureSimulation();
 		const node = this.nodesById.get(nodeId);
 		if (!node) {
@@ -79,6 +88,9 @@ export class D3ForceSimulation {
 			? { x: position.x - previous.x, y: position.y - previous.y }
 			: { x: 0, y: 0 };
 		this.draggedNodePosition = { nodeId, x: position.x, y: position.y };
+		this.draggedNodeViewportTarget = viewportPosition
+			? { nodeId, x: viewportPosition.x, y: viewportPosition.y }
+			: undefined;
 		node.fx = position.x;
 		node.fy = position.y;
 		node.x = position.x;
@@ -105,6 +117,9 @@ export class D3ForceSimulation {
 		}
 		if (this.draggedNodePosition?.nodeId === nodeId) {
 			this.draggedNodePosition = undefined;
+		}
+		if (this.draggedNodeViewportTarget?.nodeId === nodeId) {
+			this.draggedNodeViewportTarget = undefined;
 		}
 		this.setReturnTarget(nodeId);
 		this.simulation?.alphaTarget(0).restart();
@@ -164,7 +179,10 @@ export class D3ForceSimulation {
 		const distance = (this.forceSettings.linkDistance / 100) * this.spacing;
 		const centerStrength = this.forceSettings.centerForce * 0.03;
 		const linkStrength = Math.min(this.forceSettings.linkForce * 0.25, 1);
-		const repelStrength = -this.forceSettings.repelForce * distance * 10;
+		const repelStrength =
+			-this.forceSettings.repelForce * Math.max(distance, 1) * 0.4;
+		const repelMinDistance = Math.max(distance * 0.25, 0.5);
+		const repelMaxDistance = Math.max(distance * 8, 16 * this.spacing);
 		this.simulation = forceSimulation<ForceNode, ForceLink>(this.nodes)
 			.force(
 				'link',
@@ -173,7 +191,13 @@ export class D3ForceSimulation {
 					.distance(distance)
 					.strength(linkStrength),
 			)
-			.force('charge', forceManyBody().strength(repelStrength))
+			.force(
+				'charge',
+				forceManyBody()
+					.strength(repelStrength)
+					.distanceMin(repelMinDistance)
+					.distanceMax(repelMaxDistance),
+			)
 			.force(
 				'collide',
 				forceCollide<ForceNode>()
@@ -227,7 +251,11 @@ export class D3ForceSimulation {
 
 	private applyTick(): void {
 		this.applyReturnForces();
+		const draggedNodeId = this.draggedNodeViewportTarget?.nodeId;
 		for (const node of this.nodes) {
+			if (node.id === draggedNodeId) {
+				continue;
+			}
 			const x = node.x;
 			const y = node.y;
 			if (
@@ -245,6 +273,32 @@ export class D3ForceSimulation {
 			this.onPosition?.(node.id, { x, y });
 		}
 		this.renderer.instance.refresh();
+		this.syncDraggedNodeToViewportTarget();
+		if (draggedNodeId) {
+			this.renderer.instance.refresh();
+		}
+	}
+
+	private syncDraggedNodeToViewportTarget(): void {
+		const target = this.draggedNodeViewportTarget;
+		if (!target) {
+			return;
+		}
+		const node = this.nodesById.get(target.nodeId);
+		if (!node) {
+			this.draggedNodeViewportTarget = undefined;
+			return;
+		}
+		const position = this.renderer.instance.viewportToGraph(target);
+		node.fx = position.x;
+		node.fy = position.y;
+		node.x = position.x;
+		node.y = position.y;
+		this.graph.mergeNodeAttributes(target.nodeId, {
+			x: position.x,
+			y: position.y,
+		});
+		this.onPosition?.(target.nodeId, position);
 	}
 
 	private setReturnTarget(nodeId: string): void {

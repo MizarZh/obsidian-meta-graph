@@ -13,6 +13,7 @@ export function bindGraphEvents(
 	let connectionDrag: ConnectionDragState | undefined;
 	let draggedNodeId: string | undefined;
 	let draggedNodeStart: { x: number; y: number } | undefined;
+	let draggedNodeViewportOffset: { x: number; y: number } | undefined;
 	let hasDraggedNode = false;
 	let suppressNextClick = false;
 	let suppressClickUntil = 0;
@@ -124,6 +125,11 @@ export function bindGraphEvents(
 			sigma.setSetting('enableCameraPanning', false);
 			draggedNodeId = node;
 			draggedNodeStart = readMouseViewportPosition(event.original);
+			const nodeViewportPosition = readNodeViewportPosition(node);
+			draggedNodeViewportOffset = {
+				x: nodeViewportPosition.x - draggedNodeStart.x,
+				y: nodeViewportPosition.y - draggedNodeStart.y,
+			};
 			hasDraggedNode = false;
 			callbacks.onSelect(node);
 			return;
@@ -166,8 +172,12 @@ export function bindGraphEvents(
 			}
 			hasDraggedNode = true;
 			startDragClickSuppression();
-			const position = sigma.viewportToGraph({ x: event.x, y: event.y });
-			callbacks.onNodeDrag?.(draggedNodeId, position);
+			const viewportPosition = {
+				x: event.x + (draggedNodeViewportOffset?.x ?? 0),
+				y: event.y + (draggedNodeViewportOffset?.y ?? 0),
+			};
+			const position = sigma.viewportToGraph(viewportPosition);
+			callbacks.onNodeDrag?.(draggedNodeId, position, viewportPosition);
 			return;
 		}
 		if (!connectionDrag) {
@@ -215,6 +225,7 @@ export function bindGraphEvents(
 		sigma.getGraph().setNodeAttribute(draggedNodeId, 'fixed', false);
 		draggedNodeId = undefined;
 		draggedNodeStart = undefined;
+		draggedNodeViewportOffset = undefined;
 		if (previousCameraPanning !== undefined) {
 			sigma.setSetting('enableCameraPanning', previousCameraPanning);
 			previousCameraPanning = undefined;

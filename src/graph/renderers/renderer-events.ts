@@ -4,7 +4,11 @@ export interface GraphEventCallbacks {
 	onSelect(nodeId?: string): void;
 	onHover(nodeId?: string): void;
 	onOpen(nodeId: string): void;
-	onNodeDrag?(nodeId: string, position: { x: number; y: number }): void;
+	onNodeDrag?(
+		nodeId: string,
+		position: { x: number; y: number },
+		viewportPosition?: { x: number; y: number },
+	): void;
 	onNodeDragEnd?(nodeId: string): void;
 	onConnectionDrag?(state?: ConnectionDragState): void;
 	onConnect?(sourceNodeId: string, targetNodeId: string): void;
