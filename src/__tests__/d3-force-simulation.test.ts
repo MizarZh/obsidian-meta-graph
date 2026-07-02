@@ -13,7 +13,7 @@ describe('D3ForceSimulation', () => {
 		vi.unstubAllGlobals();
 	});
 
-	it('releases held renderer bounds after the initial settle window', () => {
+	it('does not hold renderer bounds while the force layout settles', () => {
 		vi.useFakeTimers();
 		vi.stubGlobal('window', {
 			clearTimeout: globalThis.clearTimeout,
@@ -36,14 +36,48 @@ describe('D3ForceSimulation', () => {
 		const simulation = new D3ForceSimulation(graph, renderer);
 		simulation.start();
 
-		expect(renderer.holdCurrentBounds).toHaveBeenCalledTimes(1);
+		expect(renderer.holdCurrentBounds).not.toHaveBeenCalled();
 		expect(renderer.clearHeldBounds).not.toHaveBeenCalled();
 
 		vi.advanceTimersByTime(4000);
 
 		expect(renderer.clearHeldBounds).toHaveBeenCalledTimes(1);
 	});
+
+	it('starts rebuilt simulations at interaction heat instead of full heat', () => {
+		vi.useFakeTimers();
+		vi.stubGlobal('window', {
+			clearTimeout: globalThis.clearTimeout,
+			setTimeout: globalThis.setTimeout,
+		});
+		const graph = new Graph<
+			RuntimeNodeAttributes,
+			RuntimeEdgeAttributes,
+			Record<string, never>
+		>({ multi: true, type: 'mixed' });
+		graph.addNode('A', node(0, 0));
+		graph.addNode('B', node(1, 0));
+		graph.addEdgeWithKey('A-B', 'A', 'B', edge());
+		const renderer = {
+			instance: { refresh: vi.fn() },
+			holdCurrentBounds: vi.fn(),
+			clearHeldBounds: vi.fn(),
+		} as unknown as SigmaRenderer;
+
+		const simulation = new D3ForceSimulation(graph, renderer);
+		simulation.start();
+
+		expect(readSimulationAlpha(simulation)).toBeCloseTo(0.12);
+	});
 });
+
+function readSimulationAlpha(simulation: D3ForceSimulation): number {
+	return (
+		simulation as unknown as {
+			simulation: { alpha(): number };
+		}
+	).simulation.alpha();
+}
 
 function node(x: number, y: number): RuntimeNodeAttributes {
 	return {

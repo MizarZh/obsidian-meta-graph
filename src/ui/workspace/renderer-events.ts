@@ -62,20 +62,19 @@ export function bindWorkspaceRendererEvents(
 			onNodeDrag: (nodeId, position) => {
 				options.getLayoutSnapshot().positions.set(nodeId, position);
 			},
-				onNodeDragEnd: (nodeId) => {
-					const placement =
-						cubeRenderer.getNodeManualPlacement(nodeId);
-					const position = placement ?? options
-						.getLayoutSnapshot()
-						.positions.get(nodeId);
-					if (position) {
-						options.onCommitManualNodePosition(
-							nodeId,
-							position,
-							placement?.groupId ?? cubeRenderer.getNodeFace(nodeId),
-						);
-					}
-				},
+			onNodeDragEnd: (nodeId) => {
+				const placement = cubeRenderer.getNodeManualPlacement(nodeId);
+				const position =
+					placement ??
+					options.getLayoutSnapshot().positions.get(nodeId);
+				if (position) {
+					options.onCommitManualNodePosition(
+						nodeId,
+						position,
+						placement?.groupId ?? cubeRenderer.getNodeFace(nodeId),
+					);
+				}
+			},
 		}),
 		sigma: (sigmaRenderer) => ({
 			...baseCallbacks,
@@ -98,10 +97,9 @@ export function bindWorkspaceRendererEvents(
 				options.setSuppressNodeOpenUntil(
 					getNextNodeOpenSuppressUntil(Date.now()),
 				);
-				sigmaRenderer.holdCurrentBounds();
-				if (
-					getSigmaDragAction(capabilities).kind === 'manual-position'
-				) {
+				const dragAction = getSigmaDragAction(capabilities);
+				if (dragAction.kind === 'manual-position') {
+					sigmaRenderer.holdCurrentBounds();
 					sigmaRenderer.runtimeGraph.mergeNodeAttributes(nodeId, {
 						x: position.x,
 						y: position.y,

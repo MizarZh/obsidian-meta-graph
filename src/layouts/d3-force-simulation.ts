@@ -54,7 +54,6 @@ export class D3ForceSimulation {
 	start(): void {
 		this.ensureSimulation();
 		window.clearTimeout(this.settleTimer);
-		this.renderer.holdCurrentBounds();
 		const simulation = this.simulation;
 		if (!simulation) {
 			return;
@@ -190,6 +189,7 @@ export class D3ForceSimulation {
 			.alphaDecay(0.045)
 			.velocityDecay(0.78)
 			.stop()
+			.alpha(0)
 			.on('tick', () => this.applyTick());
 	}
 
