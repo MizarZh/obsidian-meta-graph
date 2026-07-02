@@ -3,6 +3,8 @@ import type {
 	FlowDirection,
 	FlowEdgeStyle,
 	LabelPosition,
+	LayoutNodeSort,
+	LayoutSortDirection,
 	MetaGraphChart,
 	WorkspaceState,
 } from '../../core/types';
@@ -36,6 +38,20 @@ export function setArcDirectionInState(
 	arcDirection: ArcDirection,
 ): WorkspaceState {
 	return updateActiveChartLayout(state, { arcDirection }, true);
+}
+
+export function setLayoutNodeSortInState(
+	state: WorkspaceState,
+	nodeSort: LayoutNodeSort,
+): WorkspaceState {
+	return updateActiveChartLayout(state, { nodeSort }, true);
+}
+
+export function setLayoutSortDirectionInState(
+	state: WorkspaceState,
+	nodeSortDirection: LayoutSortDirection,
+): WorkspaceState {
+	return updateActiveChartLayout(state, { nodeSortDirection }, true);
 }
 
 export function setFadeDistanceInState(

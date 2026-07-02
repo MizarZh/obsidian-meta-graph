@@ -19,6 +19,8 @@
 		FlowEdgeStyle,
 		GraphQuery,
 		LabelPosition,
+		LayoutNodeSort,
+		LayoutSortDirection,
 		LinkStyleRule,
 		NodeStyleRule,
 		SettingsPanelMode,
@@ -48,6 +50,8 @@
 		flowEdgeStyle,
 		flowDirection,
 		arcDirection,
+		nodeSort,
+		nodeSortDirection,
 		graphSpacing,
 		graphCenterForce,
 		graphRepelForce,
@@ -78,6 +82,8 @@
 		onFlowEdgeStyle,
 		onFlowDirection,
 		onArcDirection,
+		onLayoutNodeSort,
+		onLayoutSortDirection,
 		onFadeDistance,
 		onLabelSize,
 		onLabelPosition,
@@ -137,6 +143,8 @@
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
 		arcDirection: ArcDirection;
+		nodeSort: LayoutNodeSort;
+		nodeSortDirection: LayoutSortDirection;
 		graphSpacing: number;
 		graphCenterForce: number;
 		graphRepelForce: number;
@@ -167,6 +175,8 @@
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
 		onArcDirection: (direction: ArcDirection) => void;
+		onLayoutNodeSort: (sort: LayoutNodeSort) => void;
+		onLayoutSortDirection: (direction: LayoutSortDirection) => void;
 		onFadeDistance: (value: number) => void;
 		onLabelSize: (value: number) => void;
 		onLabelPosition: (position: LabelPosition) => void;
@@ -246,6 +256,8 @@
 			{flowEdgeStyle}
 			{flowDirection}
 			{arcDirection}
+			{nodeSort}
+			{nodeSortDirection}
 			{graphCenterForce}
 			{graphRepelForce}
 			{graphLinkForce}
@@ -259,6 +271,8 @@
 			{onFlowEdgeStyle}
 			{onFlowDirection}
 			{onArcDirection}
+			{onLayoutNodeSort}
+			{onLayoutSortDirection}
 			{onFadeDistance}
 			{onLabelDensity}
 			{onCubeFaceOpacity}

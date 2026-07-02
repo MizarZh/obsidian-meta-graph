@@ -1,5 +1,7 @@
 import type {
 	ChartLayoutConfig,
+	LayoutNodeSort,
+	LayoutSortDirection,
 	ManualLayoutConfig,
 	ViewMode,
 } from '../../core/types';
@@ -77,6 +79,11 @@ export function normalizeLayout(
 			record.arcDirection === 'down'
 				? record.arcDirection
 				: fallback.arcDirection,
+		nodeSort: readLayoutNodeSort(record.nodeSort, fallback.nodeSort),
+		nodeSortDirection: readLayoutSortDirection(
+			record.nodeSortDirection,
+			fallback.nodeSortDirection,
+		),
 		edgeStyle:
 			record.edgeStyle === 'straight' || record.edgeStyle === 'orthogonal'
 				? record.edgeStyle
@@ -101,11 +108,15 @@ export function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 				engine: 'arc',
 				spacing: 1,
 				arcDirection: 'right',
+				nodeSort: 'name',
+				nodeSortDirection: 'asc',
 			};
 		case 'hierarchical-edge-bundling':
 			return {
 				engine: 'hierarchical-edge-bundling',
 				spacing: 1,
+				nodeSort: 'path',
+				nodeSortDirection: 'asc',
 			};
 		case 'graph-3d':
 			return {
@@ -154,6 +165,32 @@ export function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 				linkDistance: DEFAULT_GRAPH_LINK_DISTANCE,
 			};
 	}
+}
+
+function readLayoutNodeSort(
+	value: unknown,
+	fallback: LayoutNodeSort | undefined,
+): LayoutNodeSort {
+	return value === 'path' ||
+		value === 'folder' ||
+		value === 'type' ||
+		value === 'tag' ||
+		value === 'domain' ||
+		value === 'created' ||
+		value === 'modified' ||
+		value === 'degree' ||
+		value === 'in-degree' ||
+		value === 'out-degree' ||
+		value === 'name'
+		? value
+		: (fallback ?? 'name');
+}
+
+function readLayoutSortDirection(
+	value: unknown,
+	fallback: LayoutSortDirection | undefined,
+): LayoutSortDirection {
+	return value === 'desc' || value === 'asc' ? value : (fallback ?? 'asc');
 }
 
 function normalizeForceSetting(value: unknown, fallback: number): number {

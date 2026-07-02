@@ -47,6 +47,8 @@ describe('stable layout orchestration', () => {
 				activeChartId: 'map',
 				mode: 'graph',
 				arcDirection: 'right',
+				nodeSort: 'name',
+				nodeSortDirection: 'asc',
 				flowEdgeStyle: 'straight',
 				flowDirection: 'LR',
 			}),
@@ -56,15 +58,19 @@ describe('stable layout orchestration', () => {
 				activeChartId: 'map',
 				mode: 'arc',
 				arcDirection: 'left',
+				nodeSort: 'degree',
+				nodeSortDirection: 'desc',
 				flowEdgeStyle: 'straight',
 				flowDirection: 'LR',
 			}),
-		).toBe('map-arc-left');
+		).toBe('map-arc-left-degree-desc');
 		expect(
 			getLayoutSnapshotKey({
 				activeChartId: 'map',
 				mode: 'flow',
 				arcDirection: 'right',
+				nodeSort: 'name',
+				nodeSortDirection: 'asc',
 				flowEdgeStyle: 'orthogonal',
 				flowDirection: 'TD',
 			}),
@@ -91,6 +97,8 @@ describe('stable layout orchestration', () => {
 			activeChartId: 'map',
 			mode: 'graph',
 			arcDirection: 'right',
+			nodeSort: 'name',
+			nodeSortDirection: 'asc',
 			flowEdgeStyle: 'straight',
 			flowDirection: 'LR',
 		});
@@ -98,6 +106,8 @@ describe('stable layout orchestration', () => {
 			activeChartId: 'map',
 			mode: 'graph',
 			arcDirection: 'right',
+			nodeSort: 'degree',
+			nodeSortDirection: 'desc',
 			flowEdgeStyle: 'orthogonal',
 			flowDirection: 'TD',
 		});
@@ -127,6 +137,8 @@ describe('stable layout orchestration', () => {
 			flowLaneSpacing: 1,
 			arcSpacing: 1,
 			arcDirection: 'right',
+			nodeSort: 'name',
+			nodeSortDirection: 'asc',
 		});
 
 		expect(graph.getNodeAttributes('B.md')).toMatchObject({
@@ -163,6 +175,8 @@ describe('stable layout orchestration', () => {
 			flowLaneSpacing: 1,
 			arcSpacing: 1,
 			arcDirection: 'right',
+			nodeSort: 'name',
+			nodeSortDirection: 'asc',
 		});
 
 		expect(graph.getNodeAttributes('A.md')).not.toMatchObject({

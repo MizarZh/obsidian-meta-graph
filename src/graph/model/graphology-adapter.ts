@@ -28,6 +28,8 @@ export interface RuntimeNodeAttributes {
 	color: string;
 	path: string;
 	folder: string;
+	createdTime?: number;
+	modifiedTime?: number;
 	domains: string[];
 	tags: string[];
 	noteType?: string;
@@ -132,10 +134,12 @@ export class GraphologyAdapter {
 				x: position.x,
 				y: position.y,
 				size: isPrimary ? style.size * 1.2 : style.size,
-				color: style.color,
-				path: node.path,
-				folder: node.folder,
-				domains: node.domains,
+					color: style.color,
+					path: node.path,
+					folder: node.folder,
+					createdTime: node.createdTime,
+					modifiedTime: node.modifiedTime,
+					domains: node.domains,
 				tags: node.tags,
 				noteType: node.noteType,
 				isPrimary,

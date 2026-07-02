@@ -83,6 +83,8 @@
 			flowEdgeStyle={workspaceState.flowEdgeStyle}
 			flowDirection={workspaceState.flowDirection}
 			arcDirection={workspaceState.arcDirection}
+			nodeSort={workspaceState.nodeSort}
+			nodeSortDirection={workspaceState.nodeSortDirection}
 			graphSpacing={workspaceState.graphSpacing}
 			graphCenterForce={workspaceState.graphCenterForce}
 			graphRepelForce={workspaceState.graphRepelForce}
@@ -115,6 +117,9 @@
 				controller.setFlowDirection(direction)}
 			onArcDirection={(direction) =>
 				controller.setArcDirection(direction)}
+			onLayoutNodeSort={(sort) => controller.setLayoutNodeSort(sort)}
+			onLayoutSortDirection={(direction) =>
+				controller.setLayoutSortDirection(direction)}
 			onFadeDistance={(value) => controller.setFadeDistance(value)}
 			onLabelSize={(value) => controller.setLabelSize(value)}
 			onLabelPosition={(position) =>

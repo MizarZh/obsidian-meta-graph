@@ -1,6 +1,16 @@
-import { cluster, hierarchy, type HierarchyPointNode } from 'd3-hierarchy';
+import {
+	cluster,
+	hierarchy,
+	type HierarchyNode,
+	type HierarchyPointNode,
+} from 'd3-hierarchy';
 import type { RuntimeGraph } from '../graph/model/graphology-adapter';
 import type { LayoutEngine } from './layout-engine';
+import {
+	compareLayoutNodeIds,
+	type LayoutNodeSort,
+	type LayoutSortDirection,
+} from './node-ordering';
 
 interface BundleNode {
 	id?: string;
@@ -18,22 +28,27 @@ interface Point {
 type BundlePoint = HierarchyPointNode<BundleNode>;
 
 export class HierarchicalEdgeBundlingLayout implements LayoutEngine {
-	constructor(private readonly spacing = 1) {}
+	constructor(
+		private readonly spacing = 1,
+		private readonly nodeSort: LayoutNodeSort = 'path',
+		private readonly nodeSortDirection: LayoutSortDirection = 'asc',
+	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
+		const compareLeaves = compareLayoutNodeIds(
+			graph,
+			this.nodeSort,
+			this.nodeSortDirection,
+		);
 		const root = cluster<BundleNode>()
 			.size([Math.PI * 2, calculateRadius(graph, this.spacing)])
 			.separation((left, right) =>
 				left.parent === right.parent ? 1 : 1.6,
 			)(
-			hierarchy(createHierarchy(graph)).sort(
-				(first, second) =>
-					first.height - second.height ||
-					first.data.name.localeCompare(second.data.name, undefined, {
-						sensitivity: 'base',
-					}),
-			),
-		);
+				hierarchy(createHierarchy(graph)).sort(
+					(first, second) => compareBundleNodes(first, second, compareLeaves),
+				),
+			);
 		const leaves = root.leaves().filter((leaf) => leaf.data.id);
 		const leafById = new Map<string, BundlePoint>();
 		for (const leaf of leaves) {
@@ -58,6 +73,22 @@ export class HierarchicalEdgeBundlingLayout implements LayoutEngine {
 
 		applyBundledEdges(graph, leafById);
 	}
+}
+
+function compareBundleNodes(
+	first: HierarchyNode<BundleNode>,
+	second: HierarchyNode<BundleNode>,
+	compareLeaves: (left: string, right: string) => number,
+): number {
+	if (first.data.id && second.data.id) {
+		return compareLeaves(first.data.id, second.data.id);
+	}
+	return (
+		first.height - second.height ||
+		first.data.name.localeCompare(second.data.name, undefined, {
+			sensitivity: 'base',
+		})
+	);
 }
 
 function applyBundledEdges(

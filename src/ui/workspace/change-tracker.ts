@@ -9,6 +9,8 @@ export interface WorkspaceRenderBaseline {
 	flowEdgeStyle?: WorkspaceState['flowEdgeStyle'];
 	flowDirection?: WorkspaceState['flowDirection'];
 	arcDirection?: WorkspaceState['arcDirection'];
+	nodeSort?: WorkspaceState['nodeSort'];
+	nodeSortDirection?: WorkspaceState['nodeSortDirection'];
 	manualLayout?: WorkspaceState['manualLayout'];
 	layoutRevision?: number;
 	defaultNodeStyle?: WorkspaceState['defaultNodeStyle'];
@@ -77,6 +79,8 @@ const REBUILD_BASELINE_KEYS = [
 	'flowEdgeStyle',
 	'flowDirection',
 	'arcDirection',
+	'nodeSort',
+	'nodeSortDirection',
 	'layoutRevision',
 ] as const satisfies readonly WorkspaceStateBaselineKey[];
 
@@ -111,6 +115,9 @@ export function analyzeWorkspaceStateChanges(
 		baseline,
 		'arcDirection',
 	);
+	const nodeSortChanged =
+		baselineValueChanged(nextState, baseline, 'nodeSort') ||
+		baselineValueChanged(nextState, baseline, 'nodeSortDirection');
 	const projectionChanged =
 		baseline.projectionSignature !== undefined &&
 		readProjectionSignature(nextState.projection) !==
@@ -228,11 +235,13 @@ export function analyzeWorkspaceStateChanges(
 			flowStyleChanged ||
 			flowDirectionChanged ||
 			arcDirectionChanged ||
+			nodeSortChanged ||
 			(layoutRevisionChanged && nextState.mode !== 'cube'),
 		forceLayout:
 			flowStyleChanged ||
 			flowDirectionChanged ||
 			arcDirectionChanged ||
+			nodeSortChanged ||
 			layoutRevisionChanged ||
 			chartSourceChanged,
 	};
@@ -304,6 +313,8 @@ export function createWorkspaceRenderBaseline(
 		flowEdgeStyle: state.flowEdgeStyle,
 		flowDirection: state.flowDirection,
 		arcDirection: state.arcDirection,
+		nodeSort: state.nodeSort,
+		nodeSortDirection: state.nodeSortDirection,
 		manualLayout: state.manualLayout,
 		layoutRevision: state.layoutRevision,
 		defaultNodeStyle: state.defaultNodeStyle,
@@ -347,6 +358,9 @@ function readProjectionSignature(
 				node.path,
 				node.title,
 				node.folder,
+				node.noteType ?? '',
+				String(node.createdTime ?? ''),
+				String(node.modifiedTime ?? ''),
 				...(node.domains ?? []),
 				...(node.tags ?? []),
 			].join('\u001f'),

@@ -13,6 +13,8 @@ import type {
 	GraphQuery,
 	KnowledgeIndex,
 	LabelPosition,
+	LayoutNodeSort,
+	LayoutSortDirection,
 	LinkStyleRule,
 	MetaGraphDocument,
 	DockConnectionDirection,
@@ -53,6 +55,8 @@ import {
 	setLabelOffsetInState,
 	setLabelPositionInState,
 	setLabelSizeInState,
+	setLayoutNodeSortInState,
+	setLayoutSortDirectionInState,
 	type GraphForceSettingKey,
 } from './state/chart-settings';
 import {
@@ -308,6 +312,16 @@ export class WorkspaceController {
 	setArcDirection(arcDirection: ArcDirection): void {
 		this.setWorkspaceState(
 			setArcDirectionInState(this.state, arcDirection),
+		);
+	}
+
+	setLayoutNodeSort(nodeSort: LayoutNodeSort): void {
+		this.setWorkspaceState(setLayoutNodeSortInState(this.state, nodeSort));
+	}
+
+	setLayoutSortDirection(nodeSortDirection: LayoutSortDirection): void {
+		this.setWorkspaceState(
+			setLayoutSortDirectionInState(this.state, nodeSortDirection),
 		);
 	}
 

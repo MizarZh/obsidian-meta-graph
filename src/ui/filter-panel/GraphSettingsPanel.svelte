@@ -10,6 +10,8 @@
 		FlowDirection,
 		FlowEdgeStyle,
 		GraphQuery,
+		LayoutNodeSort,
+		LayoutSortDirection,
 		ViewMode,
 	} from '../../core/types';
 
@@ -23,6 +25,8 @@
 		flowEdgeStyle,
 		flowDirection,
 		arcDirection,
+		nodeSort,
+		nodeSortDirection,
 		graphCenterForce,
 		graphRepelForce,
 		graphLinkForce,
@@ -36,6 +40,8 @@
 		onFlowEdgeStyle,
 		onFlowDirection,
 		onArcDirection,
+		onLayoutNodeSort,
+		onLayoutSortDirection,
 		onFadeDistance,
 		onLabelDensity,
 		onCubeFaceOpacity,
@@ -62,6 +68,8 @@
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
 		arcDirection: ArcDirection;
+		nodeSort: LayoutNodeSort;
+		nodeSortDirection: LayoutSortDirection;
 		graphCenterForce: number;
 		graphRepelForce: number;
 		graphLinkForce: number;
@@ -75,6 +83,8 @@
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
 		onArcDirection: (direction: ArcDirection) => void;
+		onLayoutNodeSort: (sort: LayoutNodeSort) => void;
+		onLayoutSortDirection: (direction: LayoutSortDirection) => void;
 		onFadeDistance: (value: number) => void;
 		onLabelDensity: (value: number) => void;
 		onCubeFaceOpacity: (value: number) => void;
@@ -99,6 +109,7 @@
 	let displayOpen = $state(true);
 	let flowDetailsOpen = $state(true);
 	let arcDetailsOpen = $state(true);
+	let sortOpen = $state(true);
 
 	function formatCompact(value: number, precision: number): string {
 		return value.toFixed(precision).replace(/\.?0+$/u, '');
@@ -110,6 +121,28 @@
 		}
 		if (mode === 'arc') onArcSpacing(spacing);
 	}
+
+	const NODE_SORT_OPTIONS: Array<{ value: LayoutNodeSort; label: string }> = [
+		{ value: 'name', label: 'Name' },
+		{ value: 'path', label: 'Path' },
+		{ value: 'folder', label: 'Folder' },
+		{ value: 'type', label: 'Type' },
+		{ value: 'tag', label: 'Tag' },
+		{ value: 'domain', label: 'Domain' },
+		{ value: 'created', label: 'Created time' },
+		{ value: 'modified', label: 'Modified time' },
+		{ value: 'degree', label: 'Degree' },
+		{ value: 'in-degree', label: 'In degree' },
+		{ value: 'out-degree', label: 'Out degree' },
+	];
+
+	const SORT_DIRECTION_OPTIONS: Array<{
+		value: LayoutSortDirection;
+		label: string;
+	}> = [
+		{ value: 'asc', label: 'Ascending' },
+		{ value: 'desc', label: 'Descending' },
+	];
 </script>
 
 <section>
@@ -290,6 +323,27 @@
 					/>
 					<span>{formatCompact(arcSpacing, 2)}</span>
 				</div>
+			</label>
+		</CollapsibleSettingsGroup>
+	{/if}
+	{#if mode === 'arc' || mode === 'hierarchical-edge-bundling'}
+		<CollapsibleSettingsGroup title="Sort" bind:open={sortOpen}>
+			<label class="knowledge-workspace-rule-label">
+				<span>Sort by</span>
+				<ObsidianDropdown
+					value={nodeSort}
+					options={NODE_SORT_OPTIONS}
+					onChange={(value) => onLayoutNodeSort(value as LayoutNodeSort)}
+				/>
+			</label>
+			<label class="knowledge-workspace-rule-label">
+				<span>Order</span>
+				<ObsidianDropdown
+					value={nodeSortDirection}
+					options={SORT_DIRECTION_OPTIONS}
+					onChange={(value) =>
+						onLayoutSortDirection(value as LayoutSortDirection)}
+				/>
 			</label>
 		</CollapsibleSettingsGroup>
 	{/if}

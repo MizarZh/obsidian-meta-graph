@@ -2,6 +2,8 @@ import type {
 	ArcDirection,
 	FlowDirection,
 	FlowEdgeStyle,
+	LayoutNodeSort,
+	LayoutSortDirection,
 	ManualLayoutConfig,
 	ViewMode,
 } from '../core/types';
@@ -29,6 +31,8 @@ export interface LayoutSnapshotKeyOptions {
 	activeChartId?: string;
 	mode: ViewMode;
 	arcDirection: ArcDirection;
+	nodeSort: LayoutNodeSort;
+	nodeSortDirection: LayoutSortDirection;
 	flowEdgeStyle: FlowEdgeStyle;
 	flowDirection: FlowDirection;
 }
@@ -44,6 +48,8 @@ export interface StableLayoutOptions {
 	flowLaneSpacing: number;
 	arcSpacing: number;
 	arcDirection: ArcDirection;
+	nodeSort: LayoutNodeSort;
+	nodeSortDirection: LayoutSortDirection;
 }
 
 interface StableLayoutContext {
@@ -113,7 +119,11 @@ export function getLayoutSnapshotKey(
 	options: LayoutSnapshotKeyOptions,
 ): string {
 	if (options.mode === 'arc') {
-		return `${options.activeChartId}-arc-${options.arcDirection}`;
+		return `${options.activeChartId}-arc-${options.arcDirection}-${options.nodeSort}-${options.nodeSortDirection}`;
+	}
+
+	if (options.mode === 'hierarchical-edge-bundling') {
+		return `${options.activeChartId}-hierarchical-edge-bundling-${options.nodeSort}-${options.nodeSortDirection}`;
 	}
 
 	if (options.mode === 'flow') {
@@ -149,7 +159,12 @@ async function applyArcLayout({
 	currentEdgeIds,
 	options,
 }: StableLayoutContext): Promise<void> {
-	await new ArcLayout(options.arcSpacing, options.arcDirection).apply(graph);
+	await new ArcLayout(
+		options.arcSpacing,
+		options.arcDirection,
+		options.nodeSort,
+		options.nodeSortDirection,
+	).apply(graph);
 	snapshot.edgeIds = currentEdgeIds;
 	snapshot.orthogonalRoutes = createOrthogonalRouteMap();
 }
@@ -158,8 +173,13 @@ async function applyHierarchicalEdgeBundlingLayout({
 	graph,
 	snapshot,
 	currentEdgeIds,
+	options,
 }: StableLayoutContext): Promise<void> {
-	await new HierarchicalEdgeBundlingLayout().apply(graph);
+	await new HierarchicalEdgeBundlingLayout(
+		1,
+		options.nodeSort,
+		options.nodeSortDirection,
+	).apply(graph);
 	snapshot.edgeIds = currentEdgeIds;
 	snapshot.orthogonalRoutes = createOrthogonalRouteMap();
 }

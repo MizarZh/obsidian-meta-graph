@@ -94,6 +94,16 @@ describe('ArcLayout', () => {
 		expect(graph.getNodeAttributes('B.md')).toMatchObject({ x: 0, y: 0 });
 		expect(graph.getNodeAttributes('C.md')).toMatchObject({ x: 72, y: 0 });
 	});
+
+	it('sorts nodes by configured field and direction', async () => {
+		const graph = new GraphologyAdapter(palette).fromProjection(projection);
+
+		await new ArcLayout(1, 'right', 'modified', 'desc').apply(graph);
+
+		expect(graph.getNodeAttributes('C.md')).toMatchObject({ x: 0, y: -72 });
+		expect(graph.getNodeAttributes('A.md')).toMatchObject({ x: 0, y: 0 });
+		expect(graph.getNodeAttributes('B.md')).toMatchObject({ x: 0, y: 72 });
+	});
 });
 
 const projection: GraphProjection = {
@@ -102,6 +112,7 @@ const projection: GraphProjection = {
 			id: 'C.md',
 			path: 'C.md',
 			title: 'C',
+			modifiedTime: 3,
 			folder: '',
 			domains: [],
 			tags: [],
@@ -110,6 +121,7 @@ const projection: GraphProjection = {
 			id: 'A.md',
 			path: 'A.md',
 			title: 'A',
+			modifiedTime: 2,
 			folder: '',
 			domains: [],
 			tags: [],
@@ -118,6 +130,7 @@ const projection: GraphProjection = {
 			id: 'B.md',
 			path: 'B.md',
 			title: 'B',
+			modifiedTime: 1,
 			folder: '',
 			domains: [],
 			tags: [],

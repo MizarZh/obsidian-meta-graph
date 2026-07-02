@@ -34,6 +34,19 @@ export type SettingsPanelMode =
 export type FlowEdgeStyle = 'straight' | 'orthogonal';
 export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
 export type ArcDirection = 'right' | 'left' | 'up' | 'down';
+export type LayoutNodeSort =
+	| 'name'
+	| 'path'
+	| 'folder'
+	| 'type'
+	| 'tag'
+	| 'domain'
+	| 'created'
+	| 'modified'
+	| 'degree'
+	| 'in-degree'
+	| 'out-degree';
+export type LayoutSortDirection = 'asc' | 'desc';
 export type LabelPosition =
 	'auto' | 'right' | 'left' | 'top' | 'bottom' | 'center';
 export type ChartType = ViewMode;
@@ -65,6 +78,8 @@ export interface ChartLayoutConfig {
 	laneSpacing?: number;
 	direction?: FlowDirection;
 	arcDirection?: ArcDirection;
+	nodeSort?: LayoutNodeSort;
+	nodeSortDirection?: LayoutSortDirection;
 	edgeStyle?: FlowEdgeStyle;
 	manual?: ManualLayoutConfig;
 }
@@ -171,6 +186,8 @@ export interface WorkspaceState {
 	flowEdgeStyle: FlowEdgeStyle;
 	flowDirection: FlowDirection;
 	arcDirection: ArcDirection;
+	nodeSort: LayoutNodeSort;
+	nodeSortDirection: LayoutSortDirection;
 	fadeDistance: number;
 	labelSize: number;
 	labelPosition: LabelPosition;

@@ -2,6 +2,11 @@ import { scalePoint } from 'd3-scale';
 import type { ArcDirection } from '../core/types';
 import type { RuntimeGraph } from '../graph/model/graphology-adapter';
 import type { LayoutEngine } from './layout-engine';
+import {
+	compareLayoutNodeIds,
+	type LayoutNodeSort,
+	type LayoutSortDirection,
+} from './node-ordering';
 
 export interface ArcPoint {
 	x: number;
@@ -12,10 +17,16 @@ export class ArcLayout implements LayoutEngine {
 	constructor(
 		private readonly spacing = 1,
 		private readonly direction: ArcDirection = 'right',
+		private readonly nodeSort: LayoutNodeSort = 'name',
+		private readonly nodeSortDirection: LayoutSortDirection = 'asc',
 	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
-		const nodeIds = sortArcNodeIds(graph);
+		const nodeIds = sortArcNodeIds(
+			graph,
+			this.nodeSort,
+			this.nodeSortDirection,
+		);
 		const step = calculateArcStep(graph, nodeIds, this.spacing);
 		const length = Math.max(0, (nodeIds.length - 1) * step);
 		const axis = scalePoint<string>()
@@ -166,19 +177,15 @@ function isVerticalArc(direction: ArcDirection): boolean {
 	return direction === 'right' || direction === 'left';
 }
 
-function sortArcNodeIds(graph: RuntimeGraph): string[] {
+function sortArcNodeIds(
+	graph: RuntimeGraph,
+	nodeSort: LayoutNodeSort,
+	nodeSortDirection: LayoutSortDirection,
+): string[] {
 	return graph
 		.nodes()
 		.filter((nodeId) => !graph.getNodeAttribute(nodeId, 'isBend'))
-		.sort((left, right) => {
-			const leftAttributes = graph.getNodeAttributes(left);
-			const rightAttributes = graph.getNodeAttributes(right);
-			return (
-				leftAttributes.label.localeCompare(rightAttributes.label) ||
-				leftAttributes.path.localeCompare(rightAttributes.path) ||
-				left.localeCompare(right)
-			);
-		});
+		.sort(compareLayoutNodeIds(graph, nodeSort, nodeSortDirection));
 }
 
 function createBendNode(x: number, y: number) {

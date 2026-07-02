@@ -621,6 +621,8 @@
 			activeChartId: workspaceState.activeChartId,
 			mode: workspaceState.mode,
 			arcDirection: workspaceState.arcDirection,
+			nodeSort: workspaceState.nodeSort,
+			nodeSortDirection: workspaceState.nodeSortDirection,
 			flowEdgeStyle: workspaceState.flowEdgeStyle,
 			flowDirection: workspaceState.flowDirection,
 		});
