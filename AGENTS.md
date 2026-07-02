@@ -69,7 +69,8 @@ Do not run `pnpm dev`, `pnpm build`, or `git diff` if the user explicitly asks n
 - `src/ui/workspace/renderer-groups.ts`: renderer group overlay sync and runtime group movement previews.
 - `src/ui/workspace/dock-graph-drag.ts`: dock item -> graph node connection drag controller.
 - `src/ui/workspace/graph-dock-connection.ts`: graph node -> dock drop target connection controller.
-- `styles.css`: plugin UI styles.
+- `src/styles/`: source CSS files for plugin UI styles.
+- `styles.css`: generated plugin UI stylesheet built from `src/styles/index.css`.
 
 ## Data model
 
@@ -170,6 +171,7 @@ Important details:
 - Do not use Node/Electron-only APIs unless the plugin is intentionally desktop-only.
 - Preserve user data carefully when modifying frontmatter.
 - Avoid unrelated refactors while fixing behavior.
+- Do not edit `styles.css` directly. Make stylesheet changes under `src/styles/`, then run `pnpm build:css` to regenerate `styles.css`.
 
 ## UI copy
 
