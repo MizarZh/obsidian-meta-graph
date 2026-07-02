@@ -108,10 +108,12 @@
 			defaultLinkStyle={workspaceState.defaultLinkStyle}
 			globalNodeStyleRules={workspaceState.globalNodeStyleRules}
 			nodeStyleOverrides={workspaceState.nodeStyleOverrides}
+			unresolvedNodeStyleOverrides={workspaceState.unresolvedNodeStyleOverrides}
 			nodeStyleRules={workspaceState.nodeStyleRules}
 			globalLinkStyleRules={workspaceState.globalLinkStyleRules}
 			linkStyleOverrides={workspaceState.linkStyleOverrides}
 			plainLinkStyleOverrides={workspaceState.plainLinkStyleOverrides}
+			unresolvedLinkStyleOverrides={workspaceState.unresolvedLinkStyleOverrides}
 			linkStyleRules={workspaceState.linkStyleRules}
 			onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
 			onFlowDirection={(direction) =>
@@ -172,6 +174,8 @@
 				controller.setGlobalNodeStyleRules(rules)}
 			onNodeStyleOverrides={(style) =>
 				controller.setNodeStyleOverrides(style)}
+			onUnresolvedNodeStyleOverrides={(style) =>
+				controller.setUnresolvedNodeStyleOverrides(style)}
 			onNodeStyleRulesChange={(rules) =>
 				controller.setNodeStyleRules(rules)}
 			onGlobalLinkStyleRulesChange={(rules) =>
@@ -180,6 +184,8 @@
 				controller.setLinkStyleOverrides(style)}
 			onPlainLinkStyleOverrides={(style) =>
 				controller.setPlainLinkStyleOverrides(style)}
+			onUnresolvedLinkStyleOverrides={(style) =>
+				controller.setUnresolvedLinkStyleOverrides(style)}
 			onLinkStyleRulesChange={(rules) =>
 				controller.setLinkStyleRules(rules)}
 		/>

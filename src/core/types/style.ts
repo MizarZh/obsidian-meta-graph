@@ -42,8 +42,10 @@ export interface DefaultLinkStyle {
 
 export interface ChartStyleConfig {
 	nodeOverrides: DefaultNodeStyle;
+	unresolvedNodeOverrides: DefaultNodeStyle;
 	linkOverrides: DefaultLinkStyle;
 	plainLinkOverrides: DefaultLinkStyle;
+	unresolvedLinkOverrides: DefaultLinkStyle;
 	nodeRules: NodeStyleRule[];
 	linkRules: LinkStyleRule[];
 }

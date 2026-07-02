@@ -273,6 +273,26 @@ describe('breadth-first neighborhood query', () => {
 		]);
 	});
 
+	it('hides unresolved links unless unresolved compatibility display is enabled', () => {
+		const index = buildIndex(
+			[node('A'), unresolvedNode('Missing')],
+			[unresolvedLink('A', 'Missing')],
+		);
+
+		expect(projectIds(index, query())).toEqual([]);
+		expect(
+			projectIds(index, query({ showUnresolvedLinks: true })),
+		).toEqual(['A', '__unresolved__/Missing']);
+	});
+
+	it('does not expose unresolved nodes as isolated nodes when hidden', () => {
+		const index = buildIndex([node('A'), unresolvedNode('Missing')], []);
+
+		expect(
+			projectIds(index, query({ roots: [], showIsolatedNodes: true })),
+		).toEqual(['A']);
+	});
+
 	it('honors BFS depth', () => {
 		const index = buildIndex(
 			[node('A'), node('B'), node('C'), node('D')],
@@ -549,6 +569,39 @@ describe('curated workspace projection', () => {
 		).toEqual([createEdgeId('A', 'plain-link', 'B', true)]);
 	});
 
+	it('shows curated unresolved links as context nodes when enabled', () => {
+		const index = buildIndex(
+			[node('A'), unresolvedNode('Missing')],
+			[unresolvedLink('A', 'Missing')],
+		);
+		const curated = {
+			files: [{ path: 'A' }],
+			context: {
+				enabled: false,
+				depth: 0,
+				includeOutgoingLinks: true,
+				includeBacklinks: true,
+				includeMetadataRelations: true,
+			},
+		};
+		const projection = new CuratedProjectionEngine().project(
+			index,
+			curated,
+			{ showUnresolvedLinks: true },
+		);
+
+		expect(projection.nodes.map((item) => item.id).sort()).toEqual([
+			'A',
+			'__unresolved__/Missing',
+		]);
+		expect(projection.edges.map((item) => item.id)).toEqual([
+			createEdgeId('A', 'unresolved-link', '__unresolved__/Missing', true),
+		]);
+		expect(projection.contextIds).toEqual(
+			new Set(['__unresolved__/Missing']),
+		);
+	});
+
 	it('marks hidden curated files in projection', () => {
 		const index = buildIndex([node('A'), node('B')], [edge('A', 'B')]);
 		const projection = new CuratedProjectionEngine().project(index, {
@@ -585,6 +638,18 @@ function node(id: string, folder = '', domains: string[] = []): KnowledgeNode {
 	};
 }
 
+function unresolvedNode(linkText: string): KnowledgeNode {
+	return {
+		id: `__unresolved__/${linkText}`,
+		kind: 'unresolved',
+		path: linkText,
+		title: linkText,
+		folder: '',
+		domains: [],
+		tags: [],
+	};
+}
+
 function edge(
 	source: string,
 	target: string,
@@ -606,6 +671,21 @@ function plainLink(source: string, target: string): KnowledgeEdge {
 	return {
 		id: createEdgeId(source, 'plain-link', target, true),
 		kind: 'plain-link',
+		semantic: false,
+		source,
+		target,
+		relation: 'link',
+		directed: true,
+		sourcePath: source,
+		sourceField: 'body',
+	};
+}
+
+function unresolvedLink(source: string, linkText: string): KnowledgeEdge {
+	const target = `__unresolved__/${linkText}`;
+	return {
+		id: createEdgeId(source, 'unresolved-link', target, true),
+		kind: 'unresolved-link',
 		semantic: false,
 		source,
 		target,
@@ -645,6 +725,7 @@ function query(overrides: Partial<GraphQuery> = {}): GraphQuery {
 		maxNodes: 200,
 		showIsolatedNodes: false,
 		showPlainLinks: false,
+		showUnresolvedLinks: false,
 		...overrides,
 	};
 }

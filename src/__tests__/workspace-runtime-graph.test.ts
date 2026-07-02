@@ -231,4 +231,68 @@ describe('workspace runtime graph', () => {
 			semantic: false,
 		});
 	});
+
+	it('renders unresolved links as styled compatibility edges', () => {
+		const unresolvedProjection: GraphProjection = {
+			...projection,
+			nodes: [
+				...projection.nodes,
+				{
+					id: '__unresolved__/Missing',
+					kind: 'unresolved',
+					path: 'Missing',
+					title: 'Missing',
+					folder: '',
+					domains: [],
+					tags: [],
+				},
+			],
+			edges: [
+				{
+					id: 'A-unresolved-Missing',
+					kind: 'unresolved-link',
+					semantic: false,
+					source: 'A.md',
+					target: '__unresolved__/Missing',
+					relation: 'link',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'body',
+				},
+			],
+		};
+		const graph = createWorkspaceRuntimeGraph(
+			unresolvedProjection,
+			new Map(),
+			{
+				...createWorkspaceState(200),
+				unresolvedNodeStyleOverrides: {
+					color: '#abcdef',
+					size: 5,
+				},
+				unresolvedLinkStyleOverrides: {
+					color: '#d97706',
+					size: 2,
+					lineStyle: 'dotted',
+				},
+			},
+			palette,
+		);
+
+		expect(graph.getNodeAttributes('__unresolved__/Missing')).toMatchObject({
+			kind: 'unresolved',
+			color: '#abcdef',
+			size: 5,
+		});
+		expect(graph.getEdgeAttributes('A-unresolved-Missing')).toMatchObject({
+			color: '#d97706',
+			size: 2,
+			lineStyle: 'dotted',
+			type: 'dotted-arrow',
+			label: '',
+			forceLabel: false,
+			kind: 'unresolved-link',
+			semantic: false,
+		});
+	});
 });

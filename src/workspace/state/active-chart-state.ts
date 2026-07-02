@@ -53,8 +53,10 @@ type ActiveChartStateFields = Pick<
 	| 'query'
 	| 'curated'
 	| 'nodeStyleOverrides'
+	| 'unresolvedNodeStyleOverrides'
 	| 'linkStyleOverrides'
 	| 'plainLinkStyleOverrides'
+	| 'unresolvedLinkStyleOverrides'
 	| 'nodeStyleRules'
 	| 'linkStyleRules'
 >;
@@ -189,9 +191,15 @@ function createActiveChartStateFields(
 		query: cloneSerializable(chart.query),
 		curated: cloneSerializable(chart.curated),
 		nodeStyleOverrides: cloneSerializable(chart.style.nodeOverrides),
+		unresolvedNodeStyleOverrides: cloneSerializable(
+			chart.style.unresolvedNodeOverrides,
+		),
 		linkStyleOverrides: cloneSerializable(chart.style.linkOverrides),
 		plainLinkStyleOverrides: cloneSerializable(
 			chart.style.plainLinkOverrides,
+		),
+		unresolvedLinkStyleOverrides: cloneSerializable(
+			chart.style.unresolvedLinkOverrides,
 		),
 		nodeStyleRules: cloneSerializable(chart.style.nodeRules),
 		linkStyleRules: cloneSerializable(chart.style.linkRules),

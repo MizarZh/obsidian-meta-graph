@@ -66,3 +66,27 @@ export function getActivePlainLinkStyle(
 		hidden: state.plainLinkStyleOverrides.hidden ?? false,
 	};
 }
+
+export function getActiveUnresolvedNodeStyle(
+	state: Pick<WorkspaceState, 'unresolvedNodeStyleOverrides'>,
+	fallbackColor: string,
+): Required<DefaultNodeStyle> {
+	return {
+		color: state.unresolvedNodeStyleOverrides.color ?? fallbackColor,
+		size: state.unresolvedNodeStyleOverrides.size ?? 6,
+	};
+}
+
+export function getActiveUnresolvedLinkStyle(
+	state: Pick<WorkspaceState, 'unresolvedLinkStyleOverrides'>,
+	fallbackColor: string,
+): Required<DefaultLinkStyle> {
+	return {
+		color: state.unresolvedLinkStyleOverrides.color ?? fallbackColor,
+		size: state.unresolvedLinkStyleOverrides.size ?? 1,
+		lineStyle: state.unresolvedLinkStyleOverrides.lineStyle ?? 'dotted',
+		label: '',
+		showLabel: false,
+		hidden: state.unresolvedLinkStyleOverrides.hidden ?? false,
+	};
+}

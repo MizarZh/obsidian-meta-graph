@@ -12,6 +12,8 @@ import {
 	normalizeLinkStyleRules,
 	normalizeNodeStyleRules,
 	normalizePlainLinkStyleOverrides,
+	normalizeUnresolvedNodeStyleOverrides,
+	normalizeUnresolvedLinkStyleOverrides,
 } from '../meta-graph-model';
 import { cloneSerializable } from './persistence';
 import { updateActiveChartState } from './state-updaters';
@@ -67,6 +69,17 @@ export function setNodeStyleOverridesInState(
 	});
 }
 
+export function setUnresolvedNodeStyleOverridesInState(
+	state: WorkspaceState,
+	unresolvedNodeStyleOverrides: DefaultNodeStyle,
+): WorkspaceState {
+	return updateActiveChartStyle(state, {
+		unresolvedNodeOverrides: normalizeUnresolvedNodeStyleOverrides(
+			unresolvedNodeStyleOverrides,
+		),
+	});
+}
+
 export function setLinkStyleOverridesInState(
 	state: WorkspaceState,
 	linkStyleOverrides: DefaultLinkStyle,
@@ -83,6 +96,17 @@ export function setPlainLinkStyleOverridesInState(
 	return updateActiveChartStyle(state, {
 		plainLinkOverrides: normalizePlainLinkStyleOverrides(
 			plainLinkStyleOverrides,
+		),
+	});
+}
+
+export function setUnresolvedLinkStyleOverridesInState(
+	state: WorkspaceState,
+	unresolvedLinkStyleOverrides: DefaultLinkStyle,
+): WorkspaceState {
+	return updateActiveChartStyle(state, {
+		unresolvedLinkOverrides: normalizeUnresolvedLinkStyleOverrides(
+			unresolvedLinkStyleOverrides,
 		),
 	});
 }

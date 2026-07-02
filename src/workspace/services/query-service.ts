@@ -25,9 +25,10 @@ export class WorkspaceProjectionService {
 
 	project(index: KnowledgeIndex, state: WorkspaceState): GraphProjection {
 		return state.chartSource === 'curated'
-			? this.curatedEngine.project(index, state.curated, {
-					showPlainLinks: state.query.showPlainLinks,
-				})
+				? this.curatedEngine.project(index, state.curated, {
+						showPlainLinks: state.query.showPlainLinks,
+						showUnresolvedLinks: state.query.showUnresolvedLinks,
+					})
 			: this.queryEngine.project(index, state.query, state.globalQuery);
 	}
 }

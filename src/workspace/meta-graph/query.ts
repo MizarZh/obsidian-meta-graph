@@ -35,6 +35,10 @@ export function normalizeQuery(
 			record.showPlainLinks,
 			fallback.showPlainLinks,
 		),
+		showUnresolvedLinks: readBoolean(
+			record.showUnresolvedLinks,
+			fallback.showUnresolvedLinks,
+		),
 	};
 }
 

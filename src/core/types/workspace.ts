@@ -228,8 +228,10 @@ export interface WorkspaceState {
 	globalNodeStyleRules: NodeStyleRule[];
 	globalLinkStyleRules: LinkStyleRule[];
 	nodeStyleOverrides: DefaultNodeStyle;
+	unresolvedNodeStyleOverrides: DefaultNodeStyle;
 	linkStyleOverrides: DefaultLinkStyle;
 	plainLinkStyleOverrides: DefaultLinkStyle;
+	unresolvedLinkStyleOverrides: DefaultLinkStyle;
 	nodeStyleRules: NodeStyleRule[];
 	linkStyleRules: LinkStyleRule[];
 	connectionFields: string[];

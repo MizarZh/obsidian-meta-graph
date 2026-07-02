@@ -41,6 +41,11 @@ export const BUILT_IN_DEFAULT_NODE_STYLE: Required<DefaultNodeStyle> = {
 	size: 7,
 };
 
+export const BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE: Required<DefaultNodeStyle> = {
+	color: '#9ca3af',
+	size: 6,
+};
+
 export const BUILT_IN_DEFAULT_LINK_STYLE: Required<DefaultLinkStyle> = {
 	color: '#888888',
 	size: 1.5,
@@ -54,6 +59,15 @@ export const BUILT_IN_DEFAULT_PLAIN_LINK_STYLE: Required<DefaultLinkStyle> = {
 	color: '#666666',
 	size: 1,
 	lineStyle: 'dashed',
+	label: '',
+	showLabel: false,
+	hidden: false,
+};
+
+export const BUILT_IN_DEFAULT_UNRESOLVED_LINK_STYLE: Required<DefaultLinkStyle> = {
+	color: '#d97706',
+	size: 1,
+	lineStyle: 'dotted',
 	label: '',
 	showLabel: false,
 	hidden: false,

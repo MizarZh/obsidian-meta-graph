@@ -11,6 +11,8 @@ import {
 	getActiveLinkStyleRules,
 	getActiveNodeStyleRules,
 	getActivePlainLinkStyle,
+	getActiveUnresolvedNodeStyle,
+	getActiveUnresolvedLinkStyle,
 } from '../../graph/styles/active-styles';
 import {
 	GraphologyAdapter,
@@ -37,10 +39,12 @@ export function createWorkspaceRuntimeGraph(
 		getActiveDefaultNodeStyle(state, palette.node),
 		getActiveDefaultLinkStyle(state, palette.edge),
 		getActiveNodeStyleRules(state),
-			getActiveLinkStyleRules(state),
-			createNodeStyleContexts(projection, state.manualLayout),
-			getActivePlainLinkStyle(state, palette.mutedEdge),
-		).fromProjection(projection, positions);
+		getActiveLinkStyleRules(state),
+		createNodeStyleContexts(projection, state.manualLayout),
+		getActivePlainLinkStyle(state, palette.mutedEdge),
+		getActiveUnresolvedNodeStyle(state, palette.mutedNode),
+		getActiveUnresolvedLinkStyle(state, '#d97706'),
+	).fromProjection(projection, positions);
 }
 
 export function syncWorkspaceRuntimeGraphStyles(
@@ -52,6 +56,11 @@ export function syncWorkspaceRuntimeGraphStyles(
 	const defaultNodeStyle = getActiveDefaultNodeStyle(state, palette.node);
 	const defaultLinkStyle = getActiveDefaultLinkStyle(state, palette.edge);
 	const plainLinkStyle = getActivePlainLinkStyle(state, palette.mutedEdge);
+	const unresolvedNodeStyle = getActiveUnresolvedNodeStyle(
+		state,
+		palette.mutedNode,
+	);
+	const unresolvedLinkStyle = getActiveUnresolvedLinkStyle(state, '#d97706');
 	const nodeRules = getActiveNodeStyleRules(state);
 	const linkRules = getActiveLinkStyleRules(state);
 	const nodeStyleContexts = createNodeStyleContexts(
@@ -68,11 +77,13 @@ export function syncWorkspaceRuntimeGraphStyles(
 			projection,
 			nodeRules,
 			defaultNodeStyle,
+			unresolvedNodeStyle,
 			palette,
 			nodeStyleContexts.get(node.id),
 		);
 		graph.mergeNodeAttributes(node.id, {
 			...style,
+			kind: node.kind,
 			hidden: projection.hiddenNodeIds?.has(node.id) ?? false,
 		});
 	}
@@ -94,6 +105,7 @@ export function syncWorkspaceRuntimeGraphStyles(
 				linkRules,
 				defaultLinkStyle,
 				plainLinkStyle,
+				unresolvedLinkStyle,
 				palette,
 			);
 		if (graph.hasEdge(edge.id)) {
@@ -143,6 +155,7 @@ function resolveRuntimeNodeStyle(
 	projection: GraphProjection,
 	nodeRules: ReturnType<typeof getActiveNodeStyleRules>,
 	defaultNodeStyle: ReturnType<typeof getActiveDefaultNodeStyle>,
+	unresolvedNodeStyle: ReturnType<typeof getActiveUnresolvedNodeStyle>,
 	palette: GraphPalette,
 	context: NodeStyleContext | undefined,
 ): { color: string; size: number } {
@@ -156,9 +169,11 @@ function resolveRuntimeNodeStyle(
 		},
 		context,
 	);
+	const resolvedStyle =
+		node.kind === 'unresolved' ? unresolvedNodeStyle : style;
 	return {
-		color: style.color,
-		size: isPrimary ? style.size * 1.2 : style.size,
+		color: resolvedStyle.color,
+		size: isPrimary ? resolvedStyle.size * 1.2 : resolvedStyle.size,
 	};
 }
 
@@ -179,6 +194,7 @@ function resolveRuntimeLinkStyle(
 	linkRules: ReturnType<typeof getActiveLinkStyleRules>,
 	defaultLinkStyle: ReturnType<typeof getActiveDefaultLinkStyle>,
 	plainLinkStyle: ReturnType<typeof getActivePlainLinkStyle>,
+	unresolvedLinkStyle: ReturnType<typeof getActiveUnresolvedLinkStyle>,
 	palette: GraphPalette,
 ): {
 	color: string;
@@ -197,7 +213,16 @@ function resolveRuntimeLinkStyle(
 			: '',
 		hidden: defaultLinkStyle.hidden,
 	});
-	const resolvedStyle = isPlainLinkEdge(edge)
+	const resolvedStyle = isUnresolvedLinkEdge(edge)
+		? {
+				...style,
+				color: unresolvedLinkStyle.color,
+				size: unresolvedLinkStyle.size,
+				lineStyle: unresolvedLinkStyle.lineStyle,
+				hidden: unresolvedLinkStyle.hidden,
+				label: '',
+			}
+		: isPlainLinkEdge(edge)
 		? {
 				...style,
 				color: plainLinkStyle.color,
@@ -218,5 +243,9 @@ function resolveRuntimeLinkStyle(
 }
 
 function isPlainLinkEdge(edge: KnowledgeEdge): boolean {
-	return edge.kind === 'plain-link' || edge.semantic === false;
+	return edge.kind === 'plain-link' || (!edge.kind && edge.semantic === false);
+}
+
+function isUnresolvedLinkEdge(edge: KnowledgeEdge): boolean {
+	return edge.kind === 'unresolved-link';
 }

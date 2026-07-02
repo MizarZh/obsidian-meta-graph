@@ -359,6 +359,9 @@ export function edgeMatchesFilters(
 	query: GraphQuery,
 	globalQuery?: GraphQuery,
 ): boolean {
+	if (isUnresolvedLinkEdge(edge)) {
+		return query.showUnresolvedLinks;
+	}
 	if (isPlainLinkEdge(edge)) {
 		return query.showPlainLinks;
 	}
@@ -369,7 +372,11 @@ export function edgeMatchesFilters(
 }
 
 function isPlainLinkEdge(edge: KnowledgeEdge): boolean {
-	return edge.kind === 'plain-link' || edge.semantic === false;
+	return edge.kind === 'plain-link' || (!edge.kind && edge.semantic === false);
+}
+
+function isUnresolvedLinkEdge(edge: KnowledgeEdge): boolean {
+	return edge.kind === 'unresolved-link';
 }
 
 function edgeMatchesQueryFilters(

@@ -10,6 +10,8 @@ import {
 	BUILT_IN_DEFAULT_LINK_STYLE,
 	BUILT_IN_DEFAULT_NODE_STYLE,
 	BUILT_IN_DEFAULT_PLAIN_LINK_STYLE,
+	BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE,
+	BUILT_IN_DEFAULT_UNRESOLVED_LINK_STYLE,
 } from './constants';
 import {
 	isRecord,
@@ -211,6 +213,26 @@ export function normalizePlainLinkStyleOverrides(value: unknown): DefaultLinkSty
 		value,
 		undefined,
 		BUILT_IN_DEFAULT_PLAIN_LINK_STYLE,
+	);
+}
+
+export function normalizeUnresolvedNodeStyleOverrides(
+	value: unknown,
+): DefaultNodeStyle {
+	return normalizeNodeStyleOverrides(
+		value,
+		undefined,
+		BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE,
+	);
+}
+
+export function normalizeUnresolvedLinkStyleOverrides(
+	value: unknown,
+): DefaultLinkStyle {
+	return normalizeLinkStyleOverrides(
+		value,
+		undefined,
+		BUILT_IN_DEFAULT_UNRESOLVED_LINK_STYLE,
 	);
 }
 

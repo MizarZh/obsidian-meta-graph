@@ -135,6 +135,12 @@ export class GraphQueryEngine {
 					break;
 				}
 				if (
+					node.kind === 'unresolved' &&
+					!query.showUnresolvedLinks
+				) {
+					continue;
+				}
+				if (
 					!includedNodeIds.has(nodeId) &&
 					nodeMatchesFilters(node, query, globalQuery)
 				) {

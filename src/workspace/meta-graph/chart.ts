@@ -34,6 +34,8 @@ import {
 	normalizeNodeStyleOverrides,
 	normalizeNodeStyleRules,
 	normalizePlainLinkStyleOverrides,
+	normalizeUnresolvedNodeStyleOverrides,
+	normalizeUnresolvedLinkStyleOverrides,
 	readBaseLinkStyleRule,
 	readBaseNodeStyleRule,
 } from './style';
@@ -87,8 +89,10 @@ export function createDefaultChart(
 		},
 		style: {
 			nodeOverrides: {},
+			unresolvedNodeOverrides: {},
 			linkOverrides: {},
 			plainLinkOverrides: {},
+			unresolvedLinkOverrides: {},
 			nodeRules: [],
 			linkRules: [],
 		},
@@ -233,6 +237,9 @@ export function normalizeChart(
 				legacyNodeBase,
 				globalStyle.defaultNodeStyle,
 			),
+			unresolvedNodeOverrides: normalizeUnresolvedNodeStyleOverrides(
+				styleRecord.unresolvedNodeOverrides,
+			),
 			linkOverrides: normalizeLinkStyleOverrides(
 				styleRecord.linkOverrides,
 				legacyLinkBase,
@@ -240,6 +247,9 @@ export function normalizeChart(
 			),
 			plainLinkOverrides: normalizePlainLinkStyleOverrides(
 				styleRecord.plainLinkOverrides,
+			),
+			unresolvedLinkOverrides: normalizeUnresolvedLinkStyleOverrides(
+				styleRecord.unresolvedLinkOverrides,
 			),
 			nodeRules: normalizeNodeStyleRules(styleRecord.nodeRules),
 			linkRules: normalizeLinkStyleRules(styleRecord.linkRules),

@@ -3,6 +3,8 @@ export {
 	BUILT_IN_DEFAULT_LINK_STYLE,
 	BUILT_IN_DEFAULT_NODE_STYLE,
 	BUILT_IN_DEFAULT_PLAIN_LINK_STYLE,
+	BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE,
+	BUILT_IN_DEFAULT_UNRESOLVED_LINK_STYLE,
 	DEFAULT_CONNECTION_FIELD,
 	DEFAULT_CONNECTION_FIELDS,
 	DEFAULT_CONNECTION_FIELD_MODE,
@@ -54,4 +56,6 @@ export {
 	normalizeLinkStyleRules,
 	normalizeNodeStyleRules,
 	normalizePlainLinkStyleOverrides,
+	normalizeUnresolvedNodeStyleOverrides,
+	normalizeUnresolvedLinkStyleOverrides,
 } from './meta-graph/style';

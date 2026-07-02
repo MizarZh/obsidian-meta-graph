@@ -75,10 +75,12 @@
 		defaultLinkStyle,
 		globalNodeStyleRules,
 		nodeStyleOverrides,
+		unresolvedNodeStyleOverrides,
 		nodeStyleRules,
 		globalLinkStyleRules,
 		linkStyleOverrides,
 		plainLinkStyleOverrides,
+		unresolvedLinkStyleOverrides,
 		linkStyleRules,
 		onFlowEdgeStyle,
 		onFlowDirection,
@@ -117,10 +119,12 @@
 		onDefaultLinkStyle,
 		onGlobalNodeStyleRulesChange,
 		onNodeStyleOverrides,
+		onUnresolvedNodeStyleOverrides,
 		onNodeStyleRulesChange,
 		onGlobalLinkStyleRulesChange,
 		onLinkStyleOverrides,
 		onPlainLinkStyleOverrides,
+		onUnresolvedLinkStyleOverrides,
 		onLinkStyleRulesChange,
 	}: {
 		app: App;
@@ -170,10 +174,12 @@
 		defaultLinkStyle: Required<DefaultLinkStyle>;
 		globalNodeStyleRules: NodeStyleRule[];
 		nodeStyleOverrides: DefaultNodeStyle;
+		unresolvedNodeStyleOverrides: DefaultNodeStyle;
 		nodeStyleRules: NodeStyleRule[];
 		globalLinkStyleRules: LinkStyleRule[];
 		linkStyleOverrides: DefaultLinkStyle;
 		plainLinkStyleOverrides: DefaultLinkStyle;
+		unresolvedLinkStyleOverrides: DefaultLinkStyle;
 		linkStyleRules: LinkStyleRule[];
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
@@ -212,10 +218,12 @@
 		onDefaultLinkStyle: (style: Required<DefaultLinkStyle>) => void;
 		onGlobalNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
 		onNodeStyleOverrides: (style: DefaultNodeStyle) => void;
+		onUnresolvedNodeStyleOverrides: (style: DefaultNodeStyle) => void;
 		onNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
 		onGlobalLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 		onLinkStyleOverrides: (style: DefaultLinkStyle) => void;
 		onPlainLinkStyleOverrides: (style: DefaultLinkStyle) => void;
+		onUnresolvedLinkStyleOverrides: (style: DefaultLinkStyle) => void;
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 	} = $props();
 
@@ -350,10 +358,13 @@
 			{defaultNodeStyle}
 			{globalNodeStyleRules}
 			{nodeStyleOverrides}
+			{unresolvedNodeStyleOverrides}
 			{nodeStyleRules}
+			showUnresolvedLinks={query.showUnresolvedLinks}
 			{onDefaultNodeStyle}
 			{onGlobalNodeStyleRulesChange}
 			{onNodeStyleOverrides}
+			{onUnresolvedNodeStyleOverrides}
 			{onNodeStyleRulesChange}
 			{scheduleColorCommit}
 			{commitColor}
@@ -366,12 +377,15 @@
 			{globalLinkStyleRules}
 			{linkStyleOverrides}
 			{plainLinkStyleOverrides}
+			{unresolvedLinkStyleOverrides}
 			{linkStyleRules}
 			showPlainLinks={query.showPlainLinks}
+			showUnresolvedLinks={query.showUnresolvedLinks}
 			{onDefaultLinkStyle}
 			{onGlobalLinkStyleRulesChange}
 			{onLinkStyleOverrides}
 			{onPlainLinkStyleOverrides}
+			{onUnresolvedLinkStyleOverrides}
 			{onLinkStyleRulesChange}
 			{scheduleColorCommit}
 			{commitColor}

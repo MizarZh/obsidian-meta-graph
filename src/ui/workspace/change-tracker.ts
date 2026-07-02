@@ -16,8 +16,10 @@ export interface WorkspaceRenderBaseline {
 	defaultNodeStyle?: WorkspaceState['defaultNodeStyle'];
 	defaultLinkStyle?: WorkspaceState['defaultLinkStyle'];
 	nodeStyleOverrides?: WorkspaceState['nodeStyleOverrides'];
+	unresolvedNodeStyleOverrides?: WorkspaceState['unresolvedNodeStyleOverrides'];
 	linkStyleOverrides?: WorkspaceState['linkStyleOverrides'];
 	plainLinkStyleOverrides?: WorkspaceState['plainLinkStyleOverrides'];
+	unresolvedLinkStyleOverrides?: WorkspaceState['unresolvedLinkStyleOverrides'];
 	globalNodeStyleRules?: WorkspaceState['globalNodeStyleRules'];
 	globalLinkStyleRules?: WorkspaceState['globalLinkStyleRules'];
 	nodeStyleRules?: WorkspaceState['nodeStyleRules'];
@@ -66,8 +68,10 @@ const STYLE_RULE_KEYS = [
 	'defaultNodeStyle',
 	'defaultLinkStyle',
 	'nodeStyleOverrides',
+	'unresolvedNodeStyleOverrides',
 	'linkStyleOverrides',
 	'plainLinkStyleOverrides',
+	'unresolvedLinkStyleOverrides',
 	'globalNodeStyleRules',
 	'globalLinkStyleRules',
 	'nodeStyleRules',
@@ -322,8 +326,10 @@ export function createWorkspaceRenderBaseline(
 		defaultNodeStyle: state.defaultNodeStyle,
 		defaultLinkStyle: state.defaultLinkStyle,
 		nodeStyleOverrides: state.nodeStyleOverrides,
+		unresolvedNodeStyleOverrides: state.unresolvedNodeStyleOverrides,
 		linkStyleOverrides: state.linkStyleOverrides,
 		plainLinkStyleOverrides: state.plainLinkStyleOverrides,
+		unresolvedLinkStyleOverrides: state.unresolvedLinkStyleOverrides,
 		globalNodeStyleRules: state.globalNodeStyleRules,
 		globalLinkStyleRules: state.globalLinkStyleRules,
 		nodeStyleRules: state.nodeStyleRules,
@@ -358,6 +364,7 @@ function readProjectionSignature(
 		.map((node) =>
 			[
 				node.id,
+				node.kind ?? 'note',
 				node.path,
 				node.title,
 				node.folder,

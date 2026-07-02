@@ -2,6 +2,7 @@ import Graph from 'graphology';
 import type {
 	GraphProjection,
 	KnowledgeEdgeKind,
+	KnowledgeNodeKind,
 	LinkLineStyle,
 	LinkStyleRule,
 	NodeStyleRule,
@@ -23,6 +24,7 @@ export interface GraphPosition {
 
 export interface RuntimeNodeAttributes {
 	label: string;
+	kind?: KnowledgeNodeKind;
 	x: number;
 	y: number;
 	size: number;
@@ -91,6 +93,18 @@ export class GraphologyAdapter {
 			showLabel: false,
 			hidden: false,
 		},
+		private readonly unresolvedNodeStyle: Required<DefaultNodeStyle> = {
+			color: palette.mutedNode,
+			size: 6,
+		},
+		private readonly unresolvedLinkStyle: Required<DefaultLinkStyle> = {
+			color: '#d97706',
+			size: 1,
+			lineStyle: 'dotted',
+			label: '',
+			showLabel: false,
+			hidden: false,
+		},
 	) {
 		const legacySignature = Array.isArray(defaultNodeStyleOrRules);
 		this.defaultNodeStyle = legacySignature
@@ -140,17 +154,22 @@ export class GraphologyAdapter {
 			const position =
 				positions.get(node.id) ??
 				createInitialPosition(node.id, projection, positions);
+			const resolvedNodeStyle =
+				node.kind === 'unresolved' ? this.unresolvedNodeStyle : style;
 			graph.addNode(node.id, {
 				label: node.title,
+				kind: node.kind,
 				x: position.x,
 				y: position.y,
-				size: isPrimary ? style.size * 1.2 : style.size,
-					color: style.color,
-					path: node.path,
-					folder: node.folder,
-					createdTime: node.createdTime,
-					modifiedTime: node.modifiedTime,
-					domains: node.domains,
+				size: isPrimary
+					? resolvedNodeStyle.size * 1.2
+					: resolvedNodeStyle.size,
+				color: resolvedNodeStyle.color,
+				path: node.path,
+				folder: node.folder,
+				createdTime: node.createdTime,
+				modifiedTime: node.modifiedTime,
+				domains: node.domains,
 				tags: node.tags,
 				noteType: node.noteType,
 				isPrimary,
@@ -170,7 +189,16 @@ export class GraphologyAdapter {
 					: '',
 				hidden: this.defaultLinkStyle.hidden,
 			});
-			const resolvedStyle = isPlainLinkEdge(edge)
+			const resolvedStyle = isUnresolvedLinkEdge(edge)
+				? {
+						...style,
+						color: this.unresolvedLinkStyle.color,
+						size: this.unresolvedLinkStyle.size,
+						lineStyle: this.unresolvedLinkStyle.lineStyle,
+						hidden: this.unresolvedLinkStyle.hidden,
+						label: '',
+					}
+				: isPlainLinkEdge(edge)
 				? {
 						...style,
 						color: this.plainLinkStyle.color,
@@ -220,7 +248,11 @@ function isPlainLinkEdge(edge: {
 	kind?: KnowledgeEdgeKind;
 	semantic?: boolean;
 }): boolean {
-	return edge.kind === 'plain-link' || edge.semantic === false;
+	return edge.kind === 'plain-link' || (!edge.kind && edge.semantic === false);
+}
+
+function isUnresolvedLinkEdge(edge: { kind?: KnowledgeEdgeKind }): boolean {
+	return edge.kind === 'unresolved-link';
 }
 
 export function getEdgeType(

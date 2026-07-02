@@ -31,6 +31,7 @@
 		removeRule,
 		type StyleRuleScope,
 	} from '../filter/filter-style-rules';
+	import { BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE } from '../../workspace/meta-graph-model';
 
 	const NODE_STYLE_SECTIONS = [
 		{ scope: 'global', title: 'Global note rules' },
@@ -50,10 +51,13 @@
 		defaultNodeStyle,
 		globalNodeStyleRules,
 		nodeStyleOverrides,
+		unresolvedNodeStyleOverrides,
 		nodeStyleRules,
+		showUnresolvedLinks,
 		onDefaultNodeStyle,
 		onGlobalNodeStyleRulesChange,
 		onNodeStyleOverrides,
+		onUnresolvedNodeStyleOverrides,
 		onNodeStyleRulesChange,
 		scheduleColorCommit,
 		commitColor,
@@ -69,10 +73,13 @@
 		defaultNodeStyle: Required<DefaultNodeStyle>;
 		globalNodeStyleRules: NodeStyleRule[];
 		nodeStyleOverrides: DefaultNodeStyle;
+		unresolvedNodeStyleOverrides: DefaultNodeStyle;
 		nodeStyleRules: NodeStyleRule[];
+		showUnresolvedLinks: boolean;
 		onDefaultNodeStyle: (style: Required<DefaultNodeStyle>) => void;
 		onGlobalNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
 		onNodeStyleOverrides: (style: DefaultNodeStyle) => void;
+		onUnresolvedNodeStyleOverrides: (style: DefaultNodeStyle) => void;
 		onNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
 		scheduleColorCommit: (
 			key: string,
@@ -90,6 +97,7 @@
 
 	let workspaceDefaultOpen = $state(true);
 	let chartOverridesOpen = $state(true);
+	let unresolvedNodesOpen = $state(true);
 	let ruleSectionsOpen = $state<Record<StyleRuleScope, boolean>>({
 		global: true,
 		current: true,
@@ -204,6 +212,13 @@
 		onNodeStyleOverrides({ ...nodeStyleOverrides, ...patch });
 	}
 
+	function updateUnresolvedNodeOverride(patch: DefaultNodeStyle): void {
+		onUnresolvedNodeStyleOverrides({
+			...unresolvedNodeStyleOverrides,
+			...patch,
+		});
+	}
+
 	function addNodeOverride(): void {
 		workspaceDefaultOpen = false;
 		chartOverridesOpen = true;
@@ -213,6 +228,10 @@
 	function clearNodeOverride(): void {
 		workspaceDefaultOpen = true;
 		onNodeStyleOverrides({});
+	}
+
+	function clearUnresolvedNodeOverride(): void {
+		onUnresolvedNodeStyleOverrides({});
 	}
 
 	function activeNodeStyleValue(
@@ -235,6 +254,27 @@
 
 	function hasNodeOverride(): boolean {
 		return hasStyleOverride(nodeStyleOverrides);
+	}
+
+	function activeUnresolvedNodeStyleValue(
+		field: keyof DefaultNodeStyle,
+	): string | number {
+		return (
+			unresolvedNodeStyleOverrides[field] ??
+			BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE[field]
+		);
+	}
+
+	function activeUnresolvedNodeColor(): string {
+		return String(activeUnresolvedNodeStyleValue('color'));
+	}
+
+	function activeUnresolvedNodeSize(): number {
+		return Number(activeUnresolvedNodeStyleValue('size'));
+	}
+
+	function hasUnresolvedNodeOverride(): boolean {
+		return hasStyleOverride(unresolvedNodeStyleOverrides);
 	}
 
 	function removeNodeRule(scope: 'global' | 'current', id: string): void {
@@ -554,3 +594,61 @@
 		{/each}
 	</CollapsibleSettingsGroup>
 {/each}
+{#if showUnresolvedLinks}
+	<CollapsibleSettingsGroup
+		title="Unresolved nodes"
+		bind:open={unresolvedNodesOpen}
+	>
+		{#snippet actions()}
+			{#if hasUnresolvedNodeOverride()}
+				<ObsidianButton
+					class="knowledge-workspace-remove-rule-button"
+					ariaLabel="Reset unresolved node style"
+					icon="rotate-ccw"
+					onClick={clearUnresolvedNodeOverride}
+				/>
+			{/if}
+		{/snippet}
+		<div class="knowledge-workspace-rule">
+			<div class="knowledge-workspace-rule-row compact">
+				<label>
+					<span>Color</span>
+					<input
+						type="color"
+						value={activeUnresolvedNodeColor()}
+						oninput={(event) =>
+							scheduleColorCommit(
+								'node:unresolved',
+								activeUnresolvedNodeColor(),
+								event.currentTarget.value,
+								(color) =>
+									updateUnresolvedNodeOverride({ color }),
+							)}
+						onchange={(event) =>
+							commitColor(
+								'node:unresolved',
+								activeUnresolvedNodeColor(),
+								event.currentTarget.value,
+								(color) =>
+									updateUnresolvedNodeOverride({ color }),
+							)}
+					/>
+				</label>
+				<label>
+					<span>Size</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							min={1}
+							max={30}
+							step={0.5}
+							value={activeUnresolvedNodeSize()}
+							onChange={(size) =>
+								updateUnresolvedNodeOverride({ size })}
+						/>
+						<span>{activeUnresolvedNodeSize().toFixed(1)}</span>
+					</div>
+				</label>
+			</div>
+		</div>
+	</CollapsibleSettingsGroup>
+{/if}

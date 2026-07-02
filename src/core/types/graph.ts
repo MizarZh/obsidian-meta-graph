@@ -3,7 +3,7 @@ export type EdgeId = string;
 
 export type RelationType = string;
 export type KnowledgeNodeKind = 'note' | 'unresolved';
-export type KnowledgeEdgeKind = 'relation' | 'plain-link';
+export type KnowledgeEdgeKind = 'relation' | 'plain-link' | 'unresolved-link';
 
 export interface KnowledgeNode {
 	id: NodeId;
@@ -151,6 +151,7 @@ export interface GraphQuery {
 	maxNodes: number;
 	showIsolatedNodes: boolean;
 	showPlainLinks: boolean;
+	showUnresolvedLinks: boolean;
 }
 
 export interface GraphProjection {

@@ -32,7 +32,10 @@
 		type StyleRuleScope,
 	} from '../filter/filter-style-rules';
 	import { TEXT_FILTER_OPERATOR_OPTIONS } from '../filter-config';
-	import { BUILT_IN_DEFAULT_PLAIN_LINK_STYLE } from '../../workspace/meta-graph-model';
+	import {
+		BUILT_IN_DEFAULT_PLAIN_LINK_STYLE,
+		BUILT_IN_DEFAULT_UNRESOLVED_LINK_STYLE,
+	} from '../../workspace/meta-graph-model';
 
 	const LINK_STYLE_FIELD_OPTIONS = [
 		{
@@ -63,12 +66,15 @@
 		globalLinkStyleRules,
 		linkStyleOverrides,
 		plainLinkStyleOverrides,
+		unresolvedLinkStyleOverrides,
 		linkStyleRules,
 		showPlainLinks,
+		showUnresolvedLinks,
 		onDefaultLinkStyle,
 		onGlobalLinkStyleRulesChange,
 		onLinkStyleOverrides,
 		onPlainLinkStyleOverrides,
+		onUnresolvedLinkStyleOverrides,
 		onLinkStyleRulesChange,
 		scheduleColorCommit,
 		commitColor,
@@ -79,12 +85,15 @@
 		globalLinkStyleRules: LinkStyleRule[];
 		linkStyleOverrides: DefaultLinkStyle;
 		plainLinkStyleOverrides: DefaultLinkStyle;
+		unresolvedLinkStyleOverrides: DefaultLinkStyle;
 		linkStyleRules: LinkStyleRule[];
 		showPlainLinks: boolean;
+		showUnresolvedLinks: boolean;
 		onDefaultLinkStyle: (style: Required<DefaultLinkStyle>) => void;
 		onGlobalLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 		onLinkStyleOverrides: (style: DefaultLinkStyle) => void;
 		onPlainLinkStyleOverrides: (style: DefaultLinkStyle) => void;
+		onUnresolvedLinkStyleOverrides: (style: DefaultLinkStyle) => void;
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 		scheduleColorCommit: (
 			key: string,
@@ -103,6 +112,7 @@
 	let workspaceDefaultOpen = $state(true);
 	let chartOverridesOpen = $state(true);
 	let plainLinksOpen = $state(true);
+	let unresolvedLinksOpen = $state(true);
 	let ruleSectionsOpen = $state<Record<StyleRuleScope, boolean>>({
 		global: true,
 		current: true,
@@ -190,6 +200,13 @@
 		onPlainLinkStyleOverrides({ ...plainLinkStyleOverrides, ...patch });
 	}
 
+	function updateUnresolvedLinkOverride(patch: DefaultLinkStyle): void {
+		onUnresolvedLinkStyleOverrides({
+			...unresolvedLinkStyleOverrides,
+			...patch,
+		});
+	}
+
 	function addLinkOverride(): void {
 		workspaceDefaultOpen = false;
 		chartOverridesOpen = true;
@@ -203,6 +220,10 @@
 
 	function clearPlainLinkOverride(): void {
 		onPlainLinkStyleOverrides({});
+	}
+
+	function clearUnresolvedLinkOverride(): void {
+		onUnresolvedLinkStyleOverrides({});
 	}
 
 	function activeLinkStyleValue(
@@ -263,12 +284,41 @@
 		return Boolean(activePlainLinkStyleValue('hidden'));
 	}
 
+	function activeUnresolvedLinkStyleValue(
+		field: keyof DefaultLinkStyle,
+	): string | number | boolean {
+		return (
+			unresolvedLinkStyleOverrides[field] ??
+			BUILT_IN_DEFAULT_UNRESOLVED_LINK_STYLE[field]
+		);
+	}
+
+	function activeUnresolvedLinkColor(): string {
+		return String(activeUnresolvedLinkStyleValue('color'));
+	}
+
+	function activeUnresolvedLinkSize(): number {
+		return Number(activeUnresolvedLinkStyleValue('size'));
+	}
+
+	function activeUnresolvedLinkLineStyle(): LinkLineStyle {
+		return activeUnresolvedLinkStyleValue('lineStyle') as LinkLineStyle;
+	}
+
+	function activeUnresolvedLinkHidden(): boolean {
+		return Boolean(activeUnresolvedLinkStyleValue('hidden'));
+	}
+
 	function hasLinkOverride(): boolean {
 		return hasStyleOverride(linkStyleOverrides);
 	}
 
 	function hasPlainLinkOverride(): boolean {
 		return hasStyleOverride(plainLinkStyleOverrides);
+	}
+
+	function hasUnresolvedLinkOverride(): boolean {
+		return hasStyleOverride(unresolvedLinkStyleOverrides);
 	}
 
 	function removeLinkRule(scope: 'global' | 'current', id: string): void {
@@ -705,6 +755,91 @@
 		{/each}
 	</CollapsibleSettingsGroup>
 {/each}
+{#if showUnresolvedLinks}
+	<CollapsibleSettingsGroup
+		title="Unresolved links"
+		bind:open={unresolvedLinksOpen}
+	>
+		{#snippet actions()}
+			{#if hasUnresolvedLinkOverride()}
+				<ObsidianButton
+					class="knowledge-workspace-remove-rule-button"
+					ariaLabel="Reset unresolved link style"
+					icon="rotate-ccw"
+					onClick={clearUnresolvedLinkOverride}
+				/>
+			{/if}
+		{/snippet}
+		<div class="knowledge-workspace-rule">
+			<div class="knowledge-workspace-rule-row compact">
+				<label>
+					<span>Color</span>
+					<input
+						type="color"
+						value={activeUnresolvedLinkColor()}
+						oninput={(event) =>
+							scheduleColorCommit(
+								'link:unresolved',
+								activeUnresolvedLinkColor(),
+								event.currentTarget.value,
+								(color) =>
+									updateUnresolvedLinkOverride({ color }),
+							)}
+						onchange={(event) =>
+							commitColor(
+								'link:unresolved',
+								activeUnresolvedLinkColor(),
+								event.currentTarget.value,
+								(color) =>
+									updateUnresolvedLinkOverride({ color }),
+							)}
+					/>
+				</label>
+				<label>
+					<span>Width</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							min={0.5}
+							max={10}
+							step={0.5}
+							value={activeUnresolvedLinkSize()}
+							format={(value) => value.toFixed(1)}
+							onChange={(size) =>
+								updateUnresolvedLinkOverride({ size })}
+						/>
+						<span>{activeUnresolvedLinkSize().toFixed(1)}</span>
+					</div>
+				</label>
+			</div>
+			<div class="knowledge-workspace-line-style-row">
+				<span>Line</span>
+				<div class="knowledge-workspace-segmented">
+					{#each LINE_STYLE_OPTIONS as option}
+						<ObsidianButton
+							active={activeUnresolvedLinkLineStyle() ===
+								option.value}
+							text={option.label}
+							onClick={() =>
+								updateUnresolvedLinkOverride({
+									lineStyle: option.value as LinkLineStyle,
+								})}
+						/>
+					{/each}
+				</div>
+			</div>
+			<div class="knowledge-workspace-toggle-row">
+				<label class="checkbox">
+					<ObsidianToggle
+						value={activeUnresolvedLinkHidden()}
+						onChange={(hidden) =>
+							updateUnresolvedLinkOverride({ hidden })}
+					/>
+					<span>Hidden</span>
+				</label>
+			</div>
+		</div>
+	</CollapsibleSettingsGroup>
+{/if}
 {#if showPlainLinks}
 	<CollapsibleSettingsGroup title="Plain links" bind:open={plainLinksOpen}>
 		{#snippet actions()}

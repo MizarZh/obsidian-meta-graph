@@ -18,4 +18,5 @@ export const DEFAULT_GRAPH_QUERY: GraphQuery = {
 	maxNodes: 500,
 	showIsolatedNodes: false,
 	showPlainLinks: false,
+	showUnresolvedLinks: false,
 };

@@ -67,8 +67,10 @@ import {
 	setLinkStyleOverridesInState,
 	setLinkStyleRulesInState,
 	setNodeStyleOverridesInState,
+	setUnresolvedNodeStyleOverridesInState,
 	setNodeStyleRulesInState,
 	setPlainLinkStyleOverridesInState,
+	setUnresolvedLinkStyleOverridesInState,
 } from './state/style-state';
 import {
 	addConnectionFieldAndSelectInState,
@@ -805,6 +807,17 @@ export class WorkspaceController {
 		);
 	}
 
+	setUnresolvedNodeStyleOverrides(
+		unresolvedNodeStyleOverrides: DefaultNodeStyle,
+	): void {
+		this.setWorkspaceState(
+			setUnresolvedNodeStyleOverridesInState(
+				this.state,
+				unresolvedNodeStyleOverrides,
+			),
+		);
+	}
+
 	setLinkStyleOverrides(linkStyleOverrides: DefaultLinkStyle): void {
 		this.setWorkspaceState(
 			setLinkStyleOverridesInState(this.state, linkStyleOverrides),
@@ -816,6 +829,17 @@ export class WorkspaceController {
 			setPlainLinkStyleOverridesInState(
 				this.state,
 				plainLinkStyleOverrides,
+			),
+		);
+	}
+
+	setUnresolvedLinkStyleOverrides(
+		unresolvedLinkStyleOverrides: DefaultLinkStyle,
+	): void {
+		this.setWorkspaceState(
+			setUnresolvedLinkStyleOverridesInState(
+				this.state,
+				unresolvedLinkStyleOverrides,
 			),
 		);
 	}

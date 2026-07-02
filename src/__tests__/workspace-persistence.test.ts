@@ -79,6 +79,62 @@ describe('workspace persistence', () => {
 		});
 	});
 
+	it('persists unresolved link style overrides', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		const graphChart = document.charts.find(
+			(chart) => chart.id === 'knowledge-map',
+		);
+		if (graphChart) {
+			graphChart.style.unresolvedLinkOverrides = {
+				color: '#d97706',
+				size: 2,
+				lineStyle: 'dotted',
+				hidden: true,
+			};
+		}
+
+		const restored = createWorkspaceState(300, 1.5, document);
+		const saved = serializeMetaGraphState(restored);
+
+		expect(restored.unresolvedLinkStyleOverrides).toEqual({
+			color: '#d97706',
+			size: 2,
+			lineStyle: 'dotted',
+			hidden: true,
+		});
+		expect(saved.charts[0]?.style.unresolvedLinkOverrides).toEqual({
+			color: '#d97706',
+			size: 2,
+			lineStyle: 'dotted',
+			hidden: true,
+		});
+	});
+
+	it('persists unresolved node style overrides', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		const graphChart = document.charts.find(
+			(chart) => chart.id === 'knowledge-map',
+		);
+		if (graphChart) {
+			graphChart.style.unresolvedNodeOverrides = {
+				color: '#abcdef',
+				size: 5,
+			};
+		}
+
+		const restored = createWorkspaceState(300, 1.5, document);
+		const saved = serializeMetaGraphState(restored);
+
+		expect(restored.unresolvedNodeStyleOverrides).toEqual({
+			color: '#abcdef',
+			size: 5,
+		});
+		expect(saved.charts[0]?.style.unresolvedNodeOverrides).toEqual({
+			color: '#abcdef',
+			size: 5,
+		});
+	});
+
 	it('restores the active chart from a document', () => {
 		const document = createDefaultMetaGraphDocument(200, 2);
 		document.activeChart = 'learning-flow';

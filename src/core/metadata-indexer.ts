@@ -6,7 +6,7 @@ import {
 	createKnowledgeIndex,
 	normalizePath,
 } from './knowledge-index';
-import { ObsidianLinkResolver } from './link-resolver';
+import { extractLinkText, ObsidianLinkResolver } from './link-resolver';
 import {
 	isRelationField,
 	parseRelations,
@@ -101,8 +101,16 @@ export class MetadataIndexer {
 					addEdge(index, edge);
 				}
 			}
-			for (const edge of createPlainLinkEdges(file, cache, resolver)) {
-				if (filePaths.has(edge.source) && filePaths.has(edge.target)) {
+			const plainLinks = createPlainLinkEntries(file, cache, resolver);
+			for (const node of plainLinks.nodes) {
+				addNode(index, node);
+			}
+			for (const edge of plainLinks.edges) {
+				if (
+					filePaths.has(edge.source) &&
+					(filePaths.has(edge.target) ||
+						edge.kind === 'unresolved-link')
+				) {
 					addEdge(index, edge);
 				}
 			}
@@ -163,16 +171,35 @@ export class MetadataIndexer {
 	}
 }
 
-function createPlainLinkEdges(
+function createPlainLinkEntries(
 	file: TFile,
 	cache: CachedMetadata | null,
 	resolver: ObsidianLinkResolver,
-): KnowledgeEdge[] {
+): { nodes: KnowledgeNode[]; edges: KnowledgeEdge[] } {
 	const source = normalizePath(file.path);
+	const nodes = new Map<string, KnowledgeNode>();
 	const edges = new Map<string, KnowledgeEdge>();
 	for (const link of cache?.links ?? []) {
 		const targetPath = resolver.resolve(link.link, source);
 		if (!targetPath) {
+			const linkText = extractLinkText(link.link);
+			if (!linkText) {
+				continue;
+			}
+			const target = createUnresolvedNodeId(linkText);
+			nodes.set(target, createUnresolvedNode(target, linkText));
+			const id = createEdgeId(source, 'unresolved-link', target, true);
+			edges.set(id, {
+				id,
+				kind: 'unresolved-link',
+				semantic: false,
+				source,
+				target,
+				relation: 'link',
+				directed: true,
+				sourcePath: source,
+				sourceField: 'body',
+			});
 			continue;
 		}
 		const target = normalizePath(targetPath);
@@ -192,7 +219,23 @@ function createPlainLinkEdges(
 			sourceField: 'body',
 		});
 	}
-	return [...edges.values()];
+	return { nodes: [...nodes.values()], edges: [...edges.values()] };
+}
+
+function createUnresolvedNodeId(linkText: string): string {
+	return `__unresolved__/${normalizePath(linkText)}`;
+}
+
+function createUnresolvedNode(id: string, linkText: string): KnowledgeNode {
+	return {
+		id,
+		kind: 'unresolved',
+		path: linkText,
+		title: linkText.split('/').at(-1) ?? linkText,
+		folder: '',
+		domains: [],
+		tags: [],
+	};
 }
 
 function asFrontmatter(
