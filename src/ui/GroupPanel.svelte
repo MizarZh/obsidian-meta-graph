@@ -7,12 +7,14 @@
 	let {
 		manualLayout,
 		locked = false,
+		disabled = false,
 		onAddGroup,
 		onUpdateGroup,
 		onDeleteGroup,
 	}: {
 		manualLayout: ManualLayoutConfig;
 		locked?: boolean;
+		disabled?: boolean;
 		onAddGroup: () => void;
 		onUpdateGroup: (groupId: string, patch: Partial<ChartGroup>) => void;
 		onDeleteGroup: (groupId: string) => void;
@@ -48,18 +50,23 @@
 	}
 </script>
 
-<aside class="knowledge-workspace-filters knowledge-workspace-groups">
+<aside
+	class="knowledge-workspace-filters knowledge-workspace-groups"
+	class:knowledge-workspace-groups-disabled={disabled}
+>
 	<section>
 		<header>
 			<div>
 				<h3>Groups</h3>
 				<p>
-					{locked
-						? 'Cube uses six fixed face groups.'
-						: 'Organize visible notes into chart-local regions.'}
+					{disabled
+						? 'Groups are only editable in free layout.'
+						: locked
+							? 'Cube uses six fixed face groups.'
+							: 'Organize visible notes into chart-local regions.'}
 				</p>
 			</div>
-			{#if !locked}
+			{#if !locked && !disabled}
 				<ObsidianButton
 					icon="plus"
 					text="Add group"
@@ -84,6 +91,7 @@
 								<ObsidianTextInput
 									value={group.name}
 									ariaLabel="Group name"
+									{disabled}
 									onChange={(value) =>
 										onUpdateGroup(group.id, {
 											name: value,
@@ -95,6 +103,7 @@
 									icon="trash-2"
 									class="knowledge-workspace-group-delete"
 									ariaLabel={`Delete ${group.name}`}
+									{disabled}
 									destructive={true}
 									onClick={() => onDeleteGroup(group.id)}
 								/>
@@ -116,6 +125,7 @@
 								<input
 									type="color"
 									value={group.color}
+									{disabled}
 									oninput={(event) =>
 										onUpdateGroup(group.id, {
 											color: event.currentTarget.value,
@@ -127,6 +137,7 @@
 								<ObsidianDropdown
 									value={group.mode}
 									options={MODE_OPTIONS}
+									{disabled}
 									onChange={(value) =>
 										onUpdateGroup(group.id, {
 											mode:
@@ -142,6 +153,7 @@
 									type="number"
 									value={group.x}
 									step="0.1"
+									{disabled}
 									onChange={(value) =>
 										updateNumber(group, 'x', value)}
 								/>
@@ -152,6 +164,7 @@
 									type="number"
 									value={group.y}
 									step="0.1"
+									{disabled}
 									onChange={(value) =>
 										updateNumber(group, 'y', value)}
 								/>
@@ -163,6 +176,7 @@
 									min="0.8"
 									step="0.1"
 									value={group.width}
+									{disabled}
 									onChange={(value) =>
 										updateNumber(group, 'width', value)}
 								/>
@@ -174,6 +188,7 @@
 									min="0.6"
 									step="0.1"
 									value={group.height}
+									{disabled}
 									onChange={(value) =>
 										updateNumber(group, 'height', value)}
 								/>
@@ -185,6 +200,7 @@
 									min="0"
 									step="0.01"
 									value={group.padding}
+									{disabled}
 									onChange={(value) =>
 										updateNumber(group, 'padding', value)}
 								/>

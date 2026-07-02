@@ -592,6 +592,20 @@
 	line-height: 1.35;
 }
 
+.knowledge-workspace-groups-disabled {
+	opacity: 0.62;
+}
+
+.knowledge-workspace-groups-disabled .knowledge-workspace-group-card {
+	background: var(--background-secondary);
+}
+
+.knowledge-workspace-groups-disabled input,
+.knowledge-workspace-groups-disabled select,
+.knowledge-workspace-groups-disabled button {
+	cursor: not-allowed;
+}
+
 .knowledge-workspace-group-list {
 	display: grid;
 	gap: var(--size-4-3);

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
 	import type { SettingsPanelMode, WorkspaceState } from '../../core/types';
+	import { getModeCapabilities } from '../../graph/renderers/renderer-adapter';
 	import type { WorkspaceController } from '../../workspace/workspace-controller';
 	import FilterPanel from '../FilterPanel.svelte';
 	import GroupPanel from '../GroupPanel.svelte';
@@ -28,6 +29,11 @@
 		filePathSuggestions: string[];
 		onClose: () => void;
 	} = $props();
+
+	const groupsDisabled = $derived(
+		workspaceState.mode !== 'cube' &&
+			!getModeCapabilities(workspaceState.mode).supportsManualGroups,
+	);
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -47,6 +53,7 @@
 		<GroupPanel
 			manualLayout={workspaceState.manualLayout}
 			locked={workspaceState.mode === 'cube'}
+			disabled={groupsDisabled}
 			onAddGroup={() => controller.addGroup()}
 			onUpdateGroup={(groupId, patch) =>
 				controller.updateGroup(groupId, patch)}
