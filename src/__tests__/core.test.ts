@@ -260,6 +260,19 @@ describe('breadth-first neighborhood query', () => {
 		expect(projection.edges).toEqual([]);
 	});
 
+	it('hides plain links unless compatibility display is enabled', () => {
+		const index = buildIndex(
+			[node('A'), node('B')],
+			[plainLink('A', 'B')],
+		);
+
+		expect(projectIds(index, query())).toEqual([]);
+		expect(projectIds(index, query({ showPlainLinks: true }))).toEqual([
+			'A',
+			'B',
+		]);
+	});
+
 	it('honors BFS depth', () => {
 		const index = buildIndex(
 			[node('A'), node('B'), node('C'), node('D')],
@@ -513,6 +526,29 @@ describe('curated workspace projection', () => {
 		]);
 	});
 
+	it('hides curated plain links unless compatibility display is enabled', () => {
+		const index = buildIndex([node('A'), node('B')], [plainLink('A', 'B')]);
+		const curated = {
+			files: [{ path: 'A' }, { path: 'B' }],
+			context: {
+				enabled: false,
+				depth: 0,
+				includeOutgoingLinks: true,
+				includeBacklinks: true,
+				includeMetadataRelations: true,
+			},
+		};
+
+		expect(
+			new CuratedProjectionEngine().project(index, curated).edges,
+		).toEqual([]);
+		expect(
+			new CuratedProjectionEngine().project(index, curated, {
+				showPlainLinks: true,
+			}).edges.map((item) => item.id),
+		).toEqual([createEdgeId('A', 'plain-link', 'B', true)]);
+	});
+
 	it('marks hidden curated files in projection', () => {
 		const index = buildIndex([node('A'), node('B')], [edge('A', 'B')]);
 		const projection = new CuratedProjectionEngine().project(index, {
@@ -566,6 +602,20 @@ function edge(
 	};
 }
 
+function plainLink(source: string, target: string): KnowledgeEdge {
+	return {
+		id: createEdgeId(source, 'plain-link', target, true),
+		kind: 'plain-link',
+		semantic: false,
+		source,
+		target,
+		relation: 'link',
+		directed: true,
+		sourcePath: source,
+		sourceField: 'body',
+	};
+}
+
 function buildIndex(
 	nodes: KnowledgeNode[],
 	edges: KnowledgeEdge[],
@@ -594,6 +644,7 @@ function query(overrides: Partial<GraphQuery> = {}): GraphQuery {
 		direction: 'both',
 		maxNodes: 200,
 		showIsolatedNodes: false,
+		showPlainLinks: false,
 		...overrides,
 	};
 }

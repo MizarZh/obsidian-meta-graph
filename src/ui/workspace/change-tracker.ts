@@ -17,6 +17,7 @@ export interface WorkspaceRenderBaseline {
 	defaultLinkStyle?: WorkspaceState['defaultLinkStyle'];
 	nodeStyleOverrides?: WorkspaceState['nodeStyleOverrides'];
 	linkStyleOverrides?: WorkspaceState['linkStyleOverrides'];
+	plainLinkStyleOverrides?: WorkspaceState['plainLinkStyleOverrides'];
 	globalNodeStyleRules?: WorkspaceState['globalNodeStyleRules'];
 	globalLinkStyleRules?: WorkspaceState['globalLinkStyleRules'];
 	nodeStyleRules?: WorkspaceState['nodeStyleRules'];
@@ -66,6 +67,7 @@ const STYLE_RULE_KEYS = [
 	'defaultLinkStyle',
 	'nodeStyleOverrides',
 	'linkStyleOverrides',
+	'plainLinkStyleOverrides',
 	'globalNodeStyleRules',
 	'globalLinkStyleRules',
 	'nodeStyleRules',
@@ -321,6 +323,7 @@ export function createWorkspaceRenderBaseline(
 		defaultLinkStyle: state.defaultLinkStyle,
 		nodeStyleOverrides: state.nodeStyleOverrides,
 		linkStyleOverrides: state.linkStyleOverrides,
+		plainLinkStyleOverrides: state.plainLinkStyleOverrides,
 		globalNodeStyleRules: state.globalNodeStyleRules,
 		globalLinkStyleRules: state.globalLinkStyleRules,
 		nodeStyleRules: state.nodeStyleRules,
@@ -370,6 +373,8 @@ function readProjectionSignature(
 		.map((edge) =>
 			[
 				edge.id,
+				edge.kind ?? 'relation',
+				edge.semantic === false ? '0' : '1',
 				edge.source,
 				edge.target,
 				edge.relation,

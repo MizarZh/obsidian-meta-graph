@@ -359,10 +359,17 @@ export function edgeMatchesFilters(
 	query: GraphQuery,
 	globalQuery?: GraphQuery,
 ): boolean {
+	if (isPlainLinkEdge(edge)) {
+		return query.showPlainLinks;
+	}
 	return (
 		edgeMatchesQueryFilters(edge, globalQuery) &&
 		edgeMatchesQueryFilters(edge, query)
 	);
+}
+
+function isPlainLinkEdge(edge: KnowledgeEdge): boolean {
+	return edge.kind === 'plain-link' || edge.semantic === false;
 }
 
 function edgeMatchesQueryFilters(

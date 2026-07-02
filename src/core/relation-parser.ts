@@ -58,9 +58,11 @@ export function parseRelations(
 			const source = normalizedCurrentPath;
 			const target = normalizedTargetPath;
 			const id = createEdgeId(source, definition.field, target, true);
-			edges.set(id, {
-				id,
-				source,
+				edges.set(id, {
+					id,
+					kind: 'relation',
+					semantic: true,
+					source,
 				target,
 				relation: definition.field,
 				directed: true,

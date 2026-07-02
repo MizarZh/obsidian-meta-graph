@@ -10,6 +10,7 @@ export class CuratedProjectionEngine {
 	project(
 		index: KnowledgeIndex,
 		curated: CuratedWorkspaceConfig,
+		options: { showPlainLinks?: boolean } = {},
 	): GraphProjection {
 		const primaryIds = new Set<NodeId>();
 		const hiddenNodeIds = new Set<NodeId>();
@@ -24,6 +25,9 @@ export class CuratedProjectionEngine {
 
 		const edges: KnowledgeEdge[] = [];
 		for (const edge of index.edges.values()) {
+			if (isPlainLinkEdge(edge) && !options.showPlainLinks) {
+				continue;
+			}
 			if (primaryIds.has(edge.source) && primaryIds.has(edge.target)) {
 				edges.push(edge);
 			}
@@ -42,4 +46,8 @@ export class CuratedProjectionEngine {
 			hiddenNodeIds,
 		};
 	}
+}
+
+function isPlainLinkEdge(edge: KnowledgeEdge): boolean {
+	return edge.kind === 'plain-link' || edge.semantic === false;
 }

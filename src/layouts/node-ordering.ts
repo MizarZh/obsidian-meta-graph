@@ -121,7 +121,8 @@ function readFirstValue(values: string[]): string {
 function readVisibleDegree(graph: RuntimeGraph, nodeId: string): number {
 	let degree = 0;
 	for (const edge of graph.edges(nodeId)) {
-		if (!graph.getEdgeAttribute(edge, 'hidden')) {
+		const attributes = graph.getEdgeAttributes(edge);
+		if (!attributes.hidden && attributes.semantic !== false) {
 			degree += 1;
 		}
 	}
@@ -137,7 +138,8 @@ function readVisibleDirectedDegree(
 	const edges =
 		direction === 'in' ? graph.inEdges(nodeId) : graph.outEdges(nodeId);
 	for (const edge of edges ?? []) {
-		if (!graph.getEdgeAttribute(edge, 'hidden')) {
+		const attributes = graph.getEdgeAttributes(edge);
+		if (!attributes.hidden && attributes.semantic !== false) {
 			degree += 1;
 		}
 	}

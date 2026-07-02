@@ -32,6 +32,7 @@
 		type StyleRuleScope,
 	} from '../filter/filter-style-rules';
 	import { TEXT_FILTER_OPERATOR_OPTIONS } from '../filter-config';
+	import { BUILT_IN_DEFAULT_PLAIN_LINK_STYLE } from '../../workspace/meta-graph-model';
 
 	const LINK_STYLE_FIELD_OPTIONS = [
 		{
@@ -61,10 +62,13 @@
 		defaultLinkStyle,
 		globalLinkStyleRules,
 		linkStyleOverrides,
+		plainLinkStyleOverrides,
 		linkStyleRules,
+		showPlainLinks,
 		onDefaultLinkStyle,
 		onGlobalLinkStyleRulesChange,
 		onLinkStyleOverrides,
+		onPlainLinkStyleOverrides,
 		onLinkStyleRulesChange,
 		scheduleColorCommit,
 		commitColor,
@@ -74,10 +78,13 @@
 		defaultLinkStyle: Required<DefaultLinkStyle>;
 		globalLinkStyleRules: LinkStyleRule[];
 		linkStyleOverrides: DefaultLinkStyle;
+		plainLinkStyleOverrides: DefaultLinkStyle;
 		linkStyleRules: LinkStyleRule[];
+		showPlainLinks: boolean;
 		onDefaultLinkStyle: (style: Required<DefaultLinkStyle>) => void;
 		onGlobalLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 		onLinkStyleOverrides: (style: DefaultLinkStyle) => void;
+		onPlainLinkStyleOverrides: (style: DefaultLinkStyle) => void;
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 		scheduleColorCommit: (
 			key: string,
@@ -95,6 +102,7 @@
 
 	let workspaceDefaultOpen = $state(true);
 	let chartOverridesOpen = $state(true);
+	let plainLinksOpen = $state(true);
 	let ruleSectionsOpen = $state<Record<StyleRuleScope, boolean>>({
 		global: true,
 		current: true,
@@ -178,6 +186,10 @@
 		onLinkStyleOverrides({ ...linkStyleOverrides, ...patch });
 	}
 
+	function updatePlainLinkOverride(patch: DefaultLinkStyle): void {
+		onPlainLinkStyleOverrides({ ...plainLinkStyleOverrides, ...patch });
+	}
+
 	function addLinkOverride(): void {
 		workspaceDefaultOpen = false;
 		chartOverridesOpen = true;
@@ -187,6 +199,10 @@
 	function clearLinkOverride(): void {
 		workspaceDefaultOpen = true;
 		onLinkStyleOverrides({});
+	}
+
+	function clearPlainLinkOverride(): void {
+		onPlainLinkStyleOverrides({});
 	}
 
 	function activeLinkStyleValue(
@@ -223,8 +239,36 @@
 		return Boolean(activeLinkStyleValue('hidden'));
 	}
 
+	function activePlainLinkStyleValue(
+		field: keyof DefaultLinkStyle,
+	): string | number | boolean {
+		return (
+			plainLinkStyleOverrides[field] ?? BUILT_IN_DEFAULT_PLAIN_LINK_STYLE[field]
+		);
+	}
+
+	function activePlainLinkColor(): string {
+		return String(activePlainLinkStyleValue('color'));
+	}
+
+	function activePlainLinkSize(): number {
+		return Number(activePlainLinkStyleValue('size'));
+	}
+
+	function activePlainLinkLineStyle(): LinkLineStyle {
+		return activePlainLinkStyleValue('lineStyle') as LinkLineStyle;
+	}
+
+	function activePlainLinkHidden(): boolean {
+		return Boolean(activePlainLinkStyleValue('hidden'));
+	}
+
 	function hasLinkOverride(): boolean {
 		return hasStyleOverride(linkStyleOverrides);
+	}
+
+	function hasPlainLinkOverride(): boolean {
+		return hasStyleOverride(plainLinkStyleOverrides);
 	}
 
 	function removeLinkRule(scope: 'global' | 'current', id: string): void {
@@ -661,3 +705,82 @@
 		{/each}
 	</CollapsibleSettingsGroup>
 {/each}
+{#if showPlainLinks}
+	<CollapsibleSettingsGroup title="Plain links" bind:open={plainLinksOpen}>
+		{#snippet actions()}
+			{#if hasPlainLinkOverride()}
+				<ObsidianButton
+					class="knowledge-workspace-remove-rule-button"
+					ariaLabel="Reset plain link style"
+					icon="rotate-ccw"
+					onClick={clearPlainLinkOverride}
+				/>
+			{/if}
+		{/snippet}
+		<div class="knowledge-workspace-rule">
+			<div class="knowledge-workspace-rule-row compact">
+				<label>
+					<span>Color</span>
+					<input
+						type="color"
+						value={activePlainLinkColor()}
+						oninput={(event) =>
+							scheduleColorCommit(
+								'link:plain',
+								activePlainLinkColor(),
+								event.currentTarget.value,
+								(color) => updatePlainLinkOverride({ color }),
+							)}
+						onchange={(event) =>
+							commitColor(
+								'link:plain',
+								activePlainLinkColor(),
+								event.currentTarget.value,
+								(color) => updatePlainLinkOverride({ color }),
+							)}
+					/>
+				</label>
+				<label>
+					<span>Width</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							min={0.5}
+							max={10}
+							step={0.5}
+							value={activePlainLinkSize()}
+							format={(value) => value.toFixed(1)}
+							onChange={(size) =>
+								updatePlainLinkOverride({ size })}
+						/>
+						<span>{activePlainLinkSize().toFixed(1)}</span>
+					</div>
+				</label>
+			</div>
+			<div class="knowledge-workspace-line-style-row">
+				<span>Line</span>
+				<div class="knowledge-workspace-segmented">
+					{#each LINE_STYLE_OPTIONS as option}
+						<ObsidianButton
+							active={activePlainLinkLineStyle() === option.value}
+							text={option.label}
+							onClick={() =>
+								updatePlainLinkOverride({
+									lineStyle: option.value as LinkLineStyle,
+								})}
+						/>
+					{/each}
+				</div>
+			</div>
+			<div class="knowledge-workspace-toggle-row">
+				<label class="checkbox">
+					<ObsidianToggle
+						value={activePlainLinkHidden()}
+						onChange={(hidden) =>
+							updatePlainLinkOverride({ hidden })}
+					/>
+					<span>Hidden</span>
+				</label>
+			</div>
+		</div>
+	</CollapsibleSettingsGroup>
+{/if}

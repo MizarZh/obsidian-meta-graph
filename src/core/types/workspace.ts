@@ -229,6 +229,7 @@ export interface WorkspaceState {
 	globalLinkStyleRules: LinkStyleRule[];
 	nodeStyleOverrides: DefaultNodeStyle;
 	linkStyleOverrides: DefaultLinkStyle;
+	plainLinkStyleOverrides: DefaultLinkStyle;
 	nodeStyleRules: NodeStyleRule[];
 	linkStyleRules: LinkStyleRule[];
 	connectionFields: string[];

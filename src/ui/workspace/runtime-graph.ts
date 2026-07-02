@@ -10,6 +10,7 @@ import {
 	getActiveDefaultNodeStyle,
 	getActiveLinkStyleRules,
 	getActiveNodeStyleRules,
+	getActivePlainLinkStyle,
 } from '../../graph/styles/active-styles';
 import {
 	GraphologyAdapter,
@@ -36,9 +37,10 @@ export function createWorkspaceRuntimeGraph(
 		getActiveDefaultNodeStyle(state, palette.node),
 		getActiveDefaultLinkStyle(state, palette.edge),
 		getActiveNodeStyleRules(state),
-		getActiveLinkStyleRules(state),
-		createNodeStyleContexts(projection, state.manualLayout),
-	).fromProjection(projection, positions);
+			getActiveLinkStyleRules(state),
+			createNodeStyleContexts(projection, state.manualLayout),
+			getActivePlainLinkStyle(state, palette.mutedEdge),
+		).fromProjection(projection, positions);
 }
 
 export function syncWorkspaceRuntimeGraphStyles(
@@ -49,6 +51,7 @@ export function syncWorkspaceRuntimeGraphStyles(
 ): void {
 	const defaultNodeStyle = getActiveDefaultNodeStyle(state, palette.node);
 	const defaultLinkStyle = getActiveDefaultLinkStyle(state, palette.edge);
+	const plainLinkStyle = getActivePlainLinkStyle(state, palette.mutedEdge);
 	const nodeRules = getActiveNodeStyleRules(state);
 	const linkRules = getActiveLinkStyleRules(state);
 	const nodeStyleContexts = createNodeStyleContexts(
@@ -88,14 +91,17 @@ export function syncWorkspaceRuntimeGraphStyles(
 	for (const edge of projection.edges) {
 		const style = resolveRuntimeLinkStyle(
 			edge,
-			linkRules,
-			defaultLinkStyle,
-			palette,
-		);
+				linkRules,
+				defaultLinkStyle,
+				plainLinkStyle,
+				palette,
+			);
 		if (graph.hasEdge(edge.id)) {
 			graph.mergeEdgeAttributes(edge.id, {
 				...style,
 				type: getEdgeType(style.lineStyle, edge.directed),
+				kind: edge.kind,
+				semantic: edge.semantic ?? edge.kind !== 'plain-link',
 				hidden:
 					style.hidden ||
 					Boolean(projection.hiddenNodeIds?.has(edge.source)) ||
@@ -172,6 +178,7 @@ function resolveRuntimeLinkStyle(
 	edge: KnowledgeEdge,
 	linkRules: ReturnType<typeof getActiveLinkStyleRules>,
 	defaultLinkStyle: ReturnType<typeof getActiveDefaultLinkStyle>,
+	plainLinkStyle: ReturnType<typeof getActivePlainLinkStyle>,
 	palette: GraphPalette,
 ): {
 	color: string;
@@ -190,12 +197,26 @@ function resolveRuntimeLinkStyle(
 			: '',
 		hidden: defaultLinkStyle.hidden,
 	});
+	const resolvedStyle = isPlainLinkEdge(edge)
+		? {
+				...style,
+				color: plainLinkStyle.color,
+				size: plainLinkStyle.size,
+				lineStyle: plainLinkStyle.lineStyle,
+				hidden: plainLinkStyle.hidden,
+				label: '',
+			}
+		: style;
 	return {
-		color: style.color,
-		size: style.size,
-		hidden: style.hidden,
-		label: style.label,
-		forceLabel: Boolean(style.label),
-		lineStyle: style.lineStyle,
+		color: resolvedStyle.color,
+		size: resolvedStyle.size,
+		hidden: resolvedStyle.hidden,
+		label: resolvedStyle.label,
+		forceLabel: Boolean(resolvedStyle.label),
+		lineStyle: resolvedStyle.lineStyle,
 	};
+}
+
+function isPlainLinkEdge(edge: KnowledgeEdge): boolean {
+	return edge.kind === 'plain-link' || edge.semantic === false;
 }

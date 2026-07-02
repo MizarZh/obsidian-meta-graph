@@ -2,6 +2,7 @@ export {
 	BASE_STYLE_RULE_ID,
 	BUILT_IN_DEFAULT_LINK_STYLE,
 	BUILT_IN_DEFAULT_NODE_STYLE,
+	BUILT_IN_DEFAULT_PLAIN_LINK_STYLE,
 	DEFAULT_CONNECTION_FIELD,
 	DEFAULT_CONNECTION_FIELDS,
 	DEFAULT_CONNECTION_FIELD_MODE,
@@ -52,4 +53,5 @@ export {
 	normalizeGlobalNodeStyleRules,
 	normalizeLinkStyleRules,
 	normalizeNodeStyleRules,
+	normalizePlainLinkStyleOverrides,
 } from './meta-graph/style';

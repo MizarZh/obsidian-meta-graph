@@ -50,6 +50,15 @@ export const BUILT_IN_DEFAULT_LINK_STYLE: Required<DefaultLinkStyle> = {
 	hidden: false,
 };
 
+export const BUILT_IN_DEFAULT_PLAIN_LINK_STYLE: Required<DefaultLinkStyle> = {
+	color: '#666666',
+	size: 1,
+	lineStyle: 'dashed',
+	label: '',
+	showLabel: false,
+	hidden: false,
+};
+
 export const DEFAULT_DOCK: MetaGraphDock = {
 	templates: [],
 	notes: [],

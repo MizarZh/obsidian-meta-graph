@@ -9,6 +9,7 @@ import {
 	BASE_STYLE_RULE_ID,
 	BUILT_IN_DEFAULT_LINK_STYLE,
 	BUILT_IN_DEFAULT_NODE_STYLE,
+	BUILT_IN_DEFAULT_PLAIN_LINK_STYLE,
 } from './constants';
 import {
 	isRecord,
@@ -203,6 +204,14 @@ export function normalizeLinkStyleOverrides(
 		overrides.hidden = hidden;
 	}
 	return overrides;
+}
+
+export function normalizePlainLinkStyleOverrides(value: unknown): DefaultLinkStyle {
+	return normalizeLinkStyleOverrides(
+		value,
+		undefined,
+		BUILT_IN_DEFAULT_PLAIN_LINK_STYLE,
+	);
 }
 
 export function readBaseNodeStyleRule(

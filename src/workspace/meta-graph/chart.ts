@@ -33,6 +33,7 @@ import {
 	normalizeLinkStyleRules,
 	normalizeNodeStyleOverrides,
 	normalizeNodeStyleRules,
+	normalizePlainLinkStyleOverrides,
 	readBaseLinkStyleRule,
 	readBaseNodeStyleRule,
 } from './style';
@@ -87,6 +88,7 @@ export function createDefaultChart(
 		style: {
 			nodeOverrides: {},
 			linkOverrides: {},
+			plainLinkOverrides: {},
 			nodeRules: [],
 			linkRules: [],
 		},
@@ -235,6 +237,9 @@ export function normalizeChart(
 				styleRecord.linkOverrides,
 				legacyLinkBase,
 				globalStyle.defaultLinkStyle,
+			),
+			plainLinkOverrides: normalizePlainLinkStyleOverrides(
+				styleRecord.plainLinkOverrides,
 			),
 			nodeRules: normalizeNodeStyleRules(styleRecord.nodeRules),
 			linkRules: normalizeLinkStyleRules(styleRecord.linkRules),

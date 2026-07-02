@@ -2,6 +2,7 @@ import type { App, CachedMetadata, TFile } from 'obsidian';
 import {
 	addEdge,
 	addNode,
+	createEdgeId,
 	createKnowledgeIndex,
 	normalizePath,
 } from './knowledge-index';
@@ -12,6 +13,7 @@ import {
 	toStringArray,
 } from './relation-parser';
 import type {
+	KnowledgeEdge,
 	KnowledgeIndex,
 	KnowledgeNode,
 	MetadataDebugEntry,
@@ -99,6 +101,11 @@ export class MetadataIndexer {
 					addEdge(index, edge);
 				}
 			}
+			for (const edge of createPlainLinkEdges(file, cache, resolver)) {
+				if (filePaths.has(edge.source) && filePaths.has(edge.target)) {
+					addEdge(index, edge);
+				}
+			}
 		}
 
 		return index;
@@ -154,6 +161,38 @@ export class MetadataIndexer {
 			metadata: frontmatter ?? {},
 		};
 	}
+}
+
+function createPlainLinkEdges(
+	file: TFile,
+	cache: CachedMetadata | null,
+	resolver: ObsidianLinkResolver,
+): KnowledgeEdge[] {
+	const source = normalizePath(file.path);
+	const edges = new Map<string, KnowledgeEdge>();
+	for (const link of cache?.links ?? []) {
+		const targetPath = resolver.resolve(link.link, source);
+		if (!targetPath) {
+			continue;
+		}
+		const target = normalizePath(targetPath);
+		if (target === source) {
+			continue;
+		}
+		const id = createEdgeId(source, 'plain-link', target, true);
+		edges.set(id, {
+			id,
+			kind: 'plain-link',
+			semantic: false,
+			source,
+			target,
+			relation: 'link',
+			directed: true,
+			sourcePath: source,
+			sourceField: 'body',
+		});
+	}
+	return [...edges.values()];
 }
 
 function asFrontmatter(

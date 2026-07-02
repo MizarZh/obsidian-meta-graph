@@ -171,6 +171,13 @@
 				onChange={(value) => onChange({ showIsolatedNodes: value })}
 			/>
 		</label>
+		<label class="knowledge-workspace-rule-label">
+			<span>Show plain links</span>
+			<ObsidianToggle
+				value={query.showPlainLinks}
+				onChange={(value) => onChange({ showPlainLinks: value })}
+			/>
+		</label>
 	</CollapsibleSettingsGroup>
 	{#if mode === 'graph' || mode === 'graph-3d' || mode === 'cube'}
 		<CollapsibleSettingsGroup title="Layout" bind:open={layoutOpen}>

@@ -1,6 +1,7 @@
 import Graph from 'graphology';
 import type {
 	GraphProjection,
+	KnowledgeEdgeKind,
 	LinkLineStyle,
 	LinkStyleRule,
 	NodeStyleRule,
@@ -51,6 +52,8 @@ export interface RuntimeEdgeAttributes {
 	label: string;
 	forceLabel: boolean;
 	lineStyle: LinkLineStyle;
+	kind?: KnowledgeEdgeKind;
+	semantic?: boolean;
 	logicalEdgeId?: string;
 	logicalSource?: string;
 	logicalTarget?: string;
@@ -80,6 +83,14 @@ export class GraphologyAdapter {
 			string,
 			NodeStyleContext
 		> = new Map(),
+		private readonly plainLinkStyle: Required<DefaultLinkStyle> = {
+			color: palette.mutedEdge,
+			size: 1,
+			lineStyle: 'dashed',
+			label: '',
+			showLabel: false,
+			hidden: false,
+		},
 	) {
 		const legacySignature = Array.isArray(defaultNodeStyleOrRules);
 		this.defaultNodeStyle = legacySignature
@@ -159,16 +170,28 @@ export class GraphologyAdapter {
 					: '',
 				hidden: this.defaultLinkStyle.hidden,
 			});
+			const resolvedStyle = isPlainLinkEdge(edge)
+				? {
+						...style,
+						color: this.plainLinkStyle.color,
+						size: this.plainLinkStyle.size,
+						lineStyle: this.plainLinkStyle.lineStyle,
+						hidden: this.plainLinkStyle.hidden,
+						label: '',
+					}
+				: style;
 			const attributes: RuntimeEdgeAttributes = {
 				relation: edge.relation,
-				type: getEdgeType(style.lineStyle, edge.directed),
-				size: style.size,
-				color: style.color,
-				label: style.label,
-				forceLabel: Boolean(style.label),
-				lineStyle: style.lineStyle,
+				type: getEdgeType(resolvedStyle.lineStyle, edge.directed),
+				size: resolvedStyle.size,
+				color: resolvedStyle.color,
+				label: resolvedStyle.label,
+				forceLabel: Boolean(resolvedStyle.label),
+				lineStyle: resolvedStyle.lineStyle,
+				kind: edge.kind,
+				semantic: edge.semantic ?? edge.kind !== 'plain-link',
 				hidden:
-					style.hidden ||
+					resolvedStyle.hidden ||
 					Boolean(projection.hiddenNodeIds?.has(edge.source)) ||
 					Boolean(projection.hiddenNodeIds?.has(edge.target)),
 			};
@@ -191,6 +214,13 @@ export class GraphologyAdapter {
 
 		return graph;
 	}
+}
+
+function isPlainLinkEdge(edge: {
+	kind?: KnowledgeEdgeKind;
+	semantic?: boolean;
+}): boolean {
+	return edge.kind === 'plain-link' || edge.semantic === false;
 }
 
 export function getEdgeType(

@@ -10,6 +10,7 @@ import { cloneSerializable } from '../state/persistence';
 import {
 	createRuleId,
 	isRecord,
+	readBoolean,
 	readFilterField,
 	readFilterGroupMode,
 	readFilterOperator,
@@ -30,6 +31,10 @@ export function normalizeQuery(
 		hiddenNodeRules,
 		filterRoot,
 		maxNodes: readFiniteNumber(record.maxNodes, maxNodes),
+		showPlainLinks: readBoolean(
+			record.showPlainLinks,
+			fallback.showPlainLinks,
+		),
 	};
 }
 

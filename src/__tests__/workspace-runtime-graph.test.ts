@@ -177,4 +177,58 @@ describe('workspace runtime graph', () => {
 		expect(graph.getNodeAttribute('B.md', 'hidden')).toBe(true);
 		expect(graph.getEdgeAttribute('A->B', 'hidden')).toBe(true);
 	});
+
+	it('renders plain links as muted compatibility edges', () => {
+		const plainProjection: GraphProjection = {
+			...projection,
+			nodes: [
+				...projection.nodes,
+				{
+					id: 'B.md',
+					path: 'B.md',
+					title: 'B',
+					folder: '',
+					domains: [],
+					tags: [],
+				},
+			],
+			edges: [
+				{
+					id: 'A-plain-B',
+					kind: 'plain-link',
+					semantic: false,
+					source: 'A.md',
+					target: 'B.md',
+					relation: 'link',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'body',
+				},
+			],
+		};
+		const graph = createWorkspaceRuntimeGraph(
+			plainProjection,
+			new Map(),
+			{
+				...createWorkspaceState(200),
+				plainLinkStyleOverrides: {
+					color: '#123456',
+					size: 4,
+					lineStyle: 'dotted',
+				},
+			},
+			palette,
+		);
+
+		expect(graph.getEdgeAttributes('A-plain-B')).toMatchObject({
+			color: '#123456',
+			size: 4,
+			lineStyle: 'dotted',
+			type: 'dotted-arrow',
+			label: '',
+			forceLabel: false,
+			kind: 'plain-link',
+			semantic: false,
+		});
+	});
 });

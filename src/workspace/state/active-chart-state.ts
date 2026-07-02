@@ -54,6 +54,7 @@ type ActiveChartStateFields = Pick<
 	| 'curated'
 	| 'nodeStyleOverrides'
 	| 'linkStyleOverrides'
+	| 'plainLinkStyleOverrides'
 	| 'nodeStyleRules'
 	| 'linkStyleRules'
 >;
@@ -189,6 +190,9 @@ function createActiveChartStateFields(
 		curated: cloneSerializable(chart.curated),
 		nodeStyleOverrides: cloneSerializable(chart.style.nodeOverrides),
 		linkStyleOverrides: cloneSerializable(chart.style.linkOverrides),
+		plainLinkStyleOverrides: cloneSerializable(
+			chart.style.plainLinkOverrides,
+		),
 		nodeStyleRules: cloneSerializable(chart.style.nodeRules),
 		linkStyleRules: cloneSerializable(chart.style.linkRules),
 	};

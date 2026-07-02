@@ -52,3 +52,17 @@ export function getActiveDefaultLinkStyle(
 			state.linkStyleOverrides.hidden ?? state.defaultLinkStyle.hidden,
 	};
 }
+
+export function getActivePlainLinkStyle(
+	state: Pick<WorkspaceState, 'plainLinkStyleOverrides'>,
+	fallbackColor: string,
+): Required<DefaultLinkStyle> {
+	return {
+		color: state.plainLinkStyleOverrides.color ?? fallbackColor,
+		size: state.plainLinkStyleOverrides.size ?? 1,
+		lineStyle: state.plainLinkStyleOverrides.lineStyle ?? 'dashed',
+		label: '',
+		showLabel: false,
+		hidden: state.plainLinkStyleOverrides.hidden ?? false,
+	};
+}

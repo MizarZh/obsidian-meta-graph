@@ -48,6 +48,37 @@ describe('workspace persistence', () => {
 		expect(restored.labelDensity).toBe(1);
 	});
 
+	it('persists plain link style overrides', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		const graphChart = document.charts.find(
+			(chart) => chart.id === 'knowledge-map',
+		);
+		if (graphChart) {
+			graphChart.style.plainLinkOverrides = {
+				color: '#123456',
+				size: 3,
+				lineStyle: 'dotted',
+				hidden: true,
+			};
+		}
+
+		const restored = createWorkspaceState(300, 1.5, document);
+		const saved = serializeMetaGraphState(restored);
+
+		expect(restored.plainLinkStyleOverrides).toEqual({
+			color: '#123456',
+			size: 3,
+			lineStyle: 'dotted',
+			hidden: true,
+		});
+		expect(saved.charts[0]?.style.plainLinkOverrides).toEqual({
+			color: '#123456',
+			size: 3,
+			lineStyle: 'dotted',
+			hidden: true,
+		});
+	});
+
 	it('restores the active chart from a document', () => {
 		const document = createDefaultMetaGraphDocument(200, 2);
 		document.activeChart = 'learning-flow';

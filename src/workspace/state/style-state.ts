@@ -11,6 +11,7 @@ import {
 	normalizeGlobalNodeStyleRules,
 	normalizeLinkStyleRules,
 	normalizeNodeStyleRules,
+	normalizePlainLinkStyleOverrides,
 } from '../meta-graph-model';
 import { cloneSerializable } from './persistence';
 import { updateActiveChartState } from './state-updaters';
@@ -72,6 +73,17 @@ export function setLinkStyleOverridesInState(
 ): WorkspaceState {
 	return updateActiveChartStyle(state, {
 		linkOverrides: cloneSerializable(linkStyleOverrides),
+	});
+}
+
+export function setPlainLinkStyleOverridesInState(
+	state: WorkspaceState,
+	plainLinkStyleOverrides: DefaultLinkStyle,
+): WorkspaceState {
+	return updateActiveChartStyle(state, {
+		plainLinkOverrides: normalizePlainLinkStyleOverrides(
+			plainLinkStyleOverrides,
+		),
 	});
 }
 

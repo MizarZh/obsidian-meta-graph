@@ -78,6 +78,7 @@
 		nodeStyleRules,
 		globalLinkStyleRules,
 		linkStyleOverrides,
+		plainLinkStyleOverrides,
 		linkStyleRules,
 		onFlowEdgeStyle,
 		onFlowDirection,
@@ -119,6 +120,7 @@
 		onNodeStyleRulesChange,
 		onGlobalLinkStyleRulesChange,
 		onLinkStyleOverrides,
+		onPlainLinkStyleOverrides,
 		onLinkStyleRulesChange,
 	}: {
 		app: App;
@@ -171,6 +173,7 @@
 		nodeStyleRules: NodeStyleRule[];
 		globalLinkStyleRules: LinkStyleRule[];
 		linkStyleOverrides: DefaultLinkStyle;
+		plainLinkStyleOverrides: DefaultLinkStyle;
 		linkStyleRules: LinkStyleRule[];
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
@@ -212,6 +215,7 @@
 		onNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
 		onGlobalLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 		onLinkStyleOverrides: (style: DefaultLinkStyle) => void;
+		onPlainLinkStyleOverrides: (style: DefaultLinkStyle) => void;
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 	} = $props();
 
@@ -361,10 +365,13 @@
 			{defaultLinkStyle}
 			{globalLinkStyleRules}
 			{linkStyleOverrides}
+			{plainLinkStyleOverrides}
 			{linkStyleRules}
+			showPlainLinks={query.showPlainLinks}
 			{onDefaultLinkStyle}
 			{onGlobalLinkStyleRulesChange}
 			{onLinkStyleOverrides}
+			{onPlainLinkStyleOverrides}
 			{onLinkStyleRulesChange}
 			{scheduleColorCommit}
 			{commitColor}

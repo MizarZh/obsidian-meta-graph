@@ -68,6 +68,7 @@ import {
 	setLinkStyleRulesInState,
 	setNodeStyleOverridesInState,
 	setNodeStyleRulesInState,
+	setPlainLinkStyleOverridesInState,
 } from './state/style-state';
 import {
 	addConnectionFieldAndSelectInState,
@@ -807,6 +808,15 @@ export class WorkspaceController {
 	setLinkStyleOverrides(linkStyleOverrides: DefaultLinkStyle): void {
 		this.setWorkspaceState(
 			setLinkStyleOverridesInState(this.state, linkStyleOverrides),
+		);
+	}
+
+	setPlainLinkStyleOverrides(plainLinkStyleOverrides: DefaultLinkStyle): void {
+		this.setWorkspaceState(
+			setPlainLinkStyleOverridesInState(
+				this.state,
+				plainLinkStyleOverrides,
+			),
 		);
 	}
 
