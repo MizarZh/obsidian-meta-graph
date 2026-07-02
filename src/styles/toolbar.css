@@ -112,6 +112,8 @@
 .knowledge-workspace-icon-button svg,
 .knowledge-workspace-add-rule-button svg,
 .knowledge-workspace-remove-rule-button svg,
+.knowledge-workspace-group-delete svg,
+.knowledge-workspace-curated-list-search-clear svg,
 .knowledge-workspace-dock-node button svg,
 .knowledge-workspace-connection-add button svg {
 	width: 16px;
@@ -479,4 +481,3 @@
 	background: var(--interactive-accent);
 	color: var(--text-on-accent);
 }
-

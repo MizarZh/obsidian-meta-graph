@@ -18,6 +18,7 @@
 		selectedTitleCounts,
 		getGroupOptions,
 		selectedPaths,
+		reorderEnabled = true,
 		onToggleSelected,
 		onFileClick,
 		onPointerDown,
@@ -32,6 +33,7 @@
 		selectedTitleCounts: Record<string, number>;
 		getGroupOptions: (currentGroupId: string) => DropdownOption[];
 		selectedPaths: Set<string>;
+		reorderEnabled?: boolean;
 		onToggleSelected: (path: string) => void;
 		onFileClick: (path: string, event: MouseEvent) => void;
 		onPointerDown: (path: string, event: PointerEvent) => void;
@@ -54,6 +56,9 @@
 	}
 
 	function handleDndFinalize(event: CustomEvent<DndEvent<CuratedDndEntry>>) {
+		if (!reorderEnabled) {
+			return;
+		}
 		const orderedPaths = files.map((file) => file.path);
 		const singleDraggedOrder = readRealItems(event.detail.items).map(
 			(file) => file.path,
@@ -88,6 +93,7 @@
 			items: dndFiles,
 			flipDurationMs: 120,
 			type: 'meta-graph-curated-files',
+			dragDisabled: !reorderEnabled,
 		}}
 		onconsider={handleDndConsider}
 		onfinalize={handleDndFinalize}

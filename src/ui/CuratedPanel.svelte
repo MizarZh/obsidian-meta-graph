@@ -20,6 +20,7 @@
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
 	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
+	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
 
 	let {
 		app,
@@ -86,6 +87,7 @@
 	} = $props();
 
 	let fileSearch = $state('');
+	let listSearch = $state('');
 	let addGroupId = $state('');
 	let batchInput = $state('');
 	let batchOpen = $state(false);
@@ -123,6 +125,13 @@
 		),
 	);
 	const selectedTitleCounts = $derived(countTitles(selectedFiles));
+	const filteredSelectedFiles = $derived(
+		filterSelectedFiles(selectedFiles, listSearch),
+	);
+	const filteredSelectedTitleCounts = $derived(
+		countTitles(filteredSelectedFiles),
+	);
+	const listSearchActive = $derived(listSearch.trim().length > 0);
 	const selectedCount = $derived(
 		curated.files.filter((file) => selected.has(file.path)).length,
 	);
@@ -313,6 +322,25 @@
 		window.addEventListener('pointermove', onMove);
 		window.addEventListener('pointerup', onUp);
 	}
+
+	function filterSelectedFiles(
+		files: typeof selectedFiles,
+		search: string,
+	): typeof selectedFiles {
+		const query = search.trim().toLocaleLowerCase();
+		if (!query) {
+			return files;
+		}
+		return files.filter((file) =>
+			[
+				file.title,
+				file.path,
+				file.detail,
+				file.groupId,
+				file.groupName,
+			].some((value) => value?.toLocaleLowerCase().includes(query)),
+		);
+	}
 </script>
 
 <aside
@@ -446,11 +474,30 @@
 					/>
 				{/if}
 			</div>
+			<div class="knowledge-workspace-curated-list-search">
+				<ObsidianTextInput
+					type="search"
+					placeholder="Search workspace files..."
+					ariaLabel="Search workspace files"
+					value={listSearch}
+					onInput={(value) => (listSearch = value)}
+				/>
+				{#if listSearchActive}
+					<ObsidianButton
+						icon="x"
+						class="knowledge-workspace-curated-list-search-clear"
+						ariaLabel="Clear workspace file search"
+						tooltip="Clear search"
+						onClick={() => (listSearch = '')}
+					/>
+				{/if}
+			</div>
 			<CuratedFileList
-				files={selectedFiles}
-				{selectedTitleCounts}
+				files={filteredSelectedFiles}
+				selectedTitleCounts={filteredSelectedTitleCounts}
 				{getGroupOptions}
 				selectedPaths={selected}
+				reorderEnabled={!listSearchActive}
 				onToggleSelected={toggleSelected}
 				onFileClick={handleFileClick}
 				onPointerDown={handleFilePointerDown}

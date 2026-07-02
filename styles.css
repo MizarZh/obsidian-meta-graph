@@ -153,6 +153,8 @@
 .knowledge-workspace-icon-button svg,
 .knowledge-workspace-add-rule-button svg,
 .knowledge-workspace-remove-rule-button svg,
+.knowledge-workspace-group-delete svg,
+.knowledge-workspace-curated-list-search-clear svg,
 .knowledge-workspace-dock-node button svg,
 .knowledge-workspace-connection-add button svg {
 	width: 16px;
@@ -520,7 +522,6 @@
 	background: var(--interactive-accent);
 	color: var(--text-on-accent);
 }
-
 .knowledge-workspace-body {
 	position: relative;
 	display: block;
@@ -611,6 +612,14 @@
 	grid-template-columns: minmax(0, 1fr) 32px;
 	gap: var(--size-4-2);
 	align-items: center;
+}
+
+.knowledge-workspace-group-delete {
+	display: grid;
+	place-items: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
 }
 
 .knowledge-workspace-group-name {
@@ -737,6 +746,28 @@
 
 .knowledge-workspace-curated-search select {
 	max-width: 132px;
+}
+
+.knowledge-workspace-curated-list-search {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) max-content;
+	gap: var(--size-4-2);
+	align-items: center;
+	padding: var(--size-4-2) var(--size-4-3);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.knowledge-workspace-curated-list-search input {
+	width: 100%;
+	min-width: 0;
+}
+
+.knowledge-workspace-curated-list-search-clear {
+	display: grid;
+	place-items: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
 }
 
 .knowledge-workspace-curated-list {
@@ -1933,7 +1964,6 @@
 	font-size: var(--font-ui-smaller);
 	line-height: 1.3;
 }
-
 .knowledge-workspace-main {
 	position: relative;
 	--dock-panel-width: clamp(240px, 25vw, 320px);
@@ -2190,34 +2220,6 @@
 	stroke-dasharray: none;
 	stroke-width: 3;
 	opacity: 1;
-}
-
-.knowledge-workspace-curated-drop-preview {
-	position: absolute;
-	z-index: 10;
-	top: var(--drop-y);
-	left: var(--drop-x);
-	width: 28px;
-	height: 28px;
-	transform: translate(-50%, -50%);
-	border: 2px solid
-		color-mix(in srgb, var(--interactive-accent) 70%, transparent);
-	border-radius: 50%;
-	background: color-mix(in srgb, var(--interactive-accent) 24%, transparent);
-	pointer-events: none;
-}
-
-.knowledge-workspace-curated-drop-preview span {
-	position: absolute;
-	inset: 8px;
-	border-radius: 50%;
-	background: var(--interactive-accent);
-	opacity: 0.72;
-}
-
-.knowledge-workspace-curated-drop-preview.target {
-	border-color: var(--interactive-accent);
-	background: color-mix(in srgb, var(--interactive-accent) 34%, transparent);
 }
 
 .knowledge-workspace-connection-target-label {

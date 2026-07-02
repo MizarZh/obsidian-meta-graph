@@ -93,6 +93,7 @@
 							{#if !locked}
 								<ObsidianButton
 									icon="trash-2"
+									class="knowledge-workspace-group-delete"
 									ariaLabel={`Delete ${group.name}`}
 									destructive={true}
 									onClick={() => onDeleteGroup(group.id)}
