@@ -64,6 +64,7 @@ export class Cube3DRenderer {
 	private readonly nodeObjects = new Map<string, CubeNodeObject>();
 	private readonly faceMeshes = new Map<CubeFaceId, Three.Mesh>();
 	private readonly arrowTextures = new Map<string, Three.CanvasTexture>();
+	private readonly edgeLineMaterials = new Set<InstanceType<ThreeModule['LineMaterial']>>();
 	private cubeSize: number;
 	private cubeFreeCamera: boolean;
 	private selectedNodeId?: string;
@@ -407,6 +408,7 @@ export class Cube3DRenderer {
 		this.camera.aspect = width / height;
 		this.camera.updateProjectionMatrix();
 		this.webgl.setSize(width, height, false);
+		this.updateEdgeLineResolutions(width, height);
 		this.scheduleRender();
 	}
 
@@ -736,6 +738,7 @@ export class Cube3DRenderer {
 
 	private rebuildEdges(): void {
 		this.clearObjectGroup(this.edgeGroup);
+		this.edgeLineMaterials.clear();
 		for (const edgeId of this.graph.edges()) {
 			const attributes = this.graph.getEdgeAttributes(edgeId);
 			if (attributes.hidden) {
@@ -748,18 +751,10 @@ export class Cube3DRenderer {
 			}
 			const start = source.mesh.position;
 			const end = target.mesh.position;
-			const material = new this.three.LineBasicMaterial({
-				color: attributes.color,
-				transparent: true,
-				opacity: 0.72,
-			});
-			const geometry = new this.three.BufferGeometry().setFromPoints([
-				start.clone(),
-				end.clone(),
-			]);
-			const line = new this.three.Line(geometry, material);
-			line.renderOrder = 2;
-			this.edgeGroup.add(line);
+			const line = this.createEdgeLine(start, end, attributes);
+			if (line) {
+				this.edgeGroup.add(line);
+			}
 			if (this.graph.isDirected(edgeId)) {
 				this.addArrow(start, end, attributes);
 			}
@@ -776,6 +771,46 @@ export class Cube3DRenderer {
 		}
 	}
 
+	private createEdgeLine(
+		start: Three.Vector3,
+		end: Three.Vector3,
+		attributes: RuntimeEdgeAttributes,
+	): InstanceType<ThreeModule['Line2']> | undefined {
+		const direction = end.clone().sub(start);
+		const length = Math.sqrt(direction.lengthSq());
+		if (length === 0) {
+			return undefined;
+		}
+		const geometry = new this.three.LineGeometry();
+		geometry.setPositions([start.x, start.y, start.z, end.x, end.y, end.z]);
+		const material = new this.three.LineMaterial({
+			color: attributes.color,
+			linewidth: getCubeLinkWidth(attributes.size),
+			transparent: true,
+			opacity: 0.72,
+			depthWrite: false,
+		});
+		this.updateEdgeLineResolution(material);
+		this.edgeLineMaterials.add(material);
+		const line = new this.three.Line2(geometry, material);
+		line.computeLineDistances();
+		line.renderOrder = 2;
+		return line;
+	}
+
+	private updateEdgeLineResolutions(width: number, height: number): void {
+		for (const material of this.edgeLineMaterials) {
+			material.resolution.set(width, height);
+		}
+	}
+
+	private updateEdgeLineResolution(
+		material: InstanceType<ThreeModule['LineMaterial']>,
+	): void {
+		const { width, height } = this.container.getBoundingClientRect();
+		material.resolution.set(Math.max(1, width), Math.max(1, height));
+	}
+
 	private addArrow(
 		start: Three.Vector3,
 		end: Three.Vector3,
@@ -786,7 +821,7 @@ export class Cube3DRenderer {
 			return;
 		}
 		const normalized = direction.normalize();
-		const size = Math.max(14, attributes.size * 7);
+		const size = getCubeArrowSize(attributes.size);
 		const material = new this.three.SpriteMaterial({
 			map: this.getArrowTexture(attributes.color),
 			transparent: true,
@@ -1224,8 +1259,19 @@ export class Cube3DRenderer {
 }
 
 async function loadThree(): Promise<ThreeModule> {
-	const module = await import('three');
-	return module;
+	const [module, line2Module, lineGeometryModule, lineMaterialModule] =
+		await Promise.all([
+			import('three'),
+			import('three/examples/jsm/lines/Line2.js'),
+			import('three/examples/jsm/lines/LineGeometry.js'),
+			import('three/examples/jsm/lines/LineMaterial.js'),
+		]);
+	return {
+		...module,
+		Line2: line2Module.Line2,
+		LineGeometry: lineGeometryModule.LineGeometry,
+		LineMaterial: lineMaterialModule.LineMaterial,
+	};
 }
 
 function normalizeCubeSize(value: number): number {
@@ -1233,3 +1279,11 @@ function normalizeCubeSize(value: number): number {
 }
 
 const MAX_TURNTABLE_PITCH = (80 * Math.PI) / 180;
+
+function getCubeLinkWidth(size: number): number {
+	return Math.max(1.5, size * 2.2);
+}
+
+function getCubeArrowSize(size: number): number {
+	return Math.max(8, size * 4);
+}

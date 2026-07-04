@@ -83,9 +83,24 @@ class Vector2 {
 	y = 0;
 }
 
+class Quaternion {
+	setFromUnitVectors(): this {
+		return this;
+	}
+
+	normalize(): this {
+		return this;
+	}
+
+	premultiply(): this {
+		return this;
+	}
+}
+
 class Object3D {
 	children: Object3D[] = [];
 	position = new Vector3();
+	quaternion = new Quaternion();
 	rotation = { set: vi.fn(), copy: vi.fn() };
 	scale = {
 		x: 1,
@@ -277,10 +292,42 @@ vi.mock('three', () => ({
 	Scene,
 	Sprite,
 	SpriteMaterial,
+	Quaternion,
 	Vector2,
 	Vector3,
 	WebGLRenderer,
 }));
+
+class LineGeometry extends BufferGeometry {
+	setPositions(_positions: number[]): this {
+		return this;
+	}
+}
+
+class LineMaterial extends Material {
+	resolution = { set: vi.fn() };
+
+	constructor(_options?: unknown) {
+		super();
+	}
+}
+
+class Line2 extends Object3D {
+	geometry: LineGeometry;
+	material: LineMaterial;
+
+	constructor(geometry = new LineGeometry(), material = new LineMaterial()) {
+		super();
+		this.geometry = geometry;
+		this.material = material;
+	}
+
+	computeLineDistances(): void {}
+}
+
+vi.mock('three/examples/jsm/lines/Line2.js', () => ({ Line2 }));
+vi.mock('three/examples/jsm/lines/LineGeometry.js', () => ({ LineGeometry }));
+vi.mock('three/examples/jsm/lines/LineMaterial.js', () => ({ LineMaterial }));
 
 const palette: GraphPalette = {
 	background: '#202020',
