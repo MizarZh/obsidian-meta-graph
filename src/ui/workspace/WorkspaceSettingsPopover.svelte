@@ -79,6 +79,7 @@
 			labelDensity={workspaceState.labelDensity}
 			cubeFaceOpacity={workspaceState.cubeFaceOpacity}
 			cubeSize={workspaceState.cubeSize}
+			cubeFreeCamera={workspaceState.cubeFreeCamera}
 			forceLabels={workspaceState.forceLabels}
 			enableForceLayout={workspaceState.enableForceLayout}
 			flowEdgeStyle={workspaceState.flowEdgeStyle}
@@ -147,6 +148,7 @@
 			onLabelDensity={(value) => controller.setLabelDensity(value)}
 			onCubeFaceOpacity={(value) => controller.setCubeFaceOpacity(value)}
 			onCubeSize={(value) => controller.setCubeSize(value)}
+			onCubeFreeCamera={(value) => controller.setCubeFreeCamera(value)}
 			onForceLabels={(value) => controller.setForceLabels(value)}
 			onEnableForceLayout={(value) =>
 				controller.setEnableForceLayout(value)}

@@ -46,6 +46,7 @@
 		labelDensity,
 		cubeFaceOpacity,
 		cubeSize,
+		cubeFreeCamera,
 		forceLabels,
 		enableForceLayout,
 		flowEdgeStyle,
@@ -103,6 +104,7 @@
 		onLabelDensity,
 		onCubeFaceOpacity,
 		onCubeSize,
+		onCubeFreeCamera,
 		onForceLabels,
 		onEnableForceLayout,
 		onGraphSpacing,
@@ -147,6 +149,7 @@
 		labelDensity: number;
 		cubeFaceOpacity: number;
 		cubeSize: number;
+		cubeFreeCamera: boolean;
 		forceLabels: boolean;
 		enableForceLayout: boolean;
 		flowEdgeStyle: FlowEdgeStyle;
@@ -204,6 +207,7 @@
 		onLabelDensity: (value: number) => void;
 		onCubeFaceOpacity: (value: number) => void;
 		onCubeSize: (value: number) => void;
+		onCubeFreeCamera: (value: boolean) => void;
 		onForceLabels: (value: boolean) => void;
 		onEnableForceLayout: (value: boolean) => void;
 		onGraphSpacing: (spacing: number) => void;
@@ -268,6 +272,7 @@
 			{labelDensity}
 			{cubeFaceOpacity}
 			{cubeSize}
+			{cubeFreeCamera}
 			{forceLabels}
 			{enableForceLayout}
 			{flowEdgeStyle}
@@ -294,6 +299,7 @@
 			{onLabelDensity}
 			{onCubeFaceOpacity}
 			{onCubeSize}
+			{onCubeFreeCamera}
 			{onForceLabels}
 			{onEnableForceLayout}
 			{onGraphSpacing}

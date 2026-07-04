@@ -36,6 +36,7 @@ function createRenderer() {
 		setLabelDensity: vi.fn(),
 		setCubeFaceOpacity: vi.fn(),
 		setCubeSize: vi.fn(),
+		setCubeFreeCamera: vi.fn(),
 		setForceLabels: vi.fn(),
 	};
 }
@@ -53,6 +54,7 @@ function noChanges(): WorkspaceStateChanges {
 		labelDensityChanged: false,
 		cubeFaceOpacityChanged: false,
 		cubeSizeChanged: false,
+		cubeFreeCameraChanged: false,
 		forceLabelsChanged: false,
 		graphForceSettingsChanged: false,
 		forceLayoutChanged: false,

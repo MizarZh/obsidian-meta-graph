@@ -21,6 +21,7 @@
 		labelDensity,
 		cubeFaceOpacity,
 		cubeSize,
+		cubeFreeCamera,
 		forceLabels,
 		enableForceLayout,
 		flowEdgeStyle,
@@ -47,6 +48,7 @@
 		onLabelDensity,
 		onCubeFaceOpacity,
 		onCubeSize,
+		onCubeFreeCamera,
 		onForceLabels,
 		onEnableForceLayout,
 		onGraphSpacing,
@@ -66,6 +68,7 @@
 		labelDensity: number;
 		cubeFaceOpacity: number;
 		cubeSize: number;
+		cubeFreeCamera: boolean;
 		forceLabels: boolean;
 		enableForceLayout: boolean;
 		flowEdgeStyle: FlowEdgeStyle;
@@ -92,6 +95,7 @@
 		onLabelDensity: (value: number) => void;
 		onCubeFaceOpacity: (value: number) => void;
 		onCubeSize: (value: number) => void;
+		onCubeFreeCamera: (value: boolean) => void;
 		onForceLabels: (value: boolean) => void;
 		onEnableForceLayout: (value: boolean) => void;
 		onGraphSpacing: (spacing: number) => void;
@@ -398,6 +402,21 @@
 			</div>
 		</label>
 		{#if mode === 'cube'}
+			<div class="knowledge-workspace-rule-label segmented">
+				<span>Camera mode</span>
+				<div class="knowledge-workspace-segmented">
+					<ObsidianButton
+						active={cubeFreeCamera}
+						text="Free"
+						onClick={() => onCubeFreeCamera(true)}
+					/>
+					<ObsidianButton
+						active={!cubeFreeCamera}
+						text="Lock up"
+						onClick={() => onCubeFreeCamera(false)}
+					/>
+				</div>
+			</div>
 			<label class="knowledge-workspace-rule-label">
 				<span>Cube size</span>
 				<div class="knowledge-workspace-slider-value">

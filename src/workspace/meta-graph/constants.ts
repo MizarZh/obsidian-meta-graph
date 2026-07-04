@@ -35,6 +35,7 @@ export const DEFAULT_LABEL_BACKGROUND_OPACITY = 0.82;
 export const DEFAULT_LABEL_DENSITY = 0.8;
 export const DEFAULT_CUBE_FACE_OPACITY = 0.55;
 export const DEFAULT_CUBE_SIZE = 180;
+export const DEFAULT_CUBE_FREE_CAMERA = true;
 export const DEFAULT_FORCE_LABELS = false;
 
 export const BUILT_IN_DEFAULT_NODE_STYLE: Required<DefaultNodeStyle> = {

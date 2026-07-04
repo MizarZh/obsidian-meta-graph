@@ -131,6 +131,7 @@ describe('style rules', () => {
 							labelDensity: 0.8,
 							cubeFaceOpacity: 0.55,
 							cubeSize: 180,
+							cubeFreeCamera: true,
 							forceLabels: false,
 							enableForceLayout: false,
 							showInspector: true,

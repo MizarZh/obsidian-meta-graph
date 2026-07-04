@@ -5,6 +5,7 @@ import type {
 	ViewMode,
 } from '../../core/types';
 import {
+	DEFAULT_CUBE_FREE_CAMERA,
 	DEFAULT_CUBE_FACE_OPACITY,
 	DEFAULT_CUBE_SIZE,
 	DEFAULT_FORCE_LABELS,
@@ -84,6 +85,7 @@ export function createDefaultChart(
 			labelDensity: DEFAULT_LABEL_DENSITY,
 			cubeFaceOpacity: DEFAULT_CUBE_FACE_OPACITY,
 			cubeSize: DEFAULT_CUBE_SIZE,
+			cubeFreeCamera: DEFAULT_CUBE_FREE_CAMERA,
 			forceLabels: DEFAULT_FORCE_LABELS,
 			enableForceLayout: false,
 			showInspector: true,
@@ -226,6 +228,10 @@ export function normalizeChart(
 				readFiniteNumber(display.cubeSize, fallback.display.cubeSize),
 				120,
 				320,
+			),
+			cubeFreeCamera: readBoolean(
+				display.cubeFreeCamera,
+				fallback.display.cubeFreeCamera,
 			),
 			forceLabels: readBoolean(
 				display.forceLabels,

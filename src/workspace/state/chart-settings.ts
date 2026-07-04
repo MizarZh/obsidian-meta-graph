@@ -182,6 +182,13 @@ export function setCubeSizeInState(
 	return setDisplayValue(state, 'cubeSize', size);
 }
 
+export function setCubeFreeCameraInState(
+	state: WorkspaceState,
+	cubeFreeCamera: boolean,
+): WorkspaceState {
+	return setDisplayValue(state, 'cubeFreeCamera', cubeFreeCamera);
+}
+
 export function setForceLabelsInState(
 	state: WorkspaceState,
 	forceLabels: boolean,

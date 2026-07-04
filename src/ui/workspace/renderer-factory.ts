@@ -40,6 +40,7 @@ export function createWorkspaceGraphRenderer(
 		labelDensity: state.labelDensity,
 		cubeFaceOpacity: state.cubeFaceOpacity,
 		cubeSize: state.cubeSize,
+		cubeFreeCamera: state.cubeFreeCamera,
 		enableForceLayout: state.enableForceLayout,
 		forceLabels: state.forceLabels,
 		isStale,

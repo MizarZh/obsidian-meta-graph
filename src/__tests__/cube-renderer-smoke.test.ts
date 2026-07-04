@@ -413,6 +413,7 @@ describe('Cube3DRenderer smoke', () => {
 			0.8,
 			0.55,
 			180,
+			true,
 			false,
 			true,
 		);
