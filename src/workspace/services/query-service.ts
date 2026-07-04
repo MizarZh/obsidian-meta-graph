@@ -1,4 +1,4 @@
-import { TFolder, type App } from 'obsidian';
+import type { App, TFolder } from 'obsidian';
 import { MetadataIndexer } from '../../core/metadata-indexer';
 import type {
 	GraphProjection,
@@ -61,8 +61,17 @@ function readVaultFolders(app: App): string[] {
 	return uniqueSorted(
 		app.vault
 			.getAllLoadedFiles()
-			.filter((file): file is TFolder => file instanceof TFolder)
+			.filter(isTFolder)
 			.map((folder) => folder.path)
 			.filter((path) => path !== '/'),
+	);
+}
+
+function isTFolder(file: unknown): file is TFolder {
+	return (
+		typeof file === 'object' &&
+		file !== null &&
+		typeof (file as TFolder).path === 'string' &&
+		Array.isArray((file as { children?: unknown }).children)
 	);
 }

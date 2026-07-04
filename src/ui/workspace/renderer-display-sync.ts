@@ -20,6 +20,8 @@ interface DisplayRenderer {
 	setLabelDensity(value: number): void;
 	setForceLabels(value: boolean): void;
 	setCubeFaceOpacity?(value: number): void;
+	setCubeSize?(value: number): void;
+	setCubeFreeCamera?(value: boolean): void;
 }
 
 export function syncRendererDisplaySettings(
@@ -53,6 +55,12 @@ export function syncRendererDisplaySettings(
 	}
 	if (changes.cubeFaceOpacityChanged && renderer?.setCubeFaceOpacity) {
 		renderer.setCubeFaceOpacity(state.cubeFaceOpacity);
+	}
+	if (changes.cubeSizeChanged && renderer?.setCubeSize) {
+		renderer.setCubeSize(state.cubeSize);
+	}
+	if (changes.cubeFreeCameraChanged && renderer?.setCubeFreeCamera) {
+		renderer.setCubeFreeCamera(state.cubeFreeCamera);
 	}
 	if (changes.forceLabelsChanged) {
 		renderer?.setForceLabels(state.forceLabels);

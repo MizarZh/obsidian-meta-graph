@@ -20,6 +20,8 @@
 		fadeDistance,
 		labelDensity,
 		cubeFaceOpacity,
+		cubeSize,
+		cubeFreeCamera,
 		forceLabels,
 		enableForceLayout,
 		flowEdgeStyle,
@@ -45,6 +47,8 @@
 		onFadeDistance,
 		onLabelDensity,
 		onCubeFaceOpacity,
+		onCubeSize,
+		onCubeFreeCamera,
 		onForceLabels,
 		onEnableForceLayout,
 		onGraphSpacing,
@@ -63,6 +67,8 @@
 		fadeDistance: number;
 		labelDensity: number;
 		cubeFaceOpacity: number;
+		cubeSize: number;
+		cubeFreeCamera: boolean;
 		forceLabels: boolean;
 		enableForceLayout: boolean;
 		flowEdgeStyle: FlowEdgeStyle;
@@ -88,6 +94,8 @@
 		onFadeDistance: (value: number) => void;
 		onLabelDensity: (value: number) => void;
 		onCubeFaceOpacity: (value: number) => void;
+		onCubeSize: (value: number) => void;
+		onCubeFreeCamera: (value: boolean) => void;
 		onForceLabels: (value: boolean) => void;
 		onEnableForceLayout: (value: boolean) => void;
 		onGraphSpacing: (spacing: number) => void;
@@ -110,6 +118,100 @@
 	let flowDetailsOpen = $state(true);
 	let arcDetailsOpen = $state(true);
 	let sortOpen = $state(true);
+
+	type ModeSettingVisibility = {
+		graphLayout: boolean;
+		graph3dLayout: boolean;
+		graphForces: boolean;
+		flowLayout: boolean;
+		arcLayout: boolean;
+		sort: boolean;
+		sigmaDisplay: boolean;
+		cubeDisplay: boolean;
+		forceLabels: boolean;
+	};
+
+	const MODE_SETTING_VISIBILITY: Record<ViewMode, ModeSettingVisibility> = {
+		graph: {
+			graphLayout: true,
+			graph3dLayout: false,
+			graphForces: true,
+			flowLayout: false,
+			arcLayout: false,
+			sort: false,
+			sigmaDisplay: true,
+			cubeDisplay: false,
+			forceLabels: true,
+		},
+		'graph-3d': {
+			graphLayout: false,
+			graph3dLayout: true,
+			graphForces: false,
+			flowLayout: false,
+			arcLayout: false,
+			sort: false,
+			sigmaDisplay: false,
+			cubeDisplay: false,
+			forceLabels: false,
+		},
+		cube: {
+			graphLayout: false,
+			graph3dLayout: false,
+			graphForces: false,
+			flowLayout: false,
+			arcLayout: false,
+			sort: false,
+			sigmaDisplay: false,
+			cubeDisplay: true,
+			forceLabels: true,
+		},
+		free: {
+			graphLayout: false,
+			graph3dLayout: false,
+			graphForces: false,
+			flowLayout: false,
+			arcLayout: false,
+			sort: false,
+			sigmaDisplay: true,
+			cubeDisplay: false,
+			forceLabels: true,
+		},
+		flow: {
+			graphLayout: false,
+			graph3dLayout: false,
+			graphForces: false,
+			flowLayout: true,
+			arcLayout: false,
+			sort: false,
+			sigmaDisplay: true,
+			cubeDisplay: false,
+			forceLabels: true,
+		},
+		arc: {
+			graphLayout: false,
+			graph3dLayout: false,
+			graphForces: false,
+			flowLayout: false,
+			arcLayout: true,
+			sort: true,
+			sigmaDisplay: true,
+			cubeDisplay: false,
+			forceLabels: true,
+		},
+		'hierarchical-edge-bundling': {
+			graphLayout: false,
+			graph3dLayout: false,
+			graphForces: false,
+			flowLayout: false,
+			arcLayout: false,
+			sort: true,
+			sigmaDisplay: true,
+			cubeDisplay: false,
+			forceLabels: true,
+		},
+	};
+
+	const settingsVisibility = $derived(MODE_SETTING_VISIBILITY[mode]);
 
 	function formatCompact(value: number, precision: number): string {
 		return value.toFixed(precision).replace(/\.?0+$/u, '');
@@ -187,7 +289,7 @@
 				/>
 			</label>
 		</CollapsibleSettingsGroup>
-	{#if mode === 'graph' || mode === 'graph-3d' || mode === 'cube'}
+	{#if settingsVisibility.graphLayout}
 		<CollapsibleSettingsGroup title="Layout" bind:open={layoutOpen}>
 			<label class="knowledge-workspace-rule-label">
 				<span>Force layout</span>
@@ -212,6 +314,18 @@
 				</div>
 			</label>
 		</CollapsibleSettingsGroup>
+	{:else if settingsVisibility.graph3dLayout}
+		<CollapsibleSettingsGroup title="Layout" bind:open={layoutOpen}>
+			<label class="knowledge-workspace-rule-label">
+				<span>Drag nodes</span>
+				<ObsidianToggle
+					value={enableForceLayout}
+					onChange={onEnableForceLayout}
+				/>
+			</label>
+		</CollapsibleSettingsGroup>
+	{/if}
+	{#if settingsVisibility.graphForces}
 		<CollapsibleSettingsGroup title="Forces" bind:open={forcesOpen}>
 			<label class="knowledge-workspace-rule-label">
 				<span>Center force</span>
@@ -289,7 +403,8 @@
 				</div>
 			</label>
 		</CollapsibleSettingsGroup>
-	{:else if mode === 'flow'}
+	{/if}
+	{#if settingsVisibility.flowLayout}
 		<CollapsibleSettingsGroup title="Layout" bind:open={layoutOpen}>
 			<label class="knowledge-workspace-rule-label">
 				<span>Layer spacing</span>
@@ -322,7 +437,7 @@
 				</div>
 			</label>
 		</CollapsibleSettingsGroup>
-	{:else if mode === 'arc'}
+	{:else if settingsVisibility.arcLayout}
 		<CollapsibleSettingsGroup title="Layout" bind:open={layoutOpen}>
 			<label class="knowledge-workspace-rule-label">
 				<span>Spacing</span>
@@ -341,7 +456,7 @@
 			</label>
 		</CollapsibleSettingsGroup>
 	{/if}
-	{#if mode === 'arc' || mode === 'hierarchical-edge-bundling'}
+	{#if settingsVisibility.sort}
 		<CollapsibleSettingsGroup title="Sort" bind:open={sortOpen}>
 			<label class="knowledge-workspace-rule-label">
 				<span>Sort by</span>
@@ -362,38 +477,71 @@
 			</label>
 		</CollapsibleSettingsGroup>
 	{/if}
-	<CollapsibleSettingsGroup title="Display" bind:open={displayOpen}>
-		<label class="knowledge-workspace-rule-label">
-			<span>Fade distance</span>
-			<div class="knowledge-workspace-slider-value">
-				<ObsidianSlider
-					value={fadeDistance}
-					min={0.25}
-					max={4}
-					step={0.05}
-					format={(value) => formatCompact(value, 2)}
-					onChange={onFadeDistance}
-					onCommit={onFadeDistance}
-				/>
-				<span>{formatCompact(fadeDistance, 2)}</span>
+	{#if settingsVisibility.sigmaDisplay || settingsVisibility.cubeDisplay || settingsVisibility.forceLabels}
+		<CollapsibleSettingsGroup title="Display" bind:open={displayOpen}>
+			{#if settingsVisibility.sigmaDisplay}
+				<label class="knowledge-workspace-rule-label">
+					<span>Fade distance</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							value={fadeDistance}
+							min={0.25}
+							max={4}
+							step={0.05}
+							format={(value) => formatCompact(value, 2)}
+							onChange={onFadeDistance}
+							onCommit={onFadeDistance}
+						/>
+						<span>{formatCompact(fadeDistance, 2)}</span>
+					</div>
+				</label>
+				<label class="knowledge-workspace-rule-label">
+					<span>Label density</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							value={labelDensity}
+							min={0}
+							max={1}
+							step={0.05}
+							format={(value) => `${Math.round(value * 100)}%`}
+							onChange={onLabelDensity}
+							onCommit={onLabelDensity}
+						/>
+						<span>{Math.round(labelDensity * 100)}%</span>
+					</div>
+				</label>
+			{/if}
+			{#if settingsVisibility.cubeDisplay}
+			<div class="knowledge-workspace-rule-label segmented">
+				<span>Camera mode</span>
+				<div class="knowledge-workspace-segmented">
+					<ObsidianButton
+						active={cubeFreeCamera}
+						text="Free"
+						onClick={() => onCubeFreeCamera(true)}
+					/>
+					<ObsidianButton
+						active={!cubeFreeCamera}
+						text="Lock up"
+						onClick={() => onCubeFreeCamera(false)}
+					/>
+				</div>
 			</div>
-		</label>
-		<label class="knowledge-workspace-rule-label">
-			<span>Label density</span>
-			<div class="knowledge-workspace-slider-value">
-				<ObsidianSlider
-					value={labelDensity}
-					min={0}
-					max={1}
-					step={0.05}
-					format={(value) => `${Math.round(value * 100)}%`}
-					onChange={onLabelDensity}
-					onCommit={onLabelDensity}
-				/>
-				<span>{Math.round(labelDensity * 100)}%</span>
-			</div>
-		</label>
-		{#if mode === 'cube'}
+			<label class="knowledge-workspace-rule-label">
+				<span>Cube size</span>
+				<div class="knowledge-workspace-slider-value">
+					<ObsidianSlider
+						value={cubeSize}
+						min={120}
+						max={320}
+						step={10}
+						format={(value) => `${Math.round(value)}`}
+						onChange={onCubeSize}
+						onCommit={onCubeSize}
+					/>
+					<span>{Math.round(cubeSize)}</span>
+				</div>
+			</label>
 			<label class="knowledge-workspace-rule-label">
 				<span>Face opacity</span>
 				<div class="knowledge-workspace-slider-value">
@@ -409,12 +557,15 @@
 					<span>{Math.round(cubeFaceOpacity * 100)}%</span>
 				</div>
 			</label>
-		{/if}
-		<label class="knowledge-workspace-rule-label">
-			<span>Always show labels</span>
-			<ObsidianToggle value={forceLabels} onChange={onForceLabels} />
-		</label>
-	</CollapsibleSettingsGroup>
+			{/if}
+			{#if settingsVisibility.forceLabels}
+				<label class="knowledge-workspace-rule-label">
+					<span>Always show labels</span>
+					<ObsidianToggle value={forceLabels} onChange={onForceLabels} />
+				</label>
+			{/if}
+		</CollapsibleSettingsGroup>
+	{/if}
 	{#if mode === 'flow'}
 		<CollapsibleSettingsGroup
 			title="Flow details"

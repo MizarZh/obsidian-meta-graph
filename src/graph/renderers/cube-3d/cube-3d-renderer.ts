@@ -64,11 +64,14 @@ export class Cube3DRenderer {
 	private readonly nodeObjects = new Map<string, CubeNodeObject>();
 	private readonly faceMeshes = new Map<CubeFaceId, Three.Mesh>();
 	private readonly arrowTextures = new Map<string, Three.CanvasTexture>();
-	private readonly cubeSize = 180;
+	private cubeSize: number;
+	private cubeFreeCamera: boolean;
 	private selectedNodeId?: string;
 	private hoveredNodeId?: string;
 	private pinnedNodeId?: string;
 	private hoveredNeighborhood = new Set<string>();
+	private rotationPitch = -0.4;
+	private rotationYaw = 0.65;
 	private animationFrame: number | undefined;
 	private resizeObserver: ResizeObserver;
 	private labelColor: string;
@@ -99,6 +102,8 @@ export class Cube3DRenderer {
 		labelBackgroundOpacity = 0.82,
 		labelDensity = 0.8,
 		cubeFaceOpacity = 0.55,
+		cubeSize = 180,
+		cubeFreeCamera = true,
 		_forceLayout = false,
 		forceLabels = false,
 		isStale: () => boolean = () => false,
@@ -123,10 +128,12 @@ export class Cube3DRenderer {
 			labelSize,
 			labelPosition,
 			labelColor,
-			labelBackgroundOpacity,
-			labelDensity,
-			cubeFaceOpacity,
-			forceLabels,
+				labelBackgroundOpacity,
+				labelDensity,
+				cubeFaceOpacity,
+				cubeSize,
+				cubeFreeCamera,
+				forceLabels,
 			labelOffset,
 			labelLightTextColor,
 			labelLightBackgroundColor,
@@ -149,6 +156,8 @@ export class Cube3DRenderer {
 		labelBackgroundOpacity: number,
 		labelDensity: number,
 		cubeFaceOpacity: number,
+		cubeSize: number,
+		cubeFreeCamera: boolean,
 		forceLabels: boolean,
 		labelOffset: number,
 		labelLightTextColor: string,
@@ -174,13 +183,15 @@ export class Cube3DRenderer {
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.labelDensity = labelDensity;
 		this.cubeFaceOpacity = cubeFaceOpacity;
+		this.cubeSize = normalizeCubeSize(cubeSize);
+		this.cubeFreeCamera = cubeFreeCamera;
 		this.forceLabels = forceLabels;
 		this.scene = new this.three.Scene();
 		this.scene.background = new this.three.Color(
 			this.palette.background ?? '#202020',
 		);
 		this.camera = new this.three.PerspectiveCamera(45, 1, 1, 2000);
-		this.camera.position.set(0, 0, 620);
+		this.camera.position.set(0, 0, this.defaultCameraDistance());
 		this.webgl = new this.three.WebGLRenderer({
 			antialias: true,
 			alpha: true,
@@ -320,6 +331,37 @@ export class Cube3DRenderer {
 		this.scheduleRender();
 	}
 
+	setCubeSize(cubeSize: number): void {
+		const nextSize = normalizeCubeSize(cubeSize);
+		if (nextSize === this.cubeSize) {
+			return;
+		}
+		const scale = nextSize / this.cubeSize;
+		this.cubeSize = nextSize;
+		this.camera.position.z = clamp(
+			this.camera.position.z * scale,
+			this.minCameraDistance(),
+			this.maxCameraDistance(),
+		);
+		this.buildFaces();
+		this.rebuildGraphObjects();
+		this.scheduleRender();
+	}
+
+	setCubeFreeCamera(cubeFreeCamera: boolean): void {
+		if (cubeFreeCamera === this.cubeFreeCamera) {
+			return;
+		}
+		this.cubeFreeCamera = cubeFreeCamera;
+		if (!cubeFreeCamera) {
+			this.setTurntableRotation(
+				this.cubeGroup.rotation.x,
+				this.cubeGroup.rotation.y,
+			);
+		}
+		this.scheduleRender();
+	}
+
 	setForceLabels(forceLabels: boolean): void {
 		this.forceLabels = forceLabels;
 		this.rebuildGraphObjects();
@@ -353,7 +395,7 @@ export class Cube3DRenderer {
 			return;
 		}
 		const target = node.mesh.position.clone().normalize();
-		this.cubeGroup.rotation.set(-target.y * 0.8, target.x * 0.8, 0);
+		this.setCubeRotation(-target.y * 0.8, target.x * 0.8, 0);
 		this.scheduleRender();
 	}
 
@@ -369,9 +411,9 @@ export class Cube3DRenderer {
 	}
 
 	fit(): void {
-		this.camera.position.set(0, 0, 620);
+		this.camera.position.set(0, 0, this.defaultCameraDistance());
 		this.cubeGroup.position.set(0, 0, 0);
-		this.cubeGroup.rotation.set(-0.4, 0.65, 0);
+		this.setCubeRotation(-0.4, 0.65, 0);
 		this.scheduleRender();
 	}
 
@@ -466,8 +508,14 @@ export class Cube3DRenderer {
 	}
 
 	rotate(deltaX: number, deltaY: number): void {
-		this.cubeGroup.rotation.y += deltaX * 0.008;
-		this.cubeGroup.rotation.x += deltaY * 0.008;
+		if (this.cubeFreeCamera) {
+			this.rotateFreeCamera(deltaX, deltaY);
+		} else {
+			this.setTurntableRotation(
+				this.rotationPitch + deltaY * 0.008,
+				this.rotationYaw + deltaX * 0.008,
+			);
+		}
 		this.scheduleRender();
 	}
 
@@ -489,8 +537,8 @@ export class Cube3DRenderer {
 	zoom(deltaY: number): void {
 		this.camera.position.z = clamp(
 			this.camera.position.z + deltaY * 0.45,
-			260,
-			1200,
+			this.minCameraDistance(),
+			this.maxCameraDistance(),
 		);
 		this.scheduleRender();
 	}
@@ -917,6 +965,58 @@ export class Cube3DRenderer {
 		}
 	}
 
+	private defaultCameraDistance(): number {
+		return this.cubeSize * 3.45;
+	}
+
+	private minCameraDistance(): number {
+		return this.cubeSize * 1.45;
+	}
+
+	private maxCameraDistance(): number {
+		return this.cubeSize * 6.7;
+	}
+
+	private rotateFreeCamera(deltaX: number, deltaY: number): void {
+		const speed = 0.008;
+		const cameraDirection = new this.three.Vector3();
+		this.camera.getWorldDirection(cameraDirection);
+		const cameraUp = this.camera.up.clone().normalize();
+		const cameraRight = new this.three.Vector3()
+			.crossVectors(cameraDirection, cameraUp)
+			.normalize();
+		const yaw = new this.three.Quaternion().setFromAxisAngle(
+			cameraUp,
+			deltaX * speed,
+		);
+		const pitch = new this.three.Quaternion().setFromAxisAngle(
+			cameraRight,
+			deltaY * speed,
+		);
+		this.cubeGroup.quaternion
+			.premultiply(yaw)
+			.premultiply(pitch)
+			.normalize();
+		this.rotationPitch = this.cubeGroup.rotation.x;
+		this.rotationYaw = this.cubeGroup.rotation.y;
+	}
+
+	private setCubeRotation(pitch: number, yaw: number, roll: number): void {
+		this.rotationPitch = pitch;
+		this.rotationYaw = yaw;
+		this.cubeGroup.rotation.set(pitch, yaw, roll);
+	}
+
+	private setTurntableRotation(pitch: number, yaw: number): void {
+		this.rotationPitch = clamp(
+			pitch,
+			-MAX_TURNTABLE_PITCH,
+			MAX_TURNTABLE_PITCH,
+		);
+		this.rotationYaw = yaw;
+		this.cubeGroup.rotation.set(this.rotationPitch, this.rotationYaw, 0);
+	}
+
 	private getFaceIdForNode(nodeId: string): CubeFaceId {
 		const placement = this.manualLayout.nodes[nodeId];
 		return getCubeFaceIdForNode(nodeId, placement?.groupId);
@@ -1127,3 +1227,9 @@ async function loadThree(): Promise<ThreeModule> {
 	const module = await import('three');
 	return module;
 }
+
+function normalizeCubeSize(value: number): number {
+	return clamp(value, 120, 320);
+}
+
+const MAX_TURNTABLE_PITCH = (80 * Math.PI) / 180;

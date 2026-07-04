@@ -17,13 +17,14 @@ import {
 import { KnowledgeWorkspaceSettingsTab } from './settings/SettingsTab';
 import { DEFAULT_GRAPH_QUERY } from './query/graph-query';
 import {
-	createMetaGraphMarkdown,
 	META_GRAPH_FRONTMATTER_KEY,
 	META_GRAPH_FRONTMATTER_VALUE,
-} from './workspace/meta-graph-document';
+} from './workspace/meta-graph/constants';
+import { WorkspaceIndexService } from './workspace/services/workspace-index-service';
 
 export default class KnowledgeWorkspacePlugin extends Plugin {
 	settings!: KnowledgeWorkspaceSettings;
+	readonly workspaceIndex = new WorkspaceIndexService(this.app);
 	private lastActiveFile: TFile | null = null;
 	private markdownModeFilesByLeafId = new Map<string, string>();
 
@@ -36,6 +37,26 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 					this.lastActiveFile = file;
 				}
 				this.openMetaGraphFileInCustomView(file);
+			}),
+		);
+		this.registerEvent(
+			this.app.metadataCache.on('changed', () => {
+				this.workspaceIndex.invalidate();
+			}),
+		);
+		this.registerEvent(
+			this.app.vault.on('create', () => {
+				this.workspaceIndex.invalidate();
+			}),
+		);
+		this.registerEvent(
+			this.app.vault.on('delete', () => {
+				this.workspaceIndex.invalidate();
+			}),
+		);
+		this.registerEvent(
+			this.app.vault.on('rename', () => {
+				this.workspaceIndex.invalidate();
 			}),
 		);
 
@@ -154,6 +175,9 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 				): Promise<TFile>;
 			}
 		).createNewMarkdownFile(targetFolder, 'Untitled meta graph');
+		const { createMetaGraphMarkdown } = await import(
+			'./workspace/meta-graph-document'
+		);
 		await this.app.vault.modify(
 			file,
 			createMetaGraphMarkdown(

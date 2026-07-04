@@ -3,6 +3,8 @@ import type { MetaGraphChart, WorkspaceState } from '../core/types';
 import {
 	setArcSpacingInState,
 	setCubeFaceOpacityInState,
+	setCubeFreeCameraInState,
+	setCubeSizeInState,
 	setFlowLaneSpacingInState,
 	setFlowLayerSpacingInState,
 	setFlowSpacingInState,
@@ -31,11 +33,20 @@ describe('workspace chart settings', () => {
 
 		const denseState = setLabelDensityInState(state, 2);
 		const opaqueState = setCubeFaceOpacityInState(state, 0);
+		const smallCubeState = setCubeSizeInState(state, 90);
 
 		expect(denseState.labelDensity).toBe(1);
 		expect(getActiveChart(denseState).display.labelDensity).toBe(1);
 		expect(opaqueState.cubeFaceOpacity).toBe(0.05);
 		expect(getActiveChart(opaqueState).display.cubeFaceOpacity).toBe(0.05);
+		expect(smallCubeState.cubeSize).toBe(120);
+		expect(getActiveChart(smallCubeState).display.cubeSize).toBe(120);
+
+		const fixedCameraState = setCubeFreeCameraInState(state, false);
+		expect(fixedCameraState.cubeFreeCamera).toBe(false);
+		expect(getActiveChart(fixedCameraState).display.cubeFreeCamera).toBe(
+			false,
+		);
 	});
 
 	it('preserves layout revision behavior for spacing settings', () => {

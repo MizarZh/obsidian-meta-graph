@@ -37,6 +37,8 @@ export interface WorkspaceStateChanges {
 	labelBackgroundOpacityChanged: boolean;
 	labelDensityChanged: boolean;
 	cubeFaceOpacityChanged: boolean;
+	cubeSizeChanged: boolean;
+	cubeFreeCameraChanged: boolean;
 	forceLabelsChanged: boolean;
 	graphForceSettingsChanged: boolean;
 	forceLayoutChanged: boolean;
@@ -209,6 +211,9 @@ export function analyzeWorkspaceStateChanges(
 		),
 		cubeFaceOpacityChanged:
 			nextState.cubeFaceOpacity !== currentState.cubeFaceOpacity,
+		cubeSizeChanged: nextState.cubeSize !== currentState.cubeSize,
+		cubeFreeCameraChanged:
+			nextState.cubeFreeCamera !== currentState.cubeFreeCamera,
 		forceLabelsChanged: stateValueChanged(
 			nextState,
 			currentState,

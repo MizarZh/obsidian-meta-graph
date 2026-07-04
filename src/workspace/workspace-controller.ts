@@ -33,6 +33,8 @@ import {
 	setArcDirectionInState,
 	setArcSpacingInState,
 	setCubeFaceOpacityInState,
+	setCubeFreeCameraInState,
+	setCubeSizeInState,
 	setEnableForceLayoutInState,
 	setFadeDistanceInState,
 	setFlowDirectionInState,
@@ -131,8 +133,8 @@ import {
 } from './state/manual-layout-state';
 import {
 	WorkspaceProjectionService,
-	buildWorkspaceIndex,
 } from './services/query-service';
+import type { WorkspaceIndexService } from './services/workspace-index-service';
 import {
 	applyWorkspaceIndexSnapshotToState,
 	projectWorkspaceState,
@@ -174,11 +176,13 @@ export class WorkspaceController {
 	private metadataSources: MetadataDebugEntry[] = [];
 	private rendererDebugState: RendererDebugState = { status: 'idle' };
 	private rebuildTimer?: number;
+	private initialRefreshFrame?: number;
 	private pendingRefreshForceLayout = false;
 	private destroyed = false;
 
 	constructor(
 		private readonly app: App,
+		private readonly workspaceIndex: WorkspaceIndexService,
 		maxNodes: number,
 		private readonly debug: boolean,
 		private relayoutFlowAfterConnection: boolean,
@@ -220,7 +224,13 @@ export class WorkspaceController {
 
 	initialize(initialFile: TFile | null): void {
 		this.setCurrentFile(initialFile);
-		this.refresh();
+		if (this.initialRefreshFrame !== undefined) {
+			window.cancelAnimationFrame(this.initialRefreshFrame);
+		}
+		this.initialRefreshFrame = window.requestAnimationFrame(() => {
+			this.initialRefreshFrame = undefined;
+			this.scheduleRefresh();
+		});
 	}
 
 	scheduleRefresh(forceLayout = false): void {
@@ -229,19 +239,21 @@ export class WorkspaceController {
 		this.rebuildTimer = window.setTimeout(() => {
 			const shouldForceLayout = this.pendingRefreshForceLayout;
 			this.pendingRefreshForceLayout = false;
-			this.refresh(shouldForceLayout);
+			void this.refresh(shouldForceLayout);
 		}, 300);
 	}
 
-	refresh(forceLayout = false): void {
+	async refresh(forceLayout = false): Promise<void> {
 		if (this.destroyed) {
 			return;
 		}
-		const indexSnapshot = buildWorkspaceIndex(
-			this.app,
+		const indexSnapshot = await this.workspaceIndex.read(
 			this.debug,
 			this.state.connectionFields,
 		);
+		if (this.destroyed) {
+			return;
+		}
 		this.index = indexSnapshot.index;
 		this.unresolvedLinks = indexSnapshot.unresolvedLinks;
 		this.metadataSources = indexSnapshot.metadataSources;
@@ -412,6 +424,16 @@ export class WorkspaceController {
 	setCubeFaceOpacity(cubeFaceOpacity: number): void {
 		this.setWorkspaceState(
 			setCubeFaceOpacityInState(this.state, cubeFaceOpacity),
+		);
+	}
+
+	setCubeSize(cubeSize: number): void {
+		this.setWorkspaceState(setCubeSizeInState(this.state, cubeSize));
+	}
+
+	setCubeFreeCamera(cubeFreeCamera: boolean): void {
+		this.setWorkspaceState(
+			setCubeFreeCameraInState(this.state, cubeFreeCamera),
 		);
 	}
 
@@ -940,6 +962,10 @@ export class WorkspaceController {
 
 	dispose(): void {
 		this.destroyed = true;
+		if (this.initialRefreshFrame !== undefined) {
+			window.cancelAnimationFrame(this.initialRefreshFrame);
+			this.initialRefreshFrame = undefined;
+		}
 		window.clearTimeout(this.rebuildTimer);
 		this.listeners.clear();
 	}

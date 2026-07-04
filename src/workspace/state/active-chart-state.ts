@@ -36,6 +36,8 @@ type ActiveChartStateFields = Pick<
 	| 'labelBackgroundOpacity'
 	| 'labelDensity'
 	| 'cubeFaceOpacity'
+	| 'cubeSize'
+	| 'cubeFreeCamera'
 	| 'forceLabels'
 	| 'enableForceLayout'
 	| 'graphSpacing'
@@ -138,6 +140,8 @@ function createActiveChartStateFields(
 		labelBackgroundOpacity: chart.display.labelBackgroundOpacity,
 		labelDensity: chart.display.labelDensity,
 		cubeFaceOpacity: chart.display.cubeFaceOpacity,
+		cubeSize: chart.display.cubeSize,
+		cubeFreeCamera: chart.display.cubeFreeCamera,
 		forceLabels: chart.display.forceLabels,
 		enableForceLayout: chart.display.enableForceLayout,
 		graphSpacing: forceGraphType

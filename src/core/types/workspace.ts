@@ -125,6 +125,8 @@ export interface ChartDisplayConfig {
 	labelBackgroundOpacity: number;
 	labelDensity: number;
 	cubeFaceOpacity: number;
+	cubeSize: number;
+	cubeFreeCamera: boolean;
 	forceLabels: boolean;
 	enableForceLayout: boolean;
 	showInspector: boolean;
@@ -202,6 +204,8 @@ export interface WorkspaceState {
 	labelBackgroundOpacity: number;
 	labelDensity: number;
 	cubeFaceOpacity: number;
+	cubeSize: number;
+	cubeFreeCamera: boolean;
 	forceLabels: boolean;
 	enableForceLayout: boolean;
 	graphSpacing: number;

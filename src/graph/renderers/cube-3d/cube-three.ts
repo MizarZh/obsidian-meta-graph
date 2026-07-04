@@ -14,6 +14,7 @@ export interface ThreeModule {
 	PerspectiveCamera: typeof Three.PerspectiveCamera;
 	Plane: typeof Three.Plane;
 	PlaneGeometry: typeof Three.PlaneGeometry;
+	Quaternion: typeof Three.Quaternion;
 	Raycaster: typeof Three.Raycaster;
 	Scene: typeof Three.Scene;
 	Sprite: typeof Three.Sprite;

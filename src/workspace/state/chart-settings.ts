@@ -174,6 +174,21 @@ export function setCubeFaceOpacityInState(
 	return setDisplayValue(state, 'cubeFaceOpacity', opacity);
 }
 
+export function setCubeSizeInState(
+	state: WorkspaceState,
+	cubeSize: number,
+): WorkspaceState {
+	const size = Math.max(120, Math.min(320, cubeSize));
+	return setDisplayValue(state, 'cubeSize', size);
+}
+
+export function setCubeFreeCameraInState(
+	state: WorkspaceState,
+	cubeFreeCamera: boolean,
+): WorkspaceState {
+	return setDisplayValue(state, 'cubeFreeCamera', cubeFreeCamera);
+}
+
 export function setForceLabelsInState(
 	state: WorkspaceState,
 	forceLabels: boolean,

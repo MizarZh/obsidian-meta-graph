@@ -4,24 +4,21 @@ import {
 	type ViewStateResult,
 	type WorkspaceLeaf,
 } from 'obsidian';
-import { mount, unmount } from 'svelte';
 import { formatError } from '../core/errors';
 import type { MetaGraphDocument } from '../core/types';
 import { DEFAULT_GRAPH_QUERY } from '../query/graph-query';
 import type KnowledgeWorkspacePlugin from '../main';
-import Workspace from '../ui/Workspace.svelte';
-import {
-	isMetaGraphMarkdown,
-	parseMetaGraphDocument,
-	stringifyMetaGraphDocument,
-} from './meta-graph-document';
-import { WorkspaceController } from './workspace-controller';
+import type { WorkspaceController } from './workspace-controller';
+
+type MountedWorkspace = Parameters<typeof import('svelte').unmount>[0];
+type MetaGraphDocumentModule = typeof import('./meta-graph-document');
 
 export const VIEW_TYPE_KNOWLEDGE_WORKSPACE = 'meta-graph';
 
 export class KnowledgeWorkspaceView extends TextFileView {
 	private controller?: WorkspaceController;
-	private component?: ReturnType<typeof mount>;
+	private component?: MountedWorkspace;
+	private metaGraphDocumentModule?: Promise<MetaGraphDocumentModule>;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -55,11 +52,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		if (clear) {
 			void this.unmountWorkspace();
 		}
-		if (!isMetaGraphMarkdown(data)) {
-			void this.plugin.setMarkdownView(this.leaf, false);
-			return;
-		}
-		void this.renderWorkspace(data);
+		void this.renderMetaGraphData(data);
 	}
 
 	clear(): void {
@@ -101,7 +94,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 			),
 		);
 		if (this.data) {
-			await this.renderWorkspace(this.data);
+			await this.renderMetaGraphData(this.data);
 		}
 	}
 
@@ -117,13 +110,26 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		);
 	}
 
+	private async renderMetaGraphData(data: string): Promise<void> {
+		const metaGraphDocument = await this.loadMetaGraphDocumentModule();
+		if (this.data !== data) {
+			return;
+		}
+		if (!metaGraphDocument.isMetaGraphMarkdown(data)) {
+			void this.plugin.setMarkdownView(this.leaf, false);
+			return;
+		}
+		await this.renderWorkspace(data);
+	}
+
 	private async renderWorkspace(data: string): Promise<void> {
 		await this.unmountWorkspace();
 		this.contentEl.empty();
 		this.contentEl.addClass('knowledge-workspace-view');
+		const metaGraphDocument = await this.loadMetaGraphDocumentModule();
 		let document: MetaGraphDocument;
 		try {
-			document = parseMetaGraphDocument(
+			document = metaGraphDocument.parseMetaGraphDocument(
 				data,
 				DEFAULT_GRAPH_QUERY.maxNodes,
 				this.plugin.settings.fadeDistance,
@@ -135,8 +141,15 @@ export class KnowledgeWorkspaceView extends TextFileView {
 			});
 			return;
 		}
+		const [{ mount }, { default: Workspace }, { WorkspaceController }] =
+			await Promise.all([
+				import('svelte'),
+				import('../ui/Workspace.svelte'),
+				import('./workspace-controller'),
+			]);
 		this.controller = new WorkspaceController(
 			this.app,
+			this.plugin.workspaceIndex,
 			DEFAULT_GRAPH_QUERY.maxNodes,
 			this.plugin.settings.debug,
 			this.plugin.settings.relayoutFlowAfterConnection,
@@ -159,16 +172,22 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		this.controller.initialize(this.plugin.getLastActiveFile());
 	}
 
-	private persistDocument(document: MetaGraphDocument): Promise<void> {
-		this.data = stringifyMetaGraphDocument(document);
+	private async persistDocument(document: MetaGraphDocument): Promise<void> {
+		const metaGraphDocument = await this.loadMetaGraphDocumentModule();
+		this.data = metaGraphDocument.stringifyMetaGraphDocument(document);
 		this.requestSave();
-		return Promise.resolve();
+	}
+
+	private loadMetaGraphDocumentModule(): Promise<MetaGraphDocumentModule> {
+		this.metaGraphDocumentModule ??= import('./meta-graph-document');
+		return this.metaGraphDocumentModule;
 	}
 
 	private async unmountWorkspace(): Promise<void> {
 		this.controller?.dispose();
 		this.controller = undefined;
 		if (this.component) {
+			const { unmount } = await import('svelte');
 			await unmount(this.component);
 			this.component = undefined;
 		}
