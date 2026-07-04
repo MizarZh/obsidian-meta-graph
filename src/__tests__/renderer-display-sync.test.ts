@@ -34,6 +34,8 @@ function createRenderer() {
 		setLabelTheme: vi.fn(),
 		setLabelBackgroundOpacity: vi.fn(),
 		setLabelDensity: vi.fn(),
+		setCubeFaceOpacity: vi.fn(),
+		setCubeSize: vi.fn(),
 		setForceLabels: vi.fn(),
 	};
 }
@@ -50,6 +52,7 @@ function noChanges(): WorkspaceStateChanges {
 		labelBackgroundOpacityChanged: false,
 		labelDensityChanged: false,
 		cubeFaceOpacityChanged: false,
+		cubeSizeChanged: false,
 		forceLabelsChanged: false,
 		graphForceSettingsChanged: false,
 		forceLayoutChanged: false,

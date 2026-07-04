@@ -20,6 +20,7 @@
 		fadeDistance,
 		labelDensity,
 		cubeFaceOpacity,
+		cubeSize,
 		forceLabels,
 		enableForceLayout,
 		flowEdgeStyle,
@@ -45,6 +46,7 @@
 		onFadeDistance,
 		onLabelDensity,
 		onCubeFaceOpacity,
+		onCubeSize,
 		onForceLabels,
 		onEnableForceLayout,
 		onGraphSpacing,
@@ -63,6 +65,7 @@
 		fadeDistance: number;
 		labelDensity: number;
 		cubeFaceOpacity: number;
+		cubeSize: number;
 		forceLabels: boolean;
 		enableForceLayout: boolean;
 		flowEdgeStyle: FlowEdgeStyle;
@@ -88,6 +91,7 @@
 		onFadeDistance: (value: number) => void;
 		onLabelDensity: (value: number) => void;
 		onCubeFaceOpacity: (value: number) => void;
+		onCubeSize: (value: number) => void;
 		onForceLabels: (value: boolean) => void;
 		onEnableForceLayout: (value: boolean) => void;
 		onGraphSpacing: (spacing: number) => void;
@@ -394,6 +398,21 @@
 			</div>
 		</label>
 		{#if mode === 'cube'}
+			<label class="knowledge-workspace-rule-label">
+				<span>Cube size</span>
+				<div class="knowledge-workspace-slider-value">
+					<ObsidianSlider
+						value={cubeSize}
+						min={120}
+						max={320}
+						step={10}
+						format={(value) => `${Math.round(value)}`}
+						onChange={onCubeSize}
+						onCommit={onCubeSize}
+					/>
+					<span>{Math.round(cubeSize)}</span>
+				</div>
+			</label>
 			<label class="knowledge-workspace-rule-label">
 				<span>Face opacity</span>
 				<div class="knowledge-workspace-slider-value">

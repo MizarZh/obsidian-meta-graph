@@ -33,6 +33,7 @@ import {
 	setArcDirectionInState,
 	setArcSpacingInState,
 	setCubeFaceOpacityInState,
+	setCubeSizeInState,
 	setEnableForceLayoutInState,
 	setFadeDistanceInState,
 	setFlowDirectionInState,
@@ -423,6 +424,10 @@ export class WorkspaceController {
 		this.setWorkspaceState(
 			setCubeFaceOpacityInState(this.state, cubeFaceOpacity),
 		);
+	}
+
+	setCubeSize(cubeSize: number): void {
+		this.setWorkspaceState(setCubeSizeInState(this.state, cubeSize));
 	}
 
 	setForceLabels(forceLabels: boolean): void {

@@ -129,6 +129,8 @@ describe('style rules', () => {
 							labelColor: '',
 							labelBackgroundOpacity: 0.82,
 							labelDensity: 0.8,
+							cubeFaceOpacity: 0.55,
+							cubeSize: 180,
 							forceLabels: false,
 							enableForceLayout: false,
 							showInspector: true,

@@ -6,6 +6,7 @@ import type {
 } from '../../core/types';
 import {
 	DEFAULT_CUBE_FACE_OPACITY,
+	DEFAULT_CUBE_SIZE,
 	DEFAULT_FORCE_LABELS,
 	DEFAULT_LABEL_BACKGROUND_OPACITY,
 	DEFAULT_LABEL_COLOR,
@@ -82,6 +83,7 @@ export function createDefaultChart(
 			labelBackgroundOpacity: DEFAULT_LABEL_BACKGROUND_OPACITY,
 			labelDensity: DEFAULT_LABEL_DENSITY,
 			cubeFaceOpacity: DEFAULT_CUBE_FACE_OPACITY,
+			cubeSize: DEFAULT_CUBE_SIZE,
 			forceLabels: DEFAULT_FORCE_LABELS,
 			enableForceLayout: false,
 			showInspector: true,
@@ -212,13 +214,18 @@ export function normalizeChart(
 				0,
 					1,
 				),
-				cubeFaceOpacity: clampNumber(
+			cubeFaceOpacity: clampNumber(
 				readFiniteNumber(
 					display.cubeFaceOpacity,
 					fallback.display.cubeFaceOpacity,
 				),
 				0.05,
 				1,
+			),
+			cubeSize: clampNumber(
+				readFiniteNumber(display.cubeSize, fallback.display.cubeSize),
+				120,
+				320,
 			),
 			forceLabels: readBoolean(
 				display.forceLabels,

@@ -39,6 +39,7 @@ export interface GraphRendererOptions {
 	labelBackgroundOpacity: number;
 	labelDensity: number;
 	cubeFaceOpacity: number;
+	cubeSize: number;
 	enableForceLayout: boolean;
 	forceLabels: boolean;
 	isStale: () => boolean;
@@ -193,6 +194,7 @@ export async function createGraphRenderer(
 			options.labelBackgroundOpacity,
 			options.labelDensity,
 			options.cubeFaceOpacity,
+			options.cubeSize,
 			options.enableForceLayout,
 			options.forceLabels,
 			options.isStale,

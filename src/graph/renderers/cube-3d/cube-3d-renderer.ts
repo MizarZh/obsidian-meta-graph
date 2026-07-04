@@ -64,7 +64,7 @@ export class Cube3DRenderer {
 	private readonly nodeObjects = new Map<string, CubeNodeObject>();
 	private readonly faceMeshes = new Map<CubeFaceId, Three.Mesh>();
 	private readonly arrowTextures = new Map<string, Three.CanvasTexture>();
-	private readonly cubeSize = 180;
+	private cubeSize: number;
 	private selectedNodeId?: string;
 	private hoveredNodeId?: string;
 	private pinnedNodeId?: string;
@@ -99,6 +99,7 @@ export class Cube3DRenderer {
 		labelBackgroundOpacity = 0.82,
 		labelDensity = 0.8,
 		cubeFaceOpacity = 0.55,
+		cubeSize = 180,
 		_forceLayout = false,
 		forceLabels = false,
 		isStale: () => boolean = () => false,
@@ -123,10 +124,11 @@ export class Cube3DRenderer {
 			labelSize,
 			labelPosition,
 			labelColor,
-			labelBackgroundOpacity,
-			labelDensity,
-			cubeFaceOpacity,
-			forceLabels,
+				labelBackgroundOpacity,
+				labelDensity,
+				cubeFaceOpacity,
+				cubeSize,
+				forceLabels,
 			labelOffset,
 			labelLightTextColor,
 			labelLightBackgroundColor,
@@ -149,6 +151,7 @@ export class Cube3DRenderer {
 		labelBackgroundOpacity: number,
 		labelDensity: number,
 		cubeFaceOpacity: number,
+		cubeSize: number,
 		forceLabels: boolean,
 		labelOffset: number,
 		labelLightTextColor: string,
@@ -174,13 +177,14 @@ export class Cube3DRenderer {
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.labelDensity = labelDensity;
 		this.cubeFaceOpacity = cubeFaceOpacity;
+		this.cubeSize = normalizeCubeSize(cubeSize);
 		this.forceLabels = forceLabels;
 		this.scene = new this.three.Scene();
 		this.scene.background = new this.three.Color(
 			this.palette.background ?? '#202020',
 		);
 		this.camera = new this.three.PerspectiveCamera(45, 1, 1, 2000);
-		this.camera.position.set(0, 0, 620);
+		this.camera.position.set(0, 0, this.defaultCameraDistance());
 		this.webgl = new this.three.WebGLRenderer({
 			antialias: true,
 			alpha: true,
@@ -320,6 +324,23 @@ export class Cube3DRenderer {
 		this.scheduleRender();
 	}
 
+	setCubeSize(cubeSize: number): void {
+		const nextSize = normalizeCubeSize(cubeSize);
+		if (nextSize === this.cubeSize) {
+			return;
+		}
+		const scale = nextSize / this.cubeSize;
+		this.cubeSize = nextSize;
+		this.camera.position.z = clamp(
+			this.camera.position.z * scale,
+			this.minCameraDistance(),
+			this.maxCameraDistance(),
+		);
+		this.buildFaces();
+		this.rebuildGraphObjects();
+		this.scheduleRender();
+	}
+
 	setForceLabels(forceLabels: boolean): void {
 		this.forceLabels = forceLabels;
 		this.rebuildGraphObjects();
@@ -369,7 +390,7 @@ export class Cube3DRenderer {
 	}
 
 	fit(): void {
-		this.camera.position.set(0, 0, 620);
+		this.camera.position.set(0, 0, this.defaultCameraDistance());
 		this.cubeGroup.position.set(0, 0, 0);
 		this.cubeGroup.rotation.set(-0.4, 0.65, 0);
 		this.scheduleRender();
@@ -489,8 +510,8 @@ export class Cube3DRenderer {
 	zoom(deltaY: number): void {
 		this.camera.position.z = clamp(
 			this.camera.position.z + deltaY * 0.45,
-			260,
-			1200,
+			this.minCameraDistance(),
+			this.maxCameraDistance(),
 		);
 		this.scheduleRender();
 	}
@@ -917,6 +938,18 @@ export class Cube3DRenderer {
 		}
 	}
 
+	private defaultCameraDistance(): number {
+		return this.cubeSize * 3.45;
+	}
+
+	private minCameraDistance(): number {
+		return this.cubeSize * 1.45;
+	}
+
+	private maxCameraDistance(): number {
+		return this.cubeSize * 6.7;
+	}
+
 	private getFaceIdForNode(nodeId: string): CubeFaceId {
 		const placement = this.manualLayout.nodes[nodeId];
 		return getCubeFaceIdForNode(nodeId, placement?.groupId);
@@ -1126,4 +1159,8 @@ export class Cube3DRenderer {
 async function loadThree(): Promise<ThreeModule> {
 	const module = await import('three');
 	return module;
+}
+
+function normalizeCubeSize(value: number): number {
+	return clamp(value, 120, 320);
 }
