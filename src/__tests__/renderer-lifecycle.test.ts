@@ -185,6 +185,44 @@ describe('WorkspaceRendererLifecycle', () => {
 		expect(D3ForceSimulation).not.toHaveBeenCalled();
 	});
 
+	it('creates a cube renderer for an empty projection', async () => {
+		const state = {
+			...createState(),
+			mode: 'cube' as const,
+			projection: {
+				nodes: [],
+				edges: [],
+				rootIds: new Set<string>(),
+			},
+		};
+		const renderer = createRenderer();
+		vi.mocked(createWorkspaceRuntimeGraph).mockReturnValue({
+			nodes: () => [],
+		} as never);
+		vi.mocked(createWorkspaceGraphRenderer).mockResolvedValue(renderer);
+
+		const lifecycle = new WorkspaceRendererLifecycle({
+			readState: () => state,
+			readCanvas: () =>
+				({
+					getBoundingClientRect: () => ({ width: 800, height: 600 }),
+				}) as HTMLDivElement,
+			readLayoutSnapshot: () => createLayoutSnapshot(),
+			readContainerSize: () => ({ width: 800, height: 600 }),
+			waitForCanvasSize: async () => true,
+			bindEvents: () => vi.fn(),
+			syncRendererGroups: vi.fn(),
+			setRendererDebugState: vi.fn(),
+		});
+
+		await lifecycle.rebuild();
+
+		expect(createWorkspaceRuntimeGraph).toHaveBeenCalledOnce();
+		expect(createWorkspaceGraphRenderer).toHaveBeenCalledOnce();
+		expect(lifecycle.renderer).toBe(renderer);
+		expect(renderer.fit).toHaveBeenCalledOnce();
+	});
+
 	it('unbinds events and kills the renderer on dispose', async () => {
 		const state = createState();
 		const renderer = createRenderer();

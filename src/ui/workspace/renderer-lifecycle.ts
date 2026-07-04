@@ -135,7 +135,7 @@ export class WorkspaceRendererLifecycle {
 
 		if (
 			!initialState.projection ||
-			initialState.projection.nodes.length === 0 ||
+			!canRenderProjection(initialState) ||
 			!canvas
 		) {
 			this.clearRenderer();
@@ -159,7 +159,7 @@ export class WorkspaceRendererLifecycle {
 		}
 
 		const state = this.options.readState();
-		if (!state.projection || state.projection.nodes.length === 0) {
+		if (!state.projection || !canRenderProjection(state)) {
 			this.clearRenderer();
 			this.options.setRendererDebugState({ status: 'idle' });
 			return;
@@ -267,4 +267,8 @@ export class WorkspaceRendererLifecycle {
 		this.currentRenderer?.kill();
 		this.currentRenderer = undefined;
 	}
+}
+
+function canRenderProjection(state: WorkspaceState): boolean {
+	return Boolean(state.projection?.nodes.length) || state.mode === 'cube';
 }
