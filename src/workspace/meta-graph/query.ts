@@ -6,6 +6,7 @@ import type {
 	NodeFilterRule,
 } from '../../core/types';
 import { DEFAULT_GRAPH_QUERY } from '../../query/graph-query';
+import { normalizeTags } from '../../core/tags';
 import { cloneSerializable } from '../state/persistence';
 import {
 	createRuleId,
@@ -30,6 +31,7 @@ export function normalizeQuery(
 		...cloneSerializable(record),
 		hiddenNodeRules,
 		filterRoot,
+		tags: normalizeQueryTags(record.tags, fallback.tags),
 		maxNodes: readFiniteNumber(record.maxNodes, maxNodes),
 		showPlainLinks: readBoolean(
 			record.showPlainLinks,
@@ -40,6 +42,15 @@ export function normalizeQuery(
 			fallback.showUnresolvedLinks,
 		),
 	};
+}
+
+function normalizeQueryTags(value: unknown, fallback: string[]): string[] {
+	if (!Array.isArray(value)) {
+		return normalizeTags(fallback);
+	}
+	return normalizeTags(
+		value.filter((tag): tag is string => typeof tag === 'string'),
+	);
 }
 
 export function normalizeFilterRoot(

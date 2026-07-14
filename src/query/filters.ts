@@ -8,6 +8,7 @@ import type {
 	NodeFilterItem,
 	NodeFilterOperator,
 } from '../core/types';
+import { normalizeTag } from '../core/tags';
 
 export function nodeMatchesFilters(
 	node: KnowledgeNode,
@@ -38,7 +39,7 @@ function nodeMatchesQueryFilters(
 		query.domains.some((domain) => node.domains.includes(domain));
 	const tagMatches =
 		query.tags.length === 0 ||
-		query.tags.some((tag) => node.tags.includes(tag));
+		query.tags.some((tag) => node.tags.includes(normalizeTag(tag)));
 	const rootMatches =
 		query.filterRoot &&
 		(query.filterRoot.children.length > 0 ||
@@ -114,7 +115,10 @@ export function matchesNodeCriterion(
 	operator: NodeFilterOperator = 'is',
 	value = '',
 ): boolean {
-	const normalizedValue = value.trim().toLocaleLowerCase();
+	const tagField = field === 'tag' || field === 'file.tags';
+	const normalizeValue = (item: string): string =>
+		(tagField ? normalizeTag(item) : item.trim()).toLocaleLowerCase();
+	const normalizedValue = normalizeValue(value);
 	if (
 		(field === 'folder' || field === 'file.folder') &&
 		(operator === 'is' || operator === 'is-not') &&
@@ -141,8 +145,10 @@ export function matchesNodeCriterion(
 	if (!normalizedValue) {
 		return false;
 	}
-	const normalizedValues = values.map((item) => item.toLocaleLowerCase());
-	const expectedValues = splitFilterValues(normalizedValue);
+	const normalizedValues = values.map(normalizeValue);
+	const expectedValues = splitFilterValues(value)
+		.map(normalizeValue)
+		.filter(Boolean);
 	switch (operator) {
 		case 'links-to':
 			return getNodeCriterionValues(node, 'file.links').some(

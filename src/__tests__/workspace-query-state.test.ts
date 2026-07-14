@@ -15,9 +15,9 @@ describe('workspace query state', () => {
 		});
 
 		expect(nextState.query.depth).toBe(3);
-		expect(nextState.query.tags).toEqual(['#project']);
+		expect(nextState.query.tags).toEqual(['project']);
 		expect(nextState.charts[0]?.query.depth).toBe(3);
-		expect(nextState.charts[0]?.query.tags).toEqual(['#project']);
+		expect(nextState.charts[0]?.query.tags).toEqual(['project']);
 	});
 
 	it('updates global query while keeping roots empty', () => {

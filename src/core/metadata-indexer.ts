@@ -19,6 +19,7 @@ import type {
 	MetadataDebugEntry,
 	UnresolvedLink,
 } from './types';
+import { normalizeTags } from './tags';
 
 export class MetadataIndexer {
 	readonly unresolvedLinks: UnresolvedLink[] = [];
@@ -139,10 +140,10 @@ export class MetadataIndexer {
 		).sort((left, right) =>
 			left.localeCompare(right, undefined, { sensitivity: 'base' }),
 		);
-		const tags = new Set(toStringArray(frontmatter?.tags));
-		for (const tag of cache?.tags ?? []) {
-			tags.add(tag.tag.replace(/^#/, ''));
-		}
+		const tags = normalizeTags([
+			...toStringArray(frontmatter?.tags),
+			...(cache?.tags ?? []).map((tag) => tag.tag),
+		]);
 
 		const id = normalizePath(file.path);
 		const aliases = uniqueStrings([
@@ -161,7 +162,7 @@ export class MetadataIndexer {
 			aliases,
 			folder: file.parent?.path === '/' ? '' : (file.parent?.path ?? ''),
 			domains: toStringArray(frontmatter?.domain),
-			tags: [...tags],
+			tags,
 			links,
 			embeds,
 			noteType: firstString(frontmatter?.type),
