@@ -6,6 +6,7 @@
 		DebugSnapshot,
 		DockConnectionDirection,
 		MetaGraphDocument,
+		NodeOpenMode,
 		SettingsPanelMode,
 		ViewMode,
 		WorkspaceState,
@@ -77,6 +78,7 @@
 	import { GraphDockConnectionController } from './workspace/graph-dock-connection';
 	import WorkspaceSettingsPopover from './workspace/WorkspaceSettingsPopover.svelte';
 	import WorkspaceMainPanels from './workspace/WorkspaceMainPanels.svelte';
+	import InternalNotePreview from './workspace/InternalNotePreview.svelte';
 	import {
 		createCuratedConditionDraft,
 		type CuratedConditionDraft,
@@ -97,6 +99,8 @@
 		workspaceFilePath,
 		showDebugButton,
 		openTemplateNoteInNewTab,
+		onOpenNodeInRightSplit,
+		getNodeOpenMode,
 	}: {
 		app: App;
 		controller: WorkspaceController;
@@ -104,6 +108,8 @@
 		workspaceFilePath?: string;
 		showDebugButton: boolean;
 		openTemplateNoteInNewTab: boolean;
+		onOpenNodeInRightSplit: (nodeId: string) => Promise<void>;
+		getNodeOpenMode: () => NodeOpenMode;
 	} = $props();
 	let workspaceState: WorkspaceState = $state(getInitialState());
 	let workspaceRoot: HTMLDivElement;
@@ -116,6 +122,7 @@
 	let settingsPanel = $state<SettingsPanelMode | undefined>(undefined);
 	let settingsPopoverLeft = $state(0);
 	let connectionDrag = $state<ConnectionDragState | undefined>(undefined);
+	let internalPreviewNodeId = $state<string | undefined>(undefined);
 	let graphConnectionTargetNotePath = $state<string | undefined>(undefined);
 	let graphConnectionTargetTemplateId = $state<string | undefined>(undefined);
 	let graphConnectionTargetCurated = $state(false);
@@ -329,6 +336,15 @@
 				workspaceState,
 				renderBaseline,
 			);
+			if (
+				internalPreviewNodeId &&
+				(nextState.activeChartId !== workspaceState.activeChartId ||
+					!nextState.projection?.nodes.some(
+						(node) => node.id === internalPreviewNodeId,
+					))
+			) {
+				internalPreviewNodeId = undefined;
+			}
 			workspaceState = nextState;
 			if (changes.manualLayoutChanged) {
 				renderBaseline.manualLayout = nextState.manualLayout;
@@ -463,7 +479,19 @@
 			},
 			onSelect: (nodeId?: string) => controller.selectNode(nodeId),
 			onHover: (nodeId?: string) => controller.hoverNode(nodeId),
-			onOpen: (nodeId: string) => void controller.openNode(nodeId),
+			onOpen: (nodeId) => {
+				const nodeOpenMode = getNodeOpenMode();
+				if (nodeOpenMode !== 'internal-preview') {
+					internalPreviewNodeId = undefined;
+				}
+				if (nodeOpenMode === 'right-split') {
+					void onOpenNodeInRightSplit(nodeId);
+				} else if (nodeOpenMode === 'internal-preview') {
+					internalPreviewNodeId = nodeId;
+				} else {
+					void controller.openNode(nodeId);
+				}
+			},
 			onConnectionDrag: setGraphConnectionDrag,
 			onConnect: connectVisibleNodes,
 			onCommitManualNodePosition: (nodeId, position, groupId) => {
@@ -904,7 +932,18 @@
 					? '32px'
 					: '0px'}"
 		>
-			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+				<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+			{#if internalPreviewNodeId}
+				<InternalNotePreview
+					{app}
+					filePath={internalPreviewNodeId}
+					onClose={() => {
+						internalPreviewNodeId = undefined;
+					}}
+					onOpenInSplit={(nodeId) =>
+						void onOpenNodeInRightSplit(nodeId)}
+				/>
+			{/if}
 			<WorkspaceMainPanels
 				{app}
 				{controller}

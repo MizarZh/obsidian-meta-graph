@@ -72,7 +72,7 @@ export function createDefaultChart(
 		curated: createDefaultCuratedWorkspace(),
 		layout: createDefaultLayout(type),
 		display: {
-				fadeDistance,
+			fadeDistance,
 				labelSize: DEFAULT_LABEL_SIZE,
 				labelBold: DEFAULT_LABEL_BOLD,
 				labelItalic: DEFAULT_LABEL_ITALIC,

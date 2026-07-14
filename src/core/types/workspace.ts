@@ -49,6 +49,7 @@ export type LayoutNodeSort =
 export type LayoutSortDirection = 'asc' | 'desc';
 export type LabelPosition =
 	'auto' | 'right' | 'left' | 'top' | 'bottom' | 'center';
+export type NodeOpenMode = 'tab' | 'right-split' | 'internal-preview';
 export type ChartType = ViewMode;
 export type ConnectionFieldMode = 'directed' | 'bidirectional' | 'reverse';
 

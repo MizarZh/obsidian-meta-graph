@@ -245,6 +245,7 @@
 		{ value: 'asc', label: 'Ascending' },
 		{ value: 'desc', label: 'Descending' },
 	];
+
 </script>
 
 <section>

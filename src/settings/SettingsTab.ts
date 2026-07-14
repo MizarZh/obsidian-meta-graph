@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import type KnowledgeWorkspacePlugin from '../main';
+import type { NodeOpenMode } from '../core/types';
 
 export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 	constructor(
@@ -47,6 +48,21 @@ export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.relayoutFlowAfterConnection =
 							value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(this.containerEl)
+			.setName('Open notes in')
+			.setDesc('Choose where graph nodes open their notes.')
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('tab', 'New tab')
+					.addOption('right-split', 'Right split')
+					.addOption('internal-preview', 'Internal preview')
+					.setValue(this.plugin.settings.nodeOpenMode)
+					.onChange(async (value) => {
+						this.plugin.settings.nodeOpenMode = value as NodeOpenMode;
 						await this.plugin.saveSettings();
 					}),
 			);

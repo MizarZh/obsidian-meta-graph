@@ -1,6 +1,6 @@
 import {
+	TFile,
 	TextFileView,
-	type TFile,
 	type ViewStateResult,
 	type WorkspaceLeaf,
 } from 'obsidian';
@@ -19,6 +19,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 	private controller?: WorkspaceController;
 	private component?: MountedWorkspace;
 	private metaGraphDocumentModule?: Promise<MetaGraphDocumentModule>;
+	private rightSplitLeaf?: WorkspaceLeaf;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -99,6 +100,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 	}
 
 	async onClose(): Promise<void> {
+		this.rightSplitLeaf = undefined;
 		await this.unmountWorkspace();
 		this.contentEl.empty();
 	}
@@ -165,11 +167,33 @@ export class KnowledgeWorkspaceView extends TextFileView {
 				showDebugButton: this.plugin.settings.showDebugButton,
 				openTemplateNoteInNewTab:
 					this.plugin.settings.openTemplateNoteInNewTab,
+				onOpenNodeInRightSplit: (nodeId: string) =>
+					this.openNodeInRightSplit(nodeId),
+				getNodeOpenMode: () => this.plugin.settings.nodeOpenMode,
 				onAutoSave: (nextDocument: MetaGraphDocument) =>
 					this.persistDocument(nextDocument),
 			},
 		});
 		this.controller.initialize(this.plugin.getLastActiveFile());
+	}
+
+	private async openNodeInRightSplit(nodeId: string): Promise<void> {
+		const file = this.app.vault.getAbstractFileByPath(nodeId);
+		if (!(file instanceof TFile)) {
+			return;
+		}
+		if (!this.rightSplitLeaf || !this.isLeafAttached(this.rightSplitLeaf)) {
+			this.rightSplitLeaf = this.app.workspace.getLeaf('split', 'vertical');
+		}
+		await this.rightSplitLeaf.openFile(file, { active: true });
+	}
+
+	private isLeafAttached(target: WorkspaceLeaf): boolean {
+		let attached = false;
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			attached ||= leaf === target;
+		});
+		return attached;
 	}
 
 	private async persistDocument(document: MetaGraphDocument): Promise<void> {

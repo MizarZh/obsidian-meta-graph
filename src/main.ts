@@ -12,6 +12,7 @@ import {
 } from './workspace/KnowledgeWorkspaceView';
 import {
 	DEFAULT_SETTINGS,
+	normalizeNodeOpenMode,
 	type KnowledgeWorkspaceSettings,
 } from './settings/settings';
 import { KnowledgeWorkspaceSettingsTab } from './settings/SettingsTab';
@@ -148,6 +149,7 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 		this.settings = {
 			...settings,
 			fadeDistance: clamp(settings.fadeDistance, 0.25, 4),
+			nodeOpenMode: normalizeNodeOpenMode(settings.nodeOpenMode),
 		};
 	}
 

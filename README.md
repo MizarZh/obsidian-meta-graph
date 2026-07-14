@@ -105,7 +105,9 @@ settings to report them in the developer console.
 19. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
     workspace is focused, to undo connection edits made in the current workspace
     session.
-20. Select a node to open its note in a new tab.
+20. Choose **Open notes in** under **Settings -> Meta Graph** to open selected
+    nodes in a new tab, a reused right split, or a floating read-only preview
+    inside the graph.
 21. Select **Debug** to inspect or copy the current query, projection,
     canonical index, adjacency maps, and unresolved links as JSON.
 
