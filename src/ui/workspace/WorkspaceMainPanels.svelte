@@ -16,6 +16,7 @@
 	import type { CuratedConditionDraft } from '../curated/curated-panel-state';
 	import type { DockCuratedDropPreview } from './dock-curated-drop';
 	import type { DockNoteEntry } from './derived';
+	import { resolveConnectionPreviewStyle } from './connection-preview-style';
 
 	let {
 		app,
@@ -140,6 +141,29 @@
 			)}`,
 		].join('; '),
 	);
+
+	const connectionPreviewLineStyle = $derived.by(() => {
+		if (!connectionDrag) {
+			return '';
+		}
+		const style = resolveConnectionPreviewStyle(
+			workspaceState,
+			connectionDrag.sourceNodeId,
+			connectionDrag.targetNodeId,
+		);
+		const dashArray =
+			style.lineStyle === 'dashed'
+				? '10 7'
+				: style.lineStyle === 'dotted'
+					? '2 5'
+					: 'none';
+		return [
+			`stroke: ${style.color}`,
+			`stroke-width: ${style.size}px`,
+			`stroke-dasharray: ${dashArray}`,
+			`visibility: ${style.hidden ? 'hidden' : 'visible'}`,
+		].join('; ');
+	});
 </script>
 
 {#if workspaceState.chartSource === 'curated'}
@@ -183,6 +207,7 @@
 {#if connectionDrag}
 	<svg class="knowledge-workspace-connection-preview" aria-hidden="true">
 		<line
+			style={connectionPreviewLineStyle}
 			class:target={Boolean(
 				connectionDrag.targetNodeId ||
 				graphConnectionTargetNotePath ||
