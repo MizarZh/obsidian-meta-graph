@@ -454,6 +454,8 @@ describe('Cube3DRenderer smoke', () => {
 			{ nodes: {}, groups: [] },
 			1.5,
 			14,
+			false,
+			false,
 			'right',
 			'',
 			0.82,

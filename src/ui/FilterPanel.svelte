@@ -33,6 +33,8 @@
 		mode,
 		fadeDistance,
 		labelSize,
+		labelBold,
+		labelItalic,
 		labelPosition,
 		labelOffset,
 		labelColor,
@@ -91,6 +93,8 @@
 		onLayoutSortDirection,
 		onFadeDistance,
 		onLabelSize,
+		onLabelBold,
+		onLabelItalic,
 		onLabelPosition,
 		onLabelOffset,
 		onLabelColor,
@@ -136,6 +140,8 @@
 		mode: ViewMode;
 		fadeDistance: number;
 		labelSize: number;
+		labelBold: boolean;
+		labelItalic: boolean;
 		labelPosition: LabelPosition;
 		labelOffset: number;
 		labelColor: string;
@@ -194,6 +200,8 @@
 		onLayoutSortDirection: (direction: LayoutSortDirection) => void;
 		onFadeDistance: (value: number) => void;
 		onLabelSize: (value: number) => void;
+		onLabelBold: (value: boolean) => void;
+		onLabelItalic: (value: boolean) => void;
 		onLabelPosition: (position: LabelPosition) => void;
 		onLabelOffset: (value: number) => void;
 		onLabelColor: (color: string) => void;
@@ -318,6 +326,8 @@
 		<TextStylePanel
 			{mode}
 			{labelSize}
+			{labelBold}
+			{labelItalic}
 			{labelPosition}
 			{labelOffset}
 			{labelColor}
@@ -329,6 +339,8 @@
 			{labelDarkBackgroundOpacity}
 			{labelBackgroundOpacity}
 			{onLabelSize}
+			{onLabelBold}
+			{onLabelItalic}
 			{onLabelPosition}
 			{onLabelOffset}
 			{onLabelColor}

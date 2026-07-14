@@ -113,6 +113,8 @@ export interface ManualLayoutConfig {
 export interface ChartDisplayConfig {
 	fadeDistance: number;
 	labelSize: number;
+	labelBold: boolean;
+	labelItalic: boolean;
 	labelPosition: LabelPosition;
 	labelOffset: number;
 	labelColor: string;
@@ -192,6 +194,8 @@ export interface WorkspaceState {
 	nodeSortDirection: LayoutSortDirection;
 	fadeDistance: number;
 	labelSize: number;
+	labelBold: boolean;
+	labelItalic: boolean;
 	labelPosition: LabelPosition;
 	labelOffset: number;
 	labelColor: string;

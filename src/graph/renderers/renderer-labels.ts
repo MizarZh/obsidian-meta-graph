@@ -9,6 +9,8 @@ export interface ThreeLabelRuntime {
 export interface ThreeTextSpriteOptions {
 	text: string;
 	fontSize: number;
+	fontWeight?: 'normal' | 'bold';
+	fontStyle?: 'normal' | 'italic';
 	textColor: string;
 	backgroundColor: string;
 	ownerDocument: Document;
@@ -41,7 +43,9 @@ export function createThreeTextSprite(
 		);
 	}
 
-	context.font = `${fontSize}px sans-serif`;
+	const fontWeight = options.fontWeight ?? 'normal';
+	const fontStyle = options.fontStyle ?? 'normal';
+	context.font = `${fontStyle} ${fontWeight} ${fontSize}px sans-serif`;
 	const width = Math.max(
 		1,
 		Math.ceil(context.measureText(options.text).width + paddingX * 2),
@@ -53,7 +57,7 @@ export function createThreeTextSprite(
 	canvas.style.width = `${width}px`;
 	canvas.style.height = `${height}px`;
 	context.scale(pixelRatio, pixelRatio);
-	context.font = `${fontSize}px sans-serif`;
+	context.font = `${fontStyle} ${fontWeight} ${fontSize}px sans-serif`;
 	context.textBaseline = 'middle';
 	context.fillStyle = options.backgroundColor;
 	const radius = options.roundRadius ?? 0;

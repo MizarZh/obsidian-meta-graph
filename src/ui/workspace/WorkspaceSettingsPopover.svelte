@@ -66,6 +66,8 @@
 			mode={workspaceState.mode}
 			fadeDistance={workspaceState.fadeDistance}
 			labelSize={workspaceState.labelSize}
+			labelBold={workspaceState.labelBold}
+			labelItalic={workspaceState.labelItalic}
 			labelPosition={workspaceState.labelPosition}
 			labelOffset={workspaceState.labelOffset}
 			labelColor={workspaceState.labelColor}
@@ -127,6 +129,8 @@
 				controller.setLayoutSortDirection(direction)}
 			onFadeDistance={(value) => controller.setFadeDistance(value)}
 			onLabelSize={(value) => controller.setLabelSize(value)}
+			onLabelBold={(value) => controller.setLabelBold(value)}
+			onLabelItalic={(value) => controller.setLabelItalic(value)}
 			onLabelPosition={(position) =>
 				controller.setLabelPosition(position)}
 			onLabelOffset={(value) => controller.setLabelOffset(value)}

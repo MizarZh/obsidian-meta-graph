@@ -4,6 +4,8 @@ import type { WorkspaceStateChanges } from './change-tracker';
 interface DisplayRenderer {
 	setFadeDistance(value: number): void;
 	setLabelSize(value: number): void;
+	setLabelBold(value: boolean): void;
+	setLabelItalic(value: boolean): void;
 	setLabelPosition(value: WorkspaceState['labelPosition']): void;
 	setLabelOffset(value: number): void;
 	setLabelColor(value: string): void;
@@ -34,6 +36,12 @@ export function syncRendererDisplaySettings(
 	}
 	if (changes.labelSizeChanged) {
 		renderer?.setLabelSize(state.labelSize);
+	}
+	if (changes.labelBoldChanged) {
+		renderer?.setLabelBold(state.labelBold);
+	}
+	if (changes.labelItalicChanged) {
+		renderer?.setLabelItalic(state.labelItalic);
 	}
 	if (changes.labelPositionChanged) {
 		renderer?.setLabelPosition(state.labelPosition);

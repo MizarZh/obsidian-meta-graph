@@ -46,6 +46,8 @@ import {
 	setGraphForceSettingInState,
 	setGraphSpacingInState,
 	setLabelBackgroundOpacityInState,
+	setLabelBoldInState,
+	setLabelItalicInState,
 	setLabelDarkBackgroundColorInState,
 	setLabelDarkBackgroundOpacityInState,
 	setLabelDarkTextColorInState,
@@ -348,6 +350,14 @@ export class WorkspaceController {
 
 	setLabelSize(labelSize: number): void {
 		this.setWorkspaceState(setLabelSizeInState(this.state, labelSize));
+	}
+
+	setLabelBold(labelBold: boolean): void {
+		this.setWorkspaceState(setLabelBoldInState(this.state, labelBold));
+	}
+
+	setLabelItalic(labelItalic: boolean): void {
+		this.setWorkspaceState(setLabelItalicInState(this.state, labelItalic));
 	}
 
 	setLabelPosition(labelPosition: LabelPosition): void {

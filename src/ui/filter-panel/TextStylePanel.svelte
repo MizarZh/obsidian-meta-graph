@@ -2,6 +2,7 @@
 	import CollapsibleSettingsGroup from './CollapsibleSettingsGroup.svelte';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
 	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
+	import ObsidianToggle from '../obsidian/ObsidianToggle.svelte';
 	import type { LabelPosition, ViewMode } from '../../core/types';
 
 	const LABEL_POSITION_OPTIONS: Array<{
@@ -19,6 +20,8 @@
 	let {
 		mode,
 		labelSize,
+		labelBold,
+		labelItalic,
 		labelPosition,
 		labelOffset,
 		labelColor,
@@ -30,6 +33,8 @@
 		labelDarkBackgroundOpacity,
 		labelBackgroundOpacity,
 		onLabelSize,
+		onLabelBold,
+		onLabelItalic,
 		onLabelPosition,
 		onLabelOffset,
 		onLabelColor,
@@ -46,6 +51,8 @@
 	}: {
 		mode: ViewMode;
 		labelSize: number;
+		labelBold: boolean;
+		labelItalic: boolean;
 		labelPosition: LabelPosition;
 		labelOffset: number;
 		labelColor: string;
@@ -57,6 +64,8 @@
 		labelDarkBackgroundOpacity: number;
 		labelBackgroundOpacity: number;
 		onLabelSize: (value: number) => void;
+		onLabelBold: (value: boolean) => void;
+		onLabelItalic: (value: boolean) => void;
 		onLabelPosition: (position: LabelPosition) => void;
 		onLabelOffset: (value: number) => void;
 		onLabelColor: (color: string) => void;
@@ -103,6 +112,14 @@
 			/>
 			<span>{labelSize.toFixed(1)}</span>
 		</div>
+	</label>
+	<label class="knowledge-workspace-rule-label">
+		<span>Bold</span>
+		<ObsidianToggle value={labelBold} onChange={onLabelBold} />
+	</label>
+	<label class="knowledge-workspace-rule-label">
+		<span>Italic</span>
+		<ObsidianToggle value={labelItalic} onChange={onLabelItalic} />
 	</label>
 	{#if mode !== 'hierarchical-edge-bundling'}
 		<div class="knowledge-workspace-rule-label segmented">

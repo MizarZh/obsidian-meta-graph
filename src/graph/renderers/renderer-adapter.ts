@@ -27,6 +27,8 @@ export interface GraphRendererOptions {
 	manualLayout: ManualLayoutConfig;
 	fadeDistance: number;
 	labelSize: number;
+	labelBold: boolean;
+	labelItalic: boolean;
 	labelPosition: LabelPosition;
 	labelOffset: number;
 	labelColor: string;
@@ -165,6 +167,8 @@ export async function createGraphRenderer(
 			options.palette,
 			options.fadeDistance,
 			options.labelSize,
+			options.labelBold,
+			options.labelItalic,
 			options.labelPosition,
 			options.labelColor,
 			options.labelBackgroundOpacity,
@@ -190,6 +194,8 @@ export async function createGraphRenderer(
 			options.manualLayout,
 			options.fadeDistance,
 			options.labelSize,
+			options.labelBold,
+			options.labelItalic,
 			options.labelPosition,
 			options.labelColor,
 			options.labelBackgroundOpacity,
@@ -216,6 +222,8 @@ export async function createGraphRenderer(
 		options.palette,
 		options.fadeDistance,
 		options.labelSize,
+		options.labelBold,
+		options.labelItalic,
 		options.labelPosition,
 		options.labelOffset,
 		options.labelColor,

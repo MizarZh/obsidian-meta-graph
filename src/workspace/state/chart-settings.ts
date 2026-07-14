@@ -68,6 +68,20 @@ export function setLabelSizeInState(
 	return setDisplayValue(state, 'labelSize', labelSize);
 }
 
+export function setLabelBoldInState(
+	state: WorkspaceState,
+	labelBold: boolean,
+): WorkspaceState {
+	return setDisplayValue(state, 'labelBold', labelBold);
+}
+
+export function setLabelItalicInState(
+	state: WorkspaceState,
+	labelItalic: boolean,
+): WorkspaceState {
+	return setDisplayValue(state, 'labelItalic', labelItalic);
+}
+
 export function setLabelPositionInState(
 	state: WorkspaceState,
 	labelPosition: LabelPosition,

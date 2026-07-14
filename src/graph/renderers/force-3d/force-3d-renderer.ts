@@ -49,6 +49,8 @@ export class Force3DRenderer {
 	private labelColor: string;
 	private labelPosition: LabelPosition;
 	private labelOffset: number;
+	private labelBold: boolean;
+	private labelItalic: boolean;
 	private labelTheme: LabelThemeConfig;
 	private labelBackgroundOpacity: number;
 	private labelSize: number;
@@ -81,6 +83,8 @@ export class Force3DRenderer {
 		palette: GraphPalette,
 		fadeDistance = 1.5,
 		labelSize = 14,
+		labelBold = false,
+		labelItalic = false,
 		labelPosition: LabelPosition = 'right',
 		labelColor = '',
 		labelBackgroundOpacity = 0.82,
@@ -113,6 +117,8 @@ export class Force3DRenderer {
 			palette,
 			fadeDistance,
 			labelSize,
+			labelBold,
+			labelItalic,
 			labelPosition,
 			labelColor,
 			labelBackgroundOpacity,
@@ -137,6 +143,8 @@ export class Force3DRenderer {
 		private palette: GraphPalette,
 		_fadeDistance = 1.5,
 		_labelSize = 14,
+		labelBold = false,
+		labelItalic = false,
 		_labelPosition: LabelPosition = 'right',
 		labelColor = '',
 		labelBackgroundOpacity = 0.82,
@@ -155,6 +163,8 @@ export class Force3DRenderer {
 		this.labelColor = labelColor;
 		this.labelPosition = _labelPosition;
 		this.labelOffset = labelOffset;
+		this.labelBold = labelBold;
+		this.labelItalic = labelItalic;
 		this.labelTheme = {
 			labelLightTextColor,
 			labelLightBackgroundColor,
@@ -313,6 +323,16 @@ export class Force3DRenderer {
 			allLabelSprites: true,
 			nodeLabelPositions: true,
 		});
+	}
+
+	setLabelBold(labelBold: boolean): void {
+		this.labelBold = labelBold;
+		this.scheduleVisualUpdate({ allLabelSprites: true });
+	}
+
+	setLabelItalic(labelItalic: boolean): void {
+		this.labelItalic = labelItalic;
+		this.scheduleVisualUpdate({ allLabelSprites: true });
 	}
 
 	setLabelPosition(_labelPosition: LabelPosition): void {
@@ -798,6 +818,8 @@ export class Force3DRenderer {
 			textColor: labelStyle.textColor,
 			backgroundColor: labelStyle.backgroundColor,
 			ownerDocument: this.container.ownerDocument,
+			fontWeight: this.labelBold ? 'bold' : 'normal',
+			fontStyle: this.labelItalic ? 'italic' : 'normal',
 			scale: scaleFactor,
 			scaleMultiplier: 0.24,
 			roundRadius: 4,

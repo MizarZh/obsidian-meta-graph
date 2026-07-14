@@ -78,6 +78,8 @@ export class Cube3DRenderer {
 	private labelColor: string;
 	private labelPosition: LabelPosition;
 	private labelOffset: number;
+	private labelBold: boolean;
+	private labelItalic: boolean;
 	private labelTheme: LabelThemeConfig;
 	private labelBackgroundOpacity: number;
 	private labelSize: number;
@@ -98,6 +100,8 @@ export class Cube3DRenderer {
 		manualLayout: ManualLayoutConfig,
 		_fadeDistance = 1.5,
 		labelSize = 14,
+		labelBold = false,
+		labelItalic = false,
 		labelPosition: LabelPosition = 'right',
 		labelColor = '',
 		labelBackgroundOpacity = 0.82,
@@ -127,6 +131,8 @@ export class Cube3DRenderer {
 			palette,
 			manualLayout,
 			labelSize,
+			labelBold,
+			labelItalic,
 			labelPosition,
 			labelColor,
 				labelBackgroundOpacity,
@@ -152,6 +158,8 @@ export class Cube3DRenderer {
 		private palette: GraphPalette,
 		manualLayout: ManualLayoutConfig,
 		labelSize: number,
+		labelBold: boolean,
+		labelItalic: boolean,
 		labelPosition: LabelPosition,
 		labelColor: string,
 		labelBackgroundOpacity: number,
@@ -170,6 +178,8 @@ export class Cube3DRenderer {
 	) {
 		this.manualLayout = manualLayout;
 		this.labelSize = labelSize;
+		this.labelBold = labelBold;
+		this.labelItalic = labelItalic;
 		this.labelPosition = labelPosition;
 		this.labelOffset = labelOffset;
 		this.labelColor = labelColor;
@@ -286,6 +296,18 @@ export class Cube3DRenderer {
 
 	setLabelSize(labelSize: number): void {
 		this.labelSize = labelSize;
+		this.rebuildGraphObjects();
+		this.scheduleRender();
+	}
+
+	setLabelBold(labelBold: boolean): void {
+		this.labelBold = labelBold;
+		this.rebuildGraphObjects();
+		this.scheduleRender();
+	}
+
+	setLabelItalic(labelItalic: boolean): void {
+		this.labelItalic = labelItalic;
 		this.rebuildGraphObjects();
 		this.scheduleRender();
 	}
@@ -956,6 +978,8 @@ export class Cube3DRenderer {
 			textColor: labelStyle.textColor,
 			backgroundColor: labelStyle.backgroundColor,
 			ownerDocument: this.container.ownerDocument,
+			fontWeight: this.labelBold ? 'bold' : 'normal',
+			fontStyle: this.labelItalic ? 'italic' : 'normal',
 			paddingX: Math.ceil(fontSize * 0.45),
 			paddingY: Math.ceil(fontSize * 0.45),
 			scale,

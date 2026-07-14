@@ -43,6 +43,8 @@ export class SigmaRenderer {
 	private fadeDistance: number;
 	private labelPosition: LabelPosition;
 	private labelOffset: number;
+	private labelBold: boolean;
+	private labelItalic: boolean;
 	private labelColor: string;
 	private labelTheme: LabelThemeConfig;
 	private labelBackgroundOpacity: number;
@@ -55,6 +57,8 @@ export class SigmaRenderer {
 		private palette: GraphPalette,
 		fadeDistance = 1.5,
 		labelSize = 14,
+		labelBold = false,
+		labelItalic = false,
 		labelPosition: LabelPosition = 'right',
 		labelOffset = 1,
 		labelColor = '',
@@ -71,6 +75,8 @@ export class SigmaRenderer {
 		this.fadeDistance = fadeDistance;
 		this.labelPosition = labelPosition;
 		this.labelOffset = labelOffset;
+		this.labelBold = labelBold;
+		this.labelItalic = labelItalic;
 		this.labelColor = labelColor;
 		this.labelTheme = {
 			labelLightTextColor,
@@ -120,6 +126,7 @@ export class SigmaRenderer {
 					() => this.labelOffset,
 					() => this.getLabelColor(),
 					() => this.getLabelBackground(),
+					() => this.getLabelStyle(),
 				),
 				defaultDrawNodeHover: createNodeHoverDrawer(
 					() => this.getCurrentLabelOpacity(),
@@ -127,6 +134,7 @@ export class SigmaRenderer {
 					() => this.labelOffset,
 					() => this.getLabelColor(),
 					() => this.getLabelBackground(),
+					() => this.getLabelStyle(),
 				),
 				defaultDrawEdgeLabel: createEdgeLabelDrawer(() =>
 					this.getCurrentLabelOpacity(),
@@ -134,6 +142,7 @@ export class SigmaRenderer {
 				renderEdgeLabels: true,
 				labelColor: { color: palette.label },
 				labelSize,
+				labelWeight: this.getLabelWeight(),
 				labelDensity,
 				labelRenderedSizeThreshold: 0,
 				zIndex: true,
@@ -218,6 +227,17 @@ export class SigmaRenderer {
 
 	setLabelSize(labelSize: number): void {
 		this.instance.setSetting('labelSize', labelSize);
+	}
+
+	setLabelBold(labelBold: boolean): void {
+		this.labelBold = labelBold;
+		this.instance.setSetting('labelWeight', this.getLabelWeight());
+		this.instance.refresh();
+	}
+
+	setLabelItalic(labelItalic: boolean): void {
+		this.labelItalic = labelItalic;
+		this.instance.refresh();
 	}
 
 	setLabelPosition(labelPosition: LabelPosition): void {
@@ -396,5 +416,13 @@ export class SigmaRenderer {
 
 	private getLabelColor(): string {
 		return resolveThreeLabelStyle(this.palette, this.labelTheme).textColor;
+	}
+
+	private getLabelWeight(): 'normal' | 'bold' {
+		return this.labelBold ? 'bold' : 'normal';
+	}
+
+	private getLabelStyle(): 'normal' | 'italic' {
+		return this.labelItalic ? 'italic' : 'normal';
 	}
 }

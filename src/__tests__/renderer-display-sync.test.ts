@@ -10,16 +10,19 @@ describe('renderer display sync', () => {
 			...createWorkspaceState(200),
 			fadeDistance: 2,
 			labelSize: 18,
+			labelItalic: true,
 		};
 
 		syncRendererDisplaySettings(renderer, state, {
 			...noChanges(),
 			fadeDistanceChanged: true,
 			labelSizeChanged: true,
+			labelItalicChanged: true,
 		});
 
 		expect(renderer.setFadeDistance).toHaveBeenCalledWith(2);
 		expect(renderer.setLabelSize).toHaveBeenCalledWith(18);
+		expect(renderer.setLabelItalic).toHaveBeenCalledWith(true);
 		expect(renderer.setLabelPosition).not.toHaveBeenCalled();
 	});
 });
@@ -28,6 +31,8 @@ function createRenderer() {
 	return {
 		setFadeDistance: vi.fn(),
 		setLabelSize: vi.fn(),
+		setLabelBold: vi.fn(),
+		setLabelItalic: vi.fn(),
 		setLabelPosition: vi.fn(),
 		setLabelOffset: vi.fn(),
 		setLabelColor: vi.fn(),
@@ -46,6 +51,8 @@ function noChanges(): WorkspaceStateChanges {
 		manualLayoutChanged: false,
 		fadeDistanceChanged: false,
 		labelSizeChanged: false,
+		labelBoldChanged: false,
+		labelItalicChanged: false,
 		labelPositionChanged: false,
 		labelOffsetChanged: false,
 		labelColorChanged: false,

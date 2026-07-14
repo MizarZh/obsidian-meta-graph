@@ -24,6 +24,7 @@ export function createNodeLabelDrawer(
 	getLabelOffset: () => number,
 	getLabelColor: () => string,
 	getLabelBackground: () => string,
+	getLabelStyle: () => 'normal' | 'italic',
 ): NodeLabelDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
 	return (context, data, settings) => {
 		if (!data.label) {
@@ -31,7 +32,7 @@ export function createNodeLabelDrawer(
 		}
 
 		const labelSize = getScaledLabelSize(settings.labelSize, data.size);
-		const font = `${settings.labelWeight} ${labelSize}px ${settings.labelFont}`;
+		const font = `${getLabelStyle()} ${settings.labelWeight} ${labelSize}px ${settings.labelFont}`;
 		const paddingX = 5;
 		const paddingY = 3;
 		context.save();
@@ -62,6 +63,7 @@ export function createNodeHoverDrawer(
 	getLabelOffset: () => number,
 	getLabelColor: () => string,
 	getLabelBackground: () => string,
+	getLabelStyle: () => 'normal' | 'italic',
 ): NodeHoverDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
 	return (context, data, settings) => {
 		if (data.hidden) return;
@@ -69,7 +71,7 @@ export function createNodeHoverDrawer(
 
 		const { labelFont: font, labelWeight: weight } = settings;
 		const size = getScaledLabelSize(settings.labelSize, data.size);
-		context.font = `${weight} ${size}px ${font}`;
+		context.font = `${getLabelStyle()} ${weight} ${size}px ${font}`;
 
 		context.save();
 		context.globalAlpha = getOpacity();

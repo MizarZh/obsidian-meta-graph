@@ -9,6 +9,8 @@ import {
 	DEFAULT_CUBE_FACE_OPACITY,
 	DEFAULT_CUBE_SIZE,
 	DEFAULT_FORCE_LABELS,
+	DEFAULT_LABEL_BOLD,
+	DEFAULT_LABEL_ITALIC,
 	DEFAULT_LABEL_BACKGROUND_OPACITY,
 	DEFAULT_LABEL_COLOR,
 	DEFAULT_LABEL_DARK_BACKGROUND_COLOR,
@@ -72,6 +74,8 @@ export function createDefaultChart(
 		display: {
 				fadeDistance,
 				labelSize: DEFAULT_LABEL_SIZE,
+				labelBold: DEFAULT_LABEL_BOLD,
+				labelItalic: DEFAULT_LABEL_ITALIC,
 				labelPosition: DEFAULT_LABEL_POSITION,
 				labelOffset: DEFAULT_LABEL_OFFSET,
 			labelColor: DEFAULT_LABEL_COLOR,
@@ -159,6 +163,11 @@ export function normalizeChart(
 			labelSize: readFiniteNumber(
 				display.labelSize,
 				fallback.display.labelSize,
+			),
+			labelBold: readBoolean(display.labelBold, fallback.display.labelBold),
+			labelItalic: readBoolean(
+				display.labelItalic,
+				fallback.display.labelItalic,
 			),
 				labelPosition: readLabelPosition(
 					display.labelPosition,
