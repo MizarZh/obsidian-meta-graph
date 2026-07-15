@@ -84,13 +84,13 @@
 		})),
 	);
 	const VIEW_ICONS: Record<ViewMode, IconName> = {
-		graph: 'chart-scatter',
-		'graph-3d': 'box',
-		cube: 'cuboid',
+		graph: 'waypoints',
+		'graph-3d': 'scale-3d',
+		cube: 'box',
 		free: 'move',
 		flow: 'git-fork',
-		arc: 'route',
-		'hierarchical-edge-bundling': 'git-merge',
+		arc: 'rainbow',
+		'hierarchical-edge-bundling': 'diameter',
 	};
 	const VIEW_MODE_OPTIONS = [
 		{ value: 'graph', label: 'Graph' },
