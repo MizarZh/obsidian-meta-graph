@@ -1,5 +1,12 @@
 import forceAtlas2 from 'graphology-layout-forceatlas2';
-import type { RuntimeGraph } from '../graph/model/graphology-adapter';
+import type {
+	RuntimeEdgeAttributes,
+	RuntimeGraph,
+} from '../graph/model/graphology-adapter';
+import {
+	compactGraphGroups,
+	createGraphGroupLinks,
+} from './graph-group-layout';
 import type { LayoutEngine } from './layout-engine';
 
 export interface GraphForceSettings {
@@ -24,6 +31,7 @@ export class ForceAtlasLayout implements LayoutEngine {
 	constructor(
 		private readonly spacing = 1,
 		private readonly forceSettings: GraphForceSettings = DEFAULT_GRAPH_FORCE_SETTINGS,
+		private readonly groupByNode: ReadonlyMap<string, string> = new Map(),
 	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
@@ -47,20 +55,83 @@ export class ForceAtlasLayout implements LayoutEngine {
 			return;
 		}
 
-		forceAtlas2.assign(graph, {
+		const layoutGraph = createForceAtlasGroupGraph(graph, this.groupByNode);
+		forceAtlas2.assign(layoutGraph, {
 			iterations: graph.order < 50 ? 150 : 250,
 			settings: getForceAtlasSettings(
-				graph,
+				layoutGraph,
 				this.spacing,
 				this.forceSettings,
 			),
 		});
+		if (layoutGraph !== graph) {
+			graph.forEachNode((nodeId) => {
+				graph.mergeNodeAttributes(nodeId, {
+					x: layoutGraph.getNodeAttribute(nodeId, 'x'),
+					y: layoutGraph.getNodeAttribute(nodeId, 'y'),
+				});
+			});
+		}
 		normalizeLinkDistance(
 			graph,
 			this.spacing,
 			this.forceSettings.linkDistance,
 		);
+		compactGraphGroups(
+			graph,
+			this.groupByNode,
+			this.spacing,
+			this.forceSettings.linkDistance,
+		);
 	}
+}
+
+function createForceAtlasGroupGraph(
+	graph: RuntimeGraph,
+	groupByNode: ReadonlyMap<string, string>,
+): RuntimeGraph {
+	const groupLinks = createGraphGroupLinks(
+		groupByNode,
+		graph
+			.nodes()
+			.filter((nodeId) => !graph.getNodeAttribute(nodeId, 'isBend')),
+	);
+	if (groupLinks.length === 0) {
+		return graph;
+	}
+	const layoutGraph = graph.copy();
+	for (const [index, link] of groupLinks.entries()) {
+		const attributes: RuntimeEdgeAttributes & { weight: number } = {
+			relation: 'related',
+			type: 'line',
+			size: 0,
+			color: '',
+			hidden: true,
+			label: '',
+			forceLabel: false,
+			lineStyle: 'solid',
+			semantic: false,
+			weight: 2,
+		};
+		layoutGraph.addUndirectedEdgeWithKey(
+			createUniqueGroupEdgeId(layoutGraph, index),
+			link.source,
+			link.target,
+			attributes,
+		);
+	}
+	return layoutGraph;
+}
+
+function createUniqueGroupEdgeId(graph: RuntimeGraph, index: number): string {
+	const base = `__meta_graph_group_edge_${index + 1}__`;
+	let edgeId = base;
+	let suffix = 2;
+	while (graph.hasEdge(edgeId)) {
+		edgeId = `${base}_${suffix}`;
+		suffix += 1;
+	}
+	return edgeId;
 }
 
 function getForceAtlasSettings(

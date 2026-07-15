@@ -6,9 +6,11 @@ import type {
 import type {
 	ArcGroupGeometry,
 	FlowGroupGeometry,
+	GraphGroupGeometry,
 	LayoutGroupGeometry,
 	RadialGroupGeometry,
 } from '../../../layouts/group-geometry';
+import { scaleLayoutGroupPadding } from '../../../layouts/group-geometry';
 
 const LAYER_ID = 'layout-groups';
 
@@ -68,8 +70,10 @@ export class LayoutGroupLayer {
 				this.drawArcBand(geometry);
 			} else if (geometry.kind === 'radial-sector') {
 				this.drawRadialSector(geometry);
-			} else {
+			} else if (geometry.kind === 'flow-container') {
 				this.drawFlowContainer(geometry);
+			} else {
+				this.drawGraphContainer(geometry);
 			}
 		}
 	}
@@ -258,6 +262,97 @@ export class LayoutGroupLayer {
 			Math.atan2(second.y - first.y, second.x - first.x),
 			geometry.color,
 		);
+	}
+
+	private drawGraphContainer(geometry: GraphGroupGeometry): void {
+		const graph = this.sigma.getGraph();
+		const nodes = geometry.nodeIds.flatMap((nodeId) => {
+			if (!graph.hasNode(nodeId)) {
+				return [];
+			}
+			const attributes = graph.getNodeAttributes(nodeId);
+			if (attributes.hidden || attributes.isBend) {
+				return [];
+			}
+			return [
+				{
+					position: this.sigma.graphToViewport(attributes),
+					radius: Math.max(attributes.size, 3),
+				},
+			];
+		});
+		if (nodes.length === 0) {
+			return;
+		}
+		const scaledPadding = scaleLayoutGroupPadding(geometry.padding) * 40;
+		const horizontalPadding = 12 + scaledPadding;
+		const topPadding = 24 + scaledPadding;
+		const bottomPadding = 12 + scaledPadding;
+		let left = Math.min(
+			...nodes.map((node) => node.position.x - node.radius),
+		);
+		let right = Math.max(
+			...nodes.map((node) => node.position.x + node.radius),
+		);
+		const top =
+			Math.min(...nodes.map((node) => node.position.y - node.radius)) -
+			topPadding;
+		const bottom =
+			Math.max(...nodes.map((node) => node.position.y + node.radius)) +
+			bottomPadding;
+		left -= horizontalPadding;
+		right += horizontalPadding;
+		const minimumWidth = this.measureLabelWidth(geometry.name) + 20;
+		if (right - left < minimumWidth) {
+			const extra = (minimumWidth - (right - left)) / 2;
+			left -= extra;
+			right += extra;
+		}
+
+		this.context.save();
+		this.context.beginPath();
+		this.context.roundRect(left, top, right - left, bottom - top, 6);
+		this.context.globalAlpha = 0.07;
+		this.context.fillStyle = geometry.color;
+		this.context.fill();
+		this.context.globalAlpha = 0.58;
+		this.context.strokeStyle = geometry.color;
+		this.context.lineWidth = 1.5;
+		this.context.stroke();
+		this.context.restore();
+		this.context.save();
+		this.context.globalAlpha = 0.72;
+		this.context.strokeStyle = geometry.color;
+		this.context.lineWidth = 2;
+		for (const node of nodes) {
+			this.context.beginPath();
+			this.context.arc(
+				node.position.x,
+				node.position.y,
+				node.radius + 3,
+				0,
+				Math.PI * 2,
+			);
+			this.context.stroke();
+		}
+		this.context.restore();
+
+		this.drawLabel(
+			geometry.name,
+			{ x: (left + right) / 2, y: top + 11 },
+			0,
+			geometry.color,
+		);
+	}
+
+	private measureLabelWidth(text: string): number {
+		const style = getComputedStyle(this.sigma.getContainer());
+		const fontFamily = style.fontFamily || 'sans-serif';
+		this.context.save();
+		this.context.font = `600 11px ${fontFamily}`;
+		const width = this.context.measureText(text).width;
+		this.context.restore();
+		return width;
 	}
 
 	private drawLabel(

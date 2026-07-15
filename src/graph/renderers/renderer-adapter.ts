@@ -56,7 +56,7 @@ const MODE_CAPABILITIES: Record<ViewMode, ModeCapabilities> = {
 		rendererKind: 'sigma',
 		usesSigmaForceSimulation: true,
 		supportsFreeNodeDrag: false,
-		supportsGroups: false,
+		supportsGroups: true,
 		supportsManualGroups: false,
 	},
 	'graph-3d': {

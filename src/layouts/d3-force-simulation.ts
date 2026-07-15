@@ -6,6 +6,7 @@ import {
 	forceSimulation,
 	forceX,
 	forceY,
+	type Force,
 	type Simulation,
 	type SimulationLinkDatum,
 	type SimulationNodeDatum,
@@ -16,6 +17,11 @@ import {
 	DEFAULT_GRAPH_FORCE_SETTINGS,
 	type GraphForceSettings,
 } from './force-layout';
+import {
+	collectGraphGroupMembers,
+	createGraphGroupLinks,
+	getGraphGroupTargetRadius,
+} from './graph-group-layout';
 
 interface ForceNode extends SimulationNodeDatum {
 	id: string;
@@ -24,6 +30,7 @@ interface ForceNode extends SimulationNodeDatum {
 interface ForceLink extends SimulationLinkDatum<ForceNode> {
 	source: string | ForceNode;
 	target: string | ForceNode;
+	isGroup?: boolean;
 }
 
 export class D3ForceSimulation {
@@ -48,6 +55,7 @@ export class D3ForceSimulation {
 		private readonly renderer: SigmaRenderer,
 		private readonly spacing = 1,
 		private readonly forceSettings: GraphForceSettings = DEFAULT_GRAPH_FORCE_SETTINGS,
+		private readonly groupByNode: ReadonlyMap<string, string> = new Map(),
 		private readonly onPosition?: (
 			nodeId: string,
 			position: { x: number; y: number },
@@ -158,7 +166,7 @@ export class D3ForceSimulation {
 		for (const node of this.nodes) {
 			this.nodesById.set(node.id, node);
 		}
-		const links = this.graph
+		const graphLinks = this.graph
 			.edges()
 			.filter((edgeId) => !this.graph.getEdgeAttribute(edgeId, 'hidden'))
 			.map((edgeId) => ({
@@ -170,10 +178,21 @@ export class D3ForceSimulation {
 					this.nodesById.has(link.source) &&
 					this.nodesById.has(link.target),
 			);
-		for (const link of links) {
+		for (const link of graphLinks) {
 			addNeighbor(this.neighborsById, link.source, link.target);
 			addNeighbor(this.neighborsById, link.target, link.source);
 		}
+		const links: ForceLink[] = [
+			...graphLinks,
+			...createGraphGroupLinks(
+				this.groupByNode,
+				this.nodesById.keys(),
+			).map((link) => ({
+				source: link.source,
+				target: link.target,
+				isGroup: true,
+			})),
+		];
 
 		const center = getGraphCenter(this.nodes);
 		const distance = (this.forceSettings.linkDistance / 100) * this.spacing;
@@ -188,8 +207,14 @@ export class D3ForceSimulation {
 				'link',
 				forceLink<ForceNode, ForceLink>(links)
 					.id((node) => node.id)
-					.distance(distance)
-					.strength(linkStrength),
+					.distance((link) =>
+						link.isGroup ? distance * 0.8 : distance,
+					)
+					.strength((link) =>
+						link.isGroup
+							? Math.max(linkStrength, 0.35)
+							: linkStrength,
+					),
 			)
 			.force(
 				'charge',
@@ -209,6 +234,10 @@ export class D3ForceSimulation {
 			.force(
 				'center',
 				forceCenter(center.x, center.y).strength(centerStrength),
+			)
+			.force(
+				'group',
+				createGraphGroupCohesionForce(this.groupByNode, distance),
 			)
 			.alphaDecay(0.045)
 			.velocityDecay(0.78)
@@ -389,4 +418,59 @@ function addNeighbor(
 		neighborsById.set(source, neighbors);
 	}
 	neighbors.add(target);
+}
+
+function createGraphGroupCohesionForce(
+	groupByNode: ReadonlyMap<string, string>,
+	distance: number,
+): Force<ForceNode, ForceLink> {
+	let groups: ForceNode[][] = [];
+	const force = ((alpha: number): void => {
+		const strength = Math.min(alpha * 1.6, 0.45);
+		if (strength <= 0) {
+			return;
+		}
+		for (const members of groups) {
+			if (members.length < 2) {
+				continue;
+			}
+			const center = {
+				x:
+					members.reduce((sum, node) => sum + (node.x ?? 0), 0) /
+					members.length,
+				y:
+					members.reduce((sum, node) => sum + (node.y ?? 0), 0) /
+					members.length,
+			};
+			const targetRadius = getGraphGroupTargetRadius(
+				members.length,
+				distance,
+			);
+			for (const node of members) {
+				const dx = center.x - (node.x ?? 0);
+				const dy = center.y - (node.y ?? 0);
+				const radius = Math.hypot(dx, dy);
+				if (radius <= targetRadius || radius === 0) {
+					continue;
+				}
+				const excess = (radius - targetRadius) / radius;
+				node.vx = (node.vx ?? 0) + dx * excess * strength;
+				node.vy = (node.vy ?? 0) + dy * excess * strength;
+			}
+		}
+	}) as Force<ForceNode, ForceLink>;
+	force.initialize = (nodes): void => {
+		const nodesById = new Map(nodes.map((node) => [node.id, node]));
+		groups = [
+			...collectGraphGroupMembers(groupByNode, nodesById.keys()).values(),
+		]
+			.map((nodeIds) =>
+				nodeIds.flatMap((nodeId) => {
+					const node = nodesById.get(nodeId);
+					return node ? [node] : [];
+				}),
+			)
+			.filter((members) => members.length > 1);
+	};
+	return force;
 }

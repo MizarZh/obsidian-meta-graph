@@ -6,6 +6,7 @@ import type {
 } from '../graph/model/graphology-adapter';
 import type { SigmaRenderer } from '../graph/renderers/sigma/sigma-renderer';
 import { D3ForceSimulation } from '../layouts/d3-force-simulation';
+import { DEFAULT_GRAPH_FORCE_SETTINGS } from '../layouts/force-layout';
 
 describe('D3ForceSimulation', () => {
 	afterEach(() => {
@@ -126,6 +127,55 @@ describe('D3ForceSimulation', () => {
 		expect(graph.getNodeAttribute('A', 'x')).toBeCloseTo(3);
 		expect(graph.getNodeAttribute('A', 'y')).toBeCloseTo(4);
 	});
+
+	it('adds group constraints without treating them as graph neighbors', () => {
+		const graph = new Graph<
+			RuntimeNodeAttributes,
+			RuntimeEdgeAttributes,
+			Record<string, never>
+		>({ multi: true, type: 'mixed' });
+		graph.addNode('A', node(0, 0));
+		graph.addNode('B', node(10, 0));
+		graph.addNode('C', node(20, 0));
+		graph.addEdgeWithKey('A-B', 'A', 'B', edge());
+		const renderer = {
+			instance: { refresh: vi.fn() },
+			holdCurrentBounds: vi.fn(),
+			clearHeldBounds: vi.fn(),
+		} as unknown as SigmaRenderer;
+
+		const simulation = new D3ForceSimulation(
+			graph,
+			renderer,
+			1,
+			DEFAULT_GRAPH_FORCE_SETTINGS,
+			new Map([
+				['A', 'research'],
+				['B', 'research'],
+				['C', 'research'],
+			]),
+		);
+		const groupLinks = readLinkForce(simulation)
+			.links()
+			.filter((link) => link.isGroup);
+
+		expect(groupLinks).toHaveLength(3);
+		expect(
+			groupLinks.map((link) => [
+				readNodeId(link.source),
+				readNodeId(link.target),
+			]),
+		).toEqual([
+			['A', 'B'],
+			['B', 'C'],
+			['C', 'A'],
+		]);
+		expect(readNeighbors(simulation, 'A')).toEqual(new Set(['B']));
+		applyGroupForce(simulation, 0.12);
+		const forceNodes = readForceNodes(simulation);
+		expect(forceNodes.get('A')?.vx).toBeGreaterThan(0);
+		expect(forceNodes.get('C')?.vx).toBeLessThan(0);
+	});
 });
 
 function readSimulationAlpha(simulation: D3ForceSimulation): number {
@@ -160,6 +210,63 @@ function readChargeForce(simulation: D3ForceSimulation): {
 			};
 		}
 	).simulation.force('charge');
+}
+
+interface ReadableForceLink {
+	source: string | { id: string };
+	target: string | { id: string };
+	isGroup?: boolean;
+}
+
+function readLinkForce(simulation: D3ForceSimulation): {
+	links(): ReadableForceLink[];
+} {
+	return (
+		simulation as unknown as {
+			simulation: {
+				force(name: 'link'): {
+					links(): ReadableForceLink[];
+				};
+			};
+		}
+	).simulation.force('link');
+}
+
+function readNodeId(node: string | { id: string }): string {
+	return typeof node === 'string' ? node : node.id;
+}
+
+function readNeighbors(
+	simulation: D3ForceSimulation,
+	nodeId: string,
+): Set<string> | undefined {
+	return (
+		simulation as unknown as {
+			neighborsById: Map<string, Set<string>>;
+		}
+	).neighborsById.get(nodeId);
+}
+
+function applyGroupForce(simulation: D3ForceSimulation, alpha: number): void {
+	(
+		simulation as unknown as {
+			simulation: {
+				force(name: 'group'): (alpha: number) => void;
+			};
+		}
+	).simulation.force('group')(alpha);
+}
+
+function readForceNodes(
+	simulation: D3ForceSimulation,
+): Map<string, { vx?: number }> {
+	return new Map(
+		(
+			simulation as unknown as {
+				nodes: Array<{ id: string; vx?: number }>;
+			}
+		).nodes.map((node) => [node.id, node]),
+	);
 }
 
 function node(x: number, y: number): RuntimeNodeAttributes {

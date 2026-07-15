@@ -209,6 +209,48 @@ describe('stable layout orchestration', () => {
 			y: graph.getNodeAttribute('A.md', 'y'),
 		});
 	});
+
+	it('publishes dynamic group members for Graph layouts', async () => {
+		const graph = new GraphologyAdapter(palette).fromProjection(projection);
+		const snapshot = createLayoutSnapshot();
+
+		await applyStableLayout(graph, snapshot, [], {
+			mode: 'graph',
+			forceLayout: false,
+			graphSpacing: 1,
+			graphForceSettings: DEFAULT_GRAPH_FORCE_SETTINGS,
+			flowEdgeStyle: 'straight',
+			flowDirection: 'LR',
+			flowLayerSpacing: 1,
+			flowLaneSpacing: 1,
+			arcSpacing: 1,
+			arcDirection: 'right',
+			arcLabelAngle: 'auto',
+			nodeSort: 'name',
+			nodeSortDirection: 'asc',
+			groups: [
+				{
+					id: 'research',
+					name: 'Research',
+					color: '#7c6ff0',
+					mode: 'manual',
+					padding: 0.32,
+				},
+			],
+			groupByNode: new Map([
+				['A.md', 'research'],
+				['B.md', 'research'],
+			]),
+		});
+
+		expect(snapshot.groupGeometries).toEqual([
+			expect.objectContaining({
+				kind: 'graph-container',
+				groupId: 'research',
+				nodeIds: ['A.md', 'B.md'],
+			}),
+		]);
+	});
 });
 
 function node(id: string, title: string): GraphProjection['nodes'][number] {

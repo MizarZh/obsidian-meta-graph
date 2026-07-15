@@ -32,8 +32,9 @@ describe('workspace change tracker', () => {
 		expect(changes.shouldRebuild).toBe(false);
 	});
 
-	it('rebuilds grouped Flow, Arc, and HEB layouts without refitting', () => {
+	it('rebuilds grouped Graph, Flow, Arc, and HEB layouts without refitting', () => {
 		for (const mode of [
+			'graph',
 			'flow',
 			'arc',
 			'hierarchical-edge-bundling',
@@ -63,7 +64,48 @@ describe('workspace change tracker', () => {
 			expect(changes.groupingChanged).toBe(true);
 			expect(changes.shouldRebuild).toBe(true);
 			expect(changes.fitAfterRender).toBe(false);
+			expect(changes.forceLayout).toBe(true);
 		}
+	});
+
+	it('updates Graph group appearance without rerunning ForceAtlas', () => {
+		const state = {
+			...createWorkspaceState(200),
+			mode: 'graph' as const,
+			grouping: {
+				groups: [
+					{
+						id: 'research',
+						name: 'Research',
+						color: '#7c6ff0',
+						mode: 'manual' as const,
+						padding: 0.32,
+					},
+				],
+				overrides: { 'A.md': 'research' },
+			},
+		};
+		const nextState = {
+			...state,
+			grouping: {
+				...state.grouping,
+				groups: state.grouping.groups.map((group) => ({
+					...group,
+					color: '#ef4444',
+					padding: 2,
+				})),
+			},
+		};
+
+		const changes = analyzeWorkspaceStateChanges(
+			nextState,
+			state,
+			createWorkspaceRenderBaseline(state),
+		);
+
+		expect(changes.groupingChanged).toBe(true);
+		expect(changes.shouldRebuild).toBe(true);
+		expect(changes.forceLayout).toBe(false);
 	});
 
 	it('rebuilds Arc labels without refitting the graph', () => {

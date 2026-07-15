@@ -23,6 +23,7 @@ import {
 } from './elk-flow-layout';
 import { ForceAtlasLayout, type GraphForceSettings } from './force-layout';
 import { placeNewFlowNodes } from './flow-insertion';
+import { createGraphGroupGeometries } from './graph-group-layout';
 import { HierarchicalEdgeBundlingLayout } from './hierarchical-edge-bundling-layout';
 import type { LayoutGroupGeometry } from './group-geometry';
 
@@ -267,17 +268,25 @@ async function applyFreeLayout({
 
 async function applyGraphLayout({
 	graph,
+	snapshot,
 	options,
 	firstLayout,
+	currentEdgeIds,
 }: StableLayoutContext): Promise<void> {
-	if (!firstLayout && !options.forceLayout) {
-		return;
+	if (firstLayout || options.forceLayout) {
+		await new ForceAtlasLayout(
+			options.graphSpacing,
+			options.graphForceSettings,
+			options.groupByNode,
+		).apply(graph);
 	}
-
-	await new ForceAtlasLayout(
-		options.graphSpacing,
-		options.graphForceSettings,
-	).apply(graph);
+	snapshot.groupGeometries = createGraphGroupGeometries(
+		graph,
+		options.groups ?? [],
+		options.groupByNode ?? new Map(),
+	);
+	snapshot.edgeIds = currentEdgeIds;
+	snapshot.orthogonalRoutes = createOrthogonalRouteMap();
 }
 
 async function applyGraph3DLayout({

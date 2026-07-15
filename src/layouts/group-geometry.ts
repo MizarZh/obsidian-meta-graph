@@ -30,8 +30,17 @@ export interface FlowGroupGeometry extends LayoutGroupGeometryBase {
 	height: number;
 }
 
+export interface GraphGroupGeometry extends LayoutGroupGeometryBase {
+	kind: 'graph-container';
+	nodeIds: string[];
+	padding: number;
+}
+
 export type LayoutGroupGeometry =
-	ArcGroupGeometry | RadialGroupGeometry | FlowGroupGeometry;
+	| ArcGroupGeometry
+	| RadialGroupGeometry
+	| FlowGroupGeometry
+	| GraphGroupGeometry;
 
 export function normalizeLayoutGroupPadding(padding: number): number {
 	return Math.min(5, Math.max(0, padding));

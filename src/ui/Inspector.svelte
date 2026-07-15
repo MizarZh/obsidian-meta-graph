@@ -61,7 +61,8 @@
 	let linkTargetPath = $state('');
 
 	const canAssignGroup = $derived(
-		mode === 'free' ||
+		mode === 'graph' ||
+			mode === 'free' ||
 			mode === 'cube' ||
 			mode === 'flow' ||
 			mode === 'arc' ||

@@ -1,4 +1,8 @@
-import type { GraphProjection, WorkspaceState } from '../../core/types';
+import type {
+	ChartGroupingConfig,
+	GraphProjection,
+	WorkspaceState,
+} from '../../core/types';
 
 export interface WorkspaceRenderBaseline {
 	projection?: WorkspaceState['projection'];
@@ -156,6 +160,13 @@ export function analyzeWorkspaceStateChanges(
 		baseline,
 		'grouping',
 	);
+	const groupingRequiresLayout =
+		groupingChanged &&
+		(nextState.mode !== 'graph' ||
+			graphGroupingMembershipChanged(
+				nextState.grouping,
+				baseline.grouping,
+			));
 
 	return {
 		groupingChanged,
@@ -262,7 +273,8 @@ export function analyzeWorkspaceStateChanges(
 		shouldRebuild:
 			projectionChanged ||
 			(groupingChanged &&
-				(nextState.mode === 'flow' ||
+				(nextState.mode === 'graph' ||
+					nextState.mode === 'flow' ||
 					nextState.mode === 'arc' ||
 					nextState.mode === 'hierarchical-edge-bundling')) ||
 			stateDiffersFromBaseline(
@@ -285,10 +297,38 @@ export function analyzeWorkspaceStateChanges(
 			flowDirectionChanged ||
 			arcDirectionChanged ||
 			nodeSortChanged ||
-			groupingChanged ||
+			groupingRequiresLayout ||
 			layoutRevisionChanged ||
 			chartSourceChanged,
 	};
+}
+
+function graphGroupingMembershipChanged(
+	nextGrouping: ChartGroupingConfig,
+	baselineGrouping: ChartGroupingConfig | undefined,
+): boolean {
+	if (!baselineGrouping) {
+		return true;
+	}
+	return (
+		graphGroupingMembershipSignature(nextGrouping) !==
+		graphGroupingMembershipSignature(baselineGrouping)
+	);
+}
+
+function graphGroupingMembershipSignature(
+	grouping: ChartGroupingConfig,
+): string {
+	return JSON.stringify({
+		groups: grouping.groups.map((group) => ({
+			id: group.id,
+			mode: group.mode,
+			rule: group.rule ?? null,
+		})),
+		overrides: Object.entries(grouping.overrides).sort(([left], [right]) =>
+			left.localeCompare(right),
+		),
+	});
 }
 
 function projectionHiddenNodeIdsChanged(

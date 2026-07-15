@@ -64,8 +64,10 @@ settings to report them in the developer console.
 9. Use **Group** settings to add chart-local groups, set priority, colors,
    padding, and Manual or Rule membership. Each note belongs to at most one
    group; an explicit assignment or Ungrouped override takes priority over
-   rules. Arc, Hierarchical edge bundling, Flow, Free, and Cube render groups
-   according to their layout. Groups are saved in the workspace file, not note
+   rules. Graph, Arc, Hierarchical edge bundling, Flow, Free, and Cube render
+   groups according to their layout. Graph groups add layout-only cohesion,
+   separate clusters, dynamic member bounds, and colored member rings without
+   creating metadata links. Groups are saved in the workspace file, not note
    frontmatter.
 10. Increase **Label density** in **Graph** settings when Sigma samples too few
     labels while zoomed out. Enable **Always show labels** to force every visible

@@ -110,6 +110,7 @@ export class WorkspaceRendererLifecycle {
 				targetRenderer,
 				state.graphSpacing,
 				getWorkspaceGraphForceSettings(state),
+				createWorkspaceGroupByNode(state),
 				(nodeId, position) => {
 					this.options
 						.readLayoutSnapshot()
@@ -184,16 +185,7 @@ export class WorkspaceRendererLifecycle {
 		const newNodeIds = graph
 			.nodes()
 			.filter((nodeId) => !positions.has(nodeId));
-		const groupOwnership = resolveChartGroupOwnership(
-			state.projection.nodes,
-			state.grouping,
-		);
-		const groupByNode = new Map<string, string>();
-		for (const [nodeId, entry] of groupOwnership.byNode) {
-			if (entry.groupId) {
-				groupByNode.set(nodeId, entry.groupId);
-			}
-		}
+		const groupByNode = createWorkspaceGroupByNode(state);
 		this.options.setRendererDebugState({
 			status: 'layout',
 			mode: state.mode,
@@ -292,4 +284,18 @@ export class WorkspaceRendererLifecycle {
 
 function canRenderProjection(state: WorkspaceState): boolean {
 	return Boolean(state.projection?.nodes.length) || state.mode === 'cube';
+}
+
+function createWorkspaceGroupByNode(
+	state: WorkspaceState,
+): Map<string, string> {
+	const ownership = resolveChartGroupOwnership(
+		state.projection?.nodes ?? [],
+		state.grouping,
+	);
+	return new Map(
+		[...ownership.byNode]
+			.filter((entry) => Boolean(entry[1].groupId))
+			.map(([nodeId, entry]) => [nodeId, entry.groupId!] as const),
+	);
 }
