@@ -1403,6 +1403,25 @@
 	align-items: center;
 }
 
+.knowledge-workspace-text-style-pair {
+	display: flex;
+	gap: var(--size-4-5);
+	align-items: center;
+	min-width: 0;
+}
+
+.knowledge-workspace-text-style-pair > .knowledge-workspace-rule-label {
+	flex: 0 0 auto;
+	justify-content: flex-start;
+	margin-block: 0;
+}
+
+.knowledge-workspace-text-style-pair.profile-colors
+	> .knowledge-workspace-rule-label
+	> span {
+	white-space: nowrap;
+}
+
 .knowledge-workspace-rule-label .knowledge-workspace-obsidian-control,
 .knowledge-workspace-rule-row.compact .knowledge-workspace-obsidian-control {
 	flex: 1 1 auto;

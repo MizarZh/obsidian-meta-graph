@@ -139,14 +139,16 @@
 			/>
 		</label>
 	{/if}
-	<label class="knowledge-workspace-rule-label">
-		<span>Bold</span>
-		<ObsidianToggle value={labelBold} onChange={onLabelBold} />
-	</label>
-	<label class="knowledge-workspace-rule-label">
-		<span>Italic</span>
-		<ObsidianToggle value={labelItalic} onChange={onLabelItalic} />
-	</label>
+	<div class="knowledge-workspace-text-style-pair">
+		<label class="knowledge-workspace-rule-label">
+			<span>Bold</span>
+			<ObsidianToggle value={labelBold} onChange={onLabelBold} />
+		</label>
+		<label class="knowledge-workspace-rule-label">
+			<span>Italic</span>
+			<ObsidianToggle value={labelItalic} onChange={onLabelItalic} />
+		</label>
+	</div>
 	{#if mode !== 'hierarchical-edge-bundling'}
 		<div class="knowledge-workspace-rule-label segmented">
 			<span>Text position</span>
@@ -181,48 +183,50 @@
 			title="Light profile"
 			bind:open={lightProfileOpen}
 		>
-			<label class="knowledge-workspace-rule-label">
-				<span>Text</span>
-				<input
-					type="color"
-					value={labelLightTextColor}
-					oninput={(event) =>
-						scheduleColorCommit(
-							'text:light-text',
-							labelLightTextColor,
-							event.currentTarget.value,
-							onLabelLightTextColor,
-						)}
-					onchange={(event) =>
-						commitColor(
-							'text:light-text',
-							labelLightTextColor,
-							event.currentTarget.value,
-							onLabelLightTextColor,
-						)}
-				/>
-			</label>
-			<label class="knowledge-workspace-rule-label">
-				<span>Background</span>
-				<input
-					type="color"
-					value={labelLightBackgroundColor}
-					oninput={(event) =>
-						scheduleColorCommit(
-							'text:light-background',
-							labelLightBackgroundColor,
-							event.currentTarget.value,
-							onLabelLightBackgroundColor,
-						)}
-					onchange={(event) =>
-						commitColor(
-							'text:light-background',
-							labelLightBackgroundColor,
-							event.currentTarget.value,
-							onLabelLightBackgroundColor,
-						)}
-				/>
-			</label>
+			<div class="knowledge-workspace-text-style-pair profile-colors">
+				<label class="knowledge-workspace-rule-label">
+					<span>Text</span>
+					<input
+						type="color"
+						value={labelLightTextColor}
+						oninput={(event) =>
+							scheduleColorCommit(
+								'text:light-text',
+								labelLightTextColor,
+								event.currentTarget.value,
+								onLabelLightTextColor,
+							)}
+						onchange={(event) =>
+							commitColor(
+								'text:light-text',
+								labelLightTextColor,
+								event.currentTarget.value,
+								onLabelLightTextColor,
+							)}
+					/>
+				</label>
+				<label class="knowledge-workspace-rule-label">
+					<span>Background</span>
+					<input
+						type="color"
+						value={labelLightBackgroundColor}
+						oninput={(event) =>
+							scheduleColorCommit(
+								'text:light-background',
+								labelLightBackgroundColor,
+								event.currentTarget.value,
+								onLabelLightBackgroundColor,
+							)}
+						onchange={(event) =>
+							commitColor(
+								'text:light-background',
+								labelLightBackgroundColor,
+								event.currentTarget.value,
+								onLabelLightBackgroundColor,
+							)}
+					/>
+				</label>
+			</div>
 			<label class="knowledge-workspace-rule-label">
 				<span>Background opacity</span>
 				<div class="knowledge-workspace-slider-value">
@@ -244,48 +248,50 @@
 			title="Dark profile"
 			bind:open={darkProfileOpen}
 		>
-			<label class="knowledge-workspace-rule-label">
-				<span>Text</span>
-				<input
-					type="color"
-					value={labelDarkTextColor}
-					oninput={(event) =>
-						scheduleColorCommit(
-							'text:dark-text',
-							labelDarkTextColor,
-							event.currentTarget.value,
-							onLabelDarkTextColor,
-						)}
-					onchange={(event) =>
-						commitColor(
-							'text:dark-text',
-							labelDarkTextColor,
-							event.currentTarget.value,
-							onLabelDarkTextColor,
-						)}
-				/>
-			</label>
-			<label class="knowledge-workspace-rule-label">
-				<span>Background</span>
-				<input
-					type="color"
-					value={labelDarkBackgroundColor}
-					oninput={(event) =>
-						scheduleColorCommit(
-							'text:dark-background',
-							labelDarkBackgroundColor,
-							event.currentTarget.value,
-							onLabelDarkBackgroundColor,
-						)}
-					onchange={(event) =>
-						commitColor(
-							'text:dark-background',
-							labelDarkBackgroundColor,
-							event.currentTarget.value,
-							onLabelDarkBackgroundColor,
-						)}
-				/>
-			</label>
+			<div class="knowledge-workspace-text-style-pair profile-colors">
+				<label class="knowledge-workspace-rule-label">
+					<span>Text</span>
+					<input
+						type="color"
+						value={labelDarkTextColor}
+						oninput={(event) =>
+							scheduleColorCommit(
+								'text:dark-text',
+								labelDarkTextColor,
+								event.currentTarget.value,
+								onLabelDarkTextColor,
+							)}
+						onchange={(event) =>
+							commitColor(
+								'text:dark-text',
+								labelDarkTextColor,
+								event.currentTarget.value,
+								onLabelDarkTextColor,
+							)}
+					/>
+				</label>
+				<label class="knowledge-workspace-rule-label">
+					<span>Background</span>
+					<input
+						type="color"
+						value={labelDarkBackgroundColor}
+						oninput={(event) =>
+							scheduleColorCommit(
+								'text:dark-background',
+								labelDarkBackgroundColor,
+								event.currentTarget.value,
+								onLabelDarkBackgroundColor,
+							)}
+						onchange={(event) =>
+							commitColor(
+								'text:dark-background',
+								labelDarkBackgroundColor,
+								event.currentTarget.value,
+								onLabelDarkBackgroundColor,
+							)}
+					/>
+				</label>
+			</div>
 			<label class="knowledge-workspace-rule-label">
 				<span>Background opacity</span>
 				<div class="knowledge-workspace-slider-value">
