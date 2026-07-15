@@ -1374,18 +1374,18 @@
 }
 
 .knowledge-workspace-rule-label.segmented
-	.knowledge-workspace-segmented.arc-direction {
+	.knowledge-workspace-segmented.arc-options {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.knowledge-workspace-segmented.arc-direction
+.knowledge-workspace-segmented.arc-options
 	> .knowledge-workspace-obsidian-control {
 	min-width: 0;
 }
 
 .knowledge-workspace-rule-label.segmented
-	.knowledge-workspace-segmented.arc-direction
+	.knowledge-workspace-segmented.arc-options
 	button {
 	width: 100%;
 	padding-inline: var(--size-4-2);

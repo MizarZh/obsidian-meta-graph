@@ -1,5 +1,6 @@
 import type {
 	ArcDirection,
+	ArcLabelAngle,
 	FlowDirection,
 	FlowEdgeStyle,
 	LayoutNodeSort,
@@ -48,6 +49,7 @@ export interface StableLayoutOptions {
 	flowLaneSpacing: number;
 	arcSpacing: number;
 	arcDirection: ArcDirection;
+	arcLabelAngle: ArcLabelAngle;
 	nodeSort: LayoutNodeSort;
 	nodeSortDirection: LayoutSortDirection;
 }
@@ -164,6 +166,7 @@ async function applyArcLayout({
 		options.arcDirection,
 		options.nodeSort,
 		options.nodeSortDirection,
+		options.arcLabelAngle,
 	).apply(graph);
 	snapshot.edgeIds = currentEdgeIds;
 	snapshot.orthogonalRoutes = createOrthogonalRouteMap();

@@ -7,6 +7,7 @@
 	import ObsidianToggle from '../obsidian/ObsidianToggle.svelte';
 	import type {
 		ArcDirection,
+		ArcLabelAngle,
 		FlowDirection,
 		FlowEdgeStyle,
 		GraphQuery,
@@ -27,6 +28,7 @@
 		flowEdgeStyle,
 		flowDirection,
 		arcDirection,
+		arcLabelAngle,
 		nodeSort,
 		nodeSortDirection,
 		graphCenterForce,
@@ -42,6 +44,7 @@
 		onFlowEdgeStyle,
 		onFlowDirection,
 		onArcDirection,
+		onArcLabelAngle,
 		onLayoutNodeSort,
 		onLayoutSortDirection,
 		onFadeDistance,
@@ -74,6 +77,7 @@
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
 		arcDirection: ArcDirection;
+		arcLabelAngle: ArcLabelAngle;
 		nodeSort: LayoutNodeSort;
 		nodeSortDirection: LayoutSortDirection;
 		graphCenterForce: number;
@@ -89,6 +93,7 @@
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
 		onArcDirection: (direction: ArcDirection) => void;
+		onArcLabelAngle: (angle: ArcLabelAngle) => void;
 		onLayoutNodeSort: (sort: LayoutNodeSort) => void;
 		onLayoutSortDirection: (direction: LayoutSortDirection) => void;
 		onFadeDistance: (value: number) => void;
@@ -253,6 +258,15 @@
 		{ value: 'left', label: 'Left' },
 		{ value: 'up', label: 'Up' },
 		{ value: 'down', label: 'Down' },
+	];
+	const ARC_LABEL_ANGLE_OPTIONS: Array<{
+		value: ArcLabelAngle;
+		label: string;
+	}> = [
+		{ value: 'auto', label: 'Auto' },
+		{ value: 0, label: '0°' },
+		{ value: 45, label: '45°' },
+		{ value: 90, label: '90°' },
 	];
 </script>
 
@@ -619,12 +633,24 @@
 		>
 			<div class="knowledge-workspace-rule-label segmented">
 				<span>Direction</span>
-				<div class="knowledge-workspace-segmented arc-direction">
+				<div class="knowledge-workspace-segmented arc-options">
 					{#each ARC_DIRECTION_OPTIONS as option}
 						<ObsidianButton
 							active={arcDirection === option.value}
 							text={option.label}
 							onClick={() => onArcDirection(option.value)}
+						/>
+					{/each}
+				</div>
+			</div>
+			<div class="knowledge-workspace-rule-label segmented">
+				<span>Label angle</span>
+				<div class="knowledge-workspace-segmented arc-options">
+					{#each ARC_LABEL_ANGLE_OPTIONS as option}
+						<ObsidianButton
+							active={arcLabelAngle === option.value}
+							text={option.label}
+							onClick={() => onArcLabelAngle(option.value)}
 						/>
 					{/each}
 				</div>

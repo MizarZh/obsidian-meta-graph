@@ -9,6 +9,7 @@ export interface WorkspaceRenderBaseline {
 	flowEdgeStyle?: WorkspaceState['flowEdgeStyle'];
 	flowDirection?: WorkspaceState['flowDirection'];
 	arcDirection?: WorkspaceState['arcDirection'];
+	arcLabelAngle?: WorkspaceState['arcLabelAngle'];
 	nodeSort?: WorkspaceState['nodeSort'];
 	nodeSortDirection?: WorkspaceState['nodeSortDirection'];
 	manualLayout?: WorkspaceState['manualLayout'];
@@ -90,6 +91,7 @@ const REBUILD_BASELINE_KEYS = [
 	'flowEdgeStyle',
 	'flowDirection',
 	'arcDirection',
+	'arcLabelAngle',
 	'nodeSort',
 	'nodeSortDirection',
 	'layoutRevision',
@@ -342,6 +344,7 @@ export function createWorkspaceRenderBaseline(
 		flowEdgeStyle: state.flowEdgeStyle,
 		flowDirection: state.flowDirection,
 		arcDirection: state.arcDirection,
+		arcLabelAngle: state.arcLabelAngle,
 		nodeSort: state.nodeSort,
 		nodeSortDirection: state.nodeSortDirection,
 		manualLayout: state.manualLayout,

@@ -199,6 +199,7 @@ export class WorkspaceRendererLifecycle {
 			flowLaneSpacing: state.flowLaneSpacing,
 			arcSpacing: state.arcSpacing,
 			arcDirection: state.arcDirection,
+			arcLabelAngle: state.arcLabelAngle,
 			nodeSort: state.nodeSort,
 			nodeSortDirection: state.nodeSortDirection,
 		});

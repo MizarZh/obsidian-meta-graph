@@ -117,7 +117,7 @@
 			label: string;
 		}>
 	>([
-		{ mode: 'graph', icon: 'settings-2', label: 'Graph' },
+		{ mode: 'graph', icon: 'sliders-horizontal', label: 'Graph' },
 		...(chartSource === 'query'
 			? [
 					{

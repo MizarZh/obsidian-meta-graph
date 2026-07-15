@@ -88,6 +88,7 @@
 			flowEdgeStyle={workspaceState.flowEdgeStyle}
 			flowDirection={workspaceState.flowDirection}
 			arcDirection={workspaceState.arcDirection}
+			arcLabelAngle={workspaceState.arcLabelAngle}
 			nodeSort={workspaceState.nodeSort}
 			nodeSortDirection={workspaceState.nodeSortDirection}
 			graphSpacing={workspaceState.graphSpacing}
@@ -125,6 +126,7 @@
 				controller.setFlowDirection(direction)}
 			onArcDirection={(direction) =>
 				controller.setArcDirection(direction)}
+			onArcLabelAngle={(angle) => controller.setArcLabelAngle(angle)}
 			onLayoutNodeSort={(sort) => controller.setLayoutNodeSort(sort)}
 			onLayoutSortDirection={(direction) =>
 				controller.setLayoutSortDirection(direction)}

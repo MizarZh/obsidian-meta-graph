@@ -1,6 +1,7 @@
 import { TFile, type App } from 'obsidian';
 import type {
 	ArcDirection,
+	ArcLabelAngle,
 	ChartSource,
 	ChartGroup,
 	ConnectionFieldMode,
@@ -33,6 +34,7 @@ import { createWorkspaceState } from './state/workspace-state';
 import { serializeMetaGraphState } from './meta-graph-model';
 import {
 	setArcDirectionInState,
+	setArcLabelAngleInState,
 	setArcSpacingInState,
 	setCubeFaceOpacityInState,
 	setCubeFreeCameraInState,
@@ -331,6 +333,12 @@ export class WorkspaceController {
 	setArcDirection(arcDirection: ArcDirection): void {
 		this.setWorkspaceState(
 			setArcDirectionInState(this.state, arcDirection),
+		);
+	}
+
+	setArcLabelAngle(arcLabelAngle: ArcLabelAngle): void {
+		this.setWorkspaceState(
+			setArcLabelAngleInState(this.state, arcLabelAngle),
 		);
 	}
 

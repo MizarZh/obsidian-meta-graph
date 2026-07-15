@@ -1,5 +1,5 @@
 import { scalePoint } from 'd3-scale';
-import type { ArcDirection } from '../core/types';
+import type { ArcDirection, ArcLabelAngle } from '../core/types';
 import type { RuntimeGraph } from '../graph/model/graphology-adapter';
 import type { LayoutEngine } from './layout-engine';
 import {
@@ -19,6 +19,7 @@ export class ArcLayout implements LayoutEngine {
 		private readonly direction: ArcDirection = 'right',
 		private readonly nodeSort: LayoutNodeSort = 'name',
 		private readonly nodeSortDirection: LayoutSortDirection = 'asc',
+		private readonly labelAngle: ArcLabelAngle = 'auto',
 	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
@@ -32,6 +33,10 @@ export class ArcLayout implements LayoutEngine {
 		const axis = scalePoint<string>()
 			.domain(nodeIds)
 			.range([-length / 2, length / 2]);
+		const labelPlacement = getArcLabelPlacement(
+			this.direction,
+			this.labelAngle,
+		);
 
 		for (const nodeId of nodeIds) {
 			const axisPosition = axis(nodeId) ?? 0;
@@ -39,11 +44,35 @@ export class ArcLayout implements LayoutEngine {
 				x: isVerticalArc(this.direction) ? 0 : axisPosition,
 				y: isVerticalArc(this.direction) ? axisPosition : 0,
 				fixed: true,
+				labelRotation: labelPlacement.rotation,
+				labelDirection: labelPlacement.direction,
 			});
 		}
 
 		applyArcEdges(graph, this.direction);
 	}
+}
+
+export function getArcLabelPlacement(
+	direction: ArcDirection,
+	angle: ArcLabelAngle,
+): { rotation?: number; direction?: 1 | -1 } {
+	const degrees =
+		angle === 'auto'
+			? direction === 'up' || direction === 'down'
+				? 90
+				: 0
+			: angle;
+	if (degrees === 0) {
+		return {};
+	}
+
+	const rotation = (degrees * Math.PI) / 180;
+	return {
+		rotation:
+			direction === 'left' || direction === 'up' ? rotation : -rotation,
+		direction: direction === 'right' ? -1 : 1,
+	};
 }
 
 function calculateArcStep(

@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { GraphProjection } from '../core/types';
 import { GraphologyAdapter } from '../graph/model/graphology-adapter';
 import type { GraphPalette } from '../graph/styles/graph-styles';
-import { ArcLayout, createArcPoints } from '../layouts/arc-layout';
+import {
+	ArcLayout,
+	createArcPoints,
+	getArcLabelPlacement,
+} from '../layouts/arc-layout';
 
 const palette: GraphPalette = {
 	node: '#111111',
@@ -93,6 +97,32 @@ describe('ArcLayout', () => {
 		expect(graph.getNodeAttributes('A.md')).toMatchObject({ x: -72, y: 0 });
 		expect(graph.getNodeAttributes('B.md')).toMatchObject({ x: 0, y: 0 });
 		expect(graph.getNodeAttributes('C.md')).toMatchObject({ x: 72, y: 0 });
+		expect(graph.getNodeAttribute('A.md', 'labelRotation')).toBeCloseTo(
+			Math.PI / 2,
+		);
+	});
+
+	it('resolves automatic and mirrored label angles', () => {
+		expect(getArcLabelPlacement('right', 'auto')).toEqual({});
+		expect(getArcLabelPlacement('up', 'auto').rotation).toBeCloseTo(
+			Math.PI / 2,
+		);
+		expect(getArcLabelPlacement('down', 'auto').rotation).toBeCloseTo(
+			-Math.PI / 2,
+		);
+		expect(getArcLabelPlacement('left', 45)).toMatchObject({
+			direction: 1,
+		});
+		expect(getArcLabelPlacement('left', 45).rotation).toBeCloseTo(
+			Math.PI / 4,
+		);
+		expect(getArcLabelPlacement('right', 45)).toMatchObject({
+			direction: -1,
+		});
+		expect(getArcLabelPlacement('right', 45).rotation).toBeCloseTo(
+			-Math.PI / 4,
+		);
+		expect(getArcLabelPlacement('up', 0)).toEqual({});
 	});
 
 	it('sorts nodes by configured field and direction', async () => {

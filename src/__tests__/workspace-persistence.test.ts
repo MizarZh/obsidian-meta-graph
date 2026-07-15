@@ -284,6 +284,7 @@ describe('workspace persistence', () => {
 		if (arcChart) {
 			arcChart.layout.spacing = 1.5;
 			arcChart.layout.arcDirection = 'left';
+			arcChart.layout.arcLabelAngle = 45;
 			arcChart.layout.nodeSort = 'degree';
 			arcChart.layout.nodeSortDirection = 'desc';
 			document.activeChart = arcChart.id;
@@ -297,6 +298,7 @@ describe('workspace persistence', () => {
 		expect(restored.mode).toBe('arc');
 		expect(restored.arcSpacing).toBe(1.5);
 		expect(restored.arcDirection).toBe('left');
+		expect(restored.arcLabelAngle).toBe(45);
 		expect(restored.nodeSort).toBe('degree');
 		expect(restored.nodeSortDirection).toBe('desc');
 	});

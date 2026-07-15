@@ -40,6 +40,7 @@ export type SettingsPanelMode =
 export type FlowEdgeStyle = 'straight' | 'orthogonal';
 export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
 export type ArcDirection = 'right' | 'left' | 'up' | 'down';
+export type ArcLabelAngle = 'auto' | 0 | 45 | 90;
 export type LayoutNodeSort =
 	| 'name'
 	| 'path'
@@ -85,6 +86,7 @@ export interface ChartLayoutConfig {
 	laneSpacing?: number;
 	direction?: FlowDirection;
 	arcDirection?: ArcDirection;
+	arcLabelAngle?: ArcLabelAngle;
 	nodeSort?: LayoutNodeSort;
 	nodeSortDirection?: LayoutSortDirection;
 	edgeStyle?: FlowEdgeStyle;
@@ -198,6 +200,7 @@ export interface WorkspaceState {
 	flowEdgeStyle: FlowEdgeStyle;
 	flowDirection: FlowDirection;
 	arcDirection: ArcDirection;
+	arcLabelAngle: ArcLabelAngle;
 	nodeSort: LayoutNodeSort;
 	nodeSortDirection: LayoutSortDirection;
 	fadeDistance: number;

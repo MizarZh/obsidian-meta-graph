@@ -137,6 +137,7 @@ describe('stable layout orchestration', () => {
 			flowLaneSpacing: 1,
 			arcSpacing: 1,
 			arcDirection: 'right',
+			arcLabelAngle: 'auto',
 			nodeSort: 'name',
 			nodeSortDirection: 'asc',
 		});
@@ -175,6 +176,7 @@ describe('stable layout orchestration', () => {
 			flowLaneSpacing: 1,
 			arcSpacing: 1,
 			arcDirection: 'right',
+			arcLabelAngle: 'auto',
 			nodeSort: 'name',
 			nodeSortDirection: 'asc',
 		});

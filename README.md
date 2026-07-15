@@ -68,7 +68,9 @@ settings to report them in the developer console.
     labels while zoomed out. Enable **Always show labels** to force every visible
     note label through Sigma's label grid. In 3D graph and Cube layouts, use
     **3D text clarity** in **Text style** to increase label texture resolution;
-    higher settings use more GPU memory.
+    higher settings use more GPU memory. In Arc views, use **Label angle** under
+    **Arc details** to select Auto, 0°, 45°, or 90°. Auto keeps Right/Left labels
+    horizontal and rotates Up/Down labels vertically.
 11. Use the bottom connection panel to select or add the metadata field used for
     new links. Set the field direction to **One-way** or **Two-way** from the
     direction dropdown.
@@ -108,7 +110,7 @@ settings to report them in the developer console.
     workspace is focused, to undo connection edits made in the current workspace
     session.
 20. Choose **Open notes in** under **Settings -> Meta Graph** to open notes in a
-    new tab or a reused right split. Toggle the eye button in **Details** to show
+    new tab or a reused right split. Use the fold/unfold button in **Details** to show
     read-only note content below its metadata. **After creating a note** controls whether
     template-created notes stay on the graph or open with the same policy.
 21. Select **Debug** to inspect or copy the current query, projection,

@@ -32,6 +32,21 @@ describe('workspace change tracker', () => {
 		expect(changes.shouldRebuild).toBe(false);
 	});
 
+	it('rebuilds Arc labels without refitting the graph', () => {
+		const state = createWorkspaceState(200);
+		const nextState = { ...state, arcLabelAngle: 45 as const };
+
+		const changes = analyzeWorkspaceStateChanges(
+			nextState,
+			state,
+			createWorkspaceRenderBaseline(state),
+		);
+
+		expect(changes.shouldRebuild).toBe(true);
+		expect(changes.fitAfterRender).toBe(false);
+		expect(changes.forceLayout).toBe(false);
+	});
+
 	it('syncs 3D text resolution without rebuilding the graph', () => {
 		const state = createWorkspaceState(200);
 		const nextState = {

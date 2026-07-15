@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MetaGraphChart, WorkspaceState } from '../core/types';
 import {
+	setArcLabelAngleInState,
 	setArcSpacingInState,
 	setCubeFaceOpacityInState,
 	setCubeFreeCameraInState,
@@ -77,6 +78,21 @@ describe('workspace chart settings', () => {
 		expect(setFlowLayerSpacingInState(flowState, 2).layoutRevision).toBe(1);
 		expect(setFlowLaneSpacingInState(flowState, 2).layoutRevision).toBe(1);
 		expect(setArcSpacingInState(arcState, 2).layoutRevision).toBe(1);
+	});
+
+	it('stores Arc label angle without changing layout revision', () => {
+		const state = createWorkspaceState(100, 1.5);
+		const arcState = {
+			...state,
+			activeChartId: 'arc-diagram',
+			mode: 'arc' as const,
+		};
+
+		const nextState = setArcLabelAngleInState(arcState, 45);
+
+		expect(nextState.arcLabelAngle).toBe(45);
+		expect(getActiveChart(nextState).layout.arcLabelAngle).toBe(45);
+		expect(nextState.layoutRevision).toBe(0);
 	});
 
 	it('preserves graph force settings when a non-force chart becomes active', () => {

@@ -20,6 +20,7 @@ type ActiveChartStateFields = Pick<
 	| 'flowEdgeStyle'
 	| 'flowDirection'
 	| 'arcDirection'
+	| 'arcLabelAngle'
 	| 'nodeSort'
 	| 'nodeSortDirection'
 	| 'fadeDistance'
@@ -127,6 +128,7 @@ function createActiveChartStateFields(
 		flowEdgeStyle: chart.layout.edgeStyle ?? 'orthogonal',
 		flowDirection: chart.layout.direction ?? 'LR',
 		arcDirection: chart.layout.arcDirection ?? 'right',
+		arcLabelAngle: chart.layout.arcLabelAngle ?? 'auto',
 		nodeSort: chart.layout.nodeSort ?? 'name',
 		nodeSortDirection: chart.layout.nodeSortDirection ?? 'asc',
 		fadeDistance: chart.display.fadeDistance,

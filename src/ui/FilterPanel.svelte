@@ -12,6 +12,7 @@
 	} from './filter/color-commit';
 	import type {
 		ArcDirection,
+		ArcLabelAngle,
 		ChartGroup,
 		DefaultLinkStyle,
 		DefaultNodeStyle,
@@ -56,6 +57,7 @@
 		flowEdgeStyle,
 		flowDirection,
 		arcDirection,
+		arcLabelAngle,
 		nodeSort,
 		nodeSortDirection,
 		graphSpacing,
@@ -91,6 +93,7 @@
 		onFlowEdgeStyle,
 		onFlowDirection,
 		onArcDirection,
+		onArcLabelAngle,
 		onLayoutNodeSort,
 		onLayoutSortDirection,
 		onFadeDistance,
@@ -165,6 +168,7 @@
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
 		arcDirection: ArcDirection;
+		arcLabelAngle: ArcLabelAngle;
 		nodeSort: LayoutNodeSort;
 		nodeSortDirection: LayoutSortDirection;
 		graphSpacing: number;
@@ -200,6 +204,7 @@
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
 		onArcDirection: (direction: ArcDirection) => void;
+		onArcLabelAngle: (angle: ArcLabelAngle) => void;
 		onLayoutNodeSort: (sort: LayoutNodeSort) => void;
 		onLayoutSortDirection: (direction: LayoutSortDirection) => void;
 		onFadeDistance: (value: number) => void;
@@ -291,6 +296,7 @@
 			{flowEdgeStyle}
 			{flowDirection}
 			{arcDirection}
+			{arcLabelAngle}
 			{nodeSort}
 			{nodeSortDirection}
 			{graphCenterForce}
@@ -306,6 +312,7 @@
 			{onFlowEdgeStyle}
 			{onFlowDirection}
 			{onArcDirection}
+			{onArcLabelAngle}
 			{onLayoutNodeSort}
 			{onLayoutSortDirection}
 			{onFadeDistance}

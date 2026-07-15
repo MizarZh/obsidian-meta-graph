@@ -1,5 +1,6 @@
 import type {
 	ArcDirection,
+	ArcLabelAngle,
 	FlowDirection,
 	FlowEdgeStyle,
 	LabelPosition,
@@ -39,6 +40,13 @@ export function setArcDirectionInState(
 	arcDirection: ArcDirection,
 ): WorkspaceState {
 	return updateActiveChartLayout(state, { arcDirection }, true);
+}
+
+export function setArcLabelAngleInState(
+	state: WorkspaceState,
+	arcLabelAngle: ArcLabelAngle,
+): WorkspaceState {
+	return updateActiveChartLayout(state, { arcLabelAngle });
 }
 
 export function setLayoutNodeSortInState(

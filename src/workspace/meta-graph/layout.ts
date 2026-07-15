@@ -1,4 +1,5 @@
 import type {
+	ArcLabelAngle,
 	ChartLayoutConfig,
 	LayoutNodeSort,
 	LayoutSortDirection,
@@ -79,6 +80,10 @@ export function normalizeLayout(
 			record.arcDirection === 'down'
 				? record.arcDirection
 				: fallback.arcDirection,
+		arcLabelAngle: readArcLabelAngle(
+			record.arcLabelAngle,
+			fallback.arcLabelAngle,
+		),
 		nodeSort: readLayoutNodeSort(record.nodeSort, fallback.nodeSort),
 		nodeSortDirection: readLayoutSortDirection(
 			record.nodeSortDirection,
@@ -108,6 +113,7 @@ export function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 				engine: 'arc',
 				spacing: 1,
 				arcDirection: 'right',
+				arcLabelAngle: 'auto',
 				nodeSort: 'name',
 				nodeSortDirection: 'asc',
 			};
@@ -191,6 +197,15 @@ function readLayoutSortDirection(
 	fallback: LayoutSortDirection | undefined,
 ): LayoutSortDirection {
 	return value === 'desc' || value === 'asc' ? value : (fallback ?? 'asc');
+}
+
+function readArcLabelAngle(
+	value: unknown,
+	fallback: ArcLabelAngle | undefined,
+): ArcLabelAngle {
+	return value === 'auto' || value === 0 || value === 45 || value === 90
+		? value
+		: (fallback ?? 'auto');
 }
 
 function normalizeForceSetting(value: unknown, fallback: number): number {
