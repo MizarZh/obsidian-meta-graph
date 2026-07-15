@@ -30,6 +30,7 @@ export interface WorkspaceStateChanges {
 	manualLayoutChanged: boolean;
 	fadeDistanceChanged: boolean;
 	labelSizeChanged: boolean;
+	threeLabelResolutionChanged: boolean;
 	labelBoldChanged: boolean;
 	labelItalicChanged: boolean;
 	labelPositionChanged: boolean;
@@ -162,6 +163,11 @@ export function analyzeWorkspaceStateChanges(
 			nextState,
 			currentState,
 			'labelSize',
+		),
+		threeLabelResolutionChanged: stateValueChanged(
+			nextState,
+			currentState,
+			'threeLabelResolution',
 		),
 		labelBoldChanged: stateValueChanged(
 			nextState,

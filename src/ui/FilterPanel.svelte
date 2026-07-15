@@ -24,6 +24,7 @@
 		LinkStyleRule,
 		NodeStyleRule,
 		SettingsPanelMode,
+		ThreeLabelResolution,
 		ViewMode,
 	} from '../core/types';
 
@@ -33,6 +34,7 @@
 		mode,
 		fadeDistance,
 		labelSize,
+		threeLabelResolution,
 		labelBold,
 		labelItalic,
 		labelPosition,
@@ -93,6 +95,7 @@
 		onLayoutSortDirection,
 		onFadeDistance,
 		onLabelSize,
+		onThreeLabelResolution,
 		onLabelBold,
 		onLabelItalic,
 		onLabelPosition,
@@ -140,6 +143,7 @@
 		mode: ViewMode;
 		fadeDistance: number;
 		labelSize: number;
+		threeLabelResolution: ThreeLabelResolution;
 		labelBold: boolean;
 		labelItalic: boolean;
 		labelPosition: LabelPosition;
@@ -200,6 +204,7 @@
 		onLayoutSortDirection: (direction: LayoutSortDirection) => void;
 		onFadeDistance: (value: number) => void;
 		onLabelSize: (value: number) => void;
+		onThreeLabelResolution: (value: ThreeLabelResolution) => void;
 		onLabelBold: (value: boolean) => void;
 		onLabelItalic: (value: boolean) => void;
 		onLabelPosition: (position: LabelPosition) => void;
@@ -326,6 +331,7 @@
 		<TextStylePanel
 			{mode}
 			{labelSize}
+			{threeLabelResolution}
 			{labelBold}
 			{labelItalic}
 			{labelPosition}
@@ -339,6 +345,7 @@
 			{labelDarkBackgroundOpacity}
 			{labelBackgroundOpacity}
 			{onLabelSize}
+			{onThreeLabelResolution}
 			{onLabelBold}
 			{onLabelItalic}
 			{onLabelPosition}

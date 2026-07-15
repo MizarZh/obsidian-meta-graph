@@ -32,6 +32,23 @@ describe('workspace change tracker', () => {
 		expect(changes.shouldRebuild).toBe(false);
 	});
 
+	it('syncs 3D text resolution without rebuilding the graph', () => {
+		const state = createWorkspaceState(200);
+		const nextState = {
+			...state,
+			threeLabelResolution: 'high' as const,
+		};
+
+		const changes = analyzeWorkspaceStateChanges(
+			nextState,
+			state,
+			createWorkspaceRenderBaseline(state),
+		);
+
+		expect(changes.threeLabelResolutionChanged).toBe(true);
+		expect(changes.shouldRebuild).toBe(false);
+	});
+
 	it('detects style-only updates without rebuild', () => {
 		const state = createWorkspaceState(200);
 		const nextState = {

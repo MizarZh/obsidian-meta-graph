@@ -1,5 +1,9 @@
 import type * as Three from 'three';
-import type { LabelPosition, ManualLayoutConfig } from '../../../core/types';
+import type {
+	LabelPosition,
+	ManualLayoutConfig,
+	ThreeLabelResolution,
+} from '../../../core/types';
 import {
 	type CubeFace,
 	type CubeFaceId,
@@ -41,7 +45,10 @@ import {
 	projectedToViewport,
 	readViewportPosition,
 } from '../renderer-interaction';
-import { createThreeTextSprite } from '../renderer-labels';
+import {
+	createThreeTextSprite,
+	resolveThreeLabelPixelRatio,
+} from '../renderer-labels';
 
 interface CubeNodeObject {
 	id: string;
@@ -64,7 +71,9 @@ export class Cube3DRenderer {
 	private readonly nodeObjects = new Map<string, CubeNodeObject>();
 	private readonly faceMeshes = new Map<CubeFaceId, Three.Mesh>();
 	private readonly arrowTextures = new Map<string, Three.CanvasTexture>();
-	private readonly edgeLineMaterials = new Set<InstanceType<ThreeModule['LineMaterial']>>();
+	private readonly edgeLineMaterials = new Set<
+		InstanceType<ThreeModule['LineMaterial']>
+	>();
 	private cubeSize: number;
 	private cubeFreeCamera: boolean;
 	private selectedNodeId?: string;
@@ -83,6 +92,7 @@ export class Cube3DRenderer {
 	private labelTheme: LabelThemeConfig;
 	private labelBackgroundOpacity: number;
 	private labelSize: number;
+	private threeLabelResolution: ThreeLabelResolution;
 	private labelDensity: number;
 	private cubeFaceOpacity: number;
 	private forceLabels: boolean;
@@ -119,6 +129,7 @@ export class Cube3DRenderer {
 		labelDarkTextColor = '#ffffff',
 		labelDarkBackgroundColor = '#000000',
 		labelDarkBackgroundOpacity = 0.62,
+		threeLabelResolution: ThreeLabelResolution = 'standard',
 	): Promise<Cube3DRenderer | undefined> {
 		const three = await loadThree();
 		if (isStale()) {
@@ -135,12 +146,12 @@ export class Cube3DRenderer {
 			labelItalic,
 			labelPosition,
 			labelColor,
-				labelBackgroundOpacity,
-				labelDensity,
-				cubeFaceOpacity,
-				cubeSize,
-				cubeFreeCamera,
-				forceLabels,
+			labelBackgroundOpacity,
+			labelDensity,
+			cubeFaceOpacity,
+			cubeSize,
+			cubeFreeCamera,
+			forceLabels,
 			labelOffset,
 			labelLightTextColor,
 			labelLightBackgroundColor,
@@ -148,6 +159,7 @@ export class Cube3DRenderer {
 			labelDarkTextColor,
 			labelDarkBackgroundColor,
 			labelDarkBackgroundOpacity,
+			threeLabelResolution,
 		);
 	}
 
@@ -175,6 +187,7 @@ export class Cube3DRenderer {
 		labelDarkTextColor: string,
 		labelDarkBackgroundColor: string,
 		labelDarkBackgroundOpacity: number,
+		threeLabelResolution: ThreeLabelResolution,
 	) {
 		this.manualLayout = manualLayout;
 		this.labelSize = labelSize;
@@ -193,6 +206,7 @@ export class Cube3DRenderer {
 		};
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.labelDensity = labelDensity;
+		this.threeLabelResolution = threeLabelResolution;
 		this.cubeFaceOpacity = cubeFaceOpacity;
 		this.cubeSize = normalizeCubeSize(cubeSize);
 		this.cubeFreeCamera = cubeFreeCamera;
@@ -296,6 +310,13 @@ export class Cube3DRenderer {
 
 	setLabelSize(labelSize: number): void {
 		this.labelSize = labelSize;
+		this.rebuildGraphObjects();
+		this.scheduleRender();
+	}
+
+	setThreeLabelResolution(resolution: ThreeLabelResolution): void {
+		if (resolution === this.threeLabelResolution) return;
+		this.threeLabelResolution = resolution;
 		this.rebuildGraphObjects();
 		this.scheduleRender();
 	}
@@ -980,6 +1001,10 @@ export class Cube3DRenderer {
 			ownerDocument: this.container.ownerDocument,
 			fontWeight: this.labelBold ? 'bold' : 'normal',
 			fontStyle: this.labelItalic ? 'italic' : 'normal',
+			pixelRatio: resolveThreeLabelPixelRatio(
+				this.threeLabelResolution,
+				this.container.ownerDocument.defaultView?.devicePixelRatio ?? 1,
+			),
 			paddingX: Math.ceil(fontSize * 0.45),
 			paddingY: Math.ceil(fontSize * 0.45),
 			scale,

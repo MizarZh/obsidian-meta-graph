@@ -1,4 +1,5 @@
 import type * as Three from 'three';
+import type { ThreeLabelResolution } from '../../core/types';
 
 export interface ThreeLabelRuntime {
 	CanvasTexture: typeof Three.CanvasTexture;
@@ -19,6 +20,7 @@ export interface ThreeTextSpriteOptions {
 	scale?: number;
 	scaleMultiplier?: number;
 	roundRadius?: number;
+	pixelRatio?: number;
 }
 
 export function createThreeTextSprite(
@@ -51,7 +53,14 @@ export function createThreeTextSprite(
 		Math.ceil(context.measureText(options.text).width + paddingX * 2),
 	);
 	const height = Math.max(1, Math.ceil(fontSize + paddingY * 2));
-	const pixelRatio = Math.min(2, window.devicePixelRatio || 1);
+	const pixelRatio = Math.max(
+		1,
+		options.pixelRatio ??
+			Math.min(
+				2,
+				canvas.ownerDocument.defaultView?.devicePixelRatio || 1,
+			),
+	);
 	canvas.width = width * pixelRatio;
 	canvas.height = height * pixelRatio;
 	canvas.style.width = `${width}px`;
@@ -87,6 +96,18 @@ export function createThreeTextSprite(
 		1,
 	);
 	return sprite;
+}
+
+export function resolveThreeLabelPixelRatio(
+	resolution: ThreeLabelResolution,
+	devicePixelRatio: number,
+): number {
+	if (resolution === 'ultra') return 4;
+	if (resolution === 'high') return 3;
+	const normalizedDeviceRatio = Number.isFinite(devicePixelRatio)
+		? Math.max(1, devicePixelRatio)
+		: 1;
+	return Math.min(2, normalizedDeviceRatio);
 }
 
 export function drawRoundRect(

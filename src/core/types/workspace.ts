@@ -23,6 +23,7 @@ export type ViewMode =
 	| 'arc'
 	| 'hierarchical-edge-bundling';
 export type ChartSource = 'query' | 'curated';
+export type ThreeLabelResolution = 'standard' | 'high' | 'ultra';
 export type SettingsPanelMode =
 	| 'graph'
 	| 'workspace'
@@ -114,6 +115,7 @@ export interface ManualLayoutConfig {
 export interface ChartDisplayConfig {
 	fadeDistance: number;
 	labelSize: number;
+	threeLabelResolution: ThreeLabelResolution;
 	labelBold: boolean;
 	labelItalic: boolean;
 	labelPosition: LabelPosition;
@@ -195,6 +197,7 @@ export interface WorkspaceState {
 	nodeSortDirection: LayoutSortDirection;
 	fadeDistance: number;
 	labelSize: number;
+	threeLabelResolution: ThreeLabelResolution;
 	labelBold: boolean;
 	labelItalic: boolean;
 	labelPosition: LabelPosition;

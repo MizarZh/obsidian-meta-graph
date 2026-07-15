@@ -6,6 +6,7 @@ import type {
 	LayoutNodeSort,
 	LayoutSortDirection,
 	MetaGraphChart,
+	ThreeLabelResolution,
 	WorkspaceState,
 } from '../../core/types';
 import { updateActiveChartState } from './state-updaters';
@@ -66,6 +67,13 @@ export function setLabelSizeInState(
 	labelSize: number,
 ): WorkspaceState {
 	return setDisplayValue(state, 'labelSize', labelSize);
+}
+
+export function setThreeLabelResolutionInState(
+	state: WorkspaceState,
+	threeLabelResolution: ThreeLabelResolution,
+): WorkspaceState {
+	return setDisplayValue(state, 'threeLabelResolution', threeLabelResolution);
 }
 
 export function setLabelBoldInState(

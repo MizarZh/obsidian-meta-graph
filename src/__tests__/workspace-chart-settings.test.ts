@@ -9,6 +9,7 @@ import {
 	setFlowLayerSpacingInState,
 	setFlowSpacingInState,
 	setLabelDensityInState,
+	setThreeLabelResolutionInState,
 } from '../workspace/state/chart-settings';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
 import { updateActiveChartState } from '../workspace/state/state-updaters';
@@ -26,6 +27,16 @@ describe('workspace chart settings', () => {
 		const state = createWorkspaceState(100, 1.5);
 
 		expect(setLabelDensityInState(state, state.labelDensity)).toBe(state);
+	});
+
+	it('stores 3D text resolution on the active chart', () => {
+		const state = createWorkspaceState(100, 1.5);
+		const nextState = setThreeLabelResolutionInState(state, 'ultra');
+
+		expect(nextState.threeLabelResolution).toBe('ultra');
+		expect(getActiveChart(nextState).display.threeLabelResolution).toBe(
+			'ultra',
+		);
 	});
 
 	it('clamps display settings before writing them to the active chart', () => {

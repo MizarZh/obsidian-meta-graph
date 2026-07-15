@@ -1,9 +1,14 @@
 <script lang="ts">
 	import CollapsibleSettingsGroup from './CollapsibleSettingsGroup.svelte';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
 	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
 	import ObsidianToggle from '../obsidian/ObsidianToggle.svelte';
-	import type { LabelPosition, ViewMode } from '../../core/types';
+	import type {
+		LabelPosition,
+		ThreeLabelResolution,
+		ViewMode,
+	} from '../../core/types';
 
 	const LABEL_POSITION_OPTIONS: Array<{
 		value: LabelPosition;
@@ -16,10 +21,16 @@
 		{ value: 'bottom', label: 'Bottom' },
 		{ value: 'center', label: 'Center' },
 	];
+	const THREE_LABEL_RESOLUTION_OPTIONS = [
+		{ value: 'standard', label: 'Standard' },
+		{ value: 'high', label: 'High' },
+		{ value: 'ultra', label: 'Ultra' },
+	] satisfies Array<{ value: ThreeLabelResolution; label: string }>;
 
 	let {
 		mode,
 		labelSize,
+		threeLabelResolution,
 		labelBold,
 		labelItalic,
 		labelPosition,
@@ -33,6 +44,7 @@
 		labelDarkBackgroundOpacity,
 		labelBackgroundOpacity,
 		onLabelSize,
+		onThreeLabelResolution,
 		onLabelBold,
 		onLabelItalic,
 		onLabelPosition,
@@ -51,6 +63,7 @@
 	}: {
 		mode: ViewMode;
 		labelSize: number;
+		threeLabelResolution: ThreeLabelResolution;
 		labelBold: boolean;
 		labelItalic: boolean;
 		labelPosition: LabelPosition;
@@ -64,6 +77,7 @@
 		labelDarkBackgroundOpacity: number;
 		labelBackgroundOpacity: number;
 		onLabelSize: (value: number) => void;
+		onThreeLabelResolution: (value: ThreeLabelResolution) => void;
 		onLabelBold: (value: boolean) => void;
 		onLabelItalic: (value: boolean) => void;
 		onLabelPosition: (position: LabelPosition) => void;
@@ -113,6 +127,18 @@
 			<span>{labelSize.toFixed(1)}</span>
 		</div>
 	</label>
+	{#if mode === 'graph-3d' || mode === 'cube'}
+		<label class="knowledge-workspace-rule-label">
+			<span>3D text clarity</span>
+			<ObsidianDropdown
+				value={threeLabelResolution}
+				options={THREE_LABEL_RESOLUTION_OPTIONS}
+				ariaLabel="3D text clarity"
+				onChange={(value) =>
+					onThreeLabelResolution(value as ThreeLabelResolution)}
+			/>
+		</label>
+	{/if}
 	<label class="knowledge-workspace-rule-label">
 		<span>Bold</span>
 		<ObsidianToggle value={labelBold} onChange={onLabelBold} />

@@ -1,6 +1,7 @@
 import type {
 	LabelPosition,
 	ManualLayoutConfig,
+	ThreeLabelResolution,
 	ViewMode,
 } from '../../core/types';
 import type { RuntimeGraph } from '../model/graphology-adapter';
@@ -27,6 +28,7 @@ export interface GraphRendererOptions {
 	manualLayout: ManualLayoutConfig;
 	fadeDistance: number;
 	labelSize: number;
+	threeLabelResolution: ThreeLabelResolution;
 	labelBold: boolean;
 	labelItalic: boolean;
 	labelPosition: LabelPosition;
@@ -183,6 +185,7 @@ export async function createGraphRenderer(
 			options.labelDarkTextColor,
 			options.labelDarkBackgroundColor,
 			options.labelDarkBackgroundOpacity,
+			options.threeLabelResolution,
 		);
 	}
 
@@ -213,6 +216,7 @@ export async function createGraphRenderer(
 			options.labelDarkTextColor,
 			options.labelDarkBackgroundColor,
 			options.labelDarkBackgroundOpacity,
+			options.threeLabelResolution,
 		);
 	}
 

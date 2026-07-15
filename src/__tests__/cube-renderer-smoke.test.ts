@@ -469,6 +469,7 @@ describe('Cube3DRenderer smoke', () => {
 
 		expect(renderer).toBeDefined();
 		expect(() => {
+			renderer?.setThreeLabelResolution('ultra');
 			renderer?.setGraph(createGraph(['C.md']));
 			renderer?.setManualLayout({
 				nodes: { 'C.md': { x: 0, y: 0, groupId: 'cube-front' } },

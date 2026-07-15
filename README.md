@@ -66,7 +66,9 @@ settings to report them in the developer console.
    file, not note frontmatter.
 10. Increase **Label density** in **Graph** settings when Sigma samples too few
     labels while zoomed out. Enable **Always show labels** to force every visible
-    note label through Sigma's label grid.
+    note label through Sigma's label grid. In 3D graph and Cube graph, use
+    **3D text clarity** in **Text style** to increase label texture resolution;
+    higher settings use more GPU memory.
 11. Use the bottom connection panel to select or add the metadata field used for
     new links. Set the field direction to **One-way** or **Two-way** from the
     direction dropdown.

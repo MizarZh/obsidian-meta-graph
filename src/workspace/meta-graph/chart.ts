@@ -2,6 +2,7 @@ import type {
 	ChartSource,
 	GlobalStyleConfig,
 	MetaGraphChart,
+	ThreeLabelResolution,
 	ViewMode,
 } from '../../core/types';
 import {
@@ -23,6 +24,7 @@ import {
 	DEFAULT_LABEL_OFFSET,
 	DEFAULT_LABEL_POSITION,
 	DEFAULT_LABEL_SIZE,
+	DEFAULT_THREE_LABEL_RESOLUTION,
 } from './constants';
 import {
 	createDefaultCuratedWorkspace,
@@ -73,17 +75,18 @@ export function createDefaultChart(
 		layout: createDefaultLayout(type),
 		display: {
 			fadeDistance,
-				labelSize: DEFAULT_LABEL_SIZE,
-				labelBold: DEFAULT_LABEL_BOLD,
-				labelItalic: DEFAULT_LABEL_ITALIC,
-				labelPosition: DEFAULT_LABEL_POSITION,
-				labelOffset: DEFAULT_LABEL_OFFSET,
+			labelSize: DEFAULT_LABEL_SIZE,
+			threeLabelResolution: DEFAULT_THREE_LABEL_RESOLUTION,
+			labelBold: DEFAULT_LABEL_BOLD,
+			labelItalic: DEFAULT_LABEL_ITALIC,
+			labelPosition: DEFAULT_LABEL_POSITION,
+			labelOffset: DEFAULT_LABEL_OFFSET,
 			labelColor: DEFAULT_LABEL_COLOR,
 			labelLightTextColor: DEFAULT_LABEL_LIGHT_TEXT_COLOR,
-				labelLightBackgroundColor: DEFAULT_LABEL_LIGHT_BACKGROUND_COLOR,
-				labelLightBackgroundOpacity: DEFAULT_LABEL_LIGHT_BACKGROUND_OPACITY,
-				labelDarkTextColor: DEFAULT_LABEL_DARK_TEXT_COLOR,
-				labelDarkBackgroundColor: DEFAULT_LABEL_DARK_BACKGROUND_COLOR,
+			labelLightBackgroundColor: DEFAULT_LABEL_LIGHT_BACKGROUND_COLOR,
+			labelLightBackgroundOpacity: DEFAULT_LABEL_LIGHT_BACKGROUND_OPACITY,
+			labelDarkTextColor: DEFAULT_LABEL_DARK_TEXT_COLOR,
+			labelDarkBackgroundColor: DEFAULT_LABEL_DARK_BACKGROUND_COLOR,
 			labelDarkBackgroundOpacity: DEFAULT_LABEL_DARK_BACKGROUND_OPACITY,
 			labelBackgroundOpacity: DEFAULT_LABEL_BACKGROUND_OPACITY,
 			labelDensity: DEFAULT_LABEL_DENSITY,
@@ -164,58 +167,65 @@ export function normalizeChart(
 				display.labelSize,
 				fallback.display.labelSize,
 			),
-			labelBold: readBoolean(display.labelBold, fallback.display.labelBold),
+			threeLabelResolution: readThreeLabelResolution(
+				display.threeLabelResolution,
+				fallback.display.threeLabelResolution,
+			),
+			labelBold: readBoolean(
+				display.labelBold,
+				fallback.display.labelBold,
+			),
 			labelItalic: readBoolean(
 				display.labelItalic,
 				fallback.display.labelItalic,
 			),
-				labelPosition: readLabelPosition(
-					display.labelPosition,
-					fallback.display.labelPosition,
-				),
-				labelOffset: readFiniteNumber(
-					display.labelOffset,
-					fallback.display.labelOffset,
-				),
+			labelPosition: readLabelPosition(
+				display.labelPosition,
+				fallback.display.labelPosition,
+			),
+			labelOffset: readFiniteNumber(
+				display.labelOffset,
+				fallback.display.labelOffset,
+			),
 			labelColor:
 				typeof display.labelColor === 'string'
 					? display.labelColor.trim()
 					: fallback.display.labelColor,
-				labelLightTextColor: readColorString(
-					display.labelLightTextColor,
-					fallback.display.labelLightTextColor,
+			labelLightTextColor: readColorString(
+				display.labelLightTextColor,
+				fallback.display.labelLightTextColor,
+			),
+			labelLightBackgroundColor: readColorString(
+				display.labelLightBackgroundColor,
+				fallback.display.labelLightBackgroundColor,
+			),
+			labelLightBackgroundOpacity: clampNumber(
+				readFiniteNumber(
+					display.labelLightBackgroundOpacity,
+					fallback.display.labelLightBackgroundOpacity,
 				),
-				labelLightBackgroundColor: readColorString(
-					display.labelLightBackgroundColor,
-					fallback.display.labelLightBackgroundColor,
+				0,
+				1,
+			),
+			labelDarkTextColor: readColorString(
+				display.labelDarkTextColor,
+				fallback.display.labelDarkTextColor,
+			),
+			labelDarkBackgroundColor: readColorString(
+				display.labelDarkBackgroundColor,
+				fallback.display.labelDarkBackgroundColor,
+			),
+			labelDarkBackgroundOpacity: clampNumber(
+				readFiniteNumber(
+					display.labelDarkBackgroundOpacity,
+					fallback.display.labelDarkBackgroundOpacity,
 				),
-				labelLightBackgroundOpacity: clampNumber(
-					readFiniteNumber(
-						display.labelLightBackgroundOpacity,
-						fallback.display.labelLightBackgroundOpacity,
-					),
-					0,
-					1,
-				),
-				labelDarkTextColor: readColorString(
-					display.labelDarkTextColor,
-					fallback.display.labelDarkTextColor,
-				),
-				labelDarkBackgroundColor: readColorString(
-					display.labelDarkBackgroundColor,
-					fallback.display.labelDarkBackgroundColor,
-				),
-				labelDarkBackgroundOpacity: clampNumber(
-					readFiniteNumber(
-						display.labelDarkBackgroundOpacity,
-						fallback.display.labelDarkBackgroundOpacity,
-					),
-					0,
-					1,
-				),
-				labelBackgroundOpacity: readFiniteNumber(
-					display.labelBackgroundOpacity,
-					fallback.display.labelBackgroundOpacity,
+				0,
+				1,
+			),
+			labelBackgroundOpacity: readFiniteNumber(
+				display.labelBackgroundOpacity,
+				fallback.display.labelBackgroundOpacity,
 			),
 			labelDensity: clampNumber(
 				readFiniteNumber(
@@ -223,8 +233,8 @@ export function normalizeChart(
 					fallback.display.labelDensity,
 				),
 				0,
-					1,
-				),
+				1,
+			),
 			cubeFaceOpacity: clampNumber(
 				readFiniteNumber(
 					display.cubeFaceOpacity,
@@ -279,14 +289,21 @@ export function normalizeChart(
 	};
 }
 
+function readThreeLabelResolution(
+	value: unknown,
+	fallback: ThreeLabelResolution,
+): ThreeLabelResolution {
+	return value === 'standard' || value === 'high' || value === 'ultra'
+		? value
+		: fallback;
+}
+
 function normalizeChartSource(value: unknown): ChartSource {
 	return value === 'curated' ? 'curated' : 'query';
 }
 
 function readColorString(value: unknown, fallback: string): string {
-	return typeof value === 'string' && value.trim()
-		? value.trim()
-		: fallback;
+	return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }
 
 function createUniqueChartId(

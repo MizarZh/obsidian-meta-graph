@@ -23,6 +23,7 @@ import type {
 	NodeId,
 	NodeStyleRule,
 	RendererDebugState,
+	ThreeLabelResolution,
 	UnresolvedLink,
 	ViewMode,
 	WorkspaceState,
@@ -59,6 +60,7 @@ import {
 	setLabelOffsetInState,
 	setLabelPositionInState,
 	setLabelSizeInState,
+	setThreeLabelResolutionInState,
 	setLayoutNodeSortInState,
 	setLayoutSortDirectionInState,
 	type GraphForceSettingKey,
@@ -349,6 +351,12 @@ export class WorkspaceController {
 
 	setLabelSize(labelSize: number): void {
 		this.setWorkspaceState(setLabelSizeInState(this.state, labelSize));
+	}
+
+	setThreeLabelResolution(resolution: ThreeLabelResolution): void {
+		this.setWorkspaceState(
+			setThreeLabelResolutionInState(this.state, resolution),
+		);
 	}
 
 	setLabelBold(labelBold: boolean): void {

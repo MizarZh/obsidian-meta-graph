@@ -4,20 +4,25 @@ import type { WorkspaceStateChanges } from './change-tracker';
 interface DisplayRenderer {
 	setFadeDistance(value: number): void;
 	setLabelSize(value: number): void;
+	setThreeLabelResolution?(
+		value: WorkspaceState['threeLabelResolution'],
+	): void;
 	setLabelBold(value: boolean): void;
 	setLabelItalic(value: boolean): void;
 	setLabelPosition(value: WorkspaceState['labelPosition']): void;
 	setLabelOffset(value: number): void;
 	setLabelColor(value: string): void;
-	setLabelTheme(state: Pick<
-		WorkspaceState,
-		| 'labelLightTextColor'
-		| 'labelLightBackgroundColor'
-		| 'labelLightBackgroundOpacity'
-		| 'labelDarkTextColor'
-		| 'labelDarkBackgroundColor'
-		| 'labelDarkBackgroundOpacity'
-	>): void;
+	setLabelTheme(
+		state: Pick<
+			WorkspaceState,
+			| 'labelLightTextColor'
+			| 'labelLightBackgroundColor'
+			| 'labelLightBackgroundOpacity'
+			| 'labelDarkTextColor'
+			| 'labelDarkBackgroundColor'
+			| 'labelDarkBackgroundOpacity'
+		>,
+	): void;
 	setLabelBackgroundOpacity(value: number): void;
 	setLabelDensity(value: number): void;
 	setForceLabels(value: boolean): void;
@@ -36,6 +41,12 @@ export function syncRendererDisplaySettings(
 	}
 	if (changes.labelSizeChanged) {
 		renderer?.setLabelSize(state.labelSize);
+	}
+	if (
+		changes.threeLabelResolutionChanged &&
+		renderer?.setThreeLabelResolution
+	) {
+		renderer.setThreeLabelResolution(state.threeLabelResolution);
 	}
 	if (changes.labelBoldChanged) {
 		renderer?.setLabelBold(state.labelBold);

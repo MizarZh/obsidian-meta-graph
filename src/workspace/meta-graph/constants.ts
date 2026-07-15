@@ -5,6 +5,7 @@ import type {
 	DefaultNodeStyle,
 	LabelPosition,
 	MetaGraphDock,
+	ThreeLabelResolution,
 } from '../../core/types';
 
 export const META_GRAPH_FRONTMATTER_KEY = 'meta-graph';
@@ -16,6 +17,7 @@ export const DEFAULT_CONNECTION_FIELD = '';
 export const DEFAULT_CONNECTION_FIELDS: string[] = [];
 export const DEFAULT_CONNECTION_FIELD_MODE: ConnectionFieldMode = 'directed';
 export const DEFAULT_LABEL_SIZE = 14;
+export const DEFAULT_THREE_LABEL_RESOLUTION: ThreeLabelResolution = 'standard';
 export const DEFAULT_LABEL_BOLD = false;
 export const DEFAULT_LABEL_ITALIC = false;
 export const DEFAULT_GRAPH_CENTER_FORCE = 1;
@@ -45,10 +47,11 @@ export const BUILT_IN_DEFAULT_NODE_STYLE: Required<DefaultNodeStyle> = {
 	size: 7,
 };
 
-export const BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE: Required<DefaultNodeStyle> = {
-	color: '#9ca3af',
-	size: 6,
-};
+export const BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE: Required<DefaultNodeStyle> =
+	{
+		color: '#9ca3af',
+		size: 6,
+	};
 
 export const BUILT_IN_DEFAULT_LINK_STYLE: Required<DefaultLinkStyle> = {
 	color: '#888888',
@@ -68,14 +71,15 @@ export const BUILT_IN_DEFAULT_PLAIN_LINK_STYLE: Required<DefaultLinkStyle> = {
 	hidden: false,
 };
 
-export const BUILT_IN_DEFAULT_UNRESOLVED_LINK_STYLE: Required<DefaultLinkStyle> = {
-	color: '#d97706',
-	size: 1,
-	lineStyle: 'dotted',
-	label: '',
-	showLabel: false,
-	hidden: false,
-};
+export const BUILT_IN_DEFAULT_UNRESOLVED_LINK_STYLE: Required<DefaultLinkStyle> =
+	{
+		color: '#d97706',
+		size: 1,
+		lineStyle: 'dotted',
+		label: '',
+		showLabel: false,
+		hidden: false,
+	};
 
 export const DEFAULT_DOCK: MetaGraphDock = {
 	templates: [],

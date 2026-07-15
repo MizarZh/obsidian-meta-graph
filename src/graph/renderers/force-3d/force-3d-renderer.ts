@@ -1,7 +1,7 @@
 import type { ForceGraph3DInstance } from '3d-force-graph';
 import type * as Three from 'three';
 import type { Object3D } from 'three';
-import type { LabelPosition } from '../../../core/types';
+import type { LabelPosition, ThreeLabelResolution } from '../../../core/types';
 import type { RuntimeGraph } from '../../model/graphology-adapter';
 import {
 	type Force3DLink,
@@ -23,7 +23,10 @@ import {
 	readViewportPosition,
 	type ScreenNode,
 } from '../renderer-interaction';
-import { createThreeTextSprite } from '../renderer-labels';
+import {
+	createThreeTextSprite,
+	resolveThreeLabelPixelRatio,
+} from '../renderer-labels';
 
 interface ThreeRuntime {
 	CanvasTexture: typeof Three.CanvasTexture;
@@ -54,6 +57,7 @@ export class Force3DRenderer {
 	private labelTheme: LabelThemeConfig;
 	private labelBackgroundOpacity: number;
 	private labelSize: number;
+	private threeLabelResolution: ThreeLabelResolution;
 	private readonly three: ThreeRuntime;
 	private initialized = false;
 	private killed = false;
@@ -99,6 +103,7 @@ export class Force3DRenderer {
 		labelDarkTextColor = '#ffffff',
 		labelDarkBackgroundColor = '#000000',
 		labelDarkBackgroundOpacity = 0.62,
+		threeLabelResolution: ThreeLabelResolution = 'standard',
 	): Promise<Force3DRenderer | undefined> {
 		const [ForceGraph3D, three] = await Promise.all([
 			loadForceGraph3D(),
@@ -133,6 +138,7 @@ export class Force3DRenderer {
 			labelDarkTextColor,
 			labelDarkBackgroundColor,
 			labelDarkBackgroundOpacity,
+			threeLabelResolution,
 		);
 	}
 
@@ -159,6 +165,7 @@ export class Force3DRenderer {
 		labelDarkTextColor = '#ffffff',
 		labelDarkBackgroundColor = '#000000',
 		labelDarkBackgroundOpacity = 0.62,
+		threeLabelResolution: ThreeLabelResolution = 'standard',
 	) {
 		this.labelColor = labelColor;
 		this.labelPosition = _labelPosition;
@@ -175,6 +182,7 @@ export class Force3DRenderer {
 		};
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.labelSize = _labelSize;
+		this.threeLabelResolution = threeLabelResolution;
 		this.three = three;
 		this.instance = instance;
 		this.container.addEventListener('dblclick', this.blockDoubleClick, {
@@ -323,6 +331,12 @@ export class Force3DRenderer {
 			allLabelSprites: true,
 			nodeLabelPositions: true,
 		});
+	}
+
+	setThreeLabelResolution(resolution: ThreeLabelResolution): void {
+		if (resolution === this.threeLabelResolution) return;
+		this.threeLabelResolution = resolution;
+		this.scheduleVisualUpdate({ allLabelSprites: true });
 	}
 
 	setLabelBold(labelBold: boolean): void {
@@ -820,6 +834,10 @@ export class Force3DRenderer {
 			ownerDocument: this.container.ownerDocument,
 			fontWeight: this.labelBold ? 'bold' : 'normal',
 			fontStyle: this.labelItalic ? 'italic' : 'normal',
+			pixelRatio: resolveThreeLabelPixelRatio(
+				this.threeLabelResolution,
+				this.container.ownerDocument.defaultView?.devicePixelRatio ?? 1,
+			),
 			scale: scaleFactor,
 			scaleMultiplier: 0.24,
 			roundRadius: 4,

@@ -25,12 +25,33 @@ describe('workspace persistence', () => {
 
 		expect(activeChart?.display.fadeDistance).toBe(2);
 		expect(activeChart?.display.labelDensity).toBe(0.8);
+		expect(activeChart?.display.threeLabelResolution).toBe('standard');
 		expect(activeChart?.display.forceLabels).toBe(false);
 		expect(activeChart?.layout.spacing).toBe(1);
 		expect(activeChart?.query.maxNodes).toBe(200);
 		expect(saved).not.toHaveProperty('selectedNodeId');
 		expect(saved).not.toHaveProperty('projection');
 		expect(saved).not.toHaveProperty('availableFolders');
+	});
+
+	it('persists and normalizes 3D text resolution', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		const graphChart = document.charts.find(
+			(chart) => chart.id === 'knowledge-map',
+		);
+		if (!graphChart) throw new Error('Graph chart is missing.');
+		graphChart.display.threeLabelResolution = 'ultra';
+
+		const restored = createWorkspaceState(200, 2, document);
+		const saved = serializeMetaGraphState(restored);
+
+		expect(restored.threeLabelResolution).toBe('ultra');
+		expect(saved.charts[0]?.display.threeLabelResolution).toBe('ultra');
+
+		Reflect.set(graphChart.display, 'threeLabelResolution', 'invalid');
+		const normalizedDocument = normalizeMetaGraphDocument(document, 200, 2);
+		const normalized = createWorkspaceState(200, 2, normalizedDocument);
+		expect(normalized.threeLabelResolution).toBe('standard');
 	});
 
 	it('normalizes label density into the supported range', () => {
