@@ -223,6 +223,12 @@ the flow direction. **Lane spacing** controls distance across parallel lanes.
 For left-to-right and right-to-left flows, layer spacing is horizontal and lane
 spacing is vertical.
 
+Use **Graph settings → Flow details → Relation placement** to control layout by
+metadata relation. **Default** follows the visible edge direction. **Before**
+and **After** place the linked note relative to the note that owns the metadata
+field. **Parallel** keeps connected notes in the same layer. These rules affect
+layout only; they do not change frontmatter, edge direction, or arrows.
+
 Enable **Relayout Flow after connecting nodes** in the plugin settings if you
 want Flow charts to rerun layout immediately after each new connection.
 

@@ -3,6 +3,7 @@ import type {
 	ArcLabelAngle,
 	FlowDirection,
 	FlowEdgeStyle,
+	FlowRelationRule,
 	LabelPosition,
 	LayoutNodeSort,
 	LayoutSortDirection,
@@ -33,6 +34,17 @@ export function setFlowDirectionInState(
 	flowDirection: FlowDirection,
 ): WorkspaceState {
 	return updateActiveChartLayout(state, { direction: flowDirection });
+}
+
+export function setFlowRelationRulesInState(
+	state: WorkspaceState,
+	flowRelationRules: FlowRelationRule[],
+): WorkspaceState {
+	return updateActiveChartLayout(
+		state,
+		{ flowRelationRules: flowRelationRules.map((rule) => ({ ...rule })) },
+		true,
+	);
 }
 
 export function setArcDirectionInState(

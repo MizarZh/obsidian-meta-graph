@@ -13,6 +13,16 @@
 	display: contents;
 }
 
+.knowledge-workspace-obsidian-icon-button {
+	--icon-size: 18px;
+}
+
+.knowledge-workspace-obsidian-icon-button svg {
+	flex: 0 0 auto;
+	width: var(--icon-size);
+	height: var(--icon-size);
+}
+
 .knowledge-workspace-color-probe {
 	position: absolute;
 	visibility: hidden;
@@ -38,4 +48,3 @@
 .knowledge-workspace:focus {
 	outline: none;
 }
-

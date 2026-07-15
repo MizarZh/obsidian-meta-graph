@@ -8,6 +8,7 @@ import {
 	setCubeSizeInState,
 	setFlowLaneSpacingInState,
 	setFlowLayerSpacingInState,
+	setFlowRelationRulesInState,
 	setFlowSpacingInState,
 	setLabelDensityInState,
 	setThreeLabelResolutionInState,
@@ -93,6 +94,30 @@ describe('workspace chart settings', () => {
 		expect(nextState.arcLabelAngle).toBe(45);
 		expect(getActiveChart(nextState).layout.arcLabelAngle).toBe(45);
 		expect(nextState.layoutRevision).toBe(0);
+	});
+
+	it('stores Flow relation placement and requests a new layout', () => {
+		const state = createWorkspaceState(100, 1.5);
+		const flowState = {
+			...state,
+			activeChartId: 'learning-flow',
+			mode: 'flow' as const,
+		};
+		const rules = [
+			{
+				id: 'rule-1',
+				field: 'prerequisites',
+				placement: 'before' as const,
+			},
+		];
+
+		const nextState = setFlowRelationRulesInState(flowState, rules);
+
+		expect(nextState.flowRelationRules).toEqual(rules);
+		expect(getActiveChart(nextState).layout.flowRelationRules).toEqual(
+			rules,
+		);
+		expect(nextState.layoutRevision).toBe(1);
 	});
 
 	it('preserves graph force settings when a non-force chart becomes active', () => {

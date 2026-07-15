@@ -19,6 +19,7 @@ type ActiveChartStateFields = Pick<
 	| 'chartSource'
 	| 'flowEdgeStyle'
 	| 'flowDirection'
+	| 'flowRelationRules'
 	| 'arcDirection'
 	| 'arcLabelAngle'
 	| 'nodeSort'
@@ -127,6 +128,9 @@ function createActiveChartStateFields(
 		chartSource: chart.source,
 		flowEdgeStyle: chart.layout.edgeStyle ?? 'orthogonal',
 		flowDirection: chart.layout.direction ?? 'LR',
+		flowRelationRules: cloneSerializable(
+			chart.layout.flowRelationRules ?? [],
+		),
 		arcDirection: chart.layout.arcDirection ?? 'right',
 		arcLabelAngle: chart.layout.arcLabelAngle ?? 'auto',
 		nodeSort: chart.layout.nodeSort ?? 'name',

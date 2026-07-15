@@ -34,6 +34,9 @@
 		workspaceState.mode !== 'cube' &&
 			!getModeCapabilities(workspaceState.mode).supportsManualGroups,
 	);
+	const flowRelationFieldSuggestions = $derived([
+		...new Set(workspaceState.connectionFields),
+	]);
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -87,6 +90,9 @@
 			enableForceLayout={workspaceState.enableForceLayout}
 			flowEdgeStyle={workspaceState.flowEdgeStyle}
 			flowDirection={workspaceState.flowDirection}
+			flowRelationRules={workspaceState.flowRelationRules}
+			flowRelationConflictCount={workspaceState.flowRelationConflictCount}
+			{flowRelationFieldSuggestions}
 			arcDirection={workspaceState.arcDirection}
 			arcLabelAngle={workspaceState.arcLabelAngle}
 			nodeSort={workspaceState.nodeSort}
@@ -124,6 +130,8 @@
 			onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
 			onFlowDirection={(direction) =>
 				controller.setFlowDirection(direction)}
+			onFlowRelationRules={(rules) =>
+				controller.setFlowRelationRules(rules)}
 			onArcDirection={(direction) =>
 				controller.setArcDirection(direction)}
 			onArcLabelAngle={(angle) => controller.setArcLabelAngle(angle)}

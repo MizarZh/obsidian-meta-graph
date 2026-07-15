@@ -25,6 +25,7 @@ export function createWorkspaceState(
 		charts: cloneSerializable(metaGraphDocument.charts),
 		activeChartId: activeChart.id,
 		...createInitialActiveChartStateFields(activeChart),
+		flowRelationConflictCount: 0,
 		layoutRevision: 0,
 		globalQuery: cloneSerializable(metaGraphDocument.globalQuery),
 		defaultNodeStyle: cloneSerializable(

@@ -1,15 +1,18 @@
 <script lang="ts">
+	import type { App } from 'obsidian';
 	import CollapsibleSettingsGroup from './CollapsibleSettingsGroup.svelte';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
 	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
 	import ObsidianTextInput from '../obsidian/ObsidianTextInput.svelte';
 	import ObsidianToggle from '../obsidian/ObsidianToggle.svelte';
+	import FlowRelationRules from './FlowRelationRules.svelte';
 	import type {
 		ArcDirection,
 		ArcLabelAngle,
 		FlowDirection,
 		FlowEdgeStyle,
+		FlowRelationRule,
 		GraphQuery,
 		LayoutNodeSort,
 		LayoutSortDirection,
@@ -17,6 +20,7 @@
 	} from '../../core/types';
 
 	let {
+		app,
 		mode,
 		fadeDistance,
 		labelDensity,
@@ -27,6 +31,9 @@
 		enableForceLayout,
 		flowEdgeStyle,
 		flowDirection,
+		flowRelationRules,
+		flowRelationConflictCount,
+		flowRelationFieldSuggestions,
 		arcDirection,
 		arcLabelAngle,
 		nodeSort,
@@ -43,6 +50,7 @@
 		query,
 		onFlowEdgeStyle,
 		onFlowDirection,
+		onFlowRelationRules,
 		onArcDirection,
 		onArcLabelAngle,
 		onLayoutNodeSort,
@@ -66,6 +74,7 @@
 		onArcSpacing,
 		onChange,
 	}: {
+		app: App;
 		mode: ViewMode;
 		fadeDistance: number;
 		labelDensity: number;
@@ -76,6 +85,9 @@
 		enableForceLayout: boolean;
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
+		flowRelationRules: FlowRelationRule[];
+		flowRelationConflictCount: number;
+		flowRelationFieldSuggestions: string[];
 		arcDirection: ArcDirection;
 		arcLabelAngle: ArcLabelAngle;
 		nodeSort: LayoutNodeSort;
@@ -92,6 +104,7 @@
 		query: GraphQuery;
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
+		onFlowRelationRules: (rules: FlowRelationRule[]) => void;
 		onArcDirection: (direction: ArcDirection) => void;
 		onArcLabelAngle: (angle: ArcLabelAngle) => void;
 		onLayoutNodeSort: (sort: LayoutNodeSort) => void;
@@ -625,6 +638,13 @@
 					/>
 				</div>
 			</div>
+			<FlowRelationRules
+				{app}
+				rules={flowRelationRules}
+				fields={flowRelationFieldSuggestions}
+				conflictCount={flowRelationConflictCount}
+				onChange={onFlowRelationRules}
+			/>
 		</CollapsibleSettingsGroup>
 	{:else if mode === 'arc'}
 		<CollapsibleSettingsGroup

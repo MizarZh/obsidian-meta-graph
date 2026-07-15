@@ -176,6 +176,13 @@ describe('workspace persistence', () => {
 			flowChart.layout.spacing = 2;
 			flowChart.layout.layerSpacing = 3;
 			flowChart.layout.laneSpacing = 1.5;
+			flowChart.layout.flowRelationRules = [
+				{
+					id: 'prerequisites-order',
+					field: 'prerequisites',
+					placement: 'before',
+				},
+			];
 			flowChart.query.maxNodes = 50;
 		}
 
@@ -187,6 +194,13 @@ describe('workspace persistence', () => {
 		expect(restored.flowSpacing).toBe(2);
 		expect(restored.flowLayerSpacing).toBe(3);
 		expect(restored.flowLaneSpacing).toBe(1.5);
+		expect(restored.flowRelationRules).toEqual([
+			{
+				id: 'prerequisites-order',
+				field: 'prerequisites',
+				placement: 'before',
+			},
+		]);
 		expect(restored.query.maxNodes).toBe(50);
 	});
 

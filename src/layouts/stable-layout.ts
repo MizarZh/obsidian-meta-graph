@@ -3,6 +3,7 @@ import type {
 	ArcLabelAngle,
 	FlowDirection,
 	FlowEdgeStyle,
+	FlowRelationRule,
 	LayoutNodeSort,
 	LayoutSortDirection,
 	ManualLayoutConfig,
@@ -26,6 +27,7 @@ export interface LayoutSnapshot {
 	positions: Map<string, GraphPosition>;
 	edgeIds: Set<string>;
 	orthogonalRoutes: OrthogonalRouteMap;
+	flowRelationConflictCount?: number;
 }
 
 export interface LayoutSnapshotKeyOptions {
@@ -45,6 +47,7 @@ export interface StableLayoutOptions {
 	graphForceSettings: GraphForceSettings;
 	flowEdgeStyle: FlowEdgeStyle;
 	flowDirection: FlowDirection;
+	flowRelationRules?: FlowRelationRule[];
 	flowLayerSpacing: number;
 	flowLaneSpacing: number;
 	arcSpacing: number;
@@ -80,6 +83,7 @@ export function createLayoutSnapshot(): LayoutSnapshot {
 		positions: new Map(),
 		edgeIds: new Set(),
 		orthogonalRoutes: createOrthogonalRouteMap(),
+		flowRelationConflictCount: 0,
 	};
 }
 
@@ -205,8 +209,10 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 			options.flowDirection,
 			options.flowLayerSpacing,
 			options.flowLaneSpacing,
+			options.flowRelationRules,
 		);
 		await layout.apply(graph);
+		snapshot.flowRelationConflictCount = layout.getConflictCount();
 		snapshot.edgeIds = currentEdgeIds;
 		snapshot.orthogonalRoutes =
 			options.flowEdgeStyle === 'orthogonal'

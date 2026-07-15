@@ -1,6 +1,8 @@
 import type {
 	ArcLabelAngle,
 	ChartLayoutConfig,
+	FlowRelationPlacement,
+	FlowRelationRule,
 	LayoutNodeSort,
 	LayoutSortDirection,
 	ManualLayoutConfig,
@@ -73,6 +75,14 @@ export function normalizeLayout(
 			record.direction === 'DT'
 				? record.direction
 				: fallback.direction,
+		...(type === 'flow'
+			? {
+					flowRelationRules: normalizeFlowRelationRules(
+						record.flowRelationRules,
+						fallback.flowRelationRules,
+					),
+				}
+			: {}),
 		arcDirection:
 			record.arcDirection === 'right' ||
 			record.arcDirection === 'left' ||
@@ -107,6 +117,7 @@ export function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 				laneSpacing: 1,
 				direction: 'LR',
 				edgeStyle: 'orthogonal',
+				flowRelationRules: [],
 			};
 		case 'arc':
 			return {
@@ -171,6 +182,57 @@ export function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 				linkDistance: DEFAULT_GRAPH_LINK_DISTANCE,
 			};
 	}
+}
+
+function normalizeFlowRelationRules(
+	value: unknown,
+	fallback: FlowRelationRule[] | undefined,
+): FlowRelationRule[] {
+	if (!Array.isArray(value)) {
+		return cloneSerializable(fallback ?? []);
+	}
+	const rules: FlowRelationRule[] = [];
+	const ids = new Set<string>();
+	const fields = new Set<string>();
+	for (const [index, item] of value.entries()) {
+		if (!isRecord(item) || typeof item.field !== 'string') {
+			continue;
+		}
+		const field = item.field.trim();
+		const fieldKey = field.toLocaleLowerCase();
+		if (!field || fields.has(fieldKey)) {
+			continue;
+		}
+		const placement = readFlowRelationPlacement(item.placement);
+		if (!placement) {
+			continue;
+		}
+		fields.add(fieldKey);
+		const requestedId =
+			typeof item.id === 'string' && item.id.trim()
+				? item.id.trim()
+				: `flow-relation-${index + 1}`;
+		let id = requestedId;
+		let suffix = 2;
+		while (ids.has(id)) {
+			id = `${requestedId}-${suffix}`;
+			suffix += 1;
+		}
+		ids.add(id);
+		rules.push({ id, field, placement });
+	}
+	return rules;
+}
+
+function readFlowRelationPlacement(
+	value: unknown,
+): FlowRelationPlacement | undefined {
+	return value === 'default' ||
+		value === 'before' ||
+		value === 'after' ||
+		value === 'parallel'
+		? value
+		: undefined;
 }
 
 function readLayoutNodeSort(

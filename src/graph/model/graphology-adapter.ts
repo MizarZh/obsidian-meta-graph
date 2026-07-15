@@ -47,6 +47,8 @@ export interface RuntimeNodeAttributes {
 
 export interface RuntimeEdgeAttributes {
 	relation: RelationType;
+	sourcePath?: string;
+	sourceField?: string;
 	type: string;
 	size: number;
 	color: string;
@@ -199,17 +201,19 @@ export class GraphologyAdapter {
 						label: '',
 					}
 				: isPlainLinkEdge(edge)
-				? {
-						...style,
-						color: this.plainLinkStyle.color,
-						size: this.plainLinkStyle.size,
-						lineStyle: this.plainLinkStyle.lineStyle,
-						hidden: this.plainLinkStyle.hidden,
-						label: '',
-					}
-				: style;
+					? {
+							...style,
+							color: this.plainLinkStyle.color,
+							size: this.plainLinkStyle.size,
+							lineStyle: this.plainLinkStyle.lineStyle,
+							hidden: this.plainLinkStyle.hidden,
+							label: '',
+						}
+					: style;
 			const attributes: RuntimeEdgeAttributes = {
 				relation: edge.relation,
+				sourcePath: edge.sourcePath,
+				sourceField: edge.sourceField,
 				type: getEdgeType(resolvedStyle.lineStyle, edge.directed),
 				size: resolvedStyle.size,
 				color: resolvedStyle.color,
@@ -248,7 +252,9 @@ function isPlainLinkEdge(edge: {
 	kind?: KnowledgeEdgeKind;
 	semantic?: boolean;
 }): boolean {
-	return edge.kind === 'plain-link' || (!edge.kind && edge.semantic === false);
+	return (
+		edge.kind === 'plain-link' || (!edge.kind && edge.semantic === false)
+	);
 }
 
 function isUnresolvedLinkEdge(edge: { kind?: KnowledgeEdgeKind }): boolean {

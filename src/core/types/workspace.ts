@@ -39,6 +39,12 @@ export type SettingsPanelMode =
 	| 'link-style';
 export type FlowEdgeStyle = 'straight' | 'orthogonal';
 export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
+export type FlowRelationPlacement = 'default' | 'before' | 'after' | 'parallel';
+export interface FlowRelationRule {
+	id: string;
+	field: string;
+	placement: FlowRelationPlacement;
+}
 export type ArcDirection = 'right' | 'left' | 'up' | 'down';
 export type ArcLabelAngle = 'auto' | 0 | 45 | 90;
 export type LayoutNodeSort =
@@ -85,6 +91,7 @@ export interface ChartLayoutConfig {
 	layerSpacing?: number;
 	laneSpacing?: number;
 	direction?: FlowDirection;
+	flowRelationRules?: FlowRelationRule[];
 	arcDirection?: ArcDirection;
 	arcLabelAngle?: ArcLabelAngle;
 	nodeSort?: LayoutNodeSort;
@@ -199,6 +206,8 @@ export interface WorkspaceState {
 	chartSource: ChartSource;
 	flowEdgeStyle: FlowEdgeStyle;
 	flowDirection: FlowDirection;
+	flowRelationRules: FlowRelationRule[];
+	flowRelationConflictCount: number;
 	arcDirection: ArcDirection;
 	arcLabelAngle: ArcLabelAngle;
 	nodeSort: LayoutNodeSort;

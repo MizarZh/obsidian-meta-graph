@@ -19,6 +19,7 @@
 		ariaLabel,
 		class: className = '',
 		showOnEmpty = false,
+		allowCustom = true,
 		onInput,
 		onSelect,
 	}: {
@@ -30,7 +31,8 @@
 		ariaLabel?: string;
 		class?: string;
 		showOnEmpty?: boolean;
-		onInput: (value: string) => void;
+		allowCustom?: boolean;
+		onInput?: (value: string) => void;
 		onSelect: (option: SuggestionOption) => void;
 	} = $props();
 
@@ -105,6 +107,9 @@
 		}
 
 		selectSuggestion(value: IndexedSuggestion): void {
+			if (inputEl) {
+				inputEl.value = value.option.value;
+			}
 			onSelect(value.option);
 			this.close();
 		}
@@ -123,6 +128,23 @@
 		}
 	}
 
+	function handleInput(nextValue: string): void {
+		if (allowCustom) {
+			onInput?.(nextValue);
+		}
+	}
+
+	function restoreSelectedValue(): void {
+		if (allowCustom) {
+			return;
+		}
+		window.setTimeout(() => {
+			if (inputEl && document.activeElement !== inputEl) {
+				inputEl.value = value;
+			}
+		});
+	}
+
 	$effect(() => {
 		if (!inputEl) {
 			return;
@@ -139,7 +161,8 @@
 	{ariaLabel}
 	class={className}
 	{value}
-	{onInput}
+	onInput={handleInput}
+	onBlur={restoreSelectedValue}
 	onFocus={openSuggestions}
 	onInputEl={(element) => {
 		inputEl = element;

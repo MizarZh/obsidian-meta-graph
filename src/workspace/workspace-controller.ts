@@ -12,6 +12,7 @@ import type {
 	DebugSnapshot,
 	FlowDirection,
 	FlowEdgeStyle,
+	FlowRelationRule,
 	GraphQuery,
 	KnowledgeIndex,
 	LabelPosition,
@@ -45,6 +46,7 @@ import {
 	setFlowEdgeStyleInState,
 	setFlowLaneSpacingInState,
 	setFlowLayerSpacingInState,
+	setFlowRelationRulesInState,
 	setFlowSpacingInState,
 	setForceLabelsInState,
 	setGraphForceSettingInState,
@@ -218,6 +220,16 @@ export class WorkspaceController {
 		this.emit();
 	}
 
+	setFlowRelationConflictCount(flowRelationConflictCount: number): void {
+		if (
+			this.state.flowRelationConflictCount === flowRelationConflictCount
+		) {
+			return;
+		}
+		this.state = { ...this.state, flowRelationConflictCount };
+		this.emit();
+	}
+
 	setRelayoutFlowAfterConnection(value: boolean): void {
 		this.relayoutFlowAfterConnection = value;
 	}
@@ -327,6 +339,12 @@ export class WorkspaceController {
 	setFlowDirection(flowDirection: FlowDirection): void {
 		this.setWorkspaceState(
 			setFlowDirectionInState(this.state, flowDirection),
+		);
+	}
+
+	setFlowRelationRules(flowRelationRules: FlowRelationRule[]): void {
+		this.setWorkspaceState(
+			setFlowRelationRulesInState(this.state, flowRelationRules),
 		);
 	}
 

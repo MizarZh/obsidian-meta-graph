@@ -31,6 +31,7 @@ export interface WorkspaceRendererLifecycleOptions {
 	bindEvents(renderer: GraphRenderer): () => void;
 	syncRendererGroups(): void;
 	setRendererDebugState(state: RendererDebugState): void;
+	setFlowRelationConflictCount?(count: number): void;
 }
 
 export class WorkspaceRendererLifecycle {
@@ -195,6 +196,7 @@ export class WorkspaceRendererLifecycle {
 			graphForceSettings: getWorkspaceGraphForceSettings(state),
 			flowEdgeStyle: state.flowEdgeStyle,
 			flowDirection: state.flowDirection,
+			flowRelationRules: state.flowRelationRules,
 			flowLayerSpacing: state.flowLayerSpacing,
 			flowLaneSpacing: state.flowLaneSpacing,
 			arcSpacing: state.arcSpacing,
@@ -206,6 +208,11 @@ export class WorkspaceRendererLifecycle {
 		if (version !== this.renderVersion) {
 			return;
 		}
+		this.options.setFlowRelationConflictCount?.(
+			state.mode === 'flow'
+				? (layoutSnapshot.flowRelationConflictCount ?? 0)
+				: 0,
+		);
 
 		const rendererKind = getRendererKindForMode(state.mode);
 		if (

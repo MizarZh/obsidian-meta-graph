@@ -3,8 +3,13 @@ import ELK, {
 	type ElkNode,
 	type ElkPoint,
 } from 'elkjs/lib/elk.bundled.js';
-import type { FlowDirection, FlowEdgeStyle } from '../core/types';
+import type {
+	FlowDirection,
+	FlowEdgeStyle,
+	FlowRelationRule,
+} from '../core/types';
 import type { RuntimeGraph } from '../graph/model/graphology-adapter';
+import { createFlowLayoutPlan } from './flow-relation-layout';
 import type { LayoutEngine } from './layout-engine';
 
 export type OrthogonalRouteMap = Map<string, ElkPoint[]>;
@@ -12,15 +17,19 @@ export type OrthogonalRouteMap = Map<string, ElkPoint[]>;
 export class ElkFlowLayout implements LayoutEngine {
 	private readonly elk = new ELK();
 	private orthogonalRoutes: OrthogonalRouteMap = new Map();
+	private conflictCount = 0;
 
 	constructor(
 		private readonly edgeStyle: FlowEdgeStyle = 'orthogonal',
 		private readonly direction: FlowDirection = 'LR',
 		private readonly layerSpacing = 1,
 		private readonly laneSpacing = 1,
+		private readonly relationRules: FlowRelationRule[] = [],
 	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
+		const plan = createFlowLayoutPlan(graph, this.relationRules);
+		this.conflictCount = plan.conflictCount;
 		const elkGraph: ElkNode = {
 			id: 'root',
 			layoutOptions: {
@@ -33,34 +42,17 @@ export class ElkFlowLayout implements LayoutEngine {
 				'elk.edgeRouting':
 					this.edgeStyle === 'orthogonal' ? 'ORTHOGONAL' : 'POLYLINE',
 			},
-			children: graph.mapNodes((node) => ({
-				id: node,
-				width: 120,
-				height: 44,
-			})),
-			edges: [],
+			children: graph.mapNodes((node) => {
+				const layoutOptions = plan.nodeLayoutOptions.get(node);
+				return {
+					id: node,
+					width: 120,
+					height: 44,
+					...(layoutOptions ? { layoutOptions } : {}),
+				};
+			}),
+			edges: plan.edges,
 		};
-
-		graph.forEachEdge(
-			(
-				edge,
-				attributes,
-				source,
-				target,
-				sourceAttributes,
-				targetAttributes,
-			) => {
-				if (!attributes.hidden) {
-					elkGraph.edges?.push({
-						id: edge,
-						sources: [source],
-						targets: [target],
-					});
-				}
-				void sourceAttributes;
-				void targetAttributes;
-			},
-		);
 
 		const result = await this.elk.layout(elkGraph);
 		for (const node of result.children ?? []) {
@@ -75,12 +67,22 @@ export class ElkFlowLayout implements LayoutEngine {
 			this.orthogonalRoutes = extractElkOrthogonalRoutes(
 				result.edges ?? [],
 			);
+			for (const edgeId of plan.reversedEdgeIds) {
+				const route = this.orthogonalRoutes.get(edgeId);
+				if (route) {
+					this.orthogonalRoutes.set(edgeId, [...route].reverse());
+				}
+			}
 			applyOrthogonalFlowEdges(graph, this.orthogonalRoutes);
 		}
 	}
 
 	getOrthogonalRoutes(): OrthogonalRouteMap {
 		return cloneOrthogonalRoutes(this.orthogonalRoutes);
+	}
+
+	getConflictCount(): number {
+		return this.conflictCount;
 	}
 }
 

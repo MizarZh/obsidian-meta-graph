@@ -70,6 +70,10 @@
 		}
 		button.setDisabled(disabled);
 		button.buttonEl.className = className;
+		button.buttonEl.classList.toggle(
+			'knowledge-workspace-obsidian-icon-button',
+			Boolean(icon && !text),
+		);
 		button.buttonEl.classList.toggle('active', active);
 		button.buttonEl.setAttribute('type', 'button');
 		if (ariaLabel) {

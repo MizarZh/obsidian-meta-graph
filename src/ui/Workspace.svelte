@@ -149,6 +149,8 @@
 		syncRendererGroups: () => syncRendererGroups(),
 		setRendererDebugState: (state) =>
 			controller.setRendererDebugState(state),
+		setFlowRelationConflictCount: (count) =>
+			controller.setFlowRelationConflictCount(count),
 	});
 	const dockGraphDrag = new DockGraphDragController({
 		window,

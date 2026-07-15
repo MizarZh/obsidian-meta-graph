@@ -18,6 +18,7 @@
 		DefaultNodeStyle,
 		FlowDirection,
 		FlowEdgeStyle,
+		FlowRelationRule,
 		GraphQuery,
 		LabelPosition,
 		LayoutNodeSort,
@@ -56,6 +57,9 @@
 		enableForceLayout,
 		flowEdgeStyle,
 		flowDirection,
+		flowRelationRules,
+		flowRelationConflictCount,
+		flowRelationFieldSuggestions,
 		arcDirection,
 		arcLabelAngle,
 		nodeSort,
@@ -92,6 +96,7 @@
 		linkStyleRules,
 		onFlowEdgeStyle,
 		onFlowDirection,
+		onFlowRelationRules,
 		onArcDirection,
 		onArcLabelAngle,
 		onLayoutNodeSort,
@@ -167,6 +172,9 @@
 		enableForceLayout: boolean;
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
+		flowRelationRules: FlowRelationRule[];
+		flowRelationConflictCount: number;
+		flowRelationFieldSuggestions: string[];
 		arcDirection: ArcDirection;
 		arcLabelAngle: ArcLabelAngle;
 		nodeSort: LayoutNodeSort;
@@ -203,6 +211,7 @@
 		linkStyleRules: LinkStyleRule[];
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
+		onFlowRelationRules: (rules: FlowRelationRule[]) => void;
 		onArcDirection: (direction: ArcDirection) => void;
 		onArcLabelAngle: (angle: ArcLabelAngle) => void;
 		onLayoutNodeSort: (sort: LayoutNodeSort) => void;
@@ -285,6 +294,7 @@
 <aside class="knowledge-workspace-filters">
 	{#if panel === 'graph'}
 		<GraphSettingsPanel
+			{app}
 			{mode}
 			{fadeDistance}
 			{labelDensity}
@@ -295,6 +305,9 @@
 			{enableForceLayout}
 			{flowEdgeStyle}
 			{flowDirection}
+			{flowRelationRules}
+			{flowRelationConflictCount}
+			{flowRelationFieldSuggestions}
 			{arcDirection}
 			{arcLabelAngle}
 			{nodeSort}
@@ -311,6 +324,7 @@
 			{query}
 			{onFlowEdgeStyle}
 			{onFlowDirection}
+			{onFlowRelationRules}
 			{onArcDirection}
 			{onArcLabelAngle}
 			{onLayoutNodeSort}
