@@ -1,5 +1,5 @@
 import type {
-	ChartGroup,
+	ChartGroupDefinition,
 	CuratedWorkspaceConfig,
 	KnowledgeNode,
 	ManualLayoutConfig,
@@ -97,13 +97,16 @@ export function buildSelectedCuratedFiles(
 	curated: CuratedWorkspaceConfig,
 	nodesByPath: Map<string, KnowledgeNode>,
 	manualLayout: ManualLayoutConfig,
-	groupsById: Map<string, ChartGroup>,
+	groupsById: Map<string, ChartGroupDefinition>,
 	nodeColors: Map<string, string>,
 	selected: Set<string>,
+	resolvedGroupIds?: ReadonlyMap<string, string | undefined>,
 ): CuratedFileEntry[] {
 	return curated.files.map((file) => {
 		const node = nodesByPath.get(file.path);
-		const groupId = manualLayout.nodes[file.path]?.groupId;
+		const groupId = resolvedGroupIds
+			? resolvedGroupIds.get(file.path)
+			: manualLayout.nodes[file.path]?.groupId;
 		const group = groupId ? groupsById.get(groupId) : undefined;
 		return {
 			path: file.path,

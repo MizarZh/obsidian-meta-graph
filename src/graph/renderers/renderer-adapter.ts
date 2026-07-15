@@ -17,6 +17,7 @@ export interface ModeCapabilities {
 	rendererKind: RendererKind;
 	usesSigmaForceSimulation: boolean;
 	supportsFreeNodeDrag: boolean;
+	supportsGroups: boolean;
 	supportsManualGroups: boolean;
 }
 
@@ -55,42 +56,49 @@ const MODE_CAPABILITIES: Record<ViewMode, ModeCapabilities> = {
 		rendererKind: 'sigma',
 		usesSigmaForceSimulation: true,
 		supportsFreeNodeDrag: false,
+		supportsGroups: false,
 		supportsManualGroups: false,
 	},
 	'graph-3d': {
 		rendererKind: 'force-3d',
 		usesSigmaForceSimulation: false,
 		supportsFreeNodeDrag: false,
+		supportsGroups: false,
 		supportsManualGroups: false,
 	},
 	cube: {
 		rendererKind: 'cube-3d',
 		usesSigmaForceSimulation: false,
 		supportsFreeNodeDrag: false,
+		supportsGroups: true,
 		supportsManualGroups: false,
 	},
 	free: {
 		rendererKind: 'sigma',
 		usesSigmaForceSimulation: false,
 		supportsFreeNodeDrag: true,
+		supportsGroups: true,
 		supportsManualGroups: true,
 	},
 	flow: {
 		rendererKind: 'sigma',
 		usesSigmaForceSimulation: false,
 		supportsFreeNodeDrag: false,
+		supportsGroups: false,
 		supportsManualGroups: false,
 	},
 	arc: {
 		rendererKind: 'sigma',
 		usesSigmaForceSimulation: false,
 		supportsFreeNodeDrag: false,
+		supportsGroups: true,
 		supportsManualGroups: false,
 	},
 	'hierarchical-edge-bundling': {
 		rendererKind: 'sigma',
 		usesSigmaForceSimulation: false,
 		supportsFreeNodeDrag: false,
+		supportsGroups: true,
 		supportsManualGroups: false,
 	},
 };

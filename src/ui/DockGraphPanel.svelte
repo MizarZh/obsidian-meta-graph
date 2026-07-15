@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
 	import type {
-		ChartGroup,
+		ChartGroupDefinition,
+		ChartGroupingConfig,
 		DockTemplateNode,
 		KnowledgeNode,
 		ManualLayoutConfig,
@@ -49,6 +50,7 @@
 		selectedNodeColor,
 		mode,
 		manualLayout,
+		grouping,
 		onAddTemplate,
 		onUpdateTemplate,
 		onRemoveTemplate,
@@ -71,7 +73,7 @@
 		templates: DockTemplateNode[];
 		notes: DockNoteEntry[];
 		nodes: KnowledgeNode[];
-		groups: ChartGroup[];
+		groups: ChartGroupDefinition[];
 		folders: string[];
 		workspaceFilePath?: string;
 		nodeColors: Map<string, string>;
@@ -89,6 +91,7 @@
 		selectedNodeColor?: string;
 		mode: ViewMode;
 		manualLayout: ManualLayoutConfig;
+		grouping: ChartGroupingConfig;
 		onAddTemplate: (template: Omit<DockTemplateNode, 'id'>) => void;
 		onUpdateTemplate: (
 			templateId: string,
@@ -110,7 +113,7 @@
 		onCreateTemplateNote: (templateId: string, label: string) => void;
 		onOpenNote: (nodeId: string) => void;
 		onOpenMetadataLink: (linkText: string, sourcePath: string) => void;
-		onSetNodeGroup: (path: string, groupId?: string) => void;
+		onSetNodeGroup: (path: string, groupId?: string | null) => void;
 		onConnectNode: (
 			sourcePath: string,
 			targetPath: string,
@@ -221,6 +224,7 @@
 						nodeColor={selectedNodeColor}
 						{mode}
 						{manualLayout}
+						{grouping}
 						{activeConnectionField}
 						contentVisible={detailsContentVisible}
 						{onOpenNote}

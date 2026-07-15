@@ -99,9 +99,23 @@
 
 .knowledge-workspace-group-card > header {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 32px;
+	grid-template-columns: minmax(0, 1fr) auto;
 	gap: var(--size-4-2);
 	align-items: center;
+}
+
+.knowledge-workspace-group-actions {
+	display: flex;
+	gap: var(--size-2-1, 2px);
+	align-items: center;
+}
+
+.knowledge-workspace-group-actions button {
+	display: grid;
+	place-items: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
 }
 
 .knowledge-workspace-group-delete {

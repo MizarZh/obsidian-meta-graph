@@ -29,6 +29,8 @@ import {
 	GroupOverlayLayer,
 	type GroupInteractionCallbacks,
 } from './sigma-group-overlay';
+import { LayoutGroupLayer } from './sigma-layout-group-layer';
+import type { LayoutGroupGeometry } from '../../../layouts/group-geometry';
 export type {
 	GroupGeometry,
 	GroupInteractionCallbacks,
@@ -50,6 +52,7 @@ export class SigmaRenderer {
 	private labelBackgroundOpacity: number;
 	private forceLabels: boolean;
 	private readonly groupOverlayLayer: GroupOverlayLayer;
+	private readonly layoutGroupLayer: LayoutGroupLayer;
 
 	constructor(
 		private graph: RuntimeGraph,
@@ -162,6 +165,7 @@ export class SigmaRenderer {
 			this.instance,
 			() => this.graph,
 		);
+		this.layoutGroupLayer = new LayoutGroupLayer(this.instance);
 	}
 
 	get runtimeGraph(): RuntimeGraph {
@@ -189,6 +193,10 @@ export class SigmaRenderer {
 		callbacks?: GroupInteractionCallbacks,
 	): void {
 		this.groupOverlayLayer.setGroups(groups, callbacks);
+	}
+
+	setLayoutGroupGeometries(geometries: readonly LayoutGroupGeometry[]): void {
+		this.layoutGroupLayer.setGeometries(geometries);
 	}
 
 	getGroupAtViewportPosition(position: {
@@ -378,6 +386,7 @@ export class SigmaRenderer {
 
 	kill(): void {
 		this.groupOverlayLayer.kill();
+		this.layoutGroupLayer.kill();
 		this.instance.kill();
 	}
 

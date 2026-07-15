@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GraphProjection } from '../core/types';
+import type { ChartGroupDefinition, GraphProjection } from '../core/types';
 import { GraphologyAdapter } from '../graph/model/graphology-adapter';
 import type { GraphPalette } from '../graph/styles/graph-styles';
 import {
@@ -134,7 +134,46 @@ describe('ArcLayout', () => {
 		expect(graph.getNodeAttributes('A.md')).toMatchObject({ x: 0, y: 0 });
 		expect(graph.getNodeAttributes('B.md')).toMatchObject({ x: 0, y: 72 });
 	});
+
+	it('keeps groups contiguous in group priority order', async () => {
+		const graph = new GraphologyAdapter(palette).fromProjection(projection);
+		const groups: ChartGroupDefinition[] = [
+			group('later-names'),
+			group('earlier-names'),
+		];
+		const layout = new ArcLayout(
+			1,
+			'right',
+			'name',
+			'asc',
+			'auto',
+			groups,
+			new Map([
+				['C.md', 'later-names'],
+				['A.md', 'earlier-names'],
+			]),
+		);
+
+		await layout.apply(graph);
+
+		expect(graph.getNodeAttribute('C.md', 'y')).toBe(-72);
+		expect(graph.getNodeAttribute('A.md', 'y')).toBe(0);
+		expect(graph.getNodeAttribute('B.md', 'y')).toBe(72);
+		expect(layout.getGroupGeometries().map((item) => item.groupId)).toEqual(
+			['later-names', 'earlier-names'],
+		);
+	});
 });
+
+function group(id: string): ChartGroupDefinition {
+	return {
+		id,
+		name: id,
+		color: '#7c6ff0',
+		mode: 'manual',
+		padding: 0.32,
+	};
+}
 
 const projection: GraphProjection = {
 	nodes: [

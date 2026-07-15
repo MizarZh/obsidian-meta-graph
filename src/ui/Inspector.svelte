@@ -1,11 +1,12 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
 	import type {
-		ChartGroup,
+		ChartGroupingConfig,
 		KnowledgeNode,
 		ManualLayoutConfig,
 		ViewMode,
 	} from '../core/types';
+	import { resolveChartGroupOwnership } from '../query/group-ownership';
 	import InternalNotePreview from './workspace/InternalNotePreview.svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
@@ -20,6 +21,7 @@
 		nodeColor,
 		mode = 'graph',
 		manualLayout = { nodes: {}, groups: [] },
+		grouping = { groups: [], overrides: {} },
 		activeConnectionField = '',
 		contentVisible = false,
 		onOpenNote = () => {},
@@ -34,11 +36,12 @@
 		nodeColor?: string;
 		mode?: ViewMode;
 		manualLayout?: ManualLayoutConfig;
+		grouping?: ChartGroupingConfig;
 		activeConnectionField?: string;
 		contentVisible?: boolean;
 		onOpenNote?: (path: string) => void;
 		onOpenMetadataLink?: (linkText: string, sourcePath: string) => void;
-		onSetNodeGroup?: (path: string, groupId?: string) => void;
+		onSetNodeGroup?: (path: string, groupId?: string | null) => void;
 		onConnectNode?: (
 			sourcePath: string,
 			targetPath: string,
@@ -52,23 +55,60 @@
 		| { kind: 'link'; text: string; linkText: string };
 
 	const wikiLinkPattern = /\[\[([^\]]+)\]\]/gu;
+	const AUTOMATIC_GROUP = '__automatic__';
+	const UNGROUPED_GROUP = '__ungrouped__';
 
 	let linkTargetPath = $state('');
 
-	const canAssignGroup = $derived(mode === 'free' || mode === 'cube');
+	const canAssignGroup = $derived(
+		mode === 'free' ||
+			mode === 'cube' ||
+			mode === 'arc' ||
+			mode === 'hierarchical-edge-bundling',
+	);
 	const groupRequired = $derived(mode === 'cube');
+	const assignmentGroups = $derived(
+		groupRequired ? manualLayout.groups : grouping.groups,
+	);
+	const automaticOwner = $derived.by(() => {
+		if (!node || groupRequired) {
+			return undefined;
+		}
+		return resolveChartGroupOwnership([node], grouping).byNode.get(node.id)
+			?.groupId;
+	});
 	const groupOptions = $derived.by(() => {
-		const options = manualLayout.groups.map((group: ChartGroup) => ({
+		const options = assignmentGroups.map((group) => ({
 			value: group.id,
 			label: group.name,
 		}));
 		return groupRequired
 			? options
-			: [{ value: '', label: 'No group' }, ...options];
+			: [
+					{
+						value: AUTOMATIC_GROUP,
+						label: automaticOwner
+							? `Automatic (${assignmentGroups.find((group) => group.id === automaticOwner)?.name ?? automaticOwner})`
+							: 'Automatic',
+					},
+					{ value: UNGROUPED_GROUP, label: 'Ungrouped' },
+					...options,
+				];
 	});
-	const selectedGroupId = $derived(
-		node ? (manualLayout.nodes[node.path]?.groupId ?? '') : '',
-	);
+	const selectedGroupId = $derived.by(() => {
+		if (!node) {
+			return AUTOMATIC_GROUP;
+		}
+		if (groupRequired) {
+			return manualLayout.nodes[node.path]?.groupId ?? '';
+		}
+		if (
+			!Object.prototype.hasOwnProperty.call(grouping.overrides, node.path)
+		) {
+			return AUTOMATIC_GROUP;
+		}
+		return grouping.overrides[node.path] ?? UNGROUPED_GROUP;
+	});
 	const selectedGroupValue = $derived(
 		groupRequired && !selectedGroupId && groupOptions[0]
 			? groupOptions[0].value
@@ -189,7 +229,7 @@
 					>Domains: {node.domains.join(', ')}</span
 				>
 			{/if}
-			{#if canAssignGroup && groupOptions.length > 0}
+			{#if canAssignGroup && assignmentGroups.length > 0}
 				<hr />
 				<label class="knowledge-workspace-inspector-control">
 					<span>Group</span>
@@ -198,7 +238,14 @@
 						options={groupOptions}
 						ariaLabel="Node group"
 						onChange={(groupId) =>
-							onSetNodeGroup(node.path, groupId || undefined)}
+							onSetNodeGroup(
+								node.path,
+								groupId === AUTOMATIC_GROUP
+									? undefined
+									: groupId === UNGROUPED_GROUP
+										? null
+										: groupId,
+							)}
 					/>
 				</label>
 			{/if}

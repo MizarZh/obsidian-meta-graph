@@ -18,6 +18,7 @@ import {
 	hydrateManualLayoutPositions,
 	type LayoutSnapshot,
 } from '../../layouts/stable-layout';
+import { resolveChartGroupOwnership } from '../../query/group-ownership';
 import { getWorkspaceGraphForceSettings } from './graph-settings';
 import { createWorkspaceGraphRenderer } from './renderer-factory';
 import { createWorkspaceRuntimeGraph } from './runtime-graph';
@@ -183,6 +184,16 @@ export class WorkspaceRendererLifecycle {
 		const newNodeIds = graph
 			.nodes()
 			.filter((nodeId) => !positions.has(nodeId));
+		const groupOwnership = resolveChartGroupOwnership(
+			state.projection.nodes,
+			state.grouping,
+		);
+		const groupByNode = new Map<string, string>();
+		for (const [nodeId, entry] of groupOwnership.byNode) {
+			if (entry.groupId) {
+				groupByNode.set(nodeId, entry.groupId);
+			}
+		}
 		this.options.setRendererDebugState({
 			status: 'layout',
 			mode: state.mode,
@@ -204,6 +215,8 @@ export class WorkspaceRendererLifecycle {
 			arcLabelAngle: state.arcLabelAngle,
 			nodeSort: state.nodeSort,
 			nodeSortDirection: state.nodeSortDirection,
+			groups: state.grouping.groups,
+			groupByNode,
 		});
 		if (version !== this.renderVersion) {
 			return;

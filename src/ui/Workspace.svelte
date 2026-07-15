@@ -339,6 +339,7 @@
 			workspaceState = nextState;
 			if (changes.manualLayoutChanged) {
 				renderBaseline.manualLayout = nextState.manualLayout;
+				renderBaseline.grouping = nextState.grouping;
 				syncRendererGroups();
 			}
 			if (
@@ -492,6 +493,7 @@
 			rendererLifecycle.renderer,
 			workspaceState.mode,
 			workspaceState.manualLayout,
+			getLayoutSnapshot(),
 			{
 				onMovePreview: moveRuntimeGroupNodes,
 				onMoveCommit: (groupId, delta) =>

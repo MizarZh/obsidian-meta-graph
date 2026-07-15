@@ -4,9 +4,12 @@ import {
 	deleteGroupInState,
 	moveCuratedFilesToGroupInState,
 	moveGroupInState,
+	reorderGroupInState,
 	setManualNodePositionInState,
+	setNodeGroupInState,
 	updateGroupInState,
 } from '../workspace/state/manual-layout-state';
+import { setActiveChartTypeInState } from '../workspace/state/chart-state';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
 
 describe('workspace manual layout state', () => {
@@ -106,5 +109,41 @@ describe('workspace manual layout state', () => {
 		const state = createWorkspaceState(100);
 
 		expect(moveCuratedFilesToGroupInState(state, [])).toBe(state);
+	});
+
+	it('assigns Arc nodes without creating manual positions', () => {
+		let state = setActiveChartTypeInState(
+			createWorkspaceState(100),
+			'arc',
+		).state;
+		state = addGroupInState(state);
+		const group = state.grouping.groups[0];
+		if (!group) {
+			throw new Error('Group is missing.');
+		}
+
+		state = setNodeGroupInState(state, 'A.md', group.id);
+		expect(state.grouping.overrides['A.md']).toBe(group.id);
+		expect(state.manualLayout.nodes['A.md']).toBeUndefined();
+
+		state = setNodeGroupInState(state, 'A.md', null);
+		expect(state.grouping.overrides['A.md']).toBeNull();
+
+		state = setNodeGroupInState(state, 'A.md', undefined);
+		expect(state.grouping.overrides).not.toHaveProperty('A.md');
+	});
+
+	it('reorders chart groups as their conflict priority', () => {
+		let state = addGroupInState(createWorkspaceState(100));
+		state = addGroupInState(state);
+		const second = state.grouping.groups[1];
+		if (!second) {
+			throw new Error('Second group is missing.');
+		}
+
+		state = reorderGroupInState(state, second.id, -1);
+
+		expect(state.grouping.groups[0]?.id).toBe(second.id);
+		expect(state.manualLayout.groups[0]?.id).toBe(second.id);
 	});
 });

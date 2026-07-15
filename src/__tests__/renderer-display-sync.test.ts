@@ -52,6 +52,7 @@ function createRenderer() {
 
 function noChanges(): WorkspaceStateChanges {
 	return {
+		groupingChanged: false,
 		manualLayoutChanged: false,
 		fadeDistanceChanged: false,
 		labelSizeChanged: false,

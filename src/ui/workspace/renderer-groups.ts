@@ -17,6 +17,7 @@ export function syncWorkspaceRendererGroups(
 	renderer: GraphRenderer | undefined,
 	mode: ViewMode,
 	manualLayout: ManualLayoutConfig,
+	layoutSnapshot: LayoutSnapshot,
 	callbacks: GroupInteractionCallbacks,
 ): void {
 	if (!renderer || isForce3DRenderer(renderer)) {
@@ -26,6 +27,7 @@ export function syncWorkspaceRendererGroups(
 		renderer.setManualLayout(manualLayout);
 		return;
 	}
+	renderer.setLayoutGroupGeometries(layoutSnapshot.groupGeometries);
 	renderer.setGroups(
 		getModeCapabilities(mode).supportsManualGroups
 			? manualLayout.groups

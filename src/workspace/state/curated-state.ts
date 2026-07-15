@@ -37,9 +37,16 @@ export function addCuratedFilesToState(
 		update.curated.files.map((file) => file.path),
 		groupId,
 	);
+	const existingPaths = new Set(
+		activeChart.curated.files.map((file) => file.path),
+	);
+	const addedPaths = update.curated.files
+		.map((file) => file.path)
+		.filter((path) => !existingPaths.has(path));
+	const grouping = assignCuratedGroup(activeChart, addedPaths, groupId);
 	return updateActiveChartState(
 		state,
-		{ curated: update.curated, layout },
+		{ curated: update.curated, layout, grouping },
 		true,
 	);
 }
@@ -58,6 +65,7 @@ export function removeCuratedFilesFromState(
 		{
 			curated: update.curated,
 			layout: removeManualPlacements(activeChart.layout, paths),
+			grouping: removeGroupOverrides(activeChart, paths),
 		},
 		true,
 	);
@@ -169,6 +177,10 @@ export function clearCuratedFilesInState(
 				activeChart.layout,
 				activeChart.curated.files.map((file) => file.path),
 			),
+			grouping: removeGroupOverrides(
+				activeChart,
+				activeChart.curated.files.map((file) => file.path),
+			),
 		},
 		true,
 	);
@@ -203,8 +215,16 @@ export function renameCuratedFilePathInState(
 			normalizedOld,
 			normalizedNew,
 		);
-		changed ||= update.changed;
-		return update.changed ? { ...chart, curated: update.curated } : chart;
+		const grouping = renameGroupOverride(
+			chart,
+			normalizedOld,
+			normalizedNew,
+		);
+		const chartChanged = update.changed || grouping !== chart.grouping;
+		changed ||= chartChanged;
+		return chartChanged
+			? { ...chart, curated: update.curated, grouping }
+			: chart;
 	});
 	if (!changed) {
 		return state;
@@ -216,6 +236,7 @@ export function renameCuratedFilePathInState(
 		...state,
 		charts,
 		curated: cloneSerializable(activeChart?.curated ?? state.curated),
+		grouping: cloneSerializable(activeChart?.grouping ?? state.grouping),
 	};
 }
 
@@ -239,18 +260,95 @@ export function pruneMissingCuratedFiles(
 		const missingPaths = chart.curated.files
 			.map((file) => file.path)
 			.filter((path) => !existingPaths.has(path));
-		if (missingPaths.length === 0) {
-			return chart;
-		}
 		const update = removeCuratedFilePaths(chart.curated, missingPaths);
-		if (!update.changed) {
+		const grouping = pruneGroupOverrides(chart, existingPaths);
+		const chartChanged = update.changed || grouping !== chart.grouping;
+		if (!chartChanged) {
 			return chart;
 		}
-		const layout = removeManualPlacements(chart.layout, missingPaths);
 		changed = true;
-		return { ...chart, curated: update.curated, layout };
+		return {
+			...chart,
+			curated: update.curated,
+			layout: update.changed
+				? removeManualPlacements(chart.layout, missingPaths)
+				: chart.layout,
+			grouping,
+		};
 	});
 	return changed ? nextCharts : charts;
+}
+
+function assignCuratedGroup(
+	chart: MetaGraphChart,
+	paths: readonly NodeId[],
+	groupId?: string,
+): MetaGraphChart['grouping'] {
+	if (
+		chart.type === 'cube' ||
+		!groupId ||
+		!chart.grouping.groups.some((group) => group.id === groupId)
+	) {
+		return chart.grouping;
+	}
+	const overrides = { ...chart.grouping.overrides };
+	for (const path of paths) {
+		overrides[path] = groupId;
+	}
+	return { ...chart.grouping, overrides };
+}
+
+function removeGroupOverrides(
+	chart: MetaGraphChart,
+	paths: readonly NodeId[],
+): MetaGraphChart['grouping'] {
+	if (chart.type === 'cube') {
+		return chart.grouping;
+	}
+	const overrides = { ...chart.grouping.overrides };
+	let changed = false;
+	for (const path of paths) {
+		if (Object.prototype.hasOwnProperty.call(overrides, path)) {
+			delete overrides[path];
+			changed = true;
+		}
+	}
+	return changed ? { ...chart.grouping, overrides } : chart.grouping;
+}
+
+function renameGroupOverride(
+	chart: MetaGraphChart,
+	oldPath: NodeId,
+	newPath: NodeId,
+): MetaGraphChart['grouping'] {
+	if (
+		chart.type === 'cube' ||
+		!Object.prototype.hasOwnProperty.call(chart.grouping.overrides, oldPath)
+	) {
+		return chart.grouping;
+	}
+	const overrides = { ...chart.grouping.overrides };
+	overrides[newPath] = overrides[oldPath] ?? null;
+	delete overrides[oldPath];
+	return { ...chart.grouping, overrides };
+}
+
+function pruneGroupOverrides(
+	chart: MetaGraphChart,
+	existingPaths: ReadonlySet<NodeId>,
+): MetaGraphChart['grouping'] {
+	if (chart.type === 'cube') {
+		return chart.grouping;
+	}
+	const overrides = Object.fromEntries(
+		Object.entries(chart.grouping.overrides).filter(([path]) =>
+			existingPaths.has(path),
+		),
+	);
+	return Object.keys(overrides).length ===
+		Object.keys(chart.grouping.overrides).length
+		? chart.grouping
+		: { ...chart.grouping, overrides };
 }
 
 function getActiveChart(state: WorkspaceState): MetaGraphChart {

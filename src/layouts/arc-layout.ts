@@ -1,7 +1,12 @@
 import { scalePoint } from 'd3-scale';
-import type { ArcDirection, ArcLabelAngle } from '../core/types';
+import type {
+	ArcDirection,
+	ArcLabelAngle,
+	ChartGroupDefinition,
+} from '../core/types';
 import type { RuntimeGraph } from '../graph/model/graphology-adapter';
 import type { LayoutEngine } from './layout-engine';
+import type { ArcGroupGeometry } from './group-geometry';
 import {
 	compareLayoutNodeIds,
 	type LayoutNodeSort,
@@ -14,12 +19,16 @@ export interface ArcPoint {
 }
 
 export class ArcLayout implements LayoutEngine {
+	private groupGeometries: ArcGroupGeometry[] = [];
+
 	constructor(
 		private readonly spacing = 1,
 		private readonly direction: ArcDirection = 'right',
 		private readonly nodeSort: LayoutNodeSort = 'name',
 		private readonly nodeSortDirection: LayoutSortDirection = 'asc',
 		private readonly labelAngle: ArcLabelAngle = 'auto',
+		private readonly groups: readonly ChartGroupDefinition[] = [],
+		private readonly groupByNode: ReadonlyMap<string, string> = new Map(),
 	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
@@ -27,6 +36,8 @@ export class ArcLayout implements LayoutEngine {
 			graph,
 			this.nodeSort,
 			this.nodeSortDirection,
+			this.groups,
+			this.groupByNode,
 		);
 		const step = calculateArcStep(graph, nodeIds, this.spacing);
 		const length = Math.max(0, (nodeIds.length - 1) * step);
@@ -48,8 +59,20 @@ export class ArcLayout implements LayoutEngine {
 				labelDirection: labelPlacement.direction,
 			});
 		}
+		this.groupGeometries = createArcGroupGeometries(
+			nodeIds,
+			axis,
+			step,
+			this.direction,
+			this.groups,
+			this.groupByNode,
+		);
 
 		applyArcEdges(graph, this.direction);
+	}
+
+	getGroupGeometries(): ArcGroupGeometry[] {
+		return this.groupGeometries.map((geometry) => ({ ...geometry }));
 	}
 }
 
@@ -210,11 +233,69 @@ function sortArcNodeIds(
 	graph: RuntimeGraph,
 	nodeSort: LayoutNodeSort,
 	nodeSortDirection: LayoutSortDirection,
+	groups: readonly ChartGroupDefinition[] = [],
+	groupByNode: ReadonlyMap<string, string> = new Map(),
 ): string[] {
-	return graph
+	const groupOrder = new Map(
+		groups.map((group, index) => [group.id, index] as const),
+	);
+	const ungroupedOrder = groups.length;
+	const nodeIds = graph
 		.nodes()
 		.filter((nodeId) => !graph.getNodeAttribute(nodeId, 'isBend'))
 		.sort(compareLayoutNodeIds(graph, nodeSort, nodeSortDirection));
+	const sortedIndex = new Map(
+		nodeIds.map((nodeId, index) => [nodeId, index] as const),
+	);
+	return nodeIds.sort((left, right) => {
+		const leftOrder =
+			groupOrder.get(groupByNode.get(left) ?? '') ?? ungroupedOrder;
+		const rightOrder =
+			groupOrder.get(groupByNode.get(right) ?? '') ?? ungroupedOrder;
+		return (
+			leftOrder - rightOrder ||
+			(sortedIndex.get(left) ?? 0) - (sortedIndex.get(right) ?? 0)
+		);
+	});
+}
+
+function createArcGroupGeometries(
+	nodeIds: readonly string[],
+	axis: ReturnType<typeof scalePoint<string>>,
+	step: number,
+	direction: ArcDirection,
+	groups: readonly ChartGroupDefinition[],
+	groupByNode: ReadonlyMap<string, string>,
+): ArcGroupGeometry[] {
+	const positionsByGroup = new Map<string, number[]>();
+	for (const nodeId of nodeIds) {
+		const groupId = groupByNode.get(nodeId);
+		const position = axis(nodeId);
+		if (!groupId || position === undefined) {
+			continue;
+		}
+		const positions = positionsByGroup.get(groupId) ?? [];
+		positions.push(position);
+		positionsByGroup.set(groupId, positions);
+	}
+	return groups.flatMap((group) => {
+		const positions = positionsByGroup.get(group.id);
+		if (!positions?.length) {
+			return [];
+		}
+		const padding = step * Math.min(0.45, Math.max(0.15, group.padding));
+		return [
+			{
+				kind: 'arc-band' as const,
+				groupId: group.id,
+				name: group.name,
+				color: group.color,
+				direction,
+				start: Math.min(...positions) - padding,
+				end: Math.max(...positions) + padding,
+			},
+		];
+	});
 }
 
 function createBendNode(x: number, y: number) {

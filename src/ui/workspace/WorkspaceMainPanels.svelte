@@ -163,6 +163,11 @@
 			`visibility: ${style.hidden ? 'hidden' : 'visible'}`,
 		].join('; ');
 	});
+	const chartGroups = $derived(
+		workspaceState.mode === 'cube'
+			? workspaceState.manualLayout.groups
+			: workspaceState.grouping.groups,
+	);
 </script>
 
 {#if workspaceState.chartSource === 'curated'}
@@ -170,8 +175,9 @@
 		{app}
 		curated={workspaceState.curated}
 		nodes={debugSnapshot.index.nodes}
-		groups={workspaceState.manualLayout.groups}
+		groups={chartGroups}
 		manualLayout={workspaceState.manualLayout}
+		grouping={workspaceState.grouping}
 		groupRequired={workspaceState.mode === 'cube'}
 		folders={workspaceState.availableFolders}
 		{nodeColors}
@@ -247,7 +253,7 @@
 	templates={workspaceState.dock.templates}
 	notes={dockNoteEntries}
 	nodes={debugSnapshot.index.nodes}
-	groups={workspaceState.manualLayout.groups}
+	groups={chartGroups}
 	folders={workspaceState.availableFolders}
 	{workspaceFilePath}
 	{nodeColors}
@@ -269,6 +275,7 @@
 	{selectedNodeColor}
 	mode={workspaceState.mode}
 	manualLayout={workspaceState.manualLayout}
+	grouping={workspaceState.grouping}
 	onAddTemplate={(template) => controller.addDockTemplate(template)}
 	onUpdateTemplate={(templateId, template) =>
 		controller.updateDockTemplate(templateId, template)}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GraphProjection } from '../core/types';
+import type { ChartGroupDefinition, GraphProjection } from '../core/types';
 import { GraphologyAdapter } from '../graph/model/graphology-adapter';
 import type { GraphPalette } from '../graph/styles/graph-styles';
 import {
@@ -87,7 +87,44 @@ describe('HierarchicalEdgeBundlingLayout', () => {
 			direction: -1,
 		});
 	});
+
+	it('uses groups as the first hierarchy level', async () => {
+		const graph = new GraphologyAdapter(palette).fromProjection(projection);
+		const groups: ChartGroupDefinition[] = [
+			group('group-b'),
+			group('group-a'),
+		];
+		const layout = new HierarchicalEdgeBundlingLayout(
+			1,
+			'path',
+			'asc',
+			groups,
+			new Map([
+				['Topics/B.md', 'group-b'],
+				['Topics/A.md', 'group-a'],
+			]),
+		);
+
+		await layout.apply(graph);
+
+		expect(layout.getGroupGeometries().map((item) => item.groupId)).toEqual(
+			['group-b', 'group-a'],
+		);
+		expect(graph.getNodeAttributes('Topics/A.md')).not.toMatchObject(
+			graph.getNodeAttributes('Topics/B.md'),
+		);
+	});
 });
+
+function group(id: string): ChartGroupDefinition {
+	return {
+		id,
+		name: id,
+		color: '#7c6ff0',
+		mode: 'manual',
+		padding: 0.32,
+	};
+}
 
 const projection: GraphProjection = {
 	nodes: [

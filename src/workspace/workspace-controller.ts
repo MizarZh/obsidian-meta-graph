@@ -136,6 +136,7 @@ import {
 	moveCuratedFilesToGroupInState,
 	moveGroupInState,
 	placeNodeInDefaultGroupInState,
+	reorderGroupInState,
 	resizeGroupInState,
 	setManualNodePositionInState,
 	setNodeGroupInState,
@@ -501,9 +502,15 @@ export class WorkspaceController {
 		);
 	}
 
-	setNodeGroup(nodeId: NodeId, groupId?: string): void {
+	setNodeGroup(nodeId: NodeId, groupId?: string | null): void {
 		this.setWorkspaceState(
 			setNodeGroupInState(this.state, nodeId, groupId),
+		);
+	}
+
+	reorderGroup(groupId: string, direction: -1 | 1): void {
+		this.setWorkspaceState(
+			reorderGroupInState(this.state, groupId, direction),
 		);
 	}
 

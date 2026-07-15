@@ -12,6 +12,7 @@ export interface WorkspaceRenderBaseline {
 	arcLabelAngle?: WorkspaceState['arcLabelAngle'];
 	nodeSort?: WorkspaceState['nodeSort'];
 	nodeSortDirection?: WorkspaceState['nodeSortDirection'];
+	grouping?: WorkspaceState['grouping'];
 	manualLayout?: WorkspaceState['manualLayout'];
 	layoutRevision?: number;
 	defaultNodeStyle?: WorkspaceState['defaultNodeStyle'];
@@ -28,6 +29,7 @@ export interface WorkspaceRenderBaseline {
 }
 
 export interface WorkspaceStateChanges {
+	groupingChanged: boolean;
 	manualLayoutChanged: boolean;
 	fadeDistanceChanged: boolean;
 	labelSizeChanged: boolean;
@@ -149,8 +151,14 @@ export function analyzeWorkspaceStateChanges(
 		nextState.projection,
 		currentState.projection,
 	);
+	const groupingChanged = baselineValueChanged(
+		nextState,
+		baseline,
+		'grouping',
+	);
 
 	return {
+		groupingChanged,
 		manualLayoutChanged: baselineValueChanged(
 			nextState,
 			baseline,
@@ -253,6 +261,9 @@ export function analyzeWorkspaceStateChanges(
 		graphVisibilityChanged,
 		shouldRebuild:
 			projectionChanged ||
+			(groupingChanged &&
+				(nextState.mode === 'arc' ||
+					nextState.mode === 'hierarchical-edge-bundling')) ||
 			stateDiffersFromBaseline(
 				nextState,
 				baseline,
@@ -273,6 +284,7 @@ export function analyzeWorkspaceStateChanges(
 			flowDirectionChanged ||
 			arcDirectionChanged ||
 			nodeSortChanged ||
+			groupingChanged ||
 			layoutRevisionChanged ||
 			chartSourceChanged,
 	};
@@ -347,6 +359,7 @@ export function createWorkspaceRenderBaseline(
 		arcLabelAngle: state.arcLabelAngle,
 		nodeSort: state.nodeSort,
 		nodeSortDirection: state.nodeSortDirection,
+		grouping: state.grouping,
 		manualLayout: state.manualLayout,
 		layoutRevision: state.layoutRevision,
 		defaultNodeStyle: state.defaultNodeStyle,

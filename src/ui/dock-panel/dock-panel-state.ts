@@ -1,6 +1,6 @@
 import type { App } from 'obsidian';
 import type {
-	ChartGroup,
+	ChartGroupDefinition,
 	DockTemplateNode,
 	KnowledgeNode,
 } from '../../core/types';
@@ -89,15 +89,13 @@ export function buildTargetFolderOptions(app: App): SuggestionOption[] {
 	];
 }
 
-export function buildGroupOptions(groups: ChartGroup[]) {
+export function buildGroupOptions(groups: ChartGroupDefinition[]) {
 	return [
 		{ value: '', label: 'No group' },
-		...groups
-			.filter((group) => group.mode === 'manual')
-			.map((group) => ({
-				value: group.id,
-				label: group.name,
-			})),
+		...groups.map((group) => ({
+			value: group.id,
+			label: group.name,
+		})),
 	];
 }
 

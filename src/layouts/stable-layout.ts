@@ -1,6 +1,7 @@
 import type {
 	ArcDirection,
 	ArcLabelAngle,
+	ChartGroupDefinition,
 	FlowDirection,
 	FlowEdgeStyle,
 	FlowRelationRule,
@@ -22,11 +23,13 @@ import {
 import { ForceAtlasLayout, type GraphForceSettings } from './force-layout';
 import { placeNewFlowNodes } from './flow-insertion';
 import { HierarchicalEdgeBundlingLayout } from './hierarchical-edge-bundling-layout';
+import type { LayoutGroupGeometry } from './group-geometry';
 
 export interface LayoutSnapshot {
 	positions: Map<string, GraphPosition>;
 	edgeIds: Set<string>;
 	orthogonalRoutes: OrthogonalRouteMap;
+	groupGeometries: LayoutGroupGeometry[];
 	flowRelationConflictCount?: number;
 }
 
@@ -55,6 +58,8 @@ export interface StableLayoutOptions {
 	arcLabelAngle: ArcLabelAngle;
 	nodeSort: LayoutNodeSort;
 	nodeSortDirection: LayoutSortDirection;
+	groups?: readonly ChartGroupDefinition[];
+	groupByNode?: ReadonlyMap<string, string>;
 }
 
 interface StableLayoutContext {
@@ -83,6 +88,7 @@ export function createLayoutSnapshot(): LayoutSnapshot {
 		positions: new Map(),
 		edgeIds: new Set(),
 		orthogonalRoutes: createOrthogonalRouteMap(),
+		groupGeometries: [],
 		flowRelationConflictCount: 0,
 	};
 }
@@ -117,6 +123,7 @@ export async function applyStableLayout(
 		currentEdgeIds: getLogicalEdgeIds(graph),
 	};
 
+	snapshot.groupGeometries = [];
 	await LAYOUT_STRATEGIES[options.mode](context);
 	snapshotRuntimePositions(graph, snapshot.positions);
 }
@@ -165,13 +172,17 @@ async function applyArcLayout({
 	currentEdgeIds,
 	options,
 }: StableLayoutContext): Promise<void> {
-	await new ArcLayout(
+	const layout = new ArcLayout(
 		options.arcSpacing,
 		options.arcDirection,
 		options.nodeSort,
 		options.nodeSortDirection,
 		options.arcLabelAngle,
-	).apply(graph);
+		options.groups,
+		options.groupByNode,
+	);
+	await layout.apply(graph);
+	snapshot.groupGeometries = layout.getGroupGeometries();
 	snapshot.edgeIds = currentEdgeIds;
 	snapshot.orthogonalRoutes = createOrthogonalRouteMap();
 }
@@ -182,11 +193,15 @@ async function applyHierarchicalEdgeBundlingLayout({
 	currentEdgeIds,
 	options,
 }: StableLayoutContext): Promise<void> {
-	await new HierarchicalEdgeBundlingLayout(
+	const layout = new HierarchicalEdgeBundlingLayout(
 		1,
 		options.nodeSort,
 		options.nodeSortDirection,
-	).apply(graph);
+		options.groups,
+		options.groupByNode,
+	);
+	await layout.apply(graph);
+	snapshot.groupGeometries = layout.getGroupGeometries();
 	snapshot.edgeIds = currentEdgeIds;
 	snapshot.orthogonalRoutes = createOrthogonalRouteMap();
 }

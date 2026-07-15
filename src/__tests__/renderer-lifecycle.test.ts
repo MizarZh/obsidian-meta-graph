@@ -16,6 +16,7 @@ vi.mock('../graph/renderers/renderer-adapter', () => ({
 		rendererKind: 'sigma',
 		usesSigmaForceSimulation: false,
 		supportsFreeNodeDrag: false,
+		supportsGroups: false,
 		supportsManualGroups: false,
 	})),
 	getRendererKind: vi.fn(() => 'sigma'),
@@ -105,6 +106,7 @@ function createLayoutSnapshot(): LayoutSnapshot {
 		positions: new Map(),
 		edgeIds: new Set(),
 		orthogonalRoutes: new Map(),
+		groupGeometries: [],
 	};
 }
 
@@ -115,6 +117,7 @@ describe('WorkspaceRendererLifecycle', () => {
 			rendererKind: 'sigma',
 			usesSigmaForceSimulation: false,
 			supportsFreeNodeDrag: false,
+			supportsGroups: false,
 			supportsManualGroups: false,
 		});
 		vi.mocked(createWorkspaceRuntimeGraph).mockReturnValue({
@@ -160,6 +163,7 @@ describe('WorkspaceRendererLifecycle', () => {
 			rendererKind: 'sigma',
 			usesSigmaForceSimulation: true,
 			supportsFreeNodeDrag: false,
+			supportsGroups: false,
 			supportsManualGroups: false,
 		});
 		const state = { ...createState(), enableForceLayout: true };

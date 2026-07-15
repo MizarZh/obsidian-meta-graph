@@ -32,7 +32,7 @@
 
 	const groupsDisabled = $derived(
 		workspaceState.mode !== 'cube' &&
-			!getModeCapabilities(workspaceState.mode).supportsManualGroups,
+			!getModeCapabilities(workspaceState.mode).supportsGroups,
 	);
 	const flowRelationFieldSuggestions = $derived([
 		...new Set(workspaceState.connectionFields),
@@ -54,13 +54,20 @@
 >
 	{#if settingsPanel === 'groups'}
 		<GroupPanel
+			{app}
+			grouping={workspaceState.grouping}
 			manualLayout={workspaceState.manualLayout}
+			nodes={workspaceState.projection?.nodes ?? []}
+			folders={workspaceState.availableFolders}
 			locked={workspaceState.mode === 'cube'}
 			disabled={groupsDisabled}
+			geometryEditable={workspaceState.mode === 'free'}
 			onAddGroup={() => controller.addGroup()}
 			onUpdateGroup={(groupId, patch) =>
 				controller.updateGroup(groupId, patch)}
 			onDeleteGroup={(groupId) => controller.deleteGroup(groupId)}
+			onReorderGroup={(groupId, direction) =>
+				controller.reorderGroup(groupId, direction)}
 		/>
 	{:else}
 		<FilterPanel

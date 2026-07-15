@@ -21,6 +21,7 @@ vi.mock('../graph/renderers/renderer-adapter', () => ({
 		rendererKind: 'sigma',
 		usesSigmaForceSimulation: mode === 'graph',
 		supportsFreeNodeDrag: mode === 'free',
+		supportsGroups: mode === 'free',
 		supportsManualGroups: mode === 'free',
 	})),
 }));
@@ -83,6 +84,7 @@ function createOptions(
 			positions: new Map(),
 			edgeIds: new Set(),
 			orthogonalRoutes: new Map(),
+			groupGeometries: [],
 		}),
 		getOrCreateForceLayoutSimulation: () =>
 			({ drag: vi.fn() }) as unknown as D3ForceSimulation,

@@ -4,7 +4,9 @@ import {
 	type HierarchyNode,
 	type HierarchyPointNode,
 } from 'd3-hierarchy';
+import type { ChartGroupDefinition } from '../core/types';
 import type { RuntimeGraph } from '../graph/model/graphology-adapter';
+import type { RadialGroupGeometry } from './group-geometry';
 import type { LayoutEngine } from './layout-engine';
 import {
 	compareLayoutNodeIds,
@@ -17,6 +19,9 @@ interface BundleNode {
 	name: string;
 	label?: string;
 	path?: string;
+	kind?: 'root' | 'group' | 'ungrouped' | 'folder' | 'note';
+	groupId?: string;
+	groupOrder?: number;
 	children?: BundleNode[];
 }
 
@@ -28,10 +33,14 @@ interface Point {
 type BundlePoint = HierarchyPointNode<BundleNode>;
 
 export class HierarchicalEdgeBundlingLayout implements LayoutEngine {
+	private groupGeometries: RadialGroupGeometry[] = [];
+
 	constructor(
 		private readonly spacing = 1,
 		private readonly nodeSort: LayoutNodeSort = 'path',
 		private readonly nodeSortDirection: LayoutSortDirection = 'asc',
+		private readonly groups: readonly ChartGroupDefinition[] = [],
+		private readonly groupByNode: ReadonlyMap<string, string> = new Map(),
 	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
@@ -40,15 +49,18 @@ export class HierarchicalEdgeBundlingLayout implements LayoutEngine {
 			this.nodeSort,
 			this.nodeSortDirection,
 		);
+		const radius = calculateRadius(graph, this.spacing);
 		const root = cluster<BundleNode>()
-			.size([Math.PI * 2, calculateRadius(graph, this.spacing)])
+			.size([calculateAngularRange(graph), radius])
 			.separation((left, right) =>
 				left.parent === right.parent ? 1 : 1.6,
 			)(
-				hierarchy(createHierarchy(graph)).sort(
-					(first, second) => compareBundleNodes(first, second, compareLeaves),
-				),
-			);
+			hierarchy(
+				createHierarchy(graph, this.groups, this.groupByNode),
+			).sort((first, second) =>
+				compareBundleNodes(first, second, compareLeaves),
+			),
+		);
 		const leaves = root.leaves().filter((leaf) => leaf.data.id);
 		const leafById = new Map<string, BundlePoint>();
 		for (const leaf of leaves) {
@@ -70,8 +82,17 @@ export class HierarchicalEdgeBundlingLayout implements LayoutEngine {
 				labelDirection: labelPlacement.direction,
 			});
 		}
+		this.groupGeometries = createRadialGroupGeometries(
+			root,
+			radius,
+			this.groups,
+		);
 
 		applyBundledEdges(graph, leafById);
+	}
+
+	getGroupGeometries(): RadialGroupGeometry[] {
+		return this.groupGeometries.map((geometry) => ({ ...geometry }));
 	}
 }
 
@@ -80,6 +101,12 @@ function compareBundleNodes(
 	second: HierarchyNode<BundleNode>,
 	compareLeaves: (left: string, right: string) => number,
 ): number {
+	if (
+		(first.data.kind === 'group' || first.data.kind === 'ungrouped') &&
+		(second.data.kind === 'group' || second.data.kind === 'ungrouped')
+	) {
+		return (first.data.groupOrder ?? 0) - (second.data.groupOrder ?? 0);
+	}
 	if (first.data.id && second.data.id) {
 		return compareLeaves(first.data.id, second.data.id);
 	}
@@ -171,9 +198,13 @@ function applyBundledEdges(
 	}
 }
 
-function createHierarchy(graph: RuntimeGraph): BundleNode {
-	const root: BundleNode = { name: 'Notes', children: [] };
-	for (const nodeId of graph
+function createHierarchy(
+	graph: RuntimeGraph,
+	groups: readonly ChartGroupDefinition[] = [],
+	groupByNode: ReadonlyMap<string, string> = new Map(),
+): BundleNode {
+	const root: BundleNode = { name: 'Notes', kind: 'root', children: [] };
+	const nodeIds = graph
 		.nodes()
 		.filter((id) => !graph.getNodeAttribute(id, 'isBend'))
 		.sort((left, right) => {
@@ -182,13 +213,55 @@ function createHierarchy(graph: RuntimeGraph): BundleNode {
 			return leftPath.localeCompare(rightPath, undefined, {
 				sensitivity: 'base',
 			});
-		})) {
+		});
+	const groupById = new Map(
+		groups.map((group) => [group.id, group] as const),
+	);
+	const assignedGroupIds = new Set(
+		nodeIds
+			.map((nodeId) => groupByNode.get(nodeId))
+			.filter((groupId): groupId is string =>
+				Boolean(groupId && groupById.has(groupId)),
+			),
+	);
+	const useGroupHierarchy = assignedGroupIds.size > 0;
+	const groupParents = new Map<string, BundleNode>();
+	if (useGroupHierarchy) {
+		for (const [index, group] of groups.entries()) {
+			if (!assignedGroupIds.has(group.id)) {
+				continue;
+			}
+			const parent: BundleNode = {
+				name: group.name,
+				kind: 'group',
+				groupId: group.id,
+				groupOrder: index,
+				children: [],
+			};
+			root.children?.push(parent);
+			groupParents.set(group.id, parent);
+		}
+	}
+	const ungroupedParent: BundleNode | undefined = useGroupHierarchy
+		? {
+				name: 'Ungrouped',
+				kind: 'ungrouped',
+				groupOrder: groups.length,
+				children: [],
+			}
+		: undefined;
+
+	for (const nodeId of nodeIds) {
 		const attributes = graph.getNodeAttributes(nodeId);
 		const parts = getHierarchySegments(
 			attributes.path || nodeId,
 			attributes.label,
 		);
-		let parent = root;
+		const assignedGroupId = groupByNode.get(nodeId);
+		let parent =
+			(assignedGroupId ? groupParents.get(assignedGroupId) : undefined) ??
+			ungroupedParent ??
+			root;
 		for (const segment of parts.slice(0, -1)) {
 			parent = getOrCreateChild(parent, segment);
 		}
@@ -198,7 +271,11 @@ function createHierarchy(graph: RuntimeGraph): BundleNode {
 			name: parts.at(-1) ?? attributes.label,
 			label: attributes.label,
 			path: attributes.path,
+			kind: 'note',
 		});
+	}
+	if (ungroupedParent?.children?.length) {
+		root.children?.push(ungroupedParent);
 	}
 	return root;
 }
@@ -221,9 +298,49 @@ function getOrCreateChild(parent: BundleNode, name: string): BundleNode {
 	if (existing) {
 		return existing;
 	}
-	const child: BundleNode = { name, children: [] };
+	const child: BundleNode = { name, kind: 'folder', children: [] };
 	parent.children.push(child);
 	return child;
+}
+
+function createRadialGroupGeometries(
+	root: BundlePoint,
+	radius: number,
+	groups: readonly ChartGroupDefinition[],
+): RadialGroupGeometry[] {
+	const visibleLeafCount = root
+		.leaves()
+		.filter((leaf) => leaf.data.id).length;
+	const padding = (Math.PI / Math.max(visibleLeafCount, 1)) * 0.55;
+	const pointByGroupId = new Map(
+		(root.children ?? [])
+			.filter(
+				(child) => child.data.kind === 'group' && child.data.groupId,
+			)
+			.map((child) => [child.data.groupId as string, child] as const),
+	);
+	return groups.flatMap((group) => {
+		const point = pointByGroupId.get(group.id);
+		const angles = point
+			?.leaves()
+			.filter((leaf) => leaf.data.id)
+			.map((leaf) => leaf.x)
+			.sort((left, right) => left - right);
+		if (!angles?.length) {
+			return [];
+		}
+		return [
+			{
+				kind: 'radial-sector' as const,
+				groupId: group.id,
+				name: group.name,
+				color: group.color,
+				startAngle: (angles[0] ?? 0) - padding,
+				endAngle: (angles.at(-1) ?? 0) + padding,
+				radius,
+			},
+		];
+	});
 }
 
 function calculateRadius(graph: RuntimeGraph, spacing: number): number {
@@ -235,6 +352,17 @@ function calculateRadius(graph: RuntimeGraph, spacing: number): number {
 			.length,
 	);
 	return Math.max(180, nodeCount * 18) * spacing;
+}
+
+function calculateAngularRange(graph: RuntimeGraph): number {
+	const nodeCount = Math.max(
+		1,
+		graph
+			.nodes()
+			.filter((nodeId) => !graph.getNodeAttribute(nodeId, 'isBend'))
+			.length,
+	);
+	return Math.PI * 2 * ((nodeCount - 1) / nodeCount);
 }
 
 function toCartesian(angle: number, radius: number): Point {

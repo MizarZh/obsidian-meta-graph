@@ -1,5 +1,6 @@
 import type {
 	ChartGroup,
+	ChartGroupDefinition,
 	MetaGraphChart,
 	NodeId,
 	WorkspaceState,
@@ -62,33 +63,44 @@ export function setManualNodePositionInState(
 export function setNodeGroupInState(
 	state: WorkspaceState,
 	nodeId: NodeId,
-	groupId?: string,
+	groupId?: string | null,
 ): WorkspaceState {
 	const activeChart = getActiveChart(state);
-	if (activeChart.type !== 'free' && activeChart.type !== 'cube') {
+	if (
+		activeChart.type !== 'free' &&
+		activeChart.type !== 'cube' &&
+		activeChart.type !== 'arc' &&
+		activeChart.type !== 'hierarchical-edge-bundling'
+	) {
 		return state;
 	}
 	if (activeChart.type === 'cube' && !groupId) {
 		return state;
 	}
+	if (activeChart.type !== 'free' && activeChart.type !== 'cube') {
+		const grouping = assignGroupingOverrides(
+			activeChart.grouping,
+			[nodeId],
+			groupId,
+		);
+		return grouping === activeChart.grouping
+			? state
+			: updateActiveChartState(state, { grouping });
+	}
 	const layout = moveManualNodesToGroup(
 		activeChart.layout,
 		[nodeId],
-		groupId || undefined,
+		groupId ?? undefined,
 	);
-	return layout === activeChart.layout
+	const grouping =
+		activeChart.type === 'cube'
+			? activeChart.grouping
+			: assignGroupingOverrides(activeChart.grouping, [nodeId], groupId);
+	return layout === activeChart.layout && grouping === activeChart.grouping
 		? state
 		: updateActiveChartState(state, {
 				layout,
-				...(activeChart.type === 'cube'
-					? {}
-					: {
-							grouping: setGroupingOverrides(
-								activeChart.grouping,
-								[nodeId],
-								groupId ?? null,
-							),
-						}),
+				...(activeChart.type === 'cube' ? {} : { grouping }),
 			});
 }
 
@@ -98,7 +110,15 @@ export function addGroupInState(state: WorkspaceState): WorkspaceState {
 		return state;
 	}
 	const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
-	const group = createUniqueDefaultGroup(manual.groups);
+	const group = createUniqueDefaultGroup([
+		...manual.groups,
+		...activeChart.grouping.groups
+			.filter(
+				(definition) =>
+					!manual.groups.some((group) => group.id === definition.id),
+			)
+			.map(toDefaultManualGroup),
+	]);
 	return updateActiveChartState(state, {
 		grouping: {
 			...activeChart.grouping,
@@ -125,11 +145,14 @@ export function updateGroupInState(
 		group.id === groupId ? normalizeGroupPatch(group, patch) : group,
 	);
 	const updatedGroup = groups.find((group) => group.id === groupId);
-	const groupingGroups = activeChart.grouping.groups.map((group) =>
-		group.id === groupId && updatedGroup
+	const groupingGroups = activeChart.grouping.groups.map((group) => {
+		if (group.id !== groupId) {
+			return group;
+		}
+		return updatedGroup
 			? toGroupDefinition(updatedGroup)
-			: group,
-	);
+			: normalizeGroupDefinitionPatch(group, patch);
+	});
 	return updateActiveChartState(state, {
 		grouping: {
 			...activeChart.grouping,
@@ -211,6 +234,19 @@ export function moveCuratedFilesToGroupInState(
 		return state;
 	}
 	const activeChart = getActiveChart(state);
+	if (
+		activeChart.type === 'arc' ||
+		activeChart.type === 'hierarchical-edge-bundling'
+	) {
+		const grouping = assignGroupingOverrides(
+			activeChart.grouping,
+			paths,
+			groupId ?? null,
+		);
+		return grouping === activeChart.grouping
+			? state
+			: updateActiveChartState(state, { grouping });
+	}
 	const layout = moveManualNodesToGroup(activeChart.layout, paths, groupId);
 	return layout === activeChart.layout
 		? state
@@ -230,6 +266,56 @@ export function moveCuratedFilesToGroupInState(
 				},
 				true,
 			);
+}
+
+export function reorderGroupInState(
+	state: WorkspaceState,
+	groupId: string,
+	direction: -1 | 1,
+): WorkspaceState {
+	const activeChart = getActiveChart(state);
+	if (activeChart.type === 'cube') {
+		return state;
+	}
+	const index = activeChart.grouping.groups.findIndex(
+		(group) => group.id === groupId,
+	);
+	const targetIndex = index + direction;
+	if (
+		index < 0 ||
+		targetIndex < 0 ||
+		targetIndex >= activeChart.grouping.groups.length
+	) {
+		return state;
+	}
+	const groups = [...activeChart.grouping.groups];
+	const [group] = groups.splice(index, 1);
+	if (!group) {
+		return state;
+	}
+	groups.splice(targetIndex, 0, group);
+	const groupOrder = new Map(
+		groups.map((item, groupIndex) => [item.id, groupIndex] as const),
+	);
+	const manual = activeChart.layout.manual;
+	return updateActiveChartState(state, {
+		grouping: { ...activeChart.grouping, groups },
+		...(manual
+			? {
+					layout: {
+						...activeChart.layout,
+						manual: {
+							...manual,
+							groups: [...manual.groups].sort(
+								(left, right) =>
+									(groupOrder.get(left.id) ?? groups.length) -
+									(groupOrder.get(right.id) ?? groups.length),
+							),
+						},
+					},
+				}
+			: {}),
+	});
 }
 
 export function placeNodeInDefaultGroupInState(
@@ -317,6 +403,65 @@ function setGroupingOverrides(
 		overrides[nodeId] = groupId;
 	}
 	return { ...grouping, overrides };
+}
+
+function assignGroupingOverrides(
+	grouping: WorkspaceState['grouping'],
+	nodeIds: readonly NodeId[],
+	groupId: string | null | undefined,
+): WorkspaceState['grouping'] {
+	if (
+		typeof groupId === 'string' &&
+		!grouping.groups.some((group) => group.id === groupId)
+	) {
+		return grouping;
+	}
+	const overrides = { ...grouping.overrides };
+	let changed = false;
+	for (const nodeId of nodeIds) {
+		if (groupId === undefined) {
+			if (Object.prototype.hasOwnProperty.call(overrides, nodeId)) {
+				delete overrides[nodeId];
+				changed = true;
+			}
+		} else if (overrides[nodeId] !== groupId) {
+			overrides[nodeId] = groupId;
+			changed = true;
+		}
+	}
+	return changed ? { ...grouping, overrides } : grouping;
+}
+
+function normalizeGroupDefinitionPatch(
+	group: ChartGroupDefinition,
+	patch: Partial<ChartGroup>,
+): ChartGroupDefinition {
+	return {
+		...group,
+		...(typeof patch.name === 'string' && patch.name.trim()
+			? { name: patch.name.trim() }
+			: {}),
+		...(typeof patch.color === 'string' && patch.color.trim()
+			? { color: patch.color.trim() }
+			: {}),
+		...(patch.mode === 'manual' || patch.mode === 'rule'
+			? { mode: patch.mode }
+			: {}),
+		...(typeof patch.padding === 'number' && Number.isFinite(patch.padding)
+			? { padding: Math.max(0, patch.padding) }
+			: {}),
+		...(patch.rule !== undefined ? { rule: patch.rule } : {}),
+	};
+}
+
+function toDefaultManualGroup(group: ChartGroupDefinition): ChartGroup {
+	return {
+		...group,
+		x: -1.6,
+		y: -1.1,
+		width: 3.2,
+		height: 2.2,
+	};
 }
 
 function getActiveChart(state: WorkspaceState): MetaGraphChart {

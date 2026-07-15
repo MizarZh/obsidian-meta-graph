@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { CuratedWorkspaceConfig, WorkspaceState } from '../core/types';
 import {
 	addCuratedFilesToState,
+	pruneMissingCuratedFiles,
 	removeCuratedFilesFromState,
 	updateCuratedFilePathInState,
 } from '../workspace/state/curated-state';
@@ -14,6 +15,18 @@ describe('workspace curated state', () => {
 			{ files: [{ path: 'Old.md', note: 'active note' }] },
 			{ files: [{ path: 'Old.md', groupId: 'group-a' }] },
 		);
+		state.charts[0]!.grouping = {
+			...state.charts[0]!.grouping,
+			overrides: { 'Old.md': 'group-a' },
+		};
+		state.charts[1]!.grouping = {
+			...state.charts[1]!.grouping,
+			overrides: { 'Old.md': null },
+		};
+		state.grouping = {
+			...state.grouping,
+			overrides: { 'Old.md': 'group-a' },
+		};
 
 		const result = updateCuratedFilePathInState(state, 'Old.md', 'New.md');
 
@@ -27,6 +40,36 @@ describe('workspace curated state', () => {
 		expect(result.state.curated.files).toEqual([
 			{ path: 'New.md', note: 'active note' },
 		]);
+		expect(result.state.charts[0]?.grouping.overrides).toEqual({
+			'New.md': 'group-a',
+		});
+		expect(result.state.charts[1]?.grouping.overrides).toEqual({
+			'New.md': null,
+		});
+		expect(result.state.grouping.overrides).toEqual({
+			'New.md': 'group-a',
+		});
+	});
+
+	it('prunes group overrides for missing notes without curated entries', () => {
+		const state = createWorkspaceState(100);
+		const chart = state.charts[0];
+		if (!chart) {
+			throw new Error('Expected default chart.');
+		}
+		chart.grouping.overrides = {
+			'Existing.md': null,
+			'Missing.md': null,
+		};
+
+		const charts = pruneMissingCuratedFiles(
+			state.charts,
+			new Set(['Existing.md']),
+		);
+
+		expect(charts[0]?.grouping.overrides).toEqual({
+			'Existing.md': null,
+		});
 	});
 
 	it('keeps state stable when no curated path changes', () => {

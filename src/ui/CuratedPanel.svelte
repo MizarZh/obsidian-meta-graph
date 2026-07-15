@@ -1,11 +1,13 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
 	import type {
-		ChartGroup,
+		ChartGroupDefinition,
+		ChartGroupingConfig,
 		CuratedWorkspaceConfig,
 		KnowledgeNode,
 		ManualLayoutConfig,
 	} from '../core/types';
+	import { resolveChartGroupOwnership } from '../query/group-ownership';
 	import { nodeMatchesFilterGroup } from '../query/filters';
 	import CuratedFileList from './curated/CuratedFileList.svelte';
 	import {
@@ -26,6 +28,7 @@
 		nodes,
 		groups,
 		manualLayout,
+		grouping,
 		groupRequired = false,
 		folders,
 		nodeColors,
@@ -54,8 +57,9 @@
 		app: App;
 		curated: CuratedWorkspaceConfig;
 		nodes: KnowledgeNode[];
-		groups: ChartGroup[];
+		groups: ChartGroupDefinition[];
 		manualLayout: ManualLayoutConfig;
+		grouping: ChartGroupingConfig;
 		groupRequired?: boolean;
 		folders: string[];
 		nodeColors: Map<string, string>;
@@ -98,6 +102,16 @@
 	const groupsById = $derived(
 		new Map(groups.map((group) => [group.id, group])),
 	);
+	const resolvedGroupIds = $derived.by(() => {
+		if (groupRequired) {
+			return undefined;
+		}
+		return new Map(
+			[...resolveChartGroupOwnership(nodes, grouping).byNode].map(
+				([nodeId, entry]) => [nodeId, entry.groupId] as const,
+			),
+		);
+	});
 	const selectedPaths = $derived(
 		new Set(curated.files.map((file) => file.path)),
 	);
@@ -112,6 +126,7 @@
 			groupsById,
 			nodeColors,
 			selected,
+			resolvedGroupIds,
 		),
 	);
 	const selectedTitleCounts = $derived(countTitles(selectedFiles));
