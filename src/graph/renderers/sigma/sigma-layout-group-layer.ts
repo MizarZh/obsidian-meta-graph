@@ -14,6 +14,7 @@ import type {
 import { scaleLayoutGroupPadding } from '../../../layouts/group-geometry';
 
 const LAYER_ID = 'layout-groups';
+const GROUP_MEMBER_HALO_GAP = 3;
 
 interface Point {
 	x: number;
@@ -334,6 +335,9 @@ export class LayoutGroupLayer {
 		nodeIds: readonly string[],
 	): GroupMemberViewportNode[] {
 		const graph = this.sigma.getGraph();
+		const sizeScaler = this.sigma as unknown as {
+			scaleSize(size?: number): number;
+		};
 		return nodeIds.flatMap((nodeId) => {
 			if (!graph.hasNode(nodeId)) {
 				return [];
@@ -342,10 +346,13 @@ export class LayoutGroupLayer {
 			if (attributes.hidden || attributes.isBend) {
 				return [];
 			}
+			const scaledRadius = sizeScaler.scaleSize(attributes.size);
 			return [
 				{
 					position: this.sigma.graphToViewport(attributes),
-					radius: Math.max(attributes.size, 3),
+					radius: Number.isFinite(scaledRadius)
+						? Math.max(scaledRadius, 0)
+						: Math.max(attributes.size, 0),
 				},
 			];
 		});
@@ -364,7 +371,7 @@ export class LayoutGroupLayer {
 			this.context.arc(
 				node.position.x,
 				node.position.y,
-				node.radius + 3,
+				node.radius + GROUP_MEMBER_HALO_GAP,
 				0,
 				Math.PI * 2,
 			);
