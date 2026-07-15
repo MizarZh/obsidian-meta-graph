@@ -32,6 +32,7 @@ import {
 	normalizeCuratedWorkspace,
 } from './curated';
 import { hydrateCuratedManualLayout } from './curated-layout';
+import { createDefaultChartGrouping, normalizeChartGrouping } from './grouping';
 import { createDefaultLayout, normalizeLayout } from './layout';
 import { createDefaultQuery, normalizeQuery } from './query';
 import {
@@ -70,6 +71,7 @@ export function createDefaultChart(
 		source: 'query',
 		query: createDefaultQuery(maxNodes, type),
 		curated: createDefaultCuratedWorkspace(),
+		grouping: createDefaultChartGrouping(),
 		layout: createDefaultLayout(type),
 		display: {
 			fadeDistance,
@@ -145,6 +147,11 @@ export function normalizeChart(
 	);
 	const layout = normalizeLayout(record.layout, fallback.layout, type);
 	const hydrated = hydrateCuratedManualLayout(source, curated, layout);
+	const grouping = normalizeChartGrouping(
+		record.grouping,
+		type === 'cube' ? undefined : hydrated.layout.manual,
+		fallback.grouping,
+	);
 	return {
 		id,
 		name:
@@ -155,6 +162,7 @@ export function normalizeChart(
 		source,
 		query: normalizeQuery(record.query, fallback.query, maxNodes),
 		curated: hydrated.curated,
+		grouping,
 		layout: hydrated.layout,
 		display: {
 			fadeDistance: readFiniteNumber(

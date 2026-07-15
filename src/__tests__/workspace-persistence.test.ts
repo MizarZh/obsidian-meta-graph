@@ -384,6 +384,65 @@ describe('workspace persistence', () => {
 		});
 	});
 
+	it('migrates legacy manual groups into chart grouping', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		const chart = document.charts[0];
+		if (!chart) {
+			throw new Error('Expected default chart.');
+		}
+		const legacyChart: Record<string, unknown> = { ...chart };
+		delete legacyChart.grouping;
+		const restored = normalizeMetaGraphDocument(
+			{
+				...document,
+				charts: [
+					{
+						...legacyChart,
+						type: 'free',
+						layout: {
+							engine: 'free',
+							spacing: 1,
+							manual: {
+								nodes: {
+									'A.md': { x: 1, y: 2, groupId: 'group-a' },
+								},
+								groups: [
+									{
+										id: 'group-a',
+										name: 'Group A',
+										x: 0,
+										y: 0,
+										width: 3.2,
+										height: 2.2,
+										color: '#7c6ff0',
+										mode: 'manual',
+										padding: 0.32,
+									},
+								],
+							},
+						},
+					},
+					...document.charts.slice(1),
+				],
+			},
+			300,
+			1.5,
+		);
+
+		expect(restored.charts[0]?.grouping).toEqual({
+			groups: [
+				{
+					id: 'group-a',
+					name: 'Group A',
+					color: '#7c6ff0',
+					mode: 'manual',
+					padding: 0.32,
+				},
+			],
+			overrides: { 'A.md': 'group-a' },
+		});
+	});
+
 	it('stores curated manual placements on curated files with rounded coordinates', () => {
 		const state = createWorkspaceState(200, 2);
 		const graphChart = state.charts[0];

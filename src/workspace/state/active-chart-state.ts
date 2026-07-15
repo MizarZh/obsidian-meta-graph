@@ -56,6 +56,7 @@ type ActiveChartStateFields = Pick<
 	| 'flowLayerSpacing'
 	| 'flowLaneSpacing'
 	| 'arcSpacing'
+	| 'grouping'
 	| 'manualLayout'
 	| 'query'
 	| 'curated'
@@ -201,6 +202,7 @@ function createActiveChartStateFields(
 				: fallback.flowLaneSpacing,
 		arcSpacing:
 			chart.type === 'arc' ? chart.layout.spacing : fallback.arcSpacing,
+		grouping: cloneSerializable(chart.grouping),
 		manualLayout: cloneSerializable(
 			chart.layout.manual ?? { nodes: {}, groups: [] },
 		),

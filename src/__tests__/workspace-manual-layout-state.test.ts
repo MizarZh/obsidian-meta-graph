@@ -5,6 +5,7 @@ import {
 	moveCuratedFilesToGroupInState,
 	moveGroupInState,
 	setManualNodePositionInState,
+	updateGroupInState,
 } from '../workspace/state/manual-layout-state';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
 
@@ -55,6 +56,32 @@ describe('workspace manual layout state', () => {
 		expect(nextState.manualLayout.nodes['B.md']).toEqual({ x: 10, y: 20 });
 	});
 
+	it('keeps legacy manual groups synchronized with chart grouping', () => {
+		let state = addGroupInState(createWorkspaceState(100));
+		const group = state.manualLayout.groups[0];
+		if (!group) {
+			throw new Error('Group is missing.');
+		}
+		state = updateGroupInState(state, group.id, { name: 'Research' });
+		state = setManualNodePositionInState(
+			state,
+			'A.md',
+			{ x: 1, y: 2 },
+			group.id,
+		);
+
+		expect(state.grouping.groups).toEqual([
+			{
+				id: group.id,
+				name: 'Research',
+				color: group.color,
+				mode: 'manual',
+				padding: group.padding,
+			},
+		]);
+		expect(state.grouping.overrides).toEqual({ 'A.md': group.id });
+	});
+
 	it('deletes a group and preserves node positions without group ids', () => {
 		let state = addGroupInState(createWorkspaceState(100));
 		const group = state.manualLayout.groups[0];
@@ -72,6 +99,7 @@ describe('workspace manual layout state', () => {
 
 		expect(nextState.manualLayout.groups).toEqual([]);
 		expect(nextState.manualLayout.nodes['A.md']).toEqual({ x: 1, y: 2 });
+		expect(nextState.grouping).toEqual({ groups: [], overrides: {} });
 	});
 
 	it('keeps empty group moves referentially stable', () => {

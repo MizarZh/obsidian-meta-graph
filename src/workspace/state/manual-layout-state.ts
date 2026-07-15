@@ -12,6 +12,7 @@ import {
 	normalizeGroupPatch,
 	readGroupPlacementBounds,
 } from './manual-layout';
+import { toGroupDefinition } from '../meta-graph/grouping';
 import { updateActiveChartState } from './state-updaters';
 
 type Position = { x: number; y: number };
@@ -36,6 +37,15 @@ export function setManualNodePositionInState(
 		return state;
 	}
 	return updateActiveChartState(state, {
+		...(activeChart.type === 'cube'
+			? {}
+			: {
+					grouping: setGroupingOverrides(
+						activeChart.grouping,
+						[nodeId],
+						groupId ?? (previous?.groupId ? null : undefined),
+					),
+				}),
 		layout: {
 			...activeChart.layout,
 			manual: {
@@ -68,7 +78,18 @@ export function setNodeGroupInState(
 	);
 	return layout === activeChart.layout
 		? state
-		: updateActiveChartState(state, { layout });
+		: updateActiveChartState(state, {
+				layout,
+				...(activeChart.type === 'cube'
+					? {}
+					: {
+							grouping: setGroupingOverrides(
+								activeChart.grouping,
+								[nodeId],
+								groupId ?? null,
+							),
+						}),
+			});
 }
 
 export function addGroupInState(state: WorkspaceState): WorkspaceState {
@@ -79,6 +100,10 @@ export function addGroupInState(state: WorkspaceState): WorkspaceState {
 	const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
 	const group = createUniqueDefaultGroup(manual.groups);
 	return updateActiveChartState(state, {
+		grouping: {
+			...activeChart.grouping,
+			groups: [...activeChart.grouping.groups, toGroupDefinition(group)],
+		},
 		layout: {
 			...activeChart.layout,
 			manual: {
@@ -99,7 +124,23 @@ export function updateGroupInState(
 	const groups = manual.groups.map((group) =>
 		group.id === groupId ? normalizeGroupPatch(group, patch) : group,
 	);
+	const updatedGroup = groups.find((group) => group.id === groupId);
+	const groupingGroups = activeChart.grouping.groups.map((group) =>
+		group.id === groupId && updatedGroup
+			? toGroupDefinition(updatedGroup)
+			: group,
+	);
 	return updateActiveChartState(state, {
+		grouping: {
+			...activeChart.grouping,
+			groups: activeChart.grouping.groups.some(
+				(group) => group.id === groupId,
+			)
+				? groupingGroups
+				: updatedGroup
+					? [...groupingGroups, toGroupDefinition(updatedGroup)]
+					: groupingGroups,
+		},
 		layout: {
 			...activeChart.layout,
 			manual: {
@@ -173,7 +214,22 @@ export function moveCuratedFilesToGroupInState(
 	const layout = moveManualNodesToGroup(activeChart.layout, paths, groupId);
 	return layout === activeChart.layout
 		? state
-		: updateActiveChartState(state, { layout }, true);
+		: updateActiveChartState(
+				state,
+				{
+					layout,
+					...(activeChart.type === 'cube'
+						? {}
+						: {
+								grouping: setGroupingOverrides(
+									activeChart.grouping,
+									paths,
+									groupId ?? null,
+								),
+							}),
+				},
+				true,
+			);
 }
 
 export function placeNodeInDefaultGroupInState(
@@ -227,6 +283,16 @@ export function deleteGroupInState(
 		]),
 	);
 	return updateActiveChartState(state, {
+		grouping: {
+			groups: activeChart.grouping.groups.filter(
+				(group) => group.id !== groupId,
+			),
+			overrides: Object.fromEntries(
+				Object.entries(activeChart.grouping.overrides).filter(
+					([, assignedGroupId]) => assignedGroupId !== groupId,
+				),
+			),
+		},
 		layout: {
 			...activeChart.layout,
 			manual: {
@@ -236,6 +302,21 @@ export function deleteGroupInState(
 			},
 		},
 	});
+}
+
+function setGroupingOverrides(
+	grouping: WorkspaceState['grouping'],
+	nodeIds: readonly NodeId[],
+	groupId: string | null | undefined,
+): WorkspaceState['grouping'] {
+	if (groupId === undefined) {
+		return grouping;
+	}
+	const overrides = { ...grouping.overrides };
+	for (const nodeId of nodeIds) {
+		overrides[nodeId] = groupId;
+	}
+	return { ...grouping, overrides };
 }
 
 function getActiveChart(state: WorkspaceState): MetaGraphChart {

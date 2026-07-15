@@ -102,23 +102,31 @@ export interface ChartLayoutConfig {
 
 export type ChartGroupMode = 'manual' | 'rule';
 
+export interface ChartGroupDefinition {
+	id: string;
+	name: string;
+	color: string;
+	mode: ChartGroupMode;
+	padding: number;
+	rule?: NodeFilterGroup;
+}
+
+export interface ChartGroupingConfig {
+	groups: ChartGroupDefinition[];
+	overrides: Record<NodeId, string | null>;
+}
+
 export interface NodePlacement {
 	x: number;
 	y: number;
 	groupId?: string;
 }
 
-export interface ChartGroup {
-	id: string;
-	name: string;
+export interface ChartGroup extends ChartGroupDefinition {
 	x: number;
 	y: number;
 	width: number;
 	height: number;
-	color: string;
-	mode: ChartGroupMode;
-	padding: number;
-	rule?: NodeFilterGroup;
 }
 
 export interface ManualLayoutConfig {
@@ -181,6 +189,7 @@ export interface MetaGraphChart {
 	source: ChartSource;
 	query: GraphQuery;
 	curated: CuratedWorkspaceConfig;
+	grouping: ChartGroupingConfig;
 	layout: ChartLayoutConfig;
 	display: ChartDisplayConfig;
 	style: ChartStyleConfig;
@@ -244,6 +253,7 @@ export interface WorkspaceState {
 	flowLayerSpacing: number;
 	flowLaneSpacing: number;
 	arcSpacing: number;
+	grouping: ChartGroupingConfig;
 	manualLayout: ManualLayoutConfig;
 	layoutRevision: number;
 	currentNoteId?: NodeId;
