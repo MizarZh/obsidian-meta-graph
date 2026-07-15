@@ -21,6 +21,7 @@
 		manualLayout = { nodes: {}, groups: [] },
 		activeConnectionField = '',
 		onOpenNote = () => {},
+		onPreviewNote = () => {},
 		onOpenMetadataLink = () => {},
 		onSetNodeGroup = () => {},
 		onConnectNode = () => {},
@@ -33,6 +34,7 @@
 		manualLayout?: ManualLayoutConfig;
 		activeConnectionField?: string;
 		onOpenNote?: (path: string) => void;
+		onPreviewNote?: (path: string) => void;
 		onOpenMetadataLink?: (linkText: string, sourcePath: string) => void;
 		onSetNodeGroup?: (path: string, groupId?: string) => void;
 		onConnectNode?: (
@@ -152,13 +154,21 @@
 	>
 		<div class="knowledge-workspace-inspector-header">
 			<strong>{node.title}</strong>
-			<ObsidianButton
-				class="knowledge-workspace-inspector-open"
-				icon="file-text"
-				ariaLabel={`Open ${node.title}`}
-				tooltip="Open note"
-				onClick={() => onOpenNote(node.path)}
-			/>
+			<div class="knowledge-workspace-inspector-header-actions">
+				<ObsidianButton
+					icon="eye"
+					ariaLabel={`Preview ${node.title}`}
+					tooltip="Preview"
+					onClick={() => onPreviewNote(node.path)}
+				/>
+				<ObsidianButton
+					class="knowledge-workspace-inspector-open"
+					icon="file-text"
+					ariaLabel={`Open ${node.title}`}
+					tooltip="Open"
+					onClick={() => onOpenNote(node.path)}
+				/>
+			</div>
 		</div>
 		<span>{node.path}</span>
 		{#if node.noteType}<span>Type: {node.noteType}</span>{/if}

@@ -88,6 +88,16 @@ export function addDockNoteInState(
 	return setDockInState(state, addDockNote(state.dock, path));
 }
 
+export function addDockNotesInState(
+	state: WorkspaceState,
+	paths: NodeId[],
+): WorkspaceState {
+	return paths.reduce(
+		(nextState, path) => addDockNoteInState(nextState, path),
+		state,
+	);
+}
+
 export function removeDockNoteInState(
 	state: WorkspaceState,
 	path: NodeId,

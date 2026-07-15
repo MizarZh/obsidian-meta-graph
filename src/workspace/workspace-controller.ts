@@ -108,6 +108,7 @@ import {
 } from './actions/curated-actions';
 import {
 	addDockNoteInState,
+	addDockNotesInState,
 	addDockTemplateInState,
 	removeDockNoteInState,
 	removeDockTemplateInState,
@@ -133,9 +134,7 @@ import {
 	setNodeGroupInState,
 	updateGroupInState,
 } from './state/manual-layout-state';
-import {
-	WorkspaceProjectionService,
-} from './services/query-service';
+import { WorkspaceProjectionService } from './services/query-service';
 import type { WorkspaceIndexService } from './services/workspace-index-service';
 import {
 	applyWorkspaceIndexSnapshotToState,
@@ -667,6 +666,10 @@ export class WorkspaceController {
 		this.setWorkspaceState(addDockNoteInState(this.state, path));
 	}
 
+	addDockNotes(paths: NodeId[]): void {
+		this.setWorkspaceState(addDockNotesInState(this.state, paths));
+	}
+
 	setDockWidth(dockWidth: number): void {
 		this.setWorkspaceState(setDockWidthInState(this.state, dockWidth));
 	}
@@ -856,7 +859,9 @@ export class WorkspaceController {
 		);
 	}
 
-	setPlainLinkStyleOverrides(plainLinkStyleOverrides: DefaultLinkStyle): void {
+	setPlainLinkStyleOverrides(
+		plainLinkStyleOverrides: DefaultLinkStyle,
+	): void {
 		this.setWorkspaceState(
 			setPlainLinkStyleOverridesInState(
 				this.state,

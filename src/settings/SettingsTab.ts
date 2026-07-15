@@ -54,29 +54,36 @@ export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 
 		new Setting(this.containerEl)
 			.setName('Open notes in')
-			.setDesc('Choose where graph nodes open their notes.')
+			.setDesc('Choose where notes open.')
 			.addDropdown((dropdown) =>
 				dropdown
 					.addOption('tab', 'New tab')
 					.addOption('right-split', 'Right split')
-					.addOption('internal-preview', 'Internal preview')
 					.setValue(this.plugin.settings.nodeOpenMode)
 					.onChange(async (value) => {
-						this.plugin.settings.nodeOpenMode = value as NodeOpenMode;
+						this.plugin.settings.nodeOpenMode =
+							value as NodeOpenMode;
 						await this.plugin.saveSettings();
 					}),
 			);
 
 		new Setting(this.containerEl)
-			.setName('Open template notes in new tab')
+			.setName('After creating a note')
 			.setDesc(
-				'Automatically open notes created from templates in a new tab.',
+				'Choose whether to stay on the graph or open the new note.',
 			)
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.openTemplateNoteInNewTab)
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('stay', 'Stay on graph')
+					.addOption('open', 'Open note')
+					.setValue(
+						this.plugin.settings.openTemplateNoteInNewTab
+							? 'open'
+							: 'stay',
+					)
 					.onChange(async (value) => {
-						this.plugin.settings.openTemplateNoteInNewTab = value;
+						this.plugin.settings.openTemplateNoteInNewTab =
+							value === 'open';
 						await this.plugin.saveSettings();
 					}),
 			);

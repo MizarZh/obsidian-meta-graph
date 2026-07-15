@@ -4,6 +4,8 @@
 		ChartGroup,
 		DockTemplateNode,
 		KnowledgeNode,
+		ManualLayoutConfig,
+		ViewMode,
 	} from '../core/types';
 	import type { DockDragPayload } from './dock/types';
 	import DockNotesSection from './dock-panel/DockNotesSection.svelte';
@@ -15,17 +17,24 @@
 		buildTargetFolderOptions,
 		buildTemplateEntries,
 		countTitles,
-		dragKey,
 		type DockNoteEntry,
 	} from './dock-panel/dock-panel-state';
+	import { createCuratedConditionDraft } from './curated/curated-panel-state';
+	import Inspector from './Inspector.svelte';
+	import AddNotesModal from './notes/AddNotesModal.svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
+	import InternalNotePreview from './workspace/InternalNotePreview.svelte';
+
+	type RightPanelTab = 'details' | 'pinned' | 'templates';
 
 	let {
 		app,
 		templates,
 		notes,
-		availableNotes,
+		nodes,
 		groups,
+		folders,
+		workspaceFilePath,
 		nodeColors,
 		dockOpen,
 		onToggleDock,
@@ -37,25 +46,36 @@
 		targetNodeId,
 		graphTargetNotePath,
 		graphTargetTemplateId,
+		selectedNode,
+		selectedNodeColor,
+		mode,
+		manualLayout,
+		previewNodeId,
 		onAddTemplate,
 		onUpdateTemplate,
 		onRemoveTemplate,
-		onAddNote,
+		onAddNotes,
 		onRemoveNote,
 		onReorderTemplates,
 		onReorderNotes,
 		onLinkPointerDown,
 		onCuratedPointerDown,
+		onCreateTemplateNote,
 		onOpenNote,
+		onPreviewNote,
+		onClosePreview,
+		onOpenMetadataLink,
+		onSetNodeGroup,
+		onConnectNode,
 		onSelectNote,
-		focusOnSelect,
-		onToggleFocusOnSelect,
 	}: {
 		app: App;
 		templates: DockTemplateNode[];
 		notes: DockNoteEntry[];
-		availableNotes: KnowledgeNode[];
+		nodes: KnowledgeNode[];
 		groups: ChartGroup[];
+		folders: string[];
+		workspaceFilePath?: string;
 		nodeColors: Map<string, string>;
 		dockOpen: boolean;
 		onToggleDock: () => void;
@@ -67,13 +87,18 @@
 		targetNodeId?: string;
 		graphTargetNotePath?: string;
 		graphTargetTemplateId?: string;
+		selectedNode?: KnowledgeNode;
+		selectedNodeColor?: string;
+		mode: ViewMode;
+		manualLayout: ManualLayoutConfig;
+		previewNodeId?: string;
 		onAddTemplate: (template: Omit<DockTemplateNode, 'id'>) => void;
 		onUpdateTemplate: (
 			templateId: string,
 			template: Omit<DockTemplateNode, 'id'>,
 		) => void;
 		onRemoveTemplate: (templateId: string) => void;
-		onAddNote: (path: string) => void;
+		onAddNotes: (paths: string[]) => void;
 		onRemoveNote: (path: string) => void;
 		onReorderTemplates: (templateIds: string[]) => void;
 		onReorderNotes: (paths: string[]) => void;
@@ -85,60 +110,62 @@
 			payload: DockDragPayload,
 			event: PointerEvent,
 		) => boolean;
+		onCreateTemplateNote: (templateId: string, label: string) => void;
 		onOpenNote: (nodeId: string) => void;
+		onPreviewNote: (nodeId: string) => void;
+		onClosePreview: () => void;
+		onOpenMetadataLink: (linkText: string, sourcePath: string) => void;
+		onSetNodeGroup: (path: string, groupId?: string) => void;
+		onConnectNode: (
+			sourcePath: string,
+			targetPath: string,
+			field: string,
+		) => void;
 		onSelectNote: (nodeId: string) => void;
-		focusOnSelect: boolean;
-		onToggleFocusOnSelect: () => void;
 	} = $props();
+
+	let activeTab = $state<RightPanelTab>('details');
+	let addNotesOpen = $state(false);
+	let addNotesDraft = $state(createCuratedConditionDraft());
 
 	const activeDraggingKey = $derived(draggingKey);
 	const notesTitleCounts = $derived(countTitles(notes));
-	const titleCounts = $derived(countTitles(availableNotes));
-	const noteOptions = $derived(buildNoteOptions(availableNotes, titleCounts));
+	const titleCounts = $derived(countTitles(nodes));
+	const noteOptions = $derived(buildNoteOptions(nodes, titleCounts));
 	const targetFolderOptions = $derived.by(() => {
-		// Reference availableNotes so this re-runs when the graph refreshes.
-		void availableNotes;
+		void nodes;
 		return buildTargetFolderOptions(app);
 	});
 	const groupOptions = $derived(buildGroupOptions(groups));
 	const templateEntries = $derived(buildTemplateEntries(app, templates));
+	const pinnedPaths = $derived(new Set(notes.map((note) => note.path)));
 
 	function handleNodePointerDown(
 		payload: DockDragPayload,
 		event: PointerEvent,
 	): void {
 		if (
-			event.target instanceof HTMLElement &&
-			event.target.closest('button, .knowledge-workspace-drag-handle')
+			event.target instanceof Element &&
+			event.target.closest(
+				'button, input, .knowledge-workspace-drag-handle',
+			)
 		) {
 			return;
 		}
-		if (payload.kind === 'broken-note') {
-			if (event.ctrlKey) return;
-		} else if (event.ctrlKey) {
-			handleLinkPointerDown(payload, event);
+		if (payload.kind === 'broken-note') return;
+		if (event.ctrlKey || event.metaKey) {
+			startConnection(payload, event);
 			return;
 		}
 		onCuratedPointerDown(payload, event);
-		if (payload.kind === 'note') {
-			onSelectNote(payload.notePath);
-		}
+		if (payload.kind === 'note') onSelectNote(payload.notePath);
 	}
 
-	function handleLinkPointerDown(
+	function startConnection(
 		payload: DockDragPayload,
 		event: PointerEvent,
 	): void {
-		if (
-			!event.ctrlKey ||
-			event.button !== 0 ||
-			(event.target instanceof HTMLElement &&
-				event.target.closest(
-					'button, .knowledge-workspace-drag-handle',
-				))
-		) {
-			return;
-		}
+		if (event.button !== 0 || payload.kind === 'broken-note') return;
 		event.preventDefault();
 		event.stopPropagation();
 		onLinkPointerDown(payload, event);
@@ -152,9 +179,9 @@
 >
 	<DockResizeHandle
 		width={dockWidth}
-		minWidth={180}
-		maxWidth={480}
-		ariaLabel="Resize dock"
+		minWidth={260}
+		maxWidth={520}
+		ariaLabel="Resize right panel"
 		class="knowledge-workspace-dock-resize-handle"
 		readDelta={(startX, currentX) => startX - currentX}
 		onResize={onResizeDock}
@@ -162,56 +189,125 @@
 	<ObsidianButton
 		class="knowledge-workspace-dock-toggle"
 		icon={dockOpen ? 'panel-right-close' : 'panel-right-open'}
-		ariaLabel={dockOpen ? 'Close dock' : 'Open dock'}
+		ariaLabel={dockOpen ? 'Close right panel' : 'Open right panel'}
 		onClick={onToggleDock}
 	/>
 	{#if dockOpen}
-		<DockTemplateSection
-			{app}
-			templates={templateEntries}
-			{noteOptions}
-			{targetFolderOptions}
-			{groupOptions}
-			{activeConnectionField}
-			{activeDraggingKey}
-			{graphTargetTemplateId}
-			{onAddTemplate}
-			{onUpdateTemplate}
-			{onRemoveTemplate}
-			onPointerDown={handleNodePointerDown}
-			{onReorderTemplates}
-			{onOpenNote}
-		/>
-		<DockNotesSection
-			{app}
-			{notes}
-			{noteOptions}
-			{notesTitleCounts}
-			{activeConnectionField}
-			{activeDraggingKey}
-			{graphTargetNotePath}
-			{focusOnSelect}
-			{onToggleFocusOnSelect}
-			{onAddNote}
-			{onRemoveNote}
-			onPointerDown={handleNodePointerDown}
-			{onReorderNotes}
-			{onOpenNote}
-		/>
-		<span
-			class:active={linking}
-			class:target={Boolean(
-				targetNodeId || graphTargetNotePath || graphTargetTemplateId,
-			)}
-			class="knowledge-workspace-dock-status"
-		>
-			{targetNodeId || graphTargetNotePath || graphTargetTemplateId
-				? 'Release to connect'
-				: linking
-					? 'Choose target'
-					: draggingKey
-						? 'Drop on graph'
-						: 'Ready'}
-		</span>
+		<div class="knowledge-workspace-dock-tabs" role="tablist">
+			<ObsidianButton
+				text="Details"
+				active={activeTab === 'details'}
+				role="tab"
+				onClick={() => (activeTab = 'details')}
+			/>
+			<ObsidianButton
+				text="Pinned notes"
+				active={activeTab === 'pinned'}
+				role="tab"
+				onClick={() => (activeTab = 'pinned')}
+			/>
+			<ObsidianButton
+				text="Templates"
+				active={activeTab === 'templates'}
+				role="tab"
+				onClick={() => (activeTab = 'templates')}
+			/>
+		</div>
+		{#if activeTab === 'details'}
+			<div class="knowledge-workspace-details-tab">
+				{#if previewNodeId}
+					<InternalNotePreview
+						{app}
+						filePath={previewNodeId}
+						onClose={onClosePreview}
+						onOpen={onOpenNote}
+					/>
+				{:else if selectedNode}
+					<Inspector
+						{app}
+						node={selectedNode}
+						{nodes}
+						nodeColor={selectedNodeColor}
+						{mode}
+						{manualLayout}
+						{activeConnectionField}
+						{onOpenNote}
+						{onPreviewNote}
+						{onOpenMetadataLink}
+						{onSetNodeGroup}
+						{onConnectNode}
+					/>
+				{:else}
+					<div class="knowledge-workspace-dock-empty">
+						Select a node
+					</div>
+				{/if}
+			</div>
+		{:else if activeTab === 'pinned'}
+			<DockNotesSection
+				{notes}
+				{notesTitleCounts}
+				{activeConnectionField}
+				{activeDraggingKey}
+				{graphTargetNotePath}
+				onOpenPicker={() => (addNotesOpen = true)}
+				{onRemoveNote}
+				onPointerDown={handleNodePointerDown}
+				onLinkPointerDown={startConnection}
+				{onReorderNotes}
+				{onOpenNote}
+			/>
+		{:else}
+			<DockTemplateSection
+				{app}
+				templates={templateEntries}
+				{noteOptions}
+				{targetFolderOptions}
+				{groupOptions}
+				{activeConnectionField}
+				{activeDraggingKey}
+				{graphTargetTemplateId}
+				{onAddTemplate}
+				{onUpdateTemplate}
+				{onRemoveTemplate}
+				onPointerDown={handleNodePointerDown}
+				onLinkPointerDown={startConnection}
+				{onCreateTemplateNote}
+				{onReorderTemplates}
+				{onOpenNote}
+			/>
+		{/if}
+		{#if linking || draggingKey}
+			<span
+				class:active={linking}
+				class:target={Boolean(
+					targetNodeId ||
+					graphTargetNotePath ||
+					graphTargetTemplateId,
+				)}
+				class="knowledge-workspace-dock-status"
+			>
+				{targetNodeId || graphTargetNotePath || graphTargetTemplateId
+					? 'Release to connect'
+					: linking
+						? 'Choose target'
+						: 'Drop on graph'}
+			</span>
+		{/if}
 	{/if}
 </aside>
+
+<AddNotesModal
+	{app}
+	open={addNotesOpen}
+	{nodes}
+	existingPaths={pinnedPaths}
+	{nodeColors}
+	{folders}
+	{workspaceFilePath}
+	draft={addNotesDraft}
+	existingLabel="Pinned"
+	onDraftChange={(draft) => (addNotesDraft = draft)}
+	onAddFiles={(paths) => onAddNotes(paths)}
+	onClose={() => (addNotesOpen = false)}
+/>

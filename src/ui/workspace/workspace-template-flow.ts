@@ -6,7 +6,6 @@ import type {
 } from '../../core/types';
 import type { WorkspaceController } from '../../workspace/workspace-controller';
 import { CreateFromTemplateModal } from '../CreateFromTemplateModal';
-import { findDockTemplateLabel } from './derived';
 import { openCreatedTemplateNote } from './template-actions';
 import { openWorkspaceTemplateNote } from './template-modal-actions';
 
@@ -20,6 +19,7 @@ export interface WorkspaceCreateTemplateFlowOptions {
 	targetNodeId: string;
 	label?: string;
 	direction?: DockConnectionDirection;
+	openNote: (path: string) => Promise<void>;
 }
 
 export interface WorkspaceCreateStandaloneTemplateFlowOptions {
@@ -29,8 +29,10 @@ export interface WorkspaceCreateStandaloneTemplateFlowOptions {
 	openTemplateNoteInNewTab: boolean;
 	templateId: string;
 	label?: string;
-	position: { x: number; y: number };
+	position?: { x: number; y: number };
 	groupId?: string;
+	addToCurated?: boolean;
+	openNote: (path: string) => Promise<void>;
 }
 
 export function openWorkspaceCreateTemplateNote({
@@ -43,6 +45,7 @@ export function openWorkspaceCreateTemplateNote({
 	targetNodeId,
 	label,
 	direction = 'from-dock-to-graph',
+	openNote,
 }: WorkspaceCreateTemplateFlowOptions): Promise<void> {
 	return openWorkspaceTemplateNote({
 		app,
@@ -64,12 +67,13 @@ export function openWorkspaceCreateTemplateNote({
 			),
 		addCuratedFile: (path) => {
 			controller.addCuratedFile(path);
-			controller.refresh();
+			controller.selectNode(path);
+			void controller.refresh();
 		},
 		opener: {
 			getFile: (path) => app.vault.getAbstractFileByPath(path),
 			isOpenableFile: (file): file is TFile => file instanceof TFile,
-			openFile: (file) => app.workspace.getLeaf('tab').openFile(file),
+			openFile: (file) => openNote(file.path),
 		},
 	});
 }
@@ -83,10 +87,13 @@ export async function openWorkspaceCreateStandaloneTemplateNote({
 	label,
 	position,
 	groupId,
+	addToCurated = true,
+	openNote,
 }: WorkspaceCreateStandaloneTemplateFlowOptions): Promise<void> {
-	const templateLabel =
-		label ??
-		findDockTemplateLabel(workspaceState.dock.templates, templateId);
+	const template = workspaceState.dock.templates.find(
+		(candidate) => candidate.id === templateId,
+	);
+	const templateLabel = label ?? template?.label;
 	if (!templateLabel) {
 		return;
 	}
@@ -107,12 +114,18 @@ export async function openWorkspaceCreateStandaloneTemplateNote({
 	if (!filePath) {
 		return;
 	}
-	controller.addCuratedFile(filePath, groupId);
-	controller.setManualNodePosition(filePath, position, groupId);
-	controller.refresh();
+	if (addToCurated) {
+		const targetGroupId = groupId ?? template?.defaultGroupId;
+		controller.addCuratedFile(filePath, targetGroupId);
+		controller.selectNode(filePath);
+		if (position) {
+			controller.setManualNodePosition(filePath, position, targetGroupId);
+		}
+		void controller.refresh();
+	}
 	await openCreatedTemplateNote(filePath, openTemplateNoteInNewTab, {
 		getFile: (path) => app.vault.getAbstractFileByPath(path),
 		isOpenableFile: (file): file is TFile => file instanceof TFile,
-		openFile: (file) => app.workspace.getLeaf('tab').openFile(file),
+		openFile: (file) => openNote(file.path),
 	});
 }

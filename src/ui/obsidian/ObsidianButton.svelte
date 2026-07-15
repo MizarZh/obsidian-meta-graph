@@ -14,6 +14,7 @@
 		role,
 		class: className = '',
 		onClick,
+		onPointerDown,
 	}: {
 		text?: string;
 		icon?: IconName;
@@ -26,6 +27,7 @@
 		role?: string;
 		class?: string;
 		onClick?: (event: MouseEvent) => void;
+		onPointerDown?: (event: PointerEvent) => void;
 	} = $props();
 
 	let containerEl: HTMLSpanElement;
@@ -43,8 +45,15 @@
 	onMount(() => {
 		button = new ButtonComponent(containerEl);
 		button.onClick((event) => onClick?.(event));
+		const handlePointerDown = (event: PointerEvent) =>
+			onPointerDown?.(event);
+		button.buttonEl.addEventListener('pointerdown', handlePointerDown);
 
 		return () => {
+			button?.buttonEl.removeEventListener(
+				'pointerdown',
+				handlePointerDown,
+			);
 			containerEl.textContent = '';
 			button = undefined;
 		};

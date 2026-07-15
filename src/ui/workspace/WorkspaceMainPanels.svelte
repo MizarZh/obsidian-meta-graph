@@ -11,7 +11,6 @@
 	import ConnectionPanel from '../ConnectionPanel.svelte';
 	import CuratedPanel from '../CuratedPanel.svelte';
 	import DockGraphPanel from '../DockGraphPanel.svelte';
-	import Inspector from '../Inspector.svelte';
 	import type { DockDragPayload } from '../dock/types';
 	import type { CuratedConditionDraft } from '../curated/curated-panel-state';
 	import type { DockCuratedDropPreview } from './dock-curated-drop';
@@ -26,10 +25,8 @@
 		workspaceFilePath,
 		nodeColors,
 		dockNoteEntries,
-		dockNoteCandidates,
 		selectedNode,
 		selectedNodeColor,
-		searchableNodes,
 		atNodeLimit,
 		metadataFieldSuggestions,
 		connectionDrag,
@@ -42,6 +39,7 @@
 		dockCuratedDropPreview,
 		dockConnectionDrag,
 		dockTargetNodeId,
+		previewNodeId,
 		dockOpen,
 		curatedPanelOpen,
 		connectionOpen,
@@ -50,7 +48,11 @@
 		onToggleConnection,
 		onLinkPointerDown,
 		onCuratedPointerDown,
+		onCreateTemplateNote,
 		onFocusNode,
+		onOpenNote,
+		onPreviewNote,
+		onClosePreview,
 		onOpenMetadataLink,
 		onCuratedSelectionChange,
 		onCuratedConditionDraftChange,
@@ -63,10 +65,8 @@
 		workspaceFilePath?: string;
 		nodeColors: Map<string, string>;
 		dockNoteEntries: DockNoteEntry[];
-		dockNoteCandidates: KnowledgeNode[];
 		selectedNode?: KnowledgeNode;
 		selectedNodeColor?: string;
-		searchableNodes: KnowledgeNode[];
 		atNodeLimit: boolean;
 		metadataFieldSuggestions: string[];
 		connectionDrag?: ConnectionDragState;
@@ -79,6 +79,7 @@
 		dockCuratedDropPreview?: DockCuratedDropPreview;
 		dockConnectionDrag?: DockDragPayload;
 		dockTargetNodeId?: string;
+		previewNodeId?: string;
 		dockOpen: boolean;
 		curatedPanelOpen: boolean;
 		connectionOpen: boolean;
@@ -93,7 +94,11 @@
 			payload: DockDragPayload,
 			event: PointerEvent,
 		) => boolean;
+		onCreateTemplateNote: (templateId: string, label: string) => void;
 		onFocusNode: (nodeId: string) => void;
+		onOpenNote: (nodeId: string) => void;
+		onPreviewNote: (nodeId: string) => void;
+		onClosePreview: () => void;
 		onOpenMetadataLink: (linkText: string, sourcePath: string) => void;
 		onCuratedSelectionChange: (paths: Set<string>) => void;
 		onCuratedConditionDraftChange: (draft: CuratedConditionDraft) => void;
@@ -189,7 +194,6 @@
 		onSelectedPathsChange={onCuratedSelectionChange}
 		conditionDraft={curatedConditionDraft}
 		onConditionDraftChange={onCuratedConditionDraftChange}
-		onAddFile={(path, groupId) => controller.addCuratedFile(path, groupId)}
 		onAddFiles={(paths, groupId) =>
 			controller.addCuratedFiles(paths, groupId)}
 		onRemoveFile={(path) => controller.removeCuratedFile(path)}
@@ -200,7 +204,7 @@
 			controller.moveCuratedFilesToGroup(paths, groupId)}
 		onClearFiles={() => controller.clearCuratedFiles()}
 		onReorderFiles={(paths) => controller.reorderCuratedFiles(paths)}
-		onOpenNote={(path) => void controller.openNode(path)}
+		{onOpenNote}
 		onSelectNote={selectAndMaybeFocusNode}
 	/>
 {/if}
@@ -248,8 +252,10 @@
 	{app}
 	templates={workspaceState.dock.templates}
 	notes={dockNoteEntries}
-	availableNotes={dockNoteCandidates}
+	nodes={debugSnapshot.index.nodes}
 	groups={workspaceState.manualLayout.groups}
+	folders={workspaceState.availableFolders}
+	{workspaceFilePath}
 	{nodeColors}
 	{dockOpen}
 	{onToggleDock}
@@ -265,40 +271,34 @@
 	targetNodeId={dockTargetNodeId}
 	graphTargetNotePath={graphConnectionTargetNotePath}
 	graphTargetTemplateId={graphConnectionTargetTemplateId}
+	{selectedNode}
+	{selectedNodeColor}
+	mode={workspaceState.mode}
+	manualLayout={workspaceState.manualLayout}
+	{previewNodeId}
 	onAddTemplate={(template) => controller.addDockTemplate(template)}
 	onUpdateTemplate={(templateId, template) =>
 		controller.updateDockTemplate(templateId, template)}
 	onRemoveTemplate={(templateId) => controller.removeDockTemplate(templateId)}
-	onAddNote={(path) => controller.addDockNote(path)}
+	onAddNotes={(paths) => controller.addDockNotes(paths)}
 	onRemoveNote={(path) => controller.removeDockNote(path)}
 	onReorderTemplates={(templateIds) =>
 		controller.reorderDockTemplates(templateIds)}
 	onReorderNotes={(paths) => controller.reorderDockNotes(paths)}
 	{onLinkPointerDown}
 	{onCuratedPointerDown}
-	onOpenNote={(nodeId) => void controller.openNode(nodeId)}
-	focusOnSelect={workspaceState.dock.focusOnSelect}
-	onToggleFocusOnSelect={() =>
-		controller.setDockFocusOnSelect(!workspaceState.dock.focusOnSelect)}
-	onSelectNote={selectAndMaybeFocusNode}
-/>
-<Inspector
-	{app}
-	node={selectedNode}
-	nodes={searchableNodes}
-	nodeColor={selectedNodeColor}
-	mode={workspaceState.mode}
-	manualLayout={workspaceState.manualLayout}
-	activeConnectionField={workspaceState.activeConnectionField}
-	onOpenNote={(path) => void controller.openNode(path)}
-	onOpenMetadataLink={(linkText, sourcePath) =>
-		onOpenMetadataLink(linkText, sourcePath)}
+	{onCreateTemplateNote}
+	{onOpenNote}
+	{onPreviewNote}
+	{onClosePreview}
+	{onOpenMetadataLink}
 	onSetNodeGroup={(path, groupId) => controller.setNodeGroup(path, groupId)}
 	onConnectNode={(sourcePath, targetPath, field) => {
 		void controller
 			.connectNodes(sourcePath, targetPath, field)
 			.catch(reportError);
 	}}
+	onSelectNote={selectAndMaybeFocusNode}
 />
 {#if atNodeLimit}
 	<section class="knowledge-workspace-notice">

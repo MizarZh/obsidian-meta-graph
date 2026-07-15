@@ -2,7 +2,6 @@
 	position: relative;
 	--dock-panel-width: clamp(240px, 25vw, 320px);
 	--curated-panel-width: 0px;
-	--internal-preview-width: clamp(280px, 32vw, 400px);
 	min-width: 0;
 	height: 100%;
 	min-height: 0;
@@ -10,24 +9,14 @@
 }
 
 .knowledge-workspace-internal-preview {
-	position: absolute;
-	top: var(--size-4-3);
-	right: calc(var(--dock-panel-width) + var(--size-4-5));
-	bottom: calc(54px + var(--size-4-3));
-	z-index: 6;
 	display: flex;
-	width: var(--internal-preview-width);
+	width: 100%;
+	height: 100%;
 	min-width: 0;
+	min-height: 0;
 	flex-direction: column;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	background: var(--background-primary);
-	box-shadow: var(--shadow-s);
+	background: var(--background-primary-alt);
 	overflow: hidden;
-}
-
-.connection-collapsed .knowledge-workspace-internal-preview {
-	bottom: var(--size-4-3);
 }
 
 .knowledge-workspace-internal-preview > header {
@@ -66,12 +55,6 @@
 	padding: var(--size-4-3);
 	color: var(--text-error);
 	font-size: var(--font-ui-small);
-}
-
-@media (max-width: 700px) {
-	.knowledge-workspace-main {
-		--internal-preview-width: min(72%, 360px);
-	}
 }
 
 .knowledge-workspace-canvas {
@@ -297,6 +280,8 @@
 	.knowledge-workspace-curated-panel-collapsed
 ) {
 	gap: var(--size-4-2);
+	min-width: min(240px, calc(50% - var(--size-4-4)));
+	max-width: calc(50% - var(--size-4-4));
 }
 
 .knowledge-workspace-connection-preview {
@@ -440,20 +425,16 @@
 }
 
 .knowledge-workspace-inspector {
-	position: absolute;
-	right: calc(var(--dock-panel-width) + var(--size-4-5));
-	bottom: calc(54px + var(--size-4-4));
 	display: flex;
+	width: 100%;
+	min-width: 0;
+	min-height: 0;
+	flex: 1;
 	flex-direction: column;
 	gap: var(--size-4-1);
-	max-width: min(520px, 72%);
-	max-height: min(60vh, 520px);
 	overflow: auto;
 	padding: var(--size-4-3);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-m);
 	background: var(--background-primary-alt);
-	box-shadow: var(--shadow-s);
 	font-size: var(--font-ui-small);
 }
 
@@ -476,11 +457,17 @@
 	flex: 0 0 auto;
 }
 
+.knowledge-workspace-inspector-header-actions {
+	display: flex;
+	flex: 0 0 auto;
+	gap: var(--size-4-1);
+}
+
 .knowledge-workspace-inspector-control,
 .knowledge-workspace-inspector-link {
 	display: flex;
 	gap: var(--size-4-1);
-	min-width: 260px;
+	min-width: 0;
 }
 
 .knowledge-workspace-inspector-control {
@@ -489,7 +476,7 @@
 
 .knowledge-workspace-inspector-link {
 	display: grid;
-	grid-template-columns: minmax(150px, 1fr) minmax(64px, auto) auto;
+	grid-template-columns: minmax(0, 1fr) minmax(54px, auto) auto;
 	align-items: center;
 }
 

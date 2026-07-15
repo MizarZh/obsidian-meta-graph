@@ -8,6 +8,7 @@
 		title,
 		subtitle = '',
 		ariaLabel = title,
+		compact = false,
 		children,
 		onClose,
 	}: {
@@ -15,6 +16,7 @@
 		title: string;
 		subtitle?: string;
 		ariaLabel?: string;
+		compact?: boolean;
 		children?: Snippet;
 		onClose: () => void;
 	} = $props();
@@ -44,6 +46,7 @@
 	></div>
 	<div
 		class="knowledge-workspace-modal"
+		class:knowledge-workspace-modal-compact={compact}
 		role="dialog"
 		aria-modal="true"
 		aria-label={ariaLabel}

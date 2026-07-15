@@ -14,14 +14,12 @@ export const DEFAULT_SETTINGS: KnowledgeWorkspaceSettings = {
 	debug: false,
 	showDebugButton: false,
 	relayoutFlowAfterConnection: false,
-	openTemplateNoteInNewTab: true,
+	openTemplateNoteInNewTab: false,
 	nodeOpenMode: 'tab',
 };
 
 export function normalizeNodeOpenMode(value: unknown): NodeOpenMode {
-	return value === 'tab' ||
-		value === 'right-split' ||
-		value === 'internal-preview'
+	return value === 'tab' || value === 'right-split'
 		? value
 		: DEFAULT_SETTINGS.nodeOpenMode;
 }

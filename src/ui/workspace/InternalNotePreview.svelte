@@ -1,22 +1,17 @@
 <script lang="ts">
-	import {
-		Component,
-		MarkdownRenderer,
-		TFile,
-		type App,
-	} from 'obsidian';
+	import { Component, MarkdownRenderer, TFile, type App } from 'obsidian';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
 
 	let {
 		app,
 		filePath,
 		onClose,
-		onOpenInSplit,
+		onOpen,
 	}: {
 		app: App;
 		filePath: string;
 		onClose: () => void;
-		onOpenInSplit: (filePath: string) => void;
+		onOpen: (filePath: string) => void;
 	} = $props();
 
 	let contentEl: HTMLDivElement;
@@ -73,15 +68,15 @@
 	});
 </script>
 
-<aside class="knowledge-workspace-internal-preview">
+<section class="knowledge-workspace-internal-preview">
 	<header>
 		<strong title={filePath}>{title}</strong>
 		<div>
 			<ObsidianButton
-				icon="panel-right-open"
-				ariaLabel="Open in right split"
-				tooltip="Open in right split"
-				onClick={() => onOpenInSplit(filePath)}
+				icon="file-text"
+				ariaLabel="Open note"
+				tooltip="Open note"
+				onClick={() => onOpen(filePath)}
 			/>
 			<ObsidianButton
 				icon="x"
@@ -100,4 +95,4 @@
 		class="knowledge-workspace-internal-preview-content markdown-preview-view markdown-rendered"
 		bind:this={contentEl}
 	></div>
-</aside>
+</section>

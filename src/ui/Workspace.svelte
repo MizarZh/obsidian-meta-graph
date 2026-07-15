@@ -37,10 +37,8 @@
 	} from './interactions/graph-connection-drop';
 	import { shouldHandleConnectionUndoShortcut } from './interactions/keyboard-shortcuts';
 	import {
-		getDockNoteCandidates,
 		getDockNoteEntries,
 		getFilePathSuggestions,
-		getSelectedDockNodes,
 		getWorkspaceNodeColor,
 		getWorkspaceNodeColors,
 	} from './workspace/derived';
@@ -78,7 +76,6 @@
 	import { GraphDockConnectionController } from './workspace/graph-dock-connection';
 	import WorkspaceSettingsPopover from './workspace/WorkspaceSettingsPopover.svelte';
 	import WorkspaceMainPanels from './workspace/WorkspaceMainPanels.svelte';
-	import InternalNotePreview from './workspace/InternalNotePreview.svelte';
 	import {
 		createCuratedConditionDraft,
 		type CuratedConditionDraft,
@@ -122,7 +119,7 @@
 	let settingsPanel = $state<SettingsPanelMode | undefined>(undefined);
 	let settingsPopoverLeft = $state(0);
 	let connectionDrag = $state<ConnectionDragState | undefined>(undefined);
-	let internalPreviewNodeId = $state<string | undefined>(undefined);
+	let previewNodeId = $state<string | undefined>(undefined);
 	let graphConnectionTargetNotePath = $state<string | undefined>(undefined);
 	let graphConnectionTargetTemplateId = $state<string | undefined>(undefined);
 	let graphConnectionTargetCurated = $state(false);
@@ -209,6 +206,7 @@
 	): void {
 		if (action.kind === 'add-curated') {
 			controller.addCuratedFile(action.sourceNodeId);
+			controller.selectNode(action.sourceNodeId);
 			return;
 		}
 		if (action.kind === 'create-from-template') {
@@ -229,6 +227,7 @@
 				)
 				.then(() => {
 					controller.addCuratedFile(action.notePath);
+					controller.selectNode(action.notePath);
 				})
 				.catch((error: unknown) =>
 					controller.setRendererDebugState({
@@ -337,13 +336,11 @@
 				renderBaseline,
 			);
 			if (
-				internalPreviewNodeId &&
+				previewNodeId &&
 				(nextState.activeChartId !== workspaceState.activeChartId ||
-					!nextState.projection?.nodes.some(
-						(node) => node.id === internalPreviewNodeId,
-					))
+					nextState.selectedNodeId !== workspaceState.selectedNodeId)
 			) {
-				internalPreviewNodeId = undefined;
+				previewNodeId = undefined;
 			}
 			workspaceState = nextState;
 			if (changes.manualLayoutChanged) {
@@ -479,25 +476,21 @@
 			},
 			onSelect: (nodeId?: string) => controller.selectNode(nodeId),
 			onHover: (nodeId?: string) => controller.hoverNode(nodeId),
-			onOpen: (nodeId) => {
-				const nodeOpenMode = getNodeOpenMode();
-				if (nodeOpenMode !== 'internal-preview') {
-					internalPreviewNodeId = undefined;
-				}
-				if (nodeOpenMode === 'right-split') {
-					void onOpenNodeInRightSplit(nodeId);
-				} else if (nodeOpenMode === 'internal-preview') {
-					internalPreviewNodeId = nodeId;
-				} else {
-					void controller.openNode(nodeId);
-				}
-			},
+			onOpen: (nodeId) => void openNote(nodeId),
 			onConnectionDrag: setGraphConnectionDrag,
 			onConnect: connectVisibleNodes,
 			onCommitManualNodePosition: (nodeId, position, groupId) => {
 				controller.setManualNodePosition(nodeId, position, groupId);
 			},
 		});
+	}
+
+	async function openNote(nodeId: string): Promise<void> {
+		if (getNodeOpenMode() === 'right-split') {
+			await onOpenNodeInRightSplit(nodeId);
+			return;
+		}
+		await controller.openNode(nodeId);
 	}
 
 	function syncRendererGroups(): void {
@@ -556,22 +549,12 @@
 	const debugSnapshot: DebugSnapshot = $derived(
 		controller.getDebugSnapshot(workspaceState),
 	);
-	const selectedDockNodes = $derived(
-		getSelectedDockNodes(debugSnapshot, workspaceState.dock.notes),
-	);
-	const dockNoteCandidates = $derived(
-		getDockNoteCandidates(
-			debugSnapshot,
-			workspaceState.dock.notes,
-			workspaceFilePath,
-		),
-	);
 	const nodeColors = $derived.by(() => {
 		const defaultColor = readInteractiveAccentColor(
 			readWorkspaceDocument(),
 		);
 		return getWorkspaceNodeColors(
-			[...selectedDockNodes, ...dockNoteCandidates],
+			debugSnapshot.index.nodes,
 			workspaceState,
 			defaultColor,
 		);
@@ -739,6 +722,7 @@
 			)
 			.then(() => {
 				controller.addCuratedFile(action.notePath);
+				controller.selectNode(action.notePath);
 			})
 			.catch((error: unknown) =>
 				controller.setRendererDebugState({
@@ -756,6 +740,7 @@
 				action.position,
 				action.groupId,
 			);
+			controller.selectNode(action.notePath);
 			return;
 		}
 		void openWorkspaceCreateStandaloneTemplateNote({
@@ -767,6 +752,29 @@
 			label: action.label,
 			position: action.position,
 			groupId: action.groupId,
+			addToCurated: true,
+			openNote,
+		}).catch((error: unknown) =>
+			controller.setRendererDebugState({
+				status: 'error',
+				error: formatError(error),
+			}),
+		);
+	}
+
+	function createStandaloneTemplateNote(
+		templateId: string,
+		label: string,
+	): void {
+		void openWorkspaceCreateStandaloneTemplateNote({
+			app,
+			controller,
+			workspaceState,
+			openTemplateNoteInNewTab,
+			templateId,
+			label,
+			addToCurated: workspaceState.chartSource === 'curated',
+			openNote,
 		}).catch((error: unknown) =>
 			controller.setRendererDebugState({
 				status: 'error',
@@ -800,6 +808,7 @@
 			targetNodeId,
 			label,
 			direction,
+			openNote,
 		});
 	}
 
@@ -817,7 +826,7 @@
 					resolvedLinkText,
 					resolvedSourcePath,
 				),
-			openFile: (file) => app.workspace.getLeaf('tab').openFile(file),
+			openFile: (file) => openNote(file.path),
 		});
 	}
 
@@ -932,18 +941,7 @@
 					? '32px'
 					: '0px'}"
 		>
-				<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
-			{#if internalPreviewNodeId}
-				<InternalNotePreview
-					{app}
-					filePath={internalPreviewNodeId}
-					onClose={() => {
-						internalPreviewNodeId = undefined;
-					}}
-					onOpenInSplit={(nodeId) =>
-						void onOpenNodeInRightSplit(nodeId)}
-				/>
-			{/if}
+			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
 			<WorkspaceMainPanels
 				{app}
 				{controller}
@@ -952,10 +950,8 @@
 				{workspaceFilePath}
 				{nodeColors}
 				{dockNoteEntries}
-				{dockNoteCandidates}
 				{selectedNode}
 				{selectedNodeColor}
-				{searchableNodes}
 				{atNodeLimit}
 				{metadataFieldSuggestions}
 				{connectionDrag}
@@ -968,6 +964,7 @@
 				{dockCuratedDropPreview}
 				{dockConnectionDrag}
 				{dockTargetNodeId}
+				{previewNodeId}
 				{dockOpen}
 				{curatedPanelOpen}
 				{connectionOpen}
@@ -977,7 +974,15 @@
 				onToggleConnection={() => (connectionOpen = !connectionOpen)}
 				onLinkPointerDown={dockGraphDrag.handlePointerDown}
 				onCuratedPointerDown={dockCuratedDrop.handlePointerDown}
+				onCreateTemplateNote={createStandaloneTemplateNote}
 				onFocusNode={(nodeId) => rendererLifecycle.focusNode(nodeId)}
+				onOpenNote={(nodeId) => void openNote(nodeId)}
+				onPreviewNote={(nodeId) => {
+					previewNodeId = nodeId;
+				}}
+				onClosePreview={() => {
+					previewNodeId = undefined;
+				}}
 				onOpenMetadataLink={(linkText, sourcePath) =>
 					void openMetadataLink(linkText, sourcePath)}
 				onCuratedSelectionChange={(paths) => {

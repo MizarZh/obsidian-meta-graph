@@ -6,20 +6,18 @@
 		KnowledgeNode,
 		ManualLayoutConfig,
 	} from '../core/types';
-	import CuratedBatchAdd from './curated/CuratedBatchAdd.svelte';
-	import CuratedConditionModal from './curated/CuratedConditionModal.svelte';
+	import { nodeMatchesFilterGroup } from '../query/filters';
 	import CuratedFileList from './curated/CuratedFileList.svelte';
 	import {
-		buildFileOptions,
 		buildSelectedCuratedFiles,
-		buildTitleIndex,
 		countTitles,
-		parseBatchInput,
+		createCuratedConditionDraft,
 		type CuratedConditionDraft,
 	} from './curated/curated-panel-state';
+	import AddNotesModal from './notes/AddNotesModal.svelte';
+	import NoteFilterModal from './notes/NoteFilterModal.svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
-	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
 	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
 
 	let {
@@ -43,7 +41,6 @@
 		onSelectedPathsChange,
 		conditionDraft,
 		onConditionDraftChange,
-		onAddFile,
 		onAddFiles,
 		onRemoveFile,
 		onRemoveFiles,
@@ -74,7 +71,6 @@
 		onSelectedPathsChange: (paths: Set<string>) => void;
 		conditionDraft: CuratedConditionDraft;
 		onConditionDraftChange: (draft: CuratedConditionDraft) => void;
-		onAddFile: (path: string, groupId?: string) => void;
 		onAddFiles: (paths: string[], groupId?: string) => void;
 		onRemoveFile: (path: string) => void;
 		onRemoveFiles: (paths: string[]) => void;
@@ -86,13 +82,13 @@
 		onSelectNote: (path: string) => void;
 	} = $props();
 
-	let fileSearch = $state('');
 	let listSearch = $state('');
 	let addGroupId = $state('');
-	let batchInput = $state('');
-	let batchOpen = $state(false);
-	let conditionModalOpen = $state(false);
-	let batchStatus = $state('');
+	let searchOpen = $state(false);
+	let addNotesOpen = $state(false);
+	let filterModalOpen = $state(false);
+	let moreOpen = $state(false);
+	let addNotesDraft = $state(createCuratedConditionDraft());
 	let lastSelectedPath = $state<string | undefined>(undefined);
 
 	const addGroupOptions = $derived([
@@ -103,17 +99,12 @@
 	const groupsById = $derived(
 		new Map(groups.map((group) => [group.id, group])),
 	);
-	const selectedAddGroupId = $derived(
-		addGroupId || (groupRequired ? groups[0]?.id : undefined),
-	);
 	const selectedPaths = $derived(
 		new Set(curated.files.map((file) => file.path)),
 	);
 	const nodesByPath = $derived(
 		new Map(nodes.map((node) => [node.path, node])),
 	);
-	const titleIndex = $derived(buildTitleIndex(nodes));
-	const availableTitleCounts = $derived(countTitles(nodes));
 	const selectedFiles = $derived(
 		buildSelectedCuratedFiles(
 			curated,
@@ -126,22 +117,22 @@
 	);
 	const selectedTitleCounts = $derived(countTitles(selectedFiles));
 	const filteredSelectedFiles = $derived(
-		filterSelectedFiles(selectedFiles, listSearch),
+		filterSelectedFiles(
+			selectedFiles,
+			listSearch,
+			nodesByPath,
+			conditionDraft.filterRoot,
+		),
 	);
 	const filteredSelectedTitleCounts = $derived(
 		countTitles(filteredSelectedFiles),
 	);
 	const listSearchActive = $derived(listSearch.trim().length > 0);
+	const filterCount = $derived(
+		countFilterConditions(conditionDraft.filterRoot),
+	);
 	const selectedCount = $derived(
 		curated.files.filter((file) => selected.has(file.path)).length,
-	);
-	const fileOptions = $derived(
-		buildFileOptions(
-			nodes,
-			workspaceFilePath,
-			selectedPaths,
-			availableTitleCounts,
-		),
 	);
 
 	$effect(() => {
@@ -187,7 +178,7 @@
 
 	function handleFileClick(path: string, event: MouseEvent): void {
 		if (
-			event.target instanceof HTMLElement &&
+			event.target instanceof Element &&
 			event.target.closest(
 				'button, input, .knowledge-workspace-drag-handle',
 			)
@@ -210,6 +201,12 @@
 		lastSelectedPath = undefined;
 	}
 
+	function selectAllMatching(): void {
+		onSelectedPathsChange(
+			new Set(filteredSelectedFiles.map((file) => file.path)),
+		);
+	}
+
 	function removeSelected(): void {
 		const paths = curated.files
 			.map((file) => file.path)
@@ -229,13 +226,6 @@
 			return;
 		}
 		onSetFilesHidden(paths, hidden);
-	}
-
-	function removeFiles(paths: string[]): void {
-		onRemoveFiles(paths);
-		onSelectedPathsChange(
-			new Set([...selected].filter((path) => !paths.includes(path))),
-		);
 	}
 
 	function moveSelectedToGroup(groupId: string): void {
@@ -272,29 +262,9 @@
 		clearSelection();
 	}
 
-	function addBatch(): void {
-		const result = parseBatchInput(
-			batchInput,
-			nodesByPath,
-			titleIndex,
-			selectedPaths,
-		);
-		if (result.uniquePaths.length > 0) {
-			onAddFiles(result.uniquePaths, selectedAddGroupId);
-		}
-		batchStatus = `${result.uniquePaths.length} added, ${result.skipped} skipped, ${result.unresolved.length} unresolved.`;
-		if (result.unresolved.length === 0) {
-			batchInput = '';
-		}
-	}
-
-	function openConditionModal(): void {
-		conditionModalOpen = true;
-	}
-
 	function handleFilePointerDown(path: string, event: PointerEvent): void {
 		if (
-			event.target instanceof HTMLElement &&
+			event.target instanceof Element &&
 			event.target.closest(
 				'button, input, .knowledge-workspace-drag-handle',
 			)
@@ -326,19 +296,41 @@
 	function filterSelectedFiles(
 		files: typeof selectedFiles,
 		search: string,
+		indexedNodes: Map<string, KnowledgeNode>,
+		filterRoot: CuratedConditionDraft['filterRoot'],
 	): typeof selectedFiles {
 		const query = search.trim().toLocaleLowerCase();
-		if (!query) {
-			return files;
-		}
-		return files.filter((file) =>
-			[
-				file.title,
-				file.path,
-				file.detail,
-				file.groupId,
-				file.groupName,
-			].some((value) => value?.toLocaleLowerCase().includes(query)),
+		return files
+			.filter((file) => {
+				const node = indexedNodes.get(file.path);
+				return node
+					? nodeMatchesFilterGroup(node, filterRoot)
+					: filterRoot.children.length === 0;
+			})
+			.filter(
+				(file) =>
+					!query ||
+					[
+						file.title,
+						file.path,
+						file.detail,
+						file.groupId,
+						file.groupName,
+						...(indexedNodes.get(file.path)?.aliases ?? []),
+					].some((value) =>
+						value?.toLocaleLowerCase().includes(query),
+					),
+			);
+	}
+
+	function countFilterConditions(
+		group: CuratedConditionDraft['filterRoot'],
+	): number {
+		return group.children.reduce(
+			(total, child) =>
+				total +
+				(child.kind === 'group' ? countFilterConditions(child) : 1),
+			0,
 		);
 	}
 </script>
@@ -364,42 +356,96 @@
 	/>
 	{#if panelOpen}
 		<section>
-			<header>
+			<header class="knowledge-workspace-curated-header">
 				<h3>Workspace files</h3>
 				<span>{selectedFiles.length}</span>
 				<ObsidianButton
-					icon="crosshair"
-					active={focusOnSelect}
-					ariaLabel={focusOnSelect
-						? 'Auto-focus on click (enabled)'
-						: 'Auto-focus on click (disabled)'}
-					tooltip="Auto-focus on click"
-					class="knowledge-workspace-curated-focus-toggle"
-					onClick={onToggleFocusOnSelect}
+					class="knowledge-workspace-curated-search"
+					icon="search"
+					active={searchOpen}
+					ariaLabel="Search workspace files"
+					tooltip="Search"
+					onClick={() => {
+						searchOpen = !searchOpen;
+						if (!searchOpen) listSearch = '';
+					}}
+				/>
+				<ObsidianButton
+					class="knowledge-workspace-curated-add"
+					icon="plus"
+					text="Add notes"
+					ariaLabel="Add notes"
+					onClick={() => (addNotesOpen = true)}
+				/>
+				<ObsidianButton
+					class="knowledge-workspace-curated-more"
+					icon="more-horizontal"
+					active={moreOpen}
+					ariaLabel="Workspace file actions"
+					tooltip="More actions"
+					onClick={() => (moreOpen = !moreOpen)}
 				/>
 			</header>
-			<div class="knowledge-workspace-curated-search">
-				<ObsidianSuggestInput
-					{app}
-					type="search"
-					placeholder="Add note..."
-					ariaLabel="Add note to workspace"
-					value={fileSearch}
-					options={fileOptions}
-					onInput={(value) => {
-						fileSearch = value;
-					}}
-					onSelect={(option) => {
-						onAddFile(option.value, selectedAddGroupId);
-						fileSearch = '';
-					}}
+			{#if moreOpen}
+				<div class="knowledge-workspace-curated-overflow">
+					<ObsidianButton
+						text="Auto-focus on click"
+						icon="crosshair"
+						active={focusOnSelect}
+						onClick={() => {
+							onToggleFocusOnSelect();
+							moreOpen = false;
+						}}
+					/>
+					<ObsidianButton
+						text="Clear workspace"
+						icon="trash-2"
+						disabled={curated.files.length === 0}
+						destructive={true}
+						onClick={() => {
+							clearAll();
+							moreOpen = false;
+						}}
+					/>
+				</div>
+			{/if}
+			{#if searchOpen}
+				<div class="knowledge-workspace-curated-list-search">
+					<ObsidianTextInput
+						type="search"
+						placeholder="Search workspace files..."
+						ariaLabel="Search workspace files"
+						value={listSearch}
+						onInput={(value) => (listSearch = value)}
+					/>
+					{#if listSearchActive}
+						<ObsidianButton
+							icon="x"
+							class="knowledge-workspace-curated-list-search-clear"
+							ariaLabel="Clear workspace file search"
+							tooltip="Clear search"
+							onClick={() => (listSearch = '')}
+						/>
+					{/if}
+				</div>
+			{/if}
+			<div class="knowledge-workspace-curated-filter-bar">
+				<ObsidianButton
+					icon="list-filter"
+					text="Filter"
+					active={filterCount > 0}
+					ariaLabel="Filter workspace files"
+					onClick={() => (filterModalOpen = true)}
 				/>
-				<ObsidianDropdown
-					value={addGroupId}
-					options={addGroupOptions}
-					ariaLabel="Group for added files"
-					onChange={(value) => (addGroupId = value)}
-				/>
+				{#if filterCount > 0}
+					<button
+						type="button"
+						class="knowledge-workspace-curated-filter-chip"
+						onclick={() => (filterModalOpen = true)}
+					>
+						{filterCount} conditions
+					</button>
+				{/if}
 			</div>
 			<div class="knowledge-workspace-curated-actions">
 				{#if selectedCount > 0}
@@ -447,48 +493,12 @@
 						tooltip="Clear selection"
 						onClick={clearSelection}
 					/>
-				{:else}
+				{:else if filterCount > 0 || listSearchActive}
 					<ObsidianButton
-						text="Filter files"
-						icon="list-filter"
-						onClick={openConditionModal}
-					/>
-					<CuratedBatchAdd
-						open={batchOpen}
-						input={batchInput}
-						status={batchStatus}
-						groupId={addGroupId}
-						groupOptions={addGroupOptions}
-						onOpen={() => (batchOpen = true)}
-						onClose={() => (batchOpen = false)}
-						onInput={(value) => (batchInput = value)}
-						onAdd={addBatch}
-						onGroupChange={(value) => (addGroupId = value)}
-					/>
-					<ObsidianButton
-						text="Clear all"
-						icon="x"
-						disabled={curated.files.length === 0}
-						destructive={true}
-						onClick={clearAll}
-					/>
-				{/if}
-			</div>
-			<div class="knowledge-workspace-curated-list-search">
-				<ObsidianTextInput
-					type="search"
-					placeholder="Search workspace files..."
-					ariaLabel="Search workspace files"
-					value={listSearch}
-					onInput={(value) => (listSearch = value)}
-				/>
-				{#if listSearchActive}
-					<ObsidianButton
-						icon="x"
-						class="knowledge-workspace-curated-list-search-clear"
-						ariaLabel="Clear workspace file search"
-						tooltip="Clear search"
-						onClick={() => (listSearch = '')}
+						text="Select all matching"
+						icon="list-checks"
+						disabled={filteredSelectedFiles.length === 0}
+						onClick={selectAllMatching}
 					/>
 				{/if}
 			</div>
@@ -497,7 +507,7 @@
 				selectedTitleCounts={filteredSelectedTitleCounts}
 				{getGroupOptions}
 				selectedPaths={selected}
-				reorderEnabled={!listSearchActive}
+				reorderEnabled={!listSearchActive && filterCount === 0}
 				onToggleSelected={toggleSelected}
 				onFileClick={handleFileClick}
 				onPointerDown={handleFilePointerDown}
@@ -511,23 +521,30 @@
 			/>
 		</section>
 	{/if}
-	<CuratedConditionModal
+	<AddNotesModal
 		{app}
-		open={conditionModalOpen}
+		open={addNotesOpen}
 		{nodes}
-		{selectedPaths}
+		existingPaths={selectedPaths}
 		{workspaceFilePath}
 		{nodeColors}
-		{addGroupId}
-		{addGroupOptions}
-		{selectedAddGroupId}
 		{folders}
-		{conditionDraft}
+		draft={addNotesDraft}
+		groupId={addGroupId}
+		groupOptions={addGroupOptions}
+		showGroup={true}
+		onDraftChange={(draft) => (addNotesDraft = draft)}
 		onGroupChange={(value) => (addGroupId = value)}
-		{onConditionDraftChange}
 		{onAddFiles}
-		onRemoveFiles={removeFiles}
-		onSelectFiles={(paths) => onSelectedPathsChange(new Set(paths))}
-		onClose={() => (conditionModalOpen = false)}
+		onClose={() => (addNotesOpen = false)}
+	/>
+	<NoteFilterModal
+		{app}
+		open={filterModalOpen}
+		{nodes}
+		{folders}
+		draft={conditionDraft}
+		onDraftChange={onConditionDraftChange}
+		onClose={() => (filterModalOpen = false)}
 	/>
 </aside>

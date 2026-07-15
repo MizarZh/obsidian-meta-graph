@@ -48,7 +48,7 @@ settings to report them in the developer console.
 4. Use the toolbar settings buttons to edit graph settings, filters, note
    styles, and link styles in one panel.
 5. Use **Source → Query** for filter-driven charts, or **Source → Workspace**
-   to manually add a fixed set of notes. Workspace source shows selected notes,
+   to manually add a fixed set of notes. Workspace source shows workspace files,
    including isolated notes, and existing metadata links between them.
 6. Set workspace default note/link styles, then optionally add one chart
    override card. If no chart override exists, the chart inherits the workspace
@@ -70,9 +70,10 @@ settings to report them in the developer console.
 11. Use the bottom connection panel to select or add the metadata field used for
     new links. Set the field direction to **One-way** or **Two-way** from the
     direction dropdown.
-12. Hold `Ctrl`, drag from one node to another, and release to add a link to the
-    selected metadata field. One-way writes the source note only; two-way writes
-    both notes so each note links to the other.
+12. Use **Details** for quick connections, or drag the link button on a pinned
+    note or template to a graph node. `Ctrl`-drag between graph nodes remains an
+    advanced shortcut. One-way writes the source note only; two-way writes both
+    notes so each note links to the other.
 13. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
     through the force-directed layout. Nearby nodes can move with the graph
     forces, and the layout keeps settling briefly after release. Use
@@ -97,17 +98,17 @@ settings to report them in the developer console.
     `Shift`-click for local relationship focus, right-click for selection
     details, and `Ctrl`-drag between nodes to add links. Use **Face opacity** in
     **Graph** settings to control cube face transparency.
-18. Use the right dock panel to keep templates and selected notes in a compact
-    vertical list. Add or edit templates from the dock, choose an optional
-    default group for template-created notes, drag items in the dock to reorder
-    them, and hold `Ctrl` while dragging a dock item to connect it to a graph
-    node.
+18. Use **Details**, **Pinned notes**, and **Templates** in the right panel. Only
+    one tab is shown at a time. Pinned notes use the same searchable, filterable
+    **Add notes** picker as Workspace files. Template editing opens in a modal;
+    drag a row to the graph or use its explicit **Create** and link buttons.
 19. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
     workspace is focused, to undo connection edits made in the current workspace
     session.
-20. Choose **Open notes in** under **Settings -> Meta Graph** to open selected
-    nodes in a new tab, a reused right split, or a floating read-only preview
-    inside the graph.
+20. Choose **Open notes in** under **Settings -> Meta Graph** to open notes in a
+    new tab or a reused right split. Use **Preview** in **Details** for a read-only
+    preview inside the right panel. **After creating a note** controls whether
+    template-created notes stay on the graph or open with the same policy.
 21. Select **Debug** to inspect or copy the current query, projection,
     canonical index, adjacency maps, and unresolved links as JSON.
 

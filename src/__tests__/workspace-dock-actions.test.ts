@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	addDockNoteInState,
+	addDockNotesInState,
 	addDockTemplateInState,
 	reorderDockNotesInState,
 	reorderDockTemplatesInState,
@@ -37,6 +38,16 @@ describe('workspace dock actions', () => {
 
 		expect(result.changed).toBe(true);
 		expect(result.state.dock.notes[0]?.path).toBe('New.md');
+	});
+
+	it('adds multiple dock notes in one state transition', () => {
+		const state = createWorkspaceState(100);
+		const result = addDockNotesInState(state, ['A.md', 'B.md', 'A.md']);
+
+		expect(result.dock.notes.map((note) => note.path)).toEqual([
+			'A.md',
+			'B.md',
+		]);
 	});
 
 	it('reorders dock notes from a complete ordered path list', () => {
