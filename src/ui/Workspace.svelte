@@ -119,7 +119,6 @@
 	let settingsPanel = $state<SettingsPanelMode | undefined>(undefined);
 	let settingsPopoverLeft = $state(0);
 	let connectionDrag = $state<ConnectionDragState | undefined>(undefined);
-	let previewNodeId = $state<string | undefined>(undefined);
 	let graphConnectionTargetNotePath = $state<string | undefined>(undefined);
 	let graphConnectionTargetTemplateId = $state<string | undefined>(undefined);
 	let graphConnectionTargetCurated = $state(false);
@@ -335,13 +334,6 @@
 				workspaceState,
 				renderBaseline,
 			);
-			if (
-				previewNodeId &&
-				(nextState.activeChartId !== workspaceState.activeChartId ||
-					nextState.selectedNodeId !== workspaceState.selectedNodeId)
-			) {
-				previewNodeId = undefined;
-			}
 			workspaceState = nextState;
 			if (changes.manualLayoutChanged) {
 				renderBaseline.manualLayout = nextState.manualLayout;
@@ -964,7 +956,6 @@
 				{dockCuratedDropPreview}
 				{dockConnectionDrag}
 				{dockTargetNodeId}
-				{previewNodeId}
 				{dockOpen}
 				{curatedPanelOpen}
 				{connectionOpen}
@@ -977,12 +968,6 @@
 				onCreateTemplateNote={createStandaloneTemplateNote}
 				onFocusNode={(nodeId) => rendererLifecycle.focusNode(nodeId)}
 				onOpenNote={(nodeId) => void openNote(nodeId)}
-				onPreviewNote={(nodeId) => {
-					previewNodeId = nodeId;
-				}}
-				onClosePreview={() => {
-					previewNodeId = undefined;
-				}}
 				onOpenMetadataLink={(linkText, sourcePath) =>
 					void openMetadataLink(linkText, sourcePath)}
 				onCuratedSelectionChange={(paths) => {

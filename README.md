@@ -108,8 +108,8 @@ settings to report them in the developer console.
     workspace is focused, to undo connection edits made in the current workspace
     session.
 20. Choose **Open notes in** under **Settings -> Meta Graph** to open notes in a
-    new tab or a reused right split. Use **Preview** in **Details** for a read-only
-    preview inside the right panel. **After creating a note** controls whether
+    new tab or a reused right split. Toggle the eye button in **Details** to show
+    read-only note content below its metadata. **After creating a note** controls whether
     template-created notes stay on the graph or open with the same policy.
 21. Select **Debug** to inspect or copy the current query, projection,
     canonical index, adjacency maps, and unresolved links as JSON.

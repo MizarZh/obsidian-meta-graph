@@ -39,7 +39,6 @@
 		dockCuratedDropPreview,
 		dockConnectionDrag,
 		dockTargetNodeId,
-		previewNodeId,
 		dockOpen,
 		curatedPanelOpen,
 		connectionOpen,
@@ -51,8 +50,6 @@
 		onCreateTemplateNote,
 		onFocusNode,
 		onOpenNote,
-		onPreviewNote,
-		onClosePreview,
 		onOpenMetadataLink,
 		onCuratedSelectionChange,
 		onCuratedConditionDraftChange,
@@ -79,7 +76,6 @@
 		dockCuratedDropPreview?: DockCuratedDropPreview;
 		dockConnectionDrag?: DockDragPayload;
 		dockTargetNodeId?: string;
-		previewNodeId?: string;
 		dockOpen: boolean;
 		curatedPanelOpen: boolean;
 		connectionOpen: boolean;
@@ -97,8 +93,6 @@
 		onCreateTemplateNote: (templateId: string, label: string) => void;
 		onFocusNode: (nodeId: string) => void;
 		onOpenNote: (nodeId: string) => void;
-		onPreviewNote: (nodeId: string) => void;
-		onClosePreview: () => void;
 		onOpenMetadataLink: (linkText: string, sourcePath: string) => void;
 		onCuratedSelectionChange: (paths: Set<string>) => void;
 		onCuratedConditionDraftChange: (draft: CuratedConditionDraft) => void;
@@ -275,7 +269,6 @@
 	{selectedNodeColor}
 	mode={workspaceState.mode}
 	manualLayout={workspaceState.manualLayout}
-	{previewNodeId}
 	onAddTemplate={(template) => controller.addDockTemplate(template)}
 	onUpdateTemplate={(templateId, template) =>
 		controller.updateDockTemplate(templateId, template)}
@@ -289,8 +282,6 @@
 	{onCuratedPointerDown}
 	{onCreateTemplateNote}
 	{onOpenNote}
-	{onPreviewNote}
-	{onClosePreview}
 	{onOpenMetadataLink}
 	onSetNodeGroup={(path, groupId) => controller.setNodeGroup(path, groupId)}
 	onConnectNode={(sourcePath, targetPath, field) => {

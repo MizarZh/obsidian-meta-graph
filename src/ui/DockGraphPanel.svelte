@@ -23,7 +23,6 @@
 	import Inspector from './Inspector.svelte';
 	import AddNotesModal from './notes/AddNotesModal.svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import InternalNotePreview from './workspace/InternalNotePreview.svelte';
 
 	type RightPanelTab = 'details' | 'pinned' | 'templates';
 
@@ -50,7 +49,6 @@
 		selectedNodeColor,
 		mode,
 		manualLayout,
-		previewNodeId,
 		onAddTemplate,
 		onUpdateTemplate,
 		onRemoveTemplate,
@@ -62,8 +60,6 @@
 		onCuratedPointerDown,
 		onCreateTemplateNote,
 		onOpenNote,
-		onPreviewNote,
-		onClosePreview,
 		onOpenMetadataLink,
 		onSetNodeGroup,
 		onConnectNode,
@@ -93,7 +89,6 @@
 		selectedNodeColor?: string;
 		mode: ViewMode;
 		manualLayout: ManualLayoutConfig;
-		previewNodeId?: string;
 		onAddTemplate: (template: Omit<DockTemplateNode, 'id'>) => void;
 		onUpdateTemplate: (
 			templateId: string,
@@ -114,8 +109,6 @@
 		) => boolean;
 		onCreateTemplateNote: (templateId: string, label: string) => void;
 		onOpenNote: (nodeId: string) => void;
-		onPreviewNote: (nodeId: string) => void;
-		onClosePreview: () => void;
 		onOpenMetadataLink: (linkText: string, sourcePath: string) => void;
 		onSetNodeGroup: (path: string, groupId?: string) => void;
 		onConnectNode: (
@@ -129,6 +122,7 @@
 	} = $props();
 
 	let activeTab = $state<RightPanelTab>('details');
+	let detailsContentVisible = $state(false);
 	let addNotesOpen = $state(false);
 	let addNotesDraft = $state(createCuratedConditionDraft());
 
@@ -219,14 +213,7 @@
 		</div>
 		{#if activeTab === 'details'}
 			<div class="knowledge-workspace-details-tab">
-				{#if previewNodeId}
-					<InternalNotePreview
-						{app}
-						filePath={previewNodeId}
-						onClose={onClosePreview}
-						onOpen={onOpenNote}
-					/>
-				{:else if selectedNode}
+				{#if selectedNode}
 					<Inspector
 						{app}
 						node={selectedNode}
@@ -235,11 +222,13 @@
 						{mode}
 						{manualLayout}
 						{activeConnectionField}
+						contentVisible={detailsContentVisible}
 						{onOpenNote}
-						{onPreviewNote}
 						{onOpenMetadataLink}
 						{onSetNodeGroup}
 						{onConnectNode}
+						onContentVisibleChange={(visible) =>
+							(detailsContentVisible = visible)}
 					/>
 				{:else}
 					<div class="knowledge-workspace-dock-empty">

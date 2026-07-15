@@ -1,24 +1,16 @@
 <script lang="ts">
 	import { Component, MarkdownRenderer, TFile, type App } from 'obsidian';
-	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
 
 	let {
 		app,
 		filePath,
-		onClose,
-		onOpen,
 	}: {
 		app: App;
 		filePath: string;
-		onClose: () => void;
-		onOpen: (filePath: string) => void;
 	} = $props();
 
 	let contentEl: HTMLDivElement;
 	let errorMessage = $state('');
-	const title = $derived(
-		filePath.split('/').pop()?.replace(/\.md$/u, '') ?? filePath,
-	);
 
 	$effect(() => {
 		const target = contentEl;
@@ -69,23 +61,6 @@
 </script>
 
 <section class="knowledge-workspace-internal-preview">
-	<header>
-		<strong title={filePath}>{title}</strong>
-		<div>
-			<ObsidianButton
-				icon="file-text"
-				ariaLabel="Open note"
-				tooltip="Open note"
-				onClick={() => onOpen(filePath)}
-			/>
-			<ObsidianButton
-				icon="x"
-				ariaLabel="Close preview"
-				tooltip="Close preview"
-				onClick={onClose}
-			/>
-		</div>
-	</header>
 	{#if errorMessage}
 		<div class="knowledge-workspace-internal-preview-error">
 			{errorMessage}

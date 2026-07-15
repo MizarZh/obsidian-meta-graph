@@ -1,11 +1,11 @@
-.knowledge-workspace-inspector span {
+.knowledge-workspace-inspector-summary {
 	overflow: hidden;
 	color: var(--text-muted);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.knowledge-workspace-inspector hr {
+.knowledge-workspace-inspector-body > hr {
 	margin: var(--size-4-1) 0;
 	border: none;
 	border-top: 1px solid var(--background-modifier-border);

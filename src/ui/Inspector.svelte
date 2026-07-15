@@ -6,6 +6,7 @@
 		ManualLayoutConfig,
 		ViewMode,
 	} from '../core/types';
+	import InternalNotePreview from './workspace/InternalNotePreview.svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
 	import ObsidianSuggestInput, {
@@ -20,11 +21,12 @@
 		mode = 'graph',
 		manualLayout = { nodes: {}, groups: [] },
 		activeConnectionField = '',
+		contentVisible = false,
 		onOpenNote = () => {},
-		onPreviewNote = () => {},
 		onOpenMetadataLink = () => {},
 		onSetNodeGroup = () => {},
 		onConnectNode = () => {},
+		onContentVisibleChange = () => {},
 	}: {
 		app: App;
 		node?: KnowledgeNode;
@@ -33,8 +35,8 @@
 		mode?: ViewMode;
 		manualLayout?: ManualLayoutConfig;
 		activeConnectionField?: string;
+		contentVisible?: boolean;
 		onOpenNote?: (path: string) => void;
-		onPreviewNote?: (path: string) => void;
 		onOpenMetadataLink?: (linkText: string, sourcePath: string) => void;
 		onSetNodeGroup?: (path: string, groupId?: string) => void;
 		onConnectNode?: (
@@ -42,6 +44,7 @@
 			targetPath: string,
 			field: string,
 		) => void;
+		onContentVisibleChange?: (visible: boolean) => void;
 	} = $props();
 
 	type MetadataSegment =
@@ -156,10 +159,12 @@
 			<strong>{node.title}</strong>
 			<div class="knowledge-workspace-inspector-header-actions">
 				<ObsidianButton
-					icon="eye"
-					ariaLabel={`Preview ${node.title}`}
-					tooltip="Preview"
-					onClick={() => onPreviewNote(node.path)}
+					class="knowledge-workspace-inspector-content-toggle"
+					icon={contentVisible ? 'fold-vertical' : 'unfold-vertical'}
+					active={contentVisible}
+					ariaLabel={`${contentVisible ? 'Fold' : 'Unfold'} ${node.title} content`}
+					tooltip={contentVisible ? 'Fold content' : 'Unfold content'}
+					onClick={() => onContentVisibleChange(!contentVisible)}
 				/>
 				<ObsidianButton
 					class="knowledge-workspace-inspector-open"
@@ -170,74 +175,89 @@
 				/>
 			</div>
 		</div>
-		<span>{node.path}</span>
-		{#if node.noteType}<span>Type: {node.noteType}</span>{/if}
-		{#if node.domains.length}<span>Domains: {node.domains.join(', ')}</span
-			>{/if}
-		{#if canAssignGroup && groupOptions.length > 0}
-			<hr />
-			<label class="knowledge-workspace-inspector-control">
-				<span>Group</span>
-				<ObsidianDropdown
-					value={selectedGroupValue}
-					options={groupOptions}
-					ariaLabel="Node group"
-					onChange={(groupId) =>
-						onSetNodeGroup(node.path, groupId || undefined)}
-				/>
-			</label>
-		{/if}
-		{#if noteOptions.length > 0 && activeConnectionField}
-			<hr />
-			<div class="knowledge-workspace-inspector-link">
-				<ObsidianSuggestInput
-					{app}
-					type="search"
-					placeholder="Add link"
-					ariaLabel="Link target"
-					value={linkTargetPath}
-					options={noteOptions}
-					showOnEmpty={true}
-					onInput={(value) => (linkTargetPath = value)}
-					onSelect={(option) => (linkTargetPath = option.value)}
-				/>
-				<span>{activeConnectionField}</span>
-				<ObsidianButton
-					icon="link"
-					ariaLabel="Add link"
-					tooltip="Add link"
-					disabled={!linkTargetPath}
-					onClick={addLink}
-				/>
-			</div>
-		{/if}
-		{#if node.metadata && Object.keys(node.metadata).length > 0}
-			<hr />
-			{#each Object.entries(node.metadata) as [key, value]}
-				<div class="knowledge-workspace-inspector-metadata">
-					<strong>{key}</strong>
-					<span>
-						{#each renderMetadataValue(value) as segment}
-							{#if segment.kind === 'link'}
-								<button
-									type="button"
-									class="knowledge-workspace-inspector-metadata-link"
-									title={segment.linkText}
-									onclick={() =>
-										onOpenMetadataLink(
-											segment.linkText,
-											node.path,
-										)}
-								>
-									{segment.text}
-								</button>
-							{:else}
-								{segment.text}
-							{/if}
-						{/each}
-					</span>
+		<div class="knowledge-workspace-inspector-body">
+			<span class="knowledge-workspace-inspector-summary"
+				>{node.path}</span
+			>
+			{#if node.noteType}
+				<span class="knowledge-workspace-inspector-summary"
+					>Type: {node.noteType}</span
+				>
+			{/if}
+			{#if node.domains.length}
+				<span class="knowledge-workspace-inspector-summary"
+					>Domains: {node.domains.join(', ')}</span
+				>
+			{/if}
+			{#if canAssignGroup && groupOptions.length > 0}
+				<hr />
+				<label class="knowledge-workspace-inspector-control">
+					<span>Group</span>
+					<ObsidianDropdown
+						value={selectedGroupValue}
+						options={groupOptions}
+						ariaLabel="Node group"
+						onChange={(groupId) =>
+							onSetNodeGroup(node.path, groupId || undefined)}
+					/>
+				</label>
+			{/if}
+			{#if noteOptions.length > 0 && activeConnectionField}
+				<hr />
+				<div class="knowledge-workspace-inspector-link">
+					<ObsidianSuggestInput
+						{app}
+						type="search"
+						placeholder="Add link"
+						ariaLabel="Link target"
+						value={linkTargetPath}
+						options={noteOptions}
+						showOnEmpty={true}
+						onInput={(value) => (linkTargetPath = value)}
+						onSelect={(option) => (linkTargetPath = option.value)}
+					/>
+					<span>{activeConnectionField}</span>
+					<ObsidianButton
+						icon="link"
+						ariaLabel="Add link"
+						tooltip="Add link"
+						disabled={!linkTargetPath}
+						onClick={addLink}
+					/>
 				</div>
-			{/each}
-		{/if}
+			{/if}
+			{#if node.metadata && Object.keys(node.metadata).length > 0}
+				<hr />
+				{#each Object.entries(node.metadata) as [key, value]}
+					<div class="knowledge-workspace-inspector-metadata">
+						<strong>{key}</strong>
+						<span>
+							{#each renderMetadataValue(value) as segment}
+								{#if segment.kind === 'link'}
+									<button
+										type="button"
+										class="knowledge-workspace-inspector-metadata-link"
+										title={segment.linkText}
+										onclick={() =>
+											onOpenMetadataLink(
+												segment.linkText,
+												node.path,
+											)}
+									>
+										{segment.text}
+									</button>
+								{:else}
+									{segment.text}
+								{/if}
+							{/each}
+						</span>
+					</div>
+				{/each}
+			{/if}
+			{#if contentVisible}
+				<hr />
+				<InternalNotePreview {app} filePath={node.path} />
+			{/if}
+		</div>
 	</section>
 {/if}
