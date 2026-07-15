@@ -5,6 +5,7 @@ import type {
 	ThreeLabelResolution,
 	ViewMode,
 } from '../../core/types';
+import { getChartTypeName } from '../../core/chart-types';
 import {
 	DEFAULT_CUBE_FREE_CAMERA,
 	DEFAULT_CUBE_FACE_OPACITY,
@@ -61,10 +62,7 @@ export function createDefaultChart(
 ): MetaGraphChart {
 	const baseId = getDefaultChartId(type);
 	const id = createUniqueChartId(baseId, existingCharts);
-	const name = createUniqueChartName(
-		getDefaultChartName(type),
-		existingCharts,
-	);
+	const name = createUniqueChartName(getChartTypeName(type), existingCharts);
 	return {
 		id,
 		name,
@@ -354,25 +352,6 @@ function getDefaultChartId(type: ViewMode): string {
 			return 'arc-diagram';
 		case 'hierarchical-edge-bundling':
 			return 'hierarchical-edge-bundling';
-	}
-}
-
-function getDefaultChartName(type: ViewMode): string {
-	switch (type) {
-		case 'graph':
-			return 'Knowledge map';
-		case 'graph-3d':
-			return '3D graph';
-		case 'cube':
-			return 'Cube graph';
-		case 'free':
-			return 'Free map';
-		case 'flow':
-			return 'Learning flow';
-		case 'arc':
-			return 'Arc diagram';
-		case 'hierarchical-edge-bundling':
-			return 'Hierarchical edge bundling';
 	}
 }
 

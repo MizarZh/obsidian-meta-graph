@@ -23,6 +23,11 @@ export type ViewMode =
 	| 'arc'
 	| 'hierarchical-edge-bundling';
 export type ChartSource = 'query' | 'curated';
+export interface CreateChartInput {
+	type: ViewMode;
+	source: ChartSource;
+	name: string;
+}
 export type ThreeLabelResolution = 'standard' | 'high' | 'ultra';
 export type SettingsPanelMode =
 	| 'graph'

@@ -4,6 +4,7 @@ import type {
 	ChartSource,
 	ChartGroup,
 	ConnectionFieldMode,
+	CreateChartInput,
 	CuratedWorkspaceConfig,
 	DefaultLinkStyle,
 	DefaultNodeStyle,
@@ -277,8 +278,8 @@ export class WorkspaceController {
 		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
-	addChart(): void {
-		const result = addChartInState(this.state);
+	addChart(input: CreateChartInput): void {
+		const result = addChartInState(this.state, input);
 		this.setWorkspaceState(result.state, result.runQuery);
 	}
 

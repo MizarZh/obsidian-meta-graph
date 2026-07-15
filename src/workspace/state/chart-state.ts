@@ -1,5 +1,6 @@
 import type {
 	ChartSource,
+	CreateChartInput,
 	MetaGraphChart,
 	ViewMode,
 	WorkspaceState,
@@ -72,13 +73,26 @@ export function setActiveChartInState(
 
 export function addChartInState(
 	state: WorkspaceState,
+	input: CreateChartInput,
 ): WorkspaceChartStateResult {
-	const chart = createDefaultChart(
-		'graph',
+	const defaultChart = createDefaultChart(
+		input.type,
 		state.query.maxNodes,
 		state.fadeDistance,
 		state.charts,
 	);
+	const chart: MetaGraphChart = {
+		...defaultChart,
+		name: input.name.trim() || defaultChart.name,
+		source: input.source,
+		layout:
+			input.type === 'cube'
+				? normalizeCubeLayout(
+						defaultChart.layout,
+						state.projection?.nodes.map((node) => node.id) ?? [],
+					)
+				: defaultChart.layout,
+	};
 	return setActiveChartInState(
 		{
 			...state,
@@ -233,7 +247,10 @@ function createUniqueChartName(
 	);
 }
 
-function createUniqueValue(baseValue: string, existingValues: Set<string>): string {
+function createUniqueValue(
+	baseValue: string,
+	existingValues: Set<string>,
+): string {
 	if (!existingValues.has(baseValue)) {
 		return baseValue;
 	}

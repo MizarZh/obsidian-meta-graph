@@ -1,11 +1,16 @@
 <script lang="ts">
-	import { setIcon, type App, type IconName } from 'obsidian';
+	import { setIcon, setTooltip, type App, type IconName } from 'obsidian';
+	import {
+		CHART_TYPE_DEFINITIONS,
+		CHART_TYPE_ORDER,
+		getChartTypeName,
+	} from '../core/chart-types';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
 	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
 	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
 	import type {
 		ChartSource,
+		CreateChartInput,
 		KnowledgeNode,
 		MetaGraphChart,
 		SettingsPanelMode,
@@ -20,7 +25,7 @@
 		activeChartId,
 		searchNodes,
 		onSelectChart,
-		onAddChart,
+		onCreateChart,
 		onRenameChart,
 		onChartType,
 		onChartSource,
@@ -41,7 +46,7 @@
 		activeChartId: string;
 		searchNodes: KnowledgeNode[];
 		onSelectChart: (id: string) => void;
-		onAddChart: () => void;
+		onCreateChart: (input: CreateChartInput) => void;
 		onRenameChart: (name: string) => void;
 		onChartType: (mode: ViewMode) => void;
 		onChartSource: (source: ChartSource) => void;
@@ -58,10 +63,14 @@
 
 	let pickerOpen = $state(false);
 	let configOpen = $state(false);
-	let creatingView = $state(false);
+	let createOpen = $state(false);
 	let viewSearch = $state('');
 	let nodeSearch = $state('');
 	let draftName = $state('');
+	let createType = $state<ViewMode | undefined>(undefined);
+	let createSource = $state<ChartSource>('query');
+	let createName = $state('');
+	let createNameEdited = $state(false);
 
 	const activeChart = $derived(
 		charts.find((chart) => chart.id === activeChartId) ?? charts[0],
@@ -84,27 +93,20 @@
 		})),
 	);
 	const VIEW_ICONS: Record<ViewMode, IconName> = {
-		graph: 'waypoints',
+		graph: 'grip',
 		'graph-3d': 'scale-3d',
 		cube: 'box',
 		free: 'move',
-		flow: 'git-fork',
+		flow: 'network',
 		arc: 'rainbow',
 		'hierarchical-edge-bundling': 'diameter',
 	};
-	const VIEW_MODE_OPTIONS = [
-		{ value: 'graph', label: 'Graph' },
-		{ value: 'graph-3d', label: '3D graph' },
-		{ value: 'cube', label: 'Cube graph' },
-		{ value: 'free', label: 'Free' },
-		{ value: 'flow', label: 'Flow' },
-		{ value: 'arc', label: 'Arc diagram' },
-		{
-			value: 'hierarchical-edge-bundling',
-			label: 'Hierarchical edge bundling',
-		},
-	];
-	const SOURCE_OPTIONS = [
+	const VIEW_MODE_OPTIONS = CHART_TYPE_ORDER.map((value) => ({
+		value,
+		label: CHART_TYPE_DEFINITIONS[value].name,
+		tooltip: CHART_TYPE_DEFINITIONS[value].description,
+	}));
+	const SOURCE_OPTIONS: Array<{ value: ChartSource; label: string }> = [
 		{ value: 'query', label: 'Query' },
 		{ value: 'curated', label: 'Curated' },
 	];
@@ -145,23 +147,32 @@
 		};
 	}
 
+	function obsidianTooltip(node: HTMLElement, tooltip: string) {
+		setTooltip(node, tooltip, { placement: 'top' });
+
+		return {
+			update(nextTooltip: string) {
+				setTooltip(node, nextTooltip, { placement: 'top' });
+			},
+		};
+	}
+
 	function togglePicker(): void {
 		pickerOpen = !pickerOpen;
 		configOpen = false;
-		creatingView = false;
+		createOpen = false;
 		viewSearch = '';
 	}
 
-	function openConfig(isCreating = false): void {
+	function openConfig(): void {
 		draftName = activeChart?.name ?? '';
 		configOpen = true;
-		creatingView = isCreating;
+		createOpen = false;
 		pickerOpen = false;
 	}
 
 	function closeConfig(): void {
 		configOpen = false;
-		creatingView = false;
 	}
 
 	function selectChart(id: string): void {
@@ -175,10 +186,60 @@
 		window.requestAnimationFrame(() => openConfig());
 	}
 
-	function addChart(): void {
-		onAddChart();
+	function openCreate(): void {
+		createType = undefined;
+		createSource = 'query';
+		createName = '';
+		createNameEdited = false;
+		createOpen = true;
+		configOpen = false;
 		pickerOpen = false;
-		window.requestAnimationFrame(() => openConfig(true));
+	}
+
+	function closeCreate(): void {
+		createOpen = false;
+	}
+
+	function selectCreateType(type: ViewMode): void {
+		createType = type;
+		if (!createNameEdited) {
+			createName = getUniqueChartName(type);
+		}
+	}
+
+	function getUniqueChartName(type: ViewMode): string {
+		const baseName = getChartTypeName(type);
+		const existingNames = new Set(charts.map((chart) => chart.name));
+		let name = baseName;
+		let index = 2;
+		while (existingNames.has(name)) {
+			name = `${baseName} ${index}`;
+			index += 1;
+		}
+		return name;
+	}
+
+	function createChart(): void {
+		const name = createName.trim();
+		if (!createType || !name) {
+			return;
+		}
+		onCreateChart({ type: createType, source: createSource, name });
+		closeCreate();
+	}
+
+	function handleCreateKeydown(event: KeyboardEvent): void {
+		if (event.key === 'Enter' && createType && createName.trim()) {
+			event.preventDefault();
+			createChart();
+		}
+	}
+
+	function handleWindowKeydown(event: KeyboardEvent): void {
+		if (event.key === 'Escape' && createOpen) {
+			event.preventDefault();
+			closeCreate();
+		}
 	}
 
 	function commitName(): void {
@@ -195,6 +256,64 @@
 		onFocusNode(nodeId);
 	}
 </script>
+
+<svelte:window onkeydown={handleWindowKeydown} />
+
+{#snippet layoutSelector(
+	selectedMode: ViewMode | undefined,
+	onSelect: (mode: ViewMode) => void,
+)}
+	<div class="knowledge-workspace-create-field">
+		<span
+			id="knowledge-workspace-layout-label"
+			class="knowledge-workspace-create-label">Layout</span
+		>
+		<div
+			class="knowledge-workspace-create-layout"
+			role="radiogroup"
+			aria-labelledby="knowledge-workspace-layout-label"
+		>
+			{#each VIEW_MODE_OPTIONS as option}
+				<button
+					type="button"
+					class:active={selectedMode === option.value}
+					role="radio"
+					aria-checked={selectedMode === option.value}
+					aria-label={option.tooltip}
+					use:obsidianTooltip={option.tooltip}
+					onclick={() => onSelect(option.value)}
+				>
+					<span
+						class="knowledge-workspace-create-layout-icon"
+						use:obsidianIcon={getViewIcon(option.value)}
+						aria-hidden="true"
+					></span>
+					<span>{option.label}</span>
+				</button>
+			{/each}
+		</div>
+	</div>
+{/snippet}
+
+{#snippet sourceSelector(
+	selectedSource: ChartSource,
+	onSelect: (source: ChartSource) => void,
+)}
+	<div class="knowledge-workspace-create-field">
+		<span class="knowledge-workspace-create-label">Source</span>
+		<div
+			class="knowledge-workspace-segmented knowledge-workspace-create-source"
+		>
+			{#each SOURCE_OPTIONS as option}
+				<ObsidianButton
+					active={selectedSource === option.value}
+					text={option.label}
+					onClick={() => onSelect(option.value)}
+				/>
+			{/each}
+		</div>
+	</div>
+{/snippet}
 
 <div class="knowledge-workspace-toolbar">
 	<div class="knowledge-workspace-view-switcher">
@@ -279,8 +398,74 @@
 					role="menuitem"
 					icon="plus"
 					text="Add view"
-					onClick={addChart}
+					onClick={openCreate}
 				/>
+			</div>
+		{/if}
+
+		{#if createOpen}
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="knowledge-workspace-view-config-backdrop"
+				onpointerdown={closeCreate}
+				oncontextmenu={(event) => {
+					event.preventDefault();
+					closeCreate();
+				}}
+			></div>
+			<div
+				class="knowledge-workspace-view-config knowledge-workspace-view-create"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="knowledge-workspace-create-view-title"
+			>
+				<header>
+					<ObsidianButton
+						class="knowledge-workspace-icon-button back"
+						ariaLabel="Back to views"
+						icon="arrow-left"
+						onClick={() => {
+							closeCreate();
+							pickerOpen = true;
+						}}
+					/>
+					<div id="knowledge-workspace-create-view-title">
+						Create view
+					</div>
+					<ObsidianButton
+						class="knowledge-workspace-icon-button close"
+						ariaLabel="Close"
+						icon="x"
+						onClick={closeCreate}
+					/>
+				</header>
+				{@render layoutSelector(createType, selectCreateType)}
+				<label class="knowledge-workspace-create-field">
+					<span>Name</span>
+					<ObsidianTextInput
+						class="knowledge-workspace-view-title-input"
+						type="text"
+						value={createName}
+						onInput={(value) => {
+							createName = value;
+							createNameEdited = true;
+						}}
+						onKeydown={handleCreateKeydown}
+					/>
+				</label>
+				{@render sourceSelector(
+					createSource,
+					(source) => (createSource = source),
+				)}
+				<div class="knowledge-workspace-create-actions">
+					<ObsidianButton text="Cancel" onClick={closeCreate} />
+					<ObsidianButton
+						text="Create view"
+						cta={true}
+						disabled={!createType || !createName.trim()}
+						onClick={createChart}
+					/>
+				</div>
 			</div>
 		{/if}
 
@@ -295,9 +480,9 @@
 				}}
 			></div>
 			<div
-				class="knowledge-workspace-view-config"
+				class="knowledge-workspace-view-config knowledge-workspace-view-create"
 				role="dialog"
-				aria-label="Configure view"
+				aria-labelledby="knowledge-workspace-configure-view-title"
 			>
 				<header>
 					<ObsidianButton
@@ -306,11 +491,12 @@
 						icon="arrow-left"
 						onClick={() => {
 							configOpen = false;
-							creatingView = false;
 							pickerOpen = true;
 						}}
 					/>
-					<div>{creatingView ? 'Create view' : 'Configure view'}</div>
+					<div id="knowledge-workspace-configure-view-title">
+						Configure view
+					</div>
 					<ObsidianButton
 						class="knowledge-workspace-icon-button close"
 						ariaLabel="Close"
@@ -318,44 +504,30 @@
 						onClick={closeConfig}
 					/>
 				</header>
-				<ObsidianTextInput
-					class="knowledge-workspace-view-title-input"
-					type="text"
-					value={draftName}
-					onInput={(value) => {
-						draftName = value;
-					}}
-					onBlur={commitName}
-				/>
-				<label>
-					<span>Source</span>
-					<ObsidianDropdown
-						value={chartSource}
-						options={SOURCE_OPTIONS}
-						onChange={(value) =>
-							onChartSource(value as ChartSource)}
-					/>
-				</label>
-				<label>
-					<span>Layout</span>
-					<ObsidianDropdown
-						value={mode}
-						options={VIEW_MODE_OPTIONS}
-						onChange={(value) => onChartType(value as ViewMode)}
-					/>
-				</label>
-				{#if !creatingView}
-					<ObsidianButton
-						class="knowledge-workspace-delete-view"
-						disabled={charts.length <= 1}
-						text="Delete view"
-						destructive={true}
-						onClick={() => {
-							onDeleteChart();
-							closeConfig();
+				{@render layoutSelector(mode, onChartType)}
+				<label class="knowledge-workspace-create-field">
+					<span>Name</span>
+					<ObsidianTextInput
+						class="knowledge-workspace-view-title-input"
+						type="text"
+						value={draftName}
+						onInput={(value) => {
+							draftName = value;
 						}}
+						onBlur={commitName}
 					/>
-				{/if}
+				</label>
+				{@render sourceSelector(chartSource, onChartSource)}
+				<ObsidianButton
+					class="knowledge-workspace-delete-view"
+					disabled={charts.length <= 1}
+					text="Delete view"
+					destructive={true}
+					onClick={() => {
+						onDeleteChart();
+						closeConfig();
+					}}
+				/>
 			</div>
 		{/if}
 	</div>

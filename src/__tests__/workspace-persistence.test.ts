@@ -13,6 +13,16 @@ import {
 } from '../workspace/state/curated-workspace';
 
 describe('workspace persistence', () => {
+	it('uses canonical names for default charts', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+
+		expect(document.charts.map((chart) => chart.name)).toEqual([
+			'Graph',
+			'Flow',
+			'Arc',
+		]);
+	});
+
 	it('serializes editable chart configuration without runtime state', () => {
 		const state = createWorkspaceState(200, 2);
 		state.selectedNodeId = 'selected.md';
@@ -282,7 +292,7 @@ describe('workspace persistence', () => {
 		const restoredDocument = normalizeMetaGraphDocument(document, 300, 1.5);
 		const restored = createWorkspaceState(300, 1.5, restoredDocument);
 
-		expect(arcChart?.name).toBe('Arc diagram');
+		expect(arcChart?.name).toBe('Arc');
 		expect(arcChart?.layout.engine).toBe('arc');
 		expect(restored.mode).toBe('arc');
 		expect(restored.arcSpacing).toBe(1.5);

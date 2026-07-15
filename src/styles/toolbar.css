@@ -403,6 +403,96 @@
 	font-size: var(--font-ui-small);
 }
 
+.knowledge-workspace-view-create {
+	width: min(420px, calc(100vw - var(--size-4-6, 24px)));
+	max-height: calc(100vh - var(--size-4-12, 48px));
+	gap: var(--size-4-4);
+	overflow-y: auto;
+}
+
+.knowledge-workspace-view-create header {
+	margin-bottom: 0;
+}
+
+.knowledge-workspace-create-field,
+.knowledge-workspace-view-config label.knowledge-workspace-create-field {
+	display: grid;
+	gap: var(--size-4-2);
+	margin-top: 0;
+}
+
+.knowledge-workspace-create-label {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.knowledge-workspace-create-layout {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--size-4-2);
+}
+
+.knowledge-workspace-create-layout button {
+	display: grid;
+	grid-template-columns: 24px minmax(0, 1fr);
+	gap: var(--size-4-2);
+	align-items: center;
+	min-width: 0;
+	min-height: 48px;
+	padding: var(--size-4-2) var(--size-4-3);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary-alt);
+	box-shadow: none;
+	color: var(--text-normal);
+	line-height: var(--line-height-tight);
+	text-align: left;
+}
+
+.knowledge-workspace-create-layout button:hover {
+	border-color: var(--background-modifier-border-hover);
+	background: var(--background-modifier-hover);
+}
+
+.knowledge-workspace-create-layout button.active {
+	border-color: var(--interactive-accent);
+	background: var(--background-modifier-active-hover);
+	color: var(--interactive-accent);
+}
+
+.knowledge-workspace-create-layout button:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 1px;
+}
+
+.knowledge-workspace-create-layout-icon {
+	display: grid;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+}
+
+.knowledge-workspace-create-layout-icon svg {
+	width: 20px;
+	height: 20px;
+}
+
+.knowledge-workspace-create-source .knowledge-workspace-obsidian-control {
+	flex: 1 1 0;
+}
+
+.knowledge-workspace-create-source button {
+	width: 100%;
+}
+
+.knowledge-workspace-create-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--size-4-2);
+	padding-top: var(--size-4-3);
+	border-top: 1px solid var(--background-modifier-border);
+}
+
 .knowledge-workspace-delete-view {
 	width: 100%;
 	margin-top: var(--size-4-3);

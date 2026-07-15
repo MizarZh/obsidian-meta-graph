@@ -40,15 +40,27 @@ describe('workspace chart state', () => {
 		expect(result).toEqual({ state, runQuery: false });
 	});
 
-	it('adds a graph chart and makes it active', () => {
+	it('creates the requested chart in one state transition', () => {
 		const state = createWorkspaceState(100);
 
-		const result = addChartInState(state);
+		const result = addChartInState(state, {
+			type: 'arc',
+			source: 'curated',
+			name: 'Project timeline',
+		});
 
 		expect(result.runQuery).toBe(true);
 		expect(result.state.charts).toHaveLength(state.charts.length + 1);
-		expect(result.state.activeChartId).toBe('knowledge-map-2');
-		expect(result.state.mode).toBe('graph');
+		expect(result.state.activeChartId).toBe('arc-diagram-2');
+		expect(result.state.mode).toBe('arc');
+		expect(result.state.chartSource).toBe('curated');
+		expect(result.state.charts.at(-1)).toMatchObject({
+			id: 'arc-diagram-2',
+			name: 'Project timeline',
+			type: 'arc',
+			source: 'curated',
+		});
+		expect(result.state.layoutRevision).toBe(state.layoutRevision + 1);
 	});
 
 	it('renames the active chart without running the query', () => {
@@ -83,7 +95,11 @@ describe('workspace chart state', () => {
 
 	it('deletes the active chart and activates the first remaining chart', () => {
 		const state = setActiveChartInState(
-			addChartInState(createWorkspaceState(100)).state,
+			addChartInState(createWorkspaceState(100), {
+				type: 'graph',
+				source: 'query',
+				name: 'Graph 2',
+			}).state,
 			'knowledge-map-2',
 		).state;
 
@@ -109,7 +125,10 @@ describe('workspace chart state', () => {
 							...chart,
 							layout: {
 								...chart.layout,
-								manual: { nodes: { 'a.md': { x: 1, y: 2 } }, groups: [] },
+								manual: {
+									nodes: { 'a.md': { x: 1, y: 2 } },
+									groups: [],
+								},
 							},
 						}
 					: chart,
@@ -131,7 +150,10 @@ describe('workspace chart state', () => {
 	it('duplicates the active chart before changing source', () => {
 		const state = createWorkspaceState(100);
 
-		const result = duplicateActiveChartAndSetSourceInState(state, 'curated');
+		const result = duplicateActiveChartAndSetSourceInState(
+			state,
+			'curated',
+		);
 
 		expect(result.runQuery).toBe(true);
 		expect(result.state.charts).toHaveLength(state.charts.length + 1);

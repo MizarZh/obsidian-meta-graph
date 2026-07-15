@@ -892,7 +892,7 @@
 		activeChartId={workspaceState.activeChartId}
 		searchNodes={searchableNodes}
 		onSelectChart={(id) => controller.setActiveChart(id)}
-		onAddChart={() => controller.addChart()}
+		onCreateChart={(input) => controller.addChart(input)}
 		onRenameChart={(name) => controller.setActiveChartName(name)}
 		onChartType={requestChartTypeChange}
 		onChartSource={requestChartSourceChange}

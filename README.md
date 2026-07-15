@@ -42,8 +42,8 @@ settings to report them in the developer console.
 
 1. Enable **Meta Graph** in **Settings → Community plugins**.
 2. Run **Create graph** from the command palette.
-3. Add or select a chart in the graph toolbar. Graph, 3D graph, Cube graph,
-   Free, Flow, Arc diagram, and Hierarchical edge bundling layouts each keep
+3. Add or select a chart in the graph toolbar. Graph, 3D graph, Cube, Free, Flow,
+   Arc, and HEB (hierarchical edge bundling) layouts each keep
    their own source, query, layout, display, and style settings.
 4. Use the toolbar settings buttons to edit graph settings, filters, note
    styles, and link styles in one panel.
@@ -66,7 +66,7 @@ settings to report them in the developer console.
    file, not note frontmatter.
 10. Increase **Label density** in **Graph** settings when Sigma samples too few
     labels while zoomed out. Enable **Always show labels** to force every visible
-    note label through Sigma's label grid. In 3D graph and Cube graph, use
+    note label through Sigma's label grid. In 3D graph and Cube layouts, use
     **3D text clarity** in **Text style** to increase label texture resolution;
     higher settings use more GPU memory.
 11. Use the bottom connection panel to select or add the metadata field used for
@@ -95,7 +95,7 @@ settings to report them in the developer console.
     region.
 16. Drag a node into a manual group and release to assign it to that group.
     Drag it out and release over empty space to remove it from the group.
-17. In Cube graph views, each cube face is a group. Drag the background to
+17. In Cube views, each cube face is a group. Drag the background to
     rotate the cube, drag nodes within their face to save their placement, use
     `Shift`-click for local relationship focus, right-click for selection
     details, and `Ctrl`-drag between nodes to add links. Use **Face opacity** in
@@ -133,7 +133,7 @@ meta-graph-version: 1
 ---
 charts:
     - id: knowledge-map
-      name: Knowledge map
+      name: Graph
       type: graph
       source: query
       query:
