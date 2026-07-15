@@ -32,8 +32,12 @@ describe('workspace change tracker', () => {
 		expect(changes.shouldRebuild).toBe(false);
 	});
 
-	it('rebuilds grouped Arc and HEB layouts without refitting', () => {
-		for (const mode of ['arc', 'hierarchical-edge-bundling'] as const) {
+	it('rebuilds grouped Flow, Arc, and HEB layouts without refitting', () => {
+		for (const mode of [
+			'flow',
+			'arc',
+			'hierarchical-edge-bundling',
+		] as const) {
 			const state = { ...createWorkspaceState(200), mode };
 			const nextState = {
 				...state,

@@ -262,7 +262,8 @@ export function analyzeWorkspaceStateChanges(
 		shouldRebuild:
 			projectionChanged ||
 			(groupingChanged &&
-				(nextState.mode === 'arc' ||
+				(nextState.mode === 'flow' ||
+					nextState.mode === 'arc' ||
 					nextState.mode === 'hierarchical-edge-bundling')) ||
 			stateDiffersFromBaseline(
 				nextState,

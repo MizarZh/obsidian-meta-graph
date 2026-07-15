@@ -22,7 +22,16 @@ export interface RadialGroupGeometry extends LayoutGroupGeometryBase {
 	outerRadius: number;
 }
 
-export type LayoutGroupGeometry = ArcGroupGeometry | RadialGroupGeometry;
+export interface FlowGroupGeometry extends LayoutGroupGeometryBase {
+	kind: 'flow-container';
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
+export type LayoutGroupGeometry =
+	ArcGroupGeometry | RadialGroupGeometry | FlowGroupGeometry;
 
 export function normalizeLayoutGroupPadding(padding: number): number {
 	return Math.min(5, Math.max(0, padding));

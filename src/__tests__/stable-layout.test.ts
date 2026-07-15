@@ -140,6 +140,19 @@ describe('stable layout orchestration', () => {
 			arcLabelAngle: 'auto',
 			nodeSort: 'name',
 			nodeSortDirection: 'asc',
+			groups: [
+				{
+					id: 'research',
+					name: 'Research',
+					color: '#7c6ff0',
+					mode: 'manual',
+					padding: 0.32,
+				},
+			],
+			groupByNode: new Map([
+				['A.md', 'research'],
+				['B.md', 'research'],
+			]),
 		});
 
 		expect(graph.getNodeAttributes('B.md')).toMatchObject({
@@ -149,6 +162,12 @@ describe('stable layout orchestration', () => {
 		});
 		expect(snapshot.positions.get('B.md')).toEqual({ x: 220, y: 0 });
 		expect(snapshot.edgeIds).toEqual(new Set(['A-to-B']));
+		expect(snapshot.groupGeometries).toEqual([
+			expect.objectContaining({
+				kind: 'flow-container',
+				groupId: 'research',
+			}),
+		]);
 	});
 
 	it('reruns graph layout when force layout is requested', async () => {

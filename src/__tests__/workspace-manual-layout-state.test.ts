@@ -153,6 +153,23 @@ describe('workspace manual layout state', () => {
 		expect(nextState.grouping).not.toBe(state.grouping);
 	});
 
+	it('assigns Flow nodes through grouping without manual positions', () => {
+		let state = setActiveChartTypeInState(
+			createWorkspaceState(100),
+			'flow',
+		).state;
+		state = addGroupInState(state);
+		const group = state.grouping.groups[0];
+		if (!group) {
+			throw new Error('Group is missing.');
+		}
+
+		state = setNodeGroupInState(state, 'A.md', group.id);
+
+		expect(state.grouping.overrides['A.md']).toBe(group.id);
+		expect(state.manualLayout.nodes['A.md']).toBeUndefined();
+	});
+
 	it('reorders chart groups as their conflict priority', () => {
 		let state = addGroupInState(createWorkspaceState(100));
 		state = addGroupInState(state);

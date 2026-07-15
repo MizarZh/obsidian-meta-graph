@@ -5,6 +5,7 @@ import type {
 } from '../../model/graphology-adapter';
 import type {
 	ArcGroupGeometry,
+	FlowGroupGeometry,
 	LayoutGroupGeometry,
 	RadialGroupGeometry,
 } from '../../../layouts/group-geometry';
@@ -65,8 +66,10 @@ export class LayoutGroupLayer {
 		for (const geometry of this.geometries) {
 			if (geometry.kind === 'arc-band') {
 				this.drawArcBand(geometry);
-			} else {
+			} else if (geometry.kind === 'radial-sector') {
 				this.drawRadialSector(geometry);
+			} else {
+				this.drawFlowContainer(geometry);
 			}
 		}
 	}
@@ -194,6 +197,65 @@ export class LayoutGroupLayer {
 				tangentEnd.y - tangentStart.y,
 				tangentEnd.x - tangentStart.x,
 			),
+			geometry.color,
+		);
+	}
+
+	private drawFlowContainer(geometry: FlowGroupGeometry): void {
+		const corners = [
+			this.sigma.graphToViewport({ x: geometry.x, y: geometry.y }),
+			this.sigma.graphToViewport({
+				x: geometry.x + geometry.width,
+				y: geometry.y,
+			}),
+			this.sigma.graphToViewport({
+				x: geometry.x + geometry.width,
+				y: geometry.y + geometry.height,
+			}),
+			this.sigma.graphToViewport({
+				x: geometry.x,
+				y: geometry.y + geometry.height,
+			}),
+		];
+		const first = corners[0];
+		const second = corners[1];
+		if (!first || !second) {
+			return;
+		}
+
+		this.context.save();
+		this.context.globalAlpha = 0.07;
+		this.context.fillStyle = geometry.color;
+		this.context.beginPath();
+		this.context.moveTo(first.x, first.y);
+		for (const corner of corners.slice(1)) {
+			this.context.lineTo(corner.x, corner.y);
+		}
+		this.context.closePath();
+		this.context.fill();
+		this.context.globalAlpha = 0.58;
+		this.context.strokeStyle = geometry.color;
+		this.context.lineWidth = 1.5;
+		this.context.lineJoin = 'round';
+		this.context.stroke();
+		this.context.restore();
+
+		const edgeCenter = {
+			x: (first.x + second.x) / 2,
+			y: (first.y + second.y) / 2,
+		};
+		const containerCenter = this.sigma.graphToViewport({
+			x: geometry.x + geometry.width / 2,
+			y: geometry.y + geometry.height / 2,
+		});
+		const inward = normalize({
+			x: containerCenter.x - edgeCenter.x,
+			y: containerCenter.y - edgeCenter.y,
+		});
+		this.drawLabel(
+			geometry.name,
+			add(edgeCenter, scale(inward, 13)),
+			Math.atan2(second.y - first.y, second.x - first.x),
 			geometry.color,
 		);
 	}

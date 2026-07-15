@@ -69,6 +69,7 @@ export function setNodeGroupInState(
 	if (
 		activeChart.type !== 'free' &&
 		activeChart.type !== 'cube' &&
+		activeChart.type !== 'flow' &&
 		activeChart.type !== 'arc' &&
 		activeChart.type !== 'hierarchical-edge-bundling'
 	) {
@@ -235,6 +236,7 @@ export function moveCuratedFilesToGroupInState(
 	}
 	const activeChart = getActiveChart(state);
 	if (
+		activeChart.type === 'flow' ||
 		activeChart.type === 'arc' ||
 		activeChart.type === 'hierarchical-edge-bundling'
 	) {

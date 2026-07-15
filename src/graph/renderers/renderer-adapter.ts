@@ -84,7 +84,7 @@ const MODE_CAPABILITIES: Record<ViewMode, ModeCapabilities> = {
 		rendererKind: 'sigma',
 		usesSigmaForceSimulation: false,
 		supportsFreeNodeDrag: false,
-		supportsGroups: false,
+		supportsGroups: true,
 		supportsManualGroups: false,
 	},
 	arc: {

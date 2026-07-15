@@ -17,6 +17,7 @@ import type {
 import { ArcLayout } from './arc-layout';
 import {
 	applyOrthogonalFlowEdges,
+	createFlowGroupGeometriesFromGraph,
 	ElkFlowLayout,
 	type OrthogonalRouteMap,
 } from './elk-flow-layout';
@@ -123,7 +124,6 @@ export async function applyStableLayout(
 		currentEdgeIds: getLogicalEdgeIds(graph),
 	};
 
-	snapshot.groupGeometries = [];
 	await LAYOUT_STRATEGIES[options.mode](context);
 	snapshotRuntimePositions(graph, snapshot.positions);
 }
@@ -225,9 +225,12 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 			options.flowLayerSpacing,
 			options.flowLaneSpacing,
 			options.flowRelationRules,
+			options.groups,
+			options.groupByNode,
 		);
 		await layout.apply(graph);
 		snapshot.flowRelationConflictCount = layout.getConflictCount();
+		snapshot.groupGeometries = layout.getGroupGeometries();
 		snapshot.edgeIds = currentEdgeIds;
 		snapshot.orthogonalRoutes =
 			options.flowEdgeStyle === 'orthogonal'
@@ -242,6 +245,11 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 		if (options.flowEdgeStyle === 'orthogonal') {
 			applyOrthogonalFlowEdges(graph, snapshot.orthogonalRoutes);
 		}
+		snapshot.groupGeometries = createFlowGroupGeometriesFromGraph(
+			graph,
+			options.groups ?? [],
+			options.groupByNode ?? new Map(),
+		);
 	}
 
 	if (flowEdgesChanged) {

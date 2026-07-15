@@ -61,9 +61,12 @@ settings to report them in the developer console.
    visible graph without rerunning layout. Color inputs are throttled while
    dragging so changes preview live without rebuilding the graph for every
    pointer event.
-9. Use **Group** settings to add chart-local groups, rename them, set colors,
-   and edit their Free-view region geometry. Groups are saved in the workspace
-   file, not note frontmatter.
+9. Use **Group** settings to add chart-local groups, set priority, colors,
+   padding, and Manual or Rule membership. Each note belongs to at most one
+   group; an explicit assignment or Ungrouped override takes priority over
+   rules. Arc, Hierarchical edge bundling, Flow, Free, and Cube render groups
+   according to their layout. Groups are saved in the workspace file, not note
+   frontmatter.
 10. Increase **Label density** in **Graph** settings when Sigma samples too few
     labels while zoomed out. Enable **Always show labels** to force every visible
     note label through Sigma's label grid. In 3D graph and Cube layouts, use
@@ -222,6 +225,12 @@ Flow layout has two spacing controls. **Layer spacing** controls distance along
 the flow direction. **Lane spacing** controls distance across parallel lanes.
 For left-to-right and right-to-left flows, layer spacing is horizontal and lane
 spacing is vertical.
+
+Flow groups participate in ELK layout as compound containers. Group rules and
+explicit assignments keep notes inside one colored container while preserving
+cross-group links. Changing group membership, priority, or padding reruns Flow
+layout. Edge-only refreshes still preserve existing node positions and update
+the group bounds without forcing a new layout.
 
 Use **Graph settings → Flow details → Relation placement** to control layout by
 metadata relation. **Default** follows the visible edge direction. **Before**

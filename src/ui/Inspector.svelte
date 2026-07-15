@@ -63,6 +63,7 @@
 	const canAssignGroup = $derived(
 		mode === 'free' ||
 			mode === 'cube' ||
+			mode === 'flow' ||
 			mode === 'arc' ||
 			mode === 'hierarchical-edge-bundling',
 	);
