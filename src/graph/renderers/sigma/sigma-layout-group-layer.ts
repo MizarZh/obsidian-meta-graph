@@ -7,6 +7,7 @@ import type {
 	ArcGroupGeometry,
 	FlowGroupGeometry,
 	GraphGroupGeometry,
+	GroupMemberHaloGeometry,
 	LayoutGroupGeometry,
 	RadialGroupGeometry,
 } from '../../../layouts/group-geometry';
@@ -17,6 +18,11 @@ const LAYER_ID = 'layout-groups';
 interface Point {
 	x: number;
 	y: number;
+}
+
+interface GroupMemberViewportNode {
+	position: Point;
+	radius: number;
 }
 
 export class LayoutGroupLayer {
@@ -72,8 +78,10 @@ export class LayoutGroupLayer {
 				this.drawRadialSector(geometry);
 			} else if (geometry.kind === 'flow-container') {
 				this.drawFlowContainer(geometry);
-			} else {
+			} else if (geometry.kind === 'graph-container') {
 				this.drawGraphContainer(geometry);
+			} else {
+				this.drawGroupMemberHalos(geometry);
 			}
 		}
 	}
@@ -265,22 +273,7 @@ export class LayoutGroupLayer {
 	}
 
 	private drawGraphContainer(geometry: GraphGroupGeometry): void {
-		const graph = this.sigma.getGraph();
-		const nodes = geometry.nodeIds.flatMap((nodeId) => {
-			if (!graph.hasNode(nodeId)) {
-				return [];
-			}
-			const attributes = graph.getNodeAttributes(nodeId);
-			if (attributes.hidden || attributes.isBend) {
-				return [];
-			}
-			return [
-				{
-					position: this.sigma.graphToViewport(attributes),
-					radius: Math.max(attributes.size, 3),
-				},
-			];
-		});
+		const nodes = this.readGroupMemberNodes(geometry.nodeIds);
 		if (nodes.length === 0) {
 			return;
 		}
@@ -320,9 +313,51 @@ export class LayoutGroupLayer {
 		this.context.lineWidth = 1.5;
 		this.context.stroke();
 		this.context.restore();
+		this.drawMemberHalos(nodes, geometry.color);
+
+		this.drawLabel(
+			geometry.name,
+			{ x: (left + right) / 2, y: top + 11 },
+			0,
+			geometry.color,
+		);
+	}
+
+	private drawGroupMemberHalos(geometry: GroupMemberHaloGeometry): void {
+		this.drawMemberHalos(
+			this.readGroupMemberNodes(geometry.nodeIds),
+			geometry.color,
+		);
+	}
+
+	private readGroupMemberNodes(
+		nodeIds: readonly string[],
+	): GroupMemberViewportNode[] {
+		const graph = this.sigma.getGraph();
+		return nodeIds.flatMap((nodeId) => {
+			if (!graph.hasNode(nodeId)) {
+				return [];
+			}
+			const attributes = graph.getNodeAttributes(nodeId);
+			if (attributes.hidden || attributes.isBend) {
+				return [];
+			}
+			return [
+				{
+					position: this.sigma.graphToViewport(attributes),
+					radius: Math.max(attributes.size, 3),
+				},
+			];
+		});
+	}
+
+	private drawMemberHalos(
+		nodes: readonly GroupMemberViewportNode[],
+		color: string,
+	): void {
 		this.context.save();
 		this.context.globalAlpha = 0.72;
-		this.context.strokeStyle = geometry.color;
+		this.context.strokeStyle = color;
 		this.context.lineWidth = 2;
 		for (const node of nodes) {
 			this.context.beginPath();
@@ -336,13 +371,6 @@ export class LayoutGroupLayer {
 			this.context.stroke();
 		}
 		this.context.restore();
-
-		this.drawLabel(
-			geometry.name,
-			{ x: (left + right) / 2, y: top + 11 },
-			0,
-			geometry.color,
-		);
 	}
 
 	private measureLabelWidth(text: string): number {

@@ -67,8 +67,9 @@ settings to report them in the developer console.
    rules. Graph, Arc, Hierarchical edge bundling, Flow, Free, and Cube render
    groups according to their layout. Graph groups add layout-only cohesion,
    separate clusters, dynamic member bounds, and colored member rings without
-   creating metadata links. Groups are saved in the workspace file, not note
-   frontmatter.
+   creating metadata links. Free groups keep their editable rectangles and add
+   the same colored rings to their actual members. Groups are saved in the
+   workspace file, not note frontmatter.
 10. Increase **Label density** in **Graph** settings when Sigma samples too few
     labels while zoomed out. Enable **Always show labels** to force every visible
     note label through Sigma's label grid. In 3D graph and Cube layouts, use

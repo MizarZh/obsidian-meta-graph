@@ -36,11 +36,17 @@ export interface GraphGroupGeometry extends LayoutGroupGeometryBase {
 	padding: number;
 }
 
+export interface GroupMemberHaloGeometry extends LayoutGroupGeometryBase {
+	kind: 'member-halos';
+	nodeIds: string[];
+}
+
 export type LayoutGroupGeometry =
 	| ArcGroupGeometry
 	| RadialGroupGeometry
 	| FlowGroupGeometry
-	| GraphGroupGeometry;
+	| GraphGroupGeometry
+	| GroupMemberHaloGeometry;
 
 export function normalizeLayoutGroupPadding(padding: number): number {
 	return Math.min(5, Math.max(0, padding));

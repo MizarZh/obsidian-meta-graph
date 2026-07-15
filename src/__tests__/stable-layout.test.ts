@@ -251,6 +251,57 @@ describe('stable layout orchestration', () => {
 			}),
 		]);
 	});
+
+	it('publishes halo members without changing Free positions', async () => {
+		const positions = new Map<string, GraphPosition>([
+			['A.md', { x: 10, y: 20 }],
+			['B.md', { x: 30, y: 40 }],
+		]);
+		const graph = new GraphologyAdapter(palette).fromProjection(
+			projection,
+			positions,
+		);
+		const snapshot = createLayoutSnapshot();
+
+		await applyStableLayout(graph, snapshot, [], {
+			mode: 'free',
+			forceLayout: false,
+			graphSpacing: 1,
+			graphForceSettings: DEFAULT_GRAPH_FORCE_SETTINGS,
+			flowEdgeStyle: 'straight',
+			flowDirection: 'LR',
+			flowLayerSpacing: 1,
+			flowLaneSpacing: 1,
+			arcSpacing: 1,
+			arcDirection: 'right',
+			arcLabelAngle: 'auto',
+			nodeSort: 'name',
+			nodeSortDirection: 'asc',
+			groups: [
+				{
+					id: 'research',
+					name: 'Research',
+					color: '#7c6ff0',
+					mode: 'manual',
+					padding: 0.32,
+				},
+			],
+			groupByNode: new Map([
+				['A.md', 'research'],
+				['B.md', 'research'],
+			]),
+		});
+
+		expect(graph.getNodeAttributes('A.md')).toMatchObject({ x: 10, y: 20 });
+		expect(graph.getNodeAttributes('B.md')).toMatchObject({ x: 30, y: 40 });
+		expect(snapshot.groupGeometries).toEqual([
+			expect.objectContaining({
+				kind: 'member-halos',
+				groupId: 'research',
+				nodeIds: ['A.md', 'B.md'],
+			}),
+		]);
+	});
 });
 
 function node(id: string, title: string): GraphProjection['nodes'][number] {

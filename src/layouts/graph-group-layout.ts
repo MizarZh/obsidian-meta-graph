@@ -1,6 +1,9 @@
 import type { ChartGroupDefinition } from '../core/types';
 import type { RuntimeGraph } from '../graph/model/graphology-adapter';
-import type { GraphGroupGeometry } from './group-geometry';
+import type {
+	GraphGroupGeometry,
+	GroupMemberHaloGeometry,
+} from './group-geometry';
 
 export interface GraphGroupLink {
 	groupId: string;
@@ -113,6 +116,35 @@ export function createGraphGroupGeometries(
 						name: group.name,
 						color: group.color,
 						padding: group.padding,
+						nodeIds,
+					},
+				]
+			: [];
+	});
+}
+
+export function createGroupMemberHaloGeometries(
+	graph: RuntimeGraph,
+	groups: readonly ChartGroupDefinition[],
+	groupByNode: ReadonlyMap<string, string>,
+): GroupMemberHaloGeometry[] {
+	const visibleNodeIds = graph.nodes().filter((nodeId) => {
+		const attributes = graph.getNodeAttributes(nodeId);
+		return !attributes.isBend && !attributes.hidden;
+	});
+	const membersByGroup = collectGraphGroupMembers(
+		groupByNode,
+		visibleNodeIds,
+	);
+	return groups.flatMap((group) => {
+		const nodeIds = membersByGroup.get(group.id);
+		return nodeIds?.length
+			? [
+					{
+						kind: 'member-halos' as const,
+						groupId: group.id,
+						name: group.name,
+						color: group.color,
 						nodeIds,
 					},
 				]

@@ -32,9 +32,10 @@ describe('workspace change tracker', () => {
 		expect(changes.shouldRebuild).toBe(false);
 	});
 
-	it('rebuilds grouped Graph, Flow, Arc, and HEB layouts without refitting', () => {
+	it('rebuilds grouped Graph, Free, Flow, Arc, and HEB layouts without refitting', () => {
 		for (const mode of [
 			'graph',
+			'free',
 			'flow',
 			'arc',
 			'hierarchical-edge-bundling',

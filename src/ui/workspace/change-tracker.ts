@@ -274,6 +274,7 @@ export function analyzeWorkspaceStateChanges(
 			projectionChanged ||
 			(groupingChanged &&
 				(nextState.mode === 'graph' ||
+					nextState.mode === 'free' ||
 					nextState.mode === 'flow' ||
 					nextState.mode === 'arc' ||
 					nextState.mode === 'hierarchical-edge-bundling')) ||

@@ -10,6 +10,7 @@ import {
 	compactGraphGroups,
 	createGraphGroupGeometries,
 	createGraphGroupLinks,
+	createGroupMemberHaloGeometries,
 	getGraphGroupTargetRadius,
 } from '../layouts/graph-group-layout';
 
@@ -70,6 +71,31 @@ describe('Graph groups', () => {
 				color: '#7c6ff0',
 				padding: 0.32,
 				nodeIds: ['A.md'],
+			},
+		]);
+	});
+
+	it('creates halo-only geometries for Free group members', () => {
+		const graph = createGraph();
+		graph.addNode('A.md', node(0, 0));
+		graph.addNode('B.md', node(1, 0));
+
+		expect(
+			createGroupMemberHaloGeometries(
+				graph,
+				[group('research')],
+				new Map([
+					['A.md', 'research'],
+					['B.md', 'research'],
+				]),
+			),
+		).toEqual([
+			{
+				kind: 'member-halos',
+				groupId: 'research',
+				name: 'research',
+				color: '#7c6ff0',
+				nodeIds: ['A.md', 'B.md'],
 			},
 		]);
 	});
