@@ -133,6 +133,26 @@ describe('workspace manual layout state', () => {
 		expect(state.grouping.overrides).not.toHaveProperty('A.md');
 	});
 
+	it('updates Arc padding in both chart grouping and legacy groups', () => {
+		let state = setActiveChartTypeInState(
+			createWorkspaceState(100),
+			'arc',
+		).state;
+		state = addGroupInState(state);
+		const group = state.grouping.groups[0];
+		if (!group) {
+			throw new Error('Group is missing.');
+		}
+
+		const nextState = updateGroupInState(state, group.id, {
+			padding: 0.75,
+		});
+
+		expect(nextState.grouping.groups[0]?.padding).toBe(0.75);
+		expect(nextState.manualLayout.groups[0]?.padding).toBe(0.75);
+		expect(nextState.grouping).not.toBe(state.grouping);
+	});
+
 	it('reorders chart groups as their conflict priority', () => {
 		let state = addGroupInState(createWorkspaceState(100));
 		state = addGroupInState(state);

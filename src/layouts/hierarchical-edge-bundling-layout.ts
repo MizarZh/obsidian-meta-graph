@@ -7,7 +7,7 @@ import {
 import type { ChartGroupDefinition } from '../core/types';
 import type { RuntimeGraph } from '../graph/model/graphology-adapter';
 import {
-	normalizeLayoutGroupPadding,
+	scaleLayoutGroupPadding,
 	type RadialGroupGeometry,
 } from './group-geometry';
 import type { LayoutEngine } from './layout-engine';
@@ -332,7 +332,7 @@ function createRadialGroupGeometries(
 		if (!angles?.length) {
 			return [];
 		}
-		const padding = normalizeLayoutGroupPadding(group.padding);
+		const padding = scaleLayoutGroupPadding(group.padding);
 		const angularPadding = angularStep * (0.08 + padding * 0.61);
 		return [
 			{

@@ -7,7 +7,7 @@ import type {
 import type { RuntimeGraph } from '../graph/model/graphology-adapter';
 import type { LayoutEngine } from './layout-engine';
 import {
-	normalizeLayoutGroupPadding,
+	scaleLayoutGroupPadding,
 	type ArcGroupGeometry,
 } from './group-geometry';
 import {
@@ -286,7 +286,7 @@ function createArcGroupGeometries(
 		if (!positions?.length) {
 			return [];
 		}
-		const padding = normalizeLayoutGroupPadding(group.padding);
+		const padding = scaleLayoutGroupPadding(group.padding);
 		const axisPadding = step * (0.08 + padding * 0.75);
 		return [
 			{

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
+	import { onMount } from 'svelte';
 	import type {
 		ChartGroup,
 		ChartGroupDefinition,
@@ -9,9 +10,11 @@
 		NodeFilterGroup,
 	} from '../core/types';
 	import { resolveChartGroupOwnership } from '../query/group-ownership';
+	import { ThrottledCommitScheduler } from './filter/deferred-commit';
 	import NoteFilterEditor from './notes/NoteFilterEditor.svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
+	import ObsidianSlider from './obsidian/ObsidianSlider.svelte';
 	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
 
 	let {
@@ -46,6 +49,17 @@
 		{ value: 'manual', label: 'Manual' },
 		{ value: 'rule', label: 'Rule' },
 	];
+	const PADDING_COMMIT_INTERVAL_MS = 120;
+	let paddingCommitScheduler: ThrottledCommitScheduler | undefined;
+	let paddingPreviews = $state<Record<string, number>>({});
+
+	onMount(() => {
+		paddingCommitScheduler = new ThrottledCommitScheduler(
+			window,
+			PADDING_COMMIT_INTERVAL_MS,
+		);
+		return () => paddingCommitScheduler?.clearAll();
+	});
 
 	const groups = $derived<ChartGroupDefinition[]>(
 		locked ? manualLayout.groups : grouping.groups,
@@ -86,13 +100,72 @@
 
 	function updateNumber(
 		group: ChartGroupDefinition,
-		field: 'x' | 'y' | 'width' | 'height' | 'padding',
+		field: 'x' | 'y' | 'width' | 'height',
 		value: string,
 	): void {
 		const nextValue = Number(value);
 		if (Number.isFinite(nextValue)) {
 			onUpdateGroup(group.id, { [field]: nextValue });
 		}
+	}
+
+	function schedulePadding(group: ChartGroupDefinition, value: number): void {
+		const padding = normalizePadding(value);
+		paddingPreviews[group.id] = padding;
+		const commit = (nextValue: string): void => {
+			onUpdateGroup(group.id, { padding: Number(nextValue) });
+		};
+		if (!paddingCommitScheduler) {
+			commit(String(padding));
+			return;
+		}
+		paddingCommitScheduler.schedule(
+			paddingCommitKey(group.id),
+			String(group.padding),
+			String(padding),
+			commit,
+		);
+	}
+
+	function commitPadding(group: ChartGroupDefinition, value: number): void {
+		const padding = normalizePadding(value);
+		paddingPreviews[group.id] = padding;
+		const key = paddingCommitKey(group.id);
+		const normalizedValue = String(padding);
+		const commit = (nextValue: string): void => {
+			onUpdateGroup(group.id, { padding: Number(nextValue) });
+		};
+		if (!paddingCommitScheduler) {
+			commit(normalizedValue);
+			return;
+		}
+		paddingCommitScheduler.commit(
+			key,
+			String(group.padding),
+			normalizedValue,
+			commit,
+		);
+		window.setTimeout(() => {
+			if (paddingPreviews[group.id] === padding) {
+				delete paddingPreviews[group.id];
+			}
+		}, 0);
+	}
+
+	function normalizePadding(value: number): number {
+		return Math.min(5, Math.max(0, value));
+	}
+
+	function readPadding(group: ChartGroupDefinition): number {
+		return paddingPreviews[group.id] ?? normalizePadding(group.padding);
+	}
+
+	function formatPadding(value: number): string {
+		return value.toFixed(2).replace(/\.?0+$/u, '');
+	}
+
+	function paddingCommitKey(groupId: string): string {
+		return `group:${groupId}:padding`;
 	}
 
 	function updateMode(group: ChartGroupDefinition, value: string): void {
@@ -283,17 +356,27 @@
 									/>
 								</label>
 							{/if}
-							<label>
+							<label class="knowledge-workspace-group-padding">
 								<span>Padding</span>
-								<ObsidianTextInput
-									type="number"
-									min="0"
-									step="0.01"
-									value={group.padding}
-									{disabled}
-									onChange={(value) =>
-										updateNumber(group, 'padding', value)}
-								/>
+								<div class="knowledge-workspace-slider-value">
+									<ObsidianSlider
+										min={0}
+										max={5}
+										step={0.05}
+										value={readPadding(group)}
+										format={formatPadding}
+										{disabled}
+										onChange={(value) =>
+											schedulePadding(group, value)}
+										onCommit={(value) =>
+											commitPadding(group, value)}
+									/>
+									<span
+										>{formatPadding(
+											readPadding(group),
+										)}</span
+									>
+								</div>
 							</label>
 						</div>
 

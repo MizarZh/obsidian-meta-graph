@@ -131,7 +131,7 @@ describe('HierarchicalEdgeBundlingLayout', () => {
 			1,
 			'path',
 			'asc',
-			[{ ...group('group-a'), padding: 1 }],
+			[{ ...group('group-a'), padding: 5 }],
 			ownership,
 		);
 

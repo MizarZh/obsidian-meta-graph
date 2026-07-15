@@ -25,5 +25,10 @@ export interface RadialGroupGeometry extends LayoutGroupGeometryBase {
 export type LayoutGroupGeometry = ArcGroupGeometry | RadialGroupGeometry;
 
 export function normalizeLayoutGroupPadding(padding: number): number {
-	return Math.min(1, Math.max(0, padding));
+	return Math.min(5, Math.max(0, padding));
+}
+
+export function scaleLayoutGroupPadding(padding: number): number {
+	const normalized = normalizeLayoutGroupPadding(padding);
+	return normalized === 0 ? 0 : normalized / (normalized + 0.68);
 }

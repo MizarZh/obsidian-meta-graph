@@ -7,6 +7,10 @@ import {
 	createArcPoints,
 	getArcLabelPlacement,
 } from '../layouts/arc-layout';
+import {
+	normalizeLayoutGroupPadding,
+	scaleLayoutGroupPadding,
+} from '../layouts/group-geometry';
 
 const palette: GraphPalette = {
 	node: '#111111',
@@ -183,7 +187,7 @@ describe('ArcLayout', () => {
 			'name',
 			'asc',
 			'auto',
-			[{ ...group('group-a'), padding: 1 }],
+			[{ ...group('group-a'), padding: 5 }],
 			new Map([['A.md', 'group-a']]),
 		);
 
@@ -205,6 +209,15 @@ describe('ArcLayout', () => {
 		expect(spaciousGeometry?.halfWidth).toBeGreaterThan(
 			compactGeometry?.halfWidth ?? 0,
 		);
+	});
+
+	it('bounds the 0 to 5 padding control without flattening its range', () => {
+		expect(normalizeLayoutGroupPadding(-1)).toBe(0);
+		expect(normalizeLayoutGroupPadding(8)).toBe(5);
+		expect(scaleLayoutGroupPadding(5)).toBeGreaterThan(
+			scaleLayoutGroupPadding(1),
+		);
+		expect(scaleLayoutGroupPadding(5)).toBeLessThan(1);
 	});
 });
 
