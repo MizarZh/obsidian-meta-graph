@@ -11,13 +11,19 @@ export interface ArcGroupGeometry extends LayoutGroupGeometryBase {
 	direction: ArcDirection;
 	start: number;
 	end: number;
+	halfWidth: number;
 }
 
 export interface RadialGroupGeometry extends LayoutGroupGeometryBase {
 	kind: 'radial-sector';
 	startAngle: number;
 	endAngle: number;
-	radius: number;
+	innerRadius: number;
+	outerRadius: number;
 }
 
 export type LayoutGroupGeometry = ArcGroupGeometry | RadialGroupGeometry;
+
+export function normalizeLayoutGroupPadding(padding: number): number {
+	return Math.min(1, Math.max(0, padding));
+}

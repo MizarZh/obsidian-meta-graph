@@ -77,51 +77,61 @@ export class LayoutGroupLayer {
 	}
 
 	private drawArcBand(geometry: ArcGroupGeometry): void {
-		const start = this.sigma.graphToViewport(
-			arcAxisPoint(geometry.direction, geometry.start),
-		);
-		const end = this.sigma.graphToViewport(
-			arcAxisPoint(geometry.direction, geometry.end),
-		);
+		const startGraph = arcAxisPoint(geometry.direction, geometry.start);
+		const endGraph = arcAxisPoint(geometry.direction, geometry.end);
 		const centerGraph = arcAxisPoint(
 			geometry.direction,
 			(geometry.start + geometry.end) / 2,
 		);
 		const center = this.sigma.graphToViewport(centerGraph);
-		const opposite = this.sigma.graphToViewport({
-			x: centerGraph.x + arcOppositeVector(geometry.direction).x,
-			y: centerGraph.y + arcOppositeVector(geometry.direction).y,
-		});
+		const cross = scale(
+			arcOppositeVector(geometry.direction),
+			geometry.halfWidth,
+		);
+		const opposite = this.sigma.graphToViewport(add(centerGraph, cross));
 		const normal = normalize({
 			x: opposite.x - center.x,
 			y: opposite.y - center.y,
 		});
-		const offset = scale(normal, 18);
-		const shiftedStart = add(start, offset);
-		const shiftedEnd = add(end, offset);
+		const corners = [
+			this.sigma.graphToViewport(add(startGraph, cross)),
+			this.sigma.graphToViewport(add(endGraph, cross)),
+			this.sigma.graphToViewport(add(endGraph, scale(cross, -1))),
+			this.sigma.graphToViewport(add(startGraph, scale(cross, -1))),
+		];
+		const first = corners[0];
+		const second = corners[1];
+		if (!first || !second) {
+			return;
+		}
 
 		this.context.save();
-		this.context.globalAlpha = 0.68;
-		this.context.strokeStyle = geometry.color;
-		this.context.lineWidth = 7;
-		this.context.lineCap = 'round';
+		this.context.globalAlpha = 0.09;
+		this.context.fillStyle = geometry.color;
 		this.context.beginPath();
-		this.context.moveTo(shiftedStart.x, shiftedStart.y);
-		this.context.lineTo(shiftedEnd.x, shiftedEnd.y);
+		this.context.moveTo(first.x, first.y);
+		for (const corner of corners.slice(1)) {
+			this.context.lineTo(corner.x, corner.y);
+		}
+		this.context.closePath();
+		this.context.fill();
+		this.context.globalAlpha = 0.62;
+		this.context.strokeStyle = geometry.color;
+		this.context.lineWidth = 1.5;
+		this.context.lineJoin = 'round';
 		this.context.stroke();
 		this.context.restore();
 
 		this.drawLabel(
 			geometry.name,
-			add(center, scale(normal, 32)),
-			Math.atan2(end.y - start.y, end.x - start.x),
+			add(opposite, scale(normal, 12)),
+			Math.atan2(second.y - first.y, second.x - first.x),
 			geometry.color,
 		);
 	}
 
 	private drawRadialSector(geometry: RadialGroupGeometry): void {
-		const innerRadius = geometry.radius * 0.86;
-		const outerRadius = geometry.radius * 1.04;
+		const { innerRadius, outerRadius } = geometry;
 		const span = Math.max(0.001, geometry.endAngle - geometry.startAngle);
 		const samples = Math.max(8, Math.ceil(span / (Math.PI / 36)));
 		const angles = Array.from(

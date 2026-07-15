@@ -6,7 +6,10 @@ import {
 } from 'd3-hierarchy';
 import type { ChartGroupDefinition } from '../core/types';
 import type { RuntimeGraph } from '../graph/model/graphology-adapter';
-import type { RadialGroupGeometry } from './group-geometry';
+import {
+	normalizeLayoutGroupPadding,
+	type RadialGroupGeometry,
+} from './group-geometry';
 import type { LayoutEngine } from './layout-engine';
 import {
 	compareLayoutNodeIds,
@@ -311,7 +314,7 @@ function createRadialGroupGeometries(
 	const visibleLeafCount = root
 		.leaves()
 		.filter((leaf) => leaf.data.id).length;
-	const padding = (Math.PI / Math.max(visibleLeafCount, 1)) * 0.55;
+	const angularStep = (Math.PI * 2) / Math.max(visibleLeafCount, 1);
 	const pointByGroupId = new Map(
 		(root.children ?? [])
 			.filter(
@@ -329,15 +332,18 @@ function createRadialGroupGeometries(
 		if (!angles?.length) {
 			return [];
 		}
+		const padding = normalizeLayoutGroupPadding(group.padding);
+		const angularPadding = angularStep * (0.08 + padding * 0.61);
 		return [
 			{
 				kind: 'radial-sector' as const,
 				groupId: group.id,
 				name: group.name,
 				color: group.color,
-				startAngle: (angles[0] ?? 0) - padding,
-				endAngle: (angles.at(-1) ?? 0) + padding,
-				radius,
+				startAngle: (angles[0] ?? 0) - angularPadding,
+				endAngle: (angles.at(-1) ?? 0) + angularPadding,
+				innerRadius: radius * (0.92 - padding * 0.18),
+				outerRadius: radius * (1.01 + padding * 0.094),
 			},
 		];
 	});

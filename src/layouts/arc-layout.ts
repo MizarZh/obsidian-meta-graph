@@ -6,7 +6,10 @@ import type {
 } from '../core/types';
 import type { RuntimeGraph } from '../graph/model/graphology-adapter';
 import type { LayoutEngine } from './layout-engine';
-import type { ArcGroupGeometry } from './group-geometry';
+import {
+	normalizeLayoutGroupPadding,
+	type ArcGroupGeometry,
+} from './group-geometry';
 import {
 	compareLayoutNodeIds,
 	type LayoutNodeSort,
@@ -283,7 +286,8 @@ function createArcGroupGeometries(
 		if (!positions?.length) {
 			return [];
 		}
-		const padding = step * Math.min(0.45, Math.max(0.15, group.padding));
+		const padding = normalizeLayoutGroupPadding(group.padding);
+		const axisPadding = step * (0.08 + padding * 0.75);
 		return [
 			{
 				kind: 'arc-band' as const,
@@ -291,8 +295,9 @@ function createArcGroupGeometries(
 				name: group.name,
 				color: group.color,
 				direction,
-				start: Math.min(...positions) - padding,
-				end: Math.max(...positions) + padding,
+				start: Math.min(...positions) - axisPadding,
+				end: Math.max(...positions) + axisPadding,
+				halfWidth: step * (0.18 + padding * 0.5),
 			},
 		];
 	});

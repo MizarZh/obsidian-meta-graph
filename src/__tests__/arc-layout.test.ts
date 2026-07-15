@@ -162,6 +162,49 @@ describe('ArcLayout', () => {
 		expect(layout.getGroupGeometries().map((item) => item.groupId)).toEqual(
 			['later-names', 'earlier-names'],
 		);
+		expect(
+			layout.getGroupGeometries().every((item) => item.halfWidth > 0),
+		).toBe(true);
+	});
+
+	it('expands both axes of a group frame with padding', async () => {
+		const compact = new ArcLayout(
+			1,
+			'right',
+			'name',
+			'asc',
+			'auto',
+			[{ ...group('group-a'), padding: 0 }],
+			new Map([['A.md', 'group-a']]),
+		);
+		const spacious = new ArcLayout(
+			1,
+			'right',
+			'name',
+			'asc',
+			'auto',
+			[{ ...group('group-a'), padding: 1 }],
+			new Map([['A.md', 'group-a']]),
+		);
+
+		await compact.apply(
+			new GraphologyAdapter(palette).fromProjection(projection),
+		);
+		await spacious.apply(
+			new GraphologyAdapter(palette).fromProjection(projection),
+		);
+
+		const compactGeometry = compact.getGroupGeometries()[0];
+		const spaciousGeometry = spacious.getGroupGeometries()[0];
+		expect(spaciousGeometry?.start).toBeLessThan(
+			compactGeometry?.start ?? 0,
+		);
+		expect(spaciousGeometry?.end).toBeGreaterThan(
+			compactGeometry?.end ?? 0,
+		);
+		expect(spaciousGeometry?.halfWidth).toBeGreaterThan(
+			compactGeometry?.halfWidth ?? 0,
+		);
 	});
 });
 

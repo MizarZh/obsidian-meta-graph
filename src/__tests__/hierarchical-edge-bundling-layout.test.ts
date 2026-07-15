@@ -114,6 +114,49 @@ describe('HierarchicalEdgeBundlingLayout', () => {
 			graph.getNodeAttributes('Topics/B.md'),
 		);
 	});
+
+	it('expands angular and radial group bounds with padding', async () => {
+		const ownership = new Map([
+			['Topics/A.md', 'group-a'],
+			['Topics/B.md', 'group-a'],
+		]);
+		const compact = new HierarchicalEdgeBundlingLayout(
+			1,
+			'path',
+			'asc',
+			[{ ...group('group-a'), padding: 0 }],
+			ownership,
+		);
+		const spacious = new HierarchicalEdgeBundlingLayout(
+			1,
+			'path',
+			'asc',
+			[{ ...group('group-a'), padding: 1 }],
+			ownership,
+		);
+
+		await compact.apply(
+			new GraphologyAdapter(palette).fromProjection(projection),
+		);
+		await spacious.apply(
+			new GraphologyAdapter(palette).fromProjection(projection),
+		);
+
+		const compactGeometry = compact.getGroupGeometries()[0];
+		const spaciousGeometry = spacious.getGroupGeometries()[0];
+		expect(spaciousGeometry?.startAngle).toBeLessThan(
+			compactGeometry?.startAngle ?? 0,
+		);
+		expect(spaciousGeometry?.endAngle).toBeGreaterThan(
+			compactGeometry?.endAngle ?? 0,
+		);
+		expect(spaciousGeometry?.innerRadius).toBeLessThan(
+			compactGeometry?.innerRadius ?? 0,
+		);
+		expect(spaciousGeometry?.outerRadius).toBeGreaterThan(
+			compactGeometry?.outerRadius ?? 0,
+		);
+	});
 });
 
 function group(id: string): ChartGroupDefinition {
