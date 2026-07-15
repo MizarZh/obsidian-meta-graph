@@ -299,6 +299,9 @@
 			.catch(reportError);
 	}}
 	onSelectNote={selectAndMaybeFocusNode}
+	focusOnSelect={workspaceState.dock.focusOnSelect}
+	onToggleFocusOnSelect={() =>
+		controller.setDockFocusOnSelect(!workspaceState.dock.focusOnSelect)}
 />
 {#if atNodeLimit}
 	<section class="knowledge-workspace-notice">

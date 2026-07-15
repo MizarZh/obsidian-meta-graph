@@ -68,6 +68,8 @@
 		onSetNodeGroup,
 		onConnectNode,
 		onSelectNote,
+		focusOnSelect,
+		onToggleFocusOnSelect,
 	}: {
 		app: App;
 		templates: DockTemplateNode[];
@@ -122,6 +124,8 @@
 			field: string,
 		) => void;
 		onSelectNote: (nodeId: string) => void;
+		focusOnSelect: boolean;
+		onToggleFocusOnSelect: () => void;
 	} = $props();
 
 	let activeTab = $state<RightPanelTab>('details');
@@ -250,6 +254,8 @@
 				{activeConnectionField}
 				{activeDraggingKey}
 				{graphTargetNotePath}
+				{focusOnSelect}
+				{onToggleFocusOnSelect}
 				onOpenPicker={() => (addNotesOpen = true)}
 				{onRemoveNote}
 				onPointerDown={handleNodePointerDown}

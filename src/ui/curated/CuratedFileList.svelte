@@ -19,7 +19,7 @@
 		getGroupOptions,
 		selectedPaths,
 		reorderEnabled = true,
-		onToggleSelected,
+		onCheckboxClick,
 		onFileClick,
 		onPointerDown,
 		onReorderFiles,
@@ -34,7 +34,7 @@
 		getGroupOptions: (currentGroupId: string) => DropdownOption[];
 		selectedPaths: Set<string>;
 		reorderEnabled?: boolean;
-		onToggleSelected: (path: string) => void;
+		onCheckboxClick: (path: string, event: MouseEvent) => void;
 		onFileClick: (path: string, event: MouseEvent) => void;
 		onPointerDown: (path: string, event: PointerEvent) => void;
 		onReorderFiles: (paths: string[]) => void;
@@ -133,8 +133,7 @@
 					type="checkbox"
 					aria-label={`Select ${file.title}`}
 					checked={file.selected}
-					onclick={(event) => event.stopPropagation()}
-					onchange={() => onToggleSelected(file.path)}
+					onclick={(event) => onCheckboxClick(file.path, event)}
 				/>
 				<span
 					style={file.missing

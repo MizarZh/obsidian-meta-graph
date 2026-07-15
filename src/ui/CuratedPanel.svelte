@@ -87,7 +87,6 @@
 	let searchOpen = $state(false);
 	let addNotesOpen = $state(false);
 	let filterModalOpen = $state(false);
-	let moreOpen = $state(false);
 	let addNotesDraft = $state(createCuratedConditionDraft());
 	let lastSelectedPath = $state<string | undefined>(undefined);
 
@@ -194,6 +193,12 @@
 			event.preventDefault();
 			toggleSelected(path);
 		}
+	}
+
+	function handleFileCheckboxClick(path: string, event: MouseEvent): void {
+		event.stopPropagation();
+		if (event.shiftKey) selectFileRange(path);
+		else toggleSelected(path);
 	}
 
 	function clearSelection(): void {
@@ -371,44 +376,40 @@
 					}}
 				/>
 				<ObsidianButton
+					class="knowledge-workspace-curated-filter"
+					icon="list-filter"
+					active={filterCount > 0}
+					ariaLabel="Filter workspace files"
+					tooltip="Filter"
+					onClick={() => (filterModalOpen = true)}
+				/>
+				<ObsidianButton
 					class="knowledge-workspace-curated-add"
 					icon="plus"
-					text="Add notes"
 					ariaLabel="Add notes"
+					tooltip="Add notes"
 					onClick={() => (addNotesOpen = true)}
 				/>
 				<ObsidianButton
-					class="knowledge-workspace-curated-more"
-					icon="more-horizontal"
-					active={moreOpen}
-					ariaLabel="Workspace file actions"
-					tooltip="More actions"
-					onClick={() => (moreOpen = !moreOpen)}
+					class="knowledge-workspace-curated-focus-toggle"
+					icon="crosshair"
+					active={focusOnSelect}
+					ariaLabel={focusOnSelect
+						? 'Auto-focus on click (enabled)'
+						: 'Auto-focus on click (disabled)'}
+					tooltip="Auto-focus on click"
+					onClick={onToggleFocusOnSelect}
+				/>
+				<ObsidianButton
+					class="knowledge-workspace-curated-clear"
+					icon="trash-2"
+					ariaLabel="Clear workspace"
+					tooltip="Clear workspace"
+					disabled={curated.files.length === 0}
+					destructive={true}
+					onClick={clearAll}
 				/>
 			</header>
-			{#if moreOpen}
-				<div class="knowledge-workspace-curated-overflow">
-					<ObsidianButton
-						text="Auto-focus on click"
-						icon="crosshair"
-						active={focusOnSelect}
-						onClick={() => {
-							onToggleFocusOnSelect();
-							moreOpen = false;
-						}}
-					/>
-					<ObsidianButton
-						text="Clear workspace"
-						icon="trash-2"
-						disabled={curated.files.length === 0}
-						destructive={true}
-						onClick={() => {
-							clearAll();
-							moreOpen = false;
-						}}
-					/>
-				</div>
-			{/if}
 			{#if searchOpen}
 				<div class="knowledge-workspace-curated-list-search">
 					<ObsidianTextInput
@@ -429,15 +430,8 @@
 					{/if}
 				</div>
 			{/if}
-			<div class="knowledge-workspace-curated-filter-bar">
-				<ObsidianButton
-					icon="list-filter"
-					text="Filter"
-					active={filterCount > 0}
-					ariaLabel="Filter workspace files"
-					onClick={() => (filterModalOpen = true)}
-				/>
-				{#if filterCount > 0}
+			{#if filterCount > 0}
+				<div class="knowledge-workspace-curated-filter-status">
 					<button
 						type="button"
 						class="knowledge-workspace-curated-filter-chip"
@@ -445,8 +439,8 @@
 					>
 						{filterCount} conditions
 					</button>
-				{/if}
-			</div>
+				</div>
+			{/if}
 			<div class="knowledge-workspace-curated-actions">
 				{#if selectedCount > 0}
 					<span class="knowledge-workspace-curated-selection-count">
@@ -508,7 +502,7 @@
 				{getGroupOptions}
 				selectedPaths={selected}
 				reorderEnabled={!listSearchActive && filterCount === 0}
-				onToggleSelected={toggleSelected}
+				onCheckboxClick={handleFileCheckboxClick}
 				onFileClick={handleFileClick}
 				onPointerDown={handleFilePointerDown}
 				{onReorderFiles}

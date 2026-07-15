@@ -148,6 +148,8 @@
 
 .knowledge-workspace-dock-collection-actions
 	button.knowledge-workspace-dock-search-toggle,
+.knowledge-workspace-dock-collection-actions
+	button.knowledge-workspace-dock-focus-toggle,
 .knowledge-workspace-dock-collection-search
 	button.knowledge-workspace-dock-search-clear {
 	display: grid;
@@ -160,6 +162,10 @@
 .knowledge-workspace-dock-collection-actions button svg {
 	width: 18px;
 	height: 18px;
+}
+
+.knowledge-workspace-dock-focus-toggle.active svg {
+	color: var(--interactive-accent);
 }
 
 .knowledge-workspace-dock-collection-header > span {

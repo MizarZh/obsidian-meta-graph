@@ -213,6 +213,15 @@
 		}
 	}
 
+	function handleTemplateCheckboxClick(
+		templateId: string,
+		event: MouseEvent,
+	): void {
+		event.stopPropagation();
+		if (event.shiftKey) selectTemplateRange(templateId);
+		else toggleSelected(templateId);
+	}
+
 	function handleTemplateKeydown(
 		templateId: string,
 		event: KeyboardEvent,
@@ -349,8 +358,8 @@
 						type="checkbox"
 						aria-label={`Select ${template.label}`}
 						checked={selectedTemplateIds.has(template.id)}
-						onclick={(event) => event.stopPropagation()}
-						onchange={() => toggleSelected(template.id)}
+						onclick={(event) =>
+							handleTemplateCheckboxClick(template.id, event)}
 					/>
 					<span></span>
 					<strong>{template.label}</strong>

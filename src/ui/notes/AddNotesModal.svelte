@@ -188,6 +188,7 @@
 			onClick={() => (filterOpen = !filterOpen)}
 		/>
 		<ObsidianButton
+			class="knowledge-workspace-note-picker-paste"
 			icon="clipboard-paste"
 			ariaLabel="Paste note paths"
 			tooltip="Paste note paths"

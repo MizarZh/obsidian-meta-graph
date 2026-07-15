@@ -25,6 +25,8 @@
 		activeConnectionField,
 		activeDraggingKey,
 		graphTargetNotePath,
+		focusOnSelect,
+		onToggleFocusOnSelect,
 		onOpenPicker,
 		onRemoveNote,
 		onPointerDown,
@@ -37,6 +39,8 @@
 		activeConnectionField: string;
 		activeDraggingKey?: string;
 		graphTargetNotePath?: string;
+		focusOnSelect: boolean;
+		onToggleFocusOnSelect: () => void;
 		onOpenPicker: () => void;
 		onRemoveNote: (path: string) => void;
 		onPointerDown: (payload: DockDragPayload, event: PointerEvent) => void;
@@ -150,6 +154,12 @@
 		}
 	}
 
+	function handleNoteCheckboxClick(path: string, event: MouseEvent): void {
+		event.stopPropagation();
+		if (event.shiftKey) selectNoteRange(path);
+		else toggleSelected(path);
+	}
+
 	function handleNoteKeydown(path: string, event: KeyboardEvent): void {
 		if (event.key !== 'Enter' && event.key !== ' ') return;
 		event.preventDefault();
@@ -178,6 +188,16 @@
 					searchOpen = !searchOpen;
 					if (!searchOpen) search = '';
 				}}
+			/>
+			<ObsidianButton
+				class="knowledge-workspace-dock-focus-toggle"
+				icon="crosshair"
+				active={focusOnSelect}
+				ariaLabel={focusOnSelect
+					? 'Auto-focus on click (enabled)'
+					: 'Auto-focus on click (disabled)'}
+				tooltip="Auto-focus on click"
+				onClick={onToggleFocusOnSelect}
 			/>
 			<ObsidianButton
 				icon="plus"
@@ -275,8 +295,8 @@
 						type="checkbox"
 						aria-label={`Select ${entry.title}`}
 						checked={selectedPaths.has(entry.path)}
-						onclick={(event) => event.stopPropagation()}
-						onchange={() => toggleSelected(entry.path)}
+						onclick={(event) =>
+							handleNoteCheckboxClick(entry.path, event)}
 					/>
 					<span
 						style={entry.broken
