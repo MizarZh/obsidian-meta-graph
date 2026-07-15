@@ -245,7 +245,15 @@
 		{ value: 'asc', label: 'Ascending' },
 		{ value: 'desc', label: 'Descending' },
 	];
-
+	const ARC_DIRECTION_OPTIONS: Array<{
+		value: ArcDirection;
+		label: string;
+	}> = [
+		{ value: 'right', label: 'Right' },
+		{ value: 'left', label: 'Left' },
+		{ value: 'up', label: 'Up' },
+		{ value: 'down', label: 'Down' },
+	];
 </script>
 
 <section>
@@ -274,22 +282,21 @@
 				onChange={(value) => onChange({ showIsolatedNodes: value })}
 			/>
 		</label>
-			<label class="knowledge-workspace-rule-label">
-				<span>Show plain links</span>
-				<ObsidianToggle
-					value={query.showPlainLinks}
-					onChange={(value) => onChange({ showPlainLinks: value })}
-				/>
-			</label>
-			<label class="knowledge-workspace-rule-label">
-				<span>Show unresolved links</span>
-				<ObsidianToggle
-					value={query.showUnresolvedLinks}
-					onChange={(value) =>
-						onChange({ showUnresolvedLinks: value })}
-				/>
-			</label>
-		</CollapsibleSettingsGroup>
+		<label class="knowledge-workspace-rule-label">
+			<span>Show plain links</span>
+			<ObsidianToggle
+				value={query.showPlainLinks}
+				onChange={(value) => onChange({ showPlainLinks: value })}
+			/>
+		</label>
+		<label class="knowledge-workspace-rule-label">
+			<span>Show unresolved links</span>
+			<ObsidianToggle
+				value={query.showUnresolvedLinks}
+				onChange={(value) => onChange({ showUnresolvedLinks: value })}
+			/>
+		</label>
+	</CollapsibleSettingsGroup>
 	{#if settingsVisibility.graphLayout}
 		<CollapsibleSettingsGroup title="Layout" bind:open={layoutOpen}>
 			<label class="knowledge-workspace-rule-label">
@@ -464,7 +471,8 @@
 				<ObsidianDropdown
 					value={nodeSort}
 					options={NODE_SORT_OPTIONS}
-					onChange={(value) => onLayoutNodeSort(value as LayoutNodeSort)}
+					onChange={(value) =>
+						onLayoutNodeSort(value as LayoutNodeSort)}
 				/>
 			</label>
 			<label class="knowledge-workspace-rule-label">
@@ -513,56 +521,59 @@
 				</label>
 			{/if}
 			{#if settingsVisibility.cubeDisplay}
-			<div class="knowledge-workspace-rule-label segmented">
-				<span>Camera mode</span>
-				<div class="knowledge-workspace-segmented">
-					<ObsidianButton
-						active={cubeFreeCamera}
-						text="Free"
-						onClick={() => onCubeFreeCamera(true)}
-					/>
-					<ObsidianButton
-						active={!cubeFreeCamera}
-						text="Lock up"
-						onClick={() => onCubeFreeCamera(false)}
-					/>
+				<div class="knowledge-workspace-rule-label segmented">
+					<span>Camera mode</span>
+					<div class="knowledge-workspace-segmented">
+						<ObsidianButton
+							active={cubeFreeCamera}
+							text="Free"
+							onClick={() => onCubeFreeCamera(true)}
+						/>
+						<ObsidianButton
+							active={!cubeFreeCamera}
+							text="Lock up"
+							onClick={() => onCubeFreeCamera(false)}
+						/>
+					</div>
 				</div>
-			</div>
-			<label class="knowledge-workspace-rule-label">
-				<span>Cube size</span>
-				<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						value={cubeSize}
-						min={120}
-						max={320}
-						step={10}
-						format={(value) => `${Math.round(value)}`}
-						onChange={onCubeSize}
-						onCommit={onCubeSize}
-					/>
-					<span>{Math.round(cubeSize)}</span>
-				</div>
-			</label>
-			<label class="knowledge-workspace-rule-label">
-				<span>Face opacity</span>
-				<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						value={cubeFaceOpacity}
-						min={0.05}
-						max={1}
-						step={0.05}
-						format={(value) => `${Math.round(value * 100)}%`}
-						onChange={onCubeFaceOpacity}
-						onCommit={onCubeFaceOpacity}
-					/>
-					<span>{Math.round(cubeFaceOpacity * 100)}%</span>
-				</div>
-			</label>
+				<label class="knowledge-workspace-rule-label">
+					<span>Cube size</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							value={cubeSize}
+							min={120}
+							max={320}
+							step={10}
+							format={(value) => `${Math.round(value)}`}
+							onChange={onCubeSize}
+							onCommit={onCubeSize}
+						/>
+						<span>{Math.round(cubeSize)}</span>
+					</div>
+				</label>
+				<label class="knowledge-workspace-rule-label">
+					<span>Face opacity</span>
+					<div class="knowledge-workspace-slider-value">
+						<ObsidianSlider
+							value={cubeFaceOpacity}
+							min={0.05}
+							max={1}
+							step={0.05}
+							format={(value) => `${Math.round(value * 100)}%`}
+							onChange={onCubeFaceOpacity}
+							onCommit={onCubeFaceOpacity}
+						/>
+						<span>{Math.round(cubeFaceOpacity * 100)}%</span>
+					</div>
+				</label>
 			{/if}
 			{#if settingsVisibility.forceLabels}
 				<label class="knowledge-workspace-rule-label">
 					<span>Always show labels</span>
-					<ObsidianToggle value={forceLabels} onChange={onForceLabels} />
+					<ObsidianToggle
+						value={forceLabels}
+						onChange={onForceLabels}
+					/>
 				</label>
 			{/if}
 		</CollapsibleSettingsGroup>
@@ -606,19 +617,18 @@
 			title="Arc details"
 			bind:open={arcDetailsOpen}
 		>
-			<label class="knowledge-workspace-rule-label">
+			<div class="knowledge-workspace-rule-label segmented">
 				<span>Direction</span>
-				<ObsidianDropdown
-					value={arcDirection}
-					options={[
-						{ value: 'right', label: 'Right' },
-						{ value: 'left', label: 'Left' },
-						{ value: 'up', label: 'Up' },
-						{ value: 'down', label: 'Down' },
-					]}
-					onChange={(value) => onArcDirection(value as ArcDirection)}
-				/>
-			</label>
+				<div class="knowledge-workspace-segmented arc-direction">
+					{#each ARC_DIRECTION_OPTIONS as option}
+						<ObsidianButton
+							active={arcDirection === option.value}
+							text={option.label}
+							onClick={() => onArcDirection(option.value)}
+						/>
+					{/each}
+				</div>
+			</div>
 		</CollapsibleSettingsGroup>
 	{/if}
 </section>

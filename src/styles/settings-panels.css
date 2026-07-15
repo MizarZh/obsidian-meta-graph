@@ -1373,6 +1373,24 @@
 	justify-content: flex-start;
 }
 
+.knowledge-workspace-rule-label.segmented
+	.knowledge-workspace-segmented.arc-direction {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.knowledge-workspace-segmented.arc-direction
+	> .knowledge-workspace-obsidian-control {
+	min-width: 0;
+}
+
+.knowledge-workspace-rule-label.segmented
+	.knowledge-workspace-segmented.arc-direction
+	button {
+	width: 100%;
+	padding-inline: var(--size-4-2);
+}
+
 .knowledge-workspace-rule-label.segmented button {
 	height: 30px;
 	padding-inline: var(--size-4-3);

@@ -84,8 +84,8 @@ describe('ArcLayout', () => {
 		const downMidpoint = downPoints[Math.floor(downPoints.length / 2)];
 
 		expect(leftMidpoint?.x).toBeLessThan(0);
-		expect(upMidpoint?.y).toBeLessThan(0);
-		expect(downMidpoint?.y).toBeGreaterThan(0);
+		expect(upMidpoint?.y).toBeGreaterThan(0);
+		expect(downMidpoint?.y).toBeLessThan(0);
 
 		const graph = new GraphologyAdapter(palette).fromProjection(projection);
 		await new ArcLayout(1, 'up').apply(graph);
