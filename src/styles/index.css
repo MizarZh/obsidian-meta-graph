@@ -2,6 +2,7 @@
 @import './toolbar.css';
 @import './settings-panels.css';
 @import './graph-canvas.css';
+@import './graph-loading.css';
 @import './dock.css';
 @import './connection-panel.css';
 @import './inspector-debug.css';

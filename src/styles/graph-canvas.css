@@ -35,65 +35,6 @@
 	left: 0;
 }
 
-.knowledge-workspace-graph-loading {
-	position: absolute;
-	top: 0;
-	right: 0;
-	bottom: 54px;
-	left: 0;
-	z-index: 4;
-	display: grid;
-	place-items: center;
-	box-sizing: border-box;
-	padding-right: var(--dock-panel-width);
-	padding-left: var(--curated-panel-width);
-	background: var(--background-primary);
-	pointer-events: auto;
-}
-
-.connection-collapsed .knowledge-workspace-graph-loading {
-	bottom: 0;
-}
-
-.knowledge-workspace-graph-loading-status {
-	display: flex;
-	align-items: center;
-	gap: var(--size-4-2);
-	min-width: 0;
-	color: var(--text-muted);
-	font-size: var(--font-ui-small);
-}
-
-.knowledge-workspace-graph-loading-status > span:last-child {
-	max-width: 240px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.knowledge-workspace-graph-loading-spinner {
-	flex: 0 0 20px;
-	width: 20px;
-	height: 20px;
-	box-sizing: border-box;
-	border: 2px solid var(--background-modifier-border);
-	border-top-color: var(--interactive-accent);
-	border-radius: 50%;
-	animation: knowledge-workspace-loading-spin 700ms linear infinite;
-}
-
-@keyframes knowledge-workspace-loading-spin {
-	to {
-		transform: rotate(360deg);
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.knowledge-workspace-graph-loading-spinner {
-		animation-duration: 1400ms;
-	}
-}
-
 .meta-graph-cube-canvas {
 	display: block;
 	width: 100%;

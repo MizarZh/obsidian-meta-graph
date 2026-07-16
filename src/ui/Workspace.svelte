@@ -79,6 +79,11 @@
 	import { GraphDockConnectionController } from './workspace/graph-dock-connection';
 	import WorkspaceSettingsPopover from './workspace/WorkspaceSettingsPopover.svelte';
 	import WorkspaceMainPanels from './workspace/WorkspaceMainPanels.svelte';
+	import GraphLoadingOverlay from './workspace/GraphLoadingOverlay.svelte';
+	import {
+		GraphLoadingCoordinator,
+		waitForGraphLoadingPaint,
+	} from './workspace/graph-loading';
 	import {
 		createCuratedConditionDraft,
 		type CuratedConditionDraft,
@@ -142,10 +147,8 @@
 	let dockOpen = $state(true);
 	let curatedPanelOpen = $state(true);
 	let connectionOpen = $state(true);
-	let rendererLoading = $state(false);
-	let chartSwitchPending = $state(false);
-	let pendingChartName = $state<string | undefined>(undefined);
-	let chartSwitchRequest = 0;
+	let graphLoading = $state(false);
+	let graphLoadingTarget = $state<string | undefined>(undefined);
 	let suppressNodeOpenUntil = 0;
 	let activeNodeDropGroupId: string | undefined;
 	const activeChartName = $derived(
@@ -153,8 +156,14 @@
 			(chart) => chart.id === workspaceState.activeChartId,
 		)?.name ?? 'chart',
 	);
-	const graphLoading = $derived(rendererLoading || chartSwitchPending);
-	const graphLoadingName = $derived(pendingChartName ?? activeChartName);
+	const graphLoadingName = $derived(graphLoadingTarget ?? activeChartName);
+	const graphLoadingCoordinator = new GraphLoadingCoordinator({
+		waitForPaint: () => waitForGraphLoadingPaint(window),
+		onChange: (state) => {
+			graphLoading = state.visible;
+			graphLoadingTarget = state.label;
+		},
+	});
 
 	const layoutSnapshots = new LayoutSnapshotStore();
 	const rendererLifecycle = new WorkspaceRendererLifecycle({
@@ -169,9 +178,8 @@
 			controller.setRendererDebugState(state),
 		setFlowRelationConflictCount: (count) =>
 			controller.setFlowRelationConflictCount(count),
-		setRenderPending: (pending) => {
-			rendererLoading = pending;
-		},
+		setRenderPending: (pending) =>
+			graphLoadingCoordinator.setRendererPending(pending),
 	});
 	const dockGraphDrag = new DockGraphDragController({
 		window,
@@ -418,8 +426,7 @@
 		});
 
 		return () => {
-			chartSwitchRequest += 1;
-			chartSwitchPending = false;
+			graphLoadingCoordinator.dispose();
 			autoSave.flush();
 			unsubscribe();
 			resizeObserver.disconnect();
@@ -685,29 +692,15 @@
 		if (!targetChart || id === workspaceState.activeChartId) {
 			return;
 		}
-		const request = ++chartSwitchRequest;
-		pendingChartName = targetChart.name;
-		chartSwitchPending = true;
-
-		// First frame flushes Svelte DOM changes; second starts after they paint.
-		await nextAnimationFrame();
-		await nextAnimationFrame();
-		if (request !== chartSwitchRequest) {
-			return;
-		}
-
 		try {
-			controller.setActiveChart(id);
+			await graphLoadingCoordinator.runTransition(targetChart.name, () =>
+				controller.setActiveChart(id),
+			);
 		} catch (error) {
 			controller.setRendererDebugState({
 				status: 'error',
 				error: formatError(error),
 			});
-		} finally {
-			if (request === chartSwitchRequest) {
-				chartSwitchPending = false;
-				pendingChartName = undefined;
-			}
 		}
 	}
 
@@ -1032,21 +1025,10 @@
 					: '0px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
-			{#if graphLoading}
-				<div
-					class="knowledge-workspace-graph-loading"
-					role="status"
-					aria-live="polite"
-				>
-					<div class="knowledge-workspace-graph-loading-status">
-						<span
-							class="knowledge-workspace-graph-loading-spinner"
-							aria-hidden="true"
-						></span>
-						<span>Loading {graphLoadingName}</span>
-					</div>
-				</div>
-			{/if}
+			<GraphLoadingOverlay
+				visible={graphLoading}
+				label={graphLoadingName}
+			/>
 			<WorkspaceMainPanels
 				{app}
 				{controller}
