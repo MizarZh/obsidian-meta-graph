@@ -1,15 +1,11 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import { onDestroy } from 'svelte';
 	import FilterRulesPanel from './filter-panel/FilterRulesPanel.svelte';
 	import GraphSettingsPanel from './filter-panel/GraphSettingsPanel.svelte';
 	import LinkStylePanel from './filter-panel/LinkStylePanel.svelte';
 	import NodeStylePanel from './filter-panel/NodeStylePanel.svelte';
 	import TextStylePanel from './filter-panel/TextStylePanel.svelte';
-	import {
-		ColorCommitScheduler,
-		getDefaultLabelColor as resolveDefaultLabelColor,
-	} from './filter/color-commit';
+	import { getDefaultLabelColor as resolveDefaultLabelColor } from './filter/color-commit';
 	import type {
 		ArcDirection,
 		ArcLabelAngle,
@@ -262,33 +258,9 @@
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
 	} = $props();
 
-	const colorCommitScheduler = new ColorCommitScheduler(window);
-
-	function scheduleColorCommit(
-		key: string,
-		currentColor: string,
-		nextColor: string,
-		commit: (color: string) => void,
-	): void {
-		colorCommitScheduler.schedule(key, currentColor, nextColor, commit);
-	}
-
-	function commitColor(
-		key: string,
-		currentColor: string,
-		nextColor: string,
-		commit: (color: string) => void,
-	): void {
-		colorCommitScheduler.commit(key, currentColor, nextColor, commit);
-	}
-
 	function getDefaultLabelColor(): string {
 		return resolveDefaultLabelColor(document);
 	}
-
-	onDestroy(() => {
-		colorCommitScheduler.clearAll();
-	});
 </script>
 
 <aside class="knowledge-workspace-filters">
@@ -379,8 +351,6 @@
 			{onLabelDarkBackgroundColor}
 			{onLabelDarkBackgroundOpacity}
 			{onLabelBackgroundOpacity}
-			{scheduleColorCommit}
-			{commitColor}
 			{getDefaultLabelColor}
 		/>
 	{:else if panel === 'filters'}
@@ -418,8 +388,6 @@
 			{onNodeStyleOverrides}
 			{onUnresolvedNodeStyleOverrides}
 			{onNodeStyleRulesChange}
-			{scheduleColorCommit}
-			{commitColor}
 		/>
 	{:else}
 		<LinkStylePanel
@@ -439,8 +407,6 @@
 			{onPlainLinkStyleOverrides}
 			{onUnresolvedLinkStyleOverrides}
 			{onLinkStyleRulesChange}
-			{scheduleColorCommit}
-			{commitColor}
 		/>
 	{/if}
 </aside>

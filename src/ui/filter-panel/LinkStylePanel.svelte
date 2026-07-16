@@ -2,6 +2,7 @@
 	import type { App } from 'obsidian';
 	import CollapsibleSettingsGroup from './CollapsibleSettingsGroup.svelte';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
+	import ObsidianColorInput from '../obsidian/ObsidianColorInput.svelte';
 	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
 	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
 	import ObsidianSuggestInput, {
@@ -76,8 +77,6 @@
 		onPlainLinkStyleOverrides,
 		onUnresolvedLinkStyleOverrides,
 		onLinkStyleRulesChange,
-		scheduleColorCommit,
-		commitColor,
 	}: {
 		app: App;
 		metadataFieldSuggestions: string[];
@@ -95,18 +94,6 @@
 		onPlainLinkStyleOverrides: (style: DefaultLinkStyle) => void;
 		onUnresolvedLinkStyleOverrides: (style: DefaultLinkStyle) => void;
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
-		scheduleColorCommit: (
-			key: string,
-			currentColor: string,
-			nextColor: string,
-			commit: (color: string) => void,
-		) => void;
-		commitColor: (
-			key: string,
-			currentColor: string,
-			nextColor: string,
-			commit: (color: string) => void,
-		) => void;
 	} = $props();
 
 	let workspaceDefaultOpen = $state(true);
@@ -264,7 +251,8 @@
 		field: keyof DefaultLinkStyle,
 	): string | number | boolean {
 		return (
-			plainLinkStyleOverrides[field] ?? BUILT_IN_DEFAULT_PLAIN_LINK_STYLE[field]
+			plainLinkStyleOverrides[field] ??
+			BUILT_IN_DEFAULT_PLAIN_LINK_STYLE[field]
 		);
 	}
 
@@ -368,23 +356,11 @@
 		<div class="knowledge-workspace-rule-row compact">
 			<label>
 				<span>Color</span>
-				<input
-					type="color"
+				<ObsidianColorInput
 					value={defaultLinkStyle.color}
-					oninput={(event) =>
-						scheduleColorCommit(
-							'link:workspace-default',
-							defaultLinkStyle.color,
-							event.currentTarget.value,
-							(color) => updateDefaultLinkStyle({ color }),
-						)}
-					onchange={(event) =>
-						commitColor(
-							'link:workspace-default',
-							defaultLinkStyle.color,
-							event.currentTarget.value,
-							(color) => updateDefaultLinkStyle({ color }),
-						)}
+					commitKey="link:workspace-default"
+					ariaLabel="Workspace default link color"
+					onChange={(color) => updateDefaultLinkStyle({ color })}
 				/>
 			</label>
 			<label>
@@ -475,23 +451,11 @@
 			<div class="knowledge-workspace-rule-row compact">
 				<label>
 					<span>Color</span>
-					<input
-						type="color"
+					<ObsidianColorInput
 						value={activeLinkColor()}
-						oninput={(event) =>
-							scheduleColorCommit(
-								'link:chart-override',
-								activeLinkColor(),
-								event.currentTarget.value,
-								(color) => updateLinkOverride({ color }),
-							)}
-						onchange={(event) =>
-							commitColor(
-								'link:chart-override',
-								activeLinkColor(),
-								event.currentTarget.value,
-								(color) => updateLinkOverride({ color }),
-							)}
+						commitKey="link:chart-override"
+						ariaLabel="Chart link color"
+						onChange={(color) => updateLinkOverride({ color })}
 					/>
 				</label>
 				<label>
@@ -656,29 +620,14 @@
 				<div class="knowledge-workspace-rule-row compact">
 					<label>
 						<span>Color</span>
-						<input
-							type="color"
+						<ObsidianColorInput
 							value={rule.color}
-							oninput={(event) =>
-								scheduleColorCommit(
-									`link:${section.scope}:${rule.id}`,
-									rule.color,
-									event.currentTarget.value,
-									(color) =>
-										updateLinkRule(section.scope, rule.id, {
-											color,
-										}),
-								)}
-							onchange={(event) =>
-								commitColor(
-									`link:${section.scope}:${rule.id}`,
-									rule.color,
-									event.currentTarget.value,
-									(color) =>
-										updateLinkRule(section.scope, rule.id, {
-											color,
-										}),
-								)}
+							commitKey={`link:${section.scope}:${rule.id}`}
+							ariaLabel="Link rule color"
+							onChange={(color) =>
+								updateLinkRule(section.scope, rule.id, {
+									color,
+								})}
 						/>
 					</label>
 					<label>
@@ -774,25 +723,12 @@
 			<div class="knowledge-workspace-rule-row compact">
 				<label>
 					<span>Color</span>
-					<input
-						type="color"
+					<ObsidianColorInput
 						value={activeUnresolvedLinkColor()}
-						oninput={(event) =>
-							scheduleColorCommit(
-								'link:unresolved',
-								activeUnresolvedLinkColor(),
-								event.currentTarget.value,
-								(color) =>
-									updateUnresolvedLinkOverride({ color }),
-							)}
-						onchange={(event) =>
-							commitColor(
-								'link:unresolved',
-								activeUnresolvedLinkColor(),
-								event.currentTarget.value,
-								(color) =>
-									updateUnresolvedLinkOverride({ color }),
-							)}
+						commitKey="link:unresolved"
+						ariaLabel="Unresolved link color"
+						onChange={(color) =>
+							updateUnresolvedLinkOverride({ color })}
 					/>
 				</label>
 				<label>
@@ -856,23 +792,11 @@
 			<div class="knowledge-workspace-rule-row compact">
 				<label>
 					<span>Color</span>
-					<input
-						type="color"
+					<ObsidianColorInput
 						value={activePlainLinkColor()}
-						oninput={(event) =>
-							scheduleColorCommit(
-								'link:plain',
-								activePlainLinkColor(),
-								event.currentTarget.value,
-								(color) => updatePlainLinkOverride({ color }),
-							)}
-						onchange={(event) =>
-							commitColor(
-								'link:plain',
-								activePlainLinkColor(),
-								event.currentTarget.value,
-								(color) => updatePlainLinkOverride({ color }),
-							)}
+						commitKey="link:plain"
+						ariaLabel="Plain link color"
+						onChange={(color) => updatePlainLinkOverride({ color })}
 					/>
 				</label>
 				<label>

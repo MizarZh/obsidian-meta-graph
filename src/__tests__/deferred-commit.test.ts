@@ -3,6 +3,7 @@ import {
 	DeferredCommitScheduler,
 	ThrottledCommitScheduler,
 } from '../ui/filter/deferred-commit';
+import { ColorCommitScheduler } from '../ui/filter/color-commit';
 
 describe('commit schedulers', () => {
 	it('defers commits until the delay elapses', () => {
@@ -35,6 +36,29 @@ describe('commit schedulers', () => {
 		scheduler.commit('color', '#333333', '#444444', commit);
 		expect(commit).toHaveBeenCalledTimes(3);
 		expect(commit).toHaveBeenLastCalledWith('#444444');
+	});
+
+	it('uses the shared throttle policy for color controls', () => {
+		const commit = vi.fn();
+		const timers = createTimerHost();
+		const scheduler = new ColorCommitScheduler(timers.host);
+
+		scheduler.schedule(
+			'group:research:color',
+			'#000000',
+			'#111111',
+			commit,
+		);
+		scheduler.schedule(
+			'group:research:color',
+			'#111111',
+			'#222222',
+			commit,
+		);
+		expect(commit).toHaveBeenCalledTimes(1);
+
+		scheduler.commit('group:research:color', '#111111', '#333333', commit);
+		expect(commit).toHaveBeenLastCalledWith('#333333');
 	});
 });
 

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import CollapsibleSettingsGroup from './CollapsibleSettingsGroup.svelte';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
+	import ObsidianColorInput from '../obsidian/ObsidianColorInput.svelte';
 	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
 	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
 	import ObsidianToggle from '../obsidian/ObsidianToggle.svelte';
@@ -57,8 +58,6 @@
 		onLabelDarkBackgroundColor,
 		onLabelDarkBackgroundOpacity,
 		onLabelBackgroundOpacity,
-		scheduleColorCommit,
-		commitColor,
 		getDefaultLabelColor,
 	}: {
 		mode: ViewMode;
@@ -90,18 +89,6 @@
 		onLabelDarkBackgroundColor: (color: string) => void;
 		onLabelDarkBackgroundOpacity: (value: number) => void;
 		onLabelBackgroundOpacity: (value: number) => void;
-		scheduleColorCommit: (
-			key: string,
-			currentColor: string,
-			nextColor: string,
-			commit: (color: string) => void,
-		) => void;
-		commitColor: (
-			key: string,
-			currentColor: string,
-			nextColor: string,
-			commit: (color: string) => void,
-		) => void;
 		getDefaultLabelColor: () => string;
 	} = $props();
 
@@ -186,44 +173,20 @@
 			<div class="knowledge-workspace-text-style-pair profile-colors">
 				<label class="knowledge-workspace-rule-label">
 					<span>Text</span>
-					<input
-						type="color"
+					<ObsidianColorInput
 						value={labelLightTextColor}
-						oninput={(event) =>
-							scheduleColorCommit(
-								'text:light-text',
-								labelLightTextColor,
-								event.currentTarget.value,
-								onLabelLightTextColor,
-							)}
-						onchange={(event) =>
-							commitColor(
-								'text:light-text',
-								labelLightTextColor,
-								event.currentTarget.value,
-								onLabelLightTextColor,
-							)}
+						commitKey="text:light-text"
+						ariaLabel="Light profile text color"
+						onChange={onLabelLightTextColor}
 					/>
 				</label>
 				<label class="knowledge-workspace-rule-label">
 					<span>Background</span>
-					<input
-						type="color"
+					<ObsidianColorInput
 						value={labelLightBackgroundColor}
-						oninput={(event) =>
-							scheduleColorCommit(
-								'text:light-background',
-								labelLightBackgroundColor,
-								event.currentTarget.value,
-								onLabelLightBackgroundColor,
-							)}
-						onchange={(event) =>
-							commitColor(
-								'text:light-background',
-								labelLightBackgroundColor,
-								event.currentTarget.value,
-								onLabelLightBackgroundColor,
-							)}
+						commitKey="text:light-background"
+						ariaLabel="Light profile background color"
+						onChange={onLabelLightBackgroundColor}
 					/>
 				</label>
 			</div>
@@ -251,44 +214,20 @@
 			<div class="knowledge-workspace-text-style-pair profile-colors">
 				<label class="knowledge-workspace-rule-label">
 					<span>Text</span>
-					<input
-						type="color"
+					<ObsidianColorInput
 						value={labelDarkTextColor}
-						oninput={(event) =>
-							scheduleColorCommit(
-								'text:dark-text',
-								labelDarkTextColor,
-								event.currentTarget.value,
-								onLabelDarkTextColor,
-							)}
-						onchange={(event) =>
-							commitColor(
-								'text:dark-text',
-								labelDarkTextColor,
-								event.currentTarget.value,
-								onLabelDarkTextColor,
-							)}
+						commitKey="text:dark-text"
+						ariaLabel="Dark profile text color"
+						onChange={onLabelDarkTextColor}
 					/>
 				</label>
 				<label class="knowledge-workspace-rule-label">
 					<span>Background</span>
-					<input
-						type="color"
+					<ObsidianColorInput
 						value={labelDarkBackgroundColor}
-						oninput={(event) =>
-							scheduleColorCommit(
-								'text:dark-background',
-								labelDarkBackgroundColor,
-								event.currentTarget.value,
-								onLabelDarkBackgroundColor,
-							)}
-						onchange={(event) =>
-							commitColor(
-								'text:dark-background',
-								labelDarkBackgroundColor,
-								event.currentTarget.value,
-								onLabelDarkBackgroundColor,
-							)}
+						commitKey="text:dark-background"
+						ariaLabel="Dark profile background color"
+						onChange={onLabelDarkBackgroundColor}
 					/>
 				</label>
 			</div>
@@ -311,23 +250,11 @@
 	{:else}
 		<label class="knowledge-workspace-rule-label">
 			<span>Font color</span>
-			<input
-				type="color"
+			<ObsidianColorInput
 				value={labelColor || getDefaultLabelColor()}
-				oninput={(event) =>
-					scheduleColorCommit(
-						'text:label-color',
-						labelColor || getDefaultLabelColor(),
-						event.currentTarget.value,
-						onLabelColor,
-					)}
-				onchange={(event) =>
-					commitColor(
-						'text:label-color',
-						labelColor || getDefaultLabelColor(),
-						event.currentTarget.value,
-						onLabelColor,
-					)}
+				commitKey="text:label-color"
+				ariaLabel="Font color"
+				onChange={onLabelColor}
 			/>
 		</label>
 		<label class="knowledge-workspace-rule-label">

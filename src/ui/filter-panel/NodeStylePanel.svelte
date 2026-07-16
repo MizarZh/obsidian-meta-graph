@@ -3,6 +3,7 @@
 	import CollapsibleSettingsGroup from './CollapsibleSettingsGroup.svelte';
 	import NodeConditionRow from '../filter/NodeConditionRow.svelte';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
+	import ObsidianColorInput from '../obsidian/ObsidianColorInput.svelte';
 	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
 	import {
 		getDefaultNodeStyleOperator,
@@ -59,8 +60,6 @@
 		onNodeStyleOverrides,
 		onUnresolvedNodeStyleOverrides,
 		onNodeStyleRulesChange,
-		scheduleColorCommit,
-		commitColor,
 	}: {
 		app: App;
 		folders: string[];
@@ -81,18 +80,6 @@
 		onNodeStyleOverrides: (style: DefaultNodeStyle) => void;
 		onUnresolvedNodeStyleOverrides: (style: DefaultNodeStyle) => void;
 		onNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
-		scheduleColorCommit: (
-			key: string,
-			currentColor: string,
-			nextColor: string,
-			commit: (color: string) => void,
-		) => void;
-		commitColor: (
-			key: string,
-			currentColor: string,
-			nextColor: string,
-			commit: (color: string) => void,
-		) => void;
 	} = $props();
 
 	let workspaceDefaultOpen = $state(true);
@@ -369,23 +356,11 @@
 		<div class="knowledge-workspace-rule-row compact">
 			<label>
 				<span>Color</span>
-				<input
-					type="color"
+				<ObsidianColorInput
 					value={defaultNodeStyle.color}
-					oninput={(event) =>
-						scheduleColorCommit(
-							'node:workspace-default',
-							defaultNodeStyle.color,
-							event.currentTarget.value,
-							(color) => updateDefaultNodeStyle({ color }),
-						)}
-					onchange={(event) =>
-						commitColor(
-							'node:workspace-default',
-							defaultNodeStyle.color,
-							event.currentTarget.value,
-							(color) => updateDefaultNodeStyle({ color }),
-						)}
+					commitKey="node:workspace-default"
+					ariaLabel="Workspace default note color"
+					onChange={(color) => updateDefaultNodeStyle({ color })}
 				/>
 			</label>
 			<label>
@@ -432,23 +407,11 @@
 			<div class="knowledge-workspace-rule-row compact">
 				<label>
 					<span>Color</span>
-					<input
-						type="color"
+					<ObsidianColorInput
 						value={activeNodeColor()}
-						oninput={(event) =>
-							scheduleColorCommit(
-								'node:chart-override',
-								activeNodeColor(),
-								event.currentTarget.value,
-								(color) => updateNodeOverride({ color }),
-							)}
-						onchange={(event) =>
-							commitColor(
-								'node:chart-override',
-								activeNodeColor(),
-								event.currentTarget.value,
-								(color) => updateNodeOverride({ color }),
-							)}
+						commitKey="node:chart-override"
+						ariaLabel="Chart note color"
+						onChange={(color) => updateNodeOverride({ color })}
 					/>
 				</label>
 				<label>
@@ -548,29 +511,14 @@
 				<div class="knowledge-workspace-rule-row compact">
 					<label>
 						<span>Color</span>
-						<input
-							type="color"
+						<ObsidianColorInput
 							value={rule.color}
-							oninput={(event) =>
-								scheduleColorCommit(
-									`node:${section.scope}:${rule.id}`,
-									rule.color,
-									event.currentTarget.value,
-									(color) =>
-										updateNodeRule(section.scope, rule.id, {
-											color,
-										}),
-								)}
-							onchange={(event) =>
-								commitColor(
-									`node:${section.scope}:${rule.id}`,
-									rule.color,
-									event.currentTarget.value,
-									(color) =>
-										updateNodeRule(section.scope, rule.id, {
-											color,
-										}),
-								)}
+							commitKey={`node:${section.scope}:${rule.id}`}
+							ariaLabel="Note rule color"
+							onChange={(color) =>
+								updateNodeRule(section.scope, rule.id, {
+									color,
+								})}
 						/>
 					</label>
 					<label>
@@ -613,25 +561,12 @@
 			<div class="knowledge-workspace-rule-row compact">
 				<label>
 					<span>Color</span>
-					<input
-						type="color"
+					<ObsidianColorInput
 						value={activeUnresolvedNodeColor()}
-						oninput={(event) =>
-							scheduleColorCommit(
-								'node:unresolved',
-								activeUnresolvedNodeColor(),
-								event.currentTarget.value,
-								(color) =>
-									updateUnresolvedNodeOverride({ color }),
-							)}
-						onchange={(event) =>
-							commitColor(
-								'node:unresolved',
-								activeUnresolvedNodeColor(),
-								event.currentTarget.value,
-								(color) =>
-									updateUnresolvedNodeOverride({ color }),
-							)}
+						commitKey="node:unresolved"
+						ariaLabel="Unresolved note color"
+						onChange={(color) =>
+							updateUnresolvedNodeOverride({ color })}
 					/>
 				</label>
 				<label>

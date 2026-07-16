@@ -14,6 +14,7 @@
 	import { ThrottledCommitScheduler } from './filter/deferred-commit';
 	import NoteFilterEditor from './notes/NoteFilterEditor.svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
+	import ObsidianColorInput from './obsidian/ObsidianColorInput.svelte';
 	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
 	import ObsidianSlider from './obsidian/ObsidianSlider.svelte';
 	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
@@ -320,127 +321,71 @@
 							{/if}
 						</div>
 
-						<div class="knowledge-workspace-group-grid">
-							<label>
-								<span>Color</span>
-								<input
-									type="color"
-									value={group.color}
-									{disabled}
-									oninput={(event) =>
-										onUpdateGroup(group.id, {
-											color: event.currentTarget.value,
-										})}
-								/>
-							</label>
-							<label>
-								<span>Mode</span>
-								<ObsidianDropdown
-									value={group.mode}
-									options={MODE_OPTIONS}
-									{disabled}
-									onChange={(value) =>
-										updateMode(group, value)}
-								/>
-							</label>
-							{#if shapeEditable}
-								<div class="knowledge-workspace-group-shape">
-									<span>Shape</span>
-									<div class="knowledge-workspace-segmented">
-										{#each SHAPE_OPTIONS as option}
-											<button
-												type="button"
-												class:active={(group.shape ??
-													'auto') === option.value}
-												aria-pressed={(group.shape ??
-													'auto') === option.value}
-												{disabled}
-												onclick={() =>
-													updateShape(
-														group,
-														option.value,
-													)}
-											>
-												{option.label}
-											</button>
-										{/each}
-									</div>
-								</div>
-							{/if}
-							{#if geometryEditable && geometry}
-								<label>
-									<span>X</span>
-									<ObsidianTextInput
-										type="number"
-										value={geometry.x}
-										step="0.1"
+						<div class="knowledge-workspace-group-settings">
+							<div
+								class="knowledge-workspace-group-primary-settings"
+							>
+								<label
+									class="knowledge-workspace-rule-label knowledge-workspace-group-color-setting"
+								>
+									<span>Color</span>
+									<ObsidianColorInput
+										value={group.color}
+										commitKey={`group:${group.id}:color`}
+										ariaLabel={`${group.name} color`}
 										{disabled}
-										onChange={(value) =>
-											updateNumber(group, 'x', value)}
+										onChange={(color) =>
+											onUpdateGroup(group.id, {
+												color,
+											})}
 									/>
 								</label>
-								<label>
-									<span>Y</span>
-									<ObsidianTextInput
-										type="number"
-										value={geometry.y}
-										step="0.1"
+								<label
+									class="knowledge-workspace-rule-label knowledge-workspace-group-mode-setting"
+								>
+									<span>Mode</span>
+									<ObsidianDropdown
+										value={group.mode}
+										options={MODE_OPTIONS}
 										{disabled}
 										onChange={(value) =>
-											updateNumber(group, 'y', value)}
+											updateMode(group, value)}
 									/>
 								</label>
-								{#if group.shape === 'circle'}
-									<label
-										class="knowledge-workspace-group-diameter"
+								{#if shapeEditable}
+									<div
+										class="knowledge-workspace-rule-label segmented knowledge-workspace-group-shape"
 									>
-										<span>Diameter</span>
-										<ObsidianTextInput
-											type="number"
-											min="0.8"
-											step="0.1"
-											value={geometry.width}
-											{disabled}
-											onChange={(value) =>
-												updateDiameter(group, value)}
-										/>
-									</label>
-								{:else}
-									<label>
-										<span>Width</span>
-										<ObsidianTextInput
-											type="number"
-											min="0.8"
-											step="0.1"
-											value={geometry.width}
-											{disabled}
-											onChange={(value) =>
-												updateNumber(
-													group,
-													'width',
-													value,
-												)}
-										/>
-									</label>
-									<label>
-										<span>Height</span>
-										<ObsidianTextInput
-											type="number"
-											min="0.6"
-											step="0.1"
-											value={geometry.height}
-											{disabled}
-											onChange={(value) =>
-												updateNumber(
-													group,
-													'height',
-													value,
-												)}
-										/>
-									</label>
+										<span>Shape</span>
+										<div
+											class="knowledge-workspace-segmented"
+										>
+											{#each SHAPE_OPTIONS as option}
+												<button
+													type="button"
+													class:active={(group.shape ??
+														'auto') ===
+														option.value}
+													aria-pressed={(group.shape ??
+														'auto') ===
+														option.value}
+													{disabled}
+													onclick={() =>
+														updateShape(
+															group,
+															option.value,
+														)}
+												>
+													{option.label}
+												</button>
+											{/each}
+										</div>
+									</div>
 								{/if}
-							{/if}
-							<label class="knowledge-workspace-group-padding">
+							</div>
+							<label
+								class="knowledge-workspace-rule-label knowledge-workspace-group-padding"
+							>
 								<span>Padding</span>
 								<div class="knowledge-workspace-slider-value">
 									<ObsidianSlider
@@ -462,6 +407,86 @@
 									>
 								</div>
 							</label>
+							{#if geometryEditable && geometry}
+								<div
+									class="knowledge-workspace-rule-row compact knowledge-workspace-group-geometry"
+								>
+									<label>
+										<span>X</span>
+										<ObsidianTextInput
+											type="number"
+											value={geometry.x}
+											step="0.1"
+											{disabled}
+											onChange={(value) =>
+												updateNumber(group, 'x', value)}
+										/>
+									</label>
+									<label>
+										<span>Y</span>
+										<ObsidianTextInput
+											type="number"
+											value={geometry.y}
+											step="0.1"
+											{disabled}
+											onChange={(value) =>
+												updateNumber(group, 'y', value)}
+										/>
+									</label>
+									{#if group.shape === 'circle'}
+										<label
+											class="knowledge-workspace-group-diameter"
+										>
+											<span>Diameter</span>
+											<ObsidianTextInput
+												type="number"
+												min="0.8"
+												step="0.1"
+												value={geometry.width}
+												{disabled}
+												onChange={(value) =>
+													updateDiameter(
+														group,
+														value,
+													)}
+											/>
+										</label>
+									{:else}
+										<label>
+											<span>Width</span>
+											<ObsidianTextInput
+												type="number"
+												min="0.8"
+												step="0.1"
+												value={geometry.width}
+												{disabled}
+												onChange={(value) =>
+													updateNumber(
+														group,
+														'width',
+														value,
+													)}
+											/>
+										</label>
+										<label>
+											<span>Height</span>
+											<ObsidianTextInput
+												type="number"
+												min="0.6"
+												step="0.1"
+												value={geometry.height}
+												{disabled}
+												onChange={(value) =>
+													updateNumber(
+														group,
+														'height',
+														value,
+													)}
+											/>
+										</label>
+									{/if}
+								</div>
+							{/if}
 						</div>
 
 						{#if group.mode === 'rule'}

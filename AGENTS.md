@@ -62,6 +62,7 @@ Do not run `pnpm dev`, `pnpm build`, or `git diff` if the user explicitly asks n
 - `src/ui/ConnectionPanel.svelte`: bottom connection panel.
 - `src/ui/FilterPanel.svelte`: settings panel shell for graph/filter/text/note/link controls.
 - `src/ui/Toolbar.svelte`: chart switcher, view settings, search, layout controls.
+- `src/ui/obsidian/`: shared Obsidian-backed setting controls. Color settings must use `ObsidianColorInput.svelte`.
 - `src/ui/filter/`: pure helpers for filter tree editing, style-rule operations, and throttled/deferred setting commits.
 - `src/ui/workspace/change-tracker.ts`: classifies workspace changes into rebuild, display sync, style sync, and layout flags.
 - `src/ui/workspace/runtime-graph.ts`: creates runtime Graphology graphs and syncs style-only changes onto existing runtime graphs.
@@ -158,7 +159,7 @@ Important details:
 
 - Do not run ELK, ForceAtlas, Arc, or HEB layout for style-only edits.
 - Flow orthogonal edge segments must stay synchronized through `logicalEdgeId`.
-- Color controls use a throttled commit helper so drag previews update live without committing every pointer event.
+- Color controls use `ObsidianColorInput` and its throttled commit helper so drag previews update live without committing every pointer event.
 - Display settings such as label size/color/density stay in `syncRendererDisplaySettings`; do not convert them into graph rebuilds.
 
 ## Coding guidelines
@@ -172,6 +173,17 @@ Important details:
 - Preserve user data carefully when modifying frontmatter.
 - Avoid unrelated refactors while fixing behavior.
 - Do not edit `styles.css` directly. Make stylesheet changes under `src/styles/`, then run `pnpm build:css` to regenerate `styles.css`.
+
+## UI control standards
+
+- Use `ObsidianButton` for commands. Pure icon buttons are only for familiar single actions and must include an aria label and tooltip.
+- Use `ObsidianDropdown` for enumerations. Use a segmented control when the option set is small and direct comparison is useful.
+- Use `ObsidianToggle` for booleans and `ObsidianSlider` for continuous numeric values. Use numeric text inputs only when exact values such as coordinates or dimensions matter.
+- Use `ObsidianTextInput` for text and `ObsidianSuggestInput` or a domain picker when suggestions are available.
+- Business panels must not create raw `input[type="color"]` controls. Use `ObsidianColorInput` for every setting color.
+- Color controls use a 36 x 26 px pill swatch, Obsidian border/accent variables, a visible focus state, and a disabled state. Do not add panel-specific color-control styling.
+- Color changes preview locally, commit at most once every 120 ms while dragging, and flush the final value on change, blur, or unmount. Every control must provide a stable, domain-unique commit key.
+- Group, Graph, Text, Note, and Link settings must preserve the same dimensions, states, and commit semantics for equivalent controls.
 
 ## UI copy
 
