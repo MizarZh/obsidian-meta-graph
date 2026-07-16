@@ -7,7 +7,7 @@ export function getConnectionDirectionIcon(
 	if (mode === 'bidirectional') {
 		return 'arrow-left-right';
 	}
-	return mode === 'reverse' ? 'arrow-left' : 'arrow-right';
+	return mode === 'reverse' ? 'undo-2' : 'arrow-right';
 }
 
 export function getConnectionDirectionLabel(mode: ConnectionFieldMode): string {
