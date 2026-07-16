@@ -48,6 +48,8 @@
 		graphTargetTemplateId,
 		selectedNode,
 		selectedNodeColor,
+		initialDetailsNoteContentExpanded,
+		onDetailsNoteContentExpandedChange,
 		mode,
 		manualLayout,
 		grouping,
@@ -89,6 +91,8 @@
 		graphTargetTemplateId?: string;
 		selectedNode?: KnowledgeNode;
 		selectedNodeColor?: string;
+		initialDetailsNoteContentExpanded: boolean;
+		onDetailsNoteContentExpandedChange: (expanded: boolean) => void;
 		mode: ViewMode;
 		manualLayout: ManualLayoutConfig;
 		grouping: ChartGroupingConfig;
@@ -125,9 +129,12 @@
 	} = $props();
 
 	let activeTab = $state<RightPanelTab>('details');
-	let detailsContentVisible = $state(false);
+	let detailsContentVisibleOverride = $state<boolean | undefined>(undefined);
 	let addNotesOpen = $state(false);
 	let addNotesDraft = $state(createCuratedConditionDraft());
+	const detailsContentVisible = $derived(
+		detailsContentVisibleOverride ?? initialDetailsNoteContentExpanded,
+	);
 
 	const activeDraggingKey = $derived(draggingKey);
 	const notesTitleCounts = $derived(countTitles(notes));
@@ -170,6 +177,11 @@
 		event.preventDefault();
 		event.stopPropagation();
 		onLinkPointerDown(payload, event);
+	}
+
+	function setDetailsContentVisible(visible: boolean): void {
+		detailsContentVisibleOverride = visible;
+		onDetailsNoteContentExpandedChange(visible);
 	}
 </script>
 
@@ -231,8 +243,7 @@
 						{onOpenMetadataLink}
 						{onSetNodeGroup}
 						{onConnectNode}
-						onContentVisibleChange={(visible) =>
-							(detailsContentVisible = visible)}
+						onContentVisibleChange={setDetailsContentVisible}
 					/>
 				{:else}
 					<div class="knowledge-workspace-dock-empty">

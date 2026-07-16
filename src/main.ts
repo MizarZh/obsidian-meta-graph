@@ -119,6 +119,14 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 		this.updateOpenViewsSettings();
 	}
 
+	async setDetailsNoteContentExpanded(expanded: boolean): Promise<void> {
+		if (this.settings.detailsNoteContentExpanded === expanded) {
+			return;
+		}
+		this.settings.detailsNoteContentExpanded = expanded;
+		await this.saveData(this.settings);
+	}
+
 	getLastActiveFile(): TFile | null {
 		return this.app.workspace.getActiveFile() ?? this.lastActiveFile;
 	}
@@ -150,6 +158,8 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 			...settings,
 			fadeDistance: clamp(settings.fadeDistance, 0.25, 4),
 			nodeOpenMode: normalizeNodeOpenMode(settings.nodeOpenMode),
+			detailsNoteContentExpanded:
+				settings.detailsNoteContentExpanded === true,
 		};
 	}
 
@@ -177,9 +187,8 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 				): Promise<TFile>;
 			}
 		).createNewMarkdownFile(targetFolder, 'Untitled meta graph');
-		const { createMetaGraphMarkdown } = await import(
-			'./workspace/meta-graph-document'
-		);
+		const { createMetaGraphMarkdown } =
+			await import('./workspace/meta-graph-document');
 		await this.app.vault.modify(
 			file,
 			createMetaGraphMarkdown(

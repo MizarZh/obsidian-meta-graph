@@ -167,6 +167,10 @@ export class KnowledgeWorkspaceView extends TextFileView {
 				showDebugButton: this.plugin.settings.showDebugButton,
 				openTemplateNoteInNewTab:
 					this.plugin.settings.openTemplateNoteInNewTab,
+				initialDetailsNoteContentExpanded:
+					this.plugin.settings.detailsNoteContentExpanded,
+				onDetailsNoteContentExpandedChange: (expanded: boolean) =>
+					void this.plugin.setDetailsNoteContentExpanded(expanded),
 				onOpenNodeInRightSplit: (nodeId: string) =>
 					this.openNodeInRightSplit(nodeId),
 				getNodeOpenMode: () => this.plugin.settings.nodeOpenMode,
@@ -183,7 +187,10 @@ export class KnowledgeWorkspaceView extends TextFileView {
 			return;
 		}
 		if (!this.rightSplitLeaf || !this.isLeafAttached(this.rightSplitLeaf)) {
-			this.rightSplitLeaf = this.app.workspace.getLeaf('split', 'vertical');
+			this.rightSplitLeaf = this.app.workspace.getLeaf(
+				'split',
+				'vertical',
+			);
 		}
 		await this.rightSplitLeaf.openFile(file, { active: true });
 	}

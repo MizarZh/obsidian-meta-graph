@@ -42,6 +42,8 @@
 		dockOpen,
 		curatedPanelOpen,
 		connectionOpen,
+		initialDetailsNoteContentExpanded,
+		onDetailsNoteContentExpandedChange,
 		onToggleDock,
 		onToggleCuratedPanel,
 		onToggleConnection,
@@ -79,6 +81,8 @@
 		dockOpen: boolean;
 		curatedPanelOpen: boolean;
 		connectionOpen: boolean;
+		initialDetailsNoteContentExpanded: boolean;
+		onDetailsNoteContentExpandedChange: (expanded: boolean) => void;
 		onToggleDock: () => void;
 		onToggleCuratedPanel: () => void;
 		onToggleConnection: () => void;
@@ -273,6 +277,8 @@
 	graphTargetTemplateId={graphConnectionTargetTemplateId}
 	{selectedNode}
 	{selectedNodeColor}
+	{initialDetailsNoteContentExpanded}
+	{onDetailsNoteContentExpandedChange}
 	mode={workspaceState.mode}
 	manualLayout={workspaceState.manualLayout}
 	grouping={workspaceState.grouping}

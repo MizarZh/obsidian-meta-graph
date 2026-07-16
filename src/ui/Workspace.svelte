@@ -99,6 +99,8 @@
 		workspaceFilePath,
 		showDebugButton,
 		openTemplateNoteInNewTab,
+		initialDetailsNoteContentExpanded,
+		onDetailsNoteContentExpandedChange,
 		onOpenNodeInRightSplit,
 		getNodeOpenMode,
 	}: {
@@ -108,6 +110,8 @@
 		workspaceFilePath?: string;
 		showDebugButton: boolean;
 		openTemplateNoteInNewTab: boolean;
+		initialDetailsNoteContentExpanded: boolean;
+		onDetailsNoteContentExpandedChange: (expanded: boolean) => void;
 		onOpenNodeInRightSplit: (nodeId: string) => Promise<void>;
 		getNodeOpenMode: () => NodeOpenMode;
 	} = $props();
@@ -1003,6 +1007,8 @@
 				{dockOpen}
 				{curatedPanelOpen}
 				{connectionOpen}
+				{initialDetailsNoteContentExpanded}
+				{onDetailsNoteContentExpandedChange}
 				onToggleDock={() => (dockOpen = !dockOpen)}
 				onToggleCuratedPanel={() =>
 					(curatedPanelOpen = !curatedPanelOpen)}

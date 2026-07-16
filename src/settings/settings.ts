@@ -7,6 +7,7 @@ export interface KnowledgeWorkspaceSettings {
 	relayoutFlowAfterConnection: boolean;
 	openTemplateNoteInNewTab: boolean;
 	nodeOpenMode: NodeOpenMode;
+	detailsNoteContentExpanded: boolean;
 }
 
 export const DEFAULT_SETTINGS: KnowledgeWorkspaceSettings = {
@@ -16,6 +17,7 @@ export const DEFAULT_SETTINGS: KnowledgeWorkspaceSettings = {
 	relayoutFlowAfterConnection: false,
 	openTemplateNoteInNewTab: false,
 	nodeOpenMode: 'tab',
+	detailsNoteContentExpanded: false,
 };
 
 export function normalizeNodeOpenMode(value: unknown): NodeOpenMode {

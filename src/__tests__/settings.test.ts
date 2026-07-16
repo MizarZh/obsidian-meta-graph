@@ -5,6 +5,7 @@ describe('plugin settings', () => {
 	it('defaults node opening to a new tab', () => {
 		expect(DEFAULT_SETTINGS.nodeOpenMode).toBe('tab');
 		expect(DEFAULT_SETTINGS.openTemplateNoteInNewTab).toBe(false);
+		expect(DEFAULT_SETTINGS.detailsNoteContentExpanded).toBe(false);
 	});
 
 	it('normalizes persisted node open modes', () => {
