@@ -32,6 +32,11 @@
 	overflow-wrap: anywhere;
 }
 
+.knowledge-workspace-inspector-metadata
+	.knowledge-workspace-inspector-metadata-tag {
+	margin: 0 var(--size-2-1, 2px) var(--size-2-1, 2px) 0;
+}
+
 .knowledge-workspace-inspector-metadata-link {
 	display: inline-flex;
 	align-items: center;

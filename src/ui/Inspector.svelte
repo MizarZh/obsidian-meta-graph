@@ -6,6 +6,7 @@
 		ManualLayoutConfig,
 		ViewMode,
 	} from '../core/types';
+	import { normalizeTags } from '../core/tags';
 	import { resolveChartGroupOwnership } from '../query/group-ownership';
 	import InternalNotePreview from './workspace/InternalNotePreview.svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
@@ -52,7 +53,8 @@
 
 	type MetadataSegment =
 		| { kind: 'text'; text: string }
-		| { kind: 'link'; text: string; linkText: string };
+		| { kind: 'link'; text: string; linkText: string }
+		| { kind: 'tag'; text: string };
 
 	const wikiLinkPattern = /\[\[([^\]]+)\]\]/gu;
 	const AUTOMATIC_GROUP = '__automatic__';
@@ -127,11 +129,22 @@
 			})),
 	);
 
-	function renderMetadataValue(value: unknown): MetadataSegment[] {
+	function renderMetadataValue(
+		key: string,
+		value: unknown,
+	): MetadataSegment[] {
+		if (key.toLocaleLowerCase() === 'tags') {
+			const values = Array.isArray(value) ? value : [value];
+			return normalizeTags(
+				values.filter(
+					(item): item is string => typeof item === 'string',
+				),
+			).map((tag) => ({ kind: 'tag', text: `#${tag}` }));
+		}
 		if (Array.isArray(value)) {
 			return value.flatMap((item, index) => [
 				...(index > 0 ? [{ kind: 'text' as const, text: ', ' }] : []),
-				...renderMetadataValue(item),
+				...renderMetadataValue(key, item),
 			]);
 		}
 		if (typeof value === 'string') {
@@ -281,7 +294,7 @@
 					<div class="knowledge-workspace-inspector-metadata">
 						<strong>{key}</strong>
 						<span>
-							{#each renderMetadataValue(value) as segment}
+							{#each renderMetadataValue(key, value) as segment}
 								{#if segment.kind === 'link'}
 									<button
 										type="button"
@@ -295,6 +308,14 @@
 									>
 										{segment.text}
 									</button>
+								{:else if segment.kind === 'tag'}
+									<a
+										class="tag knowledge-workspace-inspector-metadata-tag"
+										href={segment.text}
+										target="_blank"
+										rel="noopener nofollow"
+										>{segment.text}</a
+									>
 								{:else}
 									{segment.text}
 								{/if}
