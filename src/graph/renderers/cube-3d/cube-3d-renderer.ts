@@ -53,6 +53,7 @@ import {
 interface CubeNodeObject {
 	id: string;
 	faceId: CubeFaceId;
+	color: string;
 	mesh: Three.Sprite;
 	label?: Three.Sprite;
 }
@@ -773,7 +774,13 @@ export class Cube3DRenderer {
 				label.renderOrder = 4;
 				this.labelGroup.add(label);
 			}
-			this.nodeObjects.set(nodeId, { id: nodeId, faceId, mesh, label });
+			this.nodeObjects.set(nodeId, {
+				id: nodeId,
+				faceId,
+				color: attributes.color,
+				mesh,
+				label,
+			});
 		}
 		this.rebuildEdges();
 		this.refreshNodeColors();
@@ -901,6 +908,11 @@ export class Cube3DRenderer {
 
 	private refreshNodeColors(): void {
 		for (const [nodeId, node] of this.nodeObjects.entries()) {
+			node.mesh.material.color.set(
+				nodeId === this.selectedNodeId
+					? this.palette.selected
+					: node.color,
+			);
 			this.setObjectOpacity(
 				node.mesh,
 				this.getNodeOpacity(nodeId) *
@@ -923,13 +935,12 @@ export class Cube3DRenderer {
 	}
 
 	private getNodeOpacity(nodeId: string): number {
-		if (!this.selectedNodeId && !this.hoveredNodeId && !this.pinnedNodeId) {
+		const activeHoverNodeId = this.pinnedNodeId ?? this.hoveredNodeId;
+		if (!activeHoverNodeId) {
 			return 0.96;
 		}
 		if (
-			nodeId === this.selectedNodeId ||
-			nodeId === this.hoveredNodeId ||
-			nodeId === this.pinnedNodeId ||
+			nodeId === activeHoverNodeId ||
 			this.hoveredNeighborhood.has(nodeId)
 		) {
 			return 1;

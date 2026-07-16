@@ -16,7 +16,7 @@ export function createCubeNodeSprite(
 	const context = canvas.getContext('2d');
 	if (context) {
 		context.clearRect(0, 0, canvasSize, canvasSize);
-		context.fillStyle = color;
+		context.fillStyle = '#ffffff';
 		context.beginPath();
 		context.arc(
 			canvasSize / 2,
@@ -29,6 +29,7 @@ export function createCubeNodeSprite(
 	}
 	const material = new three.SpriteMaterial({
 		map: new three.CanvasTexture(canvas),
+		color,
 		transparent: true,
 		depthWrite: false,
 		depthTest: false,

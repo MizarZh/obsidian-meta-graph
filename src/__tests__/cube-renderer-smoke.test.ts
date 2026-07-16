@@ -181,8 +181,11 @@ class LineBasicMaterial extends Material {
 }
 
 class SpriteMaterial extends Material {
-	constructor(_options?: unknown) {
+	color: Color;
+
+	constructor(options?: { color?: string }) {
 		super();
+		this.color = new Color(options?.color ?? '#ffffff');
 	}
 }
 
@@ -267,7 +270,12 @@ class WebGLRenderer {
 }
 
 class Color {
-	constructor(_value: string) {}
+	constructor(public value: string) {}
+
+	set(value: string): this {
+		this.value = value;
+		return this;
+	}
 }
 
 class AmbientLight {
@@ -423,6 +431,7 @@ function createGraph(nodeIds: string[]): RuntimeGraph {
 		target: vi.fn(),
 		isDirected: vi.fn(() => false),
 		forEachNode: vi.fn(),
+		forEachEdge: vi.fn(),
 	} as unknown as RuntimeGraph;
 }
 
@@ -477,5 +486,41 @@ describe('Cube3DRenderer smoke', () => {
 			});
 			renderer?.kill();
 		}).not.toThrow();
+	});
+
+	it('colors selection without fading other nodes', async () => {
+		const renderer = await Cube3DRenderer.create(
+			createGraph(['A.md', 'B.md']),
+			createContainer(),
+			palette,
+			{ nodes: {}, groups: [] },
+		);
+		const nodes = (
+			renderer as unknown as {
+				nodeObjects: Map<string, { mesh: Sprite; color: string }>;
+			}
+		).nodeObjects;
+		const selected = nodes.get('A.md')!;
+		const other = nodes.get('B.md')!;
+		const initialOtherOpacity = other.mesh.material.opacity;
+
+		renderer?.setSelected('A.md');
+
+		expect((selected.mesh.material as SpriteMaterial).color.value).toBe(
+			palette.selected,
+		);
+		expect((other.mesh.material as SpriteMaterial).color.value).toBe(
+			other.color,
+		);
+		expect(other.mesh.material.opacity).toBe(initialOtherOpacity);
+
+		renderer?.togglePinnedHover('A.md');
+		expect(other.mesh.material.opacity).toBeLessThan(initialOtherOpacity);
+
+		renderer?.setSelected(undefined);
+		expect((selected.mesh.material as SpriteMaterial).color.value).toBe(
+			selected.color,
+		);
+		renderer?.kill();
 	});
 });
