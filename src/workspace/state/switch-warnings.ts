@@ -31,7 +31,9 @@ export function getChartTypeSwitchWarning(
 		return {
 			severity: 'contextual',
 			title: 'Changing layout may reset layout settings',
-			details: ['Layout-specific settings may use defaults for the new layout.'],
+			details: [
+				'Layout-specific settings may use defaults for the new layout.',
+			],
 			confirmLabel: 'Continue',
 		};
 	}
@@ -72,7 +74,8 @@ export function getChartSourceSwitchWarning(
 function hasManualLayout(state: WorkspaceState): boolean {
 	return (
 		Object.keys(state.manualLayout.nodes).length > 0 ||
-		state.manualLayout.groups.length > 0
+		state.manualLayout.groups.length > 0 ||
+		Object.keys(state.manualLayout.groupFrames ?? {}).length > 0
 	);
 }
 

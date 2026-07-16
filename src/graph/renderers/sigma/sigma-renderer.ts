@@ -1,6 +1,6 @@
 import Sigma from 'sigma';
 import { createEdgeArrowProgram } from 'sigma/rendering';
-import type { ChartGroup, LabelPosition } from '../../../core/types';
+import type { LabelPosition } from '../../../core/types';
 import {
 	type RuntimeEdgeAttributes,
 	type RuntimeGraph,
@@ -28,6 +28,7 @@ import { reduceSigmaEdge, reduceSigmaNode } from './sigma-hover-policy';
 import {
 	GroupOverlayLayer,
 	type GroupInteractionCallbacks,
+	type GroupOverlayGroup,
 } from './sigma-group-overlay';
 import { LayoutGroupLayer } from './sigma-layout-group-layer';
 import type { LayoutGroupGeometry } from '../../../layouts/group-geometry';
@@ -189,7 +190,7 @@ export class SigmaRenderer {
 	}
 
 	setGroups(
-		groups: ChartGroup[],
+		groups: GroupOverlayGroup[],
 		callbacks?: GroupInteractionCallbacks,
 	): void {
 		this.groupOverlayLayer.setGroups(groups, callbacks);

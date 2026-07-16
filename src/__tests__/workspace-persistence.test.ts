@@ -379,7 +379,6 @@ describe('workspace persistence', () => {
 			'Projects/A.md': {
 				x: 1.2345,
 				y: -0.0004,
-				groupId: 'group-a',
 			},
 		});
 	});
@@ -441,6 +440,13 @@ describe('workspace persistence', () => {
 			],
 			overrides: { 'A.md': 'group-a' },
 		});
+		expect(restored.charts[0]?.layout.manual).toMatchObject({
+			nodes: { 'A.md': { x: 1, y: 2 } },
+			groups: [],
+			groupFrames: {
+				'group-a': { x: 0, y: 0, width: 3.2, height: 2.2 },
+			},
+		});
 	});
 
 	it('stores curated manual placements on curated files with rounded coordinates', () => {
@@ -457,6 +463,18 @@ describe('workspace persistence', () => {
 				...graphChart.curated,
 				files: [{ path: 'Projects/A.md' }],
 			},
+			grouping: {
+				groups: [
+					{
+						id: 'group-a',
+						name: 'Group A',
+						color: '#7c6ff0',
+						mode: 'manual',
+						padding: 0.32109,
+					},
+				],
+				overrides: { 'Projects/A.md': 'group-a' },
+			},
 			layout: {
 				engine: 'free',
 				spacing: 1,
@@ -465,26 +483,21 @@ describe('workspace persistence', () => {
 						'Projects/A.md': {
 							x: 1.23456,
 							y: -0.0004,
-							groupId: 'group-a',
 						},
 						'Projects/B.md': {
 							x: -2.34567,
 							y: 9.87654,
 						},
 					},
-					groups: [
-						{
-							id: 'group-a',
-							name: 'Group A',
+					groups: [],
+					groupFrames: {
+						'group-a': {
 							x: 0.12345,
 							y: 1.98765,
 							width: 3.33333,
 							height: 2.22222,
-							color: '#7c6ff0',
-							mode: 'manual',
-							padding: 0.32109,
 						},
-					],
+					},
 				},
 			},
 		};
@@ -497,7 +510,6 @@ describe('workspace persistence', () => {
 				path: 'Projects/A.md',
 				x: 1.235,
 				y: 0,
-				groupId: 'group-a',
 			},
 		]);
 		expect(savedChart?.layout.manual?.nodes).toEqual({
@@ -506,12 +518,11 @@ describe('workspace persistence', () => {
 				y: 9.877,
 			},
 		});
-		expect(savedChart?.layout.manual?.groups[0]).toMatchObject({
+		expect(savedChart?.layout.manual?.groupFrames?.['group-a']).toEqual({
 			x: 0.123,
 			y: 1.988,
 			width: 3.333,
 			height: 2.222,
-			padding: 0.321,
 		});
 	});
 

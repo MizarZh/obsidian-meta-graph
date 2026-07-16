@@ -122,7 +122,9 @@
 			{metadataFieldTypes}
 			{metadataFieldValueSuggestions}
 			{filePathSuggestions}
-			groups={workspaceState.manualLayout.groups}
+			groups={workspaceState.mode === 'cube'
+				? workspaceState.manualLayout.groups
+				: workspaceState.grouping.groups}
 			defaultNodeStyle={workspaceState.defaultNodeStyle}
 			defaultLinkStyle={workspaceState.defaultLinkStyle}
 			globalNodeStyleRules={workspaceState.globalNodeStyleRules}

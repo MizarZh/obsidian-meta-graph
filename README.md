@@ -65,11 +65,10 @@ settings to report them in the developer console.
    padding, and Manual or Rule membership. Each note belongs to at most one
    group; an explicit assignment or Ungrouped override takes priority over
    rules. Graph, Arc, Hierarchical edge bundling, Flow, Free, and Cube render
-   groups according to their layout. Graph groups add layout-only cohesion,
-   separate clusters, dynamic member bounds, and colored member rings without
-   creating metadata links. Free groups keep their editable rectangles and add
-   the same colored rings to their actual members. Groups are saved in the
-   workspace file, not note frontmatter.
+   groups according to their layout. Graph and Free share the same group frame,
+   label, and colored member rings without creating metadata links. Graph
+   frames follow their members automatically; Free frames keep editable size
+   and position. Groups are saved in the workspace file, not note frontmatter.
 10. Increase **Label density** in **Graph** settings when Sigma samples too few
     labels while zoomed out. Enable **Always show labels** to force every visible
     note label through Sigma's label grid. In 3D graph and Cube layouts, use
@@ -98,11 +97,12 @@ settings to report them in the developer console.
 14. In Free views, drag nodes directly to place them by hand. Free views do not
     run an automatic layout after the first placement, and dragged node
     positions are saved in the workspace file.
-15. In Free views, drag a group title to move the group. Notes already assigned
-    to that group move with it. Drag the bottom-right group handle to resize the
-    region.
-16. Drag a node into a manual group and release to assign it to that group.
-    Drag it out and release over empty space to remove it from the group.
+15. Drag a group title to move the group. Graph pauses and then resumes its force
+    simulation; Free saves the frame and member positions. In Free, use any edge
+    or corner handle to resize the region without changing membership.
+16. In Free, drag a node into any group frame to create an explicit assignment.
+    Drag it out over empty space to set an explicit **Ungrouped** override. Use
+    **Automatic** in Details to return the note to rule-based ownership.
 17. In Cube views, each cube face is a group. Drag the background to
     rotate the cube, drag nodes within their face to save their placement, use
     `Shift`-click for local relationship focus, right-click for selection

@@ -1,20 +1,48 @@
-import type { ChartGroup, ChartLayoutConfig } from '../../../core/types';
+import type {
+	ChartGroup,
+	ChartGroupDefinition,
+	ChartLayoutConfig,
+	GroupFrame,
+} from '../../../core/types';
 import { CUBE_FACE_GROUPS_BY_ID } from './cube-layout';
 
 export function getManualGroup(
 	layout: ChartLayoutConfig,
 	chartType: string,
 	groupId: string,
+	definition?: ChartGroupDefinition,
 ): ChartGroup | undefined {
 	const manual = layout.manual ?? { nodes: {}, groups: [] };
+	const frame = manual.groupFrames?.[groupId];
+	if (frame && definition) {
+		return { ...definition, ...frame };
+	}
 	return (
 		manual.groups.find((item) => item.id === groupId) ??
 		(chartType === 'cube' ? CUBE_FACE_GROUPS_BY_ID.get(groupId) : undefined)
 	);
 }
 
+export function getGroupFrame(
+	layout: ChartLayoutConfig,
+	groupId: string,
+): GroupFrame | undefined {
+	const manual = layout.manual;
+	return (
+		manual?.groupFrames?.[groupId] ??
+		manual?.groups.find((group) => group.id === groupId)
+	);
+}
+
+export function createFramedGroup(
+	definition: ChartGroupDefinition,
+	frame: GroupFrame,
+): ChartGroup {
+	return { ...definition, ...frame };
+}
+
 export function createUniqueDefaultGroup(
-	existingGroups: ChartGroup[],
+	existingGroups: Array<Pick<ChartGroupDefinition, 'id'>>,
 ): ChartGroup {
 	const existingIds = new Set(existingGroups.map((group) => group.id));
 	let index = existingGroups.length + 1;

@@ -1,5 +1,6 @@
 import type {
 	GraphProjection,
+	ChartGroupingConfig,
 	KnowledgeEdge,
 	KnowledgeNode,
 	ManualLayoutConfig,
@@ -40,7 +41,7 @@ export function createWorkspaceRuntimeGraph(
 		getActiveDefaultLinkStyle(state, palette.edge),
 		getActiveNodeStyleRules(state),
 		getActiveLinkStyleRules(state),
-		createNodeStyleContexts(projection, state.manualLayout),
+		createNodeStyleContexts(projection, state.grouping, state.manualLayout),
 		getActivePlainLinkStyle(state, palette.mutedEdge),
 		getActiveUnresolvedNodeStyle(state, palette.mutedNode),
 		getActiveUnresolvedLinkStyle(state, '#d97706'),
@@ -65,6 +66,7 @@ export function syncWorkspaceRuntimeGraphStyles(
 	const linkRules = getActiveLinkStyleRules(state);
 	const nodeStyleContexts = createNodeStyleContexts(
 		projection,
+		state.grouping,
 		state.manualLayout,
 	);
 
@@ -102,12 +104,12 @@ export function syncWorkspaceRuntimeGraphStyles(
 	for (const edge of projection.edges) {
 		const style = resolveRuntimeLinkStyle(
 			edge,
-				linkRules,
-				defaultLinkStyle,
-				plainLinkStyle,
-				unresolvedLinkStyle,
-				palette,
-			);
+			linkRules,
+			defaultLinkStyle,
+			plainLinkStyle,
+			unresolvedLinkStyle,
+			palette,
+		);
 		if (graph.hasEdge(edge.id)) {
 			graph.mergeEdgeAttributes(edge.id, {
 				...style,
@@ -179,12 +181,13 @@ function resolveRuntimeNodeStyle(
 
 function createNodeStyleContexts(
 	projection: GraphProjection,
+	grouping: ChartGroupingConfig,
 	manualLayout: ManualLayoutConfig,
 ): ReadonlyMap<string, NodeStyleContext> {
 	return new Map(
 		projection.nodes.map((node) => [
 			node.id,
-			resolveNodeStyleContext(node, manualLayout),
+			resolveNodeStyleContext(node, grouping, manualLayout),
 		]),
 	);
 }
@@ -223,15 +226,15 @@ function resolveRuntimeLinkStyle(
 				label: '',
 			}
 		: isPlainLinkEdge(edge)
-		? {
-				...style,
-				color: plainLinkStyle.color,
-				size: plainLinkStyle.size,
-				lineStyle: plainLinkStyle.lineStyle,
-				hidden: plainLinkStyle.hidden,
-				label: '',
-			}
-		: style;
+			? {
+					...style,
+					color: plainLinkStyle.color,
+					size: plainLinkStyle.size,
+					lineStyle: plainLinkStyle.lineStyle,
+					hidden: plainLinkStyle.hidden,
+					label: '',
+				}
+			: style;
 	return {
 		color: resolvedStyle.color,
 		size: resolvedStyle.size,
@@ -243,7 +246,9 @@ function resolveRuntimeLinkStyle(
 }
 
 function isPlainLinkEdge(edge: KnowledgeEdge): boolean {
-	return edge.kind === 'plain-link' || (!edge.kind && edge.semantic === false);
+	return (
+		edge.kind === 'plain-link' || (!edge.kind && edge.semantic === false)
+	);
 }
 
 function isUnresolvedLinkEdge(edge: KnowledgeEdge): boolean {

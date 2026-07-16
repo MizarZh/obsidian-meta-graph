@@ -152,7 +152,12 @@ export function setActiveChartTypeInState(
 					defaultChart.layout,
 					state.projection?.nodes.map((node) => node.id) ?? [],
 				)
-			: defaultChart.layout;
+			: {
+					...defaultChart.layout,
+					...(activeChart.type !== 'cube' && activeChart.layout.manual
+						? { manual: activeChart.layout.manual }
+						: {}),
+				};
 	return {
 		state: updateActiveChartState(
 			state,

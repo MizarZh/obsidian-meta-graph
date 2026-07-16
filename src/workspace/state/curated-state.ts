@@ -36,6 +36,9 @@ export function addCuratedFilesToState(
 		activeChart.curated.files.map((file) => file.path),
 		update.curated.files.map((file) => file.path),
 		groupId,
+		groupId
+			? activeChart.grouping.groups.find((group) => group.id === groupId)
+			: undefined,
 	);
 	const existingPaths = new Set(
 		activeChart.curated.files.map((file) => file.path),

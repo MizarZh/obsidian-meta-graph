@@ -93,6 +93,18 @@ export function resolveChartGroupOwnership(
 	return { byNode, membersByGroup, ungroupedNodeIds, conflicts };
 }
 
+export function createChartGroupByNode(
+	nodes: readonly KnowledgeNode[],
+	grouping: ChartGroupingConfig,
+): Map<NodeId, string> {
+	const ownership = resolveChartGroupOwnership(nodes, grouping);
+	return new Map(
+		[...ownership.byNode].flatMap(([nodeId, entry]) =>
+			entry.groupId ? [[nodeId, entry.groupId]] : [],
+		),
+	);
+}
+
 function groupRuleMatchesNode(
 	node: KnowledgeNode,
 	group: ChartGroupingConfig['groups'][number],

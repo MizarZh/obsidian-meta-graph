@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { GraphProjection, ManualLayoutConfig } from '../core/types';
+import type { GraphProjection } from '../core/types';
 import {
 	GraphologyAdapter,
 	type GraphPosition,
 } from '../graph/model/graphology-adapter';
 import type { GraphPalette } from '../graph/styles/graph-styles';
 import {
-	getManualGroupNodeIds,
-	moveRuntimeManualGroupNodes,
+	getGroupNodeIds,
+	moveRuntimeGroupNodes,
 } from '../ui/interactions/manual-layout-groups';
 
 const palette: GraphPalette = {
@@ -22,7 +22,7 @@ const palette: GraphPalette = {
 
 describe('manual layout groups', () => {
 	it('lists node ids assigned to a group', () => {
-		expect(getManualGroupNodeIds(manualNodes(), 'group-a')).toEqual([
+		expect(getGroupNodeIds(groupByNode(), 'group-a')).toEqual([
 			'A.md',
 			'C.md',
 			'Missing.md',
@@ -36,11 +36,10 @@ describe('manual layout groups', () => {
 		graph.mergeNodeAttributes('C.md', { x: 100, y: 200 });
 		const positions = new Map<string, GraphPosition>();
 
-		moveRuntimeManualGroupNodes(
+		moveRuntimeGroupNodes(
 			graph,
 			positions,
-			manualNodes(),
-			'group-a',
+			getGroupNodeIds(groupByNode(), 'group-a'),
 			{ x: 5, y: -2 },
 		);
 
@@ -55,13 +54,13 @@ describe('manual layout groups', () => {
 	});
 });
 
-function manualNodes(): ManualLayoutConfig['nodes'] {
-	return {
-		'A.md': { x: 0, y: 0, groupId: 'group-a' },
-		'B.md': { x: 0, y: 0, groupId: 'group-b' },
-		'C.md': { x: 0, y: 0, groupId: 'group-a' },
-		'Missing.md': { x: 0, y: 0, groupId: 'group-a' },
-	};
+function groupByNode(): Map<string, string> {
+	return new Map([
+		['A.md', 'group-a'],
+		['B.md', 'group-b'],
+		['C.md', 'group-a'],
+		['Missing.md', 'group-a'],
+	]);
 }
 
 const projection: GraphProjection = {

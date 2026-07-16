@@ -122,16 +122,20 @@ export interface NodePlacement {
 	groupId?: string;
 }
 
-export interface ChartGroup extends ChartGroupDefinition {
+export interface GroupFrame {
 	x: number;
 	y: number;
 	width: number;
 	height: number;
 }
 
+export interface ChartGroup extends ChartGroupDefinition, GroupFrame {}
+
 export interface ManualLayoutConfig {
 	nodes: Record<NodeId, NodePlacement>;
+	/** Cube faces and legacy Free groups. Free geometry uses groupFrames. */
 	groups: ChartGroup[];
+	groupFrames?: Record<string, GroupFrame>;
 }
 
 export interface ChartDisplayConfig {

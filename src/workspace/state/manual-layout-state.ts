@@ -1,16 +1,17 @@
 import type {
 	ChartGroup,
 	ChartGroupDefinition,
+	GroupFrame,
 	MetaGraphChart,
 	NodeId,
 	WorkspaceState,
 } from '../../core/types';
+import { resolveChartGroupOwnership } from '../../query/group-ownership';
 import {
 	createUniqueDefaultGroup,
 	findManualPlacement,
 	getManualGroup,
 	moveManualNodesToGroup,
-	normalizeGroupPatch,
 	readGroupPlacementBounds,
 } from './manual-layout';
 import { toGroupDefinition } from '../meta-graph/grouping';
@@ -27,26 +28,28 @@ export function setManualNodePositionInState(
 	const activeChart = getActiveChart(state);
 	const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
 	const previous = manual.nodes[nodeId];
-	const nextPlacement = groupId
-		? { x: position.x, y: position.y, groupId }
-		: { x: position.x, y: position.y };
+	const nextPlacement =
+		activeChart.type === 'cube' && groupId
+			? { x: position.x, y: position.y, groupId }
+			: { x: position.x, y: position.y };
+	const grouping =
+		activeChart.type === 'cube'
+			? activeChart.grouping
+			: assignGroupingOverrides(
+					activeChart.grouping,
+					[nodeId],
+					groupId ?? null,
+				);
 	if (
 		previous?.x === nextPlacement.x &&
 		previous?.y === nextPlacement.y &&
-		previous?.groupId === nextPlacement.groupId
+		previous?.groupId === nextPlacement.groupId &&
+		grouping === activeChart.grouping
 	) {
 		return state;
 	}
 	return updateActiveChartState(state, {
-		...(activeChart.type === 'cube'
-			? {}
-			: {
-					grouping: setGroupingOverrides(
-						activeChart.grouping,
-						[nodeId],
-						groupId ?? (previous?.groupId ? null : undefined),
-					),
-				}),
+		...(activeChart.type === 'cube' ? {} : { grouping }),
 		layout: {
 			...activeChart.layout,
 			manual: {
@@ -67,6 +70,7 @@ export function setNodeGroupInState(
 ): WorkspaceState {
 	const activeChart = getActiveChart(state);
 	if (
+		activeChart.type !== 'graph' &&
 		activeChart.type !== 'free' &&
 		activeChart.type !== 'cube' &&
 		activeChart.type !== 'flow' &&
@@ -88,11 +92,19 @@ export function setNodeGroupInState(
 			? state
 			: updateActiveChartState(state, { grouping });
 	}
-	const layout = moveManualNodesToGroup(
-		activeChart.layout,
-		[nodeId],
-		groupId ?? undefined,
-	);
+	const definition =
+		typeof groupId === 'string'
+			? activeChart.grouping.groups.find((group) => group.id === groupId)
+			: undefined;
+	const layout =
+		activeChart.type === 'cube' || groupId !== undefined
+			? moveManualNodesToGroup(
+					activeChart.layout,
+					[nodeId],
+					groupId ?? undefined,
+					definition,
+				)
+			: activeChart.layout;
 	const grouping =
 		activeChart.type === 'cube'
 			? activeChart.grouping
@@ -111,15 +123,10 @@ export function addGroupInState(state: WorkspaceState): WorkspaceState {
 		return state;
 	}
 	const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
-	const group = createUniqueDefaultGroup([
-		...manual.groups,
-		...activeChart.grouping.groups
-			.filter(
-				(definition) =>
-					!manual.groups.some((group) => group.id === definition.id),
-			)
-			.map(toDefaultManualGroup),
-	]);
+	const group = createUniqueDefaultGroup(activeChart.grouping.groups);
+	const frame = createDefaultGroupFrame(
+		Object.keys(manual.groupFrames ?? {}).length,
+	);
 	return updateActiveChartState(state, {
 		grouping: {
 			...activeChart.grouping,
@@ -129,7 +136,10 @@ export function addGroupInState(state: WorkspaceState): WorkspaceState {
 			...activeChart.layout,
 			manual: {
 				...manual,
-				groups: [...manual.groups, group],
+				groupFrames: {
+					...manual.groupFrames,
+					[group.id]: frame,
+				},
 			},
 		},
 	});
@@ -141,37 +151,43 @@ export function updateGroupInState(
 	patch: Partial<ChartGroup>,
 ): WorkspaceState {
 	const activeChart = getActiveChart(state);
+	if (activeChart.type === 'cube') {
+		return state;
+	}
 	const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
-	const groups = manual.groups.map((group) =>
-		group.id === groupId ? normalizeGroupPatch(group, patch) : group,
-	);
-	const updatedGroup = groups.find((group) => group.id === groupId);
 	const groupingGroups = activeChart.grouping.groups.map((group) => {
 		if (group.id !== groupId) {
 			return group;
 		}
-		return updatedGroup
-			? toGroupDefinition(updatedGroup)
-			: normalizeGroupDefinitionPatch(group, patch);
+		return normalizeGroupDefinitionPatch(group, patch);
 	});
+	if (!groupingGroups.some((group) => group.id === groupId)) {
+		return state;
+	}
+	const currentFrame = manual.groupFrames?.[groupId];
+	const nextFrame =
+		currentFrame && hasGroupFramePatch(patch)
+			? normalizeGroupFramePatch(currentFrame, patch)
+			: undefined;
 	return updateActiveChartState(state, {
 		grouping: {
 			...activeChart.grouping,
-			groups: activeChart.grouping.groups.some(
-				(group) => group.id === groupId,
-			)
-				? groupingGroups
-				: updatedGroup
-					? [...groupingGroups, toGroupDefinition(updatedGroup)]
-					: groupingGroups,
+			groups: groupingGroups,
 		},
-		layout: {
-			...activeChart.layout,
-			manual: {
-				...manual,
-				groups,
-			},
-		},
+		...(nextFrame
+			? {
+					layout: {
+						...activeChart.layout,
+						manual: {
+							...manual,
+							groupFrames: {
+								...manual.groupFrames,
+								[groupId]: nextFrame,
+							},
+						},
+					},
+				}
+			: {}),
 	});
 }
 
@@ -179,40 +195,51 @@ export function moveGroupInState(
 	state: WorkspaceState,
 	groupId: string,
 	delta: Position,
+	committedPositions?: Readonly<Record<NodeId, Position>>,
 ): WorkspaceState {
 	if (delta.x === 0 && delta.y === 0) {
 		return state;
 	}
 	const activeChart = getActiveChart(state);
+	if (activeChart.type === 'cube') {
+		return state;
+	}
 	const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
-	const groups = manual.groups.map((group) =>
-		group.id === groupId
-			? {
-					...group,
-					x: group.x + delta.x,
-					y: group.y + delta.y,
-				}
-			: group,
-	);
-	const nodes = Object.fromEntries(
-		Object.entries(manual.nodes).map(([nodeId, placement]) => [
-			nodeId,
-			placement.groupId === groupId
-				? {
-						...placement,
-						x: placement.x + delta.x,
-						y: placement.y + delta.y,
-					}
-				: placement,
-		]),
-	);
+	const frame = manual.groupFrames?.[groupId];
+	if (!frame) {
+		return state;
+	}
+	const nodes = { ...manual.nodes };
+	for (const nodeId of getCanonicalGroupMemberIds(
+		state,
+		activeChart,
+		groupId,
+	)) {
+		const committed = committedPositions?.[nodeId];
+		const placement = nodes[nodeId];
+		if (committed) {
+			nodes[nodeId] = { x: committed.x, y: committed.y };
+		} else if (placement) {
+			nodes[nodeId] = {
+				x: placement.x + delta.x,
+				y: placement.y + delta.y,
+			};
+		}
+	}
 	return updateActiveChartState(state, {
 		layout: {
 			...activeChart.layout,
 			manual: {
 				...manual,
 				nodes,
-				groups,
+				groupFrames: {
+					...manual.groupFrames,
+					[groupId]: {
+						...frame,
+						x: frame.x + delta.x,
+						y: frame.y + delta.y,
+					},
+				},
 			},
 		},
 	});
@@ -235,11 +262,7 @@ export function moveCuratedFilesToGroupInState(
 		return state;
 	}
 	const activeChart = getActiveChart(state);
-	if (
-		activeChart.type === 'flow' ||
-		activeChart.type === 'arc' ||
-		activeChart.type === 'hierarchical-edge-bundling'
-	) {
+	if (activeChart.type !== 'free' && activeChart.type !== 'cube') {
 		const grouping = assignGroupingOverrides(
 			activeChart.grouping,
 			paths,
@@ -249,22 +272,30 @@ export function moveCuratedFilesToGroupInState(
 			? state
 			: updateActiveChartState(state, { grouping });
 	}
-	const layout = moveManualNodesToGroup(activeChart.layout, paths, groupId);
-	return layout === activeChart.layout
+	const definition = groupId
+		? activeChart.grouping.groups.find((group) => group.id === groupId)
+		: undefined;
+	const layout = moveManualNodesToGroup(
+		activeChart.layout,
+		paths,
+		groupId,
+		definition,
+	);
+	const grouping =
+		activeChart.type === 'cube'
+			? activeChart.grouping
+			: assignGroupingOverrides(
+					activeChart.grouping,
+					paths,
+					groupId ?? null,
+				);
+	return layout === activeChart.layout && grouping === activeChart.grouping
 		? state
 		: updateActiveChartState(
 				state,
 				{
 					layout,
-					...(activeChart.type === 'cube'
-						? {}
-						: {
-								grouping: setGroupingOverrides(
-									activeChart.grouping,
-									paths,
-									groupId ?? null,
-								),
-							}),
+					...(activeChart.type === 'cube' ? {} : { grouping }),
 				},
 				true,
 			);
@@ -296,27 +327,8 @@ export function reorderGroupInState(
 		return state;
 	}
 	groups.splice(targetIndex, 0, group);
-	const groupOrder = new Map(
-		groups.map((item, groupIndex) => [item.id, groupIndex] as const),
-	);
-	const manual = activeChart.layout.manual;
 	return updateActiveChartState(state, {
 		grouping: { ...activeChart.grouping, groups },
-		...(manual
-			? {
-					layout: {
-						...activeChart.layout,
-						manual: {
-							...manual,
-							groups: [...manual.groups].sort(
-								(left, right) =>
-									(groupOrder.get(left.id) ?? groups.length) -
-									(groupOrder.get(right.id) ?? groups.length),
-							),
-						},
-					},
-				}
-			: {}),
 	});
 }
 
@@ -330,15 +342,21 @@ export function placeNodeInDefaultGroupInState(
 	}
 	const activeChart = getActiveChart(state);
 	const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
-	const group = getManualGroup(activeChart.layout, activeChart.type, groupId);
+	const definition = activeChart.grouping.groups.find(
+		(group) => group.id === groupId,
+	);
+	const group = getManualGroup(
+		activeChart.layout,
+		activeChart.type,
+		groupId,
+		definition,
+	);
 	if (!group) {
 		return state;
 	}
+	const members = getCanonicalGroupMemberIds(state, activeChart, groupId);
 	const occupied = Object.entries(manual.nodes)
-		.filter(
-			([nodeId, placement]) =>
-				nodeId !== path && placement.groupId === group.id,
-		)
+		.filter(([nodeId]) => nodeId !== path && members.has(nodeId))
 		.map(([, placement]) => ({ x: placement.x, y: placement.y }));
 	return setManualNodePositionInState(
 		state,
@@ -361,7 +379,8 @@ export function deleteGroupInState(
 		return state;
 	}
 	const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
-	const groups = manual.groups.filter((group) => group.id !== groupId);
+	const groupFrames = { ...manual.groupFrames };
+	delete groupFrames[groupId];
 	const nodes = Object.fromEntries(
 		Object.entries(manual.nodes).map(([nodeId, placement]) => [
 			nodeId,
@@ -386,25 +405,11 @@ export function deleteGroupInState(
 			manual: {
 				...manual,
 				nodes,
-				groups,
+				groups: manual.groups.filter((group) => group.id !== groupId),
+				groupFrames,
 			},
 		},
 	});
-}
-
-function setGroupingOverrides(
-	grouping: WorkspaceState['grouping'],
-	nodeIds: readonly NodeId[],
-	groupId: string | null | undefined,
-): WorkspaceState['grouping'] {
-	if (groupId === undefined) {
-		return grouping;
-	}
-	const overrides = { ...grouping.overrides };
-	for (const nodeId of nodeIds) {
-		overrides[nodeId] = groupId;
-	}
-	return { ...grouping, overrides };
 }
 
 function assignGroupingOverrides(
@@ -434,6 +439,62 @@ function assignGroupingOverrides(
 	return changed ? { ...grouping, overrides } : grouping;
 }
 
+function normalizeGroupFramePatch(
+	frame: GroupFrame,
+	patch: Partial<ChartGroup>,
+): GroupFrame {
+	return {
+		x:
+			typeof patch.x === 'number' && Number.isFinite(patch.x)
+				? patch.x
+				: frame.x,
+		y:
+			typeof patch.y === 'number' && Number.isFinite(patch.y)
+				? patch.y
+				: frame.y,
+		width:
+			typeof patch.width === 'number' && Number.isFinite(patch.width)
+				? Math.max(0.8, patch.width)
+				: frame.width,
+		height:
+			typeof patch.height === 'number' && Number.isFinite(patch.height)
+				? Math.max(0.6, patch.height)
+				: frame.height,
+	};
+}
+
+function hasGroupFramePatch(patch: Partial<ChartGroup>): boolean {
+	return (
+		patch.x !== undefined ||
+		patch.y !== undefined ||
+		patch.width !== undefined ||
+		patch.height !== undefined
+	);
+}
+
+function getCanonicalGroupMemberIds(
+	state: WorkspaceState,
+	chart: MetaGraphChart,
+	groupId: string,
+): Set<NodeId> {
+	const members = new Set<NodeId>();
+	for (const [nodeId, assignedGroupId] of Object.entries(
+		chart.grouping.overrides,
+	)) {
+		if (assignedGroupId === groupId) {
+			members.add(nodeId);
+		}
+	}
+	const ownership = resolveChartGroupOwnership(
+		state.projection?.nodes ?? [],
+		chart.grouping,
+	);
+	for (const nodeId of ownership.membersByGroup.get(groupId) ?? []) {
+		members.add(nodeId);
+	}
+	return members;
+}
+
 function normalizeGroupDefinitionPatch(
 	group: ChartGroupDefinition,
 	patch: Partial<ChartGroup>,
@@ -456,11 +517,10 @@ function normalizeGroupDefinitionPatch(
 	};
 }
 
-function toDefaultManualGroup(group: ChartGroupDefinition): ChartGroup {
+function createDefaultGroupFrame(index: number): GroupFrame {
 	return {
-		...group,
-		x: -1.6,
-		y: -1.1,
+		x: -1.6 + (index % 3) * 3.8,
+		y: -1.1 - Math.floor(index / 3) * 2.8,
 		width: 3.2,
 		height: 2.2,
 	};

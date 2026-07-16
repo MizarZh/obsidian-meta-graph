@@ -307,54 +307,53 @@ describe('style rules', () => {
 		).toEqual({ color: '#666666', size: 12 });
 	});
 
-	it('resolves node style context from manual and rule groups', () => {
+	it('resolves node style context from canonical group ownership', () => {
 		expect(
-			resolveNodeStyleContext(node, {
-				nodes: {
-					[node.id]: { x: 0, y: 0, groupId: 'manual-group' },
-				},
-				groups: [
-					{
-						id: 'manual-group',
-						name: 'Manual group',
-						x: 0,
-						y: 0,
-						width: 1,
-						height: 1,
-						color: '#111111',
-						mode: 'manual',
-						padding: 0.1,
-					},
-					{
-						id: 'rule-group',
-						name: 'Rule group',
-						x: 0,
-						y: 0,
-						width: 1,
-						height: 1,
-						color: '#222222',
-						mode: 'rule',
-						padding: 0.1,
-						rule: {
-							id: 'root',
-							kind: 'group',
-							mode: 'all',
-							children: [
-								{
-									id: 'tag',
-									kind: 'condition',
-									field: 'tag',
-									operator: 'is',
-									value: 'important',
-								},
-							],
+			resolveNodeStyleContext(
+				node,
+				{
+					groups: [
+						{
+							id: 'manual-group',
+							name: 'Manual group',
+							color: '#111111',
+							mode: 'manual',
+							padding: 0.1,
 						},
+						{
+							id: 'rule-group',
+							name: 'Rule group',
+							color: '#222222',
+							mode: 'rule',
+							padding: 0.1,
+							rule: {
+								id: 'root',
+								kind: 'group',
+								mode: 'all',
+								children: [
+									{
+										id: 'tag',
+										kind: 'condition',
+										field: 'tag',
+										operator: 'is',
+										value: 'important',
+									},
+								],
+							},
+						},
+					],
+					overrides: { [node.id]: 'manual-group' },
+				},
+				{
+					nodes: {
+						[node.id]: { x: 0, y: 0 },
 					},
-				],
-			}),
+					groups: [],
+				},
+			),
 		).toEqual({
-			groupIds: ['manual-group', 'rule-group'],
-			groupNames: ['Manual group', 'Rule group'],
+			groupIds: ['manual-group'],
+			groupNames: ['Manual group'],
 		});
 	});
 

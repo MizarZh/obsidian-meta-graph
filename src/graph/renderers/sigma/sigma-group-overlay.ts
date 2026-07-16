@@ -5,6 +5,7 @@ import type {
 	RuntimeGraph,
 	RuntimeNodeAttributes,
 } from '../../model/graphology-adapter';
+import { scaleLayoutGroupPadding } from '../../../layouts/group-geometry';
 
 export interface GroupGeometry {
 	x: number;
@@ -14,10 +15,17 @@ export interface GroupGeometry {
 }
 
 export interface GroupInteractionCallbacks {
+	onMoveStart?(groupId: string): void;
 	onMovePreview?(groupId: string, delta: { x: number; y: number }): void;
 	onMoveCommit?(groupId: string, delta: { x: number; y: number }): void;
+	onMoveEnd?(groupId: string): void;
 	onResizeCommit?(groupId: string, geometry: GroupGeometry): void;
 	getGroupNodeIds?(groupId: string): Iterable<string>;
+}
+
+export interface GroupOverlayGroup extends ChartGroup {
+	dynamicNodeIds?: string[];
+	resizable?: boolean;
 }
 
 type GroupResizeDirection =
@@ -40,7 +48,7 @@ interface GroupBounds {
 export class GroupOverlayLayer {
 	private readonly layer: HTMLDivElement;
 	private readonly activeDocument: Document;
-	private groups: ChartGroup[] = [];
+	private groups: GroupOverlayGroup[] = [];
 	private callbacks: GroupInteractionCallbacks = {};
 	private readonly elements = new Map<string, HTMLDivElement>();
 	private readonly updateBound = () => this.update();
@@ -51,7 +59,7 @@ export class GroupOverlayLayer {
 	private interaction:
 		| {
 				kind: 'move' | 'resize';
-				group: ChartGroup;
+				group: GroupOverlayGroup;
 				resizeDirection?: GroupResizeDirection;
 				startPointer: { x: number; y: number };
 				startGraph: { x: number; y: number };
@@ -80,7 +88,7 @@ export class GroupOverlayLayer {
 	}
 
 	setGroups(
-		groups: ChartGroup[],
+		groups: GroupOverlayGroup[],
 		callbacks: GroupInteractionCallbacks = this.callbacks,
 	): void {
 		this.groups = groups;
@@ -104,9 +112,6 @@ export class GroupOverlayLayer {
 	}): string | undefined {
 		let bestGroup: { id: string; area: number } | undefined;
 		for (const group of this.groups) {
-			if (group.mode !== 'manual') {
-				continue;
-			}
 			const rect = this.readGroupViewportRect(group);
 			if (
 				position.x < rect.left ||
@@ -151,6 +156,7 @@ export class GroupOverlayLayer {
 			}
 			const element = this.getOrCreateGroupElement(group);
 			const rect = this.readGroupViewportRect(group);
+			element.classList.toggle('resizable', group.resizable !== false);
 			element.style.left = `${rect.left}px`;
 			element.style.top = `${rect.top}px`;
 			element.style.width = `${rect.width}px`;
@@ -169,13 +175,25 @@ export class GroupOverlayLayer {
 	}
 
 	kill(): void {
-		this.endInteraction();
+		this.endInteraction(false);
 		this.sigma.off('afterRender', this.updateBound);
 		this.layer.remove();
 		this.elements.clear();
 	}
 
-	private readGroupViewportRect(group: GroupGeometry): {
+	private readGroupViewportRect(group: GroupOverlayGroup): {
+		left: number;
+		top: number;
+		width: number;
+		height: number;
+	} {
+		if (group.dynamicNodeIds) {
+			return this.readDynamicGroupViewportRect(group);
+		}
+		return this.readStaticGroupViewportRect(group);
+	}
+
+	private readStaticGroupViewportRect(group: GroupGeometry): {
 		left: number;
 		top: number;
 		width: number;
@@ -197,7 +215,63 @@ export class GroupOverlayLayer {
 		};
 	}
 
-	private getOrCreateGroupElement(group: ChartGroup): HTMLDivElement {
+	private readDynamicGroupViewportRect(group: GroupOverlayGroup): {
+		left: number;
+		top: number;
+		width: number;
+		height: number;
+	} {
+		const graph = this.getGraph();
+		const sizeScaler = this.sigma as unknown as {
+			scaleSize(size?: number): number;
+		};
+		const nodes = group.dynamicNodeIds?.flatMap((nodeId) => {
+			if (!graph.hasNode(nodeId)) {
+				return [];
+			}
+			const attributes = graph.getNodeAttributes(nodeId);
+			if (attributes.hidden || attributes.isBend) {
+				return [];
+			}
+			const scaledRadius = sizeScaler.scaleSize(attributes.size);
+			return [
+				{
+					position: this.sigma.graphToViewport(attributes),
+					radius: Number.isFinite(scaledRadius)
+						? Math.max(scaledRadius, 0)
+						: Math.max(attributes.size, 0),
+				},
+			];
+		});
+		if (!nodes?.length) {
+			return { left: 0, top: 0, width: 0, height: 0 };
+		}
+		const scaledPadding = scaleLayoutGroupPadding(group.padding) * 40;
+		const horizontalPadding = 12 + scaledPadding;
+		const topPadding = 24 + scaledPadding;
+		const bottomPadding = 12 + scaledPadding;
+		let left =
+			Math.min(...nodes.map((node) => node.position.x - node.radius)) -
+			horizontalPadding;
+		let right =
+			Math.max(...nodes.map((node) => node.position.x + node.radius)) +
+			horizontalPadding;
+		const top =
+			Math.min(...nodes.map((node) => node.position.y - node.radius)) -
+			topPadding;
+		const bottom =
+			Math.max(...nodes.map((node) => node.position.y + node.radius)) +
+			bottomPadding;
+		const minimumWidth = Math.min(220, group.name.length * 6.5 + 20);
+		if (right - left < minimumWidth) {
+			const extra = (minimumWidth - (right - left)) / 2;
+			left -= extra;
+			right += extra;
+		}
+		return { left, top, width: right - left, height: bottom - top };
+	}
+
+	private getOrCreateGroupElement(group: GroupOverlayGroup): HTMLDivElement {
 		const existing = this.elements.get(group.id);
 		if (existing) {
 			return existing;
@@ -245,7 +319,7 @@ export class GroupOverlayLayer {
 		resizeDirection?: GroupResizeDirection,
 	): void {
 		const group = this.groups.find((item) => item.id === groupId);
-		if (!group) {
+		if (!group || (kind === 'resize' && group.resizable === false)) {
 			return;
 		}
 		event.preventDefault();
@@ -255,6 +329,9 @@ export class GroupOverlayLayer {
 			target.setPointerCapture(event.pointerId);
 		}
 		const startPointer = this.readViewportPoint(event);
+		if (kind === 'move') {
+			this.callbacks.onMoveStart?.(group.id);
+		}
 		this.holdInteractionBounds();
 		this.interaction = {
 			kind,
@@ -291,7 +368,6 @@ export class GroupOverlayLayer {
 		}
 		event.preventDefault();
 		const geometry = this.readInteractionGeometry(event);
-		this.renderGroupGeometry(this.interaction.group.id, geometry);
 		if (this.interaction.kind === 'move') {
 			const totalDelta = {
 				x: geometry.x - this.interaction.group.x,
@@ -306,6 +382,13 @@ export class GroupOverlayLayer {
 				this.interaction.group.id,
 				stepDelta,
 			);
+			if (this.interaction.group.dynamicNodeIds) {
+				this.renderDynamicGroupGeometry(this.interaction.group);
+			} else {
+				this.renderGroupGeometry(this.interaction.group.id, geometry);
+			}
+		} else {
+			this.renderGroupGeometry(this.interaction.group.id, geometry);
 		}
 	};
 
@@ -317,17 +400,30 @@ export class GroupOverlayLayer {
 		const interaction = this.interaction;
 		const geometry = this.readInteractionGeometry(event);
 		if (interaction.kind === 'move') {
-			this.callbacks.onMoveCommit?.(interaction.group.id, {
+			const totalDelta = {
 				x: geometry.x - interaction.group.x,
 				y: geometry.y - interaction.group.y,
-			});
+			};
+			const stepDelta = {
+				x: totalDelta.x - interaction.lastDelta.x,
+				y: totalDelta.y - interaction.lastDelta.y,
+			};
+			if (stepDelta.x !== 0 || stepDelta.y !== 0) {
+				this.callbacks.onMovePreview?.(interaction.group.id, stepDelta);
+			}
+			this.callbacks.onMoveCommit?.(interaction.group.id, totalDelta);
 		} else {
 			this.callbacks.onResizeCommit?.(interaction.group.id, geometry);
 		}
 		this.endInteraction();
+		this.update();
 	};
 
-	private endInteraction(): void {
+	private endInteraction(notifyMoveEnd = true): void {
+		const movedGroupId =
+			this.interaction?.kind === 'move'
+				? this.interaction.group.id
+				: undefined;
 		this.interaction = undefined;
 		if (this.previousCameraPanning !== undefined) {
 			this.sigma.setSetting(
@@ -352,6 +448,9 @@ export class GroupOverlayLayer {
 			'pointerup',
 			this.handlePointerUp,
 		);
+		if (movedGroupId && notifyMoveEnd) {
+			this.callbacks.onMoveEnd?.(movedGroupId);
+		}
 	}
 
 	private holdInteractionBounds(): void {
@@ -524,7 +623,19 @@ export class GroupOverlayLayer {
 		if (!element) {
 			return;
 		}
-		const rect = this.readGroupViewportRect(geometry);
+		const rect = this.readStaticGroupViewportRect(geometry);
+		element.style.left = `${rect.left}px`;
+		element.style.top = `${rect.top}px`;
+		element.style.width = `${rect.width}px`;
+		element.style.height = `${rect.height}px`;
+	}
+
+	private renderDynamicGroupGeometry(group: GroupOverlayGroup): void {
+		const element = this.elements.get(group.id);
+		if (!element) {
+			return;
+		}
+		const rect = this.readDynamicGroupViewportRect(group);
 		element.style.left = `${rect.left}px`;
 		element.style.top = `${rect.top}px`;
 		element.style.width = `${rect.width}px`;

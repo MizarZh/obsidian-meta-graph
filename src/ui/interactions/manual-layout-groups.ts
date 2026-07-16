@@ -1,26 +1,24 @@
-import type { ManualLayoutConfig } from '../../core/types';
 import type {
 	GraphPosition,
 	RuntimeGraph,
 } from '../../graph/model/graphology-adapter';
 
-export function getManualGroupNodeIds(
-	nodes: ManualLayoutConfig['nodes'],
+export function getGroupNodeIds(
+	groupByNode: ReadonlyMap<string, string>,
 	groupId: string,
 ): string[] {
-	return Object.entries(nodes)
-		.filter(([, placement]) => placement.groupId === groupId)
+	return [...groupByNode]
+		.filter(([, assignedGroupId]) => assignedGroupId === groupId)
 		.map(([nodeId]) => nodeId);
 }
 
-export function moveRuntimeManualGroupNodes(
+export function moveRuntimeGroupNodes(
 	graph: RuntimeGraph,
 	positions: Map<string, GraphPosition>,
-	nodes: ManualLayoutConfig['nodes'],
-	groupId: string,
+	nodeIds: Iterable<string>,
 	delta: GraphPosition,
 ): void {
-	for (const nodeId of getManualGroupNodeIds(nodes, groupId)) {
+	for (const nodeId of nodeIds) {
 		if (!graph.hasNode(nodeId)) {
 			continue;
 		}

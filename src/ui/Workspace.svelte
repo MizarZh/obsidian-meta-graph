@@ -66,7 +66,10 @@
 		moveWorkspaceRuntimeGroupNodes,
 		syncWorkspaceRendererGroups,
 	} from './workspace/renderer-groups';
-	import { WorkspaceRendererLifecycle } from './workspace/renderer-lifecycle';
+	import {
+		createWorkspaceGroupByNode,
+		WorkspaceRendererLifecycle,
+	} from './workspace/renderer-lifecycle';
 	import {
 		DockCuratedDropController,
 		type DockCuratedDropAction,
@@ -489,15 +492,33 @@
 	}
 
 	function syncRendererGroups(): void {
+		const groupByNode = createWorkspaceGroupByNode(workspaceState);
 		syncWorkspaceRendererGroups(
 			rendererLifecycle.renderer,
 			workspaceState.mode,
 			workspaceState.manualLayout,
+			workspaceState.grouping,
+			groupByNode,
 			getLayoutSnapshot(),
 			{
+				onMoveStart: () => {
+					if (workspaceState.mode === 'graph') {
+						rendererLifecycle.stopForceLayoutSimulation();
+					}
+				},
 				onMovePreview: moveRuntimeGroupNodes,
-				onMoveCommit: (groupId, delta) =>
-					controller.moveGroup(groupId, delta),
+				onMoveCommit: (groupId, delta) => {
+					controller.moveGroup(
+						groupId,
+						delta,
+						readRuntimeGroupPositions(groupId),
+					);
+				},
+				onMoveEnd: () => {
+					if (workspaceState.mode === 'graph') {
+						rendererLifecycle.restartSigmaForceLayoutIfNeeded();
+					}
+				},
 				onResizeCommit: (groupId, geometry) =>
 					controller.resizeGroup(groupId, geometry),
 			},
@@ -508,12 +529,29 @@
 		groupId: string,
 		delta: { x: number; y: number },
 	): void {
+		const groupByNode = createWorkspaceGroupByNode(workspaceState);
 		moveWorkspaceRuntimeGroupNodes(
 			rendererLifecycle.renderer,
 			getLayoutSnapshot(),
-			workspaceState.manualLayout,
-			groupId,
+			[...groupByNode]
+				.filter(([, assignedGroupId]) => assignedGroupId === groupId)
+				.map(([nodeId]) => nodeId),
 			delta,
+		);
+	}
+
+	function readRuntimeGroupPositions(
+		groupId: string,
+	): Record<string, { x: number; y: number }> {
+		const groupByNode = createWorkspaceGroupByNode(workspaceState);
+		const positions = getLayoutSnapshot().positions;
+		return Object.fromEntries(
+			[...groupByNode].flatMap(([nodeId, assignedGroupId]) => {
+				const position = positions.get(nodeId);
+				return assignedGroupId === groupId && position
+					? [[nodeId, position]]
+					: [];
+			}),
 		);
 	}
 

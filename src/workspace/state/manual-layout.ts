@@ -1,4 +1,8 @@
-import type { ChartLayoutConfig } from '../../core/types';
+import type {
+	ChartGroupDefinition,
+	ChartLayoutConfig,
+	GroupFrame,
+} from '../../core/types';
 import { normalizePath } from '../../core/knowledge-index';
 import {
 	CUBE_FACE_GROUPS_BY_ID,
@@ -12,6 +16,7 @@ import {
 	readGroupPlacementBounds,
 	readUngroupedPlacementBounds,
 } from './manual-layout/placement';
+import { createFramedGroup, getGroupFrame } from './manual-layout/groups';
 
 export {
 	CUBE_FACE_GROUPS,
@@ -33,6 +38,7 @@ export function addManualPlacements(
 	previousPaths: string[],
 	nextPaths: string[],
 	groupId?: string,
+	groupDefinition?: ChartGroupDefinition,
 ): ChartLayoutConfig {
 	const manual = layout.manual ?? { nodes: {}, groups: [] };
 	const previous = new Set(previousPaths);
@@ -44,7 +50,7 @@ export function addManualPlacements(
 	const group = groupId
 		? isCubeLayout
 			? CUBE_FACE_GROUPS_BY_ID.get(groupId)
-			: manual.groups.find((item) => item.id === groupId)
+			: createGroupFromFrame(layout, groupDefinition, groupId)
 		: undefined;
 	if (groupId && !group) {
 		return layout;
@@ -57,7 +63,11 @@ export function addManualPlacements(
 		const placementGroup = placementGroupId
 			? isCubeLayout
 				? CUBE_FACE_GROUPS_BY_ID.get(placementGroupId)
-				: manual.groups.find((item) => item.id === placementGroupId)
+				: createGroupFromFrame(
+						layout,
+						groupDefinition,
+						placementGroupId,
+					)
 			: undefined;
 		if (placementGroupId && !placementGroup) {
 			continue;
@@ -68,14 +78,24 @@ export function addManualPlacements(
 		const occupied = Object.entries(nodes)
 			.filter(([, placement]) =>
 				placementGroup
-					? placement.groupId === placementGroup.id
-					: placement.groupId === undefined,
+					? isCubeLayout
+						? placement.groupId === placementGroup.id
+						: isPositionInsideGroup(placement, placementGroup)
+					: isCubeLayout
+						? placement.groupId === undefined
+						: true,
 			)
 			.map(([, placement]) => ({ x: placement.x, y: placement.y }));
 		const existing = nodes[path];
 		if (
 			existing &&
-			(!placementGroupId || existing.groupId === placementGroupId)
+			(!placementGroupId ||
+				(isCubeLayout
+					? existing.groupId === placementGroupId
+					: Boolean(
+							placementGroup &&
+							isPositionInsideGroup(existing, placementGroup),
+						)))
 		) {
 			continue;
 		}
@@ -86,24 +106,23 @@ export function addManualPlacements(
 			CUBE_FACE_IDS,
 		);
 		newPositions.push(position);
-		nodes[path] = placementGroupId
-			? { ...position, groupId: placementGroupId }
-			: position;
+		nodes[path] =
+			placementGroupId && isCubeLayout
+				? { ...position, groupId: placementGroupId }
+				: position;
 	}
-	const groups =
-		group && newPositions.length > 0 && !CUBE_FACE_IDS.has(group.id)
-			? manual.groups.map((item) =>
-					item.id === group.id
-						? expandGroupToPositions(item, newPositions)
-						: item,
-				)
-			: manual.groups;
+	const groupFrames = updateExpandedGroupFrame(
+		manual.groupFrames,
+		group,
+		newPositions,
+		isCubeLayout,
+	);
 	return {
 		...layout,
 		manual: {
 			...manual,
 			nodes,
-			groups,
+			...(groupFrames ? { groupFrames } : {}),
 		},
 	};
 }
@@ -138,13 +157,15 @@ export function moveManualNodesToGroup(
 	layout: ChartLayoutConfig,
 	paths: string[],
 	groupId?: string,
+	groupDefinition?: ChartGroupDefinition,
 ): ChartLayoutConfig {
 	const manual = layout.manual ?? { nodes: {}, groups: [] };
+	const isCubeLayout = layout.engine === 'cube-3d';
 	const movingPaths = new Set(paths);
 	const group = groupId
-		? layout.engine === 'cube-3d'
+		? isCubeLayout
 			? CUBE_FACE_GROUPS_BY_ID.get(groupId)
-			: manual.groups.find((item) => item.id === groupId)
+			: createGroupFromFrame(layout, groupDefinition, groupId)
 		: undefined;
 	if (groupId && !group) {
 		return layout;
@@ -162,8 +183,12 @@ export function moveManualNodesToGroup(
 				return false;
 			}
 			return group
-				? placement.groupId === group.id
-				: placement.groupId === undefined;
+				? isCubeLayout
+					? placement.groupId === group.id
+					: isPositionInsideGroup(placement, group)
+				: isCubeLayout
+					? placement.groupId === undefined
+					: true;
 		})
 		.map(([, placement]) => ({ x: placement.x, y: placement.y }));
 	const nodes = { ...manual.nodes };
@@ -177,8 +202,9 @@ export function moveManualNodesToGroup(
 				: findManualPlacement(bounds, occupied, groupId, CUBE_FACE_IDS);
 		occupied.push(position);
 		newPositions.push(position);
-		const nextPlacement = groupId ? { ...position, groupId } : position;
-		const nextGroupId = groupId ?? undefined;
+		const nextPlacement =
+			groupId && isCubeLayout ? { ...position, groupId } : position;
+		const nextGroupId = groupId && isCubeLayout ? groupId : undefined;
 		if (
 			previous?.x !== nextPlacement.x ||
 			previous?.y !== nextPlacement.y ||
@@ -191,20 +217,50 @@ export function moveManualNodesToGroup(
 	if (!changed) {
 		return layout;
 	}
-	const groups =
-		group && newPositions.length > 0 && !CUBE_FACE_IDS.has(group.id)
-			? manual.groups.map((item) =>
-					item.id === group.id
-						? expandGroupToPositions(item, newPositions)
-						: item,
-				)
-			: manual.groups;
+	const groupFrames = updateExpandedGroupFrame(
+		manual.groupFrames,
+		group,
+		newPositions,
+		isCubeLayout,
+	);
 	return {
 		...layout,
 		manual: {
 			...manual,
 			nodes,
-			groups,
+			...(groupFrames ? { groupFrames } : {}),
+		},
+	};
+}
+
+function createGroupFromFrame(
+	layout: ChartLayoutConfig,
+	definition: ChartGroupDefinition | undefined,
+	groupId: string,
+) {
+	const frame = getGroupFrame(layout, groupId);
+	return definition && frame
+		? createFramedGroup(definition, frame)
+		: undefined;
+}
+
+function updateExpandedGroupFrame(
+	frames: Record<string, GroupFrame> | undefined,
+	group: ReturnType<typeof createGroupFromFrame>,
+	positions: Array<{ x: number; y: number }>,
+	isCubeLayout: boolean,
+): Record<string, GroupFrame> | undefined {
+	if (!group || positions.length === 0 || isCubeLayout) {
+		return frames;
+	}
+	const expanded = expandGroupToPositions(group, positions);
+	return {
+		...frames,
+		[group.id]: {
+			x: expanded.x,
+			y: expanded.y,
+			width: expanded.width,
+			height: expanded.height,
 		},
 	};
 }

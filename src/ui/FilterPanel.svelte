@@ -13,7 +13,7 @@
 	import type {
 		ArcDirection,
 		ArcLabelAngle,
-		ChartGroup,
+		ChartGroupDefinition,
 		DefaultLinkStyle,
 		DefaultNodeStyle,
 		FlowDirection,
@@ -197,7 +197,7 @@
 		metadataFieldTypes: Record<string, string>;
 		metadataFieldValueSuggestions: Record<string, string[]>;
 		filePathSuggestions: string[];
-		groups: ChartGroup[];
+		groups: ChartGroupDefinition[];
 		defaultNodeStyle: Required<DefaultNodeStyle>;
 		defaultLinkStyle: Required<DefaultLinkStyle>;
 		globalNodeStyleRules: NodeStyleRule[];

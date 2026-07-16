@@ -64,8 +64,22 @@
 	const groups = $derived<ChartGroupDefinition[]>(
 		locked ? manualLayout.groups : grouping.groups,
 	);
-	const manualGroupsById = $derived(
-		new Map(manualLayout.groups.map((group) => [group.id, group])),
+	const groupFramesById = $derived(
+		new Map([
+			...manualLayout.groups.map(
+				(group) =>
+					[
+						group.id,
+						{
+							x: group.x,
+							y: group.y,
+							width: group.width,
+							height: group.height,
+						},
+					] as const,
+			),
+			...Object.entries(manualLayout.groupFrames ?? {}),
+		]),
 	);
 	const ownership = $derived(resolveChartGroupOwnership(nodes, grouping));
 	const memberCounts = $derived.by(() => {
@@ -216,7 +230,7 @@
 		{:else}
 			<div class="knowledge-workspace-group-list">
 				{#each groups as group, index (group.id)}
-					{@const geometry = manualGroupsById.get(group.id)}
+					{@const geometry = groupFramesById.get(group.id)}
 					<article class="knowledge-workspace-group-card">
 						<header>
 							<label class="knowledge-workspace-group-name">

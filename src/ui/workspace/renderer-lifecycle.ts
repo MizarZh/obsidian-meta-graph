@@ -18,7 +18,7 @@ import {
 	hydrateManualLayoutPositions,
 	type LayoutSnapshot,
 } from '../../layouts/stable-layout';
-import { resolveChartGroupOwnership } from '../../query/group-ownership';
+import { createChartGroupByNode } from '../../query/group-ownership';
 import { getWorkspaceGraphForceSettings } from './graph-settings';
 import { createWorkspaceGraphRenderer } from './renderer-factory';
 import { createWorkspaceRuntimeGraph } from './runtime-graph';
@@ -286,16 +286,11 @@ function canRenderProjection(state: WorkspaceState): boolean {
 	return Boolean(state.projection?.nodes.length) || state.mode === 'cube';
 }
 
-function createWorkspaceGroupByNode(
+export function createWorkspaceGroupByNode(
 	state: WorkspaceState,
 ): Map<string, string> {
-	const ownership = resolveChartGroupOwnership(
+	return createChartGroupByNode(
 		state.projection?.nodes ?? [],
 		state.grouping,
-	);
-	return new Map(
-		[...ownership.byNode]
-			.filter((entry) => Boolean(entry[1].groupId))
-			.map(([nodeId, entry]) => [nodeId, entry.groupId!] as const),
 	);
 }

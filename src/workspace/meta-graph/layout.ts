@@ -3,6 +3,7 @@ import type {
 	ChartLayoutConfig,
 	FlowRelationPlacement,
 	FlowRelationRule,
+	GroupFrame,
 	LayoutNodeSort,
 	LayoutSortDirection,
 	ManualLayoutConfig,
@@ -103,7 +104,7 @@ export function normalizeLayout(
 			record.edgeStyle === 'straight' || record.edgeStyle === 'orthogonal'
 				? record.edgeStyle
 				: fallback.edgeStyle,
-		manual: normalizeManualLayout(record.manual, fallback.manual),
+		manual: normalizeManualLayout(record.manual, fallback.manual, type),
 	};
 }
 
@@ -168,6 +169,7 @@ export function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 				manual: {
 					nodes: {},
 					groups: [],
+					groupFrames: {},
 				},
 			};
 		case 'graph':
@@ -278,6 +280,7 @@ function normalizeForceSetting(value: unknown, fallback: number): number {
 function normalizeManualLayout(
 	value: unknown,
 	fallback?: ManualLayoutConfig,
+	type?: ViewMode,
 ): ManualLayoutConfig {
 	const record = isRecord(value) ? value : {};
 	const nodeRecord = isRecord(record.nodes) ? record.nodes : {};
@@ -296,6 +299,13 @@ function normalizeManualLayout(
 						Boolean(group),
 				)
 		: [];
+	const explicitFrames = normalizeGroupFrames(record.groupFrames);
+	const legacyFrames =
+		type === 'cube'
+			? {}
+			: Object.fromEntries(
+					groups.map((group) => [group.id, toGroupFrame(group)]),
+				);
 	return {
 		nodes:
 			Object.keys(nodes).length > 0
@@ -305,6 +315,45 @@ function normalizeManualLayout(
 			groups.length > 0
 				? uniqueById(groups)
 				: cloneSerializable(fallback?.groups ?? []),
+		groupFrames: {
+			...cloneSerializable(fallback?.groupFrames ?? {}),
+			...legacyFrames,
+			...explicitFrames,
+		},
+	};
+}
+
+function normalizeGroupFrames(value: unknown): Record<string, GroupFrame> {
+	if (!isRecord(value)) {
+		return {};
+	}
+	return Object.fromEntries(
+		Object.entries(value).flatMap(([groupId, frameValue]) => {
+			const frame = normalizeGroupFrame(frameValue);
+			return groupId.trim() && frame ? [[groupId.trim(), frame]] : [];
+		}),
+	);
+}
+
+function normalizeGroupFrame(value: unknown): GroupFrame | undefined {
+	const record = isRecord(value) ? value : undefined;
+	if (!record) {
+		return undefined;
+	}
+	return {
+		x: readFiniteNumber(record.x, 0),
+		y: readFiniteNumber(record.y, 0),
+		width: Math.max(0.8, normalizeGroupSize(record.width, 3.2)),
+		height: Math.max(0.6, normalizeGroupSize(record.height, 2.2)),
+	};
+}
+
+function toGroupFrame(group: ManualLayoutConfig['groups'][number]): GroupFrame {
+	return {
+		x: group.x,
+		y: group.y,
+		width: group.width,
+		height: group.height,
 	};
 }
 

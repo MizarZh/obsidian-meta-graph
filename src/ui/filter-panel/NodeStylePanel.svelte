@@ -13,7 +13,7 @@
 		type SuggestionOption,
 	} from '../filter-config';
 	import type {
-		ChartGroup,
+		ChartGroupDefinition,
 		DefaultNodeStyle,
 		NodeFilterField,
 		NodeFilterOperator,
@@ -69,7 +69,7 @@
 		metadataFieldTypes: Record<string, string>;
 		metadataFieldValueSuggestions: Record<string, string[]>;
 		filePathSuggestions: string[];
-		groups: ChartGroup[];
+		groups: ChartGroupDefinition[];
 		defaultNodeStyle: Required<DefaultNodeStyle>;
 		globalNodeStyleRules: NodeStyleRule[];
 		nodeStyleOverrides: DefaultNodeStyle;

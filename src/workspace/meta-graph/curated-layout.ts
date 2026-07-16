@@ -153,6 +153,23 @@ function roundChartLayout(layout: ChartLayoutConfig): ChartLayoutConfig {
 				height: roundCoordinate(group.height),
 				padding: roundCoordinate(group.padding),
 			})),
+			...(layout.manual.groupFrames
+				? {
+						groupFrames: Object.fromEntries(
+							Object.entries(layout.manual.groupFrames).map(
+								([groupId, frame]) => [
+									groupId,
+									{
+										x: roundCoordinate(frame.x),
+										y: roundCoordinate(frame.y),
+										width: roundCoordinate(frame.width),
+										height: roundCoordinate(frame.height),
+									},
+								],
+							),
+						),
+					}
+				: {}),
 		},
 	};
 }

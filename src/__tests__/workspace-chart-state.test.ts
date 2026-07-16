@@ -9,6 +9,7 @@ import {
 	setActiveChartSourceInState,
 	setActiveChartTypeInState,
 } from '../workspace/state/chart-state';
+import { addGroupInState } from '../workspace/state/manual-layout-state';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
 
 describe('workspace chart state', () => {
@@ -161,5 +162,22 @@ describe('workspace chart state', () => {
 		expect(result.state.chartSource).toBe('curated');
 		expect(result.state.charts[0]?.source).toBe('query');
 		expect(result.state.charts.at(-1)?.source).toBe('curated');
+	});
+
+	it('preserves canonical groups and Free frames across 2D chart types', () => {
+		let state = addGroupInState(createWorkspaceState(100));
+		const group = state.grouping.groups[0];
+		if (!group) {
+			throw new Error('Expected group.');
+		}
+		const frame = state.manualLayout.groupFrames?.[group.id];
+
+		state = setActiveChartTypeInState(state, 'free').state;
+		expect(state.grouping.groups[0]).toEqual(group);
+		expect(state.manualLayout.groupFrames?.[group.id]).toEqual(frame);
+
+		state = setActiveChartTypeInState(state, 'graph').state;
+		expect(state.grouping.groups[0]).toEqual(group);
+		expect(state.manualLayout.groupFrames?.[group.id]).toEqual(frame);
 	});
 });

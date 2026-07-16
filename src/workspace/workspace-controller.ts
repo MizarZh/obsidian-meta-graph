@@ -522,8 +522,14 @@ export class WorkspaceController {
 		this.setWorkspaceState(updateGroupInState(this.state, groupId, patch));
 	}
 
-	moveGroup(groupId: string, delta: { x: number; y: number }): void {
-		this.setWorkspaceState(moveGroupInState(this.state, groupId, delta));
+	moveGroup(
+		groupId: string,
+		delta: { x: number; y: number },
+		positions?: Readonly<Record<NodeId, { x: number; y: number }>>,
+	): void {
+		this.setWorkspaceState(
+			moveGroupInState(this.state, groupId, delta, positions),
+		);
 	}
 
 	resizeGroup(

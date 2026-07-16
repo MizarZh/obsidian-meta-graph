@@ -93,7 +93,7 @@ describe('workspace curated state', () => {
 
 	it('adds curated files and creates manual placements in the requested group', () => {
 		const state = addGroupInState(createWorkspaceState(100));
-		const group = state.manualLayout.groups[0];
+		const group = state.grouping.groups[0];
 		if (!group) {
 			throw new Error('Expected default group.');
 		}
@@ -105,9 +105,11 @@ describe('workspace curated state', () => {
 		);
 
 		expect(nextState.curated.files).toEqual([{ path: 'Folder/Note.md' }]);
-		expect(nextState.manualLayout.nodes['Folder/Note.md']?.groupId).toBe(
-			group.id,
-		);
+		expect(nextState.manualLayout.nodes['Folder/Note.md']).toBeDefined();
+		expect(
+			nextState.manualLayout.nodes['Folder/Note.md'],
+		).not.toHaveProperty('groupId');
+		expect(nextState.grouping.overrides['Folder/Note.md']).toBe(group.id);
 		expect(nextState.layoutRevision).toBe(state.layoutRevision + 1);
 	});
 

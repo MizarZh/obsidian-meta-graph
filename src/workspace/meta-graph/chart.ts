@@ -145,13 +145,22 @@ export function normalizeChart(
 	const curated = normalizeCuratedWorkspace(
 		record.curated ?? record.workspace,
 	);
-	const layout = normalizeLayout(record.layout, fallback.layout, type);
-	const hydrated = hydrateCuratedManualLayout(source, curated, layout);
+	const normalizedLayout = normalizeLayout(
+		record.layout,
+		fallback.layout,
+		type,
+	);
+	const hydrated = hydrateCuratedManualLayout(
+		source,
+		curated,
+		normalizedLayout,
+	);
 	const grouping = normalizeChartGrouping(
 		record.grouping,
 		type === 'cube' ? undefined : hydrated.layout.manual,
 		fallback.grouping,
 	);
+	const layout = canonicalizeManualGrouping(hydrated.layout, type, grouping);
 	return {
 		id,
 		name:
@@ -163,7 +172,7 @@ export function normalizeChart(
 		query: normalizeQuery(record.query, fallback.query, maxNodes),
 		curated: hydrated.curated,
 		grouping,
-		layout: hydrated.layout,
+		layout,
 		display: {
 			fadeDistance: readFiniteNumber(
 				display.fadeDistance,
@@ -292,6 +301,45 @@ export function normalizeChart(
 			nodeRules: normalizeNodeStyleRules(styleRecord.nodeRules),
 			linkRules: normalizeLinkStyleRules(styleRecord.linkRules),
 		},
+	};
+}
+
+function canonicalizeManualGrouping(
+	layout: MetaGraphChart['layout'],
+	type: ViewMode,
+	grouping: MetaGraphChart['grouping'],
+): MetaGraphChart['layout'] {
+	if (type === 'cube' || !layout.manual) {
+		return layout;
+	}
+	const groupFrames = { ...(layout.manual.groupFrames ?? {}) };
+	for (const [index, group] of grouping.groups.entries()) {
+		groupFrames[group.id] ??= createDefaultGroupFrame(index);
+	}
+	return {
+		...layout,
+		manual: {
+			...layout.manual,
+			nodes: Object.fromEntries(
+				Object.entries(layout.manual.nodes).map(
+					([nodeId, placement]) => [
+						nodeId,
+						{ x: placement.x, y: placement.y },
+					],
+				),
+			),
+			groups: [],
+			groupFrames,
+		},
+	};
+}
+
+function createDefaultGroupFrame(index: number) {
+	return {
+		x: -1.6 + (index % 3) * 3.8,
+		y: -1.1 - Math.floor(index / 3) * 2.8,
+		width: 3.2,
+		height: 2.2,
 	};
 }
 
