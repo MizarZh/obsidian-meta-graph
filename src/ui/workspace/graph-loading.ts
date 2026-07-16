@@ -17,6 +17,9 @@ export class GraphLoadingCoordinator {
 	constructor(private readonly options: GraphLoadingCoordinatorOptions) {}
 
 	setRendererPending(pending: boolean): void {
+		if (pending && !this.transitionPending && !this.rendererPending) {
+			return;
+		}
 		if (this.rendererPending === pending) {
 			return;
 		}

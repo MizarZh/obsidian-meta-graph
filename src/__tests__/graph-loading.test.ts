@@ -23,6 +23,19 @@ describe('GraphLoadingCoordinator', () => {
 		expect(states.at(-1)).toEqual({ visible: false, label: undefined });
 	});
 
+	it('ignores renderer work outside a chart transition', () => {
+		const onChange = vi.fn();
+		const coordinator = new GraphLoadingCoordinator({
+			waitForPaint: async () => undefined,
+			onChange,
+		});
+
+		coordinator.setRendererPending(true);
+		coordinator.setRendererPending(false);
+
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
 	it('runs only the latest queued transition', async () => {
 		const paintResolvers: Array<() => void> = [];
 		const firstAction = vi.fn();
