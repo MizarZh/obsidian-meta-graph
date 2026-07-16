@@ -172,6 +172,11 @@
 			? workspaceState.manualLayout.groups
 			: workspaceState.grouping.groups,
 	);
+	const activeConnectionMode = $derived(
+		workspaceState.connectionFieldSpecs.find(
+			(field) => field.id === workspaceState.activeConnectionFieldSpecId,
+		)?.mode ?? 'directed',
+	);
 </script>
 
 {#if workspaceState.chartSource === 'curated'}
@@ -266,6 +271,7 @@
 	dockWidth={workspaceState.dock.dockWidth}
 	onResizeDock={(width) => controller.setDockWidth(width)}
 	activeConnectionField={workspaceState.activeConnectionField}
+	{activeConnectionMode}
 	draggingKey={dockDrag
 		? dockDrag.kind === 'template'
 			? `template:${dockDrag.templateId}`

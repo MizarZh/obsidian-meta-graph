@@ -497,3 +497,15 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
+
+.knowledge-workspace-inspector-link
+	> .knowledge-workspace-inspector-link-field {
+	display: flex;
+	gap: var(--size-2-1, 2px);
+	align-items: center;
+}
+
+.knowledge-workspace-inspector-link-field > span:last-child {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}

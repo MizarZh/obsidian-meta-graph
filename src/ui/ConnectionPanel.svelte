@@ -4,6 +4,10 @@
 		ConnectionFieldMode,
 		ConnectionFieldSpec,
 	} from '../core/types';
+	import {
+		getConnectionDirectionIcon,
+		getConnectionDirectionLabel,
+	} from './connection-direction';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
 	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
@@ -83,20 +87,6 @@
 		}
 		onAddField(customField);
 		fieldInput = '';
-	}
-
-	function directionIcon(mode: ConnectionFieldMode): IconName {
-		if (mode === 'bidirectional') {
-			return 'arrow-left-right';
-		}
-		return mode === 'reverse' ? 'arrow-left' : 'arrow-right';
-	}
-
-	function directionLabel(mode: ConnectionFieldMode): string {
-		if (mode === 'bidirectional') {
-			return 'two-way';
-		}
-		return mode === 'reverse' ? 'reverse' : 'one-way';
 	}
 
 	function obsidianIcon(node: HTMLElement, icon: IconName) {
@@ -225,13 +215,15 @@
 							<button
 								type="button"
 								aria-pressed={field.id === activeFieldSpecId}
-								aria-label={`${field.field} ${directionLabel(field.mode)}`}
+								aria-label={`${field.field} ${getConnectionDirectionLabel(field.mode)}`}
 								onclick={() =>
 									onSelectField(field.field, field.mode)}
 							>
 								<span
 									class="knowledge-workspace-connection-direction-icon"
-									use:obsidianIcon={directionIcon(field.mode)}
+									use:obsidianIcon={getConnectionDirectionIcon(
+										field.mode,
+									)}
 									aria-hidden="true"
 								></span>
 								<span>{field.field}</span>

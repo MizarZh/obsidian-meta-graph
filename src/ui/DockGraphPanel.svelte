@@ -3,6 +3,7 @@
 	import type {
 		ChartGroupDefinition,
 		ChartGroupingConfig,
+		ConnectionFieldMode,
 		DockTemplateNode,
 		KnowledgeNode,
 		ManualLayoutConfig,
@@ -41,6 +42,7 @@
 		dockWidth,
 		onResizeDock,
 		activeConnectionField,
+		activeConnectionMode,
 		draggingKey,
 		linking,
 		targetNodeId,
@@ -84,6 +86,7 @@
 		dockWidth: number;
 		onResizeDock: (width: number) => void;
 		activeConnectionField: string;
+		activeConnectionMode: ConnectionFieldMode;
 		draggingKey?: string;
 		linking: boolean;
 		targetNodeId?: string;
@@ -238,6 +241,7 @@
 						{manualLayout}
 						{grouping}
 						{activeConnectionField}
+						{activeConnectionMode}
 						contentVisible={detailsContentVisible}
 						{onOpenNote}
 						{onOpenMetadataLink}

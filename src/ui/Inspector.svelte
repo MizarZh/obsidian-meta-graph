@@ -1,13 +1,18 @@
 <script lang="ts">
-	import type { App } from 'obsidian';
+	import { setIcon, type App, type IconName } from 'obsidian';
 	import type {
 		ChartGroupingConfig,
+		ConnectionFieldMode,
 		KnowledgeNode,
 		ManualLayoutConfig,
 		ViewMode,
 	} from '../core/types';
 	import { normalizeTags } from '../core/tags';
 	import { resolveChartGroupOwnership } from '../query/group-ownership';
+	import {
+		getConnectionDirectionIcon,
+		getConnectionDirectionLabel,
+	} from './connection-direction';
 	import InternalNotePreview from './workspace/InternalNotePreview.svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
@@ -24,6 +29,7 @@
 		manualLayout = { nodes: {}, groups: [] },
 		grouping = { groups: [], overrides: {} },
 		activeConnectionField = '',
+		activeConnectionMode = 'directed',
 		contentVisible = false,
 		onOpenNote = () => {},
 		onOpenMetadataLink = () => {},
@@ -39,6 +45,7 @@
 		manualLayout?: ManualLayoutConfig;
 		grouping?: ChartGroupingConfig;
 		activeConnectionField?: string;
+		activeConnectionMode?: ConnectionFieldMode;
 		contentVisible?: boolean;
 		onOpenNote?: (path: string) => void;
 		onOpenMetadataLink?: (linkText: string, sourcePath: string) => void;
@@ -61,6 +68,15 @@
 	const UNGROUPED_GROUP = '__ungrouped__';
 
 	let linkTargetPath = $state('');
+
+	function obsidianIcon(node: HTMLElement, icon: IconName) {
+		setIcon(node, icon);
+		return {
+			update(nextIcon: IconName) {
+				setIcon(node, nextIcon);
+			},
+		};
+	}
 
 	const canAssignGroup = $derived(
 		mode === 'graph' ||
@@ -278,7 +294,19 @@
 						onInput={(value) => (linkTargetPath = value)}
 						onSelect={(option) => (linkTargetPath = option.value)}
 					/>
-					<span>{activeConnectionField}</span>
+					<span
+						class="knowledge-workspace-inspector-link-field"
+						title={`${activeConnectionField}: ${getConnectionDirectionLabel(activeConnectionMode)}`}
+					>
+						<span
+							class="knowledge-workspace-connection-direction-icon"
+							use:obsidianIcon={getConnectionDirectionIcon(
+								activeConnectionMode,
+							)}
+							aria-hidden="true"
+						></span>
+						<span>{activeConnectionField}</span>
+					</span>
 					<ObsidianButton
 						icon="link"
 						ariaLabel="Add link"
