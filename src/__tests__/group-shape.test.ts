@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	canMoveGroup,
 	fitViewportCircle,
 	isViewportPointInGroup,
 	normalizeGroupFrameForShape,
@@ -11,6 +12,12 @@ describe('group shapes', () => {
 		expect(resolveGroupShape('graph', 'auto')).toBe('circle');
 		expect(resolveGroupShape('free', undefined)).toBe('rectangle');
 		expect(resolveGroupShape('graph', 'rectangle')).toBe('rectangle');
+	});
+
+	it('allows Graph group movement only while Force layout is enabled', () => {
+		expect(canMoveGroup('graph', false)).toBe(false);
+		expect(canMoveGroup('graph', true)).toBe(true);
+		expect(canMoveGroup('free', false)).toBe(true);
 	});
 
 	it('normalizes circle frames around their existing center', () => {
@@ -32,6 +39,7 @@ describe('group shapes', () => {
 		);
 
 		expect(rect.width).toBe(rect.height);
+		expect(rect.width).toBe(32);
 		expect(isViewportPointInGroup({ x: 10, y: 10 }, rect, 'circle')).toBe(
 			true,
 		);

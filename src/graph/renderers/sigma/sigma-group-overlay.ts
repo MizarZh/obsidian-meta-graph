@@ -34,6 +34,7 @@ export interface GroupInteractionCallbacks {
 export interface GroupOverlayGroup extends ChartGroup {
 	shape: ResolvedGroupShape;
 	dynamicNodeIds?: string[];
+	movable?: boolean;
 	resizable?: boolean;
 }
 
@@ -160,6 +161,7 @@ export class GroupOverlayLayer {
 			}
 			const element = this.getOrCreateGroupElement(group);
 			const rect = this.readGroupViewportRect(group);
+			element.classList.toggle('movable', group.movable !== false);
 			element.classList.toggle('resizable', group.resizable !== false);
 			element.classList.toggle('shape-circle', group.shape === 'circle');
 			element.style.left = `${rect.left}px`;
@@ -175,6 +177,7 @@ export class GroupOverlayLayer {
 			);
 			if (title) {
 				title.textContent = group.name;
+				title.title = group.name;
 			}
 		}
 	}
@@ -249,7 +252,7 @@ export class GroupOverlayLayer {
 		const bottomPadding = 12 + scaledPadding;
 		const minimumWidth = Math.min(220, group.name.length * 6.5 + 20);
 		if (group.shape === 'circle') {
-			return fitViewportCircle(nodes, 24 + scaledPadding, minimumWidth);
+			return fitViewportCircle(nodes, 8 + scaledPadding * 0.5);
 		}
 		let left =
 			Math.min(...nodes.map((node) => node.x - node.radius)) -
@@ -280,6 +283,7 @@ export class GroupOverlayLayer {
 		const title = this.activeDocument.createElement('span');
 		title.className = 'knowledge-workspace-group-title';
 		title.textContent = group.name;
+		title.title = group.name;
 		title.addEventListener('pointerdown', (event) =>
 			this.startInteraction(event, group.id, 'move'),
 		);
@@ -318,7 +322,11 @@ export class GroupOverlayLayer {
 		resizeDirection?: GroupResizeDirection,
 	): void {
 		const group = this.groups.find((item) => item.id === groupId);
-		if (!group || (kind === 'resize' && group.resizable === false)) {
+		if (
+			!group ||
+			(kind === 'move' && group.movable === false) ||
+			(kind === 'resize' && group.resizable === false)
+		) {
 			return;
 		}
 		event.preventDefault();

@@ -102,9 +102,14 @@
 	line-height: 18px;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	cursor: default;
+	pointer-events: none;
+	user-select: none;
+}
+
+.knowledge-workspace-group-region.movable .knowledge-workspace-group-title {
 	cursor: move;
 	pointer-events: auto;
-	user-select: none;
 }
 
 .knowledge-workspace-group-resize {

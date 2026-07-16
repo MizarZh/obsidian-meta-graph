@@ -25,6 +25,13 @@ export function resolveGroupShape(
 	return mode === 'graph' ? 'circle' : 'rectangle';
 }
 
+export function canMoveGroup(
+	mode: ViewMode,
+	forceLayoutEnabled: boolean,
+): boolean {
+	return mode !== 'graph' || forceLayoutEnabled;
+}
+
 export function normalizeGroupFrameForShape(
 	frame: GroupFrame,
 	shape: ResolvedGroupShape,

@@ -208,7 +208,7 @@ export class D3ForceSimulation {
 				forceLink<ForceNode, ForceLink>(links)
 					.id((node) => node.id)
 					.distance((link) =>
-						link.isGroup ? distance * 0.8 : distance,
+						link.isGroup ? distance * 0.65 : distance,
 					)
 					.strength((link) =>
 						link.isGroup

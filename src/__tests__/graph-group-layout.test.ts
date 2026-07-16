@@ -15,6 +15,11 @@ import {
 } from '../layouts/graph-group-layout';
 
 describe('Graph groups', () => {
+	it('uses a compact radius that grows with group size', () => {
+		expect(getGraphGroupTargetRadius(1, 10)).toBe(5);
+		expect(getGraphGroupTargetRadius(16, 10)).toBeCloseTo(14.286, 3);
+	});
+
 	it('creates deterministic ring constraints for group members', () => {
 		const links = createGraphGroupLinks(
 			new Map([

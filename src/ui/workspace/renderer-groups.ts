@@ -13,6 +13,7 @@ import {
 import type { GroupInteractionCallbacks } from '../../graph/renderers/sigma/sigma-renderer';
 import type { GroupOverlayGroup } from '../../graph/renderers/sigma/sigma-group-overlay';
 import {
+	canMoveGroup,
 	normalizeGroupFrameForShape,
 	resolveGroupShape,
 } from '../../layouts/group-shape';
@@ -29,6 +30,7 @@ export function syncWorkspaceRendererGroups(
 	grouping: ChartGroupingConfig,
 	groupByNode: ReadonlyMap<string, string>,
 	layoutSnapshot: LayoutSnapshot,
+	forceLayoutEnabled: boolean,
 	callbacks: GroupInteractionCallbacks,
 ): void {
 	if (!renderer || isForce3DRenderer(renderer)) {
@@ -54,7 +56,13 @@ export function syncWorkspaceRendererGroups(
 			: layoutSnapshot.groupGeometries,
 	);
 	renderer.setGroups(
-		createOverlayGroups(mode, manualLayout, grouping, layoutSnapshot),
+		createOverlayGroups(
+			mode,
+			manualLayout,
+			grouping,
+			layoutSnapshot,
+			forceLayoutEnabled,
+		),
 		{
 			...callbacks,
 			getGroupNodeIds: (groupId) => getGroupNodeIds(groupByNode, groupId),
@@ -67,6 +75,7 @@ function createOverlayGroups(
 	manualLayout: ManualLayoutConfig,
 	grouping: ChartGroupingConfig,
 	layoutSnapshot: LayoutSnapshot,
+	forceLayoutEnabled: boolean,
 ): GroupOverlayGroup[] {
 	if (mode === 'graph') {
 		const definitions = new Map(
@@ -89,6 +98,7 @@ function createOverlayGroups(
 					width: 1,
 					height: 1,
 					dynamicNodeIds: geometry.nodeIds,
+					movable: canMoveGroup(mode, forceLayoutEnabled),
 					resizable: false,
 				},
 			];
@@ -108,6 +118,7 @@ function createOverlayGroups(
 						...group,
 						...normalizeGroupFrameForShape(frame, shape),
 						shape,
+						movable: canMoveGroup(mode, forceLayoutEnabled),
 						resizable: true,
 					},
 				]

@@ -90,7 +90,7 @@ export function getGraphGroupTargetRadius(
 	memberCount: number,
 	distance: number,
 ): number {
-	return Math.max(distance * 0.6, (distance * Math.sqrt(memberCount)) / 2);
+	return Math.max(distance * 0.5, (distance * Math.sqrt(memberCount)) / 2.8);
 }
 
 export function createGraphGroupGeometries(

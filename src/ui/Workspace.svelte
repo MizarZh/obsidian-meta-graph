@@ -378,6 +378,7 @@
 				rendererLifecycle.handleForceLayoutToggle(
 					nextState.enableForceLayout,
 				);
+				syncRendererGroups();
 			}
 			if (changes.graphForceSettingsChanged) {
 				rendererLifecycle.restartSigmaForceLayoutIfNeeded();
@@ -500,6 +501,7 @@
 			workspaceState.grouping,
 			groupByNode,
 			getLayoutSnapshot(),
+			workspaceState.enableForceLayout,
 			{
 				onMoveStart: () => {
 					if (workspaceState.mode === 'graph') {
