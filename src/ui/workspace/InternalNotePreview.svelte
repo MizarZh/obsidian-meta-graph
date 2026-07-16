@@ -4,13 +4,32 @@
 	let {
 		app,
 		filePath,
+		onOpenInternalLink = () => {},
 	}: {
 		app: App;
 		filePath: string;
+		onOpenInternalLink?: (linkText: string, sourcePath: string) => void;
 	} = $props();
 
 	let contentEl: HTMLDivElement;
 	let errorMessage = $state('');
+
+	function handleContentClick(event: MouseEvent): void {
+		if (!(event.target instanceof Element)) {
+			return;
+		}
+		const link = event.target.closest<HTMLAnchorElement>('a.internal-link');
+		if (!link || !contentEl.contains(link)) {
+			return;
+		}
+		const linkText = link.dataset.href ?? link.getAttribute('href');
+		if (!linkText) {
+			return;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		onOpenInternalLink(linkText, filePath);
+	}
 
 	$effect(() => {
 		const target = contentEl;
@@ -21,6 +40,7 @@
 		let disposed = false;
 		const renderComponent = new Component();
 		renderComponent.load();
+		target.addEventListener('click', handleContentClick);
 		target.replaceChildren();
 		errorMessage = '';
 
@@ -54,6 +74,7 @@
 
 		return () => {
 			disposed = true;
+			target.removeEventListener('click', handleContentClick);
 			renderComponent.unload();
 			target.replaceChildren();
 		};

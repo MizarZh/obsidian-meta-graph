@@ -305,7 +305,11 @@
 			{/if}
 			{#if contentVisible}
 				<hr />
-				<InternalNotePreview {app} filePath={node.path} />
+				<InternalNotePreview
+					{app}
+					filePath={node.path}
+					onOpenInternalLink={onOpenMetadataLink}
+				/>
 			{/if}
 		</div>
 	</section>
