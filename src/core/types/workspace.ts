@@ -101,12 +101,14 @@ export interface ChartLayoutConfig {
 }
 
 export type ChartGroupMode = 'manual' | 'rule';
+export type ChartGroupShape = 'auto' | 'circle' | 'rectangle';
 
 export interface ChartGroupDefinition {
 	id: string;
 	name: string;
 	color: string;
 	mode: ChartGroupMode;
+	shape?: ChartGroupShape;
 	padding: number;
 	rule?: NodeFilterGroup;
 }

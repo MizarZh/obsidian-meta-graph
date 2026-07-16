@@ -79,6 +79,7 @@ describe('workspace manual layout state', () => {
 				name: 'Research',
 				color: group.color,
 				mode: 'manual',
+				shape: 'auto',
 				padding: group.padding,
 			},
 		]);
@@ -307,6 +308,26 @@ describe('workspace manual layout state', () => {
 			y: -3,
 			width: 6,
 			height: 5,
+		});
+	});
+
+	it('makes a Free frame square when its group changes to circle', () => {
+		let state = addGroupInState(
+			setActiveChartTypeInState(createWorkspaceState(100), 'free').state,
+		);
+		const group = readFirstGroup(state);
+		if (!group) {
+			throw new Error('Group is missing.');
+		}
+
+		state = updateGroupInState(state, group.id, { shape: 'circle' });
+
+		expect(state.grouping.groups[0]?.shape).toBe('circle');
+		expect(state.manualLayout.groupFrames?.[group.id]).toEqual({
+			x: -1.6,
+			y: -1.6,
+			width: 3.2,
+			height: 3.2,
 		});
 	});
 });

@@ -4,6 +4,7 @@
 	import type {
 		ChartGroup,
 		ChartGroupDefinition,
+		ChartGroupShape,
 		ChartGroupingConfig,
 		KnowledgeNode,
 		ManualLayoutConfig,
@@ -26,6 +27,7 @@
 		locked = false,
 		disabled = false,
 		geometryEditable = false,
+		shapeEditable = false,
 		onAddGroup,
 		onUpdateGroup,
 		onDeleteGroup,
@@ -39,6 +41,7 @@
 		locked?: boolean;
 		disabled?: boolean;
 		geometryEditable?: boolean;
+		shapeEditable?: boolean;
 		onAddGroup: () => void;
 		onUpdateGroup: (groupId: string, patch: Partial<ChartGroup>) => void;
 		onDeleteGroup: (groupId: string) => void;
@@ -48,6 +51,14 @@
 	const MODE_OPTIONS = [
 		{ value: 'manual', label: 'Manual' },
 		{ value: 'rule', label: 'Rule' },
+	];
+	const SHAPE_OPTIONS: Array<{
+		value: ChartGroupShape;
+		label: string;
+	}> = [
+		{ value: 'auto', label: 'Auto' },
+		{ value: 'circle', label: 'Circle' },
+		{ value: 'rectangle', label: 'Rectangle' },
 	];
 	const PADDING_COMMIT_INTERVAL_MS = 120;
 	let paddingCommitScheduler: ThrottledCommitScheduler | undefined;
@@ -123,6 +134,13 @@
 		}
 	}
 
+	function updateDiameter(group: ChartGroupDefinition, value: string): void {
+		const diameter = Number(value);
+		if (Number.isFinite(diameter)) {
+			onUpdateGroup(group.id, { width: diameter, height: diameter });
+		}
+	}
+
 	function schedulePadding(group: ChartGroupDefinition, value: number): void {
 		const padding = normalizePadding(value);
 		paddingPreviews[group.id] = padding;
@@ -190,6 +208,13 @@
 				? { rule: createEmptyRule(group.id) }
 				: {}),
 		});
+	}
+
+	function updateShape(
+		group: ChartGroupDefinition,
+		shape: ChartGroupShape,
+	): void {
+		onUpdateGroup(group.id, { shape });
 	}
 
 	function createEmptyRule(groupId: string): NodeFilterGroup {
@@ -318,6 +343,30 @@
 										updateMode(group, value)}
 								/>
 							</label>
+							{#if shapeEditable}
+								<div class="knowledge-workspace-group-shape">
+									<span>Shape</span>
+									<div class="knowledge-workspace-segmented">
+										{#each SHAPE_OPTIONS as option}
+											<button
+												type="button"
+												class:active={(group.shape ??
+													'auto') === option.value}
+												aria-pressed={(group.shape ??
+													'auto') === option.value}
+												{disabled}
+												onclick={() =>
+													updateShape(
+														group,
+														option.value,
+													)}
+											>
+												{option.label}
+											</button>
+										{/each}
+									</div>
+								</div>
+							{/if}
 							{#if geometryEditable && geometry}
 								<label>
 									<span>X</span>
@@ -341,34 +390,55 @@
 											updateNumber(group, 'y', value)}
 									/>
 								</label>
-								<label>
-									<span>Width</span>
-									<ObsidianTextInput
-										type="number"
-										min="0.8"
-										step="0.1"
-										value={geometry.width}
-										{disabled}
-										onChange={(value) =>
-											updateNumber(group, 'width', value)}
-									/>
-								</label>
-								<label>
-									<span>Height</span>
-									<ObsidianTextInput
-										type="number"
-										min="0.6"
-										step="0.1"
-										value={geometry.height}
-										{disabled}
-										onChange={(value) =>
-											updateNumber(
-												group,
-												'height',
-												value,
-											)}
-									/>
-								</label>
+								{#if group.shape === 'circle'}
+									<label
+										class="knowledge-workspace-group-diameter"
+									>
+										<span>Diameter</span>
+										<ObsidianTextInput
+											type="number"
+											min="0.8"
+											step="0.1"
+											value={geometry.width}
+											{disabled}
+											onChange={(value) =>
+												updateDiameter(group, value)}
+										/>
+									</label>
+								{:else}
+									<label>
+										<span>Width</span>
+										<ObsidianTextInput
+											type="number"
+											min="0.8"
+											step="0.1"
+											value={geometry.width}
+											{disabled}
+											onChange={(value) =>
+												updateNumber(
+													group,
+													'width',
+													value,
+												)}
+										/>
+									</label>
+									<label>
+										<span>Height</span>
+										<ObsidianTextInput
+											type="number"
+											min="0.6"
+											step="0.1"
+											value={geometry.height}
+											{disabled}
+											onChange={(value) =>
+												updateNumber(
+													group,
+													'height',
+													value,
+												)}
+										/>
+									</label>
+								{/if}
 							{/if}
 							<label class="knowledge-workspace-group-padding">
 								<span>Padding</span>

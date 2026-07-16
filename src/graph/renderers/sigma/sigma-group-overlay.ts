@@ -6,6 +6,14 @@ import type {
 	RuntimeNodeAttributes,
 } from '../../model/graphology-adapter';
 import { scaleLayoutGroupPadding } from '../../../layouts/group-geometry';
+import {
+	fitViewportCircle,
+	isViewportPointInGroup,
+	normalizeGroupFrameForShape,
+	type ResolvedGroupShape,
+	type ViewportCircleMember,
+	type ViewportGroupRect,
+} from '../../../layouts/group-shape';
 
 export interface GroupGeometry {
 	x: number;
@@ -24,6 +32,7 @@ export interface GroupInteractionCallbacks {
 }
 
 export interface GroupOverlayGroup extends ChartGroup {
+	shape: ResolvedGroupShape;
 	dynamicNodeIds?: string[];
 	resizable?: boolean;
 }
@@ -113,12 +122,7 @@ export class GroupOverlayLayer {
 		let bestGroup: { id: string; area: number } | undefined;
 		for (const group of this.groups) {
 			const rect = this.readGroupViewportRect(group);
-			if (
-				position.x < rect.left ||
-				position.x > rect.left + rect.width ||
-				position.y < rect.top ||
-				position.y > rect.top + rect.height
-			) {
+			if (!isViewportPointInGroup(position, rect, group.shape)) {
 				continue;
 			}
 			const area = rect.width * rect.height;
@@ -157,6 +161,7 @@ export class GroupOverlayLayer {
 			const element = this.getOrCreateGroupElement(group);
 			const rect = this.readGroupViewportRect(group);
 			element.classList.toggle('resizable', group.resizable !== false);
+			element.classList.toggle('shape-circle', group.shape === 'circle');
 			element.style.left = `${rect.left}px`;
 			element.style.top = `${rect.top}px`;
 			element.style.width = `${rect.width}px`;
@@ -181,31 +186,25 @@ export class GroupOverlayLayer {
 		this.elements.clear();
 	}
 
-	private readGroupViewportRect(group: GroupOverlayGroup): {
-		left: number;
-		top: number;
-		width: number;
-		height: number;
-	} {
+	private readGroupViewportRect(group: GroupOverlayGroup): ViewportGroupRect {
 		if (group.dynamicNodeIds) {
 			return this.readDynamicGroupViewportRect(group);
 		}
 		return this.readStaticGroupViewportRect(group);
 	}
 
-	private readStaticGroupViewportRect(group: GroupGeometry): {
-		left: number;
-		top: number;
-		width: number;
-		height: number;
-	} {
+	private readStaticGroupViewportRect(
+		group: GroupGeometry,
+		shape: ResolvedGroupShape = 'rectangle',
+	): ViewportGroupRect {
+		const normalized = normalizeGroupFrameForShape(group, shape);
 		const first = this.sigma.graphToViewport({
-			x: group.x,
-			y: group.y,
+			x: normalized.x,
+			y: normalized.y,
 		});
 		const second = this.sigma.graphToViewport({
-			x: group.x + group.width,
-			y: group.y + group.height,
+			x: normalized.x + normalized.width,
+			y: normalized.y + normalized.height,
 		});
 		return {
 			left: Math.min(first.x, second.x),
@@ -215,34 +214,32 @@ export class GroupOverlayLayer {
 		};
 	}
 
-	private readDynamicGroupViewportRect(group: GroupOverlayGroup): {
-		left: number;
-		top: number;
-		width: number;
-		height: number;
-	} {
+	private readDynamicGroupViewportRect(
+		group: GroupOverlayGroup,
+	): ViewportGroupRect {
 		const graph = this.getGraph();
 		const sizeScaler = this.sigma as unknown as {
 			scaleSize(size?: number): number;
 		};
-		const nodes = group.dynamicNodeIds?.flatMap((nodeId) => {
-			if (!graph.hasNode(nodeId)) {
-				return [];
-			}
-			const attributes = graph.getNodeAttributes(nodeId);
-			if (attributes.hidden || attributes.isBend) {
-				return [];
-			}
-			const scaledRadius = sizeScaler.scaleSize(attributes.size);
-			return [
-				{
-					position: this.sigma.graphToViewport(attributes),
-					radius: Number.isFinite(scaledRadius)
-						? Math.max(scaledRadius, 0)
-						: Math.max(attributes.size, 0),
-				},
-			];
-		});
+		const nodes: ViewportCircleMember[] | undefined =
+			group.dynamicNodeIds?.flatMap((nodeId) => {
+				if (!graph.hasNode(nodeId)) {
+					return [];
+				}
+				const attributes = graph.getNodeAttributes(nodeId);
+				if (attributes.hidden || attributes.isBend) {
+					return [];
+				}
+				const scaledRadius = sizeScaler.scaleSize(attributes.size);
+				return [
+					{
+						...this.sigma.graphToViewport(attributes),
+						radius: Number.isFinite(scaledRadius)
+							? Math.max(scaledRadius, 0)
+							: Math.max(attributes.size, 0),
+					},
+				];
+			});
 		if (!nodes?.length) {
 			return { left: 0, top: 0, width: 0, height: 0 };
 		}
@@ -250,19 +247,21 @@ export class GroupOverlayLayer {
 		const horizontalPadding = 12 + scaledPadding;
 		const topPadding = 24 + scaledPadding;
 		const bottomPadding = 12 + scaledPadding;
+		const minimumWidth = Math.min(220, group.name.length * 6.5 + 20);
+		if (group.shape === 'circle') {
+			return fitViewportCircle(nodes, 24 + scaledPadding, minimumWidth);
+		}
 		let left =
-			Math.min(...nodes.map((node) => node.position.x - node.radius)) -
+			Math.min(...nodes.map((node) => node.x - node.radius)) -
 			horizontalPadding;
 		let right =
-			Math.max(...nodes.map((node) => node.position.x + node.radius)) +
+			Math.max(...nodes.map((node) => node.x + node.radius)) +
 			horizontalPadding;
 		const top =
-			Math.min(...nodes.map((node) => node.position.y - node.radius)) -
-			topPadding;
+			Math.min(...nodes.map((node) => node.y - node.radius)) - topPadding;
 		const bottom =
-			Math.max(...nodes.map((node) => node.position.y + node.radius)) +
+			Math.max(...nodes.map((node) => node.y + node.radius)) +
 			bottomPadding;
-		const minimumWidth = Math.min(220, group.name.length * 6.5 + 20);
 		if (right - left < minimumWidth) {
 			const extra = (minimumWidth - (right - left)) / 2;
 			left -= extra;
@@ -497,6 +496,9 @@ export class GroupOverlayLayer {
 		interaction: NonNullable<GroupOverlayLayer['interaction']>,
 		delta: { x: number; y: number },
 	): GroupGeometry {
+		if (interaction.group.shape === 'circle') {
+			return this.readCircleResizeGeometry(interaction, delta);
+		}
 		const minWidth = 0.8;
 		const minHeight = 0.6;
 		const startLeft = interaction.group.x;
@@ -544,6 +546,38 @@ export class GroupOverlayLayer {
 			width: right - left,
 			height: top - bottom,
 		};
+	}
+
+	private readCircleResizeGeometry(
+		interaction: NonNullable<GroupOverlayLayer['interaction']>,
+		delta: { x: number; y: number },
+	): GroupGeometry {
+		const group = normalizeGroupFrameForShape(interaction.group, 'circle');
+		const direction = interaction.resizeDirection;
+		const startDiameter = group.width;
+		const diameterDelta = readCircleDiameterDelta(direction, delta);
+		let diameter = Math.max(0.8, startDiameter + diameterDelta);
+		const nodeBounds = this.readGroupNodeBounds(interaction.group.id);
+		for (let attempt = 0; attempt < 6 && nodeBounds; attempt += 1) {
+			const geometry = createCircleResizeGeometry(
+				group,
+				direction,
+				diameter,
+			);
+			const center = {
+				x: geometry.x + diameter / 2,
+				y: geometry.y + diameter / 2,
+			};
+			const requiredDiameter = readBoundsCircleDiameter(
+				nodeBounds,
+				center,
+			);
+			if (requiredDiameter <= diameter) {
+				return geometry;
+			}
+			diameter = requiredDiameter;
+		}
+		return createCircleResizeGeometry(group, direction, diameter);
 	}
 
 	private readGroupNodeBounds(groupId: string): GroupBounds | undefined {
@@ -623,7 +657,8 @@ export class GroupOverlayLayer {
 		if (!element) {
 			return;
 		}
-		const rect = this.readStaticGroupViewportRect(geometry);
+		const group = this.groups.find((item) => item.id === groupId);
+		const rect = this.readStaticGroupViewportRect(geometry, group?.shape);
 		element.style.left = `${rect.left}px`;
 		element.style.top = `${rect.top}px`;
 		element.style.width = `${rect.width}px`;
@@ -672,5 +707,78 @@ function isBottomResize(direction?: GroupResizeDirection): boolean {
 		direction === 'bottom' ||
 		direction === 'bottom-left' ||
 		direction === 'bottom-right'
+	);
+}
+
+function readCircleDiameterDelta(
+	direction: GroupResizeDirection | undefined,
+	delta: { x: number; y: number },
+): number {
+	switch (direction) {
+		case 'left':
+			return -delta.x;
+		case 'right':
+			return delta.x;
+		case 'top':
+			return delta.y;
+		case 'bottom':
+			return -delta.y;
+		case 'top-left':
+			return (-delta.x + delta.y) / 2;
+		case 'top-right':
+			return (delta.x + delta.y) / 2;
+		case 'bottom-left':
+			return (-delta.x - delta.y) / 2;
+		case 'bottom-right':
+			return (delta.x - delta.y) / 2;
+		default:
+			return 0;
+	}
+}
+
+function createCircleResizeGeometry(
+	group: GroupGeometry,
+	direction: GroupResizeDirection | undefined,
+	diameter: number,
+): GroupGeometry {
+	const right = group.x + group.width;
+	const top = group.y + group.height;
+	const centerX = group.x + group.width / 2;
+	const centerY = group.y + group.height / 2;
+	let x = group.x;
+	let y = group.y;
+	if (direction === 'left') {
+		x = right - diameter;
+		y = centerY - diameter / 2;
+	} else if (direction === 'right') {
+		y = centerY - diameter / 2;
+	} else if (direction === 'top') {
+		x = centerX - diameter / 2;
+	} else if (direction === 'bottom') {
+		x = centerX - diameter / 2;
+		y = top - diameter;
+	} else if (direction === 'top-left') {
+		x = right - diameter;
+	} else if (direction === 'bottom-left') {
+		x = right - diameter;
+		y = top - diameter;
+	} else if (direction === 'bottom-right') {
+		y = top - diameter;
+	}
+	return { x, y, width: diameter, height: diameter };
+}
+
+function readBoundsCircleDiameter(
+	bounds: GroupBounds,
+	center: { x: number; y: number },
+): number {
+	return (
+		2 *
+		Math.max(
+			Math.hypot(bounds.left - center.x, bounds.bottom - center.y),
+			Math.hypot(bounds.left - center.x, bounds.top - center.y),
+			Math.hypot(bounds.right - center.x, bounds.bottom - center.y),
+			Math.hypot(bounds.right - center.x, bounds.top - center.y),
+		)
 	);
 }

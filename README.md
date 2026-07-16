@@ -68,7 +68,10 @@ settings to report them in the developer console.
    groups according to their layout. Graph and Free share the same group frame,
    label, and colored member rings without creating metadata links. Graph
    frames follow their members automatically; Free frames keep editable size
-   and position. Groups are saved in the workspace file, not note frontmatter.
+   and position. Use **Shape** on each group to choose Auto, Circle, or Rectangle;
+   Auto uses circles in Graph and rectangles in Free. Free circles keep a square
+   diameter while resizing. Groups are saved in the workspace file, not note
+   frontmatter.
 10. Increase **Label density** in **Graph** settings when Sigma samples too few
     labels while zoomed out. Enable **Always show labels** to force every visible
     note label through Sigma's label grid. In 3D graph and Cube layouts, use

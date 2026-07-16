@@ -72,6 +72,10 @@
 	pointer-events: none;
 }
 
+.knowledge-workspace-group-region.shape-circle {
+	border-radius: 50%;
+}
+
 .knowledge-workspace-group-region.drop-target {
 	border-color: var(--interactive-accent);
 	background: color-mix(in srgb, var(--interactive-accent) 18%, transparent);

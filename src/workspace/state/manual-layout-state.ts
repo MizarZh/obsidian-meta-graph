@@ -6,6 +6,7 @@ import type {
 	NodeId,
 	WorkspaceState,
 } from '../../core/types';
+import { normalizeGroupFrameForShape } from '../../layouts/group-shape';
 import { resolveChartGroupOwnership } from '../../query/group-ownership';
 import {
 	createUniqueDefaultGroup,
@@ -165,10 +166,14 @@ export function updateGroupInState(
 		return state;
 	}
 	const currentFrame = manual.groupFrames?.[groupId];
-	const nextFrame =
-		currentFrame && hasGroupFramePatch(patch)
+	const updatedGroup = groupingGroups.find((group) => group.id === groupId);
+	let nextFrame =
+		currentFrame && (hasGroupFramePatch(patch) || patch.shape !== undefined)
 			? normalizeGroupFramePatch(currentFrame, patch)
 			: undefined;
+	if (nextFrame && updatedGroup?.shape === 'circle') {
+		nextFrame = normalizeGroupFrameForShape(nextFrame, 'circle');
+	}
 	return updateActiveChartState(state, {
 		grouping: {
 			...activeChart.grouping,
@@ -509,6 +514,11 @@ function normalizeGroupDefinitionPatch(
 			: {}),
 		...(patch.mode === 'manual' || patch.mode === 'rule'
 			? { mode: patch.mode }
+			: {}),
+		...(patch.shape === 'auto' ||
+		patch.shape === 'circle' ||
+		patch.shape === 'rectangle'
+			? { shape: patch.shape }
 			: {}),
 		...(typeof patch.padding === 'number' && Number.isFinite(patch.padding)
 			? { padding: Math.max(0, patch.padding) }

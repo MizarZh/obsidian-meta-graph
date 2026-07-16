@@ -435,6 +435,7 @@ describe('workspace persistence', () => {
 					name: 'Group A',
 					color: '#7c6ff0',
 					mode: 'manual',
+					shape: 'auto',
 					padding: 0.32,
 				},
 			],
@@ -447,6 +448,46 @@ describe('workspace persistence', () => {
 				'group-a': { x: 0, y: 0, width: 3.2, height: 2.2 },
 			},
 		});
+	});
+
+	it('normalizes explicit circle group frames to a square', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		const chart = document.charts[0];
+		if (!chart) {
+			throw new Error('Expected default chart.');
+		}
+		chart.type = 'free';
+		chart.grouping = {
+			groups: [
+				{
+					id: 'circle-group',
+					name: 'Circle group',
+					color: '#7c6ff0',
+					mode: 'manual',
+					shape: 'circle',
+					padding: 0.32,
+				},
+			],
+			overrides: {},
+		};
+		chart.layout = {
+			engine: 'free',
+			spacing: 1,
+			manual: {
+				nodes: {},
+				groups: [],
+				groupFrames: {
+					'circle-group': { x: 1, y: 2, width: 4, height: 2 },
+				},
+			},
+		};
+
+		const restored = normalizeMetaGraphDocument(document, 300, 1.5);
+
+		expect(restored.charts[0]?.grouping.groups[0]?.shape).toBe('circle');
+		expect(
+			restored.charts[0]?.layout.manual?.groupFrames?.['circle-group'],
+		).toEqual({ x: 1, y: 1, width: 4, height: 4 });
 	});
 
 	it('stores curated manual placements on curated files with rounded coordinates', () => {

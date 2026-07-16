@@ -91,6 +91,7 @@ function createDefaultGroup(index: number): ChartGroup {
 		height: 2.2,
 		color: '#7c6ff0',
 		mode: 'manual',
+		shape: 'auto',
 		padding: 0.32,
 	};
 }

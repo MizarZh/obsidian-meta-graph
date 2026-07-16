@@ -5,6 +5,7 @@ import type {
 	ThreeLabelResolution,
 	ViewMode,
 } from '../../core/types';
+import { normalizeGroupFrameForShape } from '../../layouts/group-shape';
 import { getChartTypeName } from '../../core/chart-types';
 import {
 	DEFAULT_CUBE_FREE_CAMERA,
@@ -315,6 +316,13 @@ function canonicalizeManualGrouping(
 	const groupFrames = { ...(layout.manual.groupFrames ?? {}) };
 	for (const [index, group] of grouping.groups.entries()) {
 		groupFrames[group.id] ??= createDefaultGroupFrame(index);
+		const frame = groupFrames[group.id];
+		if (group.shape === 'circle' && frame) {
+			groupFrames[group.id] = normalizeGroupFrameForShape(
+				frame,
+				'circle',
+			);
+		}
 	}
 	return {
 		...layout,

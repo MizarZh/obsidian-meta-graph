@@ -12,6 +12,10 @@ import {
 } from '../../graph/renderers/renderer-adapter';
 import type { GroupInteractionCallbacks } from '../../graph/renderers/sigma/sigma-renderer';
 import type { GroupOverlayGroup } from '../../graph/renderers/sigma/sigma-group-overlay';
+import {
+	normalizeGroupFrameForShape,
+	resolveGroupShape,
+} from '../../layouts/group-shape';
 import type { LayoutSnapshot } from '../../layouts/stable-layout';
 import {
 	getGroupNodeIds,
@@ -73,19 +77,21 @@ function createOverlayGroups(
 				return [];
 			}
 			const definition = definitions.get(geometry.groupId);
-			return definition
-				? [
-						{
-							...definition,
-							x: 0,
-							y: 0,
-							width: 1,
-							height: 1,
-							dynamicNodeIds: geometry.nodeIds,
-							resizable: false,
-						},
-					]
-				: [];
+			if (!definition) {
+				return [];
+			}
+			return [
+				{
+					...definition,
+					shape: resolveGroupShape(mode, definition.shape),
+					x: 0,
+					y: 0,
+					width: 1,
+					height: 1,
+					dynamicNodeIds: geometry.nodeIds,
+					resizable: false,
+				},
+			];
 		});
 	}
 	if (!getModeCapabilities(mode).supportsManualGroups) {
@@ -95,7 +101,17 @@ function createOverlayGroups(
 		const frame =
 			manualLayout.groupFrames?.[group.id] ??
 			manualLayout.groups.find((legacy) => legacy.id === group.id);
-		return frame ? [{ ...group, ...frame, resizable: true }] : [];
+		const shape = resolveGroupShape(mode, group.shape);
+		return frame
+			? [
+					{
+						...group,
+						...normalizeGroupFrameForShape(frame, shape),
+						shape,
+						resizable: true,
+					},
+				]
+			: [];
 	});
 }
 

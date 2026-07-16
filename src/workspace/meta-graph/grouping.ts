@@ -50,6 +50,7 @@ export function toGroupDefinition(
 		name: group.name,
 		color: group.color,
 		mode: group.mode,
+		shape: group.shape ?? 'auto',
 		padding: group.padding,
 		...(group.rule ? { rule: group.rule } : {}),
 	};
@@ -78,6 +79,10 @@ function normalizeGroupDefinition(
 				? record.color.trim()
 				: '#7c6ff0',
 		mode: record.mode === 'rule' ? 'rule' : 'manual',
+		shape:
+			record.shape === 'circle' || record.shape === 'rectangle'
+				? record.shape
+				: 'auto',
 		padding: Math.max(0, readFiniteNumber(record.padding, 0.32)),
 		...(isRecord(record.rule)
 			? { rule: normalizeFilterGroup(record.rule) }

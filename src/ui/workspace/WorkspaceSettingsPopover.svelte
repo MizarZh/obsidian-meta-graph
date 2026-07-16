@@ -62,6 +62,8 @@
 			locked={workspaceState.mode === 'cube'}
 			disabled={groupsDisabled}
 			geometryEditable={workspaceState.mode === 'free'}
+			shapeEditable={workspaceState.mode === 'graph' ||
+				workspaceState.mode === 'free'}
 			onAddGroup={() => controller.addGroup()}
 			onUpdateGroup={(groupId, patch) =>
 				controller.updateGroup(groupId, patch)}
