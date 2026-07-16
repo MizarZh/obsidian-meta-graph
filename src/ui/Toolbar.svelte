@@ -45,7 +45,7 @@
 		charts: MetaGraphChart[];
 		activeChartId: string;
 		searchNodes: KnowledgeNode[];
-		onSelectChart: (id: string) => void;
+		onSelectChart: (id: string) => void | Promise<void>;
 		onCreateChart: (input: CreateChartInput) => void;
 		onRenameChart: (name: string) => void;
 		onChartType: (mode: ViewMode) => void;
@@ -175,14 +175,14 @@
 		configOpen = false;
 	}
 
-	function selectChart(id: string): void {
-		onSelectChart(id);
+	async function selectChart(id: string): Promise<void> {
 		pickerOpen = false;
+		await onSelectChart(id);
 	}
 
-	function configureChart(id: string): void {
-		onSelectChart(id);
+	async function configureChart(id: string): Promise<void> {
 		pickerOpen = false;
+		await onSelectChart(id);
 		window.requestAnimationFrame(() => openConfig());
 	}
 

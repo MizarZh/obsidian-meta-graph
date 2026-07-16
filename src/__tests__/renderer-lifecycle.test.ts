@@ -4,7 +4,10 @@ import {
 	getModeCapabilities,
 	type GraphRenderer,
 } from '../graph/renderers/renderer-adapter';
-import type { LayoutSnapshot } from '../layouts/stable-layout';
+import {
+	applyStableLayout,
+	type LayoutSnapshot,
+} from '../layouts/stable-layout';
 import { D3ForceSimulation } from '../layouts/d3-force-simulation';
 import { WorkspaceRendererLifecycle } from '../ui/workspace/renderer-lifecycle';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
@@ -123,6 +126,7 @@ describe('WorkspaceRendererLifecycle', () => {
 		vi.mocked(createWorkspaceRuntimeGraph).mockReturnValue({
 			nodes: () => ['a'],
 		} as never);
+		vi.mocked(applyStableLayout).mockResolvedValue(undefined);
 	});
 
 	it('creates a renderer, binds events, and publishes rendered debug state', async () => {
@@ -130,6 +134,7 @@ describe('WorkspaceRendererLifecycle', () => {
 		const renderer = createRenderer();
 		const unbind = vi.fn();
 		const setRendererDebugState = vi.fn();
+		const setRenderPending = vi.fn();
 		vi.mocked(createWorkspaceGraphRenderer).mockResolvedValue(renderer);
 
 		const lifecycle = new WorkspaceRendererLifecycle({
@@ -144,6 +149,7 @@ describe('WorkspaceRendererLifecycle', () => {
 			bindEvents: () => unbind,
 			syncRendererGroups: vi.fn(),
 			setRendererDebugState,
+			setRenderPending,
 		});
 
 		await lifecycle.rebuild();
@@ -156,6 +162,29 @@ describe('WorkspaceRendererLifecycle', () => {
 		expect(setRendererDebugState).toHaveBeenLastCalledWith(
 			expect.objectContaining({ status: 'rendered' }),
 		);
+		expect(setRenderPending.mock.calls).toEqual([[true], [false]]);
+	});
+
+	it('clears loading state when rendering fails', async () => {
+		const state = createState();
+		const setRenderPending = vi.fn();
+		vi.mocked(applyStableLayout).mockRejectedValueOnce(
+			new Error('Layout failed'),
+		);
+		const lifecycle = new WorkspaceRendererLifecycle({
+			readState: () => state,
+			readCanvas: () => ({}) as HTMLDivElement,
+			readLayoutSnapshot: () => createLayoutSnapshot(),
+			readContainerSize: () => ({ width: 800, height: 600 }),
+			waitForCanvasSize: async () => true,
+			bindEvents: () => vi.fn(),
+			syncRendererGroups: vi.fn(),
+			setRendererDebugState: vi.fn(),
+			setRenderPending,
+		});
+
+		await expect(lifecycle.rebuild()).rejects.toThrow('Layout failed');
+		expect(setRenderPending.mock.calls).toEqual([[true], [false]]);
 	});
 
 	it('does not start sigma force layout automatically after render', async () => {

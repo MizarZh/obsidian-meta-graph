@@ -33,6 +33,7 @@ export interface WorkspaceRendererLifecycleOptions {
 	syncRendererGroups(): void;
 	setRendererDebugState(state: RendererDebugState): void;
 	setFlowRelationConflictCount?(count: number): void;
+	setRenderPending?(pending: boolean): void;
 }
 
 export class WorkspaceRendererLifecycle {
@@ -133,6 +134,21 @@ export class WorkspaceRendererLifecycle {
 
 	async rebuild(fitAfterRender = false, forceLayout = false): Promise<void> {
 		const version = ++this.renderVersion;
+		this.options.setRenderPending?.(true);
+		try {
+			await this.rebuildVersion(version, fitAfterRender, forceLayout);
+		} finally {
+			if (version === this.renderVersion) {
+				this.options.setRenderPending?.(false);
+			}
+		}
+	}
+
+	private async rebuildVersion(
+		version: number,
+		fitAfterRender: boolean,
+		forceLayout: boolean,
+	): Promise<void> {
 		const initialState = this.options.readState();
 		const canvas = this.options.readCanvas();
 
@@ -270,6 +286,7 @@ export class WorkspaceRendererLifecycle {
 
 	dispose(): void {
 		this.renderVersion += 1;
+		this.options.setRenderPending?.(false);
 		this.clearRenderer();
 	}
 

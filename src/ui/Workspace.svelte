@@ -142,8 +142,19 @@
 	let dockOpen = $state(true);
 	let curatedPanelOpen = $state(true);
 	let connectionOpen = $state(true);
+	let rendererLoading = $state(false);
+	let chartSwitchPending = $state(false);
+	let pendingChartName = $state<string | undefined>(undefined);
+	let chartSwitchRequest = 0;
 	let suppressNodeOpenUntil = 0;
 	let activeNodeDropGroupId: string | undefined;
+	const activeChartName = $derived(
+		workspaceState.charts.find(
+			(chart) => chart.id === workspaceState.activeChartId,
+		)?.name ?? 'chart',
+	);
+	const graphLoading = $derived(rendererLoading || chartSwitchPending);
+	const graphLoadingName = $derived(pendingChartName ?? activeChartName);
 
 	const layoutSnapshots = new LayoutSnapshotStore();
 	const rendererLifecycle = new WorkspaceRendererLifecycle({
@@ -158,6 +169,9 @@
 			controller.setRendererDebugState(state),
 		setFlowRelationConflictCount: (count) =>
 			controller.setFlowRelationConflictCount(count),
+		setRenderPending: (pending) => {
+			rendererLoading = pending;
+		},
 	});
 	const dockGraphDrag = new DockGraphDragController({
 		window,
@@ -404,6 +418,8 @@
 		});
 
 		return () => {
+			chartSwitchRequest += 1;
+			chartSwitchPending = false;
 			autoSave.flush();
 			unsubscribe();
 			resizeObserver.disconnect();
@@ -660,6 +676,39 @@
 		return new Promise((resolve) =>
 			window.requestAnimationFrame(() => resolve()),
 		);
+	}
+
+	async function switchActiveChart(id: string): Promise<void> {
+		const targetChart = workspaceState.charts.find(
+			(chart) => chart.id === id,
+		);
+		if (!targetChart || id === workspaceState.activeChartId) {
+			return;
+		}
+		const request = ++chartSwitchRequest;
+		pendingChartName = targetChart.name;
+		chartSwitchPending = true;
+
+		// First frame flushes Svelte DOM changes; second starts after they paint.
+		await nextAnimationFrame();
+		await nextAnimationFrame();
+		if (request !== chartSwitchRequest) {
+			return;
+		}
+
+		try {
+			controller.setActiveChart(id);
+		} catch (error) {
+			controller.setRendererDebugState({
+				status: 'error',
+				error: formatError(error),
+			});
+		} finally {
+			if (request === chartSwitchRequest) {
+				chartSwitchPending = false;
+				pendingChartName = undefined;
+			}
+		}
 	}
 
 	function readContainerSize(): { width: number; height: number } {
@@ -931,7 +980,7 @@
 		charts={workspaceState.charts}
 		activeChartId={workspaceState.activeChartId}
 		searchNodes={searchableNodes}
-		onSelectChart={(id) => controller.setActiveChart(id)}
+		onSelectChart={switchActiveChart}
 		onCreateChart={(input) => controller.addChart(input)}
 		onRenameChart={(name) => controller.setActiveChartName(name)}
 		onChartType={requestChartTypeChange}
@@ -968,6 +1017,7 @@
 		{/if}
 		<main
 			class="knowledge-workspace-main"
+			aria-busy={graphLoading}
 			class:dock-node-dragging={Boolean(dockDrag)}
 			class:connection-collapsed={!connectionOpen}
 			class:curated-panel-visible={workspaceState.chartSource ===
@@ -982,6 +1032,21 @@
 					: '0px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+			{#if graphLoading}
+				<div
+					class="knowledge-workspace-graph-loading"
+					role="status"
+					aria-live="polite"
+				>
+					<div class="knowledge-workspace-graph-loading-status">
+						<span
+							class="knowledge-workspace-graph-loading-spinner"
+							aria-hidden="true"
+						></span>
+						<span>Loading {graphLoadingName}</span>
+					</div>
+				</div>
+			{/if}
 			<WorkspaceMainPanels
 				{app}
 				{controller}
