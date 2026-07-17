@@ -167,10 +167,13 @@ export function normalizeChart(
 		curated,
 		normalizedLayout,
 	);
-	const grouping = normalizeChartGrouping(
-		record.grouping,
-		type === 'cube' ? undefined : hydrated.layout.manual,
-		fallback.grouping,
+	const grouping = normalizeGroupingModesForType(
+		type,
+		normalizeChartGrouping(
+			record.grouping,
+			type === 'cube' ? undefined : hydrated.layout.manual,
+			fallback.grouping,
+		),
 	);
 	const layout = canonicalizeManualGrouping(hydrated.layout, type, grouping);
 	return {
@@ -395,6 +398,39 @@ function canonicalizeManualGrouping(
 			groups: [],
 			groupFrames,
 		},
+	};
+}
+
+function normalizeGroupingModesForType(
+	type: ViewMode,
+	grouping: MetaGraphChart['grouping'],
+): MetaGraphChart['grouping'] {
+	if (
+		type !== 'flow' &&
+		type !== 'arc' &&
+		type !== 'hierarchical-edge-bundling'
+	) {
+		return grouping;
+	}
+	let changed = false;
+	const groups = grouping.groups.map((group) => {
+		if (group.mode === 'rule') return group;
+		changed = true;
+		return {
+			...group,
+			mode: 'rule' as const,
+			rule: group.rule ?? createEmptyGroupRule(group.id),
+		};
+	});
+	return changed ? { ...grouping, groups } : grouping;
+}
+
+function createEmptyGroupRule(groupId: string) {
+	return {
+		id: `group-rule-${groupId}`,
+		kind: 'group' as const,
+		mode: 'all' as const,
+		children: [],
 	};
 }
 

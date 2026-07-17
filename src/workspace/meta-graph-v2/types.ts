@@ -153,7 +153,8 @@ export interface PersistedGroupV2 {
 	id: string;
 	name: string;
 	color: string;
-	mode: ChartGroupMode;
+	/** Omitted for Cube's fixed system groups. */
+	mode?: ChartGroupMode;
 	shape: ChartGroupShape;
 	padding: number;
 	rule?: NodeFilterGroup;

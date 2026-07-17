@@ -122,6 +122,33 @@ describe('Meta Graph v2 persistence', () => {
 		expect(saved).toEqual(migrated);
 	});
 
+	it('migrates unsupported manual group modes to rule groups', () => {
+		const document = createDefaultMetaGraphDocument(200, 1.5);
+		const flow = document.charts.find((chart) => chart.type === 'flow');
+		if (!flow) throw new Error('Expected Flow chart.');
+		flow.grouping.groups = [
+			{
+				id: 'legacy-flow-group',
+				name: 'Legacy Flow group',
+				color: '#7c6ff0',
+				mode: 'manual',
+				shape: 'auto',
+				padding: 0.32,
+			},
+		];
+
+		const migrated = migrateV1ToV2(document, 200, 1.5);
+		const savedFlow = migrated.charts.find(
+			(chart) => chart.type === 'flow',
+		);
+
+		expect(savedFlow?.groups?.[0]).toMatchObject({
+			id: 'legacy-flow-group',
+			mode: 'rule',
+			rule: { kind: 'group', mode: 'all', children: [] },
+		});
+	});
+
 	it('keeps personal session changes out of the shared document', () => {
 		const document = createDefaultMetaGraphDocument(200, 1.5);
 		const context = createPersistenceContextFromV1(document);
@@ -284,11 +311,15 @@ describe('Meta Graph v2 persistence', () => {
 		chart.layout.engine = 'cube-3d';
 		chart.layout.manual = {
 			nodes: {
-				'Query/Cube.md': { x: 1.25, y: -0.5, groupId: 'front' },
+				'Query/Cube.md': {
+					x: 1.25,
+					y: -0.5,
+					groupId: 'cube-front',
+				},
 			},
 			groups: [
 				{
-					id: 'front',
+					id: 'cube-front',
 					name: 'Front',
 					color: '#7c6ff0',
 					mode: 'manual',
@@ -307,12 +338,13 @@ describe('Meta Graph v2 persistence', () => {
 		const saved = serializeRuntimeDocumentV2(document, context);
 		const persistedChart = saved.charts[0];
 		expect(persistedChart?.nodes).toEqual({
-			'Query/Cube.md': { x: 1.25, y: -0.5, group: 'front' },
+			'Query/Cube.md': { x: 1.25, y: -0.5, group: 'cube-front' },
 		});
+		expect(persistedChart?.groups?.[0]).not.toHaveProperty('mode');
 		const parsed = parsePersistedMetaGraphDocumentV2(saved, 200, 1.5);
 		expect(
 			parsed.document.charts[0]?.layout.manual?.nodes['Query/Cube.md'],
-		).toEqual({ x: 1.25, y: -0.5, groupId: 'front' });
+		).toEqual({ x: 1.25, y: -0.5, groupId: 'cube-front' });
 		expect(
 			serializeRuntimeDocumentV2(parsed.document, parsed.persistence),
 		).toEqual(saved);
@@ -473,6 +505,74 @@ describe('Meta Graph v2 persistence', () => {
 				1.5,
 			),
 		).toThrow('content.curated is invalid');
+
+		const manualGroup = {
+			id: 'manual-group',
+			name: 'Manual group',
+			color: '#7c6ff0',
+			mode: 'manual',
+			shape: 'auto',
+			padding: 0.32,
+		};
+		expect(() =>
+			parsePersistedMetaGraphDocumentV2(
+				{
+					...v2,
+					charts: [
+						{
+							...chart,
+							type: 'flow',
+							groups: [manualGroup],
+						},
+					],
+				},
+				200,
+				1.5,
+			),
+		).toThrow('mode must be rule for flow');
+
+		expect(() =>
+			parsePersistedMetaGraphDocumentV2(
+				{
+					...v2,
+					charts: [
+						{
+							...chart,
+							type: 'cube',
+							groups: [{ ...manualGroup, id: 'cube-front' }],
+						},
+					],
+				},
+				200,
+				1.5,
+			),
+		).toThrow('mode is invalid for Cube system groups');
+
+		expect(() =>
+			parsePersistedMetaGraphDocumentV2(
+				{
+					...v2,
+					charts: [
+						{
+							...chart,
+							type: 'arc',
+							nodes: {
+								'Note.md': { group: 'rule-group' },
+							},
+							groups: [
+								{
+									...manualGroup,
+									id: 'rule-group',
+									mode: 'rule',
+								},
+							],
+						},
+					],
+				},
+				200,
+				1.5,
+			),
+		).toThrow('group is invalid for arc');
 	});
 
 	it('renames every typed file reference together', () => {

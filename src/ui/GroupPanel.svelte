@@ -27,6 +27,8 @@
 		folders,
 		locked = false,
 		disabled = false,
+		manualModeAllowed = true,
+		modeEditable = true,
 		geometryEditable = false,
 		shapeEditable = false,
 		onAddGroup,
@@ -41,6 +43,8 @@
 		folders: string[];
 		locked?: boolean;
 		disabled?: boolean;
+		manualModeAllowed?: boolean;
+		modeEditable?: boolean;
 		geometryEditable?: boolean;
 		shapeEditable?: boolean;
 		onAddGroup: () => void;
@@ -53,6 +57,10 @@
 		{ value: 'manual', label: 'Manual' },
 		{ value: 'rule', label: 'Rule' },
 	];
+	const RULE_MODE_OPTIONS = [{ value: 'rule', label: 'Rule' }];
+	const modeOptions = $derived(
+		manualModeAllowed ? MODE_OPTIONS : RULE_MODE_OPTIONS,
+	);
 	const SHAPE_OPTIONS: Array<{
 		value: ChartGroupShape;
 		label: string;
@@ -202,7 +210,8 @@
 	}
 
 	function updateMode(group: ChartGroupDefinition, value: string): void {
-		const mode = value === 'rule' ? 'rule' : 'manual';
+		const mode =
+			manualModeAllowed && value === 'manual' ? 'manual' : 'rule';
 		onUpdateGroup(group.id, {
 			mode,
 			...(mode === 'rule' && !group.rule
@@ -340,18 +349,22 @@
 											})}
 									/>
 								</label>
-								<label
-									class="knowledge-workspace-rule-label knowledge-workspace-group-mode-setting"
-								>
-									<span>Mode</span>
-									<ObsidianDropdown
-										value={group.mode}
-										options={MODE_OPTIONS}
-										{disabled}
-										onChange={(value) =>
-											updateMode(group, value)}
-									/>
-								</label>
+								{#if modeEditable}
+									<label
+										class="knowledge-workspace-rule-label knowledge-workspace-group-mode-setting"
+									>
+										<span>Mode</span>
+										<ObsidianDropdown
+											value={manualModeAllowed
+												? group.mode
+												: 'rule'}
+											options={modeOptions}
+											{disabled}
+											onChange={(value) =>
+												updateMode(group, value)}
+										/>
+									</label>
+								{/if}
 								{#if shapeEditable}
 									<div
 										class="knowledge-workspace-rule-label segmented knowledge-workspace-group-shape"

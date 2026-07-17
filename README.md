@@ -217,6 +217,8 @@ charts:
               return: 1
               linkDistance: 250
       groups:
+          # Manual mode is valid only for Graph and Free. Flow, Arc, and HEB
+          # groups use Rule. Cube system groups omit mode.
           - id: concepts
             name: Concepts
             color: '#7c6ff0'
@@ -267,6 +269,9 @@ charts:
 
 The example comments are explanatory; generated YAML does not preserve comments.
 The serializer also omits default values and empty chart structures.
+Node `group` remains the canonical membership field. For Cube charts it contains a
+fixed system group such as `cube-front`; those groups omit `mode` because they are
+neither user-created Manual groups nor Rule groups.
 Use **Open graph as Markdown** to edit the backing YAML directly. Opening a v1 file
 migrates it in memory. The plugin writes v2 only after the first semantic edit. Files
 with a newer version open read-only and are never overwritten by the v2 serializer.

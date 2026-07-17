@@ -73,10 +73,7 @@ export function setNodeGroupInState(
 	if (
 		activeChart.type !== 'graph' &&
 		activeChart.type !== 'free' &&
-		activeChart.type !== 'cube' &&
-		activeChart.type !== 'flow' &&
-		activeChart.type !== 'arc' &&
-		activeChart.type !== 'hierarchical-edge-bundling'
+		activeChart.type !== 'cube'
 	) {
 		return state;
 	}
@@ -120,11 +117,19 @@ export function setNodeGroupInState(
 
 export function addGroupInState(state: WorkspaceState): WorkspaceState {
 	const activeChart = getActiveChart(state);
-	if (activeChart.type === 'cube') {
+	if (activeChart.type === 'cube' || activeChart.type === 'graph-3d') {
 		return state;
 	}
 	const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
-	const group = createUniqueDefaultGroup(activeChart.grouping.groups);
+	const defaultGroup = createUniqueDefaultGroup(activeChart.grouping.groups);
+	const manualModeAllowed = supportsManualGroupMode(activeChart.type);
+	const group: ChartGroupDefinition = manualModeAllowed
+		? defaultGroup
+		: {
+				...defaultGroup,
+				mode: 'rule',
+				rule: createEmptyGroupRule(defaultGroup.id),
+			};
 	const frame = createDefaultGroupFrame(
 		Object.keys(manual.groupFrames ?? {}).length,
 	);
@@ -133,16 +138,20 @@ export function addGroupInState(state: WorkspaceState): WorkspaceState {
 			...activeChart.grouping,
 			groups: [...activeChart.grouping.groups, toGroupDefinition(group)],
 		},
-		layout: {
-			...activeChart.layout,
-			manual: {
-				...manual,
-				groupFrames: {
-					...manual.groupFrames,
-					[group.id]: frame,
-				},
-			},
-		},
+		...(manualModeAllowed
+			? {
+					layout: {
+						...activeChart.layout,
+						manual: {
+							...manual,
+							groupFrames: {
+								...manual.groupFrames,
+								[group.id]: frame,
+							},
+						},
+					},
+				}
+			: {}),
 	});
 }
 
@@ -152,15 +161,25 @@ export function updateGroupInState(
 	patch: Partial<ChartGroup>,
 ): WorkspaceState {
 	const activeChart = getActiveChart(state);
-	if (activeChart.type === 'cube') {
+	if (activeChart.type === 'cube' || activeChart.type === 'graph-3d') {
 		return state;
 	}
+	const manualModeAllowed = supportsManualGroupMode(activeChart.type);
 	const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
 	const groupingGroups = activeChart.grouping.groups.map((group) => {
 		if (group.id !== groupId) {
 			return group;
 		}
-		return normalizeGroupDefinitionPatch(group, patch);
+		return normalizeGroupDefinitionPatch(
+			group,
+			manualModeAllowed
+				? patch
+				: {
+						...patch,
+						mode: 'rule',
+						rule: group.rule ?? createEmptyGroupRule(group.id),
+					},
+		);
 	});
 	if (!groupingGroups.some((group) => group.id === groupId)) {
 		return state;
@@ -206,7 +225,7 @@ export function moveGroupInState(
 		return state;
 	}
 	const activeChart = getActiveChart(state);
-	if (activeChart.type === 'cube') {
+	if (!supportsManualGroupMode(activeChart.type)) {
 		return state;
 	}
 	const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
@@ -267,6 +286,13 @@ export function moveCuratedFilesToGroupInState(
 		return state;
 	}
 	const activeChart = getActiveChart(state);
+	if (
+		activeChart.type !== 'graph' &&
+		activeChart.type !== 'free' &&
+		activeChart.type !== 'cube'
+	) {
+		return state;
+	}
 	if (activeChart.type !== 'free' && activeChart.type !== 'cube') {
 		const grouping = assignGroupingOverrides(
 			activeChart.grouping,
@@ -346,6 +372,13 @@ export function placeNodeInDefaultGroupInState(
 		return state;
 	}
 	const activeChart = getActiveChart(state);
+	if (
+		activeChart.type !== 'graph' &&
+		activeChart.type !== 'free' &&
+		activeChart.type !== 'cube'
+	) {
+		return state;
+	}
 	const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
 	const definition = activeChart.grouping.groups.find(
 		(group) => group.id === groupId,
@@ -515,6 +548,19 @@ function getCanonicalGroupMemberIds(
 		members.add(nodeId);
 	}
 	return members;
+}
+
+function supportsManualGroupMode(type: MetaGraphChart['type']): boolean {
+	return type === 'graph' || type === 'free';
+}
+
+function createEmptyGroupRule(groupId: string) {
+	return {
+		id: `group-rule-${groupId}`,
+		kind: 'group' as const,
+		mode: 'all' as const,
+		children: [],
+	};
 }
 
 function normalizeGroupDefinitionPatch(

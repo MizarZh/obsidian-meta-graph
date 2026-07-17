@@ -71,6 +71,15 @@ const LEGACY_FILTER_GROUP_IDS = {
 
 const V2_DEFAULT_MAX_NODES = 500;
 
+const V2_CUBE_GROUP_IDS = new Set([
+	'cube-front',
+	'cube-back',
+	'cube-left',
+	'cube-right',
+	'cube-top',
+	'cube-bottom',
+]);
+
 export function createDefaultMetaGraphDocumentV2(
 	maxNodes: number,
 	fadeDistance: number,
@@ -546,7 +555,12 @@ function nodesToV2(
 			draft.x = roundCoordinate(file.x);
 			draft.y = roundCoordinate(file.y);
 		}
-		if (file.groupId) {
+		if (
+			(chart.type === 'graph' ||
+				chart.type === 'free' ||
+				chart.type === 'cube') &&
+			file.groupId
+		) {
 			draft.group = file.groupId;
 			draft.hasGroup = true;
 		}
@@ -564,7 +578,7 @@ function nodesToV2(
 		}
 	}
 
-	if (chart.type !== 'cube') {
+	if (chart.type === 'graph' || chart.type === 'free') {
 		for (const [path, groupId] of Object.entries(
 			chart.grouping.overrides,
 		)) {
@@ -698,23 +712,35 @@ function readPersistedGroups(chart: MetaGraphChart): PersistedGroupV2[] {
 					(definition) => definition.id === group.id,
 				) ?? group,
 				group,
+				chart.type,
 			),
 		);
 	}
-	return chart.grouping.groups.map((group) =>
-		groupToV2(group, manual?.groupFrames?.[group.id]),
-	);
+	return chart.grouping.groups
+		.filter(
+			(group) =>
+				chart.type === 'graph' ||
+				chart.type === 'free' ||
+				((chart.type === 'flow' ||
+					chart.type === 'arc' ||
+					chart.type === 'hierarchical-edge-bundling') &&
+					group.mode === 'rule'),
+		)
+		.map((group) =>
+			groupToV2(group, manual?.groupFrames?.[group.id], chart.type),
+		);
 }
 
 function groupToV2(
 	group: MetaGraphChart['grouping']['groups'][number],
 	frame?: { x: number; y: number; width: number; height: number },
+	type?: MetaGraphChart['type'],
 ): PersistedGroupV2 {
 	return {
 		id: group.id,
 		name: group.name,
 		color: group.color,
-		mode: group.mode,
+		...(type === 'cube' ? {} : { mode: group.mode }),
 		shape: group.shape ?? 'auto',
 		padding: group.padding,
 		...(group.rule ? { rule: cloneSerializable(group.rule) } : {}),
@@ -1007,6 +1033,7 @@ function v2ChartToLegacyRecord(
 	const nodes = normalizePersistedNodes(
 		value.nodes,
 		index,
+		type,
 		allowUnknownLayoutFields,
 	);
 	const layout = isRecord(value.layout) ? value.layout : {};
@@ -1356,6 +1383,7 @@ function normalizeGroups(value: unknown): Array<PersistedGroupV2> {
 function normalizePersistedNodes(
 	value: unknown,
 	chartIndex: number,
+	type: MetaGraphChart['type'],
 	allowUnknownFields: boolean,
 ): Record<string, PersistedChartNodeV2> {
 	if (value === undefined) return {};
@@ -1449,9 +1477,24 @@ function normalizePersistedNodes(
 			);
 		}
 		const hasGroup = Object.prototype.hasOwnProperty.call(rawNode, 'group');
+		if (
+			hasGroup &&
+			type !== 'graph' &&
+			type !== 'free' &&
+			type !== 'cube'
+		) {
+			throw new Error(
+				`Meta Graph v2 charts[${chartIndex}].nodes[${rawPath}].group is invalid for ${type}.`,
+			);
+		}
 		let group: string | null | undefined;
 		if (hasGroup) {
 			if (rawNode.group === null) {
+				if (type === 'cube') {
+					throw new Error(
+						`Meta Graph v2 charts[${chartIndex}].nodes[${rawPath}].group must identify a Cube group.`,
+					);
+				}
 				group = null;
 			} else if (
 				typeof rawNode.group === 'string' &&
@@ -1539,6 +1582,55 @@ function validateUniqueTemplateIds(resources: PersistedResourcesV2): void {
 	}
 }
 
+function validateGroupModes(
+	value: unknown,
+	type: MetaGraphChart['type'],
+	chartIndex: number,
+	allowUnknownFields: boolean,
+): void {
+	if (allowUnknownFields || !Array.isArray(value)) return;
+	if (type === 'graph-3d' && value.length > 0) {
+		throw new Error(
+			`Meta Graph v2 charts[${chartIndex}].groups is invalid for graph-3d.`,
+		);
+	}
+	for (const [groupIndex, rawGroup] of value.entries()) {
+		if (!isRecord(rawGroup)) continue;
+		const path = `charts[${chartIndex}].groups[${groupIndex}]`;
+		if (type === 'cube') {
+			if (rawGroup.mode !== undefined) {
+				throw new Error(
+					`Meta Graph v2 ${path}.mode is invalid for Cube system groups.`,
+				);
+			}
+			if (
+				typeof rawGroup.id === 'string' &&
+				!V2_CUBE_GROUP_IDS.has(rawGroup.id)
+			) {
+				throw new Error(
+					`Meta Graph v2 ${path}.id is not a Cube group.`,
+				);
+			}
+			continue;
+		}
+		if (type === 'graph' || type === 'free') {
+			if (
+				rawGroup.mode !== undefined &&
+				rawGroup.mode !== 'manual' &&
+				rawGroup.mode !== 'rule'
+			) {
+				throw new Error(`Meta Graph v2 ${path}.mode is invalid.`);
+			}
+			continue;
+		}
+		if (rawGroup.mode !== 'rule') {
+			throw new Error(
+				`Meta Graph v2 ${path}.mode must be rule for ${type}.`,
+			);
+		}
+	}
+}
+
 function validateChartReferences(
 	value: unknown,
 	chartIndex: number,
@@ -1546,6 +1638,8 @@ function validateChartReferences(
 	allowUnknownFields: boolean,
 ): void {
 	if (!isRecord(value)) return;
+	const type = readChartType(value.type, `charts[${chartIndex}].type`);
+	validateGroupModes(value.groups, type, chartIndex, allowUnknownFields);
 	const groups = normalizeGroups(value.groups);
 	const groupIds = new Set<string>();
 	for (const group of groups) {
@@ -1557,9 +1651,27 @@ function validateChartReferences(
 		groupIds.add(group.id);
 	}
 	for (const [path, node] of Object.entries(
-		normalizePersistedNodes(value.nodes, chartIndex, allowUnknownFields),
+		normalizePersistedNodes(
+			value.nodes,
+			chartIndex,
+			type,
+			allowUnknownFields,
+		),
 	)) {
-		if (typeof node.group === 'string' && !groupIds.has(node.group)) {
+		if (
+			type === 'cube' &&
+			typeof node.group === 'string' &&
+			!V2_CUBE_GROUP_IDS.has(node.group)
+		) {
+			throw new Error(
+				`Meta Graph v2 charts[${chartIndex}].nodes[${path}].group is not a Cube group.`,
+			);
+		}
+		if (
+			type !== 'cube' &&
+			typeof node.group === 'string' &&
+			!groupIds.has(node.group)
+		) {
 			throw new Error(
 				`Meta Graph v2 charts[${chartIndex}].nodes[${path}].group references a missing group.`,
 			);

@@ -61,6 +61,9 @@
 			folders={workspaceState.availableFolders}
 			locked={workspaceState.mode === 'cube'}
 			disabled={groupsDisabled}
+			manualModeAllowed={workspaceState.mode === 'graph' ||
+				workspaceState.mode === 'free'}
+			modeEditable={workspaceState.mode !== 'cube'}
 			geometryEditable={workspaceState.mode === 'free'}
 			shapeEditable={workspaceState.mode === 'graph' ||
 				workspaceState.mode === 'free'}

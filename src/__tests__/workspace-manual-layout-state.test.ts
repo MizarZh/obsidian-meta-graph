@@ -120,7 +120,7 @@ describe('workspace manual layout state', () => {
 		expect(moveCuratedFilesToGroupInState(state, [])).toBe(state);
 	});
 
-	it('assigns Arc nodes without creating manual positions', () => {
+	it('creates rule-only Arc groups and rejects manual node assignment', () => {
 		let state = setActiveChartTypeInState(
 			createWorkspaceState(100),
 			'arc',
@@ -130,16 +130,12 @@ describe('workspace manual layout state', () => {
 		if (!group) {
 			throw new Error('Group is missing.');
 		}
+		expect(group.mode).toBe('rule');
+		expect(group.rule).toBeDefined();
 
-		state = setNodeGroupInState(state, 'A.md', group.id);
-		expect(state.grouping.overrides['A.md']).toBe(group.id);
-		expect(state.manualLayout.nodes['A.md']).toBeUndefined();
-
-		state = setNodeGroupInState(state, 'A.md', null);
-		expect(state.grouping.overrides['A.md']).toBeNull();
-
-		state = setNodeGroupInState(state, 'A.md', undefined);
-		expect(state.grouping.overrides).not.toHaveProperty('A.md');
+		const nextState = setNodeGroupInState(state, 'A.md', group.id);
+		expect(nextState).toBe(state);
+		expect(nextState.grouping.overrides).not.toHaveProperty('A.md');
 	});
 
 	it('updates Arc padding only in canonical grouping', () => {
@@ -162,7 +158,7 @@ describe('workspace manual layout state', () => {
 		expect(nextState.grouping).not.toBe(state.grouping);
 	});
 
-	it('assigns Flow nodes through grouping without manual positions', () => {
+	it('creates rule-only Flow groups and rejects manual node assignment', () => {
 		let state = setActiveChartTypeInState(
 			createWorkspaceState(100),
 			'flow',
@@ -172,11 +168,12 @@ describe('workspace manual layout state', () => {
 		if (!group) {
 			throw new Error('Group is missing.');
 		}
+		expect(group.mode).toBe('rule');
+		expect(group.rule).toBeDefined();
 
-		state = setNodeGroupInState(state, 'A.md', group.id);
-
-		expect(state.grouping.overrides['A.md']).toBe(group.id);
-		expect(state.manualLayout.nodes['A.md']).toBeUndefined();
+		const nextState = setNodeGroupInState(state, 'A.md', group.id);
+		expect(nextState).toBe(state);
+		expect(nextState.grouping.overrides).not.toHaveProperty('A.md');
 	});
 
 	it('reorders chart groups as their conflict priority', () => {
