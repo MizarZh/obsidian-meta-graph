@@ -26,7 +26,6 @@
 		collapsed,
 		onToggle,
 		onSelectField,
-		onFieldMode,
 		onAddField,
 		onRemoveField,
 		onReorderField,
@@ -42,9 +41,8 @@
 		undoCount: number;
 		collapsed: boolean;
 		onToggle: () => void;
-		onSelectField: (field: string, mode?: ConnectionFieldMode) => void;
-		onFieldMode: (field: string, mode: ConnectionFieldMode) => void;
-		onAddField: (field: string) => void;
+		onSelectField: (field: string, mode: ConnectionFieldMode) => void;
+		onAddField: (field: string, mode: ConnectionFieldMode) => void;
 		onRemoveField: (field: string) => void;
 		onReorderField: (
 			id: string,
@@ -54,6 +52,8 @@
 		onUndo: () => void;
 	} = $props();
 	let fieldInput = $state('');
+	let draftMode = $state<ConnectionFieldMode>('directed');
+	let syncedActiveFieldSpecId = $state('');
 	let reorderDrag = $state<
 		| {
 				id: string;
@@ -64,6 +64,14 @@
 		| undefined
 	>();
 	const customField = $derived(fieldInput.trim());
+	const draftField = $derived(customField || activeField.trim());
+	const canAddField = $derived(
+		Boolean(draftField) &&
+			!fields.some(
+				(field) =>
+					field.field === draftField && field.mode === draftMode,
+			),
+	);
 	const metadataFieldOptions = $derived(
 		metadataFieldSuggestions.map((field) => ({
 			value: field,
@@ -76,17 +84,31 @@
 		{ value: 'bidirectional', label: 'Two-way' },
 		{ value: 'reverse', label: 'Reverse' },
 	];
-	const activeMode = $derived(
-		fields.find((field) => field.id === activeFieldSpecId)?.mode ??
-			'directed',
-	);
 
-	function addField(): void {
-		if (!customField) {
+	$effect(() => {
+		if (activeFieldSpecId === syncedActiveFieldSpecId) {
 			return;
 		}
-		onAddField(customField);
+		syncedActiveFieldSpecId = activeFieldSpecId;
+		const activeSpec = fields.find(
+			(field) => field.id === activeFieldSpecId,
+		);
+		if (activeSpec) {
+			draftMode = activeSpec.mode;
+		}
+	});
+
+	function addField(): void {
+		if (!draftField || !canAddField) {
+			return;
+		}
+		onAddField(draftField, draftMode);
 		fieldInput = '';
+	}
+
+	function selectField(field: ConnectionFieldSpec): void {
+		draftMode = field.mode;
+		onSelectField(field.field, field.mode);
 	}
 
 	function obsidianIcon(node: HTMLElement, icon: IconName) {
@@ -216,8 +238,7 @@
 								type="button"
 								aria-pressed={field.id === activeFieldSpecId}
 								aria-label={`${field.field} ${getConnectionDirectionLabel(field.mode)}`}
-								onclick={() =>
-									onSelectField(field.field, field.mode)}
+								onclick={() => selectField(field)}
 							>
 								<span
 									class="knowledge-workspace-connection-direction-icon"
@@ -247,12 +268,12 @@
 					>Direction</span
 				>
 				<ObsidianDropdown
-					value={activeMode}
+					value={draftMode}
 					options={directionOptions}
-					disabled={!activeField}
+					disabled={!draftField}
 					ariaLabel="Connection direction"
 					onChange={(value) =>
-						onFieldMode(activeField, value as ConnectionFieldMode)}
+						(draftMode = value as ConnectionFieldMode)}
 				/>
 			</label>
 			<form
@@ -271,20 +292,15 @@
 					options={metadataFieldOptions}
 					onInput={(value) => {
 						fieldInput = value;
-						const normalized = value.trim();
-						if (normalized) {
-							onSelectField(normalized);
-						}
 					}}
 					onSelect={(option) => {
 						fieldInput = option.value;
-						onSelectField(option.value);
 					}}
 				/>
 				<ObsidianButton
 					icon="plus"
-					ariaLabel="Pin metadata field"
-					disabled={!customField}
+					ariaLabel="Add metadata direction"
+					disabled={!canAddField}
 					onClick={addField}
 				/>
 			</form>

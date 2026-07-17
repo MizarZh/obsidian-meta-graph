@@ -56,7 +56,7 @@ export function addConnectionFieldAndSelectInState(
 ): ConnectionFieldStateResult {
 	const update = addConnectionFieldToState(state, field, mode);
 	return update.normalized
-		? setActiveConnectionFieldInState(update.state, update.normalized)
+		? setActiveConnectionFieldInState(update.state, update.normalized, mode)
 		: { state, runQuery: false };
 }
 
@@ -92,61 +92,26 @@ export function reorderConnectionFieldInState(
 	};
 }
 
-export function setConnectionFieldModeInState(
-	state: WorkspaceState,
-	field: string,
-	mode: ConnectionFieldMode,
-): WorkspaceState {
-	const normalized = field.trim();
-	if (!normalized) {
-		return state;
-	}
-	const connectionFieldSpecs = normalizeConnectionFieldSpecs([
-		...state.connectionFieldSpecs,
-		createConnectionFieldSpec(normalized, mode),
-	]);
-	const activeSpec =
-		findConnectionFieldSpec(connectionFieldSpecs, normalized, mode) ??
-		connectionFieldSpecs[0];
-	const connectionFields = getConnectionSpecFields(connectionFieldSpecs);
-	return {
-		...state,
-		connectionFields,
-		connectionFieldSpecs,
-		connectionFieldModes: normalizeConnectionFieldModes(
-			{
-				...state.connectionFieldModes,
-				[normalized]: mode,
-			},
-			connectionFields,
-		),
-		activeConnectionFieldSpecId: activeSpec?.id ?? '',
-		activeConnectionField: activeSpec?.field ?? normalized,
-	};
-}
-
 export function setActiveConnectionFieldInState(
 	state: WorkspaceState,
 	field: string,
+	mode?: ConnectionFieldMode,
 ): ConnectionFieldStateResult {
 	const normalized = field.trim();
 	if (!normalized) {
 		return { state, runQuery: false };
 	}
-	const activeMode = getActiveConnectionModeInState(state);
-	const activeSpec =
-		findConnectionFieldSpec(
-			state.connectionFieldSpecs,
-			normalized,
-			activeMode,
-		) ??
-		state.connectionFieldSpecs.find((item) => item.field === normalized);
+	const activeSpec = mode
+		? findConnectionFieldSpec(state.connectionFieldSpecs, normalized, mode)
+		: state.connectionFieldSpecs.find((item) => item.field === normalized);
+	if (!activeSpec) {
+		return { state, runQuery: false };
+	}
 	return {
 		state: {
 			...state,
-			activeConnectionFieldSpecId:
-				activeSpec?.id ?? state.activeConnectionFieldSpecId,
-			activeConnectionField: normalized,
+			activeConnectionFieldSpecId: activeSpec.id,
+			activeConnectionField: activeSpec.field,
 		},
 		runQuery: false,
 	};

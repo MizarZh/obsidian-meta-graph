@@ -8,11 +8,11 @@ import {
 	undoLastConnectionInState,
 	type WorkspaceConnectionPort,
 } from '../workspace/actions/connection-actions';
-import { setConnectionFieldModeInState } from '../workspace/state/connection-fields';
+import { addConnectionFieldAndSelectInState } from '../workspace/state/connection-fields';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
 
 describe('workspace connection actions', () => {
-	it('prepares connection requests and updates the active field state', () => {
+	it('rejects requests for unpinned metadata', () => {
 		const action = prepareConnectNodesInState(
 			createWorkspaceState(100),
 			'Source.md',
@@ -20,23 +20,15 @@ describe('workspace connection actions', () => {
 			' supports ',
 		);
 
-		expect(action?.request).toEqual({
-			sourceNodeId: 'Source.md',
-			targetNodeId: 'Target.md',
-			field: 'supports',
-		});
-		expect(action?.mode).toBe('directed');
-		expect(action?.runQuery).toBe(false);
-		expect(action?.state.activeConnectionField).toBe('supports');
-		expect(action?.state.query.relations).not.toContain('supports');
+		expect(action).toBeNull();
 	});
 
 	it('prepares dock connection direction and active field mode', () => {
-		const state = setConnectionFieldModeInState(
+		const state = addConnectionFieldAndSelectInState(
 			createWorkspaceState(100),
 			'supports',
 			'reverse',
-		);
+		).state;
 
 		const action = prepareConnectDockNoteInState(
 			state,
@@ -55,7 +47,12 @@ describe('workspace connection actions', () => {
 	});
 
 	it('runs prepared connections through the service and requests flow relayout', async () => {
-		const state = { ...createWorkspaceState(100), mode: 'flow' as const };
+		const connectionState = addConnectionFieldAndSelectInState(
+			createWorkspaceState(100),
+			'leads-to',
+			'directed',
+		).state;
+		const state = { ...connectionState, mode: 'flow' as const };
 		const action = prepareConnectNodesInState(
 			state,
 			'Source.md',

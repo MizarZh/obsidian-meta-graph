@@ -4,34 +4,41 @@ import {
 	getActiveConnectionModeInState,
 	getConnectionModeForFieldInState,
 	setActiveConnectionFieldInState,
-	setConnectionFieldModeInState,
 } from '../workspace/state/connection-fields';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
 
 describe('workspace connection fields', () => {
-	it('selects query connection fields without changing chart relations', () => {
+	it('does not select metadata fields until they are added', () => {
 		const state = createWorkspaceState(100);
 
 		const result = setActiveConnectionFieldInState(state, 'supports');
 
 		expect(result.runQuery).toBe(false);
-		expect(result.state.activeConnectionField).toBe('supports');
-		expect(result.state.query.relations).toEqual(state.query.relations);
-		expect(result.state.charts[0]?.query.relations).toEqual(
-			state.charts[0]?.query.relations,
+		expect(result.state).toBe(state);
+		expect(result.state.connectionFieldSpecs).not.toContainEqual(
+			expect.objectContaining({ field: 'supports' }),
 		);
 	});
 
-	it('updates curated active connection field without changing query relations', () => {
-		const state = {
+	it('selects an added curated connection field without changing relations', () => {
+		const initialState = {
 			...createWorkspaceState(100),
 			chartSource: 'curated' as const,
 			charts: createWorkspaceState(100).charts.map((chart, index) =>
 				index === 0 ? { ...chart, source: 'curated' as const } : chart,
 			),
 		};
+		const state = addConnectionFieldAndSelectInState(
+			initialState,
+			'supports',
+			'directed',
+		).state;
 
-		const result = setActiveConnectionFieldInState(state, 'supports');
+		const result = setActiveConnectionFieldInState(
+			state,
+			'supports',
+			'directed',
+		);
 
 		expect(result.runQuery).toBe(false);
 		expect(result.state.activeConnectionField).toBe('supports');
@@ -47,16 +54,58 @@ describe('workspace connection fields', () => {
 		});
 	});
 
-	it('uses the active connection mode when selecting a spec', () => {
-		const state = setConnectionFieldModeInState(
+	it('selects an exact added connection direction', () => {
+		const directedState = addConnectionFieldAndSelectInState(
 			createWorkspaceState(100),
+			'supports',
+			'directed',
+		).state;
+		const state = addConnectionFieldAndSelectInState(
+			directedState,
+			'supports',
+			'reverse',
+		).state;
+
+		const result = setActiveConnectionFieldInState(
+			state,
+			'supports',
+			'directed',
+		);
+
+		expect(result.state.activeConnectionFieldSpecId).toBe(
+			'supports:directed',
+		);
+		expect(result.state.connectionFieldSpecs).toHaveLength(
+			state.connectionFieldSpecs.length,
+		);
+	});
+
+	it('requires an add action for a missing connection direction', () => {
+		const state = addConnectionFieldAndSelectInState(
+			createWorkspaceState(100),
+			'supports',
+			'directed',
+		).state;
+
+		const selection = setActiveConnectionFieldInState(
+			state,
 			'supports',
 			'reverse',
 		);
 
-		const result = setActiveConnectionFieldInState(state, 'supports');
+		expect(selection.state).toBe(state);
+		expect(
+			state.connectionFieldSpecs.some(
+				(spec) => spec.field === 'supports' && spec.mode === 'reverse',
+			),
+		).toBe(false);
 
-		expect(result.state.activeConnectionFieldSpecId).toBe(
+		const added = addConnectionFieldAndSelectInState(
+			state,
+			'supports',
+			'reverse',
+		);
+		expect(added.state.activeConnectionFieldSpecId).toBe(
 			'supports:reverse',
 		);
 	});
@@ -86,26 +135,20 @@ describe('workspace connection fields', () => {
 	});
 
 	it('returns active connection mode from state', () => {
-		const state = setActiveConnectionFieldInState(
-			setConnectionFieldModeInState(
-				createWorkspaceState(100),
-				'supports',
-				'reverse',
-			),
+		const state = addConnectionFieldAndSelectInState(
+			createWorkspaceState(100),
 			'supports',
+			'reverse',
 		).state;
 
 		expect(getActiveConnectionModeInState(state)).toBe('reverse');
 	});
 
 	it('uses default mode for inactive connection fields', () => {
-		const state = setActiveConnectionFieldInState(
-			setConnectionFieldModeInState(
-				createWorkspaceState(100),
-				'supports',
-				'reverse',
-			),
+		const state = addConnectionFieldAndSelectInState(
+			createWorkspaceState(100),
 			'supports',
+			'reverse',
 		).state;
 
 		expect(getConnectionModeForFieldInState(state, 'supports')).toBe(

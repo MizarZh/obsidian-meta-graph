@@ -131,6 +131,11 @@ function prepareConnectionRequestInState(
 	if (!request) {
 		return null;
 	}
+	if (
+		!state.connectionFieldSpecs.some((spec) => spec.field === request.field)
+	) {
+		return null;
+	}
 	const result = setActiveConnectionFieldInState(state, request.field);
 	return {
 		state: result.state,

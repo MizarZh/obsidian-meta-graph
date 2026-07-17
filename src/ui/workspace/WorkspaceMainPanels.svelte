@@ -339,15 +339,9 @@
 	undoCount={workspaceState.connectionUndoCount}
 	collapsed={!connectionOpen}
 	onToggle={onToggleConnection}
-	onSelectField={(field, mode) => {
-		if (mode) {
-			controller.setConnectionFieldMode(field, mode);
-		}
-		controller.setActiveConnectionField(field);
-	}}
-	onFieldMode={(field, mode) =>
-		controller.setConnectionFieldMode(field, mode)}
-	onAddField={(field) => controller.addConnectionField(field)}
+	onSelectField={(field, mode) =>
+		controller.setActiveConnectionField(field, mode)}
+	onAddField={(field, mode) => controller.addConnectionField(field, mode)}
 	onRemoveField={(field) => controller.removeConnectionField(field)}
 	onReorderField={(id, targetId, placement) =>
 		controller.reorderConnectionField(id, targetId, placement)}

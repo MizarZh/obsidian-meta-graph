@@ -79,9 +79,11 @@ settings to report them in the developer console.
     higher settings use more GPU memory. In Arc views, use **Label angle** under
     **Arc details** to select Auto, 0°, 45°, or 90°. Auto keeps Right/Left labels
     horizontal and rotates Up/Down labels vertically.
-11. Use the bottom connection panel to select or add the metadata field used for
-    new links. Set the field direction to **One-way** or **Two-way** from the
-    direction dropdown.
+11. Use the bottom connection panel to select the metadata field and direction
+    used for new links. To add a field or another direction for an existing
+    field, enter the metadata name, choose **One-way**, **Two-way**, or
+    **Reverse**, then select **+**. Input and direction changes remain drafts
+    until added.
 12. Use **Details** for quick connections, or drag the link button on a pinned
     note or template to a graph node. `Ctrl`-drag between graph nodes remains an
     advanced shortcut. One-way writes the source note only; two-way writes both
