@@ -71,6 +71,29 @@ describe('bindWorkspaceRendererEvents', () => {
 			{ x: 1, y: 2, fixed: true },
 		);
 	});
+
+	it('keeps navigation callbacks but disables write gestures when read-only', () => {
+		const renderer = createSigmaRenderer();
+		const onConnect = vi.fn();
+		const onSelect = vi.fn();
+		const options = { ...createOptions(renderer), onConnect, onSelect };
+
+		bindWorkspaceRendererEvents({
+			...options,
+			mode: 'free',
+			readOnly: true,
+			enableForceLayout: false,
+		});
+
+		rendererEventMock.callbacks?.onNodeDrag?.('A', { x: 1, y: 2 });
+		rendererEventMock.callbacks?.onConnect?.('A', 'B');
+		rendererEventMock.callbacks?.onSelect('A');
+
+		expect(renderer.holdCurrentBounds).not.toHaveBeenCalled();
+		expect(onConnect).not.toHaveBeenCalled();
+		expect(onSelect).toHaveBeenCalledWith('A');
+		expect(rendererEventMock.callbacks?.enableNodeDragging).toBe(false);
+	});
 });
 
 function createOptions(

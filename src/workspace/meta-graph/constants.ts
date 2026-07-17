@@ -11,7 +11,7 @@ import type {
 export const META_GRAPH_FRONTMATTER_KEY = 'meta-graph';
 export const META_GRAPH_FRONTMATTER_VALUE = 'workspace';
 export const META_GRAPH_VERSION_KEY = 'meta-graph-version';
-export const META_GRAPH_VERSION = 1;
+export const META_GRAPH_VERSION = 2;
 export const BASE_STYLE_RULE_ID = 'all';
 export const DEFAULT_CONNECTION_FIELD = '';
 export const DEFAULT_CONNECTION_FIELDS: string[] = [];

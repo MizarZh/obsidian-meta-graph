@@ -51,7 +51,17 @@ export function createWorkspaceState(
 			metaGraphDocument.activeConnectionFieldSpecId,
 		activeConnectionField: metaGraphDocument.activeConnectionField,
 		connectionUndoCount: 0,
-		dock: cloneSerializable(metaGraphDocument.dock),
+		dock: {
+			...cloneSerializable(metaGraphDocument.dock),
+			dockWidth: activeChart.presentation.dockWidth,
+			curatedPanelWidth: activeChart.presentation.curatedPanelWidth,
+			focusOnSelect: activeChart.presentation.focusOnSelect,
+			templates: metaGraphDocument.dock.templates.map((template) => ({
+				...cloneSerializable(template),
+				defaultGroupId:
+					activeChart.templateOverrides[template.id]?.defaultGroupId,
+			})),
+		},
 		availableFolders: [],
 		availableTags: [],
 		availableDomains: [],

@@ -70,6 +70,7 @@ describe('workspace chart state', () => {
 		const result = setActiveChartNameInState(state, '  Project graph  ');
 
 		expect(result.runQuery).toBe(false);
+		expect(result.state.charts[0]?.id).toBe(state.charts[0]?.id);
 		expect(result.state.charts[0]?.name).toBe('Project graph');
 	});
 

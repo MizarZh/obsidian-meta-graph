@@ -140,85 +140,141 @@ Markdown files with this frontmatter open as graph workspaces:
 ```yaml
 ---
 meta-graph: workspace
-meta-graph-version: 1
+meta-graph-version: 2
 ---
+# Chart names can change; references use stable chart IDs.
+defaultChart: knowledge-map
+
+shared:
+    filters:
+        nodes: { id: shared-root, kind: group, mode: all, children: [] }
+        relations: []
+    # Workspace style defaults stay explicit so upgrades do not restyle old files.
+    style:
+        node: { color: '#7c6ff0', size: 7 }
+        link:
+            color: '#888888'
+            size: 1.5
+            lineStyle: solid
+            label: ''
+            showLabel: false
+            hidden: false
+        nodeRules: []
+        linkRules: []
+
+connections:
+    default: leads-to:directed
+    # Runtime IDs are derived as property:mode.
+    fields:
+        - property: leads-to
+          mode: directed
+
+resources:
+    # Pins are shared across every chart and store paths directly.
+    pinnedNotes:
+        - Projects/Index.md
+    templates:
+        - id: concept
+          label: Concept
+          template: Templates/Concept.md
+          targetFolder: Notes
+
 charts:
     - id: knowledge-map
-      name: Graph
+      name: Knowledge map
       type: graph
-      source: query
-      query:
-          roots: []
-          folders: []
-          tags: []
-          domains: []
-          relations: [prerequisite, leads-to, related]
-          depth: 2
-          direction: both
-          maxNodes: 200
-      curated:
-          files: []
-          context:
-              enabled: false
-              depth: 0
-              includeOutgoingLinks: true
-              includeBacklinks: true
-              includeMetadataRelations: true
+      # Query configuration remains available while curated is active. Source only
+      # selects which projection runs.
+      content:
+          source: curated
+          links: { plain: false, unresolved: false }
+          query:
+              roots: [Projects/Index.md]
+              traversal: { depth: 2, direction: both }
+              relations: [prerequisite, leads-to, related]
+              limit: 500
+              includeIsolated: true
+              filter: { id: query-root, kind: group, mode: all, children: [] }
+      # One registry owns curated membership, visibility, positions, and explicit
+      # group assignments. Entries without curated: true only retain layout data
+      # for query-derived nodes.
+      nodes:
+          Projects/Index.md:
+              curated: true
+              x: -0.72
+              y: 1.14
+          Concepts/Graph.md:
+              curated: true
+              hidden: true
+              group: concepts
       layout:
-          engine: force-atlas
           spacing: 1
-          centerForce: 1
-          repelForce: 10
-          linkForce: 1
-          dragLinkForce: 1
-          returnForce: 1
-          linkDistance: 250
-          manual:
-              nodes: {}
-              groups: []
+          forces:
+              center: 1
+              repel: 10
+              link: 1
+              dragLink: 1
+              return: 1
+              linkDistance: 250
+      groups:
+          - id: concepts
+            name: Concepts
+            color: '#7c6ff0'
+            mode: manual
+            shape: rectangle
+            padding: 0.32
+            frame:
+                x: -1
+                y: -1
+                width: 4
+                height: 3
       display:
           fadeDistance: 1.5
-          enableForceLayout: false
-          showInspector: true
-          showFilters: true
+          labels:
+              size: 14
+              threeResolution: standard
+              bold: false
+              italic: false
+              position: auto
+              offset: 1
+              color: ''
+              lightTextColor: '#111111'
+              lightBackgroundColor: '#ffffff'
+              lightBackgroundOpacity: 0.82
+              darkTextColor: '#ffffff'
+              darkBackgroundColor: '#000000'
+              darkBackgroundOpacity: 0.62
+              backgroundOpacity: 0.82
+              density: 0.8
+              force: false
+          forceLayout: false
+      # File-authored initial UI values. Personal overrides live in data.json.
+      presentation:
+          panels: { filters: true, inspector: true }
+          widths: { dock: 280, curated: 300 }
+          focusOnSelect: true
+      templateOverrides:
+          concept: { defaultGroup: concepts }
       style:
-          nodeOverrides: {}
-          linkOverrides: {}
+          node: {}
+          unresolvedNode: {}
+          link: {}
+          plainLink: {}
+          unresolvedLink: {}
           nodeRules: []
           linkRules: []
-
-globalQuery:
-    roots: []
-    folders: []
-    tags: []
-    domains: []
-    relations: []
-    hiddenNodeRules: []
-    depth: 2
-    direction: both
-    maxNodes: 200
-globalStyle:
-    defaultNodeStyle:
-        color: '#7c6ff0'
-        size: 7
-    defaultLinkStyle:
-        color: '#888888'
-        size: 1.5
-        lineStyle: solid
-        label: ''
-        showLabel: false
-        hidden: false
-    nodeRules: []
-    linkRules: []
-activeChart: knowledge-map
-connectionFields: []
-connectionFieldSpecs: []
-connectionFieldModes: {}
-activeConnectionFieldSpecId: ''
-activeConnectionField: ''
 ```
 
-Use **Open graph as Markdown** to edit the backing YAML directly.
+The example comments are explanatory; generated YAML does not preserve comments.
+The serializer also omits default values and empty chart structures.
+Use **Open graph as Markdown** to edit the backing YAML directly. Opening a v1 file
+migrates it in memory. The plugin writes v2 only after the first semantic edit. Files
+with a newer version open read-only and are never overwritten by the v2 serializer.
+
+Personal state lives under `workspaceSessions` in the plugin's `data.json`: active
+chart, active connection, right-panel tab, panel widths and visibility, collapse
+states, and focus preference. Selection, hover, projections, layout revisions, undo,
+and renderer state are runtime-only.
 
 ## Flow layout behavior
 

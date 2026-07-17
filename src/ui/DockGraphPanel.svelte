@@ -10,6 +10,7 @@
 		ViewMode,
 	} from '../core/types';
 	import type { DockDragPayload } from './dock/types';
+	import type { WorkspaceRightPanelTab } from '../workspace/meta-graph-v2/types';
 	import DockNotesSection from './dock-panel/DockNotesSection.svelte';
 	import DockResizeHandle from './dock-panel/DockResizeHandle.svelte';
 	import DockTemplateSection from './dock-panel/DockTemplateSection.svelte';
@@ -26,8 +27,6 @@
 	import AddNotesModal from './notes/AddNotesModal.svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 
-	type RightPanelTab = 'details' | 'pinned' | 'templates';
-
 	let {
 		app,
 		templates,
@@ -38,7 +37,9 @@
 		workspaceFilePath,
 		nodeColors,
 		dockOpen,
+		activeTab,
 		onToggleDock,
+		onRightPanelTabChange,
 		dockWidth,
 		onResizeDock,
 		activeConnectionField,
@@ -82,7 +83,9 @@
 		workspaceFilePath?: string;
 		nodeColors: Map<string, string>;
 		dockOpen: boolean;
+		activeTab: WorkspaceRightPanelTab;
 		onToggleDock: () => void;
+		onRightPanelTabChange: (tab: WorkspaceRightPanelTab) => void;
 		dockWidth: number;
 		onResizeDock: (width: number) => void;
 		activeConnectionField: string;
@@ -131,7 +134,6 @@
 		onToggleFocusOnSelect: () => void;
 	} = $props();
 
-	let activeTab = $state<RightPanelTab>('details');
 	let detailsContentVisibleOverride = $state<boolean | undefined>(undefined);
 	let addNotesOpen = $state(false);
 	let addNotesDraft = $state(createCuratedConditionDraft());
@@ -186,6 +188,10 @@
 		detailsContentVisibleOverride = visible;
 		onDetailsNoteContentExpandedChange(visible);
 	}
+
+	function selectTab(tab: WorkspaceRightPanelTab): void {
+		onRightPanelTabChange(tab);
+	}
 </script>
 
 <aside
@@ -214,19 +220,19 @@
 				text="Details"
 				active={activeTab === 'details'}
 				role="tab"
-				onClick={() => (activeTab = 'details')}
+				onClick={() => selectTab('details')}
 			/>
 			<ObsidianButton
 				text="Pinned notes"
 				active={activeTab === 'pinned'}
 				role="tab"
-				onClick={() => (activeTab = 'pinned')}
+				onClick={() => selectTab('pinned')}
 			/>
 			<ObsidianButton
 				text="Templates"
 				active={activeTab === 'templates'}
 				role="tab"
-				onClick={() => (activeTab = 'templates')}
+				onClick={() => selectTab('templates')}
 			/>
 		</div>
 		{#if activeTab === 'details'}
@@ -278,7 +284,6 @@
 				{noteOptions}
 				{targetFolderOptions}
 				{groupOptions}
-				{activeConnectionField}
 				{activeDraggingKey}
 				{graphTargetTemplateId}
 				{onAddTemplate}

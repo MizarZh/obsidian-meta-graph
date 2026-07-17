@@ -9,15 +9,17 @@ import {
 import { createWorkspaceState } from '../workspace/state/workspace-state';
 
 describe('workspace connection fields', () => {
-	it('adds selected query connection fields to active chart relations', () => {
+	it('selects query connection fields without changing chart relations', () => {
 		const state = createWorkspaceState(100);
 
 		const result = setActiveConnectionFieldInState(state, 'supports');
 
-		expect(result.runQuery).toBe(true);
+		expect(result.runQuery).toBe(false);
 		expect(result.state.activeConnectionField).toBe('supports');
-		expect(result.state.query.relations).toContain('supports');
-		expect(result.state.charts[0]?.query.relations).toContain('supports');
+		expect(result.state.query.relations).toEqual(state.query.relations);
+		expect(result.state.charts[0]?.query.relations).toEqual(
+			state.charts[0]?.query.relations,
+		);
 	});
 
 	it('updates curated active connection field without changing query relations', () => {
@@ -66,10 +68,10 @@ describe('workspace connection fields', () => {
 			'directed',
 		);
 
-		expect(result.runQuery).toBe(true);
+		expect(result.runQuery).toBe(false);
 		expect(result.state.activeConnectionField).toBe('supports');
 		expect(result.state.connectionFields).toContain('supports');
-		expect(result.state.query.relations).toContain('supports');
+		expect(result.state.query.relations).not.toContain('supports');
 	});
 
 	it('keeps blank added connection fields stable', () => {

@@ -64,7 +64,17 @@ export function setActiveChartInState(
 			connectionFieldModes: state.connectionFieldModes,
 			activeConnectionFieldSpecId: state.activeConnectionFieldSpecId,
 			activeConnectionField: state.activeConnectionField,
-			dock: state.dock,
+			dock: {
+				...state.dock,
+				dockWidth: chart.presentation.dockWidth,
+				curatedPanelWidth: chart.presentation.curatedPanelWidth,
+				focusOnSelect: chart.presentation.focusOnSelect,
+				templates: state.dock.templates.map((template) => ({
+					...template,
+					defaultGroupId:
+						chart.templateOverrides[template.id]?.defaultGroupId,
+				})),
+			},
 			connectionUndoCount: state.connectionUndoCount,
 		},
 		runQuery: true,

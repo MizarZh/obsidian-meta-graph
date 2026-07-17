@@ -172,6 +172,7 @@ import {
 import { createTemplateNoteFile } from './services/template-service';
 import { createWorkspaceTemplateNote } from './actions/template-actions';
 import { resolveTemplateNoteRequest } from './actions/template-request';
+import { updateWorkspaceReferencesInState } from './state/reference-walker';
 
 type StateListener = (state: WorkspaceState) => void;
 
@@ -197,6 +198,7 @@ export class WorkspaceController {
 		private relayoutFlowAfterConnection: boolean,
 		fadeDistance = 1.5,
 		document?: MetaGraphDocument,
+		private readonly readOnly = false,
 	) {
 		this.state = createWorkspaceState(maxNodes, fadeDistance, document);
 		this.connectionService = createObsidianConnectionService(this.app);
@@ -753,6 +755,16 @@ export class WorkspaceController {
 		return true;
 	}
 
+	updateFileReferences(oldPath: string, newPath: string): boolean {
+		const result = updateWorkspaceReferencesInState(
+			this.state,
+			oldPath,
+			newPath,
+		);
+		this.setWorkspaceState(result.state, result.changed);
+		return result.changed;
+	}
+
 	removeDockNote(path: NodeId): void {
 		this.setWorkspaceState(removeDockNoteInState(this.state, path));
 	}
@@ -779,6 +791,7 @@ export class WorkspaceController {
 		direction: DockConnectionDirection = 'from-graph-to-dock',
 		field = this.state.activeConnectionField,
 	): Promise<void> {
+		this.assertWritable();
 		const action = prepareConnectDockNoteInState(
 			this.state,
 			notePath,
@@ -807,6 +820,7 @@ export class WorkspaceController {
 		direction: DockConnectionDirection = 'from-dock-to-graph',
 		field = this.state.activeConnectionField,
 	): Promise<string> {
+		this.assertWritable();
 		return createWorkspaceTemplateNote({
 			templates: this.state.dock.templates,
 			templateId,
@@ -840,6 +854,7 @@ export class WorkspaceController {
 		templateId: string,
 		name: string,
 	): Promise<string> {
+		this.assertWritable();
 		const { template, title } = resolveTemplateNoteRequest(
 			this.state.dock.templates,
 			templateId,
@@ -997,6 +1012,7 @@ export class WorkspaceController {
 		targetNodeId: NodeId,
 		field = this.state.activeConnectionField,
 	): Promise<void> {
+		this.assertWritable();
 		const action = prepareConnectNodesInState(
 			this.state,
 			sourceNodeId,
@@ -1018,6 +1034,7 @@ export class WorkspaceController {
 	}
 
 	async undoLastConnection(): Promise<void> {
+		this.assertWritable();
 		this.applyConnectionActionResult(
 			await undoLastConnectionInState(this.state, this.connectionService),
 		);
@@ -1043,6 +1060,14 @@ export class WorkspaceController {
 			(index, state) => this.projectionService.project(index, state),
 		);
 		this.emit();
+	}
+
+	private assertWritable(): void {
+		if (this.readOnly) {
+			throw new Error(
+				'This Meta Graph uses a newer format and is read-only.',
+			);
+		}
 	}
 
 	private setWorkspaceState(

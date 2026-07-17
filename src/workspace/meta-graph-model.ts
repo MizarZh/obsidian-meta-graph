@@ -47,6 +47,21 @@ export {
 	normalizeMetaGraphDocument,
 	serializeMetaGraphState,
 } from './meta-graph/document';
+export {
+	connectionSpecId,
+	createDefaultMetaGraphDocumentV2,
+	createPersistenceContextFromV1,
+	migrateV1ToV2,
+	parsePersistedMetaGraphDocumentV2,
+	serializeRuntimeDocumentV2,
+	serializeWorkspaceStateV2,
+} from './meta-graph-v2/codec';
+export type {
+	ParsedMetaGraphWorkspace,
+	PersistedMetaGraphDocumentV2,
+	WorkspacePersistenceContext,
+	WorkspaceSessionState,
+} from './meta-graph-v2/types';
 export { createDefaultChart } from './meta-graph/chart';
 export {
 	createDefaultLinkStyleRule,

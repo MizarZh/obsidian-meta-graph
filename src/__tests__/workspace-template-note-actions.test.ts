@@ -76,8 +76,6 @@ function createTemplate(
 		label: 'Template A',
 		templatePath: 'Templates/A.md',
 		targetFolder: 'Notes',
-		relationField: 'leads-to',
-		direction: 'from-dock-to-graph',
 		...patch,
 	};
 }

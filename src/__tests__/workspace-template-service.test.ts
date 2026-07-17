@@ -7,8 +7,6 @@ const template: DockTemplateNode = {
 	label: 'Template',
 	templatePath: 'Templates/Note.md',
 	targetFolder: 'Notes',
-	relationField: 'leads-to',
-	direction: 'from-dock-to-graph',
 	defaultGroupId: 'group-1',
 };
 

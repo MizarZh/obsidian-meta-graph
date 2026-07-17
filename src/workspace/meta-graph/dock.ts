@@ -1,10 +1,8 @@
 import type {
-	DockConnectionDirection,
 	DockNoteNode,
 	DockTemplateNode,
 	MetaGraphDock,
 } from '../../core/types';
-import { DEFAULT_CONNECTION_FIELD } from './constants';
 import {
 	createDockId,
 	isRecord,
@@ -59,7 +57,6 @@ function normalizeDockTemplate(
 		typeof record.id === 'string' && record.id.trim()
 			? record.id.trim()
 			: createDockId('template', `${label}-${index}`);
-	const direction = normalizeDockDirection(record.direction);
 	return {
 		id,
 		label,
@@ -71,12 +68,6 @@ function normalizeDockTemplate(
 			typeof record.targetFolder === 'string'
 				? normalizeTextPath(record.targetFolder).replace(/\/$/u, '')
 				: '',
-		relationField:
-			typeof record.relationField === 'string' &&
-			record.relationField.trim()
-				? record.relationField.trim()
-				: DEFAULT_CONNECTION_FIELD,
-		direction,
 		defaultGroupId:
 			typeof record.defaultGroupId === 'string' &&
 			record.defaultGroupId.trim()
@@ -102,10 +93,4 @@ function normalizeDockNote(
 			? record.id.trim()
 			: createDockId('note', `${path}-${index}`);
 	return { id, path };
-}
-
-function normalizeDockDirection(value: unknown): DockConnectionDirection {
-	return value === 'from-dock-to-graph'
-		? 'from-dock-to-graph'
-		: 'from-graph-to-dock';
 }

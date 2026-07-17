@@ -19,6 +19,7 @@ import {
 export interface WorkspaceRendererEventOptions {
 	renderer: GraphRenderer;
 	mode: ViewMode;
+	readOnly?: boolean;
 	enableForceLayout: boolean;
 	getLayoutSnapshot(): LayoutSnapshot;
 	getOrCreateForceLayoutSimulation(
@@ -49,10 +50,13 @@ export function bindWorkspaceRendererEvents(
 		onSelect: (nodeId?: string) => options.onSelect(nodeId),
 		onHover: (nodeId?: string) => options.onHover(nodeId),
 		onOpen: (nodeId: string) => options.onOpen(nodeId),
-		onConnectionDrag: (state?: ConnectionDragState) =>
-			options.onConnectionDrag(state),
-		onConnect: (sourceNodeId: string, targetNodeId: string) =>
-			options.onConnect(sourceNodeId, targetNodeId),
+		onConnectionDrag: (state?: ConnectionDragState) => {
+			if (!options.readOnly) options.onConnectionDrag(state);
+		},
+		onConnect: (sourceNodeId: string, targetNodeId: string) => {
+			if (!options.readOnly)
+				options.onConnect(sourceNodeId, targetNodeId);
+		},
 	};
 
 	return bindRendererEvents(options.renderer, {
@@ -60,9 +64,11 @@ export function bindWorkspaceRendererEvents(
 		cube3d: (cubeRenderer) => ({
 			...baseCallbacks,
 			onNodeDrag: (nodeId, position) => {
+				if (options.readOnly) return;
 				options.getLayoutSnapshot().positions.set(nodeId, position);
 			},
 			onNodeDragEnd: (nodeId) => {
+				if (options.readOnly) return;
 				const placement = cubeRenderer.getNodeManualPlacement(nodeId);
 				const position =
 					placement ??
@@ -81,7 +87,8 @@ export function bindWorkspaceRendererEvents(
 			enableForceLayout:
 				capabilities.usesSigmaForceSimulation &&
 				options.enableForceLayout,
-			enableNodeDragging: capabilities.supportsFreeNodeDrag,
+			enableNodeDragging:
+				!options.readOnly && capabilities.supportsFreeNodeDrag,
 			onOpen: (nodeId) => {
 				if (
 					!shouldOpenNode(
@@ -94,6 +101,7 @@ export function bindWorkspaceRendererEvents(
 				options.onOpen(nodeId);
 			},
 			onNodeDrag: (nodeId, position, viewportPosition) => {
+				if (options.readOnly) return;
 				options.setSuppressNodeOpenUntil(
 					getNextNodeOpenSuppressUntil(Date.now()),
 				);
@@ -124,6 +132,7 @@ export function bindWorkspaceRendererEvents(
 				sigmaRenderer.instance.refresh();
 			},
 			onNodeDragEnd: (nodeId) => {
+				if (options.readOnly) return;
 				options.setSuppressNodeOpenUntil(
 					getNextNodeOpenSuppressUntil(Date.now()),
 				);

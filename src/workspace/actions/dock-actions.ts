@@ -33,7 +33,16 @@ export function addDockTemplateInState(
 	state: WorkspaceState,
 	template: Omit<DockTemplateNode, 'id'> & { id?: string },
 ): WorkspaceState {
-	return setDockInState(state, addDockTemplate(state.dock, template));
+	const dock = addDockTemplate(state.dock, template);
+	const previousIds = new Set(state.dock.templates.map((item) => item.id));
+	const added = dock.templates.find((item) => !previousIds.has(item.id));
+	return added
+		? setActiveTemplateOverride(
+				setDockInState(state, dock),
+				added.id,
+				added.defaultGroupId,
+			)
+		: state;
 }
 
 export function updateDockTemplateInState(
@@ -41,9 +50,13 @@ export function updateDockTemplateInState(
 	templateId: string,
 	patch: Omit<DockTemplateNode, 'id'>,
 ): WorkspaceState {
-	return setDockInState(
-		state,
-		updateDockTemplate(state.dock, templateId, patch),
+	return setActiveTemplateOverride(
+		setDockInState(
+			state,
+			updateDockTemplate(state.dock, templateId, patch),
+		),
+		templateId,
+		patch.defaultGroupId,
 	);
 }
 
@@ -51,7 +64,19 @@ export function removeDockTemplateInState(
 	state: WorkspaceState,
 	templateId: string,
 ): WorkspaceState {
-	return setDockInState(state, removeDockTemplate(state.dock, templateId));
+	const nextState = setDockInState(
+		state,
+		removeDockTemplate(state.dock, templateId),
+	);
+	return {
+		...nextState,
+		charts: nextState.charts.map((chart) => {
+			if (!chart.templateOverrides[templateId]) return chart;
+			const templateOverrides = { ...chart.templateOverrides };
+			delete templateOverrides[templateId];
+			return { ...chart, templateOverrides };
+		}),
+	};
 }
 
 export function reorderDockTemplateInState(
@@ -128,16 +153,22 @@ export function setDockWidthInState(
 	state: WorkspaceState,
 	dockWidth: number,
 ): WorkspaceState {
-	return setDockInState(state, setDockWidth(state.dock, dockWidth));
+	return setActivePresentation(
+		setDockInState(state, setDockWidth(state.dock, dockWidth)),
+		{ dockWidth },
+	);
 }
 
 export function setCuratedPanelWidthInState(
 	state: WorkspaceState,
 	curatedPanelWidth: number,
 ): WorkspaceState {
-	return setDockInState(
-		state,
-		setCuratedPanelWidth(state.dock, curatedPanelWidth),
+	return setActivePresentation(
+		setDockInState(
+			state,
+			setCuratedPanelWidth(state.dock, curatedPanelWidth),
+		),
+		{ curatedPanelWidth },
 	);
 }
 
@@ -145,9 +176,9 @@ export function setDockFocusOnSelectInState(
 	state: WorkspaceState,
 	focusOnSelect: boolean,
 ): WorkspaceState {
-	return setDockInState(
-		state,
-		setDockFocusOnSelect(state.dock, focusOnSelect),
+	return setActivePresentation(
+		setDockInState(state, setDockFocusOnSelect(state.dock, focusOnSelect)),
+		{ focusOnSelect },
 	);
 }
 
@@ -172,4 +203,66 @@ function setDockInState(
 	dock: MetaGraphDock,
 ): WorkspaceState {
 	return dock === state.dock ? state : { ...state, dock };
+}
+
+function setActivePresentation(
+	state: WorkspaceState,
+	patch: Partial<WorkspaceState['charts'][number]['presentation']>,
+): WorkspaceState {
+	const activeChart = state.charts.find(
+		(chart) => chart.id === state.activeChartId,
+	);
+	if (
+		!activeChart ||
+		Object.entries(patch).every(
+			([key, value]) =>
+				activeChart.presentation[
+					key as keyof typeof activeChart.presentation
+				] === value,
+		)
+	) {
+		return state;
+	}
+	return {
+		...state,
+		charts: state.charts.map((chart) =>
+			chart.id === state.activeChartId
+				? {
+						...chart,
+						presentation: { ...chart.presentation, ...patch },
+					}
+				: chart,
+		),
+	};
+}
+
+function setActiveTemplateOverride(
+	state: WorkspaceState,
+	templateId: string,
+	defaultGroupId?: string,
+): WorkspaceState {
+	const activeChart = state.charts.find(
+		(chart) => chart.id === state.activeChartId,
+	);
+	if (
+		!activeChart ||
+		(!defaultGroupId && !activeChart.templateOverrides[templateId]) ||
+		activeChart.templateOverrides[templateId]?.defaultGroupId ===
+			defaultGroupId
+	) {
+		return state;
+	}
+	return {
+		...state,
+		charts: state.charts.map((chart) => {
+			if (chart.id !== state.activeChartId) return chart;
+			const templateOverrides = { ...chart.templateOverrides };
+			if (defaultGroupId) {
+				templateOverrides[templateId] = { defaultGroupId };
+			} else {
+				delete templateOverrides[templateId];
+			}
+			return { ...chart, templateOverrides };
+		}),
+	};
 }

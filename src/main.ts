@@ -22,15 +22,26 @@ import {
 	META_GRAPH_FRONTMATTER_VALUE,
 } from './workspace/meta-graph/constants';
 import { WorkspaceIndexService } from './workspace/services/workspace-index-service';
+import type { WorkspaceSessionState } from './workspace/meta-graph-v2/types';
+import { normalizeWorkspaceSessions } from './workspace/workspace-session';
 
 export default class KnowledgeWorkspacePlugin extends Plugin {
 	settings!: KnowledgeWorkspaceSettings;
 	readonly workspaceIndex = new WorkspaceIndexService(this.app);
 	private lastActiveFile: TFile | null = null;
 	private markdownModeFilesByLeafId = new Map<string, string>();
+	private workspaceSessions: Record<string, WorkspaceSessionState> = {};
+	private sessionSaveTimer?: number;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
+		this.register(() => {
+			if (this.sessionSaveTimer !== undefined) {
+				window.clearTimeout(this.sessionSaveTimer);
+				this.sessionSaveTimer = undefined;
+				void this.savePluginData();
+			}
+		});
 		this.lastActiveFile = this.app.workspace.getActiveFile();
 		this.registerEvent(
 			this.app.workspace.on('file-open', (file) => {
@@ -115,7 +126,7 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 	}
 
 	async saveSettings(): Promise<void> {
-		await this.saveData(this.settings);
+		await this.savePluginData();
 		this.updateOpenViewsSettings();
 	}
 
@@ -124,7 +135,29 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 			return;
 		}
 		this.settings.detailsNoteContentExpanded = expanded;
-		await this.saveData(this.settings);
+		await this.savePluginData();
+	}
+
+	getWorkspaceSession(
+		key: string | undefined,
+	): WorkspaceSessionState | undefined {
+		return key ? this.workspaceSessions[key] : undefined;
+	}
+
+	setWorkspaceSession(key: string, session: WorkspaceSessionState): void {
+		const fingerprint = JSON.stringify(session);
+		if (JSON.stringify(this.workspaceSessions[key]) === fingerprint) {
+			return;
+		}
+		this.workspaceSessions[key] = session;
+		this.scheduleSessionSave();
+	}
+
+	moveWorkspaceSession(from: string, to: string): void {
+		if (from === to || !this.workspaceSessions[from]) return;
+		this.workspaceSessions[to] = this.workspaceSessions[from];
+		delete this.workspaceSessions[from];
+		this.scheduleSessionSave();
 	}
 
 	getLastActiveFile(): TFile | null {
@@ -150,10 +183,22 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 	}
 
 	private async loadSettings(): Promise<void> {
+		const stored = (await this.loadData()) as
+			| (Partial<KnowledgeWorkspaceSettings> & {
+					workspaceSessions?: unknown;
+					workspaceSessionsVersion?: unknown;
+			  })
+			| null;
+		const storedSettings = { ...stored } as Record<string, unknown>;
+		delete storedSettings.workspaceSessions;
+		delete storedSettings.workspaceSessionsVersion;
 		const settings = {
 			...DEFAULT_SETTINGS,
-			...((await this.loadData()) as Partial<KnowledgeWorkspaceSettings>),
+			...storedSettings,
 		};
+		this.workspaceSessions = normalizeWorkspaceSessions(
+			stored?.workspaceSessions,
+		);
 		this.settings = {
 			...settings,
 			fadeDistance: clamp(settings.fadeDistance, 0.25, 4),
@@ -161,6 +206,24 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 			detailsNoteContentExpanded:
 				settings.detailsNoteContentExpanded === true,
 		};
+	}
+
+	private scheduleSessionSave(): void {
+		if (this.sessionSaveTimer !== undefined) {
+			window.clearTimeout(this.sessionSaveTimer);
+		}
+		this.sessionSaveTimer = window.setTimeout(() => {
+			this.sessionSaveTimer = undefined;
+			void this.savePluginData();
+		}, 250);
+	}
+
+	private savePluginData(): Promise<void> {
+		return this.saveData({
+			...this.settings,
+			workspaceSessionsVersion: 1,
+			workspaceSessions: this.workspaceSessions,
+		});
 	}
 
 	private updateOpenViewsSettings(): void {

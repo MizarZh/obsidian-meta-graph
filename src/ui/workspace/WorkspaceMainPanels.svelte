@@ -8,6 +8,7 @@
 	import type { ConnectionDragState } from '../../graph/renderers/renderer-events';
 	import { withAlpha } from '../../graph/styles/graph-styles';
 	import type { WorkspaceController } from '../../workspace/workspace-controller';
+	import type { WorkspaceRightPanelTab } from '../../workspace/meta-graph-v2/types';
 	import ConnectionPanel from '../ConnectionPanel.svelte';
 	import CuratedPanel from '../CuratedPanel.svelte';
 	import DockGraphPanel from '../DockGraphPanel.svelte';
@@ -42,11 +43,13 @@
 		dockOpen,
 		curatedPanelOpen,
 		connectionOpen,
+		rightPanelTab,
 		initialDetailsNoteContentExpanded,
 		onDetailsNoteContentExpandedChange,
 		onToggleDock,
 		onToggleCuratedPanel,
 		onToggleConnection,
+		onRightPanelTabChange,
 		onLinkPointerDown,
 		onCuratedPointerDown,
 		onCreateTemplateNote,
@@ -81,11 +84,13 @@
 		dockOpen: boolean;
 		curatedPanelOpen: boolean;
 		connectionOpen: boolean;
+		rightPanelTab: WorkspaceRightPanelTab;
 		initialDetailsNoteContentExpanded: boolean;
 		onDetailsNoteContentExpandedChange: (expanded: boolean) => void;
 		onToggleDock: () => void;
 		onToggleCuratedPanel: () => void;
 		onToggleConnection: () => void;
+		onRightPanelTabChange: (tab: WorkspaceRightPanelTab) => void;
 		onLinkPointerDown: (
 			payload: DockDragPayload,
 			event: PointerEvent,
@@ -267,7 +272,9 @@
 	{workspaceFilePath}
 	{nodeColors}
 	{dockOpen}
+	activeTab={rightPanelTab}
 	{onToggleDock}
+	{onRightPanelTabChange}
 	dockWidth={workspaceState.dock.dockWidth}
 	onResizeDock={(width) => controller.setDockWidth(width)}
 	activeConnectionField={workspaceState.activeConnectionField}

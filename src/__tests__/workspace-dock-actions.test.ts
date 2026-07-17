@@ -18,8 +18,6 @@ describe('workspace dock actions', () => {
 			label: 'Template',
 			templatePath: 'Templates/Note.md',
 			targetFolder: 'Notes',
-			relationField: 'leads-to',
-			direction: 'from-dock-to-graph',
 			defaultGroupId: '',
 		});
 
@@ -73,8 +71,6 @@ describe('workspace dock actions', () => {
 					label,
 					templatePath: `${label}.md`,
 					targetFolder: '',
-					relationField: 'leads-to',
-					direction: 'from-dock-to-graph',
 					defaultGroupId: '',
 				}),
 			createWorkspaceState(100),

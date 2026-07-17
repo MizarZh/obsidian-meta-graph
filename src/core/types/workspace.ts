@@ -188,6 +188,18 @@ export interface CuratedWorkspaceConfig {
 	context: CuratedWorkspaceContext;
 }
 
+export interface ChartPresentationConfig {
+	showInspector: boolean;
+	showFilters: boolean;
+	dockWidth: number;
+	curatedPanelWidth: number;
+	focusOnSelect: boolean;
+}
+
+export interface ChartTemplateOverride {
+	defaultGroupId: string;
+}
+
 export interface MetaGraphChart {
 	id: string;
 	name: string;
@@ -198,6 +210,8 @@ export interface MetaGraphChart {
 	grouping: ChartGroupingConfig;
 	layout: ChartLayoutConfig;
 	display: ChartDisplayConfig;
+	presentation: ChartPresentationConfig;
+	templateOverrides: Record<string, ChartTemplateOverride>;
 	style: ChartStyleConfig;
 }
 

@@ -5,12 +5,17 @@
 		ChartSource,
 		DebugSnapshot,
 		DockConnectionDirection,
-		MetaGraphDocument,
 		NodeOpenMode,
 		SettingsPanelMode,
 		ViewMode,
 		WorkspaceState,
 	} from '../core/types';
+	import type {
+		PersistedMetaGraphDocumentV2,
+		WorkspaceRightPanelTab,
+		WorkspaceSessionState,
+	} from '../workspace/meta-graph-v2/types';
+	import { createWorkspaceSessionState } from '../workspace/workspace-session';
 	import { formatError as formatErrorMessage } from '../core/errors';
 	import type { ConnectionDragState } from '../graph/renderers/renderer-events';
 	import { readGraphPalette } from '../graph/styles/graph-styles';
@@ -101,6 +106,9 @@
 		app,
 		controller,
 		onAutoSave,
+		serializeDocument,
+		onSessionStateChange,
+		initialSession,
 		workspaceFilePath,
 		showDebugButton,
 		openTemplateNoteInNewTab,
@@ -108,10 +116,17 @@
 		onDetailsNoteContentExpandedChange,
 		onOpenNodeInRightSplit,
 		getNodeOpenMode,
+		readOnly = false,
+		sourceVersion = 2,
 	}: {
 		app: App;
 		controller: WorkspaceController;
-		onAutoSave: (document: MetaGraphDocument) => Promise<void>;
+		onAutoSave: (document: PersistedMetaGraphDocumentV2) => Promise<void>;
+		serializeDocument: (
+			state: WorkspaceState,
+		) => PersistedMetaGraphDocumentV2;
+		onSessionStateChange: (session: WorkspaceSessionState) => void;
+		initialSession?: WorkspaceSessionState;
 		workspaceFilePath?: string;
 		showDebugButton: boolean;
 		openTemplateNoteInNewTab: boolean;
@@ -119,6 +134,8 @@
 		onDetailsNoteContentExpandedChange: (expanded: boolean) => void;
 		onOpenNodeInRightSplit: (nodeId: string) => Promise<void>;
 		getNodeOpenMode: () => NodeOpenMode;
+		readOnly?: boolean;
+		sourceVersion?: number;
 	} = $props();
 	let workspaceState: WorkspaceState = $state(getInitialState());
 	let workspaceRoot: HTMLDivElement;
@@ -144,9 +161,15 @@
 	);
 	let dockConnectionDrag = $state<DockDragPayload | undefined>(undefined);
 	let dockTargetNodeId = $state<string | undefined>(undefined);
-	let dockOpen = $state(true);
-	let curatedPanelOpen = $state(true);
-	let connectionOpen = $state(true);
+	const initialShellSession = readInitialShellSession();
+	let dockOpen = $state(initialShellSession?.dockOpen ?? true);
+	let curatedPanelOpen = $state(
+		initialShellSession?.curatedPanelOpen ?? true,
+	);
+	let connectionOpen = $state(initialShellSession?.connectionOpen ?? true);
+	let rightPanelTab = $state<WorkspaceRightPanelTab>(
+		initialShellSession?.rightPanelTab ?? 'details',
+	);
 	let graphLoading = $state(false);
 	let graphLoadingTarget = $state<string | undefined>(undefined);
 	let suppressNodeOpenUntil = 0;
@@ -299,8 +322,48 @@
 		return controller.snapshot;
 	}
 
+	function readInitialShellSession(): WorkspaceSessionState['shell'] {
+		return initialSession?.shell;
+	}
+
+	function persistSession(state: WorkspaceState = workspaceState): void {
+		onSessionStateChange(
+			createWorkspaceSessionState(state, {
+				rightPanelTab,
+				dockOpen,
+				curatedPanelOpen,
+				connectionOpen,
+			}),
+		);
+	}
+
+	function toggleDock(): void {
+		dockOpen = !dockOpen;
+		persistSession();
+	}
+
+	function toggleCuratedPanel(): void {
+		curatedPanelOpen = !curatedPanelOpen;
+		persistSession();
+	}
+
+	function toggleConnection(): void {
+		connectionOpen = !connectionOpen;
+		persistSession();
+	}
+
+	function setRightPanelTab(tab: WorkspaceRightPanelTab): void {
+		rightPanelTab = tab;
+		persistSession();
+	}
+
 	onMount(() => {
-		const autoSave = new WorkspaceAutoSave(onAutoSave, 350, window);
+		const autoSave = new WorkspaceAutoSave(
+			onAutoSave,
+			350,
+			window,
+			serializeDocument,
+		);
 		autoSave.initialize(controller.snapshot);
 		const resizeObserver = new ResizeObserver((entries) => {
 			const entry = entries[0];
@@ -366,6 +429,7 @@
 				renderBaseline,
 			);
 			workspaceState = nextState;
+			persistSession(nextState);
 			if (changes.manualLayoutChanged) {
 				renderBaseline.manualLayout = nextState.manualLayout;
 				renderBaseline.grouping = nextState.grouping;
@@ -486,6 +550,7 @@
 		return bindWorkspaceRendererEvents({
 			renderer: targetRenderer,
 			mode: workspaceState.mode,
+			readOnly,
 			enableForceLayout: workspaceState.enableForceLayout,
 			getLayoutSnapshot,
 			getOrCreateForceLayoutSimulation: (renderer) =>
@@ -931,6 +996,7 @@
 	}
 
 	function handleWorkspaceKeydown(event: KeyboardEvent): void {
+		if (readOnly) return;
 		if (
 			!shouldHandleConnectionUndoShortcut({
 				key: event.key,
@@ -973,6 +1039,7 @@
 		charts={workspaceState.charts}
 		activeChartId={workspaceState.activeChartId}
 		searchNodes={searchableNodes}
+		{readOnly}
 		onSelectChart={switchActiveChart}
 		onCreateChart={(input) => controller.addChart(input)}
 		onRenameChart={(name) => controller.setActiveChartName(name)}
@@ -1029,50 +1096,54 @@
 				visible={graphLoading}
 				label={graphLoadingName}
 			/>
-			<WorkspaceMainPanels
-				{app}
-				{controller}
-				{workspaceState}
-				{debugSnapshot}
-				{workspaceFilePath}
-				{nodeColors}
-				{dockNoteEntries}
-				{selectedNode}
-				{selectedNodeColor}
-				{atNodeLimit}
-				{metadataFieldSuggestions}
-				{connectionDrag}
-				{graphConnectionTargetNotePath}
-				{graphConnectionTargetTemplateId}
-				{graphConnectionTargetCurated}
-				{curatedSelection}
-				{curatedConditionDraft}
-				{dockDrag}
-				{dockCuratedDropPreview}
-				{dockConnectionDrag}
-				{dockTargetNodeId}
-				{dockOpen}
-				{curatedPanelOpen}
-				{connectionOpen}
-				{initialDetailsNoteContentExpanded}
-				{onDetailsNoteContentExpandedChange}
-				onToggleDock={() => (dockOpen = !dockOpen)}
-				onToggleCuratedPanel={() =>
-					(curatedPanelOpen = !curatedPanelOpen)}
-				onToggleConnection={() => (connectionOpen = !connectionOpen)}
-				onLinkPointerDown={dockGraphDrag.handlePointerDown}
-				onCuratedPointerDown={dockCuratedDrop.handlePointerDown}
-				onCreateTemplateNote={createStandaloneTemplateNote}
-				onFocusNode={(nodeId) => rendererLifecycle.focusNode(nodeId)}
-				onOpenNote={(nodeId) => void openNote(nodeId)}
-				onOpenMetadataLink={(linkText, sourcePath) =>
-					void openMetadataLink(linkText, sourcePath)}
-				onCuratedSelectionChange={(paths) => {
-					curatedSelection = paths;
-				}}
-				onCuratedConditionDraftChange={updateCuratedConditionDraft}
-				{formatError}
-			/>
+			<div class="knowledge-workspace-obsidian-control" inert={readOnly}>
+				<WorkspaceMainPanels
+					{app}
+					{controller}
+					{workspaceState}
+					{debugSnapshot}
+					{workspaceFilePath}
+					{nodeColors}
+					{dockNoteEntries}
+					{selectedNode}
+					{selectedNodeColor}
+					{atNodeLimit}
+					{metadataFieldSuggestions}
+					{connectionDrag}
+					{graphConnectionTargetNotePath}
+					{graphConnectionTargetTemplateId}
+					{graphConnectionTargetCurated}
+					{curatedSelection}
+					{curatedConditionDraft}
+					{dockDrag}
+					{dockCuratedDropPreview}
+					{dockConnectionDrag}
+					{dockTargetNodeId}
+					{dockOpen}
+					{curatedPanelOpen}
+					{connectionOpen}
+					{rightPanelTab}
+					{initialDetailsNoteContentExpanded}
+					{onDetailsNoteContentExpandedChange}
+					onToggleDock={toggleDock}
+					onToggleCuratedPanel={toggleCuratedPanel}
+					onToggleConnection={toggleConnection}
+					onRightPanelTabChange={setRightPanelTab}
+					onLinkPointerDown={dockGraphDrag.handlePointerDown}
+					onCuratedPointerDown={dockCuratedDrop.handlePointerDown}
+					onCreateTemplateNote={createStandaloneTemplateNote}
+					onFocusNode={(nodeId) =>
+						rendererLifecycle.focusNode(nodeId)}
+					onOpenNote={(nodeId) => void openNote(nodeId)}
+					onOpenMetadataLink={(linkText, sourcePath) =>
+						void openMetadataLink(linkText, sourcePath)}
+					onCuratedSelectionChange={(paths) => {
+						curatedSelection = paths;
+					}}
+					onCuratedConditionDraftChange={updateCuratedConditionDraft}
+					{formatError}
+				/>
+			</div>
 		</main>
 	</div>
 	{#if debugOpen}
@@ -1080,5 +1151,10 @@
 			snapshot={debugSnapshot}
 			onRefresh={() => controller.refresh(true)}
 		/>
+	{/if}
+	{#if readOnly}
+		<div class="knowledge-workspace-notice" role="status">
+			Meta Graph v{sourceVersion} is newer than supported v2. Opened read-only.
+		</div>
 	{/if}
 </div>

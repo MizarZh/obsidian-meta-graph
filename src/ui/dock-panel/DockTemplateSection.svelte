@@ -27,7 +27,6 @@
 		noteOptions,
 		targetFolderOptions,
 		groupOptions,
-		activeConnectionField,
 		activeDraggingKey,
 		graphTargetTemplateId,
 		onAddTemplate,
@@ -44,7 +43,6 @@
 		noteOptions: SuggestionOption[];
 		targetFolderOptions: SuggestionOption[];
 		groupOptions: DropdownOption[];
-		activeConnectionField: string;
 		activeDraggingKey?: string;
 		graphTargetTemplateId?: string;
 		onAddTemplate: (template: Omit<DockTemplateNode, 'id'>) => void;
@@ -114,8 +112,6 @@
 			label,
 			templatePath: path,
 			targetFolder: targetFolder.trim(),
-			relationField: activeConnectionField,
-			direction: 'from-dock-to-graph',
 			defaultGroupId: templateDefaultGroupId || undefined,
 		} satisfies Omit<DockTemplateNode, 'id'>;
 		if (editingTemplateId) onUpdateTemplate(editingTemplateId, template);

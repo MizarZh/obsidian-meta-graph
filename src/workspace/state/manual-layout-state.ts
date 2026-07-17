@@ -394,7 +394,12 @@ export function deleteGroupInState(
 				: placement,
 		]),
 	);
-	return updateActiveChartState(state, {
+	const templateOverrides = Object.fromEntries(
+		Object.entries(activeChart.templateOverrides).filter(
+			([, override]) => override.defaultGroupId !== groupId,
+		),
+	);
+	const nextState = updateActiveChartState(state, {
 		grouping: {
 			groups: activeChart.grouping.groups.filter(
 				(group) => group.id !== groupId,
@@ -414,7 +419,19 @@ export function deleteGroupInState(
 				groupFrames,
 			},
 		},
+		templateOverrides,
 	});
+	return {
+		...nextState,
+		dock: {
+			...nextState.dock,
+			templates: nextState.dock.templates.map((template) =>
+				template.defaultGroupId === groupId
+					? { ...template, defaultGroupId: undefined }
+					: template,
+			),
+		},
+	};
 }
 
 function assignGroupingOverrides(

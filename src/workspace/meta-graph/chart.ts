@@ -99,6 +99,14 @@ export function createDefaultChart(
 			showInspector: true,
 			showFilters: true,
 		},
+		presentation: {
+			showInspector: true,
+			showFilters: true,
+			dockWidth: 280,
+			curatedPanelWidth: 300,
+			focusOnSelect: true,
+		},
+		templateOverrides: {},
 		style: {
 			nodeOverrides: {},
 			unresolvedNodeOverrides: {},
@@ -139,6 +147,9 @@ export function normalizeChart(
 	const legacyNodeBase = readBaseNodeStyleRule(styleRecord.nodeRules);
 	const legacyLinkBase = readBaseLinkStyleRule(styleRecord.linkRules);
 	const display = isRecord(record.display) ? record.display : {};
+	const presentation = isRecord(record.presentation)
+		? record.presentation
+		: {};
 	const id =
 		typeof record.id === 'string' && record.id.trim()
 			? record.id.trim()
@@ -276,9 +287,32 @@ export function normalizeChart(
 				display.enableForceLayout ?? display.enableNodeDragging,
 				fallback.display.enableForceLayout,
 			),
-			showInspector: readBoolean(display.showInspector, true),
-			showFilters: readBoolean(display.showFilters, true),
+			showInspector: readBoolean(
+				presentation.showInspector,
+				readBoolean(display.showInspector, true),
+			),
+			showFilters: readBoolean(
+				presentation.showFilters,
+				readBoolean(display.showFilters, true),
+			),
 		},
+		presentation: {
+			showInspector: readBoolean(
+				presentation.showInspector,
+				readBoolean(display.showInspector, true),
+			),
+			showFilters: readBoolean(
+				presentation.showFilters,
+				readBoolean(display.showFilters, true),
+			),
+			dockWidth: readFiniteNumber(presentation.dockWidth, 280),
+			curatedPanelWidth: readFiniteNumber(
+				presentation.curatedPanelWidth,
+				300,
+			),
+			focusOnSelect: readBoolean(presentation.focusOnSelect, true),
+		},
+		templateOverrides: normalizeTemplateOverrides(record.templateOverrides),
 		style: {
 			nodeOverrides: normalizeNodeStyleOverrides(
 				styleRecord.nodeOverrides,
@@ -303,6 +337,28 @@ export function normalizeChart(
 			linkRules: normalizeLinkStyleRules(styleRecord.linkRules),
 		},
 	};
+}
+
+function normalizeTemplateOverrides(
+	value: unknown,
+): MetaGraphChart['templateOverrides'] {
+	if (!isRecord(value)) {
+		return {};
+	}
+	return Object.fromEntries(
+		Object.entries(value).flatMap(([templateId, override]) => {
+			const record = isRecord(override) ? override : {};
+			return typeof record.defaultGroupId === 'string' &&
+				record.defaultGroupId.trim()
+				? [
+						[
+							templateId,
+							{ defaultGroupId: record.defaultGroupId.trim() },
+						],
+					]
+				: [];
+		}),
+	);
 }
 
 function canonicalizeManualGrouping(

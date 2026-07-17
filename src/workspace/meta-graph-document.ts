@@ -1,7 +1,15 @@
 import { parseYaml, stringifyYaml } from 'obsidian';
 import type { MetaGraphDocument } from '../core/types';
 import {
-	createDefaultMetaGraphDocument,
+	createDefaultMetaGraphDocumentV2,
+	createPersistenceContextFromV1,
+	parsePersistedMetaGraphDocumentV2,
+} from './meta-graph-v2/codec';
+import type {
+	ParsedMetaGraphWorkspace,
+	PersistedMetaGraphDocumentV2,
+} from './meta-graph-v2/types';
+import {
 	META_GRAPH_FRONTMATTER_KEY,
 	META_GRAPH_FRONTMATTER_VALUE,
 	META_GRAPH_VERSION,
@@ -23,7 +31,7 @@ export function createMetaGraphMarkdown(
 	fadeDistance: number,
 ): string {
 	return stringifyMetaGraphDocument(
-		createDefaultMetaGraphDocument(maxNodes, fadeDistance),
+		createDefaultMetaGraphDocumentV2(maxNodes, fadeDistance),
 	);
 }
 
@@ -39,16 +47,55 @@ export function parseMetaGraphDocument(
 	maxNodes: number,
 	fadeDistance: number,
 ): MetaGraphDocument {
+	return parseMetaGraphWorkspace(data, maxNodes, fadeDistance).document;
+}
+
+export function parseMetaGraphWorkspace(
+	data: string,
+	maxNodes: number,
+	fadeDistance: number,
+): ParsedMetaGraphWorkspace {
+	const frontmatter = readMetaGraphFrontmatter(data);
+	const version = readDocumentVersion(frontmatter);
 	const body = stripFrontmatter(data).trim();
 	if (!body) {
-		return createDefaultMetaGraphDocument(maxNodes, fadeDistance);
+		return parsePersistedMetaGraphDocumentV2(
+			createDefaultMetaGraphDocumentV2(maxNodes, fadeDistance),
+			maxNodes,
+			fadeDistance,
+		);
 	}
 	const parsed = parseYaml(body) as unknown;
-	return normalizeMetaGraphDocument(parsed, maxNodes, fadeDistance);
+	if (version <= 1) {
+		const document = normalizeMetaGraphDocument(
+			parsed,
+			maxNodes,
+			fadeDistance,
+		);
+		const persistence = createPersistenceContextFromV1(document);
+		for (const chart of document.charts) {
+			chart.templateOverrides = Object.fromEntries(
+				Object.entries(
+					persistence.templateOverridesByChart[chart.id] ?? {},
+				).map(([templateId, override]) => [
+					templateId,
+					{ defaultGroupId: override.defaultGroup },
+				]),
+			);
+		}
+		return {
+			document,
+			persistence,
+		};
+	}
+	return parsePersistedMetaGraphDocumentV2(parsed, maxNodes, fadeDistance, {
+		sourceVersion: version,
+		readOnly: version > META_GRAPH_VERSION,
+	});
 }
 
 export function stringifyMetaGraphDocument(
-	document: MetaGraphDocument,
+	document: PersistedMetaGraphDocumentV2,
 ): string {
 	const frontmatter = stringifyYaml({
 		[META_GRAPH_FRONTMATTER_KEY]: META_GRAPH_FRONTMATTER_VALUE,
@@ -56,6 +103,17 @@ export function stringifyMetaGraphDocument(
 	}).trim();
 	const body = stringifyYaml(document).trim();
 	return `---\n${frontmatter}\n---\n\n${body}\n`;
+}
+
+function readDocumentVersion(frontmatter: Record<string, unknown>): number {
+	const value = frontmatter[META_GRAPH_VERSION_KEY];
+	if (value === undefined) {
+		return 1;
+	}
+	if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
+		throw new Error('meta-graph-version must be a positive integer.');
+	}
+	return value;
 }
 
 function readMetaGraphFrontmatter(data: string): Record<string, unknown> {

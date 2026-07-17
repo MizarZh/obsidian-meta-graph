@@ -26,9 +26,9 @@ describe('workspace connection actions', () => {
 			field: 'supports',
 		});
 		expect(action?.mode).toBe('directed');
-		expect(action?.runQuery).toBe(true);
+		expect(action?.runQuery).toBe(false);
 		expect(action?.state.activeConnectionField).toBe('supports');
-		expect(action?.state.query.relations).toContain('supports');
+		expect(action?.state.query.relations).not.toContain('supports');
 	});
 
 	it('prepares dock connection direction and active field mode', () => {

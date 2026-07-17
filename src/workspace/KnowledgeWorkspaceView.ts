@@ -5,10 +5,17 @@ import {
 	type WorkspaceLeaf,
 } from 'obsidian';
 import { formatError } from '../core/errors';
-import type { MetaGraphDocument } from '../core/types';
+import type { MetaGraphDocument, WorkspaceState } from '../core/types';
 import { DEFAULT_GRAPH_QUERY } from '../query/graph-query';
 import type KnowledgeWorkspacePlugin from '../main';
 import type { WorkspaceController } from './workspace-controller';
+import type {
+	PersistedMetaGraphDocumentV2,
+	WorkspacePersistenceContext,
+	WorkspaceSessionState,
+} from './meta-graph-v2/types';
+import { applyWorkspaceSession } from './workspace-session';
+import { serializeWorkspaceStateV2 } from './meta-graph-v2/codec';
 
 type MountedWorkspace = Parameters<typeof import('svelte').unmount>[0];
 type MetaGraphDocumentModule = typeof import('./meta-graph-document');
@@ -20,6 +27,8 @@ export class KnowledgeWorkspaceView extends TextFileView {
 	private component?: MountedWorkspace;
 	private metaGraphDocumentModule?: Promise<MetaGraphDocumentModule>;
 	private rightSplitLeaf?: WorkspaceLeaf;
+	private persistence?: WorkspacePersistenceContext;
+	private sessionKey?: string;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -84,8 +93,15 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		);
 		this.registerEvent(
 			this.app.vault.on('rename', (file, oldPath) => {
-				this.controller?.updateDockNotePath(oldPath, file.path);
-				this.controller?.updateCuratedFilePath(oldPath, file.path);
+				const previousSessionKey = `path:${oldPath}`;
+				if (this.sessionKey === previousSessionKey) {
+					this.sessionKey = `path:${file.path}`;
+					this.plugin.moveWorkspaceSession(
+						previousSessionKey,
+						this.sessionKey,
+					);
+				}
+				this.controller?.updateFileReferences(oldPath, file.path);
 				this.controller?.scheduleRefresh();
 			}),
 		);
@@ -130,11 +146,22 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		this.contentEl.addClass('knowledge-workspace-view');
 		const metaGraphDocument = await this.loadMetaGraphDocumentModule();
 		let document: MetaGraphDocument;
+		let session: WorkspaceSessionState | undefined;
 		try {
-			document = metaGraphDocument.parseMetaGraphDocument(
+			const parsed = metaGraphDocument.parseMetaGraphWorkspace(
 				data,
 				DEFAULT_GRAPH_QUERY.maxNodes,
 				this.plugin.settings.fadeDistance,
+			);
+			this.persistence = parsed.persistence;
+			this.sessionKey = this.file?.path
+				? `path:${this.file.path}`
+				: undefined;
+			session = this.plugin.getWorkspaceSession(this.sessionKey);
+			document = applyWorkspaceSession(
+				parsed.document,
+				parsed.persistence,
+				session,
 			);
 		} catch (error) {
 			this.contentEl.createEl('pre', {
@@ -157,6 +184,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 			this.plugin.settings.relayoutFlowAfterConnection,
 			this.plugin.settings.fadeDistance,
 			document,
+			this.persistence.readOnly,
 		);
 		this.component = mount(Workspace, {
 			target: this.contentEl,
@@ -174,7 +202,14 @@ export class KnowledgeWorkspaceView extends TextFileView {
 				onOpenNodeInRightSplit: (nodeId: string) =>
 					this.openNodeInRightSplit(nodeId),
 				getNodeOpenMode: () => this.plugin.settings.nodeOpenMode,
-				onAutoSave: (nextDocument: MetaGraphDocument) =>
+				readOnly: this.persistence.readOnly,
+				sourceVersion: this.persistence.sourceVersion,
+				serializeDocument: (state: WorkspaceState) =>
+					serializeWorkspaceStateV2(state, this.requirePersistence()),
+				initialSession: session,
+				onSessionStateChange: (nextSession: WorkspaceSessionState) =>
+					this.persistSession(nextSession),
+				onAutoSave: (nextDocument: PersistedMetaGraphDocumentV2) =>
 					this.persistDocument(nextDocument),
 			},
 		});
@@ -203,10 +238,30 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		return attached;
 	}
 
-	private async persistDocument(document: MetaGraphDocument): Promise<void> {
+	private async persistDocument(
+		document: PersistedMetaGraphDocumentV2,
+	): Promise<void> {
+		const persistence = this.requirePersistence();
+		if (persistence.readOnly) {
+			return;
+		}
 		const metaGraphDocument = await this.loadMetaGraphDocumentModule();
 		this.data = metaGraphDocument.stringifyMetaGraphDocument(document);
 		this.requestSave();
+	}
+
+	private persistSession(session: WorkspaceSessionState): void {
+		if (!this.sessionKey) return;
+		this.plugin.setWorkspaceSession(this.sessionKey, session);
+	}
+
+	private requirePersistence(): WorkspacePersistenceContext {
+		if (!this.persistence) {
+			throw new Error(
+				'Workspace persistence context is not initialized.',
+			);
+		}
+		return this.persistence;
 	}
 
 	private loadMetaGraphDocumentModule(): Promise<MetaGraphDocumentModule> {
@@ -217,6 +272,8 @@ export class KnowledgeWorkspaceView extends TextFileView {
 	private async unmountWorkspace(): Promise<void> {
 		this.controller?.dispose();
 		this.controller = undefined;
+		this.persistence = undefined;
+		this.sessionKey = undefined;
 		if (this.component) {
 			const { unmount } = await import('svelte');
 			await unmount(this.component);

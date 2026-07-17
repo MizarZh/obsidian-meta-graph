@@ -8,8 +8,7 @@ export interface DockTemplateNode {
 	label: string;
 	templatePath: string;
 	targetFolder: string;
-	relationField: string;
-	direction: DockConnectionDirection;
+	/** Active-chart projection of MetaGraphChart.templateOverrides. */
 	defaultGroupId?: string;
 }
 

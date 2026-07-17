@@ -24,6 +24,7 @@
 		charts,
 		activeChartId,
 		searchNodes,
+		readOnly = false,
 		onSelectChart,
 		onCreateChart,
 		onRenameChart,
@@ -45,6 +46,7 @@
 		charts: MetaGraphChart[];
 		activeChartId: string;
 		searchNodes: KnowledgeNode[];
+		readOnly?: boolean;
 		onSelectChart: (id: string) => void | Promise<void>;
 		onCreateChart: (input: CreateChartInput) => void;
 		onRenameChart: (name: string) => void;
@@ -165,6 +167,7 @@
 	}
 
 	function openConfig(): void {
+		if (readOnly) return;
 		draftName = activeChart?.name ?? '';
 		configOpen = true;
 		createOpen = false;
@@ -181,12 +184,14 @@
 	}
 
 	async function configureChart(id: string): Promise<void> {
+		if (readOnly) return;
 		pickerOpen = false;
 		await onSelectChart(id);
 		window.requestAnimationFrame(() => openConfig());
 	}
 
 	function openCreate(): void {
+		if (readOnly) return;
 		createType = undefined;
 		createSource = 'query';
 		createName = '';
@@ -220,6 +225,7 @@
 	}
 
 	function createChart(): void {
+		if (readOnly) return;
 		const name = createName.trim();
 		if (!createType || !name) {
 			return;
@@ -243,6 +249,7 @@
 	}
 
 	function commitName(): void {
+		if (readOnly) return;
 		onRenameChart(draftName);
 	}
 
@@ -338,6 +345,7 @@
 		<ObsidianButton
 			class="knowledge-workspace-view-config-button"
 			active={configOpen}
+			disabled={readOnly}
 			icon="settings-2"
 			ariaLabel="Workspace settings"
 			onClick={() => openConfig()}
@@ -386,6 +394,7 @@
 							</button>
 							<ObsidianButton
 								class="knowledge-workspace-view-row-config"
+								disabled={readOnly}
 								ariaLabel={`Configure ${chart.name}`}
 								icon="chevron-right"
 								onClick={() => configureChart(chart.id)}
@@ -395,6 +404,7 @@
 				</div>
 				<ObsidianButton
 					class="knowledge-workspace-add-view"
+					disabled={readOnly}
 					role="menuitem"
 					icon="plus"
 					text="Add view"
@@ -535,6 +545,7 @@
 		{#each SETTINGS_TABS as tab}
 			<ObsidianButton
 				active={settingsPanel === tab.mode}
+				disabled={readOnly}
 				icon={tab.icon}
 				text={tab.label}
 				onClick={(event) => onSettingsPanel(tab.mode, event)}
