@@ -932,7 +932,7 @@ function queryFilterToV2(query: GraphQuery, rootId: string): NodeFilterGroup {
 	return {
 		id: rootId,
 		kind: 'group',
-		mode: 'all',
+		mode: base.mode,
 		children: [...legacyGroups, ...base.children],
 	};
 }

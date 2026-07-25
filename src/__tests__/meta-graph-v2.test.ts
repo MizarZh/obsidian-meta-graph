@@ -122,6 +122,52 @@ describe('Meta Graph v2 persistence', () => {
 		expect(saved).toEqual(migrated);
 	});
 
+	it('preserves shared and per-view root filter modes', () => {
+		const document = createDefaultMetaGraphDocument(200, 1.5);
+		const chart = document.charts[0];
+		if (!chart) throw new Error('Expected default chart.');
+		document.globalQuery.filterRoot = {
+			id: 'shared-runtime-root',
+			kind: 'group',
+			mode: 'any',
+			children: [
+				{
+					id: 'shared-condition',
+					kind: 'condition',
+					field: 'file.tags',
+					operator: 'has-tag',
+					value: 'shared',
+				},
+			],
+		};
+		chart.query.filterRoot = {
+			id: 'view-runtime-root',
+			kind: 'group',
+			mode: 'none',
+			children: [
+				{
+					id: 'view-condition',
+					kind: 'condition',
+					field: 'file.folder',
+					operator: 'in-folder',
+					value: 'Archive',
+				},
+			],
+		};
+		const context = createPersistenceContextFromV1(document);
+
+		const saved = serializeRuntimeDocumentV2(document, context);
+		expect(saved.shared.filters.nodes?.mode).toBe('any');
+		expect(saved.charts[0]?.content.query?.filter?.mode).toBe('none');
+
+		const parsed = parsePersistedMetaGraphDocumentV2(saved, 200, 1.5);
+		expect(parsed.document.globalQuery.filterRoot?.mode).toBe('any');
+		expect(parsed.document.charts[0]?.query.filterRoot?.mode).toBe('none');
+		expect(
+			serializeRuntimeDocumentV2(parsed.document, parsed.persistence),
+		).toEqual(saved);
+	});
+
 	it('migrates unsupported manual group modes to rule groups', () => {
 		const document = createDefaultMetaGraphDocument(200, 1.5);
 		const flow = document.charts.find((chart) => chart.type === 'flow');
