@@ -24,12 +24,15 @@ import { normalizeTags } from './tags';
 export class MetadataIndexer {
 	readonly unresolvedLinks: UnresolvedLink[] = [];
 	readonly metadataSources: MetadataDebugEntry[] = [];
+	private readonly resolver: ObsidianLinkResolver;
 
 	constructor(
 		private readonly app: App,
 		private readonly debug = false,
 		private readonly relationFields: string[] = [],
-	) {}
+	) {
+		this.resolver = new ObsidianLinkResolver(app);
+	}
 
 	build(): KnowledgeIndex {
 		this.unresolvedLinks.length = 0;
@@ -50,7 +53,7 @@ export class MetadataIndexer {
 			);
 		}
 
-		const resolver = new ObsidianLinkResolver(this.app);
+		const resolver = this.resolver;
 		for (const file of files) {
 			const cache = this.app.metadataCache.getFileCache(file);
 			const frontmatter = asFrontmatter(cache?.frontmatter);
@@ -120,6 +123,93 @@ export class MetadataIndexer {
 		return index;
 	}
 
+	buildRecords(): Map<string, MetadataIndexRecord> {
+		const files = this.app.vault.getMarkdownFiles();
+		const filePaths = new Set(
+			files.map((file) => normalizePath(file.path)),
+		);
+		return new Map(
+			files.map((file) => {
+				const record = this.buildFileRecord(file, filePaths);
+				return [record.path, record];
+			}),
+		);
+	}
+
+	buildFileRecord(
+		file: TFile,
+		filePaths: ReadonlySet<string>,
+	): MetadataIndexRecord {
+		const unresolvedLinks: UnresolvedLink[] = [];
+		const metadataSources: MetadataDebugEntry[] = [];
+		const cache = this.app.metadataCache.getFileCache(file);
+		const frontmatter = asFrontmatter(cache?.frontmatter);
+		const frontmatterLinks = (cache?.frontmatterLinks ?? []).map(
+			(link) => ({
+				key: link.key,
+				link: link.link,
+				original: link.original,
+			}),
+		);
+		const relationFrontmatterLinks = frontmatterLinks.filter((link) =>
+			isRelationField(
+				link.key.split(/[.[\]]/u)[0] ?? link.key,
+				this.relationFields,
+			),
+		);
+		const relationProperties = Object.fromEntries(
+			Object.entries(frontmatter ?? {}).filter(([field]) =>
+				isRelationField(field, this.relationFields),
+			),
+		);
+		if (
+			Object.keys(relationProperties).length > 0 ||
+			relationFrontmatterLinks.length > 0
+		) {
+			metadataSources.push({
+				path: file.path,
+				relationProperties,
+				frontmatterLinks: relationFrontmatterLinks,
+			});
+		}
+
+		const resolver = this.resolver;
+		const relationEdges = parseRelations(
+			frontmatter,
+			file.path,
+			resolver,
+			(linkText, sourcePath) => {
+				unresolvedLinks.push({ linkText, sourcePath });
+				if (this.debug) {
+					console.debug(
+						`[Knowledge Workspace] Unresolved link "${linkText}" in ${sourcePath}`,
+					);
+				}
+			},
+			relationFrontmatterLinks,
+			this.relationFields,
+		).filter(
+			(edge) => filePaths.has(edge.source) && filePaths.has(edge.target),
+		);
+		const plainLinks = createPlainLinkEntries(file, cache, resolver);
+		return {
+			path: normalizePath(file.path),
+			node: this.createNode(file, cache),
+			additionalNodes: plainLinks.nodes,
+			edges: [
+				...relationEdges,
+				...plainLinks.edges.filter(
+					(edge) =>
+						filePaths.has(edge.source) &&
+						(filePaths.has(edge.target) ||
+							edge.kind === 'unresolved-link'),
+				),
+			],
+			unresolvedLinks,
+			metadataSources,
+		};
+	}
+
 	private createNode(
 		file: TFile,
 		cache: CachedMetadata | null,
@@ -170,6 +260,36 @@ export class MetadataIndexer {
 			metadata: frontmatter ?? {},
 		};
 	}
+}
+
+export interface MetadataIndexRecord {
+	path: string;
+	node: KnowledgeNode;
+	additionalNodes: KnowledgeNode[];
+	edges: KnowledgeEdge[];
+	unresolvedLinks: UnresolvedLink[];
+	metadataSources: MetadataDebugEntry[];
+}
+
+export function createKnowledgeIndexFromMetadataRecords(
+	records: Iterable<MetadataIndexRecord>,
+): KnowledgeIndex {
+	const index = createKnowledgeIndex();
+	const values = [...records];
+	for (const record of values) {
+		addNode(index, record.node);
+	}
+	for (const record of values) {
+		for (const node of record.additionalNodes) {
+			addNode(index, node);
+		}
+	}
+	for (const record of values) {
+		for (const edge of record.edges) {
+			addEdge(index, edge);
+		}
+	}
+	return index;
 }
 
 function createPlainLinkEntries(

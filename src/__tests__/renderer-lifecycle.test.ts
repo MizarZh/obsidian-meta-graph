@@ -218,6 +218,44 @@ describe('WorkspaceRendererLifecycle', () => {
 		expect(D3ForceSimulation).not.toHaveBeenCalled();
 	});
 
+	it('creates a progressive first frame before large graph layout', async () => {
+		const state = createState();
+		const renderer = createRenderer();
+		const yieldToMainThread = vi.fn(async () => undefined);
+		vi.mocked(createWorkspaceRuntimeGraph).mockReturnValue({
+			order: 200,
+			size: 0,
+			nodes: () => ['a'],
+		} as never);
+		vi.mocked(createWorkspaceGraphRenderer).mockResolvedValue(renderer);
+
+		const lifecycle = new WorkspaceRendererLifecycle({
+			readState: () => state,
+			readCanvas: () => ({}) as HTMLDivElement,
+			readLayoutSnapshot: () => createLayoutSnapshot(),
+			readContainerSize: () => ({ width: 800, height: 600 }),
+			waitForCanvasSize: async () => true,
+			bindEvents: () => vi.fn(),
+			syncRendererGroups: vi.fn(),
+			setRendererDebugState: vi.fn(),
+			isLargeVaultModeActive: () => true,
+			yieldToMainThread,
+		});
+
+		await lifecycle.rebuild();
+
+		expect(createWorkspaceGraphRenderer).toHaveBeenCalledOnce();
+		expect(
+			vi.mocked(createWorkspaceGraphRenderer).mock.invocationCallOrder[0],
+		).toBeLessThan(
+			vi.mocked(applyStableLayout).mock.invocationCallOrder[0] ?? 0,
+		);
+		expect(renderer.setGraph).toHaveBeenCalledWith(
+			vi.mocked(createWorkspaceRuntimeGraph).mock.results[0]?.value,
+		);
+		expect(yieldToMainThread).toHaveBeenCalled();
+	});
+
 	it('creates a cube renderer for an empty projection', async () => {
 		const state = {
 			...createState(),

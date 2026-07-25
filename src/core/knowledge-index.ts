@@ -48,6 +48,26 @@ export function addEdge(index: KnowledgeIndex, edge: KnowledgeEdge): void {
 	index.incoming.get(edge.target)?.add(edge.id);
 }
 
+export function removeEdge(index: KnowledgeIndex, edgeId: EdgeId): void {
+	const edge = index.edges.get(edgeId);
+	if (!edge) return;
+	index.edges.delete(edgeId);
+	index.outgoing.get(edge.source)?.delete(edgeId);
+	index.incoming.get(edge.target)?.delete(edgeId);
+}
+
+export function removeNode(index: KnowledgeIndex, nodeId: NodeId): void {
+	for (const edgeId of new Set([
+		...(index.outgoing.get(nodeId) ?? []),
+		...(index.incoming.get(nodeId) ?? []),
+	])) {
+		removeEdge(index, edgeId);
+	}
+	index.nodes.delete(nodeId);
+	index.outgoing.delete(nodeId);
+	index.incoming.delete(nodeId);
+}
+
 function ensureAdjacency(index: KnowledgeIndex, nodeId: NodeId): void {
 	if (!index.outgoing.has(nodeId)) {
 		index.outgoing.set(nodeId, new Set());

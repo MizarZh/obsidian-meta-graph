@@ -203,6 +203,10 @@
 			controller.setFlowRelationConflictCount(count),
 		setRenderPending: (pending) =>
 			graphLoadingCoordinator.setRendererPending(pending),
+		isLargeVaultModeActive: () => controller.isLargeVaultModeActive(),
+		yieldToMainThread: () => yieldForLargeVault(),
+		recordPerformance: (name, durationMs, details) =>
+			controller.recordPerformance(name, durationMs, details),
 	});
 	const dockGraphDrag = new DockGraphDragController({
 		window,
@@ -324,6 +328,13 @@
 
 	function readInitialShellSession(): WorkspaceSessionState['shell'] {
 		return initialSession?.shell;
+	}
+
+	async function yieldForLargeVault(): Promise<void> {
+		if (!controller.isLargeVaultModeActive()) return;
+		await new Promise<void>((resolve) =>
+			window.requestAnimationFrame(() => resolve()),
+		);
 	}
 
 	function persistSession(state: WorkspaceState = workspaceState): void {

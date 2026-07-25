@@ -45,6 +45,27 @@ export interface RendererDebugState {
 	error?: string;
 }
 
+export interface WorkspacePerformanceSample {
+	name: string;
+	durationMs: number;
+	recordedAt: string;
+	details?: Record<string, number | string | boolean>;
+}
+
+export interface WorkspacePerformanceSnapshot {
+	index: {
+		fullBuildCount: number;
+		incrementalBuildCount: number;
+		lastBuildKind?: 'full' | 'incremental';
+		lastBuildDurationMs?: number;
+		lastChangedFileCount: number;
+		markdownFileCount: number;
+		largeVaultMode: 'auto' | 'on' | 'off';
+		largeVaultModeActive: boolean;
+	};
+	samples: WorkspacePerformanceSample[];
+}
+
 export interface DebugSnapshot {
 	generatedAt: string;
 	index: {
@@ -68,4 +89,5 @@ export interface DebugSnapshot {
 	unresolvedLinks: UnresolvedLink[];
 	metadataSources: MetadataDebugEntry[];
 	renderer: RendererDebugState;
+	performance: WorkspacePerformanceSnapshot;
 }

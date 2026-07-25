@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import type KnowledgeWorkspacePlugin from '../main';
 import type { NodeOpenMode } from '../core/types';
+import type { LargeVaultMode } from './settings';
 
 export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 	constructor(
@@ -12,6 +13,24 @@ export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 
 	display(): void {
 		this.containerEl.empty();
+
+		new Setting(this.containerEl)
+			.setName('Large vault mode')
+			.setDesc(
+				'Use incremental indexing and cooperative rendering for large vaults. Auto enables it at 5,000 Markdown files.',
+			)
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('auto', 'Auto')
+					.addOption('on', 'On')
+					.addOption('off', 'Off')
+					.setValue(this.plugin.settings.largeVaultMode)
+					.onChange(async (value) => {
+						this.plugin.settings.largeVaultMode =
+							value as LargeVaultMode;
+						await this.plugin.saveSettings();
+					}),
+			);
 
 		new Setting(this.containerEl)
 			.setName('Debug unresolved links')

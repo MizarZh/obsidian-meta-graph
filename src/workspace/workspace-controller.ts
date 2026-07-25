@@ -29,6 +29,7 @@ import type {
 	ThreeLabelResolution,
 	UnresolvedLink,
 	ViewMode,
+	WorkspacePerformanceSample,
 	WorkspaceState,
 } from '../core/types';
 import { createWorkspaceState } from './state/workspace-state';
@@ -185,8 +186,11 @@ export class WorkspaceController {
 	private unresolvedLinks: UnresolvedLink[] = [];
 	private metadataSources: MetadataDebugEntry[] = [];
 	private rendererDebugState: RendererDebugState = { status: 'idle' };
+	private readonly performanceSamples: WorkspacePerformanceSample[] = [];
 	private rebuildTimer?: number;
 	private initialRefreshFrame?: number;
+	private unsubscribeWorkspaceIndex?: () => void;
+	private refreshVersion = 0;
 	private pendingRefreshForceLayout = false;
 	private destroyed = false;
 
@@ -208,6 +212,29 @@ export class WorkspaceController {
 		return this.state;
 	}
 
+	isLargeVaultModeActive(): boolean {
+		return this.workspaceIndex.isLargeVaultModeActive();
+	}
+
+	recordPerformance(
+		name: string,
+		durationMs: number,
+		details?: WorkspacePerformanceSample['details'],
+	): void {
+		this.performanceSamples.push({
+			name,
+			durationMs: Math.round(durationMs * 100) / 100,
+			recordedAt: new Date().toISOString(),
+			...(details ? { details } : {}),
+		});
+		if (this.performanceSamples.length > 50) {
+			this.performanceSamples.splice(
+				0,
+				this.performanceSamples.length - 50,
+			);
+		}
+	}
+
 	getDebugSnapshot(state: WorkspaceState = this.state): DebugSnapshot {
 		return createWorkspaceDebugSnapshot({
 			state,
@@ -215,6 +242,10 @@ export class WorkspaceController {
 			unresolvedLinks: this.unresolvedLinks,
 			metadataSources: this.metadataSources,
 			rendererDebugState: this.rendererDebugState,
+			performance: {
+				index: this.workspaceIndex.getPerformanceSnapshot(),
+				samples: [...this.performanceSamples],
+			},
 		});
 	}
 
@@ -245,6 +276,9 @@ export class WorkspaceController {
 
 	initialize(initialFile: TFile | null): void {
 		this.setCurrentFile(initialFile);
+		this.unsubscribeWorkspaceIndex ??= this.workspaceIndex.subscribe(() =>
+			this.scheduleRefresh(),
+		);
 		if (this.initialRefreshFrame !== undefined) {
 			window.cancelAnimationFrame(this.initialRefreshFrame);
 		}
@@ -268,13 +302,23 @@ export class WorkspaceController {
 		if (this.destroyed) {
 			return;
 		}
+		const refreshVersion = ++this.refreshVersion;
+		const indexStartedAt = performance.now();
 		const indexSnapshot = await this.workspaceIndex.read(
 			this.debug,
 			this.state.connectionFields,
 		);
-		if (this.destroyed) {
+		if (this.destroyed || refreshVersion !== this.refreshVersion) {
 			return;
 		}
+		this.recordPerformance(
+			'index.read',
+			performance.now() - indexStartedAt,
+			{
+				nodeCount: indexSnapshot.index.nodes.size,
+				edgeCount: indexSnapshot.index.edges.size,
+			},
+		);
 		this.index = indexSnapshot.index;
 		this.unresolvedLinks = indexSnapshot.unresolvedLinks;
 		this.metadataSources = indexSnapshot.metadataSources;
@@ -1042,6 +1086,9 @@ export class WorkspaceController {
 
 	dispose(): void {
 		this.destroyed = true;
+		this.refreshVersion += 1;
+		this.unsubscribeWorkspaceIndex?.();
+		this.unsubscribeWorkspaceIndex = undefined;
 		if (this.initialRefreshFrame !== undefined) {
 			window.cancelAnimationFrame(this.initialRefreshFrame);
 			this.initialRefreshFrame = undefined;
@@ -1054,10 +1101,19 @@ export class WorkspaceController {
 		if (!this.index || this.destroyed) {
 			return;
 		}
+		const startedAt = performance.now();
 		this.state = projectWorkspaceState(
 			this.state,
 			this.index,
 			(index, state) => this.projectionService.project(index, state),
+		);
+		this.recordPerformance(
+			'query.projection',
+			performance.now() - startedAt,
+			{
+				nodeCount: this.state.projection?.nodes.length ?? 0,
+				edgeCount: this.state.projection?.edges.length ?? 0,
+			},
 		);
 		this.emit();
 	}

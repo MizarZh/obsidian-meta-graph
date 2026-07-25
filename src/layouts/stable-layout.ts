@@ -65,6 +65,8 @@ export interface StableLayoutOptions {
 	nodeSortDirection: LayoutSortDirection;
 	groups?: readonly ChartGroupDefinition[];
 	groupByNode?: ReadonlyMap<string, string>;
+	useLayoutWorker?: boolean;
+	isStale?: () => boolean;
 }
 
 interface StableLayoutContext {
@@ -129,6 +131,7 @@ export async function applyStableLayout(
 	};
 
 	await LAYOUT_STRATEGIES[options.mode](context);
+	if (options.isStale?.()) return;
 	snapshotRuntimePositions(graph, snapshot.positions);
 }
 
@@ -233,6 +236,7 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 			options.groupByNode,
 		);
 		await layout.apply(graph);
+		if (options.isStale?.()) return;
 		snapshot.flowRelationConflictCount = layout.getConflictCount();
 		snapshot.groupGeometries = layout.getGroupGeometries();
 		snapshot.edgeIds = currentEdgeIds;
@@ -288,7 +292,10 @@ async function applyGraphLayout({
 			options.graphSpacing,
 			options.graphForceSettings,
 			options.groupByNode,
+			options.useLayoutWorker,
+			options.isStale,
 		).apply(graph);
+		if (options.isStale?.()) return;
 	}
 	snapshot.groupGeometries = createGraphGroupGeometries(
 		graph,

@@ -1,5 +1,7 @@
 import type { NodeOpenMode } from '../core/types';
 
+export type LargeVaultMode = 'auto' | 'on' | 'off';
+
 export interface KnowledgeWorkspaceSettings {
 	fadeDistance: number;
 	debug: boolean;
@@ -8,6 +10,7 @@ export interface KnowledgeWorkspaceSettings {
 	openTemplateNoteInNewTab: boolean;
 	nodeOpenMode: NodeOpenMode;
 	detailsNoteContentExpanded: boolean;
+	largeVaultMode: LargeVaultMode;
 }
 
 export const DEFAULT_SETTINGS: KnowledgeWorkspaceSettings = {
@@ -18,10 +21,17 @@ export const DEFAULT_SETTINGS: KnowledgeWorkspaceSettings = {
 	openTemplateNoteInNewTab: false,
 	nodeOpenMode: 'tab',
 	detailsNoteContentExpanded: false,
+	largeVaultMode: 'auto',
 };
 
 export function normalizeNodeOpenMode(value: unknown): NodeOpenMode {
 	return value === 'tab' || value === 'right-split'
 		? value
 		: DEFAULT_SETTINGS.nodeOpenMode;
+}
+
+export function normalizeLargeVaultMode(value: unknown): LargeVaultMode {
+	return value === 'on' || value === 'off' || value === 'auto'
+		? value
+		: DEFAULT_SETTINGS.largeVaultMode;
 }

@@ -63,6 +63,11 @@
 	</details>
 
 	<details open>
+		<summary>Performance</summary>
+		<pre>{JSON.stringify(snapshot.performance, null, 2)}</pre>
+	</details>
+
+	<details open>
 		<summary>Workspace state and query</summary>
 		<pre>{JSON.stringify(snapshot.state, null, 2)}</pre>
 	</details>

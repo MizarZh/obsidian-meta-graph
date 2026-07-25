@@ -91,6 +91,30 @@ describe('stable layout orchestration', () => {
 		expect(snapshot.positions.get('A.md')).toEqual({ x: 12, y: 34 });
 	});
 
+	it('does not publish positions from a stale layout generation', async () => {
+		const graph = new GraphologyAdapter(palette).fromProjection(projection);
+		const snapshot = createLayoutSnapshot();
+
+		await applyStableLayout(graph, snapshot, [], {
+			mode: 'free',
+			forceLayout: false,
+			graphSpacing: 1,
+			graphForceSettings: DEFAULT_GRAPH_FORCE_SETTINGS,
+			flowEdgeStyle: 'straight',
+			flowDirection: 'LR',
+			flowLayerSpacing: 1,
+			flowLaneSpacing: 1,
+			arcSpacing: 1,
+			arcDirection: 'right',
+			arcLabelAngle: 'auto',
+			nodeSort: 'name',
+			nodeSortDirection: 'asc',
+			isStale: () => true,
+		});
+
+		expect(snapshot.positions.size).toBe(0);
+	});
+
 	it('reuses snapshots for the same layout key', () => {
 		const store = new LayoutSnapshotStore();
 		const first = store.get({

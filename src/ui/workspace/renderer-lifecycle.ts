@@ -34,6 +34,13 @@ export interface WorkspaceRendererLifecycleOptions {
 	setRendererDebugState(state: RendererDebugState): void;
 	setFlowRelationConflictCount?(count: number): void;
 	setRenderPending?(pending: boolean): void;
+	isLargeVaultModeActive?(): boolean;
+	yieldToMainThread?(): Promise<void>;
+	recordPerformance?(
+		name: string,
+		durationMs: number,
+		details?: Record<string, number | string | boolean>,
+	): void;
 }
 
 export class WorkspaceRendererLifecycle {
@@ -149,6 +156,7 @@ export class WorkspaceRendererLifecycle {
 		fitAfterRender: boolean,
 		forceLayout: boolean,
 	): Promise<void> {
+		const rebuildStartedAt = performance.now();
 		const initialState = this.options.readState();
 		const canvas = this.options.readCanvas();
 
@@ -192,11 +200,19 @@ export class WorkspaceRendererLifecycle {
 			state.manualLayout,
 		);
 		const positions = layoutSnapshot.positions;
+		await this.options.yieldToMainThread?.();
+		if (version !== this.renderVersion) return;
+		const runtimeGraphStartedAt = performance.now();
 		const graph = createWorkspaceRuntimeGraph(
 			state.projection,
 			positions,
 			state,
 			palette,
+		);
+		this.options.recordPerformance?.(
+			'render.runtimeGraph',
+			performance.now() - runtimeGraphStartedAt,
+			{ nodeCount: graph.order, edgeCount: graph.size },
 		);
 		const newNodeIds = graph
 			.nodes()
@@ -208,6 +224,35 @@ export class WorkspaceRendererLifecycle {
 			container: this.options.readContainerSize(),
 			runtimeGraph: serializeRuntimeGraph(graph),
 		});
+		let progressiveFirstRender = false;
+		if (
+			!this.currentRenderer &&
+			(this.options.isLargeVaultModeActive?.() ?? false) &&
+			graph.order >= 200
+		) {
+			const progressiveRenderer = await createWorkspaceGraphRenderer({
+				graph,
+				container: canvas,
+				palette,
+				state,
+				isStale: () => version !== this.renderVersion,
+			});
+			if (progressiveRenderer && version === this.renderVersion) {
+				this.currentRenderer = progressiveRenderer;
+				this.unbindEvents =
+					this.options.bindEvents(progressiveRenderer);
+				progressiveRenderer.setSelected(state.selectedNodeId);
+				progressiveRenderer.setHovered(state.hoveredNodeId);
+				progressiveRenderer.fit();
+				progressiveFirstRender = true;
+			} else if (progressiveRenderer) {
+				progressiveRenderer.kill();
+				return;
+			}
+		}
+		await this.options.yieldToMainThread?.();
+		if (version !== this.renderVersion) return;
+		const layoutStartedAt = performance.now();
 		await applyStableRuntimeLayout(graph, layoutSnapshot, newNodeIds, {
 			mode: state.mode,
 			forceLayout,
@@ -225,10 +270,19 @@ export class WorkspaceRendererLifecycle {
 			nodeSortDirection: state.nodeSortDirection,
 			groups: state.grouping.groups,
 			groupByNode,
+			useLayoutWorker: this.options.isLargeVaultModeActive?.() ?? false,
+			isStale: () => version !== this.renderVersion,
 		});
+		this.options.recordPerformance?.(
+			'render.layout',
+			performance.now() - layoutStartedAt,
+			{ mode: state.mode, nodeCount: graph.order, edgeCount: graph.size },
+		);
 		if (version !== this.renderVersion) {
 			return;
 		}
+		await this.options.yieldToMainThread?.();
+		if (version !== this.renderVersion) return;
 		this.options.setFlowRelationConflictCount?.(
 			state.mode === 'flow'
 				? (layoutSnapshot.flowRelationConflictCount ?? 0)
@@ -243,7 +297,8 @@ export class WorkspaceRendererLifecycle {
 			this.clearRenderer();
 		}
 
-		const firstRender = !this.currentRenderer;
+		const firstRender = !this.currentRenderer || progressiveFirstRender;
+		const rendererStartedAt = performance.now();
 		if (this.currentRenderer) {
 			this.unbindEvents?.();
 			this.stopForceLayoutSimulation();
@@ -269,6 +324,11 @@ export class WorkspaceRendererLifecycle {
 			this.currentRenderer = nextRenderer;
 			this.unbindEvents = this.options.bindEvents(nextRenderer);
 		}
+		this.options.recordPerformance?.(
+			'render.apply',
+			performance.now() - rendererStartedAt,
+			{ renderer: rendererKind, firstRender },
+		);
 
 		this.options.syncRendererGroups();
 		this.currentRenderer.setSelected(state.selectedNodeId);
@@ -282,6 +342,11 @@ export class WorkspaceRendererLifecycle {
 			container: this.options.readContainerSize(),
 			runtimeGraph: serializeRuntimeGraph(graph),
 		});
+		this.options.recordPerformance?.(
+			'render.total',
+			performance.now() - rebuildStartedAt,
+			{ mode: state.mode, nodeCount: graph.order, edgeCount: graph.size },
+		);
 	}
 
 	dispose(): void {

@@ -123,7 +123,13 @@ settings to report them in the developer console.
     read-only note content below its metadata. **After creating a note** controls whether
     template-created notes stay on the graph or open with the same policy.
 21. Select **Debug** to inspect or copy the current query, projection,
-    canonical index, adjacency maps, and unresolved links as JSON.
+    canonical index, adjacency maps, unresolved links, and performance timings
+    as JSON.
+22. Choose **Large vault mode** under **Settings -> Meta Graph**. **Auto**
+    enables cooperative rendering and layout workers at 5,000 Markdown files.
+    When active, metadata edits use incremental per-file indexing; file create,
+    delete, and rename operations use a conservative full rebuild to preserve
+    link resolution correctness.
 
 Style fallback is field-by-field:
 
@@ -350,3 +356,12 @@ Workspace rendering separates structural changes from display changes. Query,
 projection, source, mode, and layout changes rebuild the runtime graph. Display
 settings and style-only edits update the existing renderer or runtime graph in
 place, avoiding unnecessary layout work while users tune visual settings.
+
+Large vault mode keeps startup indexing behind Obsidian layout readiness and
+shares one index service across open workspaces. Metadata edits replace one
+cached file record and patch affected nodes, edges, tag/domain counts, and
+unresolved-link ownership in place. Large first renders publish provisional
+positions before layout completes, yield between render stages, and run large
+ForceAtlas layouts in a Web Worker when the host supports workers. The Debug
+panel records index, projection, runtime graph, layout, renderer application,
+and total render timings.

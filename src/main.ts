@@ -12,6 +12,7 @@ import {
 } from './workspace/KnowledgeWorkspaceView';
 import {
 	DEFAULT_SETTINGS,
+	normalizeLargeVaultMode,
 	normalizeNodeOpenMode,
 	type KnowledgeWorkspaceSettings,
 } from './settings/settings';
@@ -51,26 +52,29 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 				this.openMetaGraphFileInCustomView(file);
 			}),
 		);
-		this.registerEvent(
-			this.app.metadataCache.on('changed', () => {
-				this.workspaceIndex.invalidate();
-			}),
-		);
-		this.registerEvent(
-			this.app.vault.on('create', () => {
-				this.workspaceIndex.invalidate();
-			}),
-		);
-		this.registerEvent(
-			this.app.vault.on('delete', () => {
-				this.workspaceIndex.invalidate();
-			}),
-		);
-		this.registerEvent(
-			this.app.vault.on('rename', () => {
-				this.workspaceIndex.invalidate();
-			}),
-		);
+		this.app.workspace.onLayoutReady(() => {
+			this.workspaceIndex.markReady();
+			this.registerEvent(
+				this.app.metadataCache.on('changed', (file) => {
+					this.workspaceIndex.invalidateFile(file);
+				}),
+			);
+			this.registerEvent(
+				this.app.vault.on('create', () => {
+					this.workspaceIndex.invalidate();
+				}),
+			);
+			this.registerEvent(
+				this.app.vault.on('delete', () => {
+					this.workspaceIndex.invalidate();
+				}),
+			);
+			this.registerEvent(
+				this.app.vault.on('rename', () => {
+					this.workspaceIndex.invalidate();
+				}),
+			);
+		});
 
 		this.registerView(
 			VIEW_TYPE_KNOWLEDGE_WORKSPACE,
@@ -127,6 +131,7 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 
 	async saveSettings(): Promise<void> {
 		await this.savePluginData();
+		this.workspaceIndex.setLargeVaultMode(this.settings.largeVaultMode);
 		this.updateOpenViewsSettings();
 	}
 
@@ -203,9 +208,11 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 			...settings,
 			fadeDistance: clamp(settings.fadeDistance, 0.25, 4),
 			nodeOpenMode: normalizeNodeOpenMode(settings.nodeOpenMode),
+			largeVaultMode: normalizeLargeVaultMode(settings.largeVaultMode),
 			detailsNoteContentExpanded:
 				settings.detailsNoteContentExpanded === true,
 		};
+		this.workspaceIndex.setLargeVaultMode(this.settings.largeVaultMode);
 	}
 
 	private scheduleSessionSave(): void {

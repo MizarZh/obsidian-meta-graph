@@ -1,4 +1,5 @@
 import forceAtlas2 from 'graphology-layout-forceatlas2';
+import ForceAtlas2LayoutSupervisor from 'graphology-layout-forceatlas2/worker';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
@@ -32,6 +33,8 @@ export class ForceAtlasLayout implements LayoutEngine {
 		private readonly spacing = 1,
 		private readonly forceSettings: GraphForceSettings = DEFAULT_GRAPH_FORCE_SETTINGS,
 		private readonly groupByNode: ReadonlyMap<string, string> = new Map(),
+		private readonly useWorker = false,
+		private readonly isStale: () => boolean = () => false,
 	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
@@ -56,14 +59,33 @@ export class ForceAtlasLayout implements LayoutEngine {
 		}
 
 		const layoutGraph = createForceAtlasGroupGraph(graph, this.groupByNode);
-		forceAtlas2.assign(layoutGraph, {
-			iterations: graph.order < 50 ? 150 : 250,
-			settings: getForceAtlasSettings(
-				layoutGraph,
-				this.spacing,
-				this.forceSettings,
-			),
-		});
+		const iterations = graph.order < 50 ? 150 : 250;
+		const settings = getForceAtlasSettings(
+			layoutGraph,
+			this.spacing,
+			this.forceSettings,
+		);
+		if (
+			this.useWorker &&
+			layoutGraph.order >= 200 &&
+			typeof Worker !== 'undefined' &&
+			typeof Blob !== 'undefined'
+		) {
+			try {
+				await assignForceAtlasInWorker(
+					layoutGraph,
+					iterations,
+					settings,
+					this.isStale,
+				);
+			} catch {
+				if (this.isStale()) return;
+				forceAtlas2.assign(layoutGraph, { iterations, settings });
+			}
+		} else {
+			forceAtlas2.assign(layoutGraph, { iterations, settings });
+		}
+		if (this.isStale()) return;
 		if (layoutGraph !== graph) {
 			graph.forEachNode((nodeId) => {
 				graph.mergeNodeAttributes(nodeId, {
@@ -84,6 +106,45 @@ export class ForceAtlasLayout implements LayoutEngine {
 			this.forceSettings.linkDistance,
 		);
 	}
+}
+
+async function assignForceAtlasInWorker(
+	graph: RuntimeGraph,
+	iterations: number,
+	settings: ReturnType<typeof getForceAtlasSettings>,
+	isStale: () => boolean,
+): Promise<void> {
+	const supervisor = new ForceAtlas2LayoutSupervisor(graph, { settings });
+	const worker = (
+		supervisor as unknown as {
+			worker: Worker;
+		}
+	).worker;
+	await new Promise<void>((resolve, reject) => {
+		let completedIterations = 0;
+		const cleanup = (): void => {
+			worker.removeEventListener('message', handleMessage);
+			worker.removeEventListener('error', handleError);
+			supervisor.kill();
+		};
+		const handleMessage = (): void => {
+			completedIterations += 1;
+			if (!isStale() && completedIterations < iterations) return;
+			cleanup();
+			resolve();
+		};
+		const handleError = (event: ErrorEvent): void => {
+			cleanup();
+			reject(
+				event.error instanceof Error
+					? event.error
+					: new Error(event.message),
+			);
+		};
+		worker.addEventListener('message', handleMessage);
+		worker.addEventListener('error', handleError);
+		supervisor.start();
+	});
 }
 
 function createForceAtlasGroupGraph(

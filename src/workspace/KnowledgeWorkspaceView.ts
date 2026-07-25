@@ -77,21 +77,6 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		this.contentEl.empty();
 		this.contentEl.addClass('knowledge-workspace-view');
 		this.registerEvent(
-			this.app.metadataCache.on('changed', () =>
-				this.controller?.scheduleRefresh(),
-			),
-		);
-		this.registerEvent(
-			this.app.vault.on('create', () =>
-				this.controller?.scheduleRefresh(),
-			),
-		);
-		this.registerEvent(
-			this.app.vault.on('delete', () =>
-				this.controller?.scheduleRefresh(),
-			),
-		);
-		this.registerEvent(
 			this.app.vault.on('rename', (file, oldPath) => {
 				const previousSessionKey = `path:${oldPath}`;
 				if (this.sessionKey === previousSessionKey) {
@@ -102,7 +87,6 @@ export class KnowledgeWorkspaceView extends TextFileView {
 					);
 				}
 				this.controller?.updateFileReferences(oldPath, file.path);
-				this.controller?.scheduleRefresh();
 			}),
 		);
 		this.registerEvent(

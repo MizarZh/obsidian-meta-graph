@@ -1,5 +1,9 @@
 import type { App, TFolder } from 'obsidian';
-import { MetadataIndexer } from '../../core/metadata-indexer';
+import {
+	createKnowledgeIndexFromMetadataRecords,
+	MetadataIndexer,
+	type MetadataIndexRecord,
+} from '../../core/metadata-indexer';
 import type {
 	GraphProjection,
 	KnowledgeIndex,
@@ -19,16 +23,22 @@ export interface WorkspaceIndexSnapshot {
 	availableDomains: string[];
 }
 
+export interface WorkspaceIndexBuild {
+	snapshot: WorkspaceIndexSnapshot;
+	records: Map<string, MetadataIndexRecord>;
+	filePaths: Set<string>;
+}
+
 export class WorkspaceProjectionService {
 	private readonly queryEngine = new GraphQueryEngine();
 	private readonly curatedEngine = new CuratedProjectionEngine();
 
 	project(index: KnowledgeIndex, state: WorkspaceState): GraphProjection {
 		return state.chartSource === 'curated'
-				? this.curatedEngine.project(index, state.curated, {
-						showPlainLinks: state.query.showPlainLinks,
-						showUnresolvedLinks: state.query.showUnresolvedLinks,
-					})
+			? this.curatedEngine.project(index, state.curated, {
+					showPlainLinks: state.query.showPlainLinks,
+					showUnresolvedLinks: state.query.showUnresolvedLinks,
+				})
 			: this.queryEngine.project(index, state.query, state.globalQuery);
 	}
 }
@@ -38,14 +48,39 @@ export function buildWorkspaceIndex(
 	debug: boolean,
 	connectionFields: string[],
 ): WorkspaceIndexSnapshot {
+	return buildWorkspaceIndexState(app, debug, connectionFields).snapshot;
+}
+
+export function buildWorkspaceIndexState(
+	app: App,
+	debug: boolean,
+	connectionFields: string[],
+): WorkspaceIndexBuild {
 	const indexer = new MetadataIndexer(app, debug, connectionFields);
-	const index = indexer.build();
+	const records = indexer.buildRecords();
+	const filePaths = new Set(records.keys());
+	return {
+		snapshot: rebuildWorkspaceIndexSnapshot(records, readVaultFolders(app)),
+		records,
+		filePaths,
+	};
+}
+
+export function rebuildWorkspaceIndexSnapshot(
+	records: ReadonlyMap<string, MetadataIndexRecord>,
+	availableFolders: string[],
+): WorkspaceIndexSnapshot {
+	const index = createKnowledgeIndexFromMetadataRecords(records.values());
 	const nodes = [...index.nodes.values()];
 	return {
 		index,
-		unresolvedLinks: [...indexer.unresolvedLinks],
-		metadataSources: [...indexer.metadataSources],
-		availableFolders: readVaultFolders(app),
+		unresolvedLinks: [...records.values()].flatMap(
+			(record) => record.unresolvedLinks,
+		),
+		metadataSources: [...records.values()].flatMap(
+			(record) => record.metadataSources,
+		),
+		availableFolders,
 		availableTags: uniqueSorted(nodes.flatMap((node) => node.tags)),
 		availableDomains: uniqueSorted(nodes.flatMap((node) => node.domains)),
 	};
@@ -71,7 +106,9 @@ function isTFolder(file: unknown): file is TFolder {
 	return (
 		typeof file === 'object' &&
 		file !== null &&
-		typeof (file as TFolder).path === 'string' &&
-		Array.isArray((file as { children?: unknown }).children)
+		'path' in file &&
+		typeof file.path === 'string' &&
+		'children' in file &&
+		Array.isArray(file.children)
 	);
 }

@@ -4,6 +4,7 @@ import type {
 	MetadataDebugEntry,
 	RendererDebugState,
 	UnresolvedLink,
+	WorkspacePerformanceSnapshot,
 	WorkspaceState,
 } from '../../core/types';
 
@@ -13,6 +14,7 @@ export interface WorkspaceDebugSnapshotInput {
 	unresolvedLinks: UnresolvedLink[];
 	metadataSources: MetadataDebugEntry[];
 	rendererDebugState: RendererDebugState;
+	performance?: WorkspacePerformanceSnapshot;
 	generatedAt?: string;
 }
 
@@ -47,6 +49,17 @@ export function createWorkspaceDebugSnapshot(
 		unresolvedLinks: input.unresolvedLinks,
 		metadataSources: input.metadataSources,
 		renderer: input.rendererDebugState,
+		performance: input.performance ?? {
+			index: {
+				fullBuildCount: 0,
+				incrementalBuildCount: 0,
+				lastChangedFileCount: 0,
+				markdownFileCount: 0,
+				largeVaultMode: 'auto',
+				largeVaultModeActive: false,
+			},
+			samples: [],
+		},
 	};
 }
 
