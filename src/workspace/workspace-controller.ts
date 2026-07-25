@@ -86,11 +86,9 @@ import {
 } from './state/style-state';
 import {
 	addConnectionFieldAndSelectInState,
-	getActiveConnectionModeInState,
 	removeConnectionFieldFromState,
 	reorderConnectionFieldInState,
 	setActiveConnectionFieldInState,
-	setConnectionFieldModeInState,
 } from './state/connection-fields';
 import { WorkspaceConnectionService } from './services/connection-service';
 import { createObsidianConnectionService } from './services/connection-adapter';
@@ -1000,16 +998,16 @@ export class WorkspaceController {
 		);
 	}
 
-	setActiveConnectionField(field: string): void {
-		const result = setActiveConnectionFieldInState(this.state, field);
+	setActiveConnectionField(field: string, mode: ConnectionFieldMode): void {
+		const result = setActiveConnectionFieldInState(this.state, field, mode);
 		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
-	addConnectionField(field: string): void {
+	addConnectionField(field: string, mode: ConnectionFieldMode): void {
 		const result = addConnectionFieldAndSelectInState(
 			this.state,
 			field,
-			getActiveConnectionModeInState(this.state),
+			mode,
 		);
 		this.setWorkspaceState(result.state, result.runQuery);
 	}
@@ -1025,12 +1023,6 @@ export class WorkspaceController {
 	): void {
 		this.setWorkspaceState(
 			reorderConnectionFieldInState(this.state, id, targetId, placement),
-		);
-	}
-
-	setConnectionFieldMode(field: string, mode: ConnectionFieldMode): void {
-		this.setWorkspaceState(
-			setConnectionFieldModeInState(this.state, field, mode),
 		);
 	}
 
