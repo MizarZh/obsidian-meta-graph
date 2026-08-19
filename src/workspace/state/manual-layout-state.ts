@@ -177,7 +177,10 @@ export function updateGroupInState(
 				: {
 						...patch,
 						mode: 'rule',
-						rule: group.rule ?? createEmptyGroupRule(group.id),
+						rule:
+							patch.rule ??
+							group.rule ??
+							createEmptyGroupRule(group.id),
 					},
 		);
 	});

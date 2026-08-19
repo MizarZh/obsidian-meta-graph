@@ -158,6 +158,39 @@ describe('workspace manual layout state', () => {
 		expect(nextState.grouping).not.toBe(state.grouping);
 	});
 
+	it('preserves rule updates for rule-only Arc groups', () => {
+		let state = setActiveChartTypeInState(
+			createWorkspaceState(100),
+			'arc',
+		).state;
+		state = addGroupInState(state);
+		const group = state.grouping.groups[0];
+		if (!group) {
+			throw new Error('Group is missing.');
+		}
+
+		const nextState = updateGroupInState(state, group.id, {
+			rule: {
+				id: `group-rule-${group.id}`,
+				kind: 'group',
+				mode: 'all',
+				children: [
+					{
+						id: 'tag-rule',
+						kind: 'condition',
+						field: 'tag',
+						operator: 'is',
+						value: 'research',
+					},
+				],
+			},
+		});
+
+		expect(nextState.grouping.groups[0]?.rule?.children).toEqual([
+			expect.objectContaining({ id: 'tag-rule', value: 'research' }),
+		]);
+	});
+
 	it('creates rule-only Flow groups and rejects manual node assignment', () => {
 		let state = setActiveChartTypeInState(
 			createWorkspaceState(100),
