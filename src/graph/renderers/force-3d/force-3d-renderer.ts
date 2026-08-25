@@ -204,31 +204,14 @@ export class Force3DRenderer {
 			.nodeOpacity(0.94)
 			.nodeResolution(18)
 			.nodeThreeObjectExtend(false)
-			.nodeThreeObject((node: Force3DNode) => {
-				const shape = createCubeNodeSprite(
-					this.three,
-					this.container.ownerDocument,
-					this.getNodeColor(node),
-					node.size,
-					node.shape,
-				);
-				this.nodeShapeSprites.set(node.id, shape);
-				const sprite = this.createTextSprite(
-					node.label,
-					this.labelSize,
-					1,
-				);
-				this.nodeLabelSprites.set(node.id, sprite);
-				const group = new this.three.Group();
-				group.add(shape, sprite);
-				return group;
-			})
+			.nodeThreeObject((node: Force3DNode) => this.createNodeObject(node))
 			.nodePositionUpdate((object: Object3D, coordinates, node) => {
 				const label = this.nodeLabelSprites.get(node.id);
 				if (label) {
 					this.positionNodeLabel(label, coordinates, node);
 				}
-				return true;
+				// Return false so force-graph applies coordinates to the node group.
+				return false;
 			})
 			.linkLabel((link) => link.label || '')
 			.linkColor((link) => this.getLinkColor(link))
@@ -284,6 +267,7 @@ export class Force3DRenderer {
 		this.instance.graphData(
 			toForce3DData(graph, this.forceNodeCache, this.forceLinkCache),
 		);
+		this.rebuildNodeObjects();
 		this.refreshWhenReady();
 	}
 
@@ -297,8 +281,11 @@ export class Force3DRenderer {
 		);
 		const topologyChanged =
 			result.nodeVisibilityChanged || result.linkVisibilityChanged;
-		if (topologyChanged || result.nodeShapeChanged) {
+		if (topologyChanged) {
 			this.applyVisibleGraphData();
+		}
+		if (result.nodeShapeChanged) {
+			this.rebuildNodeObjects();
 		}
 		this.scheduleVisualUpdate({
 			refreshAccessors:
@@ -608,6 +595,34 @@ export class Force3DRenderer {
 		}
 	}
 
+	private createNodeObject(node: Force3DNode): Object3D {
+		const shape = createCubeNodeSprite(
+			this.three,
+			this.container.ownerDocument,
+			this.getNodeColor(node),
+			node.size,
+			node.shape,
+		);
+		this.nodeShapeSprites.set(node.id, shape);
+		const label = this.createTextSprite(node.label, this.labelSize, 1);
+		this.nodeLabelSprites.set(node.id, label);
+		const group = new this.three.Group();
+		group.add(shape, label);
+		return group;
+	}
+
+	private rebuildNodeObjects(): void {
+		if (!this.initialized || this.killed) {
+			return;
+		}
+		this.nodeLabelSprites.clear();
+		this.nodeShapeSprites.clear();
+		// Changing accessor identity makes force-graph recreate custom node objects.
+		this.instance.nodeThreeObject((node: Force3DNode) =>
+			this.createNodeObject(node),
+		);
+	}
+
 	private refreshColorsWhenReady(): void {
 		if (!this.initialized || this.killed) {
 			return;
@@ -784,6 +799,7 @@ export class Force3DRenderer {
 		this.instance.graphData(
 			toForce3DData(this.graph, this.forceNodeCache, this.forceLinkCache),
 		);
+		this.rebuildNodeObjects();
 		this.refreshWhenReady();
 	}
 

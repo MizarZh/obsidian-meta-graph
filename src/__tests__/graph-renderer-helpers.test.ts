@@ -187,6 +187,18 @@ describe('graph renderer helpers', () => {
 		});
 	});
 
+	it('tracks Force 3D node shape updates', () => {
+		const graph = createRuntimeGraph();
+		const data = toForce3DData(graph);
+
+		graph.mergeNodeAttributes('A.md', { type: 'star' });
+
+		const result = syncForce3DDataStyles(graph, data);
+
+		expect(result.nodeShapeChanged).toBe(true);
+		expect(data.nodes[0]).toMatchObject({ shape: 'star' });
+	});
+
 	it('tracks Force 3D visibility-only updates separately', () => {
 		const graph = createRuntimeGraph();
 		const data = toForce3DData(graph);

@@ -14,6 +14,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Fixed 3D graph nodes staying at the origin instead of following force-layout coordinates.
+- Fixed 3D graph note shape changes not rebuilding custom node sprites.
 - Query charts now default to showing all configured relations and refresh after connection-field edits.
 - Fixed rule-only Arc group updates being discarded.
 
