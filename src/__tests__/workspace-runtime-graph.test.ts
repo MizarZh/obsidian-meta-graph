@@ -43,10 +43,38 @@ describe('workspace runtime graph', () => {
 
 		expect(graph.getNodeAttributes('A.md')).toMatchObject({
 			color: '#7c6ff0',
+			type: 'circle',
 			x: 10,
 			y: 20,
 			fixed: true,
 		});
+	});
+
+	it('syncs node shape rules without replacing the runtime graph', () => {
+		const state = createWorkspaceState(200);
+		const graph = createWorkspaceRuntimeGraph(
+			projection,
+			new Map(),
+			state,
+			palette,
+		);
+		const nextState = {
+			...state,
+			nodeStyleRules: [
+				{
+					id: 'shape',
+					field: 'all' as const,
+					value: '',
+					color: '#7c6ff0',
+					size: 7,
+					shape: 'diamond' as const,
+				},
+			],
+		};
+
+		syncWorkspaceRuntimeGraphStyles(graph, projection, nextState, palette);
+
+		expect(graph.getNodeAttribute('A.md', 'type')).toBe('diamond');
 	});
 
 	it('syncs active style changes onto an existing runtime graph', () => {
@@ -279,11 +307,13 @@ describe('workspace runtime graph', () => {
 			palette,
 		);
 
-		expect(graph.getNodeAttributes('__unresolved__/Missing')).toMatchObject({
-			kind: 'unresolved',
-			color: '#abcdef',
-			size: 5,
-		});
+		expect(graph.getNodeAttributes('__unresolved__/Missing')).toMatchObject(
+			{
+				kind: 'unresolved',
+				color: '#abcdef',
+				size: 5,
+			},
+		);
 		expect(graph.getEdgeAttributes('A-unresolved-Missing')).toMatchObject({
 			color: '#d97706',
 			size: 2,

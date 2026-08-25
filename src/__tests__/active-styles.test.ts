@@ -59,11 +59,15 @@ describe('active style composition', () => {
 			getActiveDefaultNodeStyle(
 				{
 					nodeStyleOverrides: { color: '#override' },
-					defaultNodeStyle: { color: '#default', size: 6 },
+					defaultNodeStyle: {
+						color: '#default',
+						size: 6,
+						shape: 'circle',
+					},
 				},
 				'#fallback',
 			),
-		).toEqual({ color: '#override', size: 6 });
+		).toEqual({ color: '#override', size: 6, shape: 'circle' });
 
 		expect(
 			getActiveDefaultLinkStyle(

@@ -4,6 +4,7 @@
 	import NodeConditionRow from '../filter/NodeConditionRow.svelte';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
 	import ObsidianColorInput from '../obsidian/ObsidianColorInput.svelte';
+	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
 	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
 	import {
 		getDefaultNodeStyleOperator,
@@ -18,6 +19,7 @@
 		DefaultNodeStyle,
 		NodeFilterField,
 		NodeFilterOperator,
+		NodeShape,
 		NodeStyleField,
 		NodeStyleRule,
 	} from '../../core/types';
@@ -38,6 +40,14 @@
 		{ scope: 'global', title: 'Global note rules' },
 		{ scope: 'current', title: 'Chart note rules' },
 	] as const;
+	const NODE_SHAPE_OPTIONS: Array<{ value: NodeShape; label: string }> = [
+		{ value: 'circle', label: 'Circle' },
+		{ value: 'square', label: 'Square' },
+		{ value: 'diamond', label: 'Diamond' },
+		{ value: 'triangle', label: 'Triangle' },
+		{ value: 'hexagon', label: 'Hexagon' },
+		{ value: 'star', label: 'Star' },
+	];
 	type NodeConditionField = NodeFilterField | NodeStyleField;
 
 	let {
@@ -229,7 +239,7 @@
 
 	function activeNodeStyleValue(
 		field: keyof DefaultNodeStyle,
-	): string | number {
+	): string | number | NodeShape | undefined {
 		return resolveActiveNodeStyleValue(
 			nodeStyleOverrides,
 			defaultNodeStyle,
@@ -245,13 +255,17 @@
 		return Number(activeNodeStyleValue('size'));
 	}
 
+	function activeNodeShape(): NodeShape {
+		return activeNodeStyleValue('shape') as NodeShape;
+	}
+
 	function hasNodeOverride(): boolean {
 		return hasStyleOverride(nodeStyleOverrides);
 	}
 
 	function activeUnresolvedNodeStyleValue(
 		field: keyof DefaultNodeStyle,
-	): string | number {
+	): string | number | NodeShape | undefined {
 		return (
 			unresolvedNodeStyleOverrides[field] ??
 			BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE[field]
@@ -264,6 +278,10 @@
 
 	function activeUnresolvedNodeSize(): number {
 		return Number(activeUnresolvedNodeStyleValue('size'));
+	}
+
+	function activeUnresolvedNodeShape(): NodeShape {
+		return activeUnresolvedNodeStyleValue('shape') as NodeShape;
 	}
 
 	function hasUnresolvedNodeOverride(): boolean {
@@ -359,7 +377,7 @@
 	bind:open={workspaceDefaultOpen}
 >
 	<div class="knowledge-workspace-rule">
-		<div class="knowledge-workspace-rule-row compact">
+		<div class="knowledge-workspace-rule-row compact node-style-values">
 			<label>
 				<span>Color</span>
 				<ObsidianColorInput
@@ -370,6 +388,19 @@
 				/>
 			</label>
 			<label>
+				<span>Shape</span>
+				<ObsidianDropdown
+					value={defaultNodeStyle.shape}
+					options={NODE_SHAPE_OPTIONS}
+					ariaLabel="Workspace default note shape"
+					onChange={(shape) =>
+						onDefaultNodeStyle({
+							...defaultNodeStyle,
+							shape: shape as NodeShape,
+						})}
+				/>
+			</label>
+			<label class="node-style-size">
 				<span>Size</span>
 				<div class="knowledge-workspace-slider-value">
 					<ObsidianSlider
@@ -410,7 +441,7 @@
 					onClick={clearNodeOverride}
 				/>
 			</div>
-			<div class="knowledge-workspace-rule-row compact">
+			<div class="knowledge-workspace-rule-row compact node-style-values">
 				<label>
 					<span>Color</span>
 					<ObsidianColorInput
@@ -421,6 +452,16 @@
 					/>
 				</label>
 				<label>
+					<span>Shape</span>
+					<ObsidianDropdown
+						value={activeNodeShape()}
+						options={NODE_SHAPE_OPTIONS}
+						ariaLabel="Chart note shape"
+						onChange={(shape) =>
+							updateNodeOverride({ shape: shape as NodeShape })}
+					/>
+				</label>
+				<label class="node-style-size">
 					<span>Size</span>
 					<div class="knowledge-workspace-slider-value">
 						<ObsidianSlider
@@ -530,7 +571,9 @@
 						</div>
 					{/snippet}
 				</NodeConditionRow>
-				<div class="knowledge-workspace-rule-row compact">
+				<div
+					class="knowledge-workspace-rule-row compact node-style-values"
+				>
 					<label>
 						<span>Color</span>
 						<ObsidianColorInput
@@ -544,6 +587,18 @@
 						/>
 					</label>
 					<label>
+						<span>Shape</span>
+						<ObsidianDropdown
+							value={rule.shape ?? 'circle'}
+							options={NODE_SHAPE_OPTIONS}
+							ariaLabel="Note rule shape"
+							onChange={(shape) =>
+								updateNodeRule(section.scope, rule.id, {
+									shape: shape as NodeShape,
+								})}
+						/>
+					</label>
+					<label class="node-style-size">
 						<span>Size</span>
 						<div class="knowledge-workspace-slider-value">
 							<ObsidianSlider
@@ -580,7 +635,7 @@
 			{/if}
 		{/snippet}
 		<div class="knowledge-workspace-rule">
-			<div class="knowledge-workspace-rule-row compact">
+			<div class="knowledge-workspace-rule-row compact node-style-values">
 				<label>
 					<span>Color</span>
 					<ObsidianColorInput
@@ -592,6 +647,18 @@
 					/>
 				</label>
 				<label>
+					<span>Shape</span>
+					<ObsidianDropdown
+						value={activeUnresolvedNodeShape()}
+						options={NODE_SHAPE_OPTIONS}
+						ariaLabel="Unresolved note shape"
+						onChange={(shape) =>
+							updateUnresolvedNodeOverride({
+								shape: shape as NodeShape,
+							})}
+					/>
+				</label>
+				<label class="node-style-size">
 					<span>Size</span>
 					<div class="knowledge-workspace-slider-value">
 						<ObsidianSlider

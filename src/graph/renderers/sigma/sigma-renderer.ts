@@ -32,6 +32,13 @@ import {
 } from './sigma-group-overlay';
 import { LayoutGroupLayer } from './sigma-layout-group-layer';
 import type { LayoutGroupGeometry } from '../../../layouts/group-geometry';
+import {
+	NodeDiamondProgram,
+	NodeHexagonProgram,
+	NodeSquareProgram,
+	NodeStarProgram,
+	NodeTriangleProgram,
+} from './node-shape-programs';
 export type {
 	GroupGeometry,
 	GroupInteractionCallbacks,
@@ -109,6 +116,13 @@ export class SigmaRenderer {
 					'dashed-arrow': DashedArrowEdgeProgram,
 					dotted: DottedEdgeProgram,
 					'dotted-arrow': DottedArrowEdgeProgram,
+				},
+				nodeProgramClasses: {
+					square: NodeSquareProgram,
+					diamond: NodeDiamondProgram,
+					triangle: NodeTriangleProgram,
+					hexagon: NodeHexagonProgram,
+					star: NodeStarProgram,
 				},
 				nodeReducer: (node, data) =>
 					reduceSigmaNode(

@@ -3,6 +3,8 @@ import type { NodeFilterField, NodeFilterOperator } from './graph';
 export type NodeStyleField = 'all' | NodeFilterField | 'group';
 export type LinkStyleField = 'all' | 'relation' | 'source-field';
 export type LinkLineStyle = 'solid' | 'dashed' | 'dotted';
+export type NodeShape =
+	'circle' | 'square' | 'diamond' | 'triangle' | 'hexagon' | 'star';
 
 export interface NodeStyleRule {
 	id: string;
@@ -11,6 +13,7 @@ export interface NodeStyleRule {
 	value: string;
 	color: string;
 	size: number;
+	shape?: NodeShape;
 }
 
 export interface LinkStyleRule {
@@ -29,6 +32,7 @@ export interface LinkStyleRule {
 export interface DefaultNodeStyle {
 	color?: string;
 	size?: number;
+	shape?: NodeShape;
 }
 
 export interface DefaultLinkStyle {

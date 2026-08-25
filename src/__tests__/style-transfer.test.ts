@@ -4,8 +4,8 @@ import { copyChartStyles, pasteChartStyles } from '../ui/filter/style-transfer';
 
 function createStyle(): ChartStyleConfig {
 	return {
-		nodeOverrides: { color: '#123456', size: 8 },
-		unresolvedNodeOverrides: { color: '#654321' },
+		nodeOverrides: { color: '#123456', size: 8, shape: 'square' },
+		unresolvedNodeOverrides: { color: '#654321', shape: 'diamond' },
 		linkOverrides: { color: '#abcdef', lineStyle: 'dashed' },
 		plainLinkOverrides: {},
 		unresolvedLinkOverrides: { hidden: true },
@@ -17,6 +17,7 @@ function createStyle(): ChartStyleConfig {
 				value: '#project',
 				color: '#ff0000',
 				size: 12,
+				shape: 'diamond',
 			},
 		],
 		linkRules: [
@@ -44,6 +45,9 @@ describe('style transfer', () => {
 
 		expect(pasted).toBeDefined();
 		expect(pasted?.nodeOverrides).toEqual(style.nodeOverrides);
+		expect(pasted?.unresolvedNodeOverrides).toEqual(
+			style.unresolvedNodeOverrides,
+		);
 		expect(pasted?.linkOverrides).toEqual(style.linkOverrides);
 		expect(pasted?.nodeRules[0]).toMatchObject({
 			field: style.nodeRules[0]?.field,
@@ -51,6 +55,7 @@ describe('style transfer', () => {
 			value: style.nodeRules[0]?.value,
 			color: style.nodeRules[0]?.color,
 			size: style.nodeRules[0]?.size,
+			shape: style.nodeRules[0]?.shape,
 		});
 		expect(pasted?.nodeRules[0]?.id).not.toBe(style.nodeRules[0]?.id);
 		expect(pasted?.linkRules[0]?.id).not.toBe(style.linkRules[0]?.id);

@@ -160,7 +160,11 @@ function resolveRuntimeNodeStyle(
 	unresolvedNodeStyle: ReturnType<typeof getActiveUnresolvedNodeStyle>,
 	palette: GraphPalette,
 	context: NodeStyleContext | undefined,
-): { color: string; size: number } {
+): {
+	color: string;
+	size: number;
+	type: NonNullable<ReturnType<typeof resolveNodeStyle>['shape']>;
+} {
 	const isPrimary = projection.primaryIds?.has(node.id) ?? false;
 	const style = resolveNodeStyle(
 		node,
@@ -168,6 +172,7 @@ function resolveRuntimeNodeStyle(
 		{
 			color: defaultNodeStyle.color || palette.node,
 			size: defaultNodeStyle.size,
+			shape: defaultNodeStyle.shape,
 		},
 		context,
 	);
@@ -176,6 +181,7 @@ function resolveRuntimeNodeStyle(
 	return {
 		color: resolvedStyle.color,
 		size: isPrimary ? resolvedStyle.size * 1.2 : resolvedStyle.size,
+		type: resolvedStyle.shape,
 	};
 }
 

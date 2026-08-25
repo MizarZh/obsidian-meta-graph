@@ -12,6 +12,7 @@ import {
 import { resolveNodeStyleContext } from '../graph/styles/node-style-context';
 import { normalizeMetaGraphDocument } from '../workspace/meta-graph-model';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
+import { readOptionalNodeShape } from '../workspace/meta-graph/utils';
 
 const node: KnowledgeNode = {
 	id: 'science/Star.md',
@@ -36,7 +37,11 @@ const edge: KnowledgeEdge = {
 describe('style rules', () => {
 	it('starts charts with workspace defaults and empty chart overrides', () => {
 		const state = createWorkspaceState(200);
-		expect(state.defaultNodeStyle).toEqual({ color: '#7c6ff0', size: 7 });
+		expect(state.defaultNodeStyle).toEqual({
+			color: '#7c6ff0',
+			size: 7,
+			shape: 'circle',
+		});
 		expect(state.defaultLinkStyle).toEqual({
 			color: '#888888',
 			size: 1.5,
@@ -183,7 +188,11 @@ describe('style rules', () => {
 		);
 		const state = createWorkspaceState(200, 1.5, document);
 
-		expect(state.defaultNodeStyle).toEqual({ color: '#111111', size: 9 });
+		expect(state.defaultNodeStyle).toEqual({
+			color: '#111111',
+			size: 9,
+			shape: 'circle',
+		});
 		expect(state.nodeStyleOverrides).toEqual({ color: '#222222' });
 		expect(state.nodeStyleRules).toHaveLength(1);
 		expect(state.nodeStyleRules[0]?.field).toBe('tag');
@@ -209,9 +218,9 @@ describe('style rules', () => {
 						size: 12,
 					},
 				],
-				{ color: '#000000', size: 7 },
+				{ color: '#000000', size: 7, shape: 'circle' },
 			),
-		).toEqual({ color: '#222222', size: 12 });
+		).toEqual({ color: '#222222', size: 12, shape: 'circle' });
 
 		expect(
 			resolveLinkStyle(
@@ -275,8 +284,64 @@ describe('style rules', () => {
 			},
 		];
 		expect(
-			resolveNodeStyle(node, rules, { color: '#000000', size: 7 }),
-		).toEqual({ color: '#222222', size: 12 });
+			resolveNodeStyle(node, rules, {
+				color: '#000000',
+				size: 7,
+				shape: 'circle',
+			}),
+		).toEqual({ color: '#222222', size: 12, shape: 'circle' });
+	});
+
+	it('resolves node shape from the last matching rule', () => {
+		expect(
+			resolveNodeStyle(
+				node,
+				[
+					{
+						id: 'all',
+						field: 'all',
+						value: '',
+						color: '#000000',
+						size: 7,
+						shape: 'square',
+					},
+					{
+						id: 'tag',
+						field: 'tag',
+						value: 'important',
+						color: '#111111',
+						size: 8,
+						shape: 'diamond',
+					},
+				],
+				{ color: '#ffffff', size: 6, shape: 'circle' },
+			),
+		).toEqual({
+			color: '#111111',
+			size: 8,
+			shape: 'diamond',
+		});
+	});
+
+	it('accepts extended node shapes', () => {
+		expect(readOptionalNodeShape('star')).toBe('star');
+		expect(readOptionalNodeShape('octagon')).toBeUndefined();
+		expect(
+			resolveNodeStyle(
+				node,
+				[
+					{
+						id: 'star',
+						field: 'all',
+						value: '',
+						color: '#111111',
+						size: 8,
+						shape: 'star',
+					},
+				],
+				{ color: '#ffffff', size: 6, shape: 'circle' },
+			).shape,
+		).toBe('star');
 	});
 
 	it('matches node style rules by chart group', () => {
@@ -301,10 +366,10 @@ describe('style rules', () => {
 			resolveNodeStyle(
 				node,
 				rules,
-				{ color: '#000000', size: 7 },
+				{ color: '#000000', size: 7, shape: 'circle' },
 				{ groupIds: ['research'], groupNames: ['Priority'] },
 			),
-		).toEqual({ color: '#666666', size: 12 });
+		).toEqual({ color: '#666666', size: 12, shape: 'circle' });
 	});
 
 	it('resolves node style context from canonical group ownership', () => {

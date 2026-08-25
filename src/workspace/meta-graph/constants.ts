@@ -45,12 +45,14 @@ export const DEFAULT_FORCE_LABELS = false;
 export const BUILT_IN_DEFAULT_NODE_STYLE: Required<DefaultNodeStyle> = {
 	color: '#7c6ff0',
 	size: 7,
+	shape: 'circle',
 };
 
 export const BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE: Required<DefaultNodeStyle> =
 	{
 		color: '#9ca3af',
 		size: 6,
+		shape: 'circle',
 	};
 
 export const BUILT_IN_DEFAULT_LINK_STYLE: Required<DefaultLinkStyle> = {

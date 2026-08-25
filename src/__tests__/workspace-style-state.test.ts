@@ -77,7 +77,7 @@ describe('workspace style state', () => {
 
 	it('clones default style updates', () => {
 		const state = createWorkspaceState(100, 1.5);
-		const style = { color: '#123456', size: 9 };
+		const style = { color: '#123456', size: 9, shape: 'circle' as const };
 
 		const nextState = setDefaultNodeStyleInState(state, style);
 		style.color = '#abcdef';

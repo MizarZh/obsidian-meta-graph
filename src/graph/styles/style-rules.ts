@@ -4,6 +4,7 @@ import type {
 	LinkLineStyle,
 	LinkStyleRule,
 	NodeFilterOperator,
+	NodeShape,
 	NodeStyleRule,
 } from '../../core/types';
 import { matchesNodeCriterion } from '../../query/filters';
@@ -11,6 +12,7 @@ import { matchesNodeCriterion } from '../../query/filters';
 export interface NodeStyle {
 	color: string;
 	size: number;
+	shape: NodeShape;
 }
 
 export interface NodeStyleContext {
@@ -35,7 +37,13 @@ export function resolveNodeStyle(
 	return rules.reduce(
 		(style, rule) =>
 			matchesNodeRule(node, rule, context)
-				? { color: rule.color || style.color, size: rule.size }
+				? {
+						color: rule.color || style.color,
+						size: rule.size,
+						shape: isNodeShape(rule.shape)
+							? rule.shape
+							: style.shape,
+					}
 				: style,
 		{ ...defaults },
 	);
@@ -60,6 +68,17 @@ export function resolveLinkStyle(
 					}
 				: style,
 		{ ...defaults },
+	);
+}
+
+function isNodeShape(value: unknown): value is NodeShape {
+	return (
+		value === 'circle' ||
+		value === 'square' ||
+		value === 'diamond' ||
+		value === 'triangle' ||
+		value === 'hexagon' ||
+		value === 'star'
 	);
 }
 

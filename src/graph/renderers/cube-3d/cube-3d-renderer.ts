@@ -744,6 +744,7 @@ export class Cube3DRenderer {
 				this.container.ownerDocument,
 				attributes.color,
 				nodeSize,
+				attributes.type ?? 'circle',
 			);
 			mesh.position.copy(
 				this.localPosition(face, position.x, position.y, 8),
@@ -1134,7 +1135,7 @@ export class Cube3DRenderer {
 		const object = this.raycaster.intersectObjects([
 			...this.faceMeshes.values(),
 		])[0]?.object;
-		const faceId = object?.userData.faceId;
+		const faceId: unknown = object?.userData?.faceId;
 		return typeof faceId === 'string' && isCubeFaceId(faceId)
 			? faceId
 			: undefined;

@@ -285,7 +285,14 @@ describe('workspace change tracker', () => {
 		const state = createWorkspaceState(200);
 		const baseline = createWorkspaceRenderBaseline(state);
 		for (const nextState of [
-			{ ...state, defaultNodeStyle: { color: '#ff0000', size: 7 } },
+			{
+				...state,
+				defaultNodeStyle: {
+					color: '#ff0000',
+					size: 7,
+					shape: 'circle' as const,
+				},
+			},
 			{
 				...state,
 				defaultLinkStyle: {
@@ -312,7 +319,11 @@ describe('workspace change tracker', () => {
 		const baseline = createWorkspaceRenderBaseline(state);
 		const nextState = {
 			...state,
-			defaultNodeStyle: { color: '#ff0000', size: 7 },
+			defaultNodeStyle: {
+				color: '#ff0000',
+				size: 7,
+				shape: 'circle' as const,
+			},
 			nodeStyleRules: [
 				{
 					id: 'important',

@@ -1214,6 +1214,14 @@
 	gap: var(--size-4-3);
 }
 
+.knowledge-workspace-rule-row.compact.node-style-values {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.knowledge-workspace-rule-row.compact.node-style-values > .node-style-size {
+	grid-column: 1 / -1;
+}
+
 .knowledge-workspace-rule-row.link-line-label {
 	grid-template-columns: 1fr;
 	gap: var(--size-4-1);

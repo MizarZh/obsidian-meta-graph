@@ -27,12 +27,14 @@ import {
 	createThreeTextSprite,
 	resolveThreeLabelPixelRatio,
 } from '../renderer-labels';
+import { createCubeNodeSprite } from '../cube-3d/cube-sprites';
 
 interface ThreeRuntime {
 	CanvasTexture: typeof Three.CanvasTexture;
 	Color: typeof Three.Color;
 	SpriteMaterial: typeof Three.SpriteMaterial;
 	Sprite: typeof Three.Sprite;
+	Group: typeof Three.Group;
 }
 
 interface ScheduledVisualUpdate {
@@ -75,6 +77,7 @@ export class Force3DRenderer {
 	private readonly forceNodeCache = new Map<string, Force3DNode>();
 	private readonly forceLinkCache = new Map<string, Force3DLink>();
 	private readonly nodeLabelSprites = new Map<string, Three.Sprite>();
+	private readonly nodeShapeSprites = new Map<string, Three.Sprite>();
 	private readonly linkLabelSprites = new Map<string, Three.Sprite>();
 	private readonly blockDoubleClick = (event: MouseEvent): void => {
 		event.preventDefault();
@@ -200,18 +203,31 @@ export class Force3DRenderer {
 			.nodeColor((node) => this.getNodeColor(node))
 			.nodeOpacity(0.94)
 			.nodeResolution(18)
-			.nodeThreeObjectExtend(true)
+			.nodeThreeObjectExtend(false)
 			.nodeThreeObject((node: Force3DNode) => {
+				const shape = createCubeNodeSprite(
+					this.three,
+					this.container.ownerDocument,
+					this.getNodeColor(node),
+					node.size,
+					node.shape,
+				);
+				this.nodeShapeSprites.set(node.id, shape);
 				const sprite = this.createTextSprite(
 					node.label,
 					this.labelSize,
 					1,
 				);
 				this.nodeLabelSprites.set(node.id, sprite);
-				return sprite;
+				const group = new this.three.Group();
+				group.add(shape, sprite);
+				return group;
 			})
 			.nodePositionUpdate((object: Object3D, coordinates, node) => {
-				this.positionNodeLabel(object, coordinates, node);
+				const label = this.nodeLabelSprites.get(node.id);
+				if (label) {
+					this.positionNodeLabel(label, coordinates, node);
+				}
 				return true;
 			})
 			.linkLabel((link) => link.label || '')
@@ -262,6 +278,7 @@ export class Force3DRenderer {
 			return;
 		}
 		this.nodeLabelSprites.clear();
+		this.nodeShapeSprites.clear();
 		this.linkLabelSprites.clear();
 		this.snapshotForceData();
 		this.instance.graphData(
@@ -280,7 +297,7 @@ export class Force3DRenderer {
 		);
 		const topologyChanged =
 			result.nodeVisibilityChanged || result.linkVisibilityChanged;
-		if (topologyChanged) {
+		if (topologyChanged || result.nodeShapeChanged) {
 			this.applyVisibleGraphData();
 		}
 		this.scheduleVisualUpdate({
@@ -574,6 +591,7 @@ export class Force3DRenderer {
 				return;
 			}
 			this.nodeLabelSprites.clear();
+			this.nodeShapeSprites.clear();
 			this.linkLabelSprites.clear();
 			this.snapshotForceData();
 			this.instance.graphData(
@@ -600,6 +618,7 @@ export class Force3DRenderer {
 			.linkDirectionalArrowColor((link: Force3DLink) =>
 				this.getLinkColor(link),
 			);
+		this.updateNodeShapeStyles();
 	}
 
 	private refreshVisualAccessorsWhenReady(): void {
@@ -617,6 +636,18 @@ export class Force3DRenderer {
 			.linkDirectionalArrowColor((link: Force3DLink) =>
 				this.getLinkColor(link),
 			);
+		this.updateNodeShapeStyles();
+	}
+
+	private updateNodeShapeStyles(): void {
+		for (const node of this.instance.graphData().nodes) {
+			const sprite = this.nodeShapeSprites.get(node.id);
+			if (!sprite) {
+				continue;
+			}
+			sprite.material.color.set(this.getNodeColor(node));
+			sprite.scale.set(node.size * 2, node.size * 2, 1);
+		}
 	}
 
 	private updateLabelSprites({
@@ -748,6 +779,7 @@ export class Force3DRenderer {
 		}
 		this.snapshotForceData();
 		this.nodeLabelSprites.clear();
+		this.nodeShapeSprites.clear();
 		this.linkLabelSprites.clear();
 		this.instance.graphData(
 			toForce3DData(this.graph, this.forceNodeCache, this.forceLinkCache),

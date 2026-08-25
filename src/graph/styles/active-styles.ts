@@ -5,6 +5,10 @@ import type {
 	NodeStyleRule,
 	WorkspaceState,
 } from '../../core/types';
+import {
+	BUILT_IN_DEFAULT_NODE_STYLE,
+	BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE,
+} from '../../workspace/meta-graph/constants';
 
 export function getActiveNodeStyleRules(
 	state: Pick<WorkspaceState, 'globalNodeStyleRules' | 'nodeStyleRules'>,
@@ -28,6 +32,10 @@ export function getActiveDefaultNodeStyle(
 			state.defaultNodeStyle.color ??
 			fallbackColor,
 		size: state.nodeStyleOverrides.size ?? state.defaultNodeStyle.size,
+		shape:
+			state.nodeStyleOverrides.shape ??
+			state.defaultNodeStyle.shape ??
+			BUILT_IN_DEFAULT_NODE_STYLE.shape,
 	};
 }
 
@@ -74,6 +82,9 @@ export function getActiveUnresolvedNodeStyle(
 	return {
 		color: state.unresolvedNodeStyleOverrides.color ?? fallbackColor,
 		size: state.unresolvedNodeStyleOverrides.size ?? 6,
+		shape:
+			state.unresolvedNodeStyleOverrides.shape ??
+			BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE.shape,
 	};
 }
 

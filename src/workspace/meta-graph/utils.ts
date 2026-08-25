@@ -4,6 +4,7 @@ import type {
 	NodeFilterField,
 	NodeFilterGroupMode,
 	NodeFilterOperator,
+	NodeShape,
 } from '../../core/types';
 import { cloneSerializable } from '../state/persistence';
 
@@ -107,6 +108,21 @@ export function readOptionalStyleLabel(value: unknown): string | undefined {
 
 export function readOptionalFiniteNumber(value: unknown): number | undefined {
 	return typeof value === 'number' && Number.isFinite(value)
+		? value
+		: undefined;
+}
+
+export function readNodeShape(value: unknown, fallback: NodeShape): NodeShape {
+	return readOptionalNodeShape(value) ?? fallback;
+}
+
+export function readOptionalNodeShape(value: unknown): NodeShape | undefined {
+	return value === 'circle' ||
+		value === 'square' ||
+		value === 'diamond' ||
+		value === 'triangle' ||
+		value === 'hexagon' ||
+		value === 'star'
 		? value
 		: undefined;
 }

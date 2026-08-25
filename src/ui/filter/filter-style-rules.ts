@@ -17,6 +17,7 @@ export function createNodeStyleRule(id: string): NodeStyleRule {
 		value: '',
 		color: '#7c6ff0',
 		size: 7,
+		shape: 'circle',
 	};
 }
 

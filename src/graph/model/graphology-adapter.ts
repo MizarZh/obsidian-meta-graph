@@ -6,6 +6,7 @@ import type {
 	LinkLineStyle,
 	LinkStyleRule,
 	NodeStyleRule,
+	NodeShape,
 	RelationType,
 	DefaultLinkStyle,
 	DefaultNodeStyle,
@@ -41,6 +42,7 @@ export interface RuntimeNodeAttributes {
 	hidden?: boolean;
 	fixed?: boolean;
 	isBend?: boolean;
+	type?: NodeShape;
 	labelRotation?: number;
 	labelDirection?: 1 | -1;
 }
@@ -98,6 +100,7 @@ export class GraphologyAdapter {
 		private readonly unresolvedNodeStyle: Required<DefaultNodeStyle> = {
 			color: palette.mutedNode,
 			size: 6,
+			shape: 'circle',
 		},
 		private readonly unresolvedLinkStyle: Required<DefaultLinkStyle> = {
 			color: '#d97706',
@@ -110,7 +113,7 @@ export class GraphologyAdapter {
 	) {
 		const legacySignature = Array.isArray(defaultNodeStyleOrRules);
 		this.defaultNodeStyle = legacySignature
-			? { color: palette.node, size: 7 }
+			? { color: palette.node, size: 7, shape: 'circle' }
 			: defaultNodeStyleOrRules;
 		this.defaultLinkStyle = Array.isArray(defaultLinkStyleOrRules)
 			? {
@@ -150,6 +153,7 @@ export class GraphologyAdapter {
 				{
 					color: this.defaultNodeStyle.color || this.palette.node,
 					size: this.defaultNodeStyle.size,
+					shape: this.defaultNodeStyle.shape,
 				},
 				this.nodeStyleContexts.get(node.id),
 			);
@@ -167,6 +171,7 @@ export class GraphologyAdapter {
 					? resolvedNodeStyle.size * 1.2
 					: resolvedNodeStyle.size,
 				color: resolvedNodeStyle.color,
+				type: resolvedNodeStyle.shape,
 				path: node.path,
 				folder: node.folder,
 				createdTime: node.createdTime,

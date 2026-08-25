@@ -22,8 +22,10 @@ import {
 	readOptionalBoolean,
 	readOptionalFiniteNumber,
 	readOptionalLinkLineStyle,
+	readOptionalNodeShape,
 	readOptionalStyleColor,
 	readOptionalStyleLabel,
+	readNodeShape,
 	readStyleColor,
 	readStyleLabel,
 } from './utils';
@@ -35,6 +37,7 @@ export function createDefaultNodeStyleRule(): NodeStyleRule {
 		value: '',
 		color: BUILT_IN_DEFAULT_NODE_STYLE.color,
 		size: BUILT_IN_DEFAULT_NODE_STYLE.size,
+		shape: BUILT_IN_DEFAULT_NODE_STYLE.shape,
 	};
 }
 
@@ -53,7 +56,7 @@ export function createDefaultLinkStyleRule(): LinkStyleRule {
 }
 
 export function normalizeNodeStyleRules(value: unknown): NodeStyleRule[] {
-	const allRules = normalizeArray<NodeStyleRule>(value);
+	const allRules = normalizeNodeStyleRuleArray(value);
 	return allRules.filter(
 		(rule) => rule.id !== BASE_STYLE_RULE_ID && rule.field !== 'all',
 	);
@@ -67,9 +70,21 @@ export function normalizeLinkStyleRules(value: unknown): LinkStyleRule[] {
 }
 
 export function normalizeGlobalNodeStyleRules(value: unknown): NodeStyleRule[] {
-	return normalizeArray<NodeStyleRule>(value).filter(
+	return normalizeNodeStyleRuleArray(value).filter(
 		(rule) => rule.id !== BASE_STYLE_RULE_ID && rule.field !== 'all',
 	);
+}
+
+function normalizeNodeStyleRuleArray(value: unknown): NodeStyleRule[] {
+	return normalizeArray<NodeStyleRule>(value).map((rule) => {
+		const record: Record<string, unknown> = isRecord(rule) ? rule : {};
+		const shape = readOptionalNodeShape(record.shape);
+		const withoutShape = { ...record };
+		delete withoutShape.shape;
+		return shape
+			? ({ ...withoutShape, shape } as NodeStyleRule)
+			: (withoutShape as unknown as NodeStyleRule);
+	});
 }
 
 export function normalizeGlobalLinkStyleRules(value: unknown): LinkStyleRule[] {
@@ -119,6 +134,10 @@ export function normalizeDefaultNodeStyle(
 			record.size ?? legacyBase?.size,
 			BUILT_IN_DEFAULT_NODE_STYLE.size,
 		),
+		shape: readNodeShape(
+			record.shape ?? legacyBase?.shape,
+			BUILT_IN_DEFAULT_NODE_STYLE.shape,
+		),
 	};
 }
 
@@ -161,11 +180,15 @@ export function normalizeNodeStyleOverrides(
 	const overrides: DefaultNodeStyle = {};
 	const color = readOptionalStyleColor(record.color ?? legacyBase?.color);
 	const size = readOptionalFiniteNumber(record.size ?? legacyBase?.size);
+	const shape = readOptionalNodeShape(record.shape ?? legacyBase?.shape);
 	if (color !== undefined && color !== defaults.color) {
 		overrides.color = color;
 	}
 	if (size !== undefined && size !== defaults.size) {
 		overrides.size = size;
+	}
+	if (shape !== undefined && shape !== defaults.shape) {
+		overrides.shape = shape;
 	}
 	return overrides;
 }
@@ -208,7 +231,9 @@ export function normalizeLinkStyleOverrides(
 	return overrides;
 }
 
-export function normalizePlainLinkStyleOverrides(value: unknown): DefaultLinkStyle {
+export function normalizePlainLinkStyleOverrides(
+	value: unknown,
+): DefaultLinkStyle {
 	return normalizeLinkStyleOverrides(
 		value,
 		undefined,

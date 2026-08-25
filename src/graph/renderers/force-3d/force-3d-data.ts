@@ -1,4 +1,5 @@
 import type { LinkObject, NodeObject } from '3d-force-graph';
+import type { NodeShape } from '../../../core/types';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
@@ -10,6 +11,7 @@ export interface Force3DNode extends NodeObject {
 	label: string;
 	color: string;
 	size: number;
+	shape?: NodeShape;
 	path: string;
 	isPrimary?: boolean;
 	isContext?: boolean;
@@ -35,6 +37,7 @@ export interface Force3DStyleSyncResult {
 	nodeLabelIds: Set<string>;
 	linkLabelIds: Set<string>;
 	nodeStyleChanged: boolean;
+	nodeShapeChanged?: boolean;
 	nodeVisibilityChanged: boolean;
 	linkStyleChanged: boolean;
 	linkVisibilityChanged: boolean;
@@ -85,6 +88,7 @@ export function syncForce3DDataStyles(
 		nodeLabelIds: new Set(),
 		linkLabelIds: new Set(),
 		nodeStyleChanged: false,
+		nodeShapeChanged: false,
 		nodeVisibilityChanged: false,
 		linkStyleChanged: false,
 		linkVisibilityChanged: false,
@@ -119,12 +123,17 @@ export function syncForce3DDataStyles(
 		if (node.size !== attributes.size || node.color !== attributes.color) {
 			result.nodeStyleChanged = true;
 		}
+		if (node.shape !== (attributes.type ?? 'circle')) {
+			result.nodeShapeChanged = true;
+			result.nodeStyleChanged = true;
+		}
 		if (Boolean(node.hidden) !== Boolean(attributes.hidden)) {
 			result.nodeVisibilityChanged = true;
 		}
 		node.label = attributes.label;
 		node.color = attributes.color;
 		node.size = attributes.size;
+		node.shape = attributes.type ?? 'circle';
 		node.path = attributes.path;
 		node.isPrimary = attributes.isPrimary;
 		node.isContext = attributes.isContext;
@@ -198,6 +207,7 @@ function toForce3DNode(
 	node.label = attributes.label;
 	node.color = attributes.color;
 	node.size = attributes.size;
+	node.shape = attributes.type ?? 'circle';
 	node.path = attributes.path;
 	node.isPrimary = attributes.isPrimary;
 	node.isContext = attributes.isContext;

@@ -61,11 +61,13 @@ settings to report them in the developer console.
 8. Move note/link style rules between global and chart scopes with each rule's
    move action. Use **Copy chart styles** and **Paste chart styles** to transfer
    chart overrides and rules between charts.
-9. Add link style rules by relation or source frontmatter field.
-   Note and link colors, sizes, line style, labels, and hidden state update the
-   visible graph without rerunning layout. Color inputs are throttled while
-   dragging so changes preview live without rebuilding the graph for every
-   pointer event.
+9. Add link style rules by relation or source frontmatter field. Choose circle,
+   square, diamond, triangle, hexagon, or star note shapes in workspace
+   defaults, chart overrides, and note style rules. Note and link colors, sizes,
+   line style, labels, and hidden
+   state update the visible graph without rerunning layout. Color inputs are
+   throttled while dragging so changes preview live without rebuilding the graph
+   for every pointer event.
 10. Use **Group** settings to add chart-local groups, set priority, colors,
    padding, and Manual or Rule membership. Each note belongs to at most one
    group; an explicit assignment or Ungrouped override takes priority over
