@@ -223,6 +223,11 @@
 				controller.setUnresolvedLinkStyleOverrides(style)}
 			onLinkStyleRulesChange={(rules) =>
 				controller.setLinkStyleRules(rules)}
+			onMoveNodeStyleRule={(id, targetScope) =>
+				controller.moveNodeStyleRuleToScope(id, targetScope)}
+			onMoveLinkStyleRule={(id, targetScope) =>
+				controller.moveLinkStyleRuleToScope(id, targetScope)}
+			onChartStyle={(style) => controller.setChartStyle(style)}
 		/>
 	{/if}
 </div>

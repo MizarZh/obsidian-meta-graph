@@ -3,6 +3,10 @@ import type { MetaGraphChart, WorkspaceState } from '../core/types';
 import {
 	setDefaultNodeStyleInState,
 	setGlobalNodeStyleRulesInState,
+	setGlobalLinkStyleRulesInState,
+	setLinkStyleRulesInState,
+	moveNodeStyleRuleToScopeInState,
+	moveLinkStyleRuleToScopeInState,
 	setNodeStyleRulesInState,
 } from '../workspace/state/style-state';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
@@ -79,5 +83,83 @@ describe('workspace style state', () => {
 		style.color = '#abcdef';
 
 		expect(nextState.defaultNodeStyle.color).toBe('#123456');
+	});
+
+	it('moves note rules between global and chart scopes', () => {
+		const state = createWorkspaceState(100, 1.5);
+		const globalRule = {
+			id: 'global-tag-rule',
+			field: 'tag' as const,
+			operator: 'contains' as const,
+			value: '#project',
+			color: '#00ff00',
+			size: 12,
+		};
+		const chartRule = {
+			id: 'chart-folder-rule',
+			field: 'folder' as const,
+			operator: 'is' as const,
+			value: 'Notes',
+			color: '#ff0000',
+			size: 9,
+		};
+		const withRules = setNodeStyleRulesInState(
+			setGlobalNodeStyleRulesInState(state, [globalRule]),
+			[chartRule],
+		);
+
+		const movedToChart = moveNodeStyleRuleToScopeInState(
+			withRules,
+			globalRule.id,
+			'current',
+		);
+		expect(movedToChart.globalNodeStyleRules).toEqual([]);
+		expect(movedToChart.nodeStyleRules).toEqual([chartRule, globalRule]);
+		expect(getActiveChart(movedToChart).style.nodeRules).toEqual(
+			movedToChart.nodeStyleRules,
+		);
+
+		const movedToGlobal = moveNodeStyleRuleToScopeInState(
+			movedToChart,
+			globalRule.id,
+			'global',
+		);
+		expect(movedToGlobal.globalNodeStyleRules).toEqual([globalRule]);
+		expect(movedToGlobal.nodeStyleRules).toEqual([chartRule]);
+	});
+
+	it('moves link rules between global and chart scopes', () => {
+		const state = createWorkspaceState(100, 1.5);
+		const globalRule = {
+			id: 'global-link-rule',
+			field: 'source-field' as const,
+			operator: 'is' as const,
+			value: 'leads-to',
+			color: '#00ff00',
+			size: 2,
+			lineStyle: 'dashed' as const,
+			label: 'Global',
+			showLabel: true,
+			hidden: false,
+		};
+		const withRules = setLinkStyleRulesInState(
+			setGlobalLinkStyleRulesInState(state, [globalRule]),
+			[],
+		);
+		const movedToChart = moveLinkStyleRuleToScopeInState(
+			withRules,
+			globalRule.id,
+			'current',
+		);
+		expect(movedToChart.globalLinkStyleRules).toEqual([]);
+		expect(movedToChart.linkStyleRules).toEqual([globalRule]);
+
+		const movedToGlobal = moveLinkStyleRuleToScopeInState(
+			movedToChart,
+			globalRule.id,
+			'global',
+		);
+		expect(movedToGlobal.globalLinkStyleRules).toEqual([globalRule]);
+		expect(movedToGlobal.linkStyleRules).toEqual([]);
 	});
 });

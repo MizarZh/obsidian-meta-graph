@@ -58,12 +58,15 @@ settings to report them in the developer console.
 7. Add filters and style rules for **All views** or **This view**. File
    filters support file name, path, folder, extension, tags, links, and
    frontmatter property presence.
-8. Add link style rules by relation or source frontmatter field.
+8. Move note/link style rules between global and chart scopes with each rule's
+   move action. Use **Copy chart styles** and **Paste chart styles** to transfer
+   chart overrides and rules between charts.
+9. Add link style rules by relation or source frontmatter field.
    Note and link colors, sizes, line style, labels, and hidden state update the
    visible graph without rerunning layout. Color inputs are throttled while
    dragging so changes preview live without rebuilding the graph for every
    pointer event.
-9. Use **Group** settings to add chart-local groups, set priority, colors,
+10. Use **Group** settings to add chart-local groups, set priority, colors,
    padding, and Manual or Rule membership. Each note belongs to at most one
    group; an explicit assignment or Ungrouped override takes priority over
    rules. Graph, Arc, Hierarchical edge bundling, Flow, Free, and Cube render
@@ -74,23 +77,23 @@ settings to report them in the developer console.
    Auto uses circles in Graph and rectangles in Free. Free circles keep a square
    diameter while resizing. Groups are saved in the workspace file, not note
    frontmatter.
-10. Increase **Label density** in **Graph** settings when Sigma samples too few
+11. Increase **Label density** in **Graph** settings when Sigma samples too few
     labels while zoomed out. Enable **Always show labels** to force every visible
     note label through Sigma's label grid. In 3D graph and Cube layouts, use
     **3D text clarity** in **Text style** to increase label texture resolution;
     higher settings use more GPU memory. In Arc views, use **Label angle** under
     **Arc details** to select Auto, 0°, 45°, or 90°. Auto keeps Right/Left labels
     horizontal and rotates Up/Down labels vertically.
-11. Use the bottom connection panel to select the metadata field and direction
+12. Use the bottom connection panel to select the metadata field and direction
     used for new links. To add a field or another direction for an existing
     field, enter the metadata name, choose **One-way**, **Two-way**, or
     **Reverse**, then select **+**. Input and direction changes remain drafts
     until added.
-12. Use **Details** for quick connections, or drag the link button on a pinned
+13. Use **Details** for quick connections, or drag the link button on a pinned
     note or template to a graph node. `Ctrl`-drag between graph nodes remains an
     advanced shortcut. One-way writes the source note only; two-way writes both
     notes so each note links to the other.
-13. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
+14. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
     through the force-directed layout. Nearby nodes can move with the graph
     forces, and the layout keeps settling briefly after release. Use
     **Center force**, **Repel force**, **Link force**, **Drag link force**,
@@ -101,35 +104,35 @@ settings to report them in the developer console.
     New nodes are placed near positioned neighbors when possible, then Force
     layout can move them through the force field. `Ctrl`-drag still creates
     links.
-14. In Free views, drag nodes directly to place them by hand. Free views do not
+15. In Free views, drag nodes directly to place them by hand. Free views do not
     run an automatic layout after the first placement, and dragged node
     positions are saved in the workspace file.
-15. Drag a group title to move the group. Graph pauses and then resumes its force
+16. Drag a group title to move the group. Graph pauses and then resumes its force
     simulation; Free saves the frame and member positions. In Free, use any edge
     or corner handle to resize the region without changing membership.
-16. In Free, drag a node into any group frame to create an explicit assignment.
+17. In Free, drag a node into any group frame to create an explicit assignment.
     Drag it out over empty space to set an explicit **Ungrouped** override. Use
     **Automatic** in Details to return the note to rule-based ownership.
-17. In Cube views, each cube face is a group. Drag the background to
+18. In Cube views, each cube face is a group. Drag the background to
     rotate the cube, drag nodes within their face to save their placement, use
     `Shift`-click for local relationship focus, right-click for selection
     details, and `Ctrl`-drag between nodes to add links. Use **Face opacity** in
     **Graph** settings to control cube face transparency.
-18. Use **Details**, **Pinned notes**, and **Templates** in the right panel. Only
+19. Use **Details**, **Pinned notes**, and **Templates** in the right panel. Only
     one tab is shown at a time. Pinned notes use the same searchable, filterable
     **Add notes** picker as Workspace files. Template editing opens in a modal;
     drag a row to the graph or use its explicit **Create** and link buttons.
-19. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
+20. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
     workspace is focused, to undo connection edits made in the current workspace
     session.
-20. Choose **Open notes in** under **Settings -> Meta Graph** to open notes in a
+21. Choose **Open notes in** under **Settings -> Meta Graph** to open notes in a
     new tab or a reused right split. Use the fold/unfold button in **Details** to show
     read-only note content below its metadata. **After creating a note** controls whether
     template-created notes stay on the graph or open with the same policy.
-21. Select **Debug** to inspect or copy the current query, projection,
+22. Select **Debug** to inspect or copy the current query, projection,
     canonical index, adjacency maps, unresolved links, and performance timings
     as JSON.
-22. Choose **Large vault mode** under **Settings -> Meta Graph**. **Auto**
+23. Choose **Large vault mode** under **Settings -> Meta Graph**. **Auto**
     enables cooperative rendering and layout workers at 5,000 Markdown files.
     When active, metadata edits use incremental per-file indexing; file create,
     delete, and rename operations use a conservative full rebuild to preserve

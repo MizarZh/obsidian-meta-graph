@@ -60,6 +60,7 @@
 		onNodeStyleOverrides,
 		onUnresolvedNodeStyleOverrides,
 		onNodeStyleRulesChange,
+		onMoveNodeStyleRule,
 	}: {
 		app: App;
 		folders: string[];
@@ -80,6 +81,7 @@
 		onNodeStyleOverrides: (style: DefaultNodeStyle) => void;
 		onUnresolvedNodeStyleOverrides: (style: DefaultNodeStyle) => void;
 		onNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
+		onMoveNodeStyleRule: (id: string, targetScope: StyleRuleScope) => void;
 	} = $props();
 
 	let workspaceDefaultOpen = $state(true);
@@ -189,6 +191,10 @@
 		direction: -1 | 1,
 	): void {
 		updateNodeRules(scope, moveRule(getNodeRules(scope), id, direction));
+	}
+
+	function moveNodeRuleToScope(scope: StyleRuleScope, id: string): void {
+		onMoveNodeStyleRule(id, scope === 'global' ? 'current' : 'global');
 	}
 
 	function updateDefaultNodeStyle(patch: Partial<DefaultNodeStyle>): void {
@@ -499,13 +505,29 @@
 						</div>
 					{/snippet}
 					{#snippet actions()}
-						<ObsidianButton
-							class="knowledge-workspace-remove-rule-button"
-							ariaLabel="Remove note style rule"
-							icon="trash-2"
-							onClick={() =>
-								removeNodeRule(section.scope, rule.id)}
-						/>
+						<div class="knowledge-workspace-style-rule-actions">
+							<ObsidianButton
+								class="knowledge-workspace-move-rule-button"
+								ariaLabel={section.scope === 'global'
+									? 'Move to chart note rules'
+									: 'Move to global note rules'}
+								tooltip={section.scope === 'global'
+									? 'Move to chart note rules'
+									: 'Move to global note rules'}
+								icon={section.scope === 'global'
+									? 'layout-dashboard'
+									: 'globe'}
+								onClick={() =>
+									moveNodeRuleToScope(section.scope, rule.id)}
+							/>
+							<ObsidianButton
+								class="knowledge-workspace-remove-rule-button"
+								ariaLabel="Remove note style rule"
+								icon="trash-2"
+								onClick={() =>
+									removeNodeRule(section.scope, rule.id)}
+							/>
+						</div>
 					{/snippet}
 				</NodeConditionRow>
 				<div class="knowledge-workspace-rule-row compact">

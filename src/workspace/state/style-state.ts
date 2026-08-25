@@ -1,4 +1,5 @@
 import type {
+	ChartStyleConfig,
 	DefaultLinkStyle,
 	DefaultNodeStyle,
 	LinkStyleRule,
@@ -127,6 +128,85 @@ export function setLinkStyleRulesInState(
 	return updateActiveChartStyle(state, {
 		linkRules: normalizeLinkStyleRules(linkStyleRules),
 	});
+}
+
+export function setChartStyleInState(
+	state: WorkspaceState,
+	style: ChartStyleConfig,
+): WorkspaceState {
+	return updateActiveChartStyle(state, {
+		nodeOverrides: cloneSerializable(style.nodeOverrides),
+		unresolvedNodeOverrides: normalizeUnresolvedNodeStyleOverrides(
+			style.unresolvedNodeOverrides,
+		),
+		linkOverrides: cloneSerializable(style.linkOverrides),
+		plainLinkOverrides: normalizePlainLinkStyleOverrides(
+			style.plainLinkOverrides,
+		),
+		unresolvedLinkOverrides: normalizeUnresolvedLinkStyleOverrides(
+			style.unresolvedLinkOverrides,
+		),
+		nodeRules: normalizeNodeStyleRules(style.nodeRules),
+		linkRules: normalizeLinkStyleRules(style.linkRules),
+	});
+}
+
+export type StyleRuleTargetScope = 'global' | 'current';
+
+export function moveNodeStyleRuleToScopeInState(
+	state: WorkspaceState,
+	id: string,
+	targetScope: StyleRuleTargetScope,
+): WorkspaceState {
+	const sourceRules =
+		targetScope === 'global'
+			? state.nodeStyleRules
+			: state.globalNodeStyleRules;
+	const rule = sourceRules.find((item) => item.id === id);
+	if (!rule) {
+		return state;
+	}
+	const nextSourceRules = sourceRules.filter((item) => item.id !== id);
+	const nextTargetRules = [
+		...(targetScope === 'global'
+			? state.globalNodeStyleRules
+			: state.nodeStyleRules),
+		rule,
+	];
+	if (targetScope === 'global') {
+		const nextState = setNodeStyleRulesInState(state, nextSourceRules);
+		return setGlobalNodeStyleRulesInState(nextState, nextTargetRules);
+	}
+	const nextState = setGlobalNodeStyleRulesInState(state, nextSourceRules);
+	return setNodeStyleRulesInState(nextState, nextTargetRules);
+}
+
+export function moveLinkStyleRuleToScopeInState(
+	state: WorkspaceState,
+	id: string,
+	targetScope: StyleRuleTargetScope,
+): WorkspaceState {
+	const sourceRules =
+		targetScope === 'global'
+			? state.linkStyleRules
+			: state.globalLinkStyleRules;
+	const rule = sourceRules.find((item) => item.id === id);
+	if (!rule) {
+		return state;
+	}
+	const nextSourceRules = sourceRules.filter((item) => item.id !== id);
+	const nextTargetRules = [
+		...(targetScope === 'global'
+			? state.globalLinkStyleRules
+			: state.linkStyleRules),
+		rule,
+	];
+	if (targetScope === 'global') {
+		const nextState = setLinkStyleRulesInState(state, nextSourceRules);
+		return setGlobalLinkStyleRulesInState(nextState, nextTargetRules);
+	}
+	const nextState = setGlobalLinkStyleRulesInState(state, nextSourceRules);
+	return setLinkStyleRulesInState(nextState, nextTargetRules);
 }
 
 function updateActiveChartStyle(

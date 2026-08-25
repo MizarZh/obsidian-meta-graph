@@ -4,12 +4,14 @@
 	import GraphSettingsPanel from './filter-panel/GraphSettingsPanel.svelte';
 	import LinkStylePanel from './filter-panel/LinkStylePanel.svelte';
 	import NodeStylePanel from './filter-panel/NodeStylePanel.svelte';
+	import StyleTransferControls from './filter-panel/StyleTransferControls.svelte';
 	import TextStylePanel from './filter-panel/TextStylePanel.svelte';
 	import { getDefaultLabelColor as resolveDefaultLabelColor } from './filter/color-commit';
 	import type {
 		ArcDirection,
 		ArcLabelAngle,
 		ChartGroupDefinition,
+		ChartStyleConfig,
 		DefaultLinkStyle,
 		DefaultNodeStyle,
 		FlowDirection,
@@ -141,6 +143,9 @@
 		onPlainLinkStyleOverrides,
 		onUnresolvedLinkStyleOverrides,
 		onLinkStyleRulesChange,
+		onMoveNodeStyleRule,
+		onMoveLinkStyleRule,
+		onChartStyle,
 	}: {
 		app: App;
 		panel: SettingsPanelMode;
@@ -256,14 +261,36 @@
 		onPlainLinkStyleOverrides: (style: DefaultLinkStyle) => void;
 		onUnresolvedLinkStyleOverrides: (style: DefaultLinkStyle) => void;
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
+		onMoveNodeStyleRule: (
+			id: string,
+			targetScope: 'global' | 'current',
+		) => void;
+		onMoveLinkStyleRule: (
+			id: string,
+			targetScope: 'global' | 'current',
+		) => void;
+		onChartStyle: (style: ChartStyleConfig) => void;
 	} = $props();
 
 	function getDefaultLabelColor(): string {
 		return resolveDefaultLabelColor(document);
 	}
+
+	const chartStyle = $derived({
+		nodeOverrides: nodeStyleOverrides,
+		unresolvedNodeOverrides: unresolvedNodeStyleOverrides,
+		linkOverrides: linkStyleOverrides,
+		plainLinkOverrides: plainLinkStyleOverrides,
+		unresolvedLinkOverrides: unresolvedLinkStyleOverrides,
+		nodeRules: nodeStyleRules,
+		linkRules: linkStyleRules,
+	} satisfies ChartStyleConfig);
 </script>
 
 <aside class="knowledge-workspace-filters">
+	{#if panel === 'note-style' || panel === 'link-style'}
+		<StyleTransferControls style={chartStyle} onPaste={onChartStyle} />
+	{/if}
 	{#if panel === 'graph'}
 		<GraphSettingsPanel
 			{app}
@@ -388,6 +415,7 @@
 			{onNodeStyleOverrides}
 			{onUnresolvedNodeStyleOverrides}
 			{onNodeStyleRulesChange}
+			{onMoveNodeStyleRule}
 		/>
 	{:else}
 		<LinkStylePanel
@@ -407,6 +435,7 @@
 			{onPlainLinkStyleOverrides}
 			{onUnresolvedLinkStyleOverrides}
 			{onLinkStyleRulesChange}
+			{onMoveLinkStyleRule}
 		/>
 	{/if}
 </aside>

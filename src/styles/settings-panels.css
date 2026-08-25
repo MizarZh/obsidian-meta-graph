@@ -892,6 +892,19 @@
 	white-space: nowrap;
 }
 
+.knowledge-workspace-style-transfer {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-2);
+	align-items: center;
+	margin-bottom: var(--size-4-4);
+}
+
+.knowledge-workspace-style-transfer-status {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
 .knowledge-workspace-add-rule-button,
 .knowledge-workspace-remove-rule-button {
 	display: grid;
@@ -1254,8 +1267,7 @@
 	width: auto;
 }
 
-.knowledge-workspace-slider-value
-	> .knowledge-workspace-obsidian-control {
+.knowledge-workspace-slider-value > .knowledge-workspace-obsidian-control {
 	display: block;
 	min-width: 0;
 	width: 100%;
@@ -1387,7 +1399,35 @@
 		minmax(82px, 1fr)
 		minmax(96px, 1fr)
 		minmax(72px, 1fr)
-		30px;
+		62px;
+}
+
+.knowledge-workspace-style-rule-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 2px;
+}
+
+.knowledge-workspace-move-rule-button {
+	display: grid;
+	place-items: center;
+	width: 30px;
+	height: 30px;
+	padding: 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+	box-shadow: var(--shadow-s);
+	color: var(--text-muted);
+}
+
+.knowledge-workspace-move-rule-button:hover {
+	border-color: var(
+		--background-modifier-border-hover,
+		var(--background-modifier-border)
+	);
+	background: var(--background-primary-alt);
+	color: var(--text-normal);
 }
 
 .knowledge-workspace-move-rule-buttons {

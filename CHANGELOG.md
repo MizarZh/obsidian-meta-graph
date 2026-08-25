@@ -8,6 +8,8 @@ All notable changes to Meta Graph are documented here.
 
 - Added `Ctrl+F` / `Cmd+F` shortcut to focus **Find note** and select the current search text.
 - Added direction-aware arrows to `Ctrl`-drag connection previews: one-way points to the target, two-way points at both ends, and reverse points to the source.
+- Added chart style copy/paste controls for moving node and link styles between charts.
+- Added per-rule actions to move note and link style rules between global and chart scopes.
 
 ### Fixed
 

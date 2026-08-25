@@ -2,6 +2,7 @@ import { TFile, type App } from 'obsidian';
 import type {
 	ArcDirection,
 	ArcLabelAngle,
+	ChartStyleConfig,
 	ChartSource,
 	ChartGroup,
 	ConnectionFieldMode,
@@ -74,10 +75,13 @@ import {
 import {
 	setDefaultLinkStyleInState,
 	setDefaultNodeStyleInState,
+	setChartStyleInState,
 	setGlobalLinkStyleRulesInState,
 	setGlobalNodeStyleRulesInState,
 	setLinkStyleOverridesInState,
 	setLinkStyleRulesInState,
+	moveLinkStyleRuleToScopeInState,
+	moveNodeStyleRuleToScopeInState,
 	setNodeStyleOverridesInState,
 	setUnresolvedNodeStyleOverridesInState,
 	setNodeStyleRulesInState,
@@ -995,6 +999,28 @@ export class WorkspaceController {
 	setLinkStyleRules(linkStyleRules: LinkStyleRule[]): void {
 		this.setWorkspaceState(
 			setLinkStyleRulesInState(this.state, linkStyleRules),
+		);
+	}
+
+	setChartStyle(style: ChartStyleConfig): void {
+		this.setWorkspaceState(setChartStyleInState(this.state, style));
+	}
+
+	moveNodeStyleRuleToScope(
+		id: string,
+		targetScope: 'global' | 'current',
+	): void {
+		this.setWorkspaceState(
+			moveNodeStyleRuleToScopeInState(this.state, id, targetScope),
+		);
+	}
+
+	moveLinkStyleRuleToScope(
+		id: string,
+		targetScope: 'global' | 'current',
+	): void {
+		this.setWorkspaceState(
+			moveLinkStyleRuleToScopeInState(this.state, id, targetScope),
 		);
 	}
 

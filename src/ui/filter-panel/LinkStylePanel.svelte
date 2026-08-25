@@ -77,6 +77,7 @@
 		onPlainLinkStyleOverrides,
 		onUnresolvedLinkStyleOverrides,
 		onLinkStyleRulesChange,
+		onMoveLinkStyleRule,
 	}: {
 		app: App;
 		metadataFieldSuggestions: string[];
@@ -94,6 +95,7 @@
 		onPlainLinkStyleOverrides: (style: DefaultLinkStyle) => void;
 		onUnresolvedLinkStyleOverrides: (style: DefaultLinkStyle) => void;
 		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
+		onMoveLinkStyleRule: (id: string, targetScope: StyleRuleScope) => void;
 	} = $props();
 
 	let workspaceDefaultOpen = $state(true);
@@ -173,6 +175,10 @@
 		direction: -1 | 1,
 	): void {
 		updateLinkRules(scope, moveRule(getLinkRules(scope), id, direction));
+	}
+
+	function moveLinkRuleToScope(scope: StyleRuleScope, id: string): void {
+		onMoveLinkStyleRule(id, scope === 'global' ? 'current' : 'global');
 	}
 
 	function updateDefaultLinkStyle(patch: Partial<DefaultLinkStyle>): void {
@@ -610,12 +616,29 @@
 								})}
 						/>
 					{/if}
-					<ObsidianButton
-						class="knowledge-workspace-remove-rule-button"
-						ariaLabel="Remove link style rule"
-						icon="trash-2"
-						onClick={() => removeLinkRule(section.scope, rule.id)}
-					/>
+					<div class="knowledge-workspace-style-rule-actions">
+						<ObsidianButton
+							class="knowledge-workspace-move-rule-button"
+							ariaLabel={section.scope === 'global'
+								? 'Move to chart link rules'
+								: 'Move to global link rules'}
+							tooltip={section.scope === 'global'
+								? 'Move to chart link rules'
+								: 'Move to global link rules'}
+							icon={section.scope === 'global'
+								? 'layout-dashboard'
+								: 'globe'}
+							onClick={() =>
+								moveLinkRuleToScope(section.scope, rule.id)}
+						/>
+						<ObsidianButton
+							class="knowledge-workspace-remove-rule-button"
+							ariaLabel="Remove link style rule"
+							icon="trash-2"
+							onClick={() =>
+								removeLinkRule(section.scope, rule.id)}
+						/>
+					</div>
 				</div>
 				<div class="knowledge-workspace-rule-row compact">
 					<label>
