@@ -40,7 +40,10 @@
 		type GraphConnectionDropTarget,
 		type GraphConnectionDropAction,
 	} from './interactions/graph-connection-drop';
-	import { shouldHandleConnectionUndoShortcut } from './interactions/keyboard-shortcuts';
+	import {
+		shouldHandleConnectionUndoShortcut,
+		shouldHandleFindNoteShortcut,
+	} from './interactions/keyboard-shortcuts';
 	import {
 		getDockNoteEntries,
 		getFilePathSuggestions,
@@ -140,6 +143,7 @@
 	let workspaceState: WorkspaceState = $state(getInitialState());
 	let workspaceRoot: HTMLDivElement;
 	let canvas: HTMLDivElement;
+	let findNoteInput: HTMLInputElement | undefined;
 	let lastThemeSignature = '';
 	let lastCanvasWidth = 0;
 	let lastCanvasHeight = 0;
@@ -404,6 +408,7 @@
 			attributeFilter: ['class'],
 		});
 		workspaceRoot.addEventListener('keydown', handleWorkspaceKeydown);
+		window.addEventListener('keydown', handleWindowShortcut, true);
 		workspaceRoot.addEventListener(
 			'pointerdown',
 			focusWorkspaceForShortcuts,
@@ -510,6 +515,7 @@
 				'keydown',
 				handleWorkspaceKeydown,
 			);
+			window.removeEventListener('keydown', handleWindowShortcut, true);
 			workspaceRoot.removeEventListener(
 				'pointerdown',
 				focusWorkspaceForShortcuts,
@@ -1007,6 +1013,9 @@
 	}
 
 	function handleWorkspaceKeydown(event: KeyboardEvent): void {
+		if (focusFindNoteInput(event)) {
+			return;
+		}
 		if (readOnly) return;
 		if (
 			!shouldHandleConnectionUndoShortcut({
@@ -1028,6 +1037,36 @@
 				error: formatError(error),
 			}),
 		);
+	}
+
+	function handleWindowShortcut(event: KeyboardEvent): void {
+		if (
+			!(event.target instanceof Node) ||
+			!workspaceRoot.contains(event.target)
+		) {
+			return;
+		}
+		focusFindNoteInput(event);
+	}
+
+	function focusFindNoteInput(event: KeyboardEvent): boolean {
+		if (
+			!findNoteInput ||
+			!shouldHandleFindNoteShortcut({
+				key: event.key,
+				ctrlKey: event.ctrlKey,
+				metaKey: event.metaKey,
+				altKey: event.altKey,
+				shiftKey: event.shiftKey,
+			})
+		) {
+			return false;
+		}
+		event.preventDefault();
+		event.stopPropagation();
+		findNoteInput.focus({ preventScroll: true });
+		findNoteInput.select();
+		return true;
 	}
 
 	function isEditableTarget(target: EventTarget | null): boolean {
@@ -1058,6 +1097,7 @@
 		onChartSource={requestChartSourceChange}
 		onDeleteChart={confirmDeleteActiveChart}
 		onFocusNode={focusNodeFromSearch}
+		onFindNoteInputEl={(element) => (findNoteInput = element)}
 		onFit={() => rendererLifecycle.fit()}
 		onRefresh={() => controller.refresh(true)}
 		{settingsPanel}

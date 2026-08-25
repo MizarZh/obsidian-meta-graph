@@ -1,5 +1,37 @@
 import { describe, expect, it } from 'vitest';
-import { shouldHandleConnectionUndoShortcut } from '../ui/interactions/keyboard-shortcuts';
+import {
+	shouldHandleConnectionUndoShortcut,
+	shouldHandleFindNoteShortcut,
+} from '../ui/interactions/keyboard-shortcuts';
+
+describe('find note shortcut', () => {
+	it('handles Ctrl+F and Cmd+F', () => {
+		expect(shouldHandleFindNoteShortcut(findInput({ ctrlKey: true }))).toBe(
+			true,
+		);
+		expect(shouldHandleFindNoteShortcut(findInput({ metaKey: true }))).toBe(
+			true,
+		);
+	});
+
+	it('ignores other keys and modified shortcuts', () => {
+		expect(
+			shouldHandleFindNoteShortcut(
+				findInput({ ctrlKey: true, altKey: true }),
+			),
+		).toBe(false);
+		expect(
+			shouldHandleFindNoteShortcut(
+				findInput({ ctrlKey: true, shiftKey: true }),
+			),
+		).toBe(false);
+		expect(
+			shouldHandleFindNoteShortcut(
+				findInput({ ctrlKey: true, key: 'g' }),
+			),
+		).toBe(false);
+	});
+});
 
 describe('connection undo shortcut', () => {
 	it('handles Ctrl+Z and Cmd+Z with pending undo entries', () => {
@@ -45,6 +77,19 @@ function input(
 		shiftKey: false,
 		connectionUndoCount: 1,
 		editableTarget: false,
+		...overrides,
+	};
+}
+
+function findInput(
+	overrides: Partial<Parameters<typeof shouldHandleFindNoteShortcut>[0]>,
+): Parameters<typeof shouldHandleFindNoteShortcut>[0] {
+	return {
+		key: 'f',
+		ctrlKey: false,
+		metaKey: false,
+		altKey: false,
+		shiftKey: false,
 		...overrides,
 	};
 }

@@ -22,6 +22,7 @@
 		allowCustom = true,
 		onInput,
 		onSelect,
+		onInputEl,
 	}: {
 		app: App;
 		value: string;
@@ -34,6 +35,7 @@
 		allowCustom?: boolean;
 		onInput?: (value: string) => void;
 		onSelect: (option: SuggestionOption) => void;
+		onInputEl?: (element: HTMLInputElement) => void;
 	} = $props();
 
 	let inputEl = $state<HTMLInputElement | undefined>(undefined);
@@ -166,5 +168,6 @@
 	onFocus={openSuggestions}
 	onInputEl={(element) => {
 		inputEl = element;
+		onInputEl?.(element);
 	}}
 />

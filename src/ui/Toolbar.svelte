@@ -32,6 +32,7 @@
 		onChartSource,
 		onDeleteChart,
 		onFocusNode,
+		onFindNoteInputEl,
 		onFit,
 		onRefresh,
 		settingsPanel,
@@ -54,6 +55,7 @@
 		onChartSource: (source: ChartSource) => void;
 		onDeleteChart: () => void;
 		onFocusNode: (id: string) => void;
+		onFindNoteInputEl: (element: HTMLInputElement) => void;
 		onFit: () => void;
 		onRefresh: () => void;
 		settingsPanel: SettingsPanelMode | undefined;
@@ -567,6 +569,7 @@
 				focusSearchNode(option.value);
 				nodeSearch = '';
 			}}
+			onInputEl={onFindNoteInputEl}
 		/>
 	</div>
 	<div class="knowledge-workspace-graph-actions">

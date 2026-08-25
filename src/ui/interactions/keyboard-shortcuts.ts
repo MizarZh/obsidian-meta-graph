@@ -8,6 +8,22 @@ export interface ConnectionUndoShortcutInput {
 	editableTarget: boolean;
 }
 
+export type FindNoteShortcutInput = Pick<
+	ConnectionUndoShortcutInput,
+	'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'shiftKey'
+>;
+
+export function shouldHandleFindNoteShortcut(
+	input: FindNoteShortcutInput,
+): boolean {
+	return (
+		(input.ctrlKey || input.metaKey) &&
+		!input.altKey &&
+		!input.shiftKey &&
+		input.key.toLocaleLowerCase() === 'f'
+	);
+}
+
 export function shouldHandleConnectionUndoShortcut(
 	input: ConnectionUndoShortcutInput,
 ): boolean {
