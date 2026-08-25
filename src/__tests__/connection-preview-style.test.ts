@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { WorkspaceState } from '../core/types';
-import { resolveConnectionPreviewStyle } from '../ui/workspace/connection-preview-style';
+import {
+	resolveConnectionPreviewMarkers,
+	resolveConnectionPreviewStyle,
+} from '../ui/workspace/connection-preview-style';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
 
 describe('resolveConnectionPreviewStyle', () => {
@@ -31,11 +34,36 @@ describe('resolveConnectionPreviewStyle', () => {
 			],
 		};
 
-		expect(resolveConnectionPreviewStyle(state, 'a.md', 'b.md')).toMatchObject({
+		expect(
+			resolveConnectionPreviewStyle(state, 'a.md', 'b.md'),
+		).toMatchObject({
 			color: '#abcdef',
 			size: 4,
 			lineStyle: 'dashed',
 			hidden: false,
+		});
+	});
+});
+
+describe('resolveConnectionPreviewMarkers', () => {
+	it('points one-way connections toward target', () => {
+		expect(resolveConnectionPreviewMarkers('directed')).toEqual({
+			start: false,
+			end: true,
+		});
+	});
+
+	it('points reverse connections toward source', () => {
+		expect(resolveConnectionPreviewMarkers('reverse')).toEqual({
+			start: true,
+			end: false,
+		});
+	});
+
+	it('shows arrows at both ends for two-way connections', () => {
+		expect(resolveConnectionPreviewMarkers('bidirectional')).toEqual({
+			start: true,
+			end: true,
 		});
 	});
 });

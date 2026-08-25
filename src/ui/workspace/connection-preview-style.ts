@@ -1,9 +1,33 @@
-import type { KnowledgeEdge, WorkspaceState } from '../../core/types';
+import type {
+	ConnectionFieldMode,
+	KnowledgeEdge,
+	WorkspaceState,
+} from '../../core/types';
 import {
 	getActiveDefaultLinkStyle,
 	getActiveLinkStyleRules,
 } from '../../graph/styles/active-styles';
-import { resolveLinkStyle, type LinkStyle } from '../../graph/styles/style-rules';
+import {
+	resolveLinkStyle,
+	type LinkStyle,
+} from '../../graph/styles/style-rules';
+
+export interface ConnectionPreviewMarkers {
+	start: boolean;
+	end: boolean;
+}
+
+export function resolveConnectionPreviewMarkers(
+	mode: ConnectionFieldMode,
+): ConnectionPreviewMarkers {
+	if (mode === 'bidirectional') {
+		return { start: true, end: true };
+	}
+	if (mode === 'reverse') {
+		return { start: true, end: false };
+	}
+	return { start: false, end: true };
+}
 
 export function resolveConnectionPreviewStyle(
 	state: WorkspaceState,

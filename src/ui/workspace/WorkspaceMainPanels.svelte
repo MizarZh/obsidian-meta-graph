@@ -16,7 +16,10 @@
 	import type { CuratedConditionDraft } from '../curated/curated-panel-state';
 	import type { DockCuratedDropPreview } from './dock-curated-drop';
 	import type { DockNoteEntry } from './derived';
-	import { resolveConnectionPreviewStyle } from './connection-preview-style';
+	import {
+		resolveConnectionPreviewMarkers,
+		resolveConnectionPreviewStyle,
+	} from './connection-preview-style';
 
 	let {
 		app,
@@ -182,6 +185,9 @@
 			(field) => field.id === workspaceState.activeConnectionFieldSpecId,
 		)?.mode ?? 'directed',
 	);
+	const connectionPreviewMarkers = $derived(
+		resolveConnectionPreviewMarkers(activeConnectionMode),
+	);
 </script>
 
 {#if workspaceState.chartSource === 'curated'}
@@ -224,8 +230,28 @@
 {/if}
 {#if connectionDrag}
 	<svg class="knowledge-workspace-connection-preview" aria-hidden="true">
+		<defs>
+			<marker
+				id="knowledge-workspace-connection-arrow"
+				viewBox="0 0 8 8"
+				refX="7"
+				refY="4"
+				markerWidth="8"
+				markerHeight="8"
+				markerUnits="userSpaceOnUse"
+				orient="auto-start-reverse"
+			>
+				<path d="M 0 0 L 8 4 L 0 8 Z" fill="context-stroke" />
+			</marker>
+		</defs>
 		<line
 			style={connectionPreviewLineStyle}
+			marker-start={connectionPreviewMarkers.start
+				? 'url(#knowledge-workspace-connection-arrow)'
+				: undefined}
+			marker-end={connectionPreviewMarkers.end
+				? 'url(#knowledge-workspace-connection-arrow)'
+				: undefined}
 			class:target={Boolean(
 				connectionDrag.targetNodeId ||
 				graphConnectionTargetNotePath ||
