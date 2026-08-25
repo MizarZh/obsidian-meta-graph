@@ -479,7 +479,7 @@ function chartToV2(
 }
 
 function contentToV2(chart: MetaGraphChart): PersistedChartContentV2 {
-	const defaults = createV2DefaultQuery(chart.type);
+	const defaults = createV2DefaultQuery();
 	const query: NonNullable<PersistedChartContentV2['query']> = {};
 	const roots = chart.query.roots.map(normalizeTextPath);
 	if (roots.length > 0) query.roots = roots;
@@ -1088,7 +1088,7 @@ function v2ChartToLegacyRecord(
 				}))
 			: [];
 	const legacyQuery = {
-		...createV2DefaultQuery(type),
+		...createV2DefaultQuery(),
 		...(Array.isArray(query.roots)
 			? { roots: readStringArray(query.roots) }
 			: {}),
@@ -1794,7 +1794,7 @@ function readStringArray(value: unknown): string[] {
 		: [];
 }
 
-function createV2DefaultQuery(type: MetaGraphChart['type']): GraphQuery {
+function createV2DefaultQuery(): GraphQuery {
 	return {
 		roots: [],
 		folders: [],
@@ -1807,10 +1807,7 @@ function createV2DefaultQuery(type: MetaGraphChart['type']): GraphQuery {
 			children: [],
 		},
 		domains: [],
-		relations:
-			type === 'flow'
-				? ['prerequisite', 'leads-to']
-				: ['prerequisite', 'leads-to', 'related'],
+		relations: [],
 		depth: 2,
 		direction: 'both',
 		maxNodes: V2_DEFAULT_MAX_NODES,

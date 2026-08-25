@@ -10,7 +10,9 @@ body.
 Add relationship properties to note frontmatter, then add those metadata field
 names in the workspace connection panel. Each property accepts a single string
 or an array. Meta Graph only parses connection metadata fields that the
-workspace lists explicitly.
+workspace lists explicitly. Charts show every configured relationship by
+default. Set `content.query.relations` only to show a subset; an empty list
+means all configured relationships.
 
 ```yaml
 ---
@@ -199,7 +201,8 @@ charts:
           query:
               roots: [Projects/Index.md]
               traversal: { depth: 2, direction: both }
-              relations: [prerequisite, leads-to, related]
+              # Empty means all configured connection metadata fields.
+              relations: []
               limit: 500
               includeIsolated: true
               filter: { id: query-root, kind: group, mode: all, children: [] }

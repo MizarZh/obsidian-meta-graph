@@ -70,7 +70,7 @@ export function createDefaultChart(
 		name,
 		type,
 		source: 'query',
-		query: createDefaultQuery(maxNodes, type),
+		query: createDefaultQuery(maxNodes),
 		curated: createDefaultCuratedWorkspace(),
 		grouping: createDefaultChartGrouping(),
 		layout: createDefaultLayout(type),

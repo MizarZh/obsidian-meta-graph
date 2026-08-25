@@ -122,6 +122,37 @@ describe('Meta Graph v2 persistence', () => {
 		expect(saved).toEqual(migrated);
 	});
 
+	it('shows every configured relation when chart relations are omitted', () => {
+		const v2 = migrateV1ToV2(
+			createDefaultMetaGraphDocument(200, 1.5),
+			200,
+			1.5,
+		);
+		const chart = v2.charts[0];
+		if (!chart) throw new Error('Expected default chart.');
+		const parsed = parsePersistedMetaGraphDocumentV2(
+			{
+				...v2,
+				connections: {
+					fields: [{ property: 'up', mode: 'directed' }],
+				},
+				charts: [
+					{
+						...chart,
+						content: {
+							...chart.content,
+							query: { includeIsolated: true },
+						},
+					},
+				],
+			},
+			200,
+			1.5,
+		);
+
+		expect(parsed.document.charts[0]?.query.relations).toEqual([]);
+	});
+
 	it('preserves shared and per-view root filter modes', () => {
 		const document = createDefaultMetaGraphDocument(200, 1.5);
 		const chart = document.charts[0];

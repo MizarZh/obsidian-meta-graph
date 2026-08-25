@@ -1009,11 +1009,19 @@ export class WorkspaceController {
 			field,
 			mode,
 		);
-		this.setWorkspaceState(result.state, result.runQuery);
+		if (this.setWorkspaceState(result.state, result.runQuery)) {
+			this.scheduleRefresh();
+		}
 	}
 
 	removeConnectionField(id: string): void {
-		this.setWorkspaceState(removeConnectionFieldFromState(this.state, id));
+		if (
+			this.setWorkspaceState(
+				removeConnectionFieldFromState(this.state, id),
+			)
+		) {
+			this.scheduleRefresh();
+		}
 	}
 
 	reorderConnectionField(

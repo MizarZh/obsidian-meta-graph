@@ -12,7 +12,8 @@ export const DEFAULT_GRAPH_QUERY: GraphQuery = {
 		children: [],
 	},
 	domains: [],
-	relations: ['prerequisite', 'leads-to', 'related'],
+	// An empty list means every configured metadata relationship is visible.
+	relations: [],
 	depth: 2,
 	direction: 'both',
 	maxNodes: 500,

@@ -185,13 +185,10 @@ function legacyRuleToCondition(rule: NodeFilterRule): NodeFilterCondition {
 	};
 }
 
-export function createDefaultQuery(maxNodes: number, type: string): GraphQuery {
+export function createDefaultQuery(maxNodes: number): GraphQuery {
 	return {
 		...DEFAULT_GRAPH_QUERY,
-		relations:
-			type === 'flow'
-				? ['prerequisite', 'leads-to']
-				: [...DEFAULT_GRAPH_QUERY.relations],
+		relations: [...DEFAULT_GRAPH_QUERY.relations],
 		maxNodes,
 	};
 }
