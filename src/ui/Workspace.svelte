@@ -175,6 +175,7 @@
 		initialShellSession?.rightPanelTab ?? 'details',
 	);
 	let graphLoading = $state(false);
+	let zoomLevel = $state(100);
 	let graphLoadingTarget = $state<string | undefined>(undefined);
 	let suppressNodeOpenUntil = 0;
 	let activeNodeDropGroupId: string | undefined;
@@ -207,6 +208,9 @@
 			controller.setFlowRelationConflictCount(count),
 		setRenderPending: (pending) =>
 			graphLoadingCoordinator.setRendererPending(pending),
+		setZoomLevel: (level) => {
+			zoomLevel = level;
+		},
 		isLargeVaultModeActive: () => controller.isLargeVaultModeActive(),
 		yieldToMainThread: () => yieldForLargeVault(),
 		recordPerformance: (name, durationMs, details) =>
@@ -1098,6 +1102,10 @@
 		onDeleteChart={confirmDeleteActiveChart}
 		onFocusNode={focusNodeFromSearch}
 		onFindNoteInputEl={(element) => (findNoteInput = element)}
+		onZoomIn={() => rendererLifecycle.zoomIn()}
+		onZoomOut={() => rendererLifecycle.zoomOut()}
+		{zoomLevel}
+		onZoomLevel={(level) => rendererLifecycle.setZoomLevel(level)}
 		onFit={() => rendererLifecycle.fit()}
 		onRefresh={() => controller.refresh(true)}
 		{settingsPanel}

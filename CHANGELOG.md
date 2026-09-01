@@ -6,6 +6,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Added toolbar zoom controls with smooth 10% step buttons, a continuous slider, editable percentage input, and synchronized zoom levels across 2D, 3D, and Cube views.
 - Added `Ctrl+F` / `Cmd+F` shortcut to focus **Find note** and select the current search text.
 - Added direction-aware arrows to `Ctrl`-drag connection previews: one-way points to the target, two-way points at both ends, and reverse points to the source.
 - Added chart style copy/paste controls for moving node and link styles between charts.

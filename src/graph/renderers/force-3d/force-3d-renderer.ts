@@ -45,6 +45,14 @@ interface ScheduledVisualUpdate {
 	nodeLabelPositions?: boolean;
 }
 
+interface ZoomControls {
+	target?: { x: number; y: number; z: number };
+	minDistance?: number;
+	maxDistance?: number;
+	addEventListener?(type: 'change', listener: () => void): void;
+	removeEventListener?(type: 'change', listener: () => void): void;
+}
+
 export class Force3DRenderer {
 	readonly instance: ForceGraph3DInstance<Force3DNode, Force3DLink>;
 	private selectedNodeId?: string;
@@ -82,6 +90,25 @@ export class Force3DRenderer {
 	private readonly blockDoubleClick = (event: MouseEvent): void => {
 		event.preventDefault();
 		event.stopPropagation();
+	};
+	private zoomLevel = 100;
+	private lastCameraDistance = 0;
+	private suppressZoomTrackingUntil = 0;
+	private zoomSyncTimer: number | undefined;
+	private readonly zoomLevelListeners = new Set<(level: number) => void>();
+	private readonly handleControlsChange = (): void => {
+		const distance = this.getCameraDistance();
+		if (
+			this.lastCameraDistance > 0 &&
+			distance > 0 &&
+			performance.now() >= this.suppressZoomTrackingUntil
+		) {
+			this.zoomLevel = clampZoomLevel(
+				this.zoomLevel * (this.lastCameraDistance / distance),
+			);
+			this.emitZoomLevel();
+		}
+		this.lastCameraDistance = distance;
 	};
 
 	static async create(
@@ -244,6 +271,12 @@ export class Force3DRenderer {
 			.cooldownTicks(120);
 		this.resize();
 		this.scheduleGraphData(graph);
+		this.lastCameraDistance = this.getCameraDistance();
+		this.applyZoomBounds(this.lastCameraDistance);
+		this.readZoomControls().addEventListener?.(
+			'change',
+			this.handleControlsChange,
+		);
 	}
 
 	get runtimeGraph(): RuntimeGraph {
@@ -439,7 +472,48 @@ export class Force3DRenderer {
 	}
 
 	fit(): void {
+		this.beginProgrammaticZoom(100, 400, true);
 		this.instance.zoomToFit(350, 80, (node) => !node.id.includes('__bend'));
+	}
+
+	zoomBy(factor: number): void {
+		this.moveToZoomLevel(this.zoomLevel * factor, 180, 200);
+	}
+
+	getZoomLevel(): number {
+		return this.zoomLevel;
+	}
+
+	setZoomLevel(level: number): void {
+		this.moveToZoomLevel(level, 0, 40);
+	}
+
+	private moveToZoomLevel(
+		level: number,
+		transitionDuration: number,
+		syncDuration: number,
+	): void {
+		const nextLevel = clampZoomLevel(level);
+		const factor = nextLevel / this.zoomLevel;
+		this.beginProgrammaticZoom(nextLevel, syncDuration);
+		const position = this.instance.cameraPosition();
+		const controls = this.readZoomControls();
+		const target = controls.target ?? { x: 0, y: 0, z: 0 };
+		const scale = 1 / factor;
+		this.instance.cameraPosition(
+			{
+				x: target.x + (position.x - target.x) * scale,
+				y: target.y + (position.y - target.y) * scale,
+				z: target.z + (position.z - target.z) * scale,
+			},
+			target,
+			transitionDuration,
+		);
+	}
+
+	onZoomLevelChange(listener: (level: number) => void): () => void {
+		this.zoomLevelListeners.add(listener);
+		return () => this.zoomLevelListeners.delete(listener);
 	}
 
 	getNodeAtViewportPosition(position: {
@@ -547,6 +621,14 @@ export class Force3DRenderer {
 
 	kill(): void {
 		this.killed = true;
+		this.readZoomControls().removeEventListener?.(
+			'change',
+			this.handleControlsChange,
+		);
+		if (this.zoomSyncTimer !== undefined) {
+			window.clearTimeout(this.zoomSyncTimer);
+		}
+		this.zoomLevelListeners.clear();
 		this.container.removeEventListener('dblclick', this.blockDoubleClick, {
 			capture: true,
 		});
@@ -565,6 +647,52 @@ export class Force3DRenderer {
 		this.instance.pauseAnimation();
 		this.instance._destructor();
 		this.container.replaceChildren();
+	}
+
+	private readZoomControls(): ZoomControls {
+		return this.instance.controls();
+	}
+
+	private getCameraDistance(): number {
+		const position = this.instance.cameraPosition();
+		const target = this.readZoomControls().target ?? { x: 0, y: 0, z: 0 };
+		return Math.hypot(
+			position.x - target.x,
+			position.y - target.y,
+			position.z - target.z,
+		);
+	}
+
+	private beginProgrammaticZoom(
+		level: number,
+		duration: number,
+		resetBounds = false,
+	): void {
+		this.zoomLevel = clampZoomLevel(level);
+		this.suppressZoomTrackingUntil = performance.now() + duration;
+		this.emitZoomLevel();
+		if (this.zoomSyncTimer !== undefined) {
+			window.clearTimeout(this.zoomSyncTimer);
+		}
+		this.zoomSyncTimer = window.setTimeout(() => {
+			this.zoomSyncTimer = undefined;
+			this.lastCameraDistance = this.getCameraDistance();
+			if (resetBounds) {
+				this.applyZoomBounds(this.lastCameraDistance);
+			}
+			this.emitZoomLevel();
+		}, duration);
+	}
+
+	private applyZoomBounds(referenceDistance: number): void {
+		if (!(referenceDistance > 0)) return;
+		const controls = this.readZoomControls();
+		controls.minDistance = referenceDistance / 4;
+		controls.maxDistance = referenceDistance * 4;
+	}
+
+	private emitZoomLevel(): void {
+		this.zoomLevelListeners.forEach((listener) => listener(this.zoomLevel));
 	}
 
 	private scheduleGraphData(graph: RuntimeGraph): void {
@@ -959,6 +1087,10 @@ function escapeHtml(value: string): string {
 		.replaceAll('>', '&gt;')
 		.replaceAll('"', '&quot;')
 		.replaceAll("'", '&#39;');
+}
+
+function clampZoomLevel(level: number): number {
+	return Math.min(400, Math.max(25, level));
 }
 
 type ForceGraph3DConstructor = new (

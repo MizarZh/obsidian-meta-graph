@@ -84,6 +84,7 @@ export class Cube3DRenderer {
 	private rotationPitch = -0.4;
 	private rotationYaw = 0.65;
 	private animationFrame: number | undefined;
+	private zoomAnimationFrame: number | undefined;
 	private resizeObserver: ResizeObserver;
 	private labelColor: string;
 	private labelPosition: LabelPosition;
@@ -99,6 +100,7 @@ export class Cube3DRenderer {
 	private forceLabels: boolean;
 	private manualLayout: ManualLayoutConfig;
 	private killed = false;
+	private readonly zoomLevelListeners = new Set<(level: number) => void>();
 	private readonly blockDoubleClick = (event: MouseEvent): void => {
 		event.preventDefault();
 		event.stopPropagation();
@@ -457,10 +459,12 @@ export class Cube3DRenderer {
 	}
 
 	fit(): void {
+		this.cancelZoomAnimation();
 		this.camera.position.set(0, 0, this.defaultCameraDistance());
 		this.cubeGroup.position.set(0, 0, 0);
 		this.setCubeRotation(-0.4, 0.65, 0);
 		this.scheduleRender();
+		this.emitZoomLevel();
 	}
 
 	holdCurrentBounds(): void {
@@ -473,6 +477,7 @@ export class Cube3DRenderer {
 
 	kill(): void {
 		this.killed = true;
+		this.zoomLevelListeners.clear();
 		this.webgl.domElement.removeEventListener(
 			'dblclick',
 			this.blockDoubleClick,
@@ -483,6 +488,10 @@ export class Cube3DRenderer {
 		if (this.animationFrame !== undefined) {
 			window.cancelAnimationFrame(this.animationFrame);
 			this.animationFrame = undefined;
+		}
+		if (this.zoomAnimationFrame !== undefined) {
+			window.cancelAnimationFrame(this.zoomAnimationFrame);
+			this.zoomAnimationFrame = undefined;
 		}
 		this.resizeObserver.disconnect();
 		this.clearObjectGroup(this.edgeGroup);
@@ -581,12 +590,64 @@ export class Cube3DRenderer {
 	}
 
 	zoom(deltaY: number): void {
+		this.cancelZoomAnimation();
 		this.camera.position.z = clamp(
 			this.camera.position.z + deltaY * 0.45,
 			this.minCameraDistance(),
 			this.maxCameraDistance(),
 		);
 		this.scheduleRender();
+		this.emitZoomLevel();
+	}
+
+	zoomBy(factor: number): void {
+		this.cancelZoomAnimation();
+		const start = this.camera.position.z;
+		const target = clamp(
+			this.camera.position.z / factor,
+			this.minCameraDistance(),
+			this.maxCameraDistance(),
+		);
+		const startedAt = performance.now();
+		const animate = (now: number): void => {
+			const progress = Math.min(1, (now - startedAt) / 180);
+			const eased = 1 - (1 - progress) ** 3;
+			this.camera.position.z = start + (target - start) * eased;
+			this.scheduleRender();
+			this.emitZoomLevel();
+			if (progress < 1) {
+				this.zoomAnimationFrame = window.requestAnimationFrame(animate);
+			} else {
+				this.zoomAnimationFrame = undefined;
+			}
+		};
+		this.zoomAnimationFrame = window.requestAnimationFrame(animate);
+	}
+
+	getZoomLevel(): number {
+		return (this.defaultCameraDistance() / this.camera.position.z) * 100;
+	}
+
+	setZoomLevel(level: number): void {
+		this.cancelZoomAnimation();
+		this.camera.position.z = clamp(
+			(this.defaultCameraDistance() * 100) / level,
+			this.minCameraDistance(),
+			this.maxCameraDistance(),
+		);
+		this.scheduleRender();
+		this.emitZoomLevel();
+	}
+
+	private cancelZoomAnimation(): void {
+		if (this.zoomAnimationFrame === undefined) return;
+		window.cancelAnimationFrame(this.zoomAnimationFrame);
+		this.zoomAnimationFrame = undefined;
+	}
+
+	onZoomLevelChange(listener: (level: number) => void): () => void {
+		this.zoomLevelListeners.add(listener);
+		return () => this.zoomLevelListeners.delete(listener);
 	}
 
 	dragNodeToViewport(
@@ -1258,6 +1319,11 @@ export class Cube3DRenderer {
 			this.refreshNodeColors();
 			this.webgl.render(this.scene, this.camera);
 		});
+	}
+
+	private emitZoomLevel(): void {
+		const level = this.getZoomLevel();
+		this.zoomLevelListeners.forEach((listener) => listener(level));
 	}
 
 	private updateArrowSprites(): void {

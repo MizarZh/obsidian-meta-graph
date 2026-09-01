@@ -532,6 +532,41 @@
 	margin-left: auto;
 }
 
+.knowledge-workspace-zoom-controls {
+	display: flex;
+	gap: var(--size-4-2);
+	align-items: center;
+}
+
+.knowledge-workspace-zoom-controls button {
+	display: grid;
+	place-items: center;
+	width: 34px;
+	height: 34px;
+	padding: 0;
+}
+
+.knowledge-workspace-zoom-controls svg {
+	width: 16px;
+	height: 16px;
+}
+
+.knowledge-workspace-zoom-controls input[type='range'] {
+	width: 96px;
+}
+
+.knowledge-workspace-zoom-input {
+	display: inline-flex;
+}
+
+.knowledge-workspace-zoom-input input {
+	width: 54px;
+	height: 34px;
+	padding-inline: var(--size-4-2);
+	font-variant-numeric: tabular-nums;
+	text-align: center;
+}
+
 .knowledge-workspace-settings-tabs {
 	display: flex;
 	gap: var(--size-4-1);

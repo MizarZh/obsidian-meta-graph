@@ -6,6 +6,7 @@
 		getChartTypeName,
 	} from '../core/chart-types';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
+	import ObsidianSlider from './obsidian/ObsidianSlider.svelte';
 	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
 	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
 	import type {
@@ -33,6 +34,10 @@
 		onDeleteChart,
 		onFocusNode,
 		onFindNoteInputEl,
+		onZoomIn,
+		onZoomOut,
+		zoomLevel,
+		onZoomLevel,
 		onFit,
 		onRefresh,
 		settingsPanel,
@@ -56,6 +61,10 @@
 		onDeleteChart: () => void;
 		onFocusNode: (id: string) => void;
 		onFindNoteInputEl: (element: HTMLInputElement) => void;
+		onZoomIn: () => void;
+		onZoomOut: () => void;
+		zoomLevel: number;
+		onZoomLevel: (level: number) => void;
 		onFit: () => void;
 		onRefresh: () => void;
 		settingsPanel: SettingsPanelMode | undefined;
@@ -75,6 +84,14 @@
 	let createSource = $state<ChartSource>('query');
 	let createName = $state('');
 	let createNameEdited = $state(false);
+	let zoomInput = $state('100');
+	let zoomInputFocused = $state(false);
+
+	$effect(() => {
+		if (!zoomInputFocused) {
+			zoomInput = `${Math.round(zoomLevel)}%`;
+		}
+	});
 
 	const activeChart = $derived(
 		charts.find((chart) => chart.id === activeChartId) ?? charts[0],
@@ -263,6 +280,22 @@
 
 	function focusSearchNode(nodeId: string): void {
 		onFocusNode(nodeId);
+	}
+
+	function commitZoomInput(): void {
+		zoomInputFocused = false;
+		const value = Number(zoomInput.replace('%', '').trim());
+		if (!Number.isFinite(value)) {
+			zoomInput = `${Math.round(zoomLevel)}%`;
+			return;
+		}
+		onZoomLevel(Math.min(400, Math.max(25, value)));
+	}
+
+	function handleZoomInputKeydown(event: KeyboardEvent): void {
+		if (event.key !== 'Enter') return;
+		event.preventDefault();
+		(event.currentTarget as HTMLInputElement).blur();
 	}
 </script>
 
@@ -573,6 +606,47 @@
 		/>
 	</div>
 	<div class="knowledge-workspace-graph-actions">
+		<div
+			class="knowledge-workspace-zoom-controls"
+			role="group"
+			aria-label="Zoom controls"
+		>
+			<div class="knowledge-workspace-segmented">
+				<ObsidianButton
+					icon="zoom-out"
+					ariaLabel="Zoom out"
+					tooltip="Zoom out"
+					onClick={onZoomOut}
+				/>
+				<ObsidianButton
+					icon="zoom-in"
+					ariaLabel="Zoom in"
+					tooltip="Zoom in"
+					onClick={onZoomIn}
+				/>
+			</div>
+			<div class="knowledge-workspace-zoom-input">
+				<ObsidianTextInput
+					type="text"
+					value={zoomInput}
+					ariaLabel="Zoom percentage"
+					onInput={(value) => (zoomInput = value)}
+					onFocus={() => {
+						zoomInputFocused = true;
+						zoomInput = String(Math.round(zoomLevel));
+					}}
+					onBlur={commitZoomInput}
+					onKeydown={handleZoomInputKeydown}
+				/>
+			</div>
+			<ObsidianSlider
+				value={Math.round(zoomLevel)}
+				min={25}
+				max={400}
+				step={5}
+				onChange={onZoomLevel}
+			/>
+		</div>
 		<ObsidianButton text="Fit graph" onClick={onFit} />
 		<ObsidianButton text="Refresh" onClick={onRefresh} />
 		{#if showDebugButton}

@@ -77,6 +77,10 @@ function createRenderer(): GraphRenderer {
 		setSelected: vi.fn(),
 		setHovered: vi.fn(),
 		fit: vi.fn(),
+		zoomBy: vi.fn(),
+		getZoomLevel: vi.fn(() => 100),
+		setZoomLevel: vi.fn(),
+		onZoomLevelChange: vi.fn(() => vi.fn()),
 		kill: vi.fn(),
 		resize: vi.fn(),
 		focusNode: vi.fn(),
@@ -127,6 +131,30 @@ describe('WorkspaceRendererLifecycle', () => {
 			nodes: () => ['a'],
 		} as never);
 		vi.mocked(applyStableLayout).mockResolvedValue(undefined);
+	});
+
+	it('zooms current renderer in and out with fixed steps', async () => {
+		const renderer = createRenderer();
+		vi.mocked(createWorkspaceGraphRenderer).mockResolvedValue(renderer);
+		const lifecycle = new WorkspaceRendererLifecycle({
+			readState: createState,
+			readCanvas: () => ({}) as HTMLDivElement,
+			readLayoutSnapshot: createLayoutSnapshot,
+			readContainerSize: () => ({ width: 800, height: 600 }),
+			waitForCanvasSize: async () => true,
+			bindEvents: () => vi.fn(),
+			syncRendererGroups: vi.fn(),
+			setRendererDebugState: vi.fn(),
+		});
+
+		await lifecycle.rebuild();
+		lifecycle.zoomIn();
+		lifecycle.zoomOut();
+		lifecycle.setZoomLevel(175);
+
+		expect(renderer.zoomBy).toHaveBeenNthCalledWith(1, 1.1);
+		expect(renderer.zoomBy).toHaveBeenNthCalledWith(2, 0.9);
+		expect(renderer.setZoomLevel).toHaveBeenCalledWith(175);
 	});
 
 	it('creates a renderer, binds events, and publishes rendered debug state', async () => {

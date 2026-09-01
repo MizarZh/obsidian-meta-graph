@@ -34,6 +34,7 @@ export interface WorkspaceRendererLifecycleOptions {
 	setRendererDebugState(state: RendererDebugState): void;
 	setFlowRelationConflictCount?(count: number): void;
 	setRenderPending?(pending: boolean): void;
+	setZoomLevel?(level: number): void;
 	isLargeVaultModeActive?(): boolean;
 	yieldToMainThread?(): Promise<void>;
 	recordPerformance?(
@@ -46,6 +47,7 @@ export interface WorkspaceRendererLifecycleOptions {
 export class WorkspaceRendererLifecycle {
 	private currentRenderer: GraphRenderer | undefined;
 	private unbindEvents: (() => void) | undefined;
+	private unbindZoomLevel: (() => void) | undefined;
 	private renderVersion = 0;
 	private forceLayoutSimulation: D3ForceSimulation | undefined;
 
@@ -61,6 +63,24 @@ export class WorkspaceRendererLifecycle {
 
 	fit(): void {
 		this.currentRenderer?.fit();
+	}
+
+	zoomIn(): void {
+		if (!this.currentRenderer) return;
+		const current = this.currentRenderer.getZoomLevel();
+		const target = Math.min(400, current + 10);
+		this.currentRenderer.zoomBy(target / current);
+	}
+
+	zoomOut(): void {
+		if (!this.currentRenderer) return;
+		const current = this.currentRenderer.getZoomLevel();
+		const target = Math.max(25, current - 10);
+		this.currentRenderer.zoomBy(target / current);
+	}
+
+	setZoomLevel(level: number): void {
+		this.currentRenderer?.setZoomLevel(level);
 	}
 
 	focusNode(nodeId: string): void {
@@ -331,6 +351,7 @@ export class WorkspaceRendererLifecycle {
 		);
 
 		this.options.syncRendererGroups();
+		this.bindZoomLevel(this.currentRenderer);
 		this.currentRenderer.setSelected(state.selectedNodeId);
 		this.currentRenderer.setHovered(state.hoveredNodeId);
 		if (firstRender || fitAfterRender) {
@@ -356,11 +377,21 @@ export class WorkspaceRendererLifecycle {
 	}
 
 	private clearRenderer(): void {
+		this.unbindZoomLevel?.();
+		this.unbindZoomLevel = undefined;
 		this.unbindEvents?.();
 		this.unbindEvents = undefined;
 		this.stopForceLayoutSimulation();
 		this.currentRenderer?.kill();
 		this.currentRenderer = undefined;
+	}
+
+	private bindZoomLevel(renderer: GraphRenderer): void {
+		this.unbindZoomLevel?.();
+		this.unbindZoomLevel = renderer.onZoomLevelChange((level) =>
+			this.options.setZoomLevel?.(level),
+		);
+		this.options.setZoomLevel?.(renderer.getZoomLevel());
 	}
 }
 

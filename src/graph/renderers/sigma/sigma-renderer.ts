@@ -61,6 +61,10 @@ export class SigmaRenderer {
 	private forceLabels: boolean;
 	private readonly groupOverlayLayer: GroupOverlayLayer;
 	private readonly layoutGroupLayer: LayoutGroupLayer;
+	private readonly zoomLevelListeners = new Set<(level: number) => void>();
+	private readonly handleCameraUpdated = (): void => {
+		this.emitZoomLevel();
+	};
 
 	constructor(
 		private graph: RuntimeGraph,
@@ -104,6 +108,8 @@ export class SigmaRenderer {
 			container,
 			{
 				allowInvalidContainer: true,
+				minCameraRatio: 0.25,
+				maxCameraRatio: 4,
 				doubleClickZoomingDuration: 0,
 				doubleClickZoomingRatio: 1,
 				defaultEdgeType: 'line',
@@ -181,6 +187,7 @@ export class SigmaRenderer {
 			() => this.graph,
 		);
 		this.layoutGroupLayer = new LayoutGroupLayer(this.instance);
+		this.instance.getCamera().on('updated', this.handleCameraUpdated);
 	}
 
 	get runtimeGraph(): RuntimeGraph {
@@ -380,6 +387,28 @@ export class SigmaRenderer {
 		void this.instance.getCamera().animatedReset({ duration: 350 });
 	}
 
+	zoomBy(factor: number): void {
+		const camera = this.instance.getCamera();
+		if (factor > 1) {
+			void camera.animatedZoom({ factor, duration: 180 });
+			return;
+		}
+		void camera.animatedUnzoom({ factor: 1 / factor, duration: 180 });
+	}
+
+	getZoomLevel(): number {
+		return 100 / this.instance.getCamera().getState().ratio;
+	}
+
+	setZoomLevel(level: number): void {
+		this.instance.getCamera().setState({ ratio: 100 / level });
+	}
+
+	onZoomLevelChange(listener: (level: number) => void): () => void {
+		this.zoomLevelListeners.add(listener);
+		return () => this.zoomLevelListeners.delete(listener);
+	}
+
 	resize(): void {
 		// Sigma's resize() updates canvas dimensions, which clears the drawing
 		// buffers. scheduleRefresh() coalesces resize events into one frame and
@@ -400,9 +429,16 @@ export class SigmaRenderer {
 	}
 
 	kill(): void {
+		this.instance.getCamera().off('updated', this.handleCameraUpdated);
+		this.zoomLevelListeners.clear();
 		this.groupOverlayLayer.kill();
 		this.layoutGroupLayer.kill();
 		this.instance.kill();
+	}
+
+	private emitZoomLevel(): void {
+		const level = this.getZoomLevel();
+		this.zoomLevelListeners.forEach((listener) => listener(level));
 	}
 
 	private getHoverState() {
