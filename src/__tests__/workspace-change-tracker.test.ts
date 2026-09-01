@@ -6,6 +6,7 @@ import {
 } from '../ui/workspace/change-tracker';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
 import type { GraphProjection } from '../core/types';
+import { setCuratedFilesHiddenActionInState } from '../workspace/actions/curated-actions';
 
 describe('workspace change tracker', () => {
 	it('requests initial rebuild against empty baseline', () => {
@@ -279,6 +280,53 @@ describe('workspace change tracker', () => {
 		expect(changes.graphVisibilityChanged).toBe(true);
 		expect(changes.shouldRebuild).toBe(false);
 		expect(changes.fitAfterRender).toBe(false);
+	});
+
+	it('keeps curated hide actions on the visibility-only path', () => {
+		const baseState = createWorkspaceState(200);
+		const state = {
+			...baseState,
+			chartSource: 'curated' as const,
+			charts: baseState.charts.map((chart) =>
+				chart.id === baseState.activeChartId
+					? {
+							...chart,
+							source: 'curated' as const,
+							curated: {
+								...chart.curated,
+								files: [{ path: 'b.md' }],
+							},
+						}
+					: chart,
+			),
+			curated: {
+				...baseState.curated,
+				files: [{ path: 'b.md' }],
+			},
+			projection: {
+				...createTestProjection(),
+				primaryIds: new Set(['a.md', 'b.md']),
+				hiddenNodeIds: new Set<string>(),
+			},
+		};
+		const result = setCuratedFilesHiddenActionInState(
+			state,
+			['b.md'],
+			true,
+		);
+
+		const changes = analyzeWorkspaceStateChanges(
+			result.state,
+			state,
+			createWorkspaceRenderBaseline(state),
+		);
+
+		expect(result.runQuery).toBe(false);
+		expect(changes.graphVisibilityChanged).toBe(true);
+		expect(changes.groupingChanged).toBe(false);
+		expect(changes.manualLayoutChanged).toBe(false);
+		expect(changes.styleRulesChanged).toBe(false);
+		expect(changes.shouldRebuild).toBe(false);
 	});
 
 	it('detects default and override style updates without rebuild', () => {

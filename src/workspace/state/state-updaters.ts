@@ -13,6 +13,18 @@ export function updateActiveChartState(
 	if (!activeChart) {
 		throw new Error('Active chart is missing from workspace state.');
 	}
+	if (patch.curated !== undefined && Object.keys(patch).length === 1) {
+		const curated = patch.curated;
+		const nextChart = { ...activeChart, curated };
+		return {
+			...state,
+			charts: state.charts.map((chart) =>
+				chart.id === nextChart.id ? nextChart : chart,
+			),
+			curated,
+			layoutRevision: state.layoutRevision + (forceLayout ? 1 : 0),
+		};
+	}
 	const nextChart = cloneSerializable({
 		...activeChart,
 		...patch,

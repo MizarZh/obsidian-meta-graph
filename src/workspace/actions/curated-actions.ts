@@ -3,6 +3,7 @@ import type {
 	NodeId,
 	WorkspaceState,
 } from '../../core/types';
+import { normalizePath } from '../../core/knowledge-index';
 import {
 	addCuratedFilesToState,
 	clearCuratedFilesInState,
@@ -56,10 +57,37 @@ export function setCuratedFilesHiddenActionInState(
 	paths: NodeId[],
 	hidden: boolean,
 ): WorkspaceCuratedActionResult {
-	return withRunQuery(
-		setCuratedFilesHiddenInState(state, paths, hidden),
-		state,
-	);
+	const nextState = setCuratedFilesHiddenInState(state, paths, hidden);
+	if (nextState === state) {
+		return { state, changed: false, runQuery: false };
+	}
+	if (nextState.chartSource !== 'curated' || !nextState.projection) {
+		return { state: nextState, changed: true, runQuery: false };
+	}
+	const primaryIds =
+		nextState.projection.primaryIds ?? nextState.projection.rootIds;
+	const hiddenNodeIds = new Set(nextState.projection.hiddenNodeIds ?? []);
+	for (const path of paths.map((item) => normalizePath(item))) {
+		if (!primaryIds.has(path)) {
+			continue;
+		}
+		if (hidden) {
+			hiddenNodeIds.add(path);
+		} else {
+			hiddenNodeIds.delete(path);
+		}
+	}
+	return {
+		state: {
+			...nextState,
+			projection: {
+				...nextState.projection,
+				hiddenNodeIds,
+			},
+		},
+		changed: true,
+		runQuery: false,
+	};
 }
 
 export function reorderCuratedFileActionInState(

@@ -11,7 +11,7 @@ interface AutoSaveTimers {
 
 export class WorkspaceAutoSave<DocumentType = MetaGraphDocument> {
 	private timer: ReturnType<typeof setTimeout> | undefined;
-	private pendingDocument: DocumentType | undefined;
+	private pendingState: WorkspaceState | undefined;
 	private lastSavedFingerprint = '';
 
 	constructor(
@@ -30,14 +30,7 @@ export class WorkspaceAutoSave<DocumentType = MetaGraphDocument> {
 	}
 
 	schedule(state: WorkspaceState): void {
-		const document = this.serialize(state);
-		const fingerprint = this.fingerprint(document);
-		if (fingerprint === this.lastSavedFingerprint) {
-			return;
-		}
-
-		this.lastSavedFingerprint = fingerprint;
-		this.pendingDocument = document;
+		this.pendingState = state;
 		this.clearTimer();
 		this.timer = this.timers.setTimeout(() => {
 			this.savePending();
@@ -57,9 +50,15 @@ export class WorkspaceAutoSave<DocumentType = MetaGraphDocument> {
 	}
 
 	private savePending(): void {
-		const document = this.pendingDocument;
-		this.pendingDocument = undefined;
-		if (document) {
+		const state = this.pendingState;
+		this.pendingState = undefined;
+		if (!state) {
+			return;
+		}
+		const document = this.serialize(state);
+		const fingerprint = this.fingerprint(document);
+		if (fingerprint !== this.lastSavedFingerprint) {
+			this.lastSavedFingerprint = fingerprint;
 			void this.onSave(document);
 		}
 	}

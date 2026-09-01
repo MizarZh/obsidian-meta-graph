@@ -21,7 +21,10 @@ import {
 import { createChartGroupByNode } from '../../query/group-ownership';
 import { getWorkspaceGraphForceSettings } from './graph-settings';
 import { createWorkspaceGraphRenderer } from './renderer-factory';
-import { createWorkspaceRuntimeGraph } from './runtime-graph';
+import {
+	createWorkspaceRuntimeGraph,
+	prepareWorkspaceRuntimeGraphVisibilityIndex,
+} from './runtime-graph';
 
 export interface WorkspaceRendererLifecycleOptions {
 	readState(): WorkspaceState;
@@ -302,6 +305,7 @@ export class WorkspaceRendererLifecycle {
 		if (version !== this.renderVersion) {
 			return;
 		}
+		prepareWorkspaceRuntimeGraphVisibilityIndex(graph);
 		await this.options.yieldToMainThread?.();
 		if (version !== this.renderVersion) return;
 		this.options.setFlowRelationConflictCount?.(

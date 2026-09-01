@@ -117,11 +117,27 @@ describe('workspace curated actions', () => {
 		expect(result.state.curated.context.enabled).toBe(true);
 	});
 
-	it('hides and shows curated files with query refresh intent', () => {
-		const state = addCuratedFilesActionInState(createWorkspaceState(100), [
-			'A.md',
-			'B.md',
-		]).state;
+	it('hides and shows curated files with incremental visibility updates', () => {
+		const baseState = addCuratedFilesActionInState(
+			createWorkspaceState(100),
+			['A.md', 'B.md'],
+		).state;
+		const state = {
+			...baseState,
+			chartSource: 'curated' as const,
+			charts: baseState.charts.map((chart) =>
+				chart.id === baseState.activeChartId
+					? { ...chart, source: 'curated' as const }
+					: chart,
+			),
+			projection: {
+				nodes: [],
+				edges: [],
+				rootIds: new Set(['A.md', 'B.md']),
+				primaryIds: new Set(['A.md', 'B.md']),
+				hiddenNodeIds: new Set<string>(),
+			},
+		};
 
 		const hidden = setCuratedFilesHiddenActionInState(
 			state,
@@ -130,12 +146,27 @@ describe('workspace curated actions', () => {
 		);
 
 		expect(hidden.changed).toBe(true);
-		expect(hidden.runQuery).toBe(true);
+		expect(hidden.runQuery).toBe(false);
 		expect(hidden.state.layoutRevision).toBe(state.layoutRevision);
+		expect(hidden.state.grouping).toBe(state.grouping);
+		expect(hidden.state.manualLayout).toBe(state.manualLayout);
+		expect(hidden.state.nodeStyleRules).toBe(state.nodeStyleRules);
+		expect(hidden.state.projection?.hiddenNodeIds).toEqual(
+			new Set(['B.md']),
+		);
 		expect(hidden.state.curated.files).toEqual([
 			{ path: 'A.md' },
 			{ path: 'B.md', hidden: true },
 		]);
+		expect(hidden.state.curated.files[0]).toBe(
+			state.charts.find((chart) => chart.id === state.activeChartId)?.curated
+				.files[0],
+		);
+		expect(
+			hidden.state.charts.find(
+				(chart) => chart.id === hidden.state.activeChartId,
+			)?.curated,
+		).toBe(hidden.state.curated);
 
 		const shown = setCuratedFilesHiddenActionInState(
 			hidden.state,
@@ -144,8 +175,9 @@ describe('workspace curated actions', () => {
 		);
 
 		expect(shown.changed).toBe(true);
-		expect(shown.runQuery).toBe(true);
+		expect(shown.runQuery).toBe(false);
 		expect(shown.state.layoutRevision).toBe(hidden.state.layoutRevision);
+		expect(shown.state.projection?.hiddenNodeIds).toEqual(new Set());
 		expect(shown.state.curated.files).toEqual([
 			{ path: 'A.md' },
 			{ path: 'B.md' },

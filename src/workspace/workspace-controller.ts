@@ -16,6 +16,7 @@ import type {
 	FlowRelationRule,
 	GraphQuery,
 	KnowledgeIndex,
+	KnowledgeNode,
 	LabelPosition,
 	LayoutNodeSort,
 	LayoutSortDirection,
@@ -182,6 +183,7 @@ type StateListener = (state: WorkspaceState) => void;
 export class WorkspaceController {
 	private state: WorkspaceState;
 	private index?: KnowledgeIndex;
+	private indexedNodes: KnowledgeNode[] = [];
 	private readonly projectionService = new WorkspaceProjectionService();
 	private readonly connectionService: WorkspaceConnectionService<TFile>;
 	private readonly listeners = new Set<StateListener>();
@@ -212,6 +214,10 @@ export class WorkspaceController {
 
 	get snapshot(): WorkspaceState {
 		return this.state;
+	}
+
+	getIndexedNodes(): KnowledgeNode[] {
+		return this.indexedNodes;
 	}
 
 	isLargeVaultModeActive(): boolean {
@@ -322,6 +328,7 @@ export class WorkspaceController {
 			},
 		);
 		this.index = indexSnapshot.index;
+		this.indexedNodes = [...indexSnapshot.index.nodes.values()];
 		this.unresolvedLinks = indexSnapshot.unresolvedLinks;
 		this.metadataSources = indexSnapshot.metadataSources;
 		this.state = applyWorkspaceIndexSnapshotToState(

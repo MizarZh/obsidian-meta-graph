@@ -240,11 +240,17 @@ export class SigmaRenderer {
 	}
 
 	setSelected(nodeId?: string): void {
+		if (this.selectedNodeId === nodeId) {
+			return;
+		}
 		this.selectedNodeId = nodeId;
 		this.instance.refresh();
 	}
 
 	setHovered(nodeId?: string): void {
+		if (this.hoveredNodeId === nodeId) {
+			return;
+		}
 		this.hoveredNodeId = nodeId;
 		this.updateHoveredNeighborhood();
 		this.instance.refresh();

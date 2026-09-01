@@ -5,6 +5,8 @@
 		ChartSource,
 		DebugSnapshot,
 		DockConnectionDirection,
+		GraphProjection,
+		KnowledgeNode,
 		NodeOpenMode,
 		SettingsPanelMode,
 		ViewMode,
@@ -20,6 +22,7 @@
 	import type { ConnectionDragState } from '../graph/renderers/renderer-events';
 	import { readGraphPalette } from '../graph/styles/graph-styles';
 	import {
+		refreshRendererGraphVisibility,
 		refreshRendererGraphStyles,
 		type GraphRenderer,
 	} from '../graph/renderers/renderer-adapter';
@@ -68,7 +71,10 @@
 		syncWorkspaceRenderBaselineStyles,
 		type WorkspaceRenderBaseline,
 	} from './workspace/change-tracker';
-	import { syncWorkspaceRuntimeGraphStyles } from './workspace/runtime-graph';
+	import {
+		syncWorkspaceRuntimeGraphStyles,
+		syncWorkspaceRuntimeGraphVisibility,
+	} from './workspace/runtime-graph';
 	import { bindWorkspaceRendererEvents } from './workspace/renderer-events';
 	import {
 		moveWorkspaceRuntimeGroupNodes,
@@ -180,6 +186,11 @@
 	let graphLoadingTarget = $state<string | undefined>(undefined);
 	let suppressNodeOpenUntil = 0;
 	let activeNodeDropGroupId: string | undefined;
+	let visibilityPaintFrame: number | undefined;
+	let visibilityApplyFrame: number | undefined;
+	let pendingVisibilityRenderer: GraphRenderer | undefined;
+	let pendingVisibilityPrevious: GraphProjection | undefined;
+	let pendingVisibilityNext: GraphProjection | undefined;
 	const activeChartName = $derived(
 		workspaceState.charts.find(
 			(chart) => chart.id === workspaceState.activeChartId,
@@ -358,6 +369,108 @@
 		);
 	}
 
+	function scheduleRendererVisibilitySync(
+		renderer: GraphRenderer,
+		previousProjection: GraphProjection | undefined,
+		nextProjection: GraphProjection,
+	): void {
+		if (pendingVisibilityRenderer !== renderer) {
+			pendingVisibilityPrevious = previousProjection;
+		}
+		pendingVisibilityRenderer = renderer;
+		pendingVisibilityNext = nextProjection;
+		if (
+			visibilityPaintFrame !== undefined ||
+			visibilityApplyFrame !== undefined
+		) {
+			return;
+		}
+		visibilityPaintFrame = window.requestAnimationFrame(() => {
+			visibilityPaintFrame = undefined;
+			visibilityApplyFrame = window.requestAnimationFrame(() => {
+				visibilityApplyFrame = undefined;
+				applyPendingRendererVisibility();
+			});
+		});
+	}
+
+	function applyPendingRendererVisibility(): void {
+		const renderer = pendingVisibilityRenderer;
+		const previousProjection = pendingVisibilityPrevious;
+		const nextProjection = pendingVisibilityNext;
+		pendingVisibilityRenderer = undefined;
+		pendingVisibilityPrevious = undefined;
+		pendingVisibilityNext = undefined;
+		if (
+			!renderer ||
+			!nextProjection ||
+			rendererLifecycle.renderer !== renderer
+		) {
+			return;
+		}
+		const changedNodeIds = readChangedVisibilityNodeIds(
+			previousProjection,
+			nextProjection,
+		);
+		if (changedNodeIds.length === 0) {
+			return;
+		}
+		const startedAt = performance.now();
+		const changes = syncWorkspaceRuntimeGraphVisibility(
+			renderer.runtimeGraph,
+			nextProjection,
+			changedNodeIds,
+		);
+		if (changes.nodeIds.length > 0 || changes.edgeIds.length > 0) {
+			refreshRendererGraphVisibility(renderer, changes);
+		}
+		controller.recordPerformance(
+			'render.visibility',
+			performance.now() - startedAt,
+			{
+				nodeCount: changes.nodeIds.length,
+				edgeCount: changes.edgeIds.length,
+			},
+		);
+	}
+
+	function cancelPendingRendererVisibilitySync(): void {
+		if (visibilityPaintFrame !== undefined) {
+			window.cancelAnimationFrame(visibilityPaintFrame);
+			visibilityPaintFrame = undefined;
+		}
+		if (visibilityApplyFrame !== undefined) {
+			window.cancelAnimationFrame(visibilityApplyFrame);
+			visibilityApplyFrame = undefined;
+		}
+		pendingVisibilityRenderer = undefined;
+		pendingVisibilityPrevious = undefined;
+		pendingVisibilityNext = undefined;
+	}
+
+	function readChangedVisibilityNodeIds(
+		previousProjection: GraphProjection | undefined,
+		nextProjection: GraphProjection,
+	): string[] {
+		if (!previousProjection) {
+			return nextProjection.nodes.map((node) => node.id);
+		}
+		const previousHidden = previousProjection.hiddenNodeIds ?? new Set();
+		const nextHidden = nextProjection.hiddenNodeIds ?? new Set();
+		const changed = new Set<string>();
+		for (const nodeId of previousHidden) {
+			if (!nextHidden.has(nodeId)) {
+				changed.add(nodeId);
+			}
+		}
+		for (const nodeId of nextHidden) {
+			if (!previousHidden.has(nodeId)) {
+				changed.add(nodeId);
+			}
+		}
+		return [...changed];
+	}
+
 	function toggleDock(): void {
 		dockOpen = !dockOpen;
 		persistSession();
@@ -445,9 +558,10 @@
 		);
 
 		const unsubscribe = controller.subscribe((nextState) => {
+			const previousState = workspaceState;
 			const changes = analyzeWorkspaceStateChanges(
 				nextState,
-				workspaceState,
+				previousState,
 				renderBaseline,
 			);
 			workspaceState = nextState;
@@ -477,13 +591,26 @@
 				nextState.projection &&
 				canvas
 			) {
-				syncWorkspaceRuntimeGraphStyles(
-					currentRenderer.runtimeGraph,
-					nextState.projection,
-					nextState,
-					readGraphPalette(canvas),
-				);
-				refreshRendererGraphStyles(currentRenderer);
+				if (
+					changes.graphVisibilityChanged &&
+					!changes.styleRulesChanged &&
+					!changes.manualLayoutChanged
+				) {
+					scheduleRendererVisibilitySync(
+						currentRenderer,
+						previousState.projection,
+						nextState.projection,
+					);
+				} else {
+					cancelPendingRendererVisibilitySync();
+					syncWorkspaceRuntimeGraphStyles(
+						currentRenderer.runtimeGraph,
+						nextState.projection,
+						nextState,
+						readGraphPalette(canvas),
+					);
+					refreshRendererGraphStyles(currentRenderer);
+				}
 				syncWorkspaceRenderBaselineStyles(renderBaseline, nextState);
 			}
 			if (changes.forceLayoutChanged) {
@@ -496,6 +623,7 @@
 				rendererLifecycle.restartSigmaForceLayoutIfNeeded();
 			}
 			if (changes.shouldRebuild) {
+				cancelPendingRendererVisibilitySync();
 				renderBaseline = createWorkspaceRenderBaseline(nextState);
 				void rendererLifecycle
 					.rebuild(changes.fitAfterRender, changes.forceLayout)
@@ -513,6 +641,7 @@
 
 		return () => {
 			graphLoadingCoordinator.dispose();
+			cancelPendingRendererVisibilitySync();
 			autoSave.flush();
 			unsubscribe();
 			resizeObserver.disconnect();
@@ -703,36 +832,58 @@
 	const debugSnapshot: DebugSnapshot = $derived(
 		controller.getDebugSnapshot(workspaceState),
 	);
+	const indexedNodes: KnowledgeNode[] = $derived.by(() => {
+		void workspaceState.projection;
+		return controller.getIndexedNodes();
+	});
+	const indexedNodeSnapshot = $derived({ index: { nodes: indexedNodes } });
+	let nodeColorCacheKey: unknown[] = [];
+	let cachedNodeColors = new Map<string, string>();
 	const nodeColors = $derived.by(() => {
 		const defaultColor = readInteractiveAccentColor(
 			readWorkspaceDocument(),
 		);
-		return getWorkspaceNodeColors(
-			debugSnapshot.index.nodes,
+		const cacheKey = [
+			indexedNodes,
+			defaultColor,
+			workspaceState.defaultNodeStyle,
+			workspaceState.nodeStyleOverrides,
+			workspaceState.globalNodeStyleRules,
+			workspaceState.nodeStyleRules,
+			workspaceState.grouping,
+			workspaceState.manualLayout,
+		];
+		if (
+			cacheKey.length === nodeColorCacheKey.length &&
+			cacheKey.every((value, index) => value === nodeColorCacheKey[index])
+		) {
+			return cachedNodeColors;
+		}
+		nodeColorCacheKey = cacheKey;
+		cachedNodeColors = getWorkspaceNodeColors(
+			indexedNodes,
 			workspaceState,
 			defaultColor,
 		);
+		return cachedNodeColors;
 	});
 	const dockNoteEntries = $derived(
 		getDockNoteEntries(
-			debugSnapshot,
+			indexedNodeSnapshot,
 			workspaceState.dock.notes,
 			nodeColors,
 		),
 	);
 	const metadataFieldSuggestions = $derived(
-		getMetadataFieldSuggestions(debugSnapshot.index.nodes),
+		getMetadataFieldSuggestions(indexedNodes),
 	);
-	const metadataFieldTypes = $derived(
-		getMetadataFieldTypes(debugSnapshot.index.nodes),
-	);
+	const metadataFieldTypes = $derived(getMetadataFieldTypes(indexedNodes));
 	const metadataFieldValueSuggestions = $derived(
-		getMetadataFieldValueSuggestions(
-			debugSnapshot.index.nodes,
-			metadataFieldTypes,
-		),
+		getMetadataFieldValueSuggestions(indexedNodes, metadataFieldTypes),
 	);
-	const filePathSuggestions = $derived(getFilePathSuggestions(debugSnapshot));
+	const filePathSuggestions = $derived(
+		getFilePathSuggestions(indexedNodeSnapshot),
+	);
 	const curatedConditionDraft = $derived.by(
 		() =>
 			curatedConditionDrafts[workspaceState.activeChartId] ??
@@ -1165,7 +1316,7 @@
 					{app}
 					{controller}
 					{workspaceState}
-					{debugSnapshot}
+					{indexedNodes}
 					{workspaceFilePath}
 					{nodeColors}
 					{dockNoteEntries}

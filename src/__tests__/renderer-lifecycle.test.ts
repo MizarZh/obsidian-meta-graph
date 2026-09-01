@@ -63,6 +63,7 @@ vi.mock('../layouts/d3-force-simulation', () => ({
 
 vi.mock('../ui/workspace/runtime-graph', () => ({
 	createWorkspaceRuntimeGraph: vi.fn(),
+	prepareWorkspaceRuntimeGraphVisibilityIndex: vi.fn(),
 }));
 
 vi.mock('../ui/workspace/renderer-factory', () => ({

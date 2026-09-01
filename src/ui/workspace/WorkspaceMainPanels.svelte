@@ -1,10 +1,6 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import type {
-		DebugSnapshot,
-		KnowledgeNode,
-		WorkspaceState,
-	} from '../../core/types';
+	import type { KnowledgeNode, WorkspaceState } from '../../core/types';
 	import type { ConnectionDragState } from '../../graph/renderers/renderer-events';
 	import { withAlpha } from '../../graph/styles/graph-styles';
 	import type { WorkspaceController } from '../../workspace/workspace-controller';
@@ -25,7 +21,7 @@
 		app,
 		controller,
 		workspaceState,
-		debugSnapshot,
+		indexedNodes,
 		workspaceFilePath,
 		nodeColors,
 		dockNoteEntries,
@@ -66,7 +62,7 @@
 		app: App;
 		controller: WorkspaceController;
 		workspaceState: WorkspaceState;
-		debugSnapshot: DebugSnapshot;
+		indexedNodes: KnowledgeNode[];
 		workspaceFilePath?: string;
 		nodeColors: Map<string, string>;
 		dockNoteEntries: DockNoteEntry[];
@@ -194,7 +190,7 @@
 	<CuratedPanel
 		{app}
 		curated={workspaceState.curated}
-		nodes={debugSnapshot.index.nodes}
+		nodes={indexedNodes}
 		groups={chartGroups}
 		manualLayout={workspaceState.manualLayout}
 		grouping={workspaceState.grouping}
@@ -292,7 +288,7 @@
 	{app}
 	templates={workspaceState.dock.templates}
 	notes={dockNoteEntries}
-	nodes={debugSnapshot.index.nodes}
+	nodes={indexedNodes}
 	groups={chartGroups}
 	folders={workspaceState.availableFolders}
 	{workspaceFilePath}

@@ -49,6 +49,29 @@ describe('WorkspaceAutoSave', () => {
 		);
 	});
 
+	it('defers document serialization until the debounce expires', () => {
+		vi.useFakeTimers();
+		const state = createWorkspaceState(200);
+		const onSave = vi.fn<(document: MetaGraphDocument) => Promise<void>>(
+			() => Promise.resolve(),
+		);
+		const serialize = vi.fn(serializeMetaGraphState);
+		const autoSave = new WorkspaceAutoSave(
+			onSave,
+			350,
+			timerHost(),
+			serialize,
+		);
+
+		autoSave.initialize(state);
+		autoSave.schedule({ ...state, activeConnectionField: 'related' });
+
+		expect(serialize).toHaveBeenCalledTimes(1);
+		vi.advanceTimersByTime(350);
+		expect(serialize).toHaveBeenCalledTimes(2);
+		expect(onSave).toHaveBeenCalledOnce();
+	});
+
 	it('flushes pending autosave immediately', () => {
 		vi.useFakeTimers();
 		const state = createWorkspaceState(200);

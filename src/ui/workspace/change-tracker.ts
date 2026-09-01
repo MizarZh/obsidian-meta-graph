@@ -139,6 +139,10 @@ export function analyzeWorkspaceStateChanges(
 		baselineValueChanged(nextState, baseline, 'nodeSortDirection');
 	const projectionChanged =
 		baseline.projectionSignature !== undefined &&
+		!hasSameProjectionTopologyReferences(
+			nextState.projection,
+			baseline.projection,
+		) &&
 		readProjectionSignature(nextState.projection) !==
 			baseline.projectionSignature;
 	const layoutRevisionChanged = baselineValueChanged(
@@ -302,6 +306,22 @@ export function analyzeWorkspaceStateChanges(
 			layoutRevisionChanged ||
 			chartSourceChanged,
 	};
+}
+
+function hasSameProjectionTopologyReferences(
+	nextProjection: GraphProjection | undefined,
+	baselineProjection: GraphProjection | undefined,
+): boolean {
+	if (!nextProjection || !baselineProjection) {
+		return nextProjection === baselineProjection;
+	}
+	return (
+		nextProjection.nodes === baselineProjection.nodes &&
+		nextProjection.edges === baselineProjection.edges &&
+		nextProjection.rootIds === baselineProjection.rootIds &&
+		nextProjection.primaryIds === baselineProjection.primaryIds &&
+		nextProjection.contextIds === baselineProjection.contextIds
+	);
 }
 
 function graphGroupingMembershipChanged(

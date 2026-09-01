@@ -104,10 +104,10 @@ export function setCuratedFilesHiddenInState(
 		return state;
 	}
 	return updateActiveChartState(state, {
-		curated: normalizeCuratedWorkspace({
+		curated: {
 			...activeChart.curated,
 			files,
-		}),
+		},
 	});
 }
 

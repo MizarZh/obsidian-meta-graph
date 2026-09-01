@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import {
 		SHADOW_PLACEHOLDER_ITEM_ID,
 		dragHandle,
@@ -46,8 +47,18 @@
 	} = $props();
 
 	let dndFiles = $state<CuratedDndEntry[]>([]);
+	const filesByPath = $derived(
+		new Map(files.map((file) => [file.path, file] as const)),
+	);
 
 	$effect(() => {
+		const currentPaths = untrack(() => dndFiles.map((file) => file.path));
+		if (
+			files.length === currentPaths.length &&
+			files.every((file, index) => file.path === currentPaths[index])
+		) {
+			return;
+		}
 		dndFiles = files.map((file) => ({ ...file, id: file.path }));
 	});
 
@@ -98,7 +109,8 @@
 		onconsider={handleDndConsider}
 		onfinalize={handleDndFinalize}
 	>
-		{#each dndFiles as file (file.id)}
+		{#each dndFiles as dndFile (dndFile.id)}
+			{@const file = filesByPath.get(dndFile.path) ?? dndFile}
 			<div
 				class="knowledge-workspace-curated-file"
 				class:dragging-set={selectedPaths.has(file.path) &&

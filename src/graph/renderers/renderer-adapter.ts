@@ -167,6 +167,28 @@ export function refreshRendererGraphStyles(renderer: GraphRenderer): void {
 	renderer.instance.refresh();
 }
 
+export function refreshRendererGraphVisibility(
+	renderer: GraphRenderer,
+	changes: { nodeIds: readonly string[]; edgeIds: readonly string[] },
+): void {
+	if (isForce3DRenderer(renderer)) {
+		renderer.refreshGraphStyles();
+		return;
+	}
+	if (isCube3DRenderer(renderer)) {
+		renderer.setGraph(renderer.runtimeGraph);
+		return;
+	}
+	renderer.instance.refresh({
+		partialGraph: {
+			nodes: [...changes.nodeIds],
+			edges: [...changes.edgeIds],
+		},
+		skipIndexation: true,
+		schedule: true,
+	});
+}
+
 export async function createGraphRenderer(
 	options: GraphRendererOptions,
 ): Promise<GraphRenderer | undefined> {

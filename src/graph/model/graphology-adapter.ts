@@ -55,6 +55,7 @@ export interface RuntimeEdgeAttributes {
 	size: number;
 	color: string;
 	hidden: boolean;
+	styleHidden?: boolean;
 	label: string;
 	forceLabel: boolean;
 	lineStyle: LinkLineStyle;
@@ -227,6 +228,7 @@ export class GraphologyAdapter {
 				lineStyle: resolvedStyle.lineStyle,
 				kind: edge.kind,
 				semantic: edge.semantic ?? edge.kind !== 'plain-link',
+				styleHidden: resolvedStyle.hidden,
 				hidden:
 					resolvedStyle.hidden ||
 					Boolean(projection.hiddenNodeIds?.has(edge.source)) ||

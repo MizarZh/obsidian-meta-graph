@@ -1,9 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { GraphProjection } from '../core/types';
 import type { GraphPalette } from '../graph/styles/graph-styles';
 import {
 	createWorkspaceRuntimeGraph,
+	prepareWorkspaceRuntimeGraphVisibilityIndex,
 	syncWorkspaceRuntimeGraphStyles,
+	syncWorkspaceRuntimeGraphVisibility,
 } from '../ui/workspace/runtime-graph';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
 
@@ -191,19 +193,50 @@ describe('workspace runtime graph', () => {
 			state,
 			palette,
 		);
+		const nodeAttributesUpdated = vi.fn();
+		const edgeAttributesUpdated = vi.fn();
+		graph.on('nodeAttributesUpdated', nodeAttributesUpdated);
+		graph.on('edgeAttributesUpdated', edgeAttributesUpdated);
 
-		syncWorkspaceRuntimeGraphStyles(
+		prepareWorkspaceRuntimeGraphVisibilityIndex(graph);
+		const hiddenChanges = syncWorkspaceRuntimeGraphVisibility(
 			graph,
 			{
 				...styledProjection,
 				hiddenNodeIds: new Set(['B.md']),
 			},
-			state,
-			palette,
+			['B.md'],
 		);
 
 		expect(graph.getNodeAttribute('B.md', 'hidden')).toBe(true);
 		expect(graph.getEdgeAttribute('A->B', 'hidden')).toBe(true);
+		expect(hiddenChanges).toEqual({
+			nodeIds: ['B.md'],
+			edgeIds: ['A->B'],
+		});
+		expect(nodeAttributesUpdated).not.toHaveBeenCalled();
+		expect(edgeAttributesUpdated).not.toHaveBeenCalled();
+
+		syncWorkspaceRuntimeGraphVisibility(graph, styledProjection, ['B.md']);
+
+		expect(graph.getNodeAttribute('B.md', 'hidden')).toBe(false);
+		expect(graph.getEdgeAttribute('A->B', 'hidden')).toBe(false);
+
+		const styleHiddenGraph = createWorkspaceRuntimeGraph(
+			styledProjection,
+			new Map(),
+			{
+				...state,
+				linkStyleOverrides: {
+					...state.linkStyleOverrides,
+					hidden: true,
+				},
+			},
+			palette,
+		);
+		syncWorkspaceRuntimeGraphVisibility(styleHiddenGraph, styledProjection);
+
+		expect(styleHiddenGraph.getEdgeAttribute('A->B', 'hidden')).toBe(true);
 	});
 
 	it('renders plain links as muted compatibility edges', () => {

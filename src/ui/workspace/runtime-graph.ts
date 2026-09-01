@@ -29,6 +29,17 @@ import {
 	type NodeStyleContext,
 } from '../../graph/styles/style-rules';
 
+interface RuntimeVisibilityIndex {
+	edgeIdsByNode: ReadonlyMap<string, readonly string[]>;
+}
+
+export interface RuntimeVisibilityChanges {
+	nodeIds: string[];
+	edgeIds: string[];
+}
+
+const visibilityIndexes = new WeakMap<RuntimeGraph, RuntimeVisibilityIndex>();
+
 export function createWorkspaceRuntimeGraph(
 	projection: GraphProjection,
 	positions: ReadonlyMap<string, GraphPosition>,
@@ -113,6 +124,7 @@ export function syncWorkspaceRuntimeGraphStyles(
 		if (graph.hasEdge(edge.id)) {
 			graph.mergeEdgeAttributes(edge.id, {
 				...style,
+				styleHidden: style.hidden,
 				type: getEdgeType(style.lineStyle, edge.directed),
 				kind: edge.kind,
 				semantic: edge.semantic ?? edge.kind !== 'plain-link',
@@ -136,6 +148,7 @@ export function syncWorkspaceRuntimeGraphStyles(
 					: getEdgeType(style.lineStyle, false);
 			graph.mergeEdgeAttributes(runtimeEdgeId, {
 				...style,
+				styleHidden: style.hidden,
 				type,
 				label: index === labelSegment ? style.label : '',
 				forceLabel: index === labelSegment && Boolean(style.label),
@@ -146,6 +159,88 @@ export function syncWorkspaceRuntimeGraphStyles(
 			});
 		}
 	}
+}
+
+export function prepareWorkspaceRuntimeGraphVisibilityIndex(
+	graph: RuntimeGraph,
+): void {
+	const edgeIdsByNode = new Map<string, string[]>();
+	graph.forEachEdge((edgeId, attributes, source, target) => {
+		const logicalSource = attributes.logicalSource ?? source;
+		const logicalTarget = attributes.logicalTarget ?? target;
+		appendEdgeId(edgeIdsByNode, logicalSource, edgeId);
+		if (logicalTarget !== logicalSource) {
+			appendEdgeId(edgeIdsByNode, logicalTarget, edgeId);
+		}
+	});
+	visibilityIndexes.set(graph, { edgeIdsByNode });
+}
+
+export function syncWorkspaceRuntimeGraphVisibility(
+	graph: RuntimeGraph,
+	projection: GraphProjection,
+	changedNodeIds?: Iterable<string>,
+): RuntimeVisibilityChanges {
+	const hiddenNodeIds = projection.hiddenNodeIds ?? new Set<string>();
+	const nodeIds = changedNodeIds
+		? [...new Set(changedNodeIds)]
+		: graph.nodes();
+	const changedNodes: string[] = [];
+	for (const nodeId of nodeIds) {
+		if (!graph.hasNode(nodeId)) {
+			continue;
+		}
+		const attributes = graph.getNodeAttributes(nodeId);
+		const hidden = hiddenNodeIds.has(nodeId);
+		if (!attributes.isBend && Boolean(attributes.hidden) !== hidden) {
+			// Graphology returns the live attributes object. Mutate it silently so
+			// Sigma does not treat a visibility-only update as a layout change.
+			attributes.hidden = hidden;
+			changedNodes.push(nodeId);
+		}
+	}
+
+	let index = visibilityIndexes.get(graph);
+	if (!index) {
+		prepareWorkspaceRuntimeGraphVisibilityIndex(graph);
+		index = visibilityIndexes.get(graph);
+	}
+	const edgeIds = new Set<string>();
+	for (const nodeId of nodeIds) {
+		for (const edgeId of index?.edgeIdsByNode.get(nodeId) ?? []) {
+			edgeIds.add(edgeId);
+		}
+	}
+	const changedEdges: string[] = [];
+	for (const edgeId of edgeIds) {
+		if (!graph.hasEdge(edgeId)) {
+			continue;
+		}
+		const attributes = graph.getEdgeAttributes(edgeId);
+		const source = graph.source(edgeId);
+		const target = graph.target(edgeId);
+		const logicalSource = attributes.logicalSource ?? source;
+		const logicalTarget = attributes.logicalTarget ?? target;
+		const hidden =
+			Boolean(attributes.styleHidden) ||
+			hiddenNodeIds.has(logicalSource) ||
+			hiddenNodeIds.has(logicalTarget);
+		if (attributes.hidden !== hidden) {
+			attributes.hidden = hidden;
+			changedEdges.push(edgeId);
+		}
+	}
+	return { nodeIds: changedNodes, edgeIds: changedEdges };
+}
+
+function appendEdgeId(
+	edgeIdsByNode: Map<string, string[]>,
+	nodeId: string,
+	edgeId: string,
+): void {
+	const edgeIds = edgeIdsByNode.get(nodeId) ?? [];
+	edgeIds.push(edgeId);
+	edgeIdsByNode.set(nodeId, edgeIds);
 }
 
 function getSegmentIndex(edgeId: string): number {
