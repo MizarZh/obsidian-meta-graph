@@ -202,7 +202,6 @@
 	width: var(--curated-panel-width);
 	min-width: 32px;
 	min-height: 0;
-	transition: width 180ms ease;
 }
 
 .connection-collapsed .knowledge-workspace-curated-panel {
@@ -211,7 +210,16 @@
 
 .knowledge-workspace-curated-panel-collapsed {
 	overflow: hidden;
-	width: 32px;
+	pointer-events: none;
+}
+
+.knowledge-workspace-curated-panel-collapsed section {
+	visibility: hidden;
+}
+
+.knowledge-workspace-curated-panel-collapsed
+	.knowledge-workspace-curated-toggle {
+	pointer-events: auto;
 }
 
 .knowledge-workspace-curated-panel.target section {

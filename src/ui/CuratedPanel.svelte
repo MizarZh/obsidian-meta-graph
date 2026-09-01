@@ -360,7 +360,7 @@
 	class:knowledge-workspace-curated-panel-collapsed={!panelOpen}
 	class:target={dropTarget}
 	data-curated-drop-target={panelOpen ? '' : undefined}
-	style="width: {panelOpen ? `${panelWidth}px` : undefined}"
+	style={`width: ${panelWidth}px`}
 >
 	<div
 		class="knowledge-workspace-curated-resize-handle"
@@ -374,162 +374,159 @@
 		ariaLabel={panelOpen ? 'Close workspace files' : 'Open workspace files'}
 		onClick={onTogglePanel}
 	/>
-	{#if panelOpen}
-		<section>
-			<header class="knowledge-workspace-curated-header">
-				<h3>Workspace files</h3>
-				<span>{selectedFiles.length}</span>
-				<ObsidianButton
-					class="knowledge-workspace-curated-search"
-					icon="search"
-					active={searchOpen}
+	<section aria-hidden={!panelOpen}>
+		<header class="knowledge-workspace-curated-header">
+			<h3>Workspace files</h3>
+			<span>{selectedFiles.length}</span>
+			<ObsidianButton
+				class="knowledge-workspace-curated-search"
+				icon="search"
+				active={searchOpen}
+				ariaLabel="Search workspace files"
+				tooltip="Search"
+				onClick={() => {
+					searchOpen = !searchOpen;
+					if (!searchOpen) listSearch = '';
+				}}
+			/>
+			<ObsidianButton
+				class="knowledge-workspace-curated-filter"
+				icon="list-filter"
+				active={filterCount > 0}
+				ariaLabel="Filter workspace files"
+				tooltip="Filter"
+				onClick={() => (filterModalOpen = true)}
+			/>
+			<ObsidianButton
+				class="knowledge-workspace-curated-add"
+				icon="plus"
+				ariaLabel="Add notes"
+				tooltip="Add notes"
+				onClick={() => (addNotesOpen = true)}
+			/>
+			<ObsidianButton
+				class="knowledge-workspace-curated-focus-toggle"
+				icon="crosshair"
+				active={focusOnSelect}
+				ariaLabel={focusOnSelect
+					? 'Auto-focus on click (enabled)'
+					: 'Auto-focus on click (disabled)'}
+				tooltip="Auto-focus on click"
+				onClick={onToggleFocusOnSelect}
+			/>
+			<ObsidianButton
+				class="knowledge-workspace-curated-clear"
+				icon="trash-2"
+				ariaLabel="Clear workspace"
+				tooltip="Clear workspace"
+				disabled={curated.files.length === 0}
+				destructive={true}
+				onClick={clearAll}
+			/>
+		</header>
+		{#if searchOpen}
+			<div class="knowledge-workspace-curated-list-search">
+				<ObsidianTextInput
+					type="search"
+					placeholder="Search workspace files..."
 					ariaLabel="Search workspace files"
-					tooltip="Search"
-					onClick={() => {
-						searchOpen = !searchOpen;
-						if (!searchOpen) listSearch = '';
-					}}
+					value={listSearch}
+					onInput={(value) => (listSearch = value)}
 				/>
-				<ObsidianButton
-					class="knowledge-workspace-curated-filter"
-					icon="list-filter"
-					active={filterCount > 0}
-					ariaLabel="Filter workspace files"
-					tooltip="Filter"
-					onClick={() => (filterModalOpen = true)}
-				/>
-				<ObsidianButton
-					class="knowledge-workspace-curated-add"
-					icon="plus"
-					ariaLabel="Add notes"
-					tooltip="Add notes"
-					onClick={() => (addNotesOpen = true)}
-				/>
-				<ObsidianButton
-					class="knowledge-workspace-curated-focus-toggle"
-					icon="crosshair"
-					active={focusOnSelect}
-					ariaLabel={focusOnSelect
-						? 'Auto-focus on click (enabled)'
-						: 'Auto-focus on click (disabled)'}
-					tooltip="Auto-focus on click"
-					onClick={onToggleFocusOnSelect}
-				/>
-				<ObsidianButton
-					class="knowledge-workspace-curated-clear"
-					icon="trash-2"
-					ariaLabel="Clear workspace"
-					tooltip="Clear workspace"
-					disabled={curated.files.length === 0}
-					destructive={true}
-					onClick={clearAll}
-				/>
-			</header>
-			{#if searchOpen}
-				<div class="knowledge-workspace-curated-list-search">
-					<ObsidianTextInput
-						type="search"
-						placeholder="Search workspace files..."
-						ariaLabel="Search workspace files"
-						value={listSearch}
-						onInput={(value) => (listSearch = value)}
-					/>
-					{#if listSearchActive}
-						<ObsidianButton
-							icon="x"
-							class="knowledge-workspace-curated-list-search-clear"
-							ariaLabel="Clear workspace file search"
-							tooltip="Clear search"
-							onClick={() => (listSearch = '')}
-						/>
-					{/if}
-				</div>
-			{/if}
-			{#if filterCount > 0}
-				<div class="knowledge-workspace-curated-filter-status">
-					<button
-						type="button"
-						class="knowledge-workspace-curated-filter-chip"
-						onclick={() => (filterModalOpen = true)}
-					>
-						{filterCount} conditions
-					</button>
-				</div>
-			{/if}
-			<div class="knowledge-workspace-curated-actions">
-				{#if selectedCount > 0}
-					<span class="knowledge-workspace-curated-selection-count">
-						{selectedCount} selected
-					</span>
-					<label class="knowledge-workspace-curated-selection-group">
-						<span>Group</span>
-						<ObsidianDropdown
-							value="__move__"
-							options={[
-								{ value: '__move__', label: 'Move to group' },
-								...groupOptions,
-							]}
-							ariaLabel="Move selected to group"
-							onChange={(value) => {
-								if (value !== '__move__') {
-									moveSelectedToGroup(value);
-								}
-							}}
-						/>
-					</label>
+				{#if listSearchActive}
 					<ObsidianButton
-						icon="eye-off"
-						ariaLabel="Hide selected"
-						tooltip="Hide selected from graph"
-						onClick={() => setSelectedHidden(true)}
-					/>
-					<ObsidianButton
-						icon="eye"
-						ariaLabel="Show selected"
-						tooltip="Show selected in graph"
-						onClick={() => setSelectedHidden(false)}
-					/>
-					<ObsidianButton
-						icon="trash-2"
-						ariaLabel="Remove selected"
-						tooltip="Remove selected"
-						destructive={true}
-						onClick={removeSelected}
-					/>
-					<ObsidianButton
-						icon="circle-off"
-						ariaLabel="Clear selection"
-						tooltip="Clear selection"
-						onClick={clearSelection}
-					/>
-				{:else if filterCount > 0 || listSearchActive}
-					<ObsidianButton
-						text="Select all matching"
-						icon="list-checks"
-						disabled={filteredSelectedFiles.length === 0}
-						onClick={selectAllMatching}
+						icon="x"
+						class="knowledge-workspace-curated-list-search-clear"
+						ariaLabel="Clear workspace file search"
+						tooltip="Clear search"
+						onClick={() => (listSearch = '')}
 					/>
 				{/if}
 			</div>
-			<CuratedFileList
-				files={filteredSelectedFiles}
-				selectedTitleCounts={filteredSelectedTitleCounts}
-				{getGroupOptions}
-				selectedPaths={selected}
-				reorderEnabled={!listSearchActive && filterCount === 0}
-				onCheckboxClick={handleFileCheckboxClick}
-				onFileClick={handleFileClick}
-				onPointerDown={handleFilePointerDown}
-				{onReorderFiles}
-				{onOpenNote}
-				{onSelectNote}
-				onMoveFileToGroup={moveFileToGroup}
-				onSetFileHidden={(path, hidden) =>
-					onSetFilesHidden([path], hidden)}
-				{onRemoveFile}
-			/>
-		</section>
-	{/if}
+		{/if}
+		{#if filterCount > 0}
+			<div class="knowledge-workspace-curated-filter-status">
+				<button
+					type="button"
+					class="knowledge-workspace-curated-filter-chip"
+					onclick={() => (filterModalOpen = true)}
+				>
+					{filterCount} conditions
+				</button>
+			</div>
+		{/if}
+		<div class="knowledge-workspace-curated-actions">
+			{#if selectedCount > 0}
+				<span class="knowledge-workspace-curated-selection-count">
+					{selectedCount} selected
+				</span>
+				<label class="knowledge-workspace-curated-selection-group">
+					<span>Group</span>
+					<ObsidianDropdown
+						value="__move__"
+						options={[
+							{ value: '__move__', label: 'Move to group' },
+							...groupOptions,
+						]}
+						ariaLabel="Move selected to group"
+						onChange={(value) => {
+							if (value !== '__move__') {
+								moveSelectedToGroup(value);
+							}
+						}}
+					/>
+				</label>
+				<ObsidianButton
+					icon="eye-off"
+					ariaLabel="Hide selected"
+					tooltip="Hide selected from graph"
+					onClick={() => setSelectedHidden(true)}
+				/>
+				<ObsidianButton
+					icon="eye"
+					ariaLabel="Show selected"
+					tooltip="Show selected in graph"
+					onClick={() => setSelectedHidden(false)}
+				/>
+				<ObsidianButton
+					icon="trash-2"
+					ariaLabel="Remove selected"
+					tooltip="Remove selected"
+					destructive={true}
+					onClick={removeSelected}
+				/>
+				<ObsidianButton
+					icon="circle-off"
+					ariaLabel="Clear selection"
+					tooltip="Clear selection"
+					onClick={clearSelection}
+				/>
+			{:else if filterCount > 0 || listSearchActive}
+				<ObsidianButton
+					text="Select all matching"
+					icon="list-checks"
+					disabled={filteredSelectedFiles.length === 0}
+					onClick={selectAllMatching}
+				/>
+			{/if}
+		</div>
+		<CuratedFileList
+			files={filteredSelectedFiles}
+			selectedTitleCounts={filteredSelectedTitleCounts}
+			{getGroupOptions}
+			selectedPaths={selected}
+			reorderEnabled={!listSearchActive && filterCount === 0}
+			onCheckboxClick={handleFileCheckboxClick}
+			onFileClick={handleFileClick}
+			onPointerDown={handleFilePointerDown}
+			{onReorderFiles}
+			{onOpenNote}
+			{onSelectNote}
+			onMoveFileToGroup={moveFileToGroup}
+			onSetFileHidden={(path, hidden) => onSetFilesHidden([path], hidden)}
+			{onRemoveFile}
+		/>
+	</section>
 	<AddNotesModal
 		{app}
 		open={addNotesOpen}
