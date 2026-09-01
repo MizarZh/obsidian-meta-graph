@@ -8,6 +8,7 @@
 		max,
 		step,
 		disabled = false,
+		ariaLabel,
 		instant = true,
 		showValue = false,
 		format,
@@ -20,6 +21,7 @@
 		max: number | null;
 		step: number | 'any';
 		disabled?: boolean;
+		ariaLabel?: string;
 		instant?: boolean;
 		showValue?: boolean;
 		format?: (value: number) => string;
@@ -75,6 +77,11 @@
 			slider.setValue(value);
 		}
 		slider.setDisabled(disabled);
+		if (ariaLabel) {
+			slider.sliderEl.setAttribute('aria-label', ariaLabel);
+		} else {
+			slider.sliderEl.removeAttribute('aria-label');
+		}
 		if (format && 'setDisplayFormat' in slider) {
 			slider.setDisplayFormat(format);
 		}

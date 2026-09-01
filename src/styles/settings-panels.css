@@ -1231,6 +1231,152 @@
 	grid-template-columns: minmax(0, 1fr) 30px;
 }
 
+.knowledge-workspace-setting-row {
+	display: grid;
+	grid-template-columns: minmax(86px, max-content) minmax(0, 1fr);
+	gap: var(--size-4-3);
+	align-items: center;
+	min-width: 0;
+}
+
+.knowledge-workspace-setting-row--stacked {
+	grid-template-columns: 1fr;
+	gap: var(--size-4-1);
+	align-items: start;
+}
+
+.knowledge-workspace-setting-row--segmented {
+	align-items: start;
+}
+
+.knowledge-workspace-setting-label {
+	display: grid;
+	gap: 2px;
+	min-width: 0;
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+}
+
+.knowledge-workspace-setting-label > span {
+	font-weight: var(--font-medium, 500);
+}
+
+.knowledge-workspace-setting-label > small {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	line-height: 1.25;
+}
+
+.knowledge-workspace-setting-control {
+	min-width: 0;
+	width: 100%;
+}
+
+.knowledge-workspace-setting-grid {
+	display: grid;
+	grid-template-columns: repeat(
+		var(--knowledge-workspace-setting-columns),
+		minmax(0, 1fr)
+	);
+	gap: var(--size-4-3);
+	min-width: 0;
+}
+
+.knowledge-workspace-setting-grid--compact {
+	gap: var(--size-4-2);
+}
+
+.knowledge-workspace-setting-grid--compact .knowledge-workspace-setting-row {
+	gap: var(--size-4-2);
+}
+
+.knowledge-workspace-setting-grid--compact
+	.knowledge-workspace-setting-row--stacked {
+	grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+	align-items: center;
+}
+
+.knowledge-workspace-setting-grid.knowledge-workspace-link-line-grid {
+	grid-template-columns: minmax(96px, 0.34fr) minmax(0, 1fr);
+}
+
+.knowledge-workspace-visual-settings,
+.knowledge-workspace-node-visual-settings,
+.knowledge-workspace-link-behavior {
+	display: grid;
+	gap: var(--size-4-2);
+	min-width: 0;
+}
+
+.knowledge-workspace-visual-section {
+	display: grid;
+	gap: var(--size-4-2);
+	min-width: 0;
+	margin-bottom: 0;
+	padding: var(--size-4-2);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary-alt);
+}
+
+.knowledge-workspace-filters .knowledge-workspace-visual-section {
+	margin-bottom: 0;
+}
+
+.knowledge-workspace-visual-section h5 {
+	margin: 0;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-semibold, 600);
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+}
+
+.knowledge-workspace-setting-row .knowledge-workspace-slider-value {
+	min-width: 0;
+}
+
+.knowledge-workspace-setting-row input[type='range'] {
+	width: 100%;
+	height: 18px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+	accent-color: var(--interactive-accent);
+}
+
+.knowledge-workspace-setting-row
+	input[type='range']::-webkit-slider-runnable-track {
+	height: 4px;
+	border-radius: 999px;
+	background: var(--background-modifier-border);
+}
+
+.knowledge-workspace-setting-row input[type='range']::-moz-range-track {
+	height: 4px;
+	border-radius: 999px;
+	background: var(--background-modifier-border);
+}
+
+.knowledge-workspace-setting-segmented {
+	display: flex;
+	min-width: 0;
+	width: 100%;
+}
+
+.knowledge-workspace-setting-segmented > .knowledge-workspace-obsidian-control {
+	flex: 1 1 0;
+	min-width: 0;
+}
+
+.knowledge-workspace-setting-segmented button {
+	width: 100%;
+	min-width: 0;
+	padding-inline: var(--size-4-2);
+	font-size: var(--font-ui-smaller);
+}
+
 .knowledge-workspace-line-style-row {
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr);
@@ -1326,6 +1472,10 @@
 	margin-block: var(--size-4-4);
 	padding-top: var(--size-4-2);
 	border-top: 1px solid var(--background-modifier-border);
+}
+
+.knowledge-workspace-filters .knowledge-workspace-settings-group {
+	margin-block: 0;
 }
 
 .knowledge-workspace-settings-group:first-of-type {

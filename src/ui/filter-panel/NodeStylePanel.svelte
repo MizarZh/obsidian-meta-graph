@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import CollapsibleSettingsGroup from './CollapsibleSettingsGroup.svelte';
+	import SettingsSection from '../settings/SettingsSection.svelte';
+	import NodeVisualSettings, {
+		type NodeVisualValue,
+	} from '../settings/style/NodeVisualSettings.svelte';
 	import NodeConditionRow from '../filter/NodeConditionRow.svelte';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
-	import ObsidianColorInput from '../obsidian/ObsidianColorInput.svelte';
-	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
-	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
 	import {
 		getDefaultNodeStyleOperator,
 		getNodeStyleFieldOptions,
@@ -40,14 +40,6 @@
 		{ scope: 'global', title: 'Global note rules' },
 		{ scope: 'current', title: 'Chart note rules' },
 	] as const;
-	const NODE_SHAPE_OPTIONS: Array<{ value: NodeShape; label: string }> = [
-		{ value: 'circle', label: 'Circle' },
-		{ value: 'square', label: 'Square' },
-		{ value: 'diamond', label: 'Diamond' },
-		{ value: 'triangle', label: 'Triangle' },
-		{ value: 'hexagon', label: 'Hexagon' },
-		{ value: 'star', label: 'Star' },
-	];
 	type NodeConditionField = NodeFilterField | NodeStyleField;
 
 	let {
@@ -211,11 +203,13 @@
 		onDefaultNodeStyle({ ...defaultNodeStyle, ...patch });
 	}
 
-	function updateNodeOverride(patch: DefaultNodeStyle): void {
+	function updateNodeOverride(patch: Partial<DefaultNodeStyle>): void {
 		onNodeStyleOverrides({ ...nodeStyleOverrides, ...patch });
 	}
 
-	function updateUnresolvedNodeOverride(patch: DefaultNodeStyle): void {
+	function updateUnresolvedNodeOverride(
+		patch: Partial<DefaultNodeStyle>,
+	): void {
 		onUnresolvedNodeStyleOverrides({
 			...unresolvedNodeStyleOverrides,
 			...patch,
@@ -247,16 +241,12 @@
 		);
 	}
 
-	function activeNodeColor(): string {
-		return String(activeNodeStyleValue('color'));
-	}
-
-	function activeNodeSize(): number {
-		return Number(activeNodeStyleValue('size'));
-	}
-
-	function activeNodeShape(): NodeShape {
-		return activeNodeStyleValue('shape') as NodeShape;
+	function activeNodeVisualValue(): NodeVisualValue {
+		return {
+			color: String(activeNodeStyleValue('color')),
+			size: Number(activeNodeStyleValue('size')),
+			shape: activeNodeStyleValue('shape') as NodeShape,
+		};
 	}
 
 	function hasNodeOverride(): boolean {
@@ -272,16 +262,12 @@
 		);
 	}
 
-	function activeUnresolvedNodeColor(): string {
-		return String(activeUnresolvedNodeStyleValue('color'));
-	}
-
-	function activeUnresolvedNodeSize(): number {
-		return Number(activeUnresolvedNodeStyleValue('size'));
-	}
-
-	function activeUnresolvedNodeShape(): NodeShape {
-		return activeUnresolvedNodeStyleValue('shape') as NodeShape;
+	function activeUnresolvedNodeVisualValue(): NodeVisualValue {
+		return {
+			color: String(activeUnresolvedNodeStyleValue('color')),
+			size: Number(activeUnresolvedNodeStyleValue('size')),
+			shape: activeUnresolvedNodeStyleValue('shape') as NodeShape,
+		};
 	}
 
 	function hasUnresolvedNodeOverride(): boolean {
@@ -372,54 +358,16 @@
 <section>
 	<header><h3>Note styles</h3></header>
 </section>
-<CollapsibleSettingsGroup
-	title="Workspace default"
-	bind:open={workspaceDefaultOpen}
->
+<SettingsSection title="Workspace default" bind:open={workspaceDefaultOpen}>
 	<div class="knowledge-workspace-rule">
-		<div class="knowledge-workspace-rule-row compact node-style-values">
-			<label>
-				<span>Color</span>
-				<ObsidianColorInput
-					value={defaultNodeStyle.color}
-					commitKey="node:workspace-default"
-					ariaLabel="Workspace default note color"
-					onChange={(color) => updateDefaultNodeStyle({ color })}
-				/>
-			</label>
-			<label>
-				<span>Shape</span>
-				<ObsidianDropdown
-					value={defaultNodeStyle.shape}
-					options={NODE_SHAPE_OPTIONS}
-					ariaLabel="Workspace default note shape"
-					onChange={(shape) =>
-						onDefaultNodeStyle({
-							...defaultNodeStyle,
-							shape: shape as NodeShape,
-						})}
-				/>
-			</label>
-			<label class="node-style-size">
-				<span>Size</span>
-				<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						min={1}
-						max={30}
-						step={0.5}
-						value={defaultNodeStyle.size}
-						onChange={(size) => updateDefaultNodeStyle({ size })}
-					/>
-					<span>{defaultNodeStyle.size.toFixed(1)}</span>
-				</div>
-			</label>
-		</div>
+		<NodeVisualSettings
+			value={defaultNodeStyle}
+			commitKey="node:workspace-default"
+			onPatch={updateDefaultNodeStyle}
+		/>
 	</div>
-</CollapsibleSettingsGroup>
-<CollapsibleSettingsGroup
-	title="Chart overrides"
-	bind:open={chartOverridesOpen}
->
+</SettingsSection>
+<SettingsSection title="Chart overrides" bind:open={chartOverridesOpen}>
 	{#snippet actions()}
 		{#if !hasNodeOverride()}
 			<ObsidianButton
@@ -441,45 +389,16 @@
 					onClick={clearNodeOverride}
 				/>
 			</div>
-			<div class="knowledge-workspace-rule-row compact node-style-values">
-				<label>
-					<span>Color</span>
-					<ObsidianColorInput
-						value={activeNodeColor()}
-						commitKey="node:chart-override"
-						ariaLabel="Chart note color"
-						onChange={(color) => updateNodeOverride({ color })}
-					/>
-				</label>
-				<label>
-					<span>Shape</span>
-					<ObsidianDropdown
-						value={activeNodeShape()}
-						options={NODE_SHAPE_OPTIONS}
-						ariaLabel="Chart note shape"
-						onChange={(shape) =>
-							updateNodeOverride({ shape: shape as NodeShape })}
-					/>
-				</label>
-				<label class="node-style-size">
-					<span>Size</span>
-					<div class="knowledge-workspace-slider-value">
-						<ObsidianSlider
-							min={1}
-							max={30}
-							step={0.5}
-							value={activeNodeSize()}
-							onChange={(size) => updateNodeOverride({ size })}
-						/>
-						<span>{activeNodeSize().toFixed(1)}</span>
-					</div>
-				</label>
-			</div>
+			<NodeVisualSettings
+				value={activeNodeVisualValue()}
+				commitKey="node:chart-override"
+				onPatch={updateNodeOverride}
+			/>
 		</div>
 	{/if}
-</CollapsibleSettingsGroup>
+</SettingsSection>
 {#each NODE_STYLE_SECTIONS as section}
-	<CollapsibleSettingsGroup
+	<SettingsSection
 		title={section.title}
 		bind:open={ruleSectionsOpen[section.scope]}
 	>
@@ -571,59 +490,22 @@
 						</div>
 					{/snippet}
 				</NodeConditionRow>
-				<div
-					class="knowledge-workspace-rule-row compact node-style-values"
-				>
-					<label>
-						<span>Color</span>
-						<ObsidianColorInput
-							value={rule.color}
-							commitKey={`node:${section.scope}:${rule.id}`}
-							ariaLabel="Note rule color"
-							onChange={(color) =>
-								updateNodeRule(section.scope, rule.id, {
-									color,
-								})}
-						/>
-					</label>
-					<label>
-						<span>Shape</span>
-						<ObsidianDropdown
-							value={rule.shape ?? 'circle'}
-							options={NODE_SHAPE_OPTIONS}
-							ariaLabel="Note rule shape"
-							onChange={(shape) =>
-								updateNodeRule(section.scope, rule.id, {
-									shape: shape as NodeShape,
-								})}
-						/>
-					</label>
-					<label class="node-style-size">
-						<span>Size</span>
-						<div class="knowledge-workspace-slider-value">
-							<ObsidianSlider
-								min={1}
-								max={30}
-								step={0.5}
-								value={rule.size}
-								onChange={(value) =>
-									updateNodeRule(section.scope, rule.id, {
-										size: value,
-									})}
-							/>
-							<span>{rule.size.toFixed(1)}</span>
-						</div>
-					</label>
-				</div>
+				<NodeVisualSettings
+					value={{
+						color: rule.color,
+						size: rule.size,
+						shape: rule.shape ?? 'circle',
+					}}
+					commitKey={`node:${section.scope}:${rule.id}`}
+					onPatch={(patch) =>
+						updateNodeRule(section.scope, rule.id, patch)}
+				/>
 			</div>
 		{/each}
-	</CollapsibleSettingsGroup>
+	</SettingsSection>
 {/each}
 {#if showUnresolvedLinks}
-	<CollapsibleSettingsGroup
-		title="Unresolved nodes"
-		bind:open={unresolvedNodesOpen}
-	>
+	<SettingsSection title="Unresolved nodes" bind:open={unresolvedNodesOpen}>
 		{#snippet actions()}
 			{#if hasUnresolvedNodeOverride()}
 				<ObsidianButton
@@ -635,44 +517,11 @@
 			{/if}
 		{/snippet}
 		<div class="knowledge-workspace-rule">
-			<div class="knowledge-workspace-rule-row compact node-style-values">
-				<label>
-					<span>Color</span>
-					<ObsidianColorInput
-						value={activeUnresolvedNodeColor()}
-						commitKey="node:unresolved"
-						ariaLabel="Unresolved note color"
-						onChange={(color) =>
-							updateUnresolvedNodeOverride({ color })}
-					/>
-				</label>
-				<label>
-					<span>Shape</span>
-					<ObsidianDropdown
-						value={activeUnresolvedNodeShape()}
-						options={NODE_SHAPE_OPTIONS}
-						ariaLabel="Unresolved note shape"
-						onChange={(shape) =>
-							updateUnresolvedNodeOverride({
-								shape: shape as NodeShape,
-							})}
-					/>
-				</label>
-				<label class="node-style-size">
-					<span>Size</span>
-					<div class="knowledge-workspace-slider-value">
-						<ObsidianSlider
-							min={1}
-							max={30}
-							step={0.5}
-							value={activeUnresolvedNodeSize()}
-							onChange={(size) =>
-								updateUnresolvedNodeOverride({ size })}
-						/>
-						<span>{activeUnresolvedNodeSize().toFixed(1)}</span>
-					</div>
-				</label>
-			</div>
+			<NodeVisualSettings
+				value={activeUnresolvedNodeVisualValue()}
+				commitKey="node:unresolved"
+				onPatch={updateUnresolvedNodeOverride}
+			/>
 		</div>
-	</CollapsibleSettingsGroup>
+	</SettingsSection>
 {/if}

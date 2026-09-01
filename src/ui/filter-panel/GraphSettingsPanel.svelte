@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import CollapsibleSettingsGroup from './CollapsibleSettingsGroup.svelte';
-	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
-	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
-	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
-	import ObsidianTextInput from '../obsidian/ObsidianTextInput.svelte';
-	import ObsidianToggle from '../obsidian/ObsidianToggle.svelte';
+	import SettingsSection from '../settings/SettingsSection.svelte';
+	import DropdownSetting from '../settings/fields/DropdownSetting.svelte';
+	import SegmentedSetting from '../settings/fields/SegmentedSetting.svelte';
+	import SliderSetting from '../settings/fields/SliderSetting.svelte';
+	import TextSetting from '../settings/fields/TextSetting.svelte';
+	import ToggleSetting from '../settings/fields/ToggleSetting.svelte';
 	import FlowRelationRules from './FlowRelationRules.svelte';
 	import type {
 		ArcDirection,
@@ -281,363 +281,271 @@
 		{ value: 45, label: '45°' },
 		{ value: 90, label: '90°' },
 	];
+	const FLOW_DIRECTION_OPTIONS: Array<{
+		value: FlowDirection;
+		label: string;
+	}> = [
+		{ value: 'LR', label: 'LR' },
+		{ value: 'RL', label: 'RL' },
+		{ value: 'TD', label: 'TD' },
+		{ value: 'DT', label: 'DT' },
+	];
+	const FLOW_EDGE_STYLE_OPTIONS: Array<{
+		value: FlowEdgeStyle;
+		label: string;
+	}> = [
+		{ value: 'straight', label: 'Straight' },
+		{ value: 'orthogonal', label: 'Orthogonal' },
+	];
+	const CAMERA_MODE_OPTIONS = [
+		{ value: 'free', label: 'Free' },
+		{ value: 'locked', label: 'Lock up' },
+	] as const;
 </script>
 
 <section>
 	<header><h3>Graph settings</h3></header>
-	<CollapsibleSettingsGroup title="Query" bind:open={queryOpen}>
-		<label class="knowledge-workspace-rule-label">
-			<span>Max nodes</span>
-			<ObsidianTextInput
-				type="number"
-				min="1"
-				max="9999"
-				step="1"
-				value={query.maxNodes}
-				onChange={(value) => {
-					const parsed = Number.parseInt(value, 10);
-					if (Number.isFinite(parsed) && parsed > 0) {
-						onChange({ maxNodes: parsed });
-					}
-				}}
-			/>
-		</label>
-		<label class="knowledge-workspace-rule-label">
-			<span>Show isolated nodes</span>
-			<ObsidianToggle
-				value={query.showIsolatedNodes}
-				onChange={(value) => onChange({ showIsolatedNodes: value })}
-			/>
-		</label>
-		<label class="knowledge-workspace-rule-label">
-			<span>Show plain links</span>
-			<ObsidianToggle
-				value={query.showPlainLinks}
-				onChange={(value) => onChange({ showPlainLinks: value })}
-			/>
-		</label>
-		<label class="knowledge-workspace-rule-label">
-			<span>Show unresolved links</span>
-			<ObsidianToggle
-				value={query.showUnresolvedLinks}
-				onChange={(value) => onChange({ showUnresolvedLinks: value })}
-			/>
-		</label>
-	</CollapsibleSettingsGroup>
+	<SettingsSection title="Query" bind:open={queryOpen}>
+		<TextSetting
+			label="Max nodes"
+			type="number"
+			min="1"
+			max="9999"
+			step="1"
+			value={query.maxNodes}
+			onChange={(value) => {
+				const parsed = Number.parseInt(value, 10);
+				if (Number.isFinite(parsed) && parsed > 0) {
+					onChange({ maxNodes: parsed });
+				}
+			}}
+		/>
+		<ToggleSetting
+			label="Show isolated nodes"
+			value={query.showIsolatedNodes}
+			onChange={(value) => onChange({ showIsolatedNodes: value })}
+		/>
+		<ToggleSetting
+			label="Show plain links"
+			value={query.showPlainLinks}
+			onChange={(value) => onChange({ showPlainLinks: value })}
+		/>
+		<ToggleSetting
+			label="Show unresolved links"
+			value={query.showUnresolvedLinks}
+			onChange={(value) => onChange({ showUnresolvedLinks: value })}
+		/>
+	</SettingsSection>
 	{#if settingsVisibility.graphLayout}
-		<CollapsibleSettingsGroup title="Layout" bind:open={layoutOpen}>
-			<label class="knowledge-workspace-rule-label">
-				<span>Force layout</span>
-				<ObsidianToggle
-					value={enableForceLayout}
-					onChange={onEnableForceLayout}
-				/>
-			</label>
-			<label class="knowledge-workspace-rule-label">
-				<span>Link distance</span>
-				<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						min={50}
-						max={800}
-						step={10}
-						value={graphLinkDistance}
-						format={(value) => `${Math.round(value)}`}
-						onChange={onGraphLinkDistance}
-						onCommit={onGraphLinkDistance}
-					/>
-					<span>{Math.round(graphLinkDistance)}</span>
-				</div>
-			</label>
-		</CollapsibleSettingsGroup>
+		<SettingsSection title="Layout" bind:open={layoutOpen}>
+			<ToggleSetting
+				label="Force layout"
+				value={enableForceLayout}
+				onChange={onEnableForceLayout}
+			/>
+			<SliderSetting
+				label="Link distance"
+				value={graphLinkDistance}
+				min={50}
+				max={800}
+				step={10}
+				format={(value) => `${Math.round(value)}`}
+				onChange={onGraphLinkDistance}
+				onCommit={onGraphLinkDistance}
+			/>
+		</SettingsSection>
 	{:else if settingsVisibility.graph3dLayout}
-		<CollapsibleSettingsGroup title="Layout" bind:open={layoutOpen}>
-			<label class="knowledge-workspace-rule-label">
-				<span>Drag nodes</span>
-				<ObsidianToggle
-					value={enableForceLayout}
-					onChange={onEnableForceLayout}
-				/>
-			</label>
-		</CollapsibleSettingsGroup>
+		<SettingsSection title="Layout" bind:open={layoutOpen}>
+			<ToggleSetting
+				label="Drag nodes"
+				value={enableForceLayout}
+				onChange={onEnableForceLayout}
+			/>
+		</SettingsSection>
 	{/if}
 	{#if settingsVisibility.graphForces}
-		<CollapsibleSettingsGroup title="Forces" bind:open={forcesOpen}>
-			<label class="knowledge-workspace-rule-label">
-				<span>Center force</span>
-				<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						min={0}
-						max={5}
-						step={0.05}
-						value={graphCenterForce}
-						format={(value) => formatCompact(value, 2)}
-						onChange={onGraphCenterForce}
-						onCommit={onGraphCenterForce}
-					/>
-					<span>{formatCompact(graphCenterForce, 2)}</span>
-				</div>
-			</label>
-			<label class="knowledge-workspace-rule-label">
-				<span>Repel force</span>
-				<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						min={0}
-						max={20}
-						step={0.1}
-						value={graphRepelForce}
-						format={(value) => formatCompact(value, 1)}
-						onChange={onGraphRepelForce}
-						onCommit={onGraphRepelForce}
-					/>
-					<span>{formatCompact(graphRepelForce, 1)}</span>
-				</div>
-			</label>
-			<label class="knowledge-workspace-rule-label">
-				<span>Link force</span>
-				<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						min={0}
-						max={5}
-						step={0.05}
-						value={graphLinkForce}
-						format={(value) => formatCompact(value, 2)}
-						onChange={onGraphLinkForce}
-						onCommit={onGraphLinkForce}
-					/>
-					<span>{formatCompact(graphLinkForce, 2)}</span>
-				</div>
-			</label>
-			<label class="knowledge-workspace-rule-label">
-				<span>Drag link force</span>
-				<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						min={0}
-						max={5}
-						step={0.05}
-						value={graphDragLinkForce}
-						format={(value) => formatCompact(value, 2)}
-						onChange={onGraphDragLinkForce}
-						onCommit={onGraphDragLinkForce}
-					/>
-					<span>{formatCompact(graphDragLinkForce, 2)}</span>
-				</div>
-			</label>
-			<label class="knowledge-workspace-rule-label">
-				<span>Return force</span>
-				<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						min={0}
-						max={5}
-						step={0.05}
-						value={graphReturnForce}
-						format={(value) => formatCompact(value, 2)}
-						onChange={onGraphReturnForce}
-						onCommit={onGraphReturnForce}
-					/>
-					<span>{formatCompact(graphReturnForce, 2)}</span>
-				</div>
-			</label>
-		</CollapsibleSettingsGroup>
+		<SettingsSection title="Forces" bind:open={forcesOpen}>
+			<SliderSetting
+				label="Center force"
+				value={graphCenterForce}
+				min={0}
+				max={5}
+				step={0.05}
+				format={(value) => formatCompact(value, 2)}
+				onChange={onGraphCenterForce}
+				onCommit={onGraphCenterForce}
+			/>
+			<SliderSetting
+				label="Repel force"
+				value={graphRepelForce}
+				min={0}
+				max={20}
+				step={0.1}
+				format={(value) => formatCompact(value, 1)}
+				onChange={onGraphRepelForce}
+				onCommit={onGraphRepelForce}
+			/>
+			<SliderSetting
+				label="Link force"
+				value={graphLinkForce}
+				min={0}
+				max={5}
+				step={0.05}
+				format={(value) => formatCompact(value, 2)}
+				onChange={onGraphLinkForce}
+				onCommit={onGraphLinkForce}
+			/>
+			<SliderSetting
+				label="Drag link force"
+				value={graphDragLinkForce}
+				min={0}
+				max={5}
+				step={0.05}
+				format={(value) => formatCompact(value, 2)}
+				onChange={onGraphDragLinkForce}
+				onCommit={onGraphDragLinkForce}
+			/>
+			<SliderSetting
+				label="Return force"
+				value={graphReturnForce}
+				min={0}
+				max={5}
+				step={0.05}
+				format={(value) => formatCompact(value, 2)}
+				onChange={onGraphReturnForce}
+				onCommit={onGraphReturnForce}
+			/>
+		</SettingsSection>
 	{/if}
 	{#if settingsVisibility.flowLayout}
-		<CollapsibleSettingsGroup title="Layout" bind:open={layoutOpen}>
-			<label class="knowledge-workspace-rule-label">
-				<span>Layer spacing</span>
-				<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						min={0.25}
-						max={4}
-						step={0.25}
-						value={flowLayerSpacing}
-						format={(value) => formatCompact(value, 2)}
-						onChange={onFlowLayerSpacing}
-						onCommit={onFlowLayerSpacing}
-					/>
-					<span>{formatCompact(flowLayerSpacing, 2)}</span>
-				</div>
-			</label>
-			<label class="knowledge-workspace-rule-label">
-				<span>Lane spacing</span>
-				<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						min={0.25}
-						max={4}
-						step={0.25}
-						value={flowLaneSpacing}
-						format={(value) => formatCompact(value, 2)}
-						onChange={onFlowLaneSpacing}
-						onCommit={onFlowLaneSpacing}
-					/>
-					<span>{formatCompact(flowLaneSpacing, 2)}</span>
-				</div>
-			</label>
-		</CollapsibleSettingsGroup>
+		<SettingsSection title="Layout" bind:open={layoutOpen}>
+			<SliderSetting
+				label="Layer spacing"
+				value={flowLayerSpacing}
+				min={0.25}
+				max={4}
+				step={0.25}
+				format={(value) => formatCompact(value, 2)}
+				onChange={onFlowLayerSpacing}
+				onCommit={onFlowLayerSpacing}
+			/>
+			<SliderSetting
+				label="Lane spacing"
+				value={flowLaneSpacing}
+				min={0.25}
+				max={4}
+				step={0.25}
+				format={(value) => formatCompact(value, 2)}
+				onChange={onFlowLaneSpacing}
+				onCommit={onFlowLaneSpacing}
+			/>
+		</SettingsSection>
 	{:else if settingsVisibility.arcLayout}
-		<CollapsibleSettingsGroup title="Layout" bind:open={layoutOpen}>
-			<label class="knowledge-workspace-rule-label">
-				<span>Spacing</span>
-				<div class="knowledge-workspace-slider-value">
-					<ObsidianSlider
-						min={0.25}
-						max={4}
-						step={0.25}
-						value={arcSpacing}
-						format={(value) => formatCompact(value, 2)}
-						onChange={commitSpacing}
-						onCommit={commitSpacing}
-					/>
-					<span>{formatCompact(arcSpacing, 2)}</span>
-				</div>
-			</label>
-		</CollapsibleSettingsGroup>
+		<SettingsSection title="Layout" bind:open={layoutOpen}>
+			<SliderSetting
+				label="Spacing"
+				value={arcSpacing}
+				min={0.25}
+				max={4}
+				step={0.25}
+				format={(value) => formatCompact(value, 2)}
+				onChange={commitSpacing}
+				onCommit={commitSpacing}
+			/>
+		</SettingsSection>
 	{/if}
 	{#if settingsVisibility.sort}
-		<CollapsibleSettingsGroup title="Sort" bind:open={sortOpen}>
-			<label class="knowledge-workspace-rule-label">
-				<span>Sort by</span>
-				<ObsidianDropdown
-					value={nodeSort}
-					options={NODE_SORT_OPTIONS}
-					onChange={(value) =>
-						onLayoutNodeSort(value as LayoutNodeSort)}
-				/>
-			</label>
-			<label class="knowledge-workspace-rule-label">
-				<span>Order</span>
-				<ObsidianDropdown
-					value={nodeSortDirection}
-					options={SORT_DIRECTION_OPTIONS}
-					onChange={(value) =>
-						onLayoutSortDirection(value as LayoutSortDirection)}
-				/>
-			</label>
-		</CollapsibleSettingsGroup>
+		<SettingsSection title="Sort" bind:open={sortOpen}>
+			<DropdownSetting
+				label="Sort by"
+				value={nodeSort}
+				options={NODE_SORT_OPTIONS}
+				onChange={(value) => onLayoutNodeSort(value as LayoutNodeSort)}
+			/>
+			<DropdownSetting
+				label="Order"
+				value={nodeSortDirection}
+				options={SORT_DIRECTION_OPTIONS}
+				onChange={(value) =>
+					onLayoutSortDirection(value as LayoutSortDirection)}
+			/>
+		</SettingsSection>
 	{/if}
 	{#if settingsVisibility.sigmaDisplay || settingsVisibility.cubeDisplay || settingsVisibility.forceLabels}
-		<CollapsibleSettingsGroup title="Display" bind:open={displayOpen}>
+		<SettingsSection title="Display" bind:open={displayOpen}>
 			{#if settingsVisibility.sigmaDisplay}
-				<label class="knowledge-workspace-rule-label">
-					<span>Fade distance</span>
-					<div class="knowledge-workspace-slider-value">
-						<ObsidianSlider
-							value={fadeDistance}
-							min={0.25}
-							max={4}
-							step={0.05}
-							format={(value) => formatCompact(value, 2)}
-							onChange={onFadeDistance}
-							onCommit={onFadeDistance}
-						/>
-						<span>{formatCompact(fadeDistance, 2)}</span>
-					</div>
-				</label>
-				<label class="knowledge-workspace-rule-label">
-					<span>Label density</span>
-					<div class="knowledge-workspace-slider-value">
-						<ObsidianSlider
-							value={labelDensity}
-							min={0}
-							max={1}
-							step={0.05}
-							format={(value) => `${Math.round(value * 100)}%`}
-							onChange={onLabelDensity}
-							onCommit={onLabelDensity}
-						/>
-						<span>{Math.round(labelDensity * 100)}%</span>
-					</div>
-				</label>
+				<SliderSetting
+					label="Fade distance"
+					value={fadeDistance}
+					min={0.25}
+					max={4}
+					step={0.05}
+					format={(value) => formatCompact(value, 2)}
+					onChange={onFadeDistance}
+					onCommit={onFadeDistance}
+				/>
+				<SliderSetting
+					label="Label density"
+					value={labelDensity}
+					min={0}
+					max={1}
+					step={0.05}
+					format={(value) => `${Math.round(value * 100)}%`}
+					onChange={onLabelDensity}
+					onCommit={onLabelDensity}
+				/>
 			{/if}
 			{#if settingsVisibility.cubeDisplay}
-				<div class="knowledge-workspace-rule-label segmented">
-					<span>Camera mode</span>
-					<div class="knowledge-workspace-segmented">
-						<ObsidianButton
-							active={cubeFreeCamera}
-							text="Free"
-							onClick={() => onCubeFreeCamera(true)}
-						/>
-						<ObsidianButton
-							active={!cubeFreeCamera}
-							text="Lock up"
-							onClick={() => onCubeFreeCamera(false)}
-						/>
-					</div>
-				</div>
-				<label class="knowledge-workspace-rule-label">
-					<span>Cube size</span>
-					<div class="knowledge-workspace-slider-value">
-						<ObsidianSlider
-							value={cubeSize}
-							min={120}
-							max={320}
-							step={10}
-							format={(value) => `${Math.round(value)}`}
-							onChange={onCubeSize}
-							onCommit={onCubeSize}
-						/>
-						<span>{Math.round(cubeSize)}</span>
-					</div>
-				</label>
-				<label class="knowledge-workspace-rule-label">
-					<span>Face opacity</span>
-					<div class="knowledge-workspace-slider-value">
-						<ObsidianSlider
-							value={cubeFaceOpacity}
-							min={0.05}
-							max={1}
-							step={0.05}
-							format={(value) => `${Math.round(value * 100)}%`}
-							onChange={onCubeFaceOpacity}
-							onCommit={onCubeFaceOpacity}
-						/>
-						<span>{Math.round(cubeFaceOpacity * 100)}%</span>
-					</div>
-				</label>
+				<SegmentedSetting
+					label="Camera mode"
+					value={cubeFreeCamera ? 'free' : 'locked'}
+					options={CAMERA_MODE_OPTIONS}
+					onChange={(value) => onCubeFreeCamera(value === 'free')}
+				/>
+				<SliderSetting
+					label="Cube size"
+					value={cubeSize}
+					min={120}
+					max={320}
+					step={10}
+					format={(value) => `${Math.round(value)}`}
+					onChange={onCubeSize}
+					onCommit={onCubeSize}
+				/>
+				<SliderSetting
+					label="Face opacity"
+					value={cubeFaceOpacity}
+					min={0.05}
+					max={1}
+					step={0.05}
+					format={(value) => `${Math.round(value * 100)}%`}
+					onChange={onCubeFaceOpacity}
+					onCommit={onCubeFaceOpacity}
+				/>
 			{/if}
 			{#if settingsVisibility.forceLabels}
-				<label class="knowledge-workspace-rule-label">
-					<span>Always show labels</span>
-					<ObsidianToggle
-						value={forceLabels}
-						onChange={onForceLabels}
-					/>
-				</label>
+				<ToggleSetting
+					label="Always show labels"
+					value={forceLabels}
+					onChange={onForceLabels}
+				/>
 			{/if}
-		</CollapsibleSettingsGroup>
+		</SettingsSection>
 	{/if}
 	{#if mode === 'flow'}
-		<CollapsibleSettingsGroup
-			title="Flow details"
-			bind:open={flowDetailsOpen}
-		>
-			<div class="knowledge-workspace-rule-label segmented">
-				<span>Direction</span>
-				<div class="knowledge-workspace-segmented">
-					{#each ['LR', 'RL', 'TD', 'DT'] as direction}
-						<ObsidianButton
-							active={flowDirection === direction}
-							text={direction}
-							onClick={() =>
-								onFlowDirection(direction as FlowDirection)}
-						/>
-					{/each}
-				</div>
-			</div>
-			<div class="knowledge-workspace-rule-label segmented">
-				<span>Line</span>
-				<div class="knowledge-workspace-segmented">
-					<ObsidianButton
-						active={flowEdgeStyle === 'straight'}
-						text="Straight"
-						onClick={() => onFlowEdgeStyle('straight')}
-					/>
-					<ObsidianButton
-						active={flowEdgeStyle === 'orthogonal'}
-						text="Orthogonal"
-						onClick={() => onFlowEdgeStyle('orthogonal')}
-					/>
-				</div>
-			</div>
+		<SettingsSection title="Flow details" bind:open={flowDetailsOpen}>
+			<SegmentedSetting
+				label="Direction"
+				value={flowDirection}
+				options={FLOW_DIRECTION_OPTIONS}
+				onChange={onFlowDirection}
+			/>
+			<SegmentedSetting
+				label="Line"
+				value={flowEdgeStyle}
+				options={FLOW_EDGE_STYLE_OPTIONS}
+				onChange={onFlowEdgeStyle}
+			/>
 			<FlowRelationRules
 				{app}
 				rules={flowRelationRules}
@@ -645,36 +553,21 @@
 				conflictCount={flowRelationConflictCount}
 				onChange={onFlowRelationRules}
 			/>
-		</CollapsibleSettingsGroup>
+		</SettingsSection>
 	{:else if mode === 'arc'}
-		<CollapsibleSettingsGroup
-			title="Arc details"
-			bind:open={arcDetailsOpen}
-		>
-			<div class="knowledge-workspace-rule-label segmented">
-				<span>Direction</span>
-				<div class="knowledge-workspace-segmented arc-options">
-					{#each ARC_DIRECTION_OPTIONS as option}
-						<ObsidianButton
-							active={arcDirection === option.value}
-							text={option.label}
-							onClick={() => onArcDirection(option.value)}
-						/>
-					{/each}
-				</div>
-			</div>
-			<div class="knowledge-workspace-rule-label segmented">
-				<span>Label angle</span>
-				<div class="knowledge-workspace-segmented arc-options">
-					{#each ARC_LABEL_ANGLE_OPTIONS as option}
-						<ObsidianButton
-							active={arcLabelAngle === option.value}
-							text={option.label}
-							onClick={() => onArcLabelAngle(option.value)}
-						/>
-					{/each}
-				</div>
-			</div>
-		</CollapsibleSettingsGroup>
+		<SettingsSection title="Arc details" bind:open={arcDetailsOpen}>
+			<SegmentedSetting
+				label="Direction"
+				value={arcDirection}
+				options={ARC_DIRECTION_OPTIONS}
+				onChange={onArcDirection}
+			/>
+			<SegmentedSetting
+				label="Label angle"
+				value={arcLabelAngle}
+				options={ARC_LABEL_ANGLE_OPTIONS}
+				onChange={onArcLabelAngle}
+			/>
+		</SettingsSection>
 	{/if}
 </section>

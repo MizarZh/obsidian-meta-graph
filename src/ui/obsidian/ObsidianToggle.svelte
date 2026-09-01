@@ -5,11 +5,13 @@
 	let {
 		value,
 		disabled = false,
+		ariaLabel,
 		tooltip,
 		onChange,
 	}: {
 		value: boolean;
 		disabled?: boolean;
+		ariaLabel?: string;
 		tooltip?: string;
 		onChange: (value: boolean) => void;
 	} = $props();
@@ -41,6 +43,11 @@
 		syncing = true;
 		toggle.setValue(value);
 		toggle.setDisabled(disabled);
+		if (ariaLabel) {
+			toggle.toggleEl.setAttribute('aria-label', ariaLabel);
+		} else {
+			toggle.toggleEl.removeAttribute('aria-label');
+		}
 		syncing = false;
 		if (tooltip) {
 			toggle.setTooltip(tooltip);

@@ -1,22 +1,21 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import CollapsibleSettingsGroup from './CollapsibleSettingsGroup.svelte';
+	import SettingsSection from '../settings/SettingsSection.svelte';
+	import LinkVisualSettings, {
+		type LinkVisualValue,
+	} from '../settings/style/LinkVisualSettings.svelte';
+	import LinkBehaviorSettings from '../settings/style/LinkBehaviorSettings.svelte';
 	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
-	import ObsidianColorInput from '../obsidian/ObsidianColorInput.svelte';
 	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
-	import ObsidianSlider from '../obsidian/ObsidianSlider.svelte';
 	import ObsidianSuggestInput, {
 		type SuggestionOption,
 	} from '../obsidian/ObsidianSuggestInput.svelte';
 	import ObsidianTextInput from '../obsidian/ObsidianTextInput.svelte';
-	import ObsidianToggle from '../obsidian/ObsidianToggle.svelte';
 	import PropertyPicker, {
 		type PropertyPickerOption,
 	} from '../PropertyPicker.svelte';
 	import type {
 		DefaultLinkStyle,
-		LinkArrowStyle,
-		LinkLineStyle,
 		LinkStyleField,
 		LinkStyleRule,
 		NodeFilterOperator,
@@ -52,16 +51,6 @@
 		value: NodeFilterOperator;
 		label: string;
 	}>;
-	const LINE_STYLE_OPTIONS = [
-		{ value: 'solid', label: 'Solid' },
-		{ value: 'dashed', label: 'Dashed' },
-		{ value: 'dotted', label: 'Dotted' },
-		{ value: 'dash-dot', label: 'Dash-dot' },
-	];
-	const ARROW_STYLE_OPTIONS = [
-		{ value: 'filled', label: 'Filled' },
-		{ value: 'chevron', label: 'Chevron' },
-	] satisfies Array<{ value: LinkArrowStyle; label: string }>;
 	const LINK_STYLE_SECTIONS = [
 		{ scope: 'global', title: 'Global link rules' },
 		{ scope: 'current', title: 'Chart link rules' },
@@ -192,15 +181,17 @@
 		onDefaultLinkStyle({ ...defaultLinkStyle, ...patch });
 	}
 
-	function updateLinkOverride(patch: DefaultLinkStyle): void {
+	function updateLinkOverride(patch: Partial<DefaultLinkStyle>): void {
 		onLinkStyleOverrides({ ...linkStyleOverrides, ...patch });
 	}
 
-	function updatePlainLinkOverride(patch: DefaultLinkStyle): void {
+	function updatePlainLinkOverride(patch: Partial<DefaultLinkStyle>): void {
 		onPlainLinkStyleOverrides({ ...plainLinkStyleOverrides, ...patch });
 	}
 
-	function updateUnresolvedLinkOverride(patch: DefaultLinkStyle): void {
+	function updateUnresolvedLinkOverride(
+		patch: Partial<DefaultLinkStyle>,
+	): void {
 		onUnresolvedLinkStyleOverrides({
 			...unresolvedLinkStyleOverrides,
 			...patch,
@@ -236,31 +227,21 @@
 		);
 	}
 
-	function activeLinkColor(): string {
-		return String(activeLinkStyleValue('color'));
-	}
-
-	function activeLinkSize(): number {
-		return Number(activeLinkStyleValue('size'));
-	}
-
-	function activeLinkLineStyle(): LinkLineStyle {
-		return resolveActiveLinkLineStyle(linkStyleOverrides, defaultLinkStyle);
-	}
-
-	function activeLinkArrowStyle(): LinkArrowStyle {
-		return resolveActiveLinkArrowStyle(
-			linkStyleOverrides,
-			defaultLinkStyle,
-		);
-	}
-
-	function activeLinkOpacity(): number {
-		return Number(activeLinkStyleValue('opacity') ?? 1);
-	}
-
-	function activeLinkArrowSize(): number {
-		return Number(activeLinkStyleValue('arrowSize') ?? 1);
+	function activeLinkVisualValue(): LinkVisualValue {
+		return {
+			color: String(activeLinkStyleValue('color')),
+			size: Number(activeLinkStyleValue('size')),
+			opacity: Number(activeLinkStyleValue('opacity') ?? 1),
+			lineStyle: resolveActiveLinkLineStyle(
+				linkStyleOverrides,
+				defaultLinkStyle,
+			),
+			arrowStyle: resolveActiveLinkArrowStyle(
+				linkStyleOverrides,
+				defaultLinkStyle,
+			),
+			arrowSize: Number(activeLinkStyleValue('arrowSize') ?? 1),
+		};
 	}
 
 	function activeLinkLabel(): string {
@@ -284,29 +265,18 @@
 		);
 	}
 
-	function activePlainLinkColor(): string {
-		return String(activePlainLinkStyleValue('color'));
-	}
-
-	function activePlainLinkSize(): number {
-		return Number(activePlainLinkStyleValue('size'));
-	}
-
-	function activePlainLinkLineStyle(): LinkLineStyle {
-		return activePlainLinkStyleValue('lineStyle') as LinkLineStyle;
-	}
-
-	function activePlainLinkArrowStyle(): LinkArrowStyle {
-		return (activePlainLinkStyleValue('arrowStyle') ??
-			'filled') as LinkArrowStyle;
-	}
-
-	function activePlainLinkOpacity(): number {
-		return Number(activePlainLinkStyleValue('opacity') ?? 1);
-	}
-
-	function activePlainLinkArrowSize(): number {
-		return Number(activePlainLinkStyleValue('arrowSize') ?? 1);
+	function activePlainLinkVisualValue(): LinkVisualValue {
+		return {
+			color: String(activePlainLinkStyleValue('color')),
+			size: Number(activePlainLinkStyleValue('size')),
+			opacity: Number(activePlainLinkStyleValue('opacity') ?? 1),
+			lineStyle: activePlainLinkStyleValue(
+				'lineStyle',
+			) as LinkVisualValue['lineStyle'],
+			arrowStyle: (activePlainLinkStyleValue('arrowStyle') ??
+				'filled') as LinkVisualValue['arrowStyle'],
+			arrowSize: Number(activePlainLinkStyleValue('arrowSize') ?? 1),
+		};
 	}
 
 	function activePlainLinkHidden(): boolean {
@@ -322,29 +292,18 @@
 		);
 	}
 
-	function activeUnresolvedLinkColor(): string {
-		return String(activeUnresolvedLinkStyleValue('color'));
-	}
-
-	function activeUnresolvedLinkSize(): number {
-		return Number(activeUnresolvedLinkStyleValue('size'));
-	}
-
-	function activeUnresolvedLinkLineStyle(): LinkLineStyle {
-		return activeUnresolvedLinkStyleValue('lineStyle') as LinkLineStyle;
-	}
-
-	function activeUnresolvedLinkArrowStyle(): LinkArrowStyle {
-		return (activeUnresolvedLinkStyleValue('arrowStyle') ??
-			'filled') as LinkArrowStyle;
-	}
-
-	function activeUnresolvedLinkOpacity(): number {
-		return Number(activeUnresolvedLinkStyleValue('opacity') ?? 1);
-	}
-
-	function activeUnresolvedLinkArrowSize(): number {
-		return Number(activeUnresolvedLinkStyleValue('arrowSize') ?? 1);
+	function activeUnresolvedLinkVisualValue(): LinkVisualValue {
+		return {
+			color: String(activeUnresolvedLinkStyleValue('color')),
+			size: Number(activeUnresolvedLinkStyleValue('size')),
+			opacity: Number(activeUnresolvedLinkStyleValue('opacity') ?? 1),
+			lineStyle: activeUnresolvedLinkStyleValue(
+				'lineStyle',
+			) as LinkVisualValue['lineStyle'],
+			arrowStyle: (activeUnresolvedLinkStyleValue('arrowStyle') ??
+				'filled') as LinkVisualValue['arrowStyle'],
+			arrowSize: Number(activeUnresolvedLinkStyleValue('arrowSize') ?? 1),
+		};
 	}
 
 	function activeUnresolvedLinkHidden(): boolean {
@@ -402,147 +361,20 @@
 <section>
 	<header><h3>Link styles</h3></header>
 </section>
-<CollapsibleSettingsGroup
-	title="Workspace default"
-	bind:open={workspaceDefaultOpen}
->
+<SettingsSection title="Workspace default" bind:open={workspaceDefaultOpen}>
 	<div class="knowledge-workspace-rule">
-		<div class="knowledge-workspace-link-style-section">
-			<strong>Line</strong>
-			<div class="knowledge-workspace-link-style-section-body">
-				<div class="knowledge-workspace-rule-row compact">
-					<label>
-						<span>Color</span>
-						<ObsidianColorInput
-							value={defaultLinkStyle.color}
-							commitKey="link:workspace-default"
-							ariaLabel="Workspace default link color"
-							onChange={(color) =>
-								updateDefaultLinkStyle({ color })}
-						/>
-					</label>
-					<label>
-						<span>Width</span>
-						<div class="knowledge-workspace-slider-value">
-							<ObsidianSlider
-								min={0.5}
-								max={10}
-								step={0.5}
-								value={defaultLinkStyle.size}
-								format={(value) => value.toFixed(1)}
-								onChange={(size) =>
-									updateDefaultLinkStyle({ size })}
-							/>
-							<span>{defaultLinkStyle.size.toFixed(1)}</span>
-						</div>
-					</label>
-				</div>
-				<label class="knowledge-workspace-link-style-slider">
-					<span>Opacity</span>
-					<div class="knowledge-workspace-slider-value">
-						<ObsidianSlider
-							min={0}
-							max={1}
-							step={0.01}
-							value={defaultLinkStyle.opacity}
-							format={(value) => `${Math.round(value * 100)}%`}
-							onChange={(opacity) =>
-								updateDefaultLinkStyle({ opacity })}
-						/>
-						<span
-							>{Math.round(defaultLinkStyle.opacity * 100)}%</span
-						>
-					</div>
-				</label>
-				<div class="knowledge-workspace-line-style-row">
-					<span>Pattern</span>
-					<div class="knowledge-workspace-segmented">
-						{#each LINE_STYLE_OPTIONS as option}
-							<ObsidianButton
-								active={defaultLinkStyle.lineStyle ===
-									option.value}
-								text={option.label}
-								onClick={() =>
-									updateDefaultLinkStyle({
-										lineStyle:
-											option.value as LinkLineStyle,
-									})}
-							/>
-						{/each}
-					</div>
-				</div>
-			</div>
-		</div>
-		<div class="knowledge-workspace-link-style-section">
-			<strong>Arrow</strong>
-			<div class="knowledge-workspace-link-style-section-body">
-				<div class="knowledge-workspace-line-style-row">
-					<span>Style</span>
-					<div class="knowledge-workspace-segmented">
-						{#each ARROW_STYLE_OPTIONS as option}
-							<ObsidianButton
-								active={defaultLinkStyle.arrowStyle ===
-									option.value}
-								text={option.label}
-								onClick={() =>
-									updateDefaultLinkStyle({
-										arrowStyle: option.value,
-									})}
-							/>
-						{/each}
-					</div>
-				</div>
-				<label class="knowledge-workspace-link-style-slider">
-					<span>Size</span>
-					<div class="knowledge-workspace-slider-value">
-						<ObsidianSlider
-							min={0.25}
-							max={3}
-							step={0.05}
-							value={defaultLinkStyle.arrowSize}
-							format={(value) => `${value.toFixed(2)}×`}
-							onChange={(arrowSize) =>
-								updateDefaultLinkStyle({ arrowSize })}
-						/>
-						<span>{defaultLinkStyle.arrowSize.toFixed(2)}×</span>
-					</div>
-				</label>
-			</div>
-		</div>
-		<div class="knowledge-workspace-rule-row link-line-label">
-			<label class="knowledge-workspace-rule-label">
-				<span>Label</span>
-				<ObsidianTextInput
-					type="text"
-					placeholder="Optional label"
-					value={defaultLinkStyle.label}
-					onInput={(label) => updateDefaultLinkStyle({ label })}
-				/>
-			</label>
-		</div>
-		<div class="knowledge-workspace-toggle-row">
-			<label class="checkbox">
-				<ObsidianToggle
-					value={defaultLinkStyle.showLabel}
-					onChange={(showLabel) =>
-						updateDefaultLinkStyle({ showLabel })}
-				/>
-				<span>Show label</span>
-			</label>
-			<label class="checkbox">
-				<ObsidianToggle
-					value={defaultLinkStyle.hidden}
-					onChange={(hidden) => updateDefaultLinkStyle({ hidden })}
-				/>
-				<span>Hidden</span>
-			</label>
-		</div>
+		<LinkVisualSettings
+			value={defaultLinkStyle}
+			commitKey="link:workspace-default"
+			onPatch={updateDefaultLinkStyle}
+		/>
+		<LinkBehaviorSettings
+			value={defaultLinkStyle}
+			onPatch={updateDefaultLinkStyle}
+		/>
 	</div>
-</CollapsibleSettingsGroup>
-<CollapsibleSettingsGroup
-	title="Chart overrides"
-	bind:open={chartOverridesOpen}
->
+</SettingsSection>
+<SettingsSection title="Chart overrides" bind:open={chartOverridesOpen}>
 	{#snippet actions()}
 		{#if !hasLinkOverride()}
 			<ObsidianButton
@@ -564,141 +396,24 @@
 					onClick={clearLinkOverride}
 				/>
 			</div>
-			<div class="knowledge-workspace-link-style-section">
-				<strong>Line</strong>
-				<div class="knowledge-workspace-link-style-section-body">
-					<div class="knowledge-workspace-rule-row compact">
-						<label>
-							<span>Color</span>
-							<ObsidianColorInput
-								value={activeLinkColor()}
-								commitKey="link:chart-override"
-								ariaLabel="Chart link color"
-								onChange={(color) =>
-									updateLinkOverride({ color })}
-							/>
-						</label>
-						<label>
-							<span>Width</span>
-							<div class="knowledge-workspace-slider-value">
-								<ObsidianSlider
-									min={0.5}
-									max={10}
-									step={0.5}
-									value={activeLinkSize()}
-									format={(value) => value.toFixed(1)}
-									onChange={(size) =>
-										updateLinkOverride({ size })}
-								/>
-								<span>{activeLinkSize().toFixed(1)}</span>
-							</div>
-						</label>
-					</div>
-					<label class="knowledge-workspace-link-style-slider">
-						<span>Opacity</span>
-						<div class="knowledge-workspace-slider-value">
-							<ObsidianSlider
-								min={0}
-								max={1}
-								step={0.01}
-								value={activeLinkOpacity()}
-								format={(value) =>
-									`${Math.round(value * 100)}%`}
-								onChange={(opacity) =>
-									updateLinkOverride({ opacity })}
-							/>
-							<span>{Math.round(activeLinkOpacity() * 100)}%</span
-							>
-						</div>
-					</label>
-					<div class="knowledge-workspace-line-style-row">
-						<span>Pattern</span>
-						<div class="knowledge-workspace-segmented">
-							{#each LINE_STYLE_OPTIONS as option}
-								<ObsidianButton
-									active={activeLinkLineStyle() ===
-										option.value}
-									text={option.label}
-									onClick={() =>
-										updateLinkOverride({
-											lineStyle:
-												option.value as LinkLineStyle,
-										})}
-								/>
-							{/each}
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="knowledge-workspace-link-style-section">
-				<strong>Arrow</strong>
-				<div class="knowledge-workspace-link-style-section-body">
-					<div class="knowledge-workspace-line-style-row">
-						<span>Style</span>
-						<div class="knowledge-workspace-segmented">
-							{#each ARROW_STYLE_OPTIONS as option}
-								<ObsidianButton
-									active={activeLinkArrowStyle() ===
-										option.value}
-									text={option.label}
-									onClick={() =>
-										updateLinkOverride({
-											arrowStyle: option.value,
-										})}
-								/>
-							{/each}
-						</div>
-					</div>
-					<label class="knowledge-workspace-link-style-slider">
-						<span>Size</span>
-						<div class="knowledge-workspace-slider-value">
-							<ObsidianSlider
-								min={0.25}
-								max={3}
-								step={0.05}
-								value={activeLinkArrowSize()}
-								format={(value) => `${value.toFixed(2)}×`}
-								onChange={(arrowSize) =>
-									updateLinkOverride({ arrowSize })}
-							/>
-							<span>{activeLinkArrowSize().toFixed(2)}×</span>
-						</div>
-					</label>
-				</div>
-			</div>
-			<div class="knowledge-workspace-rule-row link-line-label">
-				<label class="knowledge-workspace-rule-label">
-					<span>Label</span>
-					<ObsidianTextInput
-						type="text"
-						placeholder="Optional label"
-						value={activeLinkLabel()}
-						onInput={(label) => updateLinkOverride({ label })}
-					/>
-				</label>
-			</div>
-			<div class="knowledge-workspace-toggle-row">
-				<label class="checkbox">
-					<ObsidianToggle
-						value={activeLinkShowLabel()}
-						onChange={(showLabel) =>
-							updateLinkOverride({ showLabel })}
-					/>
-					<span>Show label</span>
-				</label>
-				<label class="checkbox">
-					<ObsidianToggle
-						value={activeLinkHidden()}
-						onChange={(hidden) => updateLinkOverride({ hidden })}
-					/>
-					<span>Hidden</span>
-				</label>
-			</div>
+			<LinkVisualSettings
+				value={activeLinkVisualValue()}
+				commitKey="link:chart-override"
+				onPatch={updateLinkOverride}
+			/>
+			<LinkBehaviorSettings
+				value={{
+					label: activeLinkLabel(),
+					showLabel: activeLinkShowLabel(),
+					hidden: activeLinkHidden(),
+				}}
+				onPatch={updateLinkOverride}
+			/>
 		</div>
 	{/if}
-</CollapsibleSettingsGroup>
+</SettingsSection>
 {#each LINK_STYLE_SECTIONS as section}
-	<CollapsibleSettingsGroup
+	<SettingsSection
 		title={section.title}
 		bind:open={ruleSectionsOpen[section.scope]}
 	>
@@ -812,175 +527,34 @@
 						/>
 					</div>
 				</div>
-				<div class="knowledge-workspace-link-style-section">
-					<strong>Line</strong>
-					<div class="knowledge-workspace-link-style-section-body">
-						<div class="knowledge-workspace-rule-row compact">
-							<label>
-								<span>Color</span>
-								<ObsidianColorInput
-									value={rule.color}
-									commitKey={`link:${section.scope}:${rule.id}`}
-									ariaLabel="Link rule color"
-									onChange={(color) =>
-										updateLinkRule(section.scope, rule.id, {
-											color,
-										})}
-								/>
-							</label>
-							<label>
-								<span>Width</span>
-								<div class="knowledge-workspace-slider-value">
-									<ObsidianSlider
-										min={0.5}
-										max={10}
-										step={0.5}
-										value={rule.size}
-										format={(value) => value.toFixed(1)}
-										onChange={(value) =>
-											updateLinkRule(
-												section.scope,
-												rule.id,
-												{
-													size: value,
-												},
-											)}
-									/>
-									<span>{rule.size.toFixed(1)}</span>
-								</div>
-							</label>
-						</div>
-						<label class="knowledge-workspace-link-style-slider">
-							<span>Opacity</span>
-							<div class="knowledge-workspace-slider-value">
-								<ObsidianSlider
-									min={0}
-									max={1}
-									step={0.01}
-									value={rule.opacity ?? 1}
-									format={(value) =>
-										`${Math.round(value * 100)}%`}
-									onChange={(opacity) =>
-										updateLinkRule(section.scope, rule.id, {
-											opacity,
-										})}
-								/>
-								<span
-									>{Math.round(
-										(rule.opacity ?? 1) * 100,
-									)}%</span
-								>
-							</div>
-						</label>
-						<div class="knowledge-workspace-line-style-row">
-							<span>Pattern</span>
-							<div class="knowledge-workspace-segmented">
-								{#each LINE_STYLE_OPTIONS as option}
-									<ObsidianButton
-										active={rule.lineStyle === option.value}
-										text={option.label}
-										onClick={() =>
-											updateLinkRule(
-												section.scope,
-												rule.id,
-												{
-													lineStyle:
-														option.value as LinkLineStyle,
-												},
-											)}
-									/>
-								{/each}
-							</div>
-						</div>
-					</div>
-				</div>
-				<div class="knowledge-workspace-link-style-section">
-					<strong>Arrow</strong>
-					<div class="knowledge-workspace-link-style-section-body">
-						<div class="knowledge-workspace-line-style-row">
-							<span>Style</span>
-							<div class="knowledge-workspace-segmented">
-								{#each ARROW_STYLE_OPTIONS as option}
-									<ObsidianButton
-										active={(rule.arrowStyle ??
-											'filled') === option.value}
-										text={option.label}
-										onClick={() =>
-											updateLinkRule(
-												section.scope,
-												rule.id,
-												{
-													arrowStyle: option.value,
-												},
-											)}
-									/>
-								{/each}
-							</div>
-						</div>
-						<label class="knowledge-workspace-link-style-slider">
-							<span>Size</span>
-							<div class="knowledge-workspace-slider-value">
-								<ObsidianSlider
-									min={0.25}
-									max={3}
-									step={0.05}
-									value={rule.arrowSize ?? 1}
-									format={(value) => `${value.toFixed(2)}×`}
-									onChange={(arrowSize) =>
-										updateLinkRule(section.scope, rule.id, {
-											arrowSize,
-										})}
-								/>
-								<span>{(rule.arrowSize ?? 1).toFixed(2)}×</span>
-							</div>
-						</label>
-					</div>
-				</div>
-				<div class="knowledge-workspace-rule-row link-line-label">
-					<label class="knowledge-workspace-rule-label">
-						<span>Label</span>
-						<ObsidianTextInput
-							type="text"
-							placeholder="Optional label"
-							value={rule.label}
-							onInput={(value) =>
-								updateLinkRule(section.scope, rule.id, {
-									label: value,
-								})}
-						/>
-					</label>
-				</div>
-				<div class="knowledge-workspace-toggle-row">
-					<label class="checkbox">
-						<ObsidianToggle
-							value={rule.showLabel}
-							onChange={(value) =>
-								updateLinkRule(section.scope, rule.id, {
-									showLabel: value,
-								})}
-						/>
-						<span>Show label</span>
-					</label>
-					<label class="checkbox">
-						<ObsidianToggle
-							value={rule.hidden}
-							onChange={(value) =>
-								updateLinkRule(section.scope, rule.id, {
-									hidden: value,
-								})}
-						/>
-						<span>Hidden</span>
-					</label>
-				</div>
+				<LinkVisualSettings
+					value={{
+						color: rule.color,
+						size: rule.size,
+						opacity: rule.opacity ?? 1,
+						lineStyle: rule.lineStyle,
+						arrowStyle: rule.arrowStyle ?? 'filled',
+						arrowSize: rule.arrowSize ?? 1,
+					}}
+					commitKey={`link:${section.scope}:${rule.id}`}
+					onPatch={(patch) =>
+						updateLinkRule(section.scope, rule.id, patch)}
+				/>
+				<LinkBehaviorSettings
+					value={{
+						label: rule.label,
+						showLabel: rule.showLabel,
+						hidden: rule.hidden,
+					}}
+					onPatch={(patch) =>
+						updateLinkRule(section.scope, rule.id, patch)}
+				/>
 			</div>
 		{/each}
-	</CollapsibleSettingsGroup>
+	</SettingsSection>
 {/each}
 {#if showUnresolvedLinks}
-	<CollapsibleSettingsGroup
-		title="Unresolved links"
-		bind:open={unresolvedLinksOpen}
-	>
+	<SettingsSection title="Unresolved links" bind:open={unresolvedLinksOpen}>
 		{#snippet actions()}
 			{#if hasUnresolvedLinkOverride()}
 				<ObsidianButton
@@ -992,134 +566,20 @@
 			{/if}
 		{/snippet}
 		<div class="knowledge-workspace-rule">
-			<div class="knowledge-workspace-link-style-section">
-				<strong>Line</strong>
-				<div class="knowledge-workspace-link-style-section-body">
-					<div class="knowledge-workspace-rule-row compact">
-						<label>
-							<span>Color</span>
-							<ObsidianColorInput
-								value={activeUnresolvedLinkColor()}
-								commitKey="link:unresolved"
-								ariaLabel="Unresolved link color"
-								onChange={(color) =>
-									updateUnresolvedLinkOverride({ color })}
-							/>
-						</label>
-						<label>
-							<span>Width</span>
-							<div class="knowledge-workspace-slider-value">
-								<ObsidianSlider
-									min={0.5}
-									max={10}
-									step={0.5}
-									value={activeUnresolvedLinkSize()}
-									format={(value) => value.toFixed(1)}
-									onChange={(size) =>
-										updateUnresolvedLinkOverride({ size })}
-								/>
-								<span
-									>{activeUnresolvedLinkSize().toFixed(
-										1,
-									)}</span
-								>
-							</div>
-						</label>
-					</div>
-					<label class="knowledge-workspace-link-style-slider">
-						<span>Opacity</span>
-						<div class="knowledge-workspace-slider-value">
-							<ObsidianSlider
-								min={0}
-								max={1}
-								step={0.01}
-								value={activeUnresolvedLinkOpacity()}
-								format={(value) =>
-									`${Math.round(value * 100)}%`}
-								onChange={(opacity) =>
-									updateUnresolvedLinkOverride({ opacity })}
-							/>
-							<span
-								>{Math.round(
-									activeUnresolvedLinkOpacity() * 100,
-								)}%</span
-							>
-						</div>
-					</label>
-					<div class="knowledge-workspace-line-style-row">
-						<span>Pattern</span>
-						<div class="knowledge-workspace-segmented">
-							{#each LINE_STYLE_OPTIONS as option}
-								<ObsidianButton
-									active={activeUnresolvedLinkLineStyle() ===
-										option.value}
-									text={option.label}
-									onClick={() =>
-										updateUnresolvedLinkOverride({
-											lineStyle:
-												option.value as LinkLineStyle,
-										})}
-								/>
-							{/each}
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="knowledge-workspace-link-style-section">
-				<strong>Arrow</strong>
-				<div class="knowledge-workspace-link-style-section-body">
-					<div class="knowledge-workspace-line-style-row">
-						<span>Style</span>
-						<div class="knowledge-workspace-segmented">
-							{#each ARROW_STYLE_OPTIONS as option}
-								<ObsidianButton
-									active={activeUnresolvedLinkArrowStyle() ===
-										option.value}
-									text={option.label}
-									onClick={() =>
-										updateUnresolvedLinkOverride({
-											arrowStyle: option.value,
-										})}
-								/>
-							{/each}
-						</div>
-					</div>
-					<label class="knowledge-workspace-link-style-slider">
-						<span>Size</span>
-						<div class="knowledge-workspace-slider-value">
-							<ObsidianSlider
-								min={0.25}
-								max={3}
-								step={0.05}
-								value={activeUnresolvedLinkArrowSize()}
-								format={(value) => `${value.toFixed(2)}×`}
-								onChange={(arrowSize) =>
-									updateUnresolvedLinkOverride({ arrowSize })}
-							/>
-							<span
-								>{activeUnresolvedLinkArrowSize().toFixed(
-									2,
-								)}×</span
-							>
-						</div>
-					</label>
-				</div>
-			</div>
-			<div class="knowledge-workspace-toggle-row">
-				<label class="checkbox">
-					<ObsidianToggle
-						value={activeUnresolvedLinkHidden()}
-						onChange={(hidden) =>
-							updateUnresolvedLinkOverride({ hidden })}
-					/>
-					<span>Hidden</span>
-				</label>
-			</div>
+			<LinkVisualSettings
+				value={activeUnresolvedLinkVisualValue()}
+				commitKey="link:unresolved"
+				onPatch={updateUnresolvedLinkOverride}
+			/>
+			<LinkBehaviorSettings
+				value={{ hidden: activeUnresolvedLinkHidden() }}
+				onPatch={updateUnresolvedLinkOverride}
+			/>
 		</div>
-	</CollapsibleSettingsGroup>
+	</SettingsSection>
 {/if}
 {#if showPlainLinks}
-	<CollapsibleSettingsGroup title="Plain links" bind:open={plainLinksOpen}>
+	<SettingsSection title="Plain links" bind:open={plainLinksOpen}>
 		{#snippet actions()}
 			{#if hasPlainLinkOverride()}
 				<ObsidianButton
@@ -1131,122 +591,15 @@
 			{/if}
 		{/snippet}
 		<div class="knowledge-workspace-rule">
-			<div class="knowledge-workspace-link-style-section">
-				<strong>Line</strong>
-				<div class="knowledge-workspace-link-style-section-body">
-					<div class="knowledge-workspace-rule-row compact">
-						<label>
-							<span>Color</span>
-							<ObsidianColorInput
-								value={activePlainLinkColor()}
-								commitKey="link:plain"
-								ariaLabel="Plain link color"
-								onChange={(color) =>
-									updatePlainLinkOverride({ color })}
-							/>
-						</label>
-						<label>
-							<span>Width</span>
-							<div class="knowledge-workspace-slider-value">
-								<ObsidianSlider
-									min={0.5}
-									max={10}
-									step={0.5}
-									value={activePlainLinkSize()}
-									format={(value) => value.toFixed(1)}
-									onChange={(size) =>
-										updatePlainLinkOverride({ size })}
-								/>
-								<span>{activePlainLinkSize().toFixed(1)}</span>
-							</div>
-						</label>
-					</div>
-					<label class="knowledge-workspace-link-style-slider">
-						<span>Opacity</span>
-						<div class="knowledge-workspace-slider-value">
-							<ObsidianSlider
-								min={0}
-								max={1}
-								step={0.01}
-								value={activePlainLinkOpacity()}
-								format={(value) =>
-									`${Math.round(value * 100)}%`}
-								onChange={(opacity) =>
-									updatePlainLinkOverride({ opacity })}
-							/>
-							<span
-								>{Math.round(
-									activePlainLinkOpacity() * 100,
-								)}%</span
-							>
-						</div>
-					</label>
-					<div class="knowledge-workspace-line-style-row">
-						<span>Pattern</span>
-						<div class="knowledge-workspace-segmented">
-							{#each LINE_STYLE_OPTIONS as option}
-								<ObsidianButton
-									active={activePlainLinkLineStyle() ===
-										option.value}
-									text={option.label}
-									onClick={() =>
-										updatePlainLinkOverride({
-											lineStyle:
-												option.value as LinkLineStyle,
-										})}
-								/>
-							{/each}
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="knowledge-workspace-link-style-section">
-				<strong>Arrow</strong>
-				<div class="knowledge-workspace-link-style-section-body">
-					<div class="knowledge-workspace-line-style-row">
-						<span>Style</span>
-						<div class="knowledge-workspace-segmented">
-							{#each ARROW_STYLE_OPTIONS as option}
-								<ObsidianButton
-									active={activePlainLinkArrowStyle() ===
-										option.value}
-									text={option.label}
-									onClick={() =>
-										updatePlainLinkOverride({
-											arrowStyle: option.value,
-										})}
-								/>
-							{/each}
-						</div>
-					</div>
-					<label class="knowledge-workspace-link-style-slider">
-						<span>Size</span>
-						<div class="knowledge-workspace-slider-value">
-							<ObsidianSlider
-								min={0.25}
-								max={3}
-								step={0.05}
-								value={activePlainLinkArrowSize()}
-								format={(value) => `${value.toFixed(2)}×`}
-								onChange={(arrowSize) =>
-									updatePlainLinkOverride({ arrowSize })}
-							/>
-							<span>{activePlainLinkArrowSize().toFixed(2)}×</span
-							>
-						</div>
-					</label>
-				</div>
-			</div>
-			<div class="knowledge-workspace-toggle-row">
-				<label class="checkbox">
-					<ObsidianToggle
-						value={activePlainLinkHidden()}
-						onChange={(hidden) =>
-							updatePlainLinkOverride({ hidden })}
-					/>
-					<span>Hidden</span>
-				</label>
-			</div>
+			<LinkVisualSettings
+				value={activePlainLinkVisualValue()}
+				commitKey="link:plain"
+				onPatch={updatePlainLinkOverride}
+			/>
+			<LinkBehaviorSettings
+				value={{ hidden: activePlainLinkHidden() }}
+				onPatch={updatePlainLinkOverride}
+			/>
 		</div>
-	</CollapsibleSettingsGroup>
+	</SettingsSection>
 {/if}

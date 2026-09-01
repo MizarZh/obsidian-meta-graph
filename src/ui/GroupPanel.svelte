@@ -14,10 +14,13 @@
 	import { ThrottledCommitScheduler } from './filter/deferred-commit';
 	import NoteFilterEditor from './notes/NoteFilterEditor.svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import ObsidianColorInput from './obsidian/ObsidianColorInput.svelte';
-	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
-	import ObsidianSlider from './obsidian/ObsidianSlider.svelte';
 	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
+	import SettingGrid from './settings/SettingGrid.svelte';
+	import ColorSetting from './settings/fields/ColorSetting.svelte';
+	import DropdownSetting from './settings/fields/DropdownSetting.svelte';
+	import SegmentedSetting from './settings/fields/SegmentedSetting.svelte';
+	import SliderSetting from './settings/fields/SliderSetting.svelte';
+	import TextSetting from './settings/fields/TextSetting.svelte';
 
 	let {
 		app,
@@ -331,174 +334,130 @@
 						</div>
 
 						<div class="knowledge-workspace-group-settings">
-							<div
+							<SettingGrid
+								columns={1 +
+									Number(modeEditable) +
+									Number(shapeEditable)}
+								density="compact"
 								class="knowledge-workspace-group-primary-settings"
 							>
-								<label
-									class="knowledge-workspace-rule-label knowledge-workspace-group-color-setting"
-								>
-									<span>Color</span>
-									<ObsidianColorInput
-										value={group.color}
-										commitKey={`group:${group.id}:color`}
-										ariaLabel={`${group.name} color`}
-										{disabled}
-										onChange={(color) =>
-											onUpdateGroup(group.id, {
-												color,
-											})}
-									/>
-								</label>
+								<ColorSetting
+									label="Color"
+									layout="stacked"
+									value={group.color}
+									commitKey={`group:${group.id}:color`}
+									ariaLabel={`${group.name} color`}
+									{disabled}
+									onChange={(color) =>
+										onUpdateGroup(group.id, { color })}
+								/>
 								{#if modeEditable}
-									<label
-										class="knowledge-workspace-rule-label knowledge-workspace-group-mode-setting"
-									>
-										<span>Mode</span>
-										<ObsidianDropdown
-											value={manualModeAllowed
-												? group.mode
-												: 'rule'}
-											options={modeOptions}
-											{disabled}
-											onChange={(value) =>
-												updateMode(group, value)}
-										/>
-									</label>
-								{/if}
-								{#if shapeEditable}
-									<div
-										class="knowledge-workspace-rule-label segmented knowledge-workspace-group-shape"
-									>
-										<span>Shape</span>
-										<div
-											class="knowledge-workspace-segmented"
-										>
-											{#each SHAPE_OPTIONS as option}
-												<button
-													type="button"
-													class:active={(group.shape ??
-														'auto') ===
-														option.value}
-													aria-pressed={(group.shape ??
-														'auto') ===
-														option.value}
-													{disabled}
-													onclick={() =>
-														updateShape(
-															group,
-															option.value,
-														)}
-												>
-													{option.label}
-												</button>
-											{/each}
-										</div>
-									</div>
-								{/if}
-							</div>
-							<label
-								class="knowledge-workspace-rule-label knowledge-workspace-group-padding"
-							>
-								<span>Padding</span>
-								<div class="knowledge-workspace-slider-value">
-									<ObsidianSlider
-										min={0}
-										max={5}
-										step={0.05}
-										value={readPadding(group)}
-										format={formatPadding}
+									<DropdownSetting
+										label="Mode"
+										layout="stacked"
+										value={manualModeAllowed
+											? group.mode
+											: 'rule'}
+										options={modeOptions}
 										{disabled}
 										onChange={(value) =>
-											schedulePadding(group, value)}
-										onCommit={(value) =>
-											commitPadding(group, value)}
+											updateMode(group, value)}
 									/>
-									<span
-										>{formatPadding(
-											readPadding(group),
-										)}</span
-									>
-								</div>
-							</label>
+								{/if}
+								{#if shapeEditable}
+									<SegmentedSetting
+										label="Shape"
+										value={group.shape ?? 'auto'}
+										options={SHAPE_OPTIONS}
+										{disabled}
+										onChange={(shape) =>
+											updateShape(group, shape)}
+									/>
+								{/if}
+							</SettingGrid>
+							<SliderSetting
+								label="Padding"
+								value={readPadding(group)}
+								min={0}
+								max={5}
+								step={0.05}
+								format={formatPadding}
+								{disabled}
+								onChange={(value) =>
+									schedulePadding(group, value)}
+								onCommit={(value) =>
+									commitPadding(group, value)}
+							/>
 							{#if geometryEditable && geometry}
-								<div
-									class="knowledge-workspace-rule-row compact knowledge-workspace-group-geometry"
+								<SettingGrid
+									columns={group.shape === 'circle' ? 3 : 4}
+									class="knowledge-workspace-group-geometry"
 								>
-									<label>
-										<span>X</span>
-										<ObsidianTextInput
-											type="number"
-											value={geometry.x}
-											step="0.1"
-											{disabled}
-											onChange={(value) =>
-												updateNumber(group, 'x', value)}
-										/>
-									</label>
-									<label>
-										<span>Y</span>
-										<ObsidianTextInput
-											type="number"
-											value={geometry.y}
-											step="0.1"
-											{disabled}
-											onChange={(value) =>
-												updateNumber(group, 'y', value)}
-										/>
-									</label>
+									<TextSetting
+										label="X"
+										layout="stacked"
+										type="number"
+										value={geometry.x}
+										step="0.1"
+										{disabled}
+										onChange={(value) =>
+											updateNumber(group, 'x', value)}
+									/>
+									<TextSetting
+										label="Y"
+										layout="stacked"
+										type="number"
+										value={geometry.y}
+										step="0.1"
+										{disabled}
+										onChange={(value) =>
+											updateNumber(group, 'y', value)}
+									/>
 									{#if group.shape === 'circle'}
-										<label
-											class="knowledge-workspace-group-diameter"
-										>
-											<span>Diameter</span>
-											<ObsidianTextInput
-												type="number"
-												min="0.8"
-												step="0.1"
-												value={geometry.width}
-												{disabled}
-												onChange={(value) =>
-													updateDiameter(
-														group,
-														value,
-													)}
-											/>
-										</label>
+										<TextSetting
+											label="Diameter"
+											layout="stacked"
+											type="number"
+											min="0.8"
+											step="0.1"
+											value={geometry.width}
+											{disabled}
+											onChange={(value) =>
+												updateDiameter(group, value)}
+										/>
 									{:else}
-										<label>
-											<span>Width</span>
-											<ObsidianTextInput
-												type="number"
-												min="0.8"
-												step="0.1"
-												value={geometry.width}
-												{disabled}
-												onChange={(value) =>
-													updateNumber(
-														group,
-														'width',
-														value,
-													)}
-											/>
-										</label>
-										<label>
-											<span>Height</span>
-											<ObsidianTextInput
-												type="number"
-												min="0.6"
-												step="0.1"
-												value={geometry.height}
-												{disabled}
-												onChange={(value) =>
-													updateNumber(
-														group,
-														'height',
-														value,
-													)}
-											/>
-										</label>
+										<TextSetting
+											label="Width"
+											layout="stacked"
+											type="number"
+											min="0.8"
+											step="0.1"
+											value={geometry.width}
+											{disabled}
+											onChange={(value) =>
+												updateNumber(
+													group,
+													'width',
+													value,
+												)}
+										/>
+										<TextSetting
+											label="Height"
+											layout="stacked"
+											type="number"
+											min="0.6"
+											step="0.1"
+											value={geometry.height}
+											{disabled}
+											onChange={(value) =>
+												updateNumber(
+													group,
+													'height',
+													value,
+												)}
+										/>
 									{/if}
-								</div>
+								</SettingGrid>
 							{/if}
 						</div>
 
