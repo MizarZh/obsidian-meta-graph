@@ -19,6 +19,8 @@ export function reduceSigmaNode(
 	state: SigmaHoverState,
 	palette: GraphPalette,
 ): Partial<NodeDisplayData> {
+	const opacity = clampOpacity(data.opacity ?? 1);
+	const styledColor = opacity === 1 ? {} : { color: withAlpha(data.color, opacity) };
 	if (data.isBend) {
 		return {
 			...data,
@@ -31,7 +33,10 @@ export function reduceSigmaNode(
 	if (state.activeHoverNodeId && !state.hoveredNeighborhood.has(node)) {
 		return {
 			...data,
-			color: palette.mutedNode,
+			color:
+				opacity === 1
+					? palette.mutedNode
+					: withAlpha(palette.mutedNode, opacity * 0.18),
 			label: null,
 			forceLabel: false,
 			zIndex: 0,
@@ -40,7 +45,7 @@ export function reduceSigmaNode(
 	if (node === state.selectedNodeId) {
 		return {
 			...data,
-			color: palette.selected,
+			color: opacity === 1 ? palette.selected : withAlpha(palette.selected, opacity),
 			size: data.size + 3,
 			highlighted: true,
 			forceLabel: true,
@@ -50,13 +55,23 @@ export function reduceSigmaNode(
 	if (node === state.activeHoverNodeId) {
 		return {
 			...data,
+			...styledColor,
 			size: data.size + 2,
 			highlighted: true,
 			forceLabel: true,
 			zIndex: 2,
 		};
 	}
-	return { ...data, forceLabel: state.forceLabels, zIndex: 0 };
+	return {
+		...data,
+		...styledColor,
+		forceLabel: state.forceLabels,
+		zIndex: 0,
+	};
+}
+
+function clampOpacity(value: number): number {
+	return Math.max(0, Math.min(1, value));
 }
 
 export function reduceSigmaEdge(

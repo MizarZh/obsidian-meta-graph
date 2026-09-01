@@ -338,6 +338,7 @@ describe('workspace change tracker', () => {
 				defaultNodeStyle: {
 					color: '#ff0000',
 					size: 7,
+					opacity: 1,
 					shape: 'circle' as const,
 				},
 			},
@@ -370,6 +371,7 @@ describe('workspace change tracker', () => {
 			defaultNodeStyle: {
 				color: '#ff0000',
 				size: 7,
+				opacity: 1,
 				shape: 'circle' as const,
 			},
 			nodeStyleRules: [

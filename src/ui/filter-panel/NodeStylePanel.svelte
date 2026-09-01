@@ -243,9 +243,10 @@
 
 	function activeNodeVisualValue(): NodeVisualValue {
 		return {
-			color: String(activeNodeStyleValue('color')),
-			size: Number(activeNodeStyleValue('size')),
-			shape: activeNodeStyleValue('shape') as NodeShape,
+		color: String(activeNodeStyleValue('color')),
+		size: Number(activeNodeStyleValue('size')),
+		opacity: Number(activeNodeStyleValue('opacity')),
+		shape: activeNodeStyleValue('shape') as NodeShape,
 		};
 	}
 
@@ -266,6 +267,7 @@
 		return {
 			color: String(activeUnresolvedNodeStyleValue('color')),
 			size: Number(activeUnresolvedNodeStyleValue('size')),
+			opacity: Number(activeUnresolvedNodeStyleValue('opacity')),
 			shape: activeUnresolvedNodeStyleValue('shape') as NodeShape,
 		};
 	}
@@ -494,6 +496,7 @@
 					value={{
 						color: rule.color,
 						size: rule.size,
+						opacity: rule.opacity ?? 1,
 						shape: rule.shape ?? 'circle',
 					}}
 					commitKey={`node:${section.scope}:${rule.id}`}

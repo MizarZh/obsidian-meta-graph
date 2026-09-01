@@ -13,6 +13,7 @@ import { matchesNodeCriterion } from '../../query/filters';
 export interface NodeStyle {
 	color: string;
 	size: number;
+	opacity: number;
 	shape: NodeShape;
 }
 
@@ -83,12 +84,20 @@ export function isLinkArrowSize(value: unknown): value is number {
 	return typeof value === 'number' && Number.isFinite(value);
 }
 
+export function isNodeOpacity(value: unknown): value is number {
+	return typeof value === 'number' && Number.isFinite(value);
+}
+
 function clampLinkOpacity(value: number): number {
 	return Math.max(0, Math.min(1, value));
 }
 
 function clampLinkArrowSize(value: number): number {
 	return Math.max(0.25, Math.min(3, value));
+}
+
+function clampNodeOpacity(value: number): number {
+	return Math.max(0, Math.min(1, value));
 }
 
 export function resolveNodeStyle(
@@ -103,12 +112,15 @@ export function resolveNodeStyle(
 				? {
 						color: rule.color || style.color,
 						size: rule.size,
+						opacity: isNodeOpacity(rule.opacity)
+							? clampNodeOpacity(rule.opacity)
+							: style.opacity,
 						shape: isNodeShape(rule.shape)
 							? rule.shape
 							: style.shape,
 					}
 				: style,
-		{ ...defaults },
+		{ ...defaults, opacity: clampNodeOpacity(defaults.opacity ?? 1) },
 	);
 }
 

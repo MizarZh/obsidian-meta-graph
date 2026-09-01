@@ -55,6 +55,7 @@ interface CubeNodeObject {
 	id: string;
 	faceId: CubeFaceId;
 	color: string;
+	opacity: number;
 	mesh: Three.Sprite;
 	label?: Three.Sprite;
 }
@@ -807,6 +808,7 @@ export class Cube3DRenderer {
 				attributes.color,
 				nodeSize,
 				attributes.type ?? 'circle',
+				attributes.opacity ?? 1,
 			);
 			mesh.position.copy(
 				this.localPosition(face, position.x, position.y, 8),
@@ -841,6 +843,7 @@ export class Cube3DRenderer {
 				id: nodeId,
 				faceId,
 				color: attributes.color,
+				opacity: attributes.opacity ?? 1,
 				mesh,
 				label,
 			});
@@ -997,7 +1000,8 @@ export class Cube3DRenderer {
 			);
 			this.setObjectOpacity(
 				node.mesh,
-				this.getNodeOpacity(nodeId) *
+				clampOpacity(node.opacity) *
+					this.getNodeOpacity(nodeId) *
 					this.getFaceVisibilityOpacity(
 						node.faceId,
 						node.mesh.position,
@@ -1006,7 +1010,8 @@ export class Cube3DRenderer {
 			if (node.label) {
 				this.setObjectOpacity(
 					node.label,
-					this.getNodeOpacity(nodeId) *
+					clampOpacity(node.opacity) *
+						this.getNodeOpacity(nodeId) *
 						this.getFaceVisibilityOpacity(
 							node.faceId,
 							node.label.position,
@@ -1423,6 +1428,10 @@ async function loadThree(): Promise<ThreeModule> {
 
 function normalizeCubeSize(value: number): number {
 	return clamp(value, 120, 320);
+}
+
+function clampOpacity(value: number): number {
+	return Math.max(0, Math.min(1, value));
 }
 
 const MAX_TURNTABLE_PITCH = (80 * Math.PI) / 180;

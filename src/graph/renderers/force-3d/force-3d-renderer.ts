@@ -732,6 +732,7 @@ export class Force3DRenderer {
 			this.getNodeColor(node),
 			node.size,
 			node.shape,
+			this.getNodeOpacity(node),
 		);
 		this.nodeShapeSprites.set(node.id, shape);
 		const label = this.createTextSprite(node.label, this.labelSize, 1);
@@ -793,6 +794,8 @@ export class Force3DRenderer {
 				continue;
 			}
 			sprite.material.color.set(this.getNodeColor(node));
+			sprite.material.opacity = this.getNodeOpacity(node);
+			sprite.material.transparent = true;
 			sprite.scale.set(node.size * 2, node.size * 2, 1);
 		}
 	}
@@ -981,6 +984,15 @@ export class Force3DRenderer {
 		return node.color;
 	}
 
+	private getNodeOpacity(node: Force3DNode): number {
+		const styleOpacity = clampOpacity(node.opacity ?? 1);
+		const activeHoverNodeId = this.getActiveHoverNodeId();
+		if (activeHoverNodeId && !this.hoveredNeighborhood.has(node.id)) {
+			return styleOpacity * 0.18;
+		}
+		return styleOpacity * 0.96;
+	}
+
 	private getLinkColor(link: Force3DLink): string {
 		const opacity = Math.max(0, Math.min(1, link.opacity ?? 1));
 		const activeHoverNodeId = this.getActiveHoverNodeId();
@@ -1096,6 +1108,10 @@ function escapeHtml(value: string): string {
 
 function clampZoomLevel(level: number): number {
 	return Math.min(400, Math.max(25, level));
+}
+
+function clampOpacity(value: number): number {
+	return Math.max(0, Math.min(1, value));
 }
 
 type ForceGraph3DConstructor = new (

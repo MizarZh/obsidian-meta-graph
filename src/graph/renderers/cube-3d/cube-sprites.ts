@@ -10,6 +10,7 @@ export function createCubeNodeSprite(
 	color: string,
 	size: number,
 	shape: NodeShape = 'circle',
+	opacity = 1,
 ): Three.Sprite {
 	const canvasSize = 64;
 	const canvas = ownerDocument.createElement('canvas');
@@ -57,6 +58,7 @@ export function createCubeNodeSprite(
 		map: new three.CanvasTexture(canvas),
 		color,
 		transparent: true,
+		opacity,
 		depthWrite: false,
 		depthTest: false,
 	});

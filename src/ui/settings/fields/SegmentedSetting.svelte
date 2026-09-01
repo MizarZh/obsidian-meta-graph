@@ -10,6 +10,7 @@
 		options,
 		disabled = false,
 		class: className = '',
+		rowClass = '',
 		onChange,
 	}: {
 		label: string;
@@ -18,18 +19,27 @@
 		options: readonly SettingOption<T>[];
 		disabled?: boolean;
 		class?: string;
+		rowClass?: string;
 		onChange: (value: T) => void;
 	} = $props();
 </script>
 
-<SettingRow {label} {description} layout="segmented">
+<SettingRow
+	{label}
+	{description}
+	layout="segmented"
+	class={rowClass}
+>
 	<div
 		class={`knowledge-workspace-segmented knowledge-workspace-setting-segmented ${className}`.trim()}
 	>
 		{#each options as option}
 			<ObsidianButton
 				active={value === option.value}
-				text={option.label}
+				text={option.icon ? '' : option.label}
+				icon={option.icon}
+				ariaLabel={option.ariaLabel ?? option.label}
+				tooltip={option.tooltip}
 				{disabled}
 				onClick={() => onChange(option.value)}
 			/>

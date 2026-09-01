@@ -37,12 +37,13 @@ const edge: KnowledgeEdge = {
 	sourceField: 'leads-to',
 };
 
-describe('style rules', () => {
+			describe('style rules', () => {
 	it('starts charts with workspace defaults and empty chart overrides', () => {
 		const state = createWorkspaceState(200);
 		expect(state.defaultNodeStyle).toEqual({
 			color: '#7c6ff0',
 			size: 7,
+			opacity: 1,
 			shape: 'circle',
 		});
 		expect(state.defaultLinkStyle).toEqual({
@@ -197,6 +198,7 @@ describe('style rules', () => {
 		expect(state.defaultNodeStyle).toEqual({
 			color: '#111111',
 			size: 9,
+			opacity: 1,
 			shape: 'circle',
 		});
 		expect(state.nodeStyleOverrides).toEqual({ color: '#222222' });
@@ -224,9 +226,9 @@ describe('style rules', () => {
 						size: 12,
 					},
 				],
-				{ color: '#000000', size: 7, shape: 'circle' },
+				{ color: '#000000', size: 7, opacity: 1, shape: 'circle' },
 			),
-		).toEqual({ color: '#222222', size: 12, shape: 'circle' });
+		).toEqual({ color: '#222222', size: 12, opacity: 1, shape: 'circle' });
 
 		expect(
 			resolveLinkStyle(
@@ -293,9 +295,10 @@ describe('style rules', () => {
 			resolveNodeStyle(node, rules, {
 				color: '#000000',
 				size: 7,
+				opacity: 1,
 				shape: 'circle',
 			}),
-		).toEqual({ color: '#222222', size: 12, shape: 'circle' });
+		).toEqual({ color: '#222222', size: 12, opacity: 1, shape: 'circle' });
 	});
 
 	it('resolves node shape from the last matching rule', () => {
@@ -320,11 +323,12 @@ describe('style rules', () => {
 						shape: 'diamond',
 					},
 				],
-				{ color: '#ffffff', size: 6, shape: 'circle' },
+				{ color: '#ffffff', size: 6, opacity: 1, shape: 'circle' },
 			),
 		).toEqual({
 			color: '#111111',
 			size: 8,
+			opacity: 1,
 			shape: 'diamond',
 		});
 	});
@@ -345,7 +349,7 @@ describe('style rules', () => {
 						shape: 'star',
 					},
 				],
-				{ color: '#ffffff', size: 6, shape: 'circle' },
+				{ color: '#ffffff', size: 6, opacity: 1, shape: 'circle' },
 			).shape,
 		).toBe('star');
 	});
@@ -372,10 +376,10 @@ describe('style rules', () => {
 			resolveNodeStyle(
 				node,
 				rules,
-				{ color: '#000000', size: 7, shape: 'circle' },
+				{ color: '#000000', size: 7, opacity: 1, shape: 'circle' },
 				{ groupIds: ['research'], groupNames: ['Priority'] },
 			),
-		).toEqual({ color: '#666666', size: 12, shape: 'circle' });
+		).toEqual({ color: '#666666', size: 12, opacity: 1, shape: 'circle' });
 	});
 
 	it('resolves node style context from canonical group ownership', () => {

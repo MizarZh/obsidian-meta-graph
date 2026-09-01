@@ -161,6 +161,16 @@ export function readOptionalLinkOpacity(value: unknown): number | undefined {
 		: undefined;
 }
 
+export function readNodeOpacity(value: unknown, fallback: number): number {
+	return clampNumber(readFiniteNumber(value, fallback), 0, 1);
+}
+
+export function readOptionalNodeOpacity(value: unknown): number | undefined {
+	return typeof value === 'number' && Number.isFinite(value)
+		? clampNumber(value, 0, 1)
+		: undefined;
+}
+
 export function readLinkArrowSize(value: unknown, fallback: number): number {
 	return clampNumber(readFiniteNumber(value, fallback), 0.25, 3);
 }

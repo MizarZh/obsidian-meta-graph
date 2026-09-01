@@ -14,6 +14,7 @@ export interface NodeStyleRule {
 	value: string;
 	color: string;
 	size: number;
+	opacity?: number;
 	shape?: NodeShape;
 }
 
@@ -36,6 +37,7 @@ export interface LinkStyleRule {
 export interface DefaultNodeStyle {
 	color?: string;
 	size?: number;
+	opacity?: number;
 	shape?: NodeShape;
 }
 

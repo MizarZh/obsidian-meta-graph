@@ -33,6 +33,7 @@ export interface RuntimeNodeAttributes {
 	x: number;
 	y: number;
 	size: number;
+	opacity?: number;
 	color: string;
 	path: string;
 	folder: string;
@@ -111,6 +112,7 @@ export class GraphologyAdapter {
 		private readonly unresolvedNodeStyle: Required<DefaultNodeStyle> = {
 			color: palette.mutedNode,
 			size: 6,
+			opacity: 1,
 			shape: 'circle',
 		},
 		private readonly unresolvedLinkStyle: Required<DefaultLinkStyle> = {
@@ -127,7 +129,7 @@ export class GraphologyAdapter {
 	) {
 		const legacySignature = Array.isArray(defaultNodeStyleOrRules);
 		this.defaultNodeStyle = legacySignature
-			? { color: palette.node, size: 7, shape: 'circle' }
+			? { color: palette.node, size: 7, opacity: 1, shape: 'circle' }
 			: defaultNodeStyleOrRules;
 		this.defaultLinkStyle = Array.isArray(defaultLinkStyleOrRules)
 			? {
@@ -170,6 +172,7 @@ export class GraphologyAdapter {
 				{
 					color: this.defaultNodeStyle.color || this.palette.node,
 					size: this.defaultNodeStyle.size,
+					opacity: this.defaultNodeStyle.opacity,
 					shape: this.defaultNodeStyle.shape,
 				},
 				this.nodeStyleContexts.get(node.id),
@@ -184,9 +187,10 @@ export class GraphologyAdapter {
 				kind: node.kind,
 				x: position.x,
 				y: position.y,
-				size: isPrimary
-					? resolvedNodeStyle.size * 1.2
-					: resolvedNodeStyle.size,
+					size: isPrimary
+						? resolvedNodeStyle.size * 1.2
+						: resolvedNodeStyle.size,
+				opacity: resolvedNodeStyle.opacity,
 				color: resolvedNodeStyle.color,
 				type: resolvedNodeStyle.shape,
 				path: node.path,

@@ -38,6 +38,11 @@ export function getActiveDefaultNodeStyle(
 			state.defaultNodeStyle.color ??
 			fallbackColor,
 		size: state.nodeStyleOverrides.size ?? state.defaultNodeStyle.size,
+		opacity: clampNodeOpacity(
+			state.nodeStyleOverrides.opacity ??
+			state.defaultNodeStyle.opacity ??
+			BUILT_IN_DEFAULT_NODE_STYLE.opacity,
+		),
 		shape:
 			state.nodeStyleOverrides.shape ??
 			state.defaultNodeStyle.shape ??
@@ -134,10 +139,18 @@ export function getActiveUnresolvedNodeStyle(
 	return {
 		color: state.unresolvedNodeStyleOverrides.color ?? fallbackColor,
 		size: state.unresolvedNodeStyleOverrides.size ?? 6,
+		opacity: clampNodeOpacity(
+			state.unresolvedNodeStyleOverrides.opacity ??
+			BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE.opacity,
+		),
 		shape:
 			state.unresolvedNodeStyleOverrides.shape ??
 			BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE.shape,
 	};
+}
+
+function clampNodeOpacity(value: number): number {
+	return Math.max(0, Math.min(1, value));
 }
 
 export function getActiveUnresolvedLinkStyle(

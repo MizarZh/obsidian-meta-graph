@@ -11,6 +11,7 @@ export interface Force3DNode extends NodeObject {
 	label: string;
 	color: string;
 	size: number;
+	opacity?: number;
 	shape?: NodeShape;
 	path: string;
 	isPrimary?: boolean;
@@ -123,7 +124,11 @@ export function syncForce3DDataStyles(
 			result.nodeLabelIds.add(node.id);
 			result.nodeStyleChanged = true;
 		}
-		if (node.size !== attributes.size || node.color !== attributes.color) {
+		if (
+			node.size !== attributes.size ||
+			node.color !== attributes.color ||
+			(node.opacity ?? 1) !== (attributes.opacity ?? 1)
+		) {
 			result.nodeStyleChanged = true;
 		}
 		if (node.shape !== (attributes.type ?? 'circle')) {
@@ -136,6 +141,11 @@ export function syncForce3DDataStyles(
 		node.label = attributes.label;
 		node.color = attributes.color;
 		node.size = attributes.size;
+		if ((attributes.opacity ?? 1) === 1) {
+			delete node.opacity;
+		} else {
+			node.opacity = attributes.opacity;
+		}
 		node.shape = attributes.type ?? 'circle';
 		node.path = attributes.path;
 		node.isPrimary = attributes.isPrimary;
@@ -229,6 +239,11 @@ function toForce3DNode(
 	node.label = attributes.label;
 	node.color = attributes.color;
 	node.size = attributes.size;
+	if ((attributes.opacity ?? 1) === 1) {
+		delete node.opacity;
+	} else {
+		node.opacity = attributes.opacity;
+	}
 	node.shape = attributes.type ?? 'circle';
 	node.path = attributes.path;
 	node.isPrimary = attributes.isPrimary;

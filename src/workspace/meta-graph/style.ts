@@ -28,6 +28,8 @@ import {
 	readOptionalLinkLineStyle,
 	readLinkOpacity,
 	readOptionalLinkOpacity,
+	readNodeOpacity,
+	readOptionalNodeOpacity,
 	readOptionalNodeShape,
 	readOptionalStyleColor,
 	readOptionalStyleLabel,
@@ -43,6 +45,7 @@ export function createDefaultNodeStyleRule(): NodeStyleRule {
 		value: '',
 		color: BUILT_IN_DEFAULT_NODE_STYLE.color,
 		size: BUILT_IN_DEFAULT_NODE_STYLE.size,
+		opacity: BUILT_IN_DEFAULT_NODE_STYLE.opacity,
 		shape: BUILT_IN_DEFAULT_NODE_STYLE.shape,
 	};
 }
@@ -88,11 +91,21 @@ function normalizeNodeStyleRuleArray(value: unknown): NodeStyleRule[] {
 	return normalizeArray<NodeStyleRule>(value).map((rule) => {
 		const record: Record<string, unknown> = isRecord(rule) ? rule : {};
 		const shape = readOptionalNodeShape(record.shape);
-		const withoutShape = { ...record };
-		delete withoutShape.shape;
-		return shape
-			? ({ ...withoutShape, shape } as NodeStyleRule)
-			: (withoutShape as unknown as NodeStyleRule);
+		const normalized = { ...record };
+		if (shape) {
+			normalized.shape = shape;
+		} else {
+			delete normalized.shape;
+		}
+		if (record.opacity !== undefined) {
+			const opacity = readOptionalNodeOpacity(record.opacity);
+			if (opacity !== undefined) {
+				normalized.opacity = opacity;
+			} else {
+				delete normalized.opacity;
+			}
+		}
+		return normalized as unknown as NodeStyleRule;
 	});
 }
 
@@ -178,6 +191,10 @@ export function normalizeDefaultNodeStyle(
 			record.size ?? legacyBase?.size,
 			BUILT_IN_DEFAULT_NODE_STYLE.size,
 		),
+		opacity: readNodeOpacity(
+			record.opacity ?? legacyBase?.opacity,
+			BUILT_IN_DEFAULT_NODE_STYLE.opacity,
+		),
 		shape: readNodeShape(
 			record.shape ?? legacyBase?.shape,
 			BUILT_IN_DEFAULT_NODE_STYLE.shape,
@@ -236,12 +253,18 @@ export function normalizeNodeStyleOverrides(
 	const overrides: DefaultNodeStyle = {};
 	const color = readOptionalStyleColor(record.color ?? legacyBase?.color);
 	const size = readOptionalFiniteNumber(record.size ?? legacyBase?.size);
+	const opacity = readOptionalNodeOpacity(
+		record.opacity ?? legacyBase?.opacity,
+	);
 	const shape = readOptionalNodeShape(record.shape ?? legacyBase?.shape);
 	if (color !== undefined && color !== defaults.color) {
 		overrides.color = color;
 	}
 	if (size !== undefined && size !== defaults.size) {
 		overrides.size = size;
+	}
+	if (opacity !== undefined && opacity !== defaults.opacity) {
+		overrides.opacity = opacity;
 	}
 	if (shape !== undefined && shape !== defaults.shape) {
 		overrides.shape = shape;

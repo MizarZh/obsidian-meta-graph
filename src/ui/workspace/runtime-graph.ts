@@ -309,6 +309,7 @@ function resolveRuntimeNodeStyle(
 ): {
 	color: string;
 	size: number;
+	opacity: number;
 	type: NonNullable<ReturnType<typeof resolveNodeStyle>['shape']>;
 } {
 	const isPrimary = projection.primaryIds?.has(node.id) ?? false;
@@ -318,6 +319,7 @@ function resolveRuntimeNodeStyle(
 		{
 			color: defaultNodeStyle.color || palette.node,
 			size: defaultNodeStyle.size,
+			opacity: defaultNodeStyle.opacity,
 			shape: defaultNodeStyle.shape,
 		},
 		context,
@@ -327,6 +329,7 @@ function resolveRuntimeNodeStyle(
 	return {
 		color: resolvedStyle.color,
 		size: isPrimary ? resolvedStyle.size * 1.2 : resolvedStyle.size,
+		opacity: resolvedStyle.opacity,
 		type: resolvedStyle.shape,
 	};
 }

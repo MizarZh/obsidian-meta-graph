@@ -1296,6 +1296,10 @@
 	align-items: center;
 }
 
+.knowledge-workspace-node-shape-setting {
+	grid-column: 1 / -1;
+}
+
 .knowledge-workspace-setting-grid.knowledge-workspace-link-line-grid {
 	grid-template-columns: minmax(96px, 0.34fr) minmax(0, 1fr);
 }
@@ -1375,6 +1379,14 @@
 	min-width: 0;
 	padding-inline: var(--size-4-2);
 	font-size: var(--font-ui-smaller);
+}
+
+.knowledge-workspace-setting-segmented
+	button.knowledge-workspace-obsidian-icon-button {
+	display: grid;
+	min-width: 32px;
+	padding-inline: var(--size-4-1);
+	place-items: center;
 }
 
 .knowledge-workspace-line-style-row {
