@@ -136,6 +136,7 @@ export interface PersistedFlowLayoutV2 extends PersistedBaseLayoutV2 {
 	direction?: FlowDirection;
 	flowRelationRules?: FlowRelationRule[];
 	edgeStyle?: FlowEdgeStyle;
+	cornerRadius?: number;
 }
 
 export interface PersistedArcLayoutV2 extends PersistedBaseLayoutV2 {

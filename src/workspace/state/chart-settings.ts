@@ -11,6 +11,10 @@ import type {
 	ThreeLabelResolution,
 	WorkspaceState,
 } from '../../core/types';
+import {
+	DEFAULT_FLOW_CORNER_RADIUS,
+	MAX_FLOW_CORNER_RADIUS,
+} from '../meta-graph-model';
 import { updateActiveChartState } from './state-updaters';
 
 export type GraphForceSettingKey =
@@ -287,6 +291,17 @@ export function setFlowLaneSpacingInState(
 	return setFlowAxisSpacingInState(state, 'laneSpacing', flowLaneSpacing);
 }
 
+export function setFlowCornerRadiusInState(
+	state: WorkspaceState,
+	flowCornerRadius: number,
+): WorkspaceState {
+	const cornerRadius = normalizeFlowCornerRadius(flowCornerRadius);
+	const chart = getActiveChart(state);
+	return chart.layout.cornerRadius === cornerRadius
+		? state
+		: updateActiveChartLayout(state, { cornerRadius });
+}
+
 export function setArcSpacingInState(
 	state: WorkspaceState,
 	arcSpacing: number,
@@ -382,6 +397,12 @@ function getActiveChart(state: WorkspaceState): MetaGraphChart {
 
 function normalizeSpacing(value: number): number {
 	return Number.isFinite(value) && value > 0 ? value : 1;
+}
+
+function normalizeFlowCornerRadius(value: number): number {
+	return Number.isFinite(value) && value >= 0
+		? Math.min(value, MAX_FLOW_CORNER_RADIUS)
+		: DEFAULT_FLOW_CORNER_RADIUS;
 }
 
 function normalizeForceSetting(value: number): number {

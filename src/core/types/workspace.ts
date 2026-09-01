@@ -37,7 +37,7 @@ export type SettingsPanelMode =
 	| 'text-style'
 	| 'note-style'
 	| 'link-style';
-export type FlowEdgeStyle = 'straight' | 'orthogonal';
+export type FlowEdgeStyle = 'straight' | 'curve' | 'orthogonal' | 'bundled';
 export type FlowDirection = 'LR' | 'RL' | 'TD' | 'DT';
 export type FlowRelationPlacement = 'default' | 'before' | 'after' | 'parallel';
 export interface FlowRelationRule {
@@ -99,6 +99,7 @@ export interface ChartLayoutConfig {
 	nodeSort?: LayoutNodeSort;
 	nodeSortDirection?: LayoutSortDirection;
 	edgeStyle?: FlowEdgeStyle;
+	cornerRadius?: number;
 	manual?: ManualLayoutConfig;
 }
 
@@ -274,6 +275,7 @@ export interface WorkspaceState {
 	flowSpacing: number;
 	flowLayerSpacing: number;
 	flowLaneSpacing: number;
+	flowCornerRadius: number;
 	arcSpacing: number;
 	grouping: ChartGroupingConfig;
 	manualLayout: ManualLayoutConfig;

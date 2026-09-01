@@ -17,6 +17,8 @@ import {
 	DEFAULT_GRAPH_LINK_FORCE,
 	DEFAULT_GRAPH_REPEL_FORCE,
 	DEFAULT_GRAPH_RETURN_FORCE,
+	DEFAULT_FLOW_CORNER_RADIUS,
+	MAX_FLOW_CORNER_RADIUS,
 } from './constants';
 import { normalizeFilterGroup } from './query';
 import {
@@ -101,9 +103,20 @@ export function normalizeLayout(
 			fallback.nodeSortDirection,
 		),
 		edgeStyle:
-			record.edgeStyle === 'straight' || record.edgeStyle === 'orthogonal'
+			record.edgeStyle === 'straight' ||
+			record.edgeStyle === 'curve' ||
+			record.edgeStyle === 'orthogonal' ||
+			record.edgeStyle === 'bundled'
 				? record.edgeStyle
 				: fallback.edgeStyle,
+		...(type === 'flow'
+			? {
+					cornerRadius: normalizeFlowCornerRadius(
+						record.cornerRadius,
+						fallback.cornerRadius ?? DEFAULT_FLOW_CORNER_RADIUS,
+					),
+				}
+			: {}),
 		manual: normalizeManualLayout(record.manual, fallback.manual, type),
 	};
 }
@@ -118,6 +131,7 @@ export function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 				laneSpacing: 1,
 				direction: 'LR',
 				edgeStyle: 'orthogonal',
+				cornerRadius: DEFAULT_FLOW_CORNER_RADIUS,
 				flowRelationRules: [],
 			};
 		case 'arc':
@@ -184,6 +198,19 @@ export function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 				linkDistance: DEFAULT_GRAPH_LINK_DISTANCE,
 			};
 	}
+}
+
+function normalizeFlowCornerRadius(value: unknown, fallback: number): number {
+	const fallbackRadius =
+		typeof fallback === 'number' &&
+		Number.isFinite(fallback) &&
+		fallback >= 0
+			? Math.min(fallback, MAX_FLOW_CORNER_RADIUS)
+			: DEFAULT_FLOW_CORNER_RADIUS;
+	if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+		return fallbackRadius;
+	}
+	return Math.min(value, MAX_FLOW_CORNER_RADIUS);
 }
 
 function normalizeFlowRelationRules(

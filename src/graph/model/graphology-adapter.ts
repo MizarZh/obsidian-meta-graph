@@ -72,6 +72,7 @@ export interface RuntimeEdgeAttributes {
 	logicalEdgeId?: string;
 	logicalSource?: string;
 	logicalTarget?: string;
+	flowLabelPlacement?: 'middle' | 'target-branch';
 }
 
 export type RuntimeGraph = Graph<
@@ -187,9 +188,9 @@ export class GraphologyAdapter {
 				kind: node.kind,
 				x: position.x,
 				y: position.y,
-					size: isPrimary
-						? resolvedNodeStyle.size * 1.2
-						: resolvedNodeStyle.size,
+				size: isPrimary
+					? resolvedNodeStyle.size * 1.2
+					: resolvedNodeStyle.size,
 				opacity: resolvedNodeStyle.opacity,
 				color: resolvedNodeStyle.color,
 				type: resolvedNodeStyle.shape,

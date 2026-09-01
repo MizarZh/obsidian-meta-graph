@@ -7,8 +7,11 @@ import {
 } from '../graph/model/graphology-adapter';
 import type { GraphPalette } from '../graph/styles/graph-styles';
 import {
+	applyBundledFlowEdges,
+	applyCurvedFlowEdges,
 	applyElkOrthogonalRoutes,
 	applyOrthogonalFlowEdges,
+	createBundledFlowRoutes,
 	extractElkOrthogonalRoutes,
 	toElkDirection,
 } from '../layouts/elk-flow-layout';
@@ -45,6 +48,17 @@ const projection: GraphProjection = {
 	edges: [],
 	rootIds: new Set(['A.md']),
 };
+
+function node(path: string, title: string): GraphProjection['nodes'][number] {
+	return {
+		id: path,
+		path,
+		title,
+		folder: '',
+		domains: [],
+		tags: [],
+	};
+}
 
 describe('GraphologyAdapter positions', () => {
 	it('maps chevron arrows for each directed line style', () => {
@@ -161,6 +175,347 @@ describe('GraphologyAdapter positions', () => {
 		);
 		expect(graph.getNodeAttribute('__flow-bend__A-to-B__1', 'isBend')).toBe(
 			true,
+		);
+	});
+
+	it('rounds orthogonal corners when radius is set', () => {
+		const graph = new GraphologyAdapter(palette).fromProjection({
+			...projection,
+			edges: [
+				{
+					id: 'A-to-B',
+					source: 'A.md',
+					target: 'B.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'leads-to',
+				},
+			],
+		});
+		graph.mergeNodeAttributes('A.md', { x: 0, y: 0 });
+		graph.mergeNodeAttributes('B.md', { x: 100, y: 80 });
+
+		applyOrthogonalFlowEdges(graph, new Map(), 12);
+
+		const segmentIds = graph
+			.edges()
+			.filter((edge) => edge.startsWith('A-to-B__segment_'))
+			.sort(
+				(left, right) =>
+					Number(left.split('_').at(-1)) -
+					Number(right.split('_').at(-1)),
+			);
+		expect(segmentIds.length).toBeGreaterThan(3);
+		expect(graph.getEdgeAttribute(segmentIds.at(-1)!, 'type')).toBe(
+			'arrow',
+		);
+	});
+
+	it('creates deterministic curved segments for direct Flow edges', () => {
+		const graph = new GraphologyAdapter(palette).fromProjection({
+			...projection,
+			edges: [
+				{
+					id: 'A-to-B',
+					source: 'A.md',
+					target: 'B.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'leads-to',
+				},
+			],
+		});
+		graph.mergeNodeAttributes('A.md', { x: 0, y: 0 });
+		graph.mergeNodeAttributes('B.md', { x: 160, y: 0 });
+
+		applyCurvedFlowEdges(
+			graph,
+			new Map([
+				[
+					'A-to-B',
+					[
+						{ x: 0, y: 0 },
+						{ x: 160, y: 0 },
+					],
+				],
+			]),
+			'LR',
+		);
+
+		const bendNodes = graph
+			.nodes()
+			.filter((nodeId) => nodeId.startsWith('__flow-bend__'));
+		expect(bendNodes.length).toBeGreaterThan(0);
+		expect(
+			bendNodes.some(
+				(nodeId) => graph.getNodeAttribute(nodeId, 'y') !== 0,
+			),
+		).toBe(true);
+		const terminalSegment = graph
+			.edges()
+			.find((edge) => edge.endsWith('__segment_8'));
+		expect(terminalSegment).toBeDefined();
+		expect(graph.getEdgeAttribute(terminalSegment!, 'type')).toBe('arrow');
+	});
+
+	it('shares bundled flow channels and keeps labels on target branches', () => {
+		const bundledProjection: GraphProjection = {
+			...projection,
+			nodes: [node('A.md', 'A'), node('B.md', 'B'), node('C.md', 'C')],
+			edges: [
+				{
+					id: 'A-to-B',
+					source: 'A.md',
+					target: 'B.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'leads-to',
+				},
+				{
+					id: 'A-to-C',
+					source: 'A.md',
+					target: 'C.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'leads-to',
+				},
+			],
+		};
+		const graph = new GraphologyAdapter(
+			palette,
+			[],
+			[
+				{
+					id: 'flow-label',
+					field: 'relation',
+					value: 'leads-to',
+					color: '#333333',
+					size: 1.5,
+					lineStyle: 'solid',
+					label: 'Leads to',
+					showLabel: true,
+					hidden: false,
+				},
+			],
+		).fromProjection(bundledProjection);
+		graph.mergeNodeAttributes('A.md', { x: 0, y: 0 });
+		graph.mergeNodeAttributes('B.md', { x: 200, y: -60 });
+		graph.mergeNodeAttributes('C.md', { x: 200, y: 60 });
+
+		const routes = createBundledFlowRoutes(graph, new Map(), 'LR');
+		const firstRoute = routes.get('A-to-B');
+		const secondRoute = routes.get('A-to-C');
+		expect(firstRoute?.[0]).toEqual(secondRoute?.[0]);
+		expect(firstRoute?.[1]?.y).toBe(secondRoute?.[1]?.y);
+		expect(firstRoute?.[2]?.y).toBe(secondRoute?.[2]?.y);
+		expect(firstRoute?.[3]?.y).not.toBe(secondRoute?.[3]?.y);
+
+		applyBundledFlowEdges(graph, routes);
+
+		expect(graph.hasEdge('A-to-B')).toBe(false);
+		expect(graph.hasEdge('A-to-C')).toBe(false);
+		expect(graph.getEdgeAttribute('A-to-B__segment_4', 'label')).toBe(
+			'Leads to',
+		);
+		expect(graph.getEdgeAttribute('A-to-B__segment_3', 'label')).toBe('');
+		expect(
+			graph
+				.mapEdges((_edge, attributes) => attributes.type)
+				.filter((type) => type === 'arrow'),
+		).toHaveLength(2);
+	});
+
+	it('rounds bundled corners when radius is set', () => {
+		const graph = new GraphologyAdapter(palette).fromProjection({
+			...projection,
+			edges: [
+				{
+					id: 'A-to-B',
+					source: 'A.md',
+					target: 'B.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'leads-to',
+				},
+			],
+		});
+		graph.mergeNodeAttributes('A.md', { x: 0, y: 0 });
+		graph.mergeNodeAttributes('B.md', { x: 200, y: 0 });
+
+		applyBundledFlowEdges(
+			graph,
+			new Map([
+				[
+					'A-to-B',
+					[
+						{ x: 60, y: 0 },
+						{ x: 60, y: 100 },
+						{ x: 140, y: 100 },
+						{ x: 140, y: 0 },
+					],
+				],
+			]),
+			12,
+		);
+
+		const segmentIds = graph
+			.edges()
+			.filter((edge) => edge.startsWith('A-to-B__segment_'))
+			.sort(
+				(left, right) =>
+					Number(left.split('_').at(-1)) -
+					Number(right.split('_').at(-1)),
+			);
+		expect(segmentIds.length).toBeGreaterThan(5);
+		expect(graph.getEdgeAttribute(segmentIds.at(-1)!, 'type')).toBe(
+			'arrow',
+		);
+	});
+
+	it('does not merge unrelated many-to-many crossings', () => {
+		const graph = new GraphologyAdapter(palette).fromProjection({
+			...projection,
+			nodes: [
+				node('A.md', 'A'),
+				node('C.md', 'C'),
+				node('B.md', 'B'),
+				node('D.md', 'D'),
+			],
+			edges: [
+				{
+					id: 'A-to-B',
+					source: 'A.md',
+					target: 'B.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'leads-to',
+				},
+				{
+					id: 'C-to-D',
+					source: 'C.md',
+					target: 'D.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'C.md',
+					sourceField: 'leads-to',
+				},
+			],
+		});
+		graph.mergeNodeAttributes('A.md', { x: 0, y: -60 });
+		graph.mergeNodeAttributes('C.md', { x: 0, y: 60 });
+		graph.mergeNodeAttributes('B.md', { x: 200, y: -60 });
+		graph.mergeNodeAttributes('D.md', { x: 200, y: 60 });
+
+		const routes = createBundledFlowRoutes(graph, new Map(), 'LR');
+		const firstRoute = routes.get('A-to-B');
+		const secondRoute = routes.get('C-to-D');
+
+		expect(firstRoute?.[1]?.y).not.toBe(secondRoute?.[1]?.y);
+	});
+
+	it('keeps independent fan bundles in separate corridors', () => {
+		const graph = new GraphologyAdapter(palette).fromProjection({
+			...projection,
+			nodes: [
+				node('A.md', 'A'),
+				node('D.md', 'D'),
+				node('B.md', 'B'),
+				node('C.md', 'C'),
+				node('E.md', 'E'),
+				node('F.md', 'F'),
+			],
+			edges: [
+				{
+					id: 'A-to-B',
+					source: 'A.md',
+					target: 'B.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'leads-to',
+				},
+				{
+					id: 'A-to-C',
+					source: 'A.md',
+					target: 'C.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'leads-to',
+				},
+				{
+					id: 'D-to-E',
+					source: 'D.md',
+					target: 'E.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'D.md',
+					sourceField: 'leads-to',
+				},
+				{
+					id: 'D-to-F',
+					source: 'D.md',
+					target: 'F.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'D.md',
+					sourceField: 'leads-to',
+				},
+			],
+		});
+		graph.mergeNodeAttributes('A.md', { x: 0, y: -100 });
+		graph.mergeNodeAttributes('D.md', { x: 0, y: 100 });
+		graph.mergeNodeAttributes('B.md', { x: 240, y: -50 });
+		graph.mergeNodeAttributes('C.md', { x: 240, y: 50 });
+		graph.mergeNodeAttributes('E.md', { x: 240, y: -250 });
+		graph.mergeNodeAttributes('F.md', { x: 240, y: -150 });
+
+		const routes = createBundledFlowRoutes(graph, new Map(), 'LR');
+		expect(routes.get('A-to-B')?.[1]?.y).toBe(routes.get('A-to-C')?.[1]?.y);
+		expect(routes.get('D-to-E')?.[1]?.y).not.toBe(
+			routes.get('A-to-B')?.[1]?.y,
+		);
+	});
+
+	it('bundles fan-in edges by their shared target', () => {
+		const graph = new GraphologyAdapter(palette).fromProjection({
+			...projection,
+			nodes: [node('A.md', 'A'), node('B.md', 'B'), node('C.md', 'C')],
+			edges: [
+				{
+					id: 'A-to-B',
+					source: 'A.md',
+					target: 'B.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'leads-to',
+				},
+				{
+					id: 'C-to-B',
+					source: 'C.md',
+					target: 'B.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'C.md',
+					sourceField: 'leads-to',
+				},
+			],
+		});
+		graph.mergeNodeAttributes('A.md', { x: 0, y: -60 });
+		graph.mergeNodeAttributes('C.md', { x: 0, y: 60 });
+		graph.mergeNodeAttributes('B.md', { x: 200, y: 0 });
+
+		const routes = createBundledFlowRoutes(graph, new Map(), 'LR');
+		expect(routes.get('A-to-B')?.[1]?.y).toBe(routes.get('C-to-B')?.[1]?.y);
+		expect(routes.get('A-to-B')?.[0]?.y).not.toBe(
+			routes.get('C-to-B')?.[0]?.y,
 		);
 	});
 

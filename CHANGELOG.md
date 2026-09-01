@@ -7,6 +7,10 @@ All notable changes to Meta Graph are documented here.
 ### Added
 
 - Added configurable link visuals for defaults, overrides, and rules: Line color, width, opacity, and Solid/Dashed/Dotted/Dash-dot patterns; Arrow Filled/Chevron styles with adjustable size. Chevron renders as hollow two-wing arrows.
+- Added topology-safe Bundled Flow line routing, which shares corridors only for same-source fan-out or same-target fan-in edges and keeps unrelated crossings separate.
+- Added Curve Flow line routing with ELK polyline avoidance and deterministic smooth bend approximations.
+- Added configurable Orthogonal Flow corner radius; zero keeps sharp corners while larger values soften 90-degree turns without changing ELK's routing.
+- Bundled Flow now uses the same corner radius setting for shared corridors and endpoint branches.
 - Added Paired connections for asymmetric metadata relationships: Ctrl-drag writes a source property and a distinct target property as one atomic, undoable connection, while indexing both halves as one logical edge.
 - Added configurable note opacity for workspace defaults, chart overrides, unresolved nodes, and note style rules.
 

@@ -7,6 +7,7 @@
 	import TextSetting from '../settings/fields/TextSetting.svelte';
 	import ToggleSetting from '../settings/fields/ToggleSetting.svelte';
 	import FlowRelationRules from './FlowRelationRules.svelte';
+	import { MAX_FLOW_CORNER_RADIUS } from '../../workspace/meta-graph-model';
 	import type {
 		ArcDirection,
 		ArcLabelAngle,
@@ -31,6 +32,7 @@
 		enableForceLayout,
 		flowEdgeStyle,
 		flowDirection,
+		flowCornerRadius,
 		flowRelationRules,
 		flowRelationConflictCount,
 		flowRelationFieldSuggestions,
@@ -50,6 +52,7 @@
 		query,
 		onFlowEdgeStyle,
 		onFlowDirection,
+		onFlowCornerRadius,
 		onFlowRelationRules,
 		onArcDirection,
 		onArcLabelAngle,
@@ -85,6 +88,7 @@
 		enableForceLayout: boolean;
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
+		flowCornerRadius: number;
 		flowRelationRules: FlowRelationRule[];
 		flowRelationConflictCount: number;
 		flowRelationFieldSuggestions: string[];
@@ -104,6 +108,7 @@
 		query: GraphQuery;
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
+		onFlowCornerRadius: (radius: number) => void;
 		onFlowRelationRules: (rules: FlowRelationRule[]) => void;
 		onArcDirection: (direction: ArcDirection) => void;
 		onArcLabelAngle: (angle: ArcLabelAngle) => void;
@@ -295,7 +300,9 @@
 		label: string;
 	}> = [
 		{ value: 'straight', label: 'Straight' },
+		{ value: 'curve', label: 'Curve' },
 		{ value: 'orthogonal', label: 'Orthogonal' },
+		{ value: 'bundled', label: 'Bundled' },
 	];
 	const CAMERA_MODE_OPTIONS = [
 		{ value: 'free', label: 'Free' },
@@ -546,6 +553,18 @@
 				options={FLOW_EDGE_STYLE_OPTIONS}
 				onChange={onFlowEdgeStyle}
 			/>
+			{#if flowEdgeStyle === 'orthogonal' || flowEdgeStyle === 'bundled'}
+				<SliderSetting
+					label="Corner radius"
+					value={flowCornerRadius}
+					min={0}
+					max={MAX_FLOW_CORNER_RADIUS}
+					step={1}
+					format={(value) => `${Math.round(value)}`}
+					onChange={onFlowCornerRadius}
+					onCommit={onFlowCornerRadius}
+				/>
+			{/if}
 			<FlowRelationRules
 				{app}
 				rules={flowRelationRules}

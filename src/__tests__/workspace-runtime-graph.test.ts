@@ -2,6 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 import type { GraphProjection } from '../core/types';
 import type { GraphPalette } from '../graph/styles/graph-styles';
 import {
+	applyBundledFlowEdges,
+	createBundledFlowRoutes,
+} from '../layouts/elk-flow-layout';
+import {
 	createWorkspaceRuntimeGraph,
 	prepareWorkspaceRuntimeGraphVisibilityIndex,
 	syncWorkspaceRuntimeGraphStyles,
@@ -158,6 +162,93 @@ describe('workspace runtime graph', () => {
 			label: 'Next',
 			forceLabel: true,
 		});
+	});
+
+	it('keeps bundled labels on target branches during style sync', () => {
+		const bundledProjection: GraphProjection = {
+			...projection,
+			nodes: [
+				...projection.nodes,
+				{
+					id: 'B.md',
+					path: 'B.md',
+					title: 'B',
+					folder: '',
+					domains: [],
+					tags: [],
+				},
+				{
+					id: 'C.md',
+					path: 'C.md',
+					title: 'C',
+					folder: '',
+					domains: [],
+					tags: [],
+				},
+			],
+			edges: [
+				{
+					id: 'A->B',
+					source: 'A.md',
+					target: 'B.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'leads-to',
+				},
+				{
+					id: 'A->C',
+					source: 'A.md',
+					target: 'C.md',
+					relation: 'leads-to',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'leads-to',
+				},
+			],
+		};
+		const state = createWorkspaceState(200);
+		const graph = createWorkspaceRuntimeGraph(
+			bundledProjection,
+			new Map([
+				['A.md', { x: 0, y: 0 }],
+				['B.md', { x: 200, y: -60 }],
+				['C.md', { x: 200, y: 60 }],
+			]),
+			state,
+			palette,
+		);
+
+		applyBundledFlowEdges(
+			graph,
+			createBundledFlowRoutes(graph, new Map(), 'LR'),
+		);
+		syncWorkspaceRuntimeGraphStyles(
+			graph,
+			bundledProjection,
+			{
+				...state,
+				linkStyleRules: [
+					{
+						id: 'label',
+						field: 'relation',
+						value: 'leads-to',
+						color: '#333333',
+						size: 1.5,
+						lineStyle: 'solid',
+						label: 'Leads to',
+						showLabel: true,
+						hidden: false,
+					},
+				],
+			},
+			palette,
+		);
+
+		expect(graph.getEdgeAttribute('A->B__segment_4', 'label')).toBe(
+			'Leads to',
+		);
+		expect(graph.getEdgeAttribute('A->B__segment_3', 'label')).toBe('');
 	});
 
 	it('syncs projection hidden nodes without replacing the runtime graph', () => {

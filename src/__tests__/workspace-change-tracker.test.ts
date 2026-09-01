@@ -407,6 +407,21 @@ describe('workspace change tracker', () => {
 		expect(changes.fitAfterRender).toBe(true);
 		expect(changes.forceLayout).toBe(true);
 	});
+
+	it('rebuilds Flow edges for corner radius without relayout', () => {
+		const state = { ...createWorkspaceState(200), mode: 'flow' as const };
+		const nextState = { ...state, flowCornerRadius: 18 };
+
+		const changes = analyzeWorkspaceStateChanges(
+			nextState,
+			state,
+			createWorkspaceRenderBaseline(state),
+		);
+
+		expect(changes.shouldRebuild).toBe(true);
+		expect(changes.fitAfterRender).toBe(false);
+		expect(changes.forceLayout).toBe(false);
+	});
 });
 
 function createTestProjection(): GraphProjection {

@@ -20,6 +20,8 @@ describe('Meta Graph v2 persistence', () => {
 		const v1 = createDefaultMetaGraphDocument(200, 1.5);
 		const chart = v1.charts[0];
 		if (!chart) throw new Error('Expected default chart.');
+		const flowChart = v1.charts.find((item) => item.type === 'flow');
+		if (!flowChart) throw new Error('Expected default Flow chart.');
 		v1.activeChart = chart.id;
 		v1.connectionFieldSpecs = [
 			{ id: 'leads-to:directed', field: 'leads-to', mode: 'directed' },
@@ -37,6 +39,8 @@ describe('Meta Graph v2 persistence', () => {
 			},
 		];
 		chart.source = 'curated';
+		flowChart.layout.edgeStyle = 'bundled';
+		flowChart.layout.cornerRadius = 18;
 		chart.query.folders = ['Projects'];
 		chart.query.tags = ['concept'];
 		chart.curated.files = [{ path: 'Projects/Index.md', hidden: true }];
@@ -62,6 +66,10 @@ describe('Meta Graph v2 persistence', () => {
 
 		const v2 = migrateV1ToV2(v1, 200, 1.5);
 		const savedChart = v2.charts[0];
+		const savedFlowChart = v2.charts.find((item) => item.type === 'flow');
+		if (!savedChart || !savedFlowChart || savedFlowChart.type !== 'flow') {
+			throw new Error('Expected migrated charts.');
+		}
 
 		expect(v2.defaultChart).toBe(chart.id);
 		expect(v2.connections).toEqual({
@@ -82,6 +90,8 @@ describe('Meta Graph v2 persistence', () => {
 		expect(savedChart?.content.query?.filter?.children).toHaveLength(2);
 		expect(savedChart?.layout).not.toHaveProperty('engine');
 		expect(savedChart?.layout).not.toHaveProperty('positions');
+		expect(savedFlowChart.layout.edgeStyle).toBe('bundled');
+		expect(savedFlowChart.layout.cornerRadius).toBe(18);
 		expect(savedChart?.content).not.toHaveProperty('curated');
 		expect(savedChart?.nodes?.['Projects/Index.md']).toEqual({
 			curated: true,

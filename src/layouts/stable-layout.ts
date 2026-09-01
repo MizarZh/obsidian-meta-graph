@@ -16,8 +16,11 @@ import type {
 } from '../graph/model/graphology-adapter';
 import { ArcLayout } from './arc-layout';
 import {
+	applyBundledFlowEdges,
+	applyCurvedFlowEdges,
 	applyOrthogonalFlowEdges,
 	createFlowGroupGeometriesFromGraph,
+	createBundledFlowRoutes,
 	ElkFlowLayout,
 	type OrthogonalRouteMap,
 } from './elk-flow-layout';
@@ -58,6 +61,7 @@ export interface StableLayoutOptions {
 	flowRelationRules?: FlowRelationRule[];
 	flowLayerSpacing: number;
 	flowLaneSpacing: number;
+	flowCornerRadius?: number;
 	arcSpacing: number;
 	arcDirection: ArcDirection;
 	arcLabelAngle: ArcLabelAngle;
@@ -234,16 +238,32 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 			options.flowRelationRules,
 			options.groups,
 			options.groupByNode,
+			options.flowCornerRadius ?? 0,
 		);
 		await layout.apply(graph);
 		if (options.isStale?.()) return;
 		snapshot.flowRelationConflictCount = layout.getConflictCount();
 		snapshot.groupGeometries = layout.getGroupGeometries();
 		snapshot.edgeIds = currentEdgeIds;
-		snapshot.orthogonalRoutes =
-			options.flowEdgeStyle === 'orthogonal'
-				? layout.getOrthogonalRoutes()
-				: createOrthogonalRouteMap();
+		const baseRoutes = layout.getOrthogonalRoutes();
+		if (options.flowEdgeStyle === 'orthogonal') {
+			snapshot.orthogonalRoutes = baseRoutes;
+		} else if (options.flowEdgeStyle === 'curve') {
+			snapshot.orthogonalRoutes = baseRoutes;
+		} else if (options.flowEdgeStyle === 'bundled') {
+			snapshot.orthogonalRoutes = createBundledFlowRoutes(
+				graph,
+				baseRoutes,
+				options.flowDirection,
+			);
+			applyBundledFlowEdges(
+				graph,
+				snapshot.orthogonalRoutes,
+				options.flowCornerRadius ?? 0,
+			);
+		} else {
+			snapshot.orthogonalRoutes = createOrthogonalRouteMap();
+		}
 	} else {
 		placeNewFlowNodes(graph, snapshot.positions, newNodeIds, {
 			flowDirection: options.flowDirection,
@@ -251,7 +271,30 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 			flowLaneSpacing: options.flowLaneSpacing,
 		});
 		if (options.flowEdgeStyle === 'orthogonal') {
-			applyOrthogonalFlowEdges(graph, snapshot.orthogonalRoutes);
+			applyOrthogonalFlowEdges(
+				graph,
+				snapshot.orthogonalRoutes,
+				options.flowCornerRadius ?? 0,
+			);
+		} else if (options.flowEdgeStyle === 'curve') {
+			applyCurvedFlowEdges(
+				graph,
+				snapshot.orthogonalRoutes,
+				options.flowDirection,
+			);
+		} else if (options.flowEdgeStyle === 'bundled') {
+			if (flowEdgesChanged) {
+				snapshot.orthogonalRoutes = createBundledFlowRoutes(
+					graph,
+					snapshot.orthogonalRoutes,
+					options.flowDirection,
+				);
+			}
+			applyBundledFlowEdges(
+				graph,
+				snapshot.orthogonalRoutes,
+				options.flowCornerRadius ?? 0,
+			);
 		}
 		snapshot.groupGeometries = createFlowGroupGeometriesFromGraph(
 			graph,

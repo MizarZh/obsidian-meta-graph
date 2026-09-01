@@ -11,6 +11,7 @@ import type {
 } from '../core/types';
 import {
 	getEdgeType,
+	type RuntimeEdgeAttributes,
 	type RuntimeGraph,
 } from '../graph/model/graphology-adapter';
 import { createFlowLayoutPlan } from './flow-relation-layout';
@@ -53,6 +54,7 @@ export class ElkFlowLayout implements LayoutEngine {
 		private readonly relationRules: FlowRelationRule[] = [],
 		private readonly groups: readonly ChartGroupDefinition[] = [],
 		private readonly groupByNode: ReadonlyMap<string, string> = new Map(),
+		private readonly cornerRadius = 0,
 	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
@@ -98,7 +100,11 @@ export class ElkFlowLayout implements LayoutEngine {
 			hierarchy.groupElkIdByGroupId,
 			boundsById,
 		);
-		if (this.edgeStyle === 'orthogonal') {
+		if (
+			this.edgeStyle === 'orthogonal' ||
+			this.edgeStyle === 'curve' ||
+			this.edgeStyle === 'bundled'
+		) {
 			this.orthogonalRoutes = extractElkLayoutOrthogonalRoutes(result);
 			for (const edgeId of plan.reversedEdgeIds) {
 				const route = this.orthogonalRoutes.get(edgeId);
@@ -106,7 +112,21 @@ export class ElkFlowLayout implements LayoutEngine {
 					this.orthogonalRoutes.set(edgeId, [...route].reverse());
 				}
 			}
-			applyOrthogonalFlowEdges(graph, this.orthogonalRoutes);
+			if (this.edgeStyle === 'orthogonal') {
+				applyOrthogonalFlowEdges(
+					graph,
+					this.orthogonalRoutes,
+					this.cornerRadius,
+				);
+			} else if (this.edgeStyle === 'curve') {
+				applyCurvedFlowEdges(
+					graph,
+					this.orthogonalRoutes,
+					this.direction,
+				);
+			}
+		} else {
+			this.orthogonalRoutes = new Map();
 		}
 	}
 
@@ -188,7 +208,9 @@ function createFlowElkLayoutOptions(
 		'elk.spacing.nodeNode': String(60 * laneSpacing),
 		'elk.layered.spacing.nodeNodeBetweenLayers': String(100 * layerSpacing),
 		'elk.edgeRouting':
-			edgeStyle === 'orthogonal' ? 'ORTHOGONAL' : 'POLYLINE',
+			edgeStyle === 'orthogonal' || edgeStyle === 'bundled'
+				? 'ORTHOGONAL'
+				: 'POLYLINE',
 	};
 }
 
@@ -410,9 +432,258 @@ export function cloneOrthogonalRoutes(
 	);
 }
 
+interface BundledFlowEdgeRecord {
+	id: string;
+	source: string;
+	target: string;
+	sourcePoint: ElkPoint;
+	targetPoint: ElkPoint;
+	sourceLayer: number;
+	targetLayer: number;
+	compatibilityKey: string;
+}
+
+interface BundledFlowGroup {
+	key: string;
+	kind: 'fan-out' | 'fan-in';
+	records: BundledFlowEdgeRecord[];
+}
+
+interface FlowBundleCorridor {
+	lane: number;
+	primaryStart: number;
+	primaryEnd: number;
+}
+
+interface FlowAxis {
+	horizontal: boolean;
+	primary(point: ElkPoint): number;
+	cross(point: ElkPoint): number;
+	point(primary: number, cross: number): ElkPoint;
+}
+
+const FLOW_LAYOUT_EPSILON = 0.5;
+const FLOW_BUNDLE_ENDPOINT_GAP = 8;
+const FLOW_BUNDLE_NODE_CLEARANCE = 6;
+const FLOW_BUNDLE_CORRIDOR_GAP = 12;
+const FLOW_BUNDLE_MIN_EDGE_COUNT = 2;
+const FLOW_CORNER_STEPS = 4;
+const FLOW_CURVE_CORNER_RATIO = 0.25;
+const FLOW_CURVE_MIN_CORNER_RADIUS = 12;
+const FLOW_CURVE_MAX_CORNER_RADIUS = 48;
+const FLOW_CURVE_OFFSET_RATIO = 0.2;
+const FLOW_CURVE_MIN_OFFSET = 12;
+const FLOW_CURVE_MAX_OFFSET = 48;
+const FLOW_CURVE_STEPS = 4;
+const FLOW_DIRECT_CURVE_STEPS = 8;
+const FLOW_ROUTE_POINT_EPSILON = 0.01;
+
+export function createBundledFlowRoutes(
+	graph: RuntimeGraph,
+	baseRoutes: ReadonlyMap<string, ElkPoint[]> = new Map(),
+	direction: FlowDirection = 'LR',
+): OrthogonalRouteMap {
+	const axis = createFlowAxis(direction);
+	const nodeIds = graph
+		.nodes()
+		.filter((nodeId) => !graph.getNodeAttribute(nodeId, 'isBend'));
+	const layerCoordinates = createFlowLayerCoordinates(graph, nodeIds, axis);
+	const records = graph.edges().flatMap((edge): BundledFlowEdgeRecord[] => {
+		const attributes = graph.getEdgeAttributes(edge);
+		if (attributes.hidden || attributes.logicalEdgeId) {
+			return [];
+		}
+		const source = graph.source(edge);
+		const target = graph.target(edge);
+		if (!graph.hasNode(source) || !graph.hasNode(target)) {
+			return [];
+		}
+		const sourceAttributes = graph.getNodeAttributes(source);
+		const targetAttributes = graph.getNodeAttributes(target);
+		const directed = graph.isDirected(edge);
+		return [
+			{
+				id: edge,
+				source,
+				target,
+				sourcePoint: { x: sourceAttributes.x, y: sourceAttributes.y },
+				targetPoint: { x: targetAttributes.x, y: targetAttributes.y },
+				sourceLayer: findFlowLayerIndex(
+					axis.primary(sourceAttributes),
+					layerCoordinates,
+				),
+				targetLayer: findFlowLayerIndex(
+					axis.primary(targetAttributes),
+					layerCoordinates,
+				),
+				compatibilityKey: createFlowEdgeCompatibilityKey(
+					attributes,
+					directed,
+				),
+			},
+		];
+	});
+
+	const bundledRoutes = new Map<string, ElkPoint[]>();
+	const claimedEdgeIds = new Set<string>();
+	const corridors: FlowBundleCorridor[] = [];
+	for (const group of createBundledFlowGroups(records)) {
+		const availableRecords = group.records.filter(
+			(record) => !claimedEdgeIds.has(record.id),
+		);
+		if (
+			availableRecords.length < FLOW_BUNDLE_MIN_EDGE_COUNT ||
+			!hasDistinctBundleEndpoints(group.kind, availableRecords)
+		) {
+			continue;
+		}
+		const lane = chooseBundleLane(
+			availableRecords,
+			graph,
+			nodeIds,
+			axis,
+			corridors,
+		);
+		if (lane === undefined) {
+			continue;
+		}
+		corridors.push(lane);
+		for (const record of availableRecords) {
+			claimedEdgeIds.add(record.id);
+			bundledRoutes.set(
+				record.id,
+				createBundledFlowRoute(record, lane.lane, axis),
+			);
+		}
+	}
+
+	const routes = new Map<string, ElkPoint[]>();
+	for (const record of records) {
+		const route = bundledRoutes.get(record.id) ?? baseRoutes.get(record.id);
+		routes.set(
+			record.id,
+			route
+				? route.map((point) => ({ ...point }))
+				: createFallbackRoute(record.sourcePoint, record.targetPoint),
+		);
+	}
+	return routes;
+}
+
+function createBundledFlowGroups(
+	records: readonly BundledFlowEdgeRecord[],
+): BundledFlowGroup[] {
+	const groups = new Map<string, BundledFlowGroup>();
+	for (const record of records) {
+		if (
+			record.sourceLayer < 0 ||
+			record.targetLayer < 0 ||
+			record.sourceLayer === record.targetLayer
+		) {
+			continue;
+		}
+		const candidates: Array<readonly [BundledFlowGroup['kind'], string]> = [
+			['fan-out', record.source],
+			['fan-in', record.target],
+		];
+		for (const [kind, anchor] of candidates) {
+			const key = JSON.stringify([
+				kind,
+				anchor,
+				record.sourceLayer,
+				record.targetLayer,
+				record.compatibilityKey,
+			]);
+			const group = groups.get(key) ?? { key, kind, records: [] };
+			group.records.push(record);
+			groups.set(key, group);
+		}
+	}
+	return [...groups.values()]
+		.filter((group) => group.records.length >= FLOW_BUNDLE_MIN_EDGE_COUNT)
+		.sort(
+			(left, right) =>
+				right.records.length - left.records.length ||
+				left.key.localeCompare(right.key),
+		);
+}
+
+function hasDistinctBundleEndpoints(
+	kind: BundledFlowGroup['kind'],
+	records: readonly BundledFlowEdgeRecord[],
+): boolean {
+	const endpointIds = new Set(
+		records.map((record) =>
+			kind === 'fan-out' ? record.target : record.source,
+		),
+	);
+	return endpointIds.size >= FLOW_BUNDLE_MIN_EDGE_COUNT;
+}
+
+function createFlowEdgeCompatibilityKey(
+	attributes: RuntimeEdgeAttributes,
+	directed: boolean,
+): string {
+	return JSON.stringify([
+		directed,
+		attributes.relation,
+		attributes.kind,
+		attributes.semantic,
+		attributes.lineStyle,
+		attributes.color,
+		attributes.size,
+		attributes.arrowStyle,
+		attributes.arrowSize,
+	]);
+}
+
 export function applyOrthogonalFlowEdges(
 	graph: RuntimeGraph,
 	routes: ReadonlyMap<string, ElkPoint[]> = new Map(),
+	cornerRadius = 0,
+): void {
+	if (cornerRadius <= FLOW_ROUTE_POINT_EPSILON) {
+		applyRoutedFlowEdges(graph, routes, 'middle');
+		return;
+	}
+	applyRoutedFlowEdges(graph, routes, 'middle', (route) =>
+		roundOrthogonalRoute(route, cornerRadius),
+	);
+}
+
+export function applyCurvedFlowEdges(
+	graph: RuntimeGraph,
+	routes: ReadonlyMap<string, ElkPoint[]> = new Map(),
+	direction: FlowDirection = 'LR',
+): void {
+	applyRoutedFlowEdges(
+		graph,
+		routes,
+		'middle',
+		(route, source, target, edgeId) =>
+			createCurvedFlowRoute(route, source, target, direction, edgeId),
+	);
+}
+
+export function applyBundledFlowEdges(
+	graph: RuntimeGraph,
+	routes: ReadonlyMap<string, ElkPoint[]> = new Map(),
+	cornerRadius = 0,
+): void {
+	if (cornerRadius <= FLOW_ROUTE_POINT_EPSILON) {
+		applyRoutedFlowEdges(graph, routes, 'target-branch');
+		return;
+	}
+	applyRoutedFlowEdges(graph, routes, 'target-branch', (route) =>
+		roundOrthogonalRoute(route, cornerRadius),
+	);
+}
+
+function applyRoutedFlowEdges(
+	graph: RuntimeGraph,
+	routes: ReadonlyMap<string, ElkPoint[]>,
+	labelPlacement: 'middle' | 'target-branch',
+	transformRoute: RouteTransform = (route) => route,
 ): void {
 	const logicalEdges = graph
 		.edges()
@@ -427,14 +698,20 @@ export function applyOrthogonalFlowEdges(
 		const attributes = graph.getEdgeAttributes(edge);
 
 		const route = routes.get(edge);
-		const points = deduplicatePoints(
+		const sourcePoint = { x: sourceAttributes.x, y: sourceAttributes.y };
+		const targetPoint = { x: targetAttributes.x, y: targetAttributes.y };
+		const routedPoints = transformRoute(
 			route && route.length > 0
-				? [
-						{ x: sourceAttributes.x, y: sourceAttributes.y },
-						...route,
-						{ x: targetAttributes.x, y: targetAttributes.y },
-					]
+				? route
 				: createFallbackRoute(sourceAttributes, targetAttributes),
+			sourcePoint,
+			targetPoint,
+			edge,
+		);
+		const points = deduplicatePoints(
+			routedPoints.length > 0
+				? [sourcePoint, ...routedPoints, targetPoint]
+				: [sourcePoint, targetPoint],
 		);
 		if (points.length < 2) {
 			continue;
@@ -453,6 +730,7 @@ export function applyOrthogonalFlowEdges(
 			logicalEdgeId: edge,
 			logicalSource: source,
 			logicalTarget: target,
+			flowLabelPlacement: labelPlacement,
 		};
 		const pathNodes = [source];
 		for (const [index, point] of points.slice(1, -1).entries()) {
@@ -461,6 +739,10 @@ export function applyOrthogonalFlowEdges(
 			pathNodes.push(bendNode);
 		}
 		pathNodes.push(target);
+		const labelSegment =
+			labelPlacement === 'target-branch'
+				? Math.max(0, pathNodes.length - 3)
+				: Math.floor((pathNodes.length - 2) / 2);
 
 		for (let index = 0; index < pathNodes.length - 1; index += 1) {
 			const segmentSource = pathNodes[index];
@@ -469,7 +751,6 @@ export function applyOrthogonalFlowEdges(
 				continue;
 			}
 			const lastSegment = index === pathNodes.length - 2;
-			const labelSegment = Math.floor((pathNodes.length - 2) / 2);
 			const segmentKey = `${edge}__segment_${index + 1}`;
 			const styledSegment = {
 				...segmentAttributes,
@@ -498,6 +779,490 @@ export function applyOrthogonalFlowEdges(
 			}
 		}
 	}
+}
+
+type RouteTransform = (
+	route: ElkPoint[],
+	source: ElkPoint,
+	target: ElkPoint,
+	edgeId: string,
+) => ElkPoint[];
+
+function createCurvedFlowRoute(
+	points: ElkPoint[],
+	source: ElkPoint,
+	target: ElkPoint,
+	direction: FlowDirection,
+	edgeId: string,
+): ElkPoint[] {
+	const pathPoints = deduplicatePoints([source, ...points, target]);
+	if (pathPoints.length < 2) {
+		return [];
+	}
+	const hasCorner = pathPoints
+		.slice(1, -1)
+		.some((point, index) =>
+			isCurveCorner(pathPoints[index]!, point, pathPoints[index + 2]!),
+		);
+	if (pathPoints.length === 2 || !hasCorner) {
+		return createDirectCurveRoute(source, target, direction, edgeId);
+	}
+
+	const curvedPoints: ElkPoint[] = [pathPoints[0]!];
+	for (let index = 1; index < pathPoints.length - 1; index += 1) {
+		const previous = pathPoints[index - 1]!;
+		const current = pathPoints[index]!;
+		const next = pathPoints[index + 1]!;
+		if (!isCurveCorner(previous, current, next)) {
+			curvedPoints.push(current);
+			continue;
+		}
+
+		const incomingLength = distanceBetween(previous, current);
+		const outgoingLength = distanceBetween(current, next);
+		const radius = Math.min(
+			incomingLength / 2,
+			outgoingLength / 2,
+			Math.max(
+				FLOW_CURVE_MIN_CORNER_RADIUS,
+				Math.min(
+					FLOW_CURVE_MAX_CORNER_RADIUS,
+					Math.min(incomingLength, outgoingLength) *
+						FLOW_CURVE_CORNER_RATIO,
+				),
+			),
+		);
+		if (radius <= FLOW_ROUTE_POINT_EPSILON) {
+			curvedPoints.push(current);
+			continue;
+		}
+
+		const entering = movePointToward(current, previous, radius);
+		const leaving = movePointToward(current, next, radius);
+		curvedPoints.push(entering);
+		for (let step = 1; step < FLOW_CURVE_STEPS; step += 1) {
+			curvedPoints.push(
+				quadraticPoint(
+					entering,
+					current,
+					leaving,
+					step / FLOW_CURVE_STEPS,
+				),
+			);
+		}
+		curvedPoints.push(leaving);
+	}
+	curvedPoints.push(pathPoints.at(-1)!);
+	return curvedPoints.slice(1, -1);
+}
+
+function createDirectCurveRoute(
+	source: ElkPoint,
+	target: ElkPoint,
+	direction: FlowDirection,
+	edgeId: string,
+): ElkPoint[] {
+	const length = distanceBetween(source, target);
+	if (length <= FLOW_ROUTE_POINT_EPSILON) {
+		return [];
+	}
+	const midpoint = {
+		x: (source.x + target.x) / 2,
+		y: (source.y + target.y) / 2,
+	};
+	const offset = Math.min(
+		FLOW_CURVE_MAX_OFFSET,
+		Math.max(FLOW_CURVE_MIN_OFFSET, length * FLOW_CURVE_OFFSET_RATIO),
+	);
+	const side = getCurveSide(edgeId);
+	const horizontal = direction === 'LR' || direction === 'RL';
+	const control = horizontal
+		? { x: midpoint.x, y: midpoint.y + offset * side }
+		: { x: midpoint.x + offset * side, y: midpoint.y };
+	const curvedPoints: ElkPoint[] = [];
+	for (let step = 1; step < FLOW_DIRECT_CURVE_STEPS; step += 1) {
+		curvedPoints.push(
+			quadraticPoint(
+				source,
+				control,
+				target,
+				step / FLOW_DIRECT_CURVE_STEPS,
+			),
+		);
+	}
+	return curvedPoints;
+}
+
+function isCurveCorner(
+	previous: ElkPoint,
+	current: ElkPoint,
+	next: ElkPoint,
+): boolean {
+	const incoming = {
+		x: current.x - previous.x,
+		y: current.y - previous.y,
+	};
+	const outgoing = {
+		x: next.x - current.x,
+		y: next.y - current.y,
+	};
+	const incomingLength = Math.hypot(incoming.x, incoming.y);
+	const outgoingLength = Math.hypot(outgoing.x, outgoing.y);
+	if (
+		incomingLength <= FLOW_ROUTE_POINT_EPSILON ||
+		outgoingLength <= FLOW_ROUTE_POINT_EPSILON
+	) {
+		return false;
+	}
+	const cross = incoming.x * outgoing.y - incoming.y * outgoing.x;
+	return (
+		Math.abs(cross) / (incomingLength * outgoingLength) >
+		FLOW_ROUTE_POINT_EPSILON
+	);
+}
+
+function getCurveSide(edgeId: string): 1 | -1 {
+	let hash = 0;
+	for (let index = 0; index < edgeId.length; index += 1) {
+		hash = (hash * 31 + edgeId.charCodeAt(index)) | 0;
+	}
+	return Math.abs(hash) % 2 === 0 ? 1 : -1;
+}
+
+function roundOrthogonalRoute(
+	points: ElkPoint[],
+	cornerRadius: number,
+): ElkPoint[] {
+	const sourcePoints = deduplicatePoints(points);
+	const requestedRadius = Math.max(0, cornerRadius);
+	if (
+		sourcePoints.length < 3 ||
+		requestedRadius <= FLOW_ROUTE_POINT_EPSILON
+	) {
+		return sourcePoints;
+	}
+
+	const roundedPoints: ElkPoint[] = [sourcePoints[0]!];
+	for (let index = 1; index < sourcePoints.length - 1; index += 1) {
+		const previous = sourcePoints[index - 1]!;
+		const current = sourcePoints[index]!;
+		const next = sourcePoints[index + 1]!;
+		if (!isOrthogonalCorner(previous, current, next)) {
+			roundedPoints.push(current);
+			continue;
+		}
+
+		const incomingLength = distanceBetween(previous, current);
+		const outgoingLength = distanceBetween(current, next);
+		const radius = Math.min(
+			requestedRadius,
+			incomingLength / 2,
+			outgoingLength / 2,
+		);
+		if (radius <= FLOW_ROUTE_POINT_EPSILON) {
+			roundedPoints.push(current);
+			continue;
+		}
+
+		const entering = movePointToward(current, previous, radius);
+		const leaving = movePointToward(current, next, radius);
+		roundedPoints.push(entering);
+		for (let step = 1; step < FLOW_CORNER_STEPS; step += 1) {
+			roundedPoints.push(
+				quadraticPoint(
+					entering,
+					current,
+					leaving,
+					step / FLOW_CORNER_STEPS,
+				),
+			);
+		}
+		roundedPoints.push(leaving);
+	}
+	roundedPoints.push(sourcePoints.at(-1)!);
+	return deduplicatePoints(roundedPoints);
+}
+
+function isOrthogonalCorner(
+	previous: ElkPoint,
+	current: ElkPoint,
+	next: ElkPoint,
+): boolean {
+	const incomingHorizontal = approximatelyEqual(previous.y, current.y);
+	const incomingVertical = approximatelyEqual(previous.x, current.x);
+	const outgoingHorizontal = approximatelyEqual(current.y, next.y);
+	const outgoingVertical = approximatelyEqual(current.x, next.x);
+	return (
+		(incomingHorizontal && outgoingVertical) ||
+		(incomingVertical && outgoingHorizontal)
+	);
+}
+
+function distanceBetween(left: ElkPoint, right: ElkPoint): number {
+	return Math.hypot(right.x - left.x, right.y - left.y);
+}
+
+function movePointToward(
+	from: ElkPoint,
+	to: ElkPoint,
+	distance: number,
+): ElkPoint {
+	const length = distanceBetween(from, to);
+	if (length <= FLOW_ROUTE_POINT_EPSILON) {
+		return { ...from };
+	}
+	const ratio = distance / length;
+	return {
+		x: from.x + (to.x - from.x) * ratio,
+		y: from.y + (to.y - from.y) * ratio,
+	};
+}
+
+function quadraticPoint(
+	start: ElkPoint,
+	control: ElkPoint,
+	end: ElkPoint,
+	t: number,
+): ElkPoint {
+	const inverse = 1 - t;
+	return {
+		x:
+			inverse * inverse * start.x +
+			2 * inverse * t * control.x +
+			t * t * end.x,
+		y:
+			inverse * inverse * start.y +
+			2 * inverse * t * control.y +
+			t * t * end.y,
+	};
+}
+
+function approximatelyEqual(left: number, right: number): boolean {
+	return Math.abs(left - right) <= FLOW_ROUTE_POINT_EPSILON;
+}
+
+function createFlowAxis(direction: FlowDirection): FlowAxis {
+	if (direction === 'LR' || direction === 'RL') {
+		return {
+			horizontal: true,
+			primary: (point) => point.x,
+			cross: (point) => point.y,
+			point: (primary, cross) => ({ x: primary, y: cross }),
+		};
+	}
+
+	return {
+		horizontal: false,
+		primary: (point) => point.y,
+		cross: (point) => point.x,
+		point: (primary, cross) => ({ x: cross, y: primary }),
+	};
+}
+
+function createFlowLayerCoordinates(
+	graph: RuntimeGraph,
+	nodeIds: readonly string[],
+	axis: FlowAxis,
+): number[] {
+	const coordinates = nodeIds
+		.map((nodeId) => {
+			const attributes = graph.getNodeAttributes(nodeId);
+			return axis.primary({ x: attributes.x, y: attributes.y });
+		})
+		.sort((left, right) => left - right);
+	const layers: number[] = [];
+	for (const coordinate of coordinates) {
+		const previous = layers.at(-1);
+		if (
+			previous === undefined ||
+			coordinate - previous > FLOW_LAYOUT_EPSILON
+		) {
+			layers.push(coordinate);
+		}
+	}
+	return layers;
+}
+
+function findFlowLayerIndex(
+	value: number,
+	coordinates: readonly number[],
+): number {
+	let closestIndex = -1;
+	let closestDistance = Number.POSITIVE_INFINITY;
+	for (const [index, coordinate] of coordinates.entries()) {
+		const distance = Math.abs(coordinate - value);
+		if (distance < closestDistance) {
+			closestIndex = index;
+			closestDistance = distance;
+		}
+	}
+	return closestIndex;
+}
+
+function chooseBundleLane(
+	group: readonly BundledFlowEdgeRecord[],
+	graph: RuntimeGraph,
+	nodeIds: readonly string[],
+	axis: FlowAxis,
+	corridors: readonly FlowBundleCorridor[],
+): FlowBundleCorridor | undefined {
+	const halfPrimary = axis.horizontal
+		? FLOW_NODE_WIDTH / 2
+		: FLOW_NODE_HEIGHT / 2;
+	const halfCross = axis.horizontal
+		? FLOW_NODE_HEIGHT / 2
+		: FLOW_NODE_WIDTH / 2;
+	const primaryValues = group.flatMap((record) => [
+		axis.primary(record.sourcePoint),
+		axis.primary(record.targetPoint),
+	]);
+	const primaryStart =
+		Math.min(...primaryValues) + halfPrimary + FLOW_BUNDLE_ENDPOINT_GAP;
+	const primaryEnd =
+		Math.max(...primaryValues) - halfPrimary - FLOW_BUNDLE_ENDPOINT_GAP;
+	if (primaryEnd <= primaryStart) {
+		return undefined;
+	}
+
+	const crossCoordinates = nodeIds
+		.map((nodeId) => {
+			const attributes = graph.getNodeAttributes(nodeId);
+			return axis.cross({ x: attributes.x, y: attributes.y });
+		})
+		.sort((left, right) => left - right);
+	if (crossCoordinates.length === 0) {
+		return undefined;
+	}
+
+	const candidates: number[] = [];
+	const laneClearance = halfCross + FLOW_BUNDLE_NODE_CLEARANCE;
+	for (let index = 0; index < crossCoordinates.length - 1; index += 1) {
+		const current = crossCoordinates[index];
+		const next = crossCoordinates[index + 1];
+		if (current === undefined || next === undefined) {
+			continue;
+		}
+		if (next - current >= laneClearance * 2) {
+			candidates.push((current + next) / 2);
+		}
+	}
+	const minimumCross = crossCoordinates[0];
+	const maximumCross = crossCoordinates.at(-1);
+	if (minimumCross !== undefined && maximumCross !== undefined) {
+		candidates.push(
+			minimumCross - laneClearance,
+			maximumCross + laneClearance,
+		);
+	}
+
+	const desiredCross =
+		group.reduce(
+			(total, record) =>
+				total +
+				axis.cross(record.sourcePoint) +
+				axis.cross(record.targetPoint),
+			0,
+		) /
+		(group.length * 2);
+	const lane = candidates
+		.filter((candidate, index, all) => all.indexOf(candidate) === index)
+		.filter((candidate) =>
+			isBundleLaneClear(
+				candidate,
+				primaryStart,
+				primaryEnd,
+				graph,
+				nodeIds,
+				axis,
+				halfPrimary,
+				halfCross,
+			),
+		)
+		.filter((candidate) =>
+			isBundleCorridorClear(
+				candidate,
+				primaryStart,
+				primaryEnd,
+				corridors,
+			),
+		)
+		.sort(
+			(left, right) =>
+				Math.abs(left - desiredCross) - Math.abs(right - desiredCross),
+		)[0];
+	return lane === undefined ? undefined : { lane, primaryStart, primaryEnd };
+}
+
+function isBundleCorridorClear(
+	lane: number,
+	primaryStart: number,
+	primaryEnd: number,
+	corridors: readonly FlowBundleCorridor[],
+): boolean {
+	return corridors.every((corridor) => {
+		const primaryRangesOverlap =
+			primaryStart < corridor.primaryEnd &&
+			primaryEnd > corridor.primaryStart;
+		return (
+			!primaryRangesOverlap ||
+			Math.abs(lane - corridor.lane) >= FLOW_BUNDLE_CORRIDOR_GAP
+		);
+	});
+}
+
+function isBundleLaneClear(
+	lane: number,
+	primaryStart: number,
+	primaryEnd: number,
+	graph: RuntimeGraph,
+	nodeIds: readonly string[],
+	axis: FlowAxis,
+	halfPrimary: number,
+	halfCross: number,
+): boolean {
+	for (const nodeId of nodeIds) {
+		const attributes = graph.getNodeAttributes(nodeId);
+		const point = { x: attributes.x, y: attributes.y };
+		const primary = axis.primary(point);
+		if (
+			primary + halfPrimary <= primaryStart ||
+			primary - halfPrimary >= primaryEnd
+		) {
+			continue;
+		}
+		if (
+			Math.abs(axis.cross(point) - lane) <
+			halfCross + FLOW_BUNDLE_NODE_CLEARANCE
+		) {
+			return false;
+		}
+	}
+	return true;
+}
+
+function createBundledFlowRoute(
+	record: BundledFlowEdgeRecord,
+	lane: number,
+	axis: FlowAxis,
+): ElkPoint[] {
+	const halfPrimary = axis.horizontal
+		? FLOW_NODE_WIDTH / 2
+		: FLOW_NODE_HEIGHT / 2;
+	const sourcePrimary = axis.primary(record.sourcePoint);
+	const targetPrimary = axis.primary(record.targetPoint);
+	const travelDirection = targetPrimary >= sourcePrimary ? 1 : -1;
+	const sourceBranchPrimary =
+		sourcePrimary +
+		travelDirection * (halfPrimary + FLOW_BUNDLE_ENDPOINT_GAP);
+	const targetBranchPrimary =
+		targetPrimary -
+		travelDirection * (halfPrimary + FLOW_BUNDLE_ENDPOINT_GAP);
+	return [
+		axis.point(sourceBranchPrimary, axis.cross(record.sourcePoint)),
+		axis.point(sourceBranchPrimary, lane),
+		axis.point(targetBranchPrimary, lane),
+		axis.point(targetBranchPrimary, axis.cross(record.targetPoint)),
+	];
 }
 
 function createFallbackRoute(

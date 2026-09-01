@@ -47,6 +47,7 @@ import {
 	setFadeDistanceInState,
 	setFlowDirectionInState,
 	setFlowEdgeStyleInState,
+	setFlowCornerRadiusInState,
 	setFlowLaneSpacingInState,
 	setFlowLayerSpacingInState,
 	setFlowRelationRulesInState,
@@ -650,6 +651,12 @@ export class WorkspaceController {
 	setFlowLaneSpacing(flowLaneSpacing: number): void {
 		this.setWorkspaceState(
 			setFlowLaneSpacingInState(this.state, flowLaneSpacing),
+		);
+	}
+
+	setFlowCornerRadius(flowCornerRadius: number): void {
+		this.setWorkspaceState(
+			setFlowCornerRadiusInState(this.state, flowCornerRadius),
 		);
 	}
 

@@ -176,6 +176,8 @@ describe('workspace persistence', () => {
 			flowChart.layout.spacing = 2;
 			flowChart.layout.layerSpacing = 3;
 			flowChart.layout.laneSpacing = 1.5;
+			flowChart.layout.cornerRadius = 18;
+			flowChart.layout.edgeStyle = 'bundled';
 			flowChart.layout.flowRelationRules = [
 				{
 					id: 'prerequisites-order',
@@ -194,6 +196,8 @@ describe('workspace persistence', () => {
 		expect(restored.flowSpacing).toBe(2);
 		expect(restored.flowLayerSpacing).toBe(3);
 		expect(restored.flowLaneSpacing).toBe(1.5);
+		expect(restored.flowCornerRadius).toBe(18);
+		expect(restored.flowEdgeStyle).toBe('bundled');
 		expect(restored.flowRelationRules).toEqual([
 			{
 				id: 'prerequisites-order',
@@ -202,6 +206,48 @@ describe('workspace persistence', () => {
 			},
 		]);
 		expect(restored.query.maxNodes).toBe(50);
+	});
+
+	it('restores the Orthogonal Flow corner radius', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		const flowChart = document.charts.find(
+			(chart) => chart.type === 'flow',
+		);
+		if (!flowChart) {
+			throw new Error('Expected default Flow chart.');
+		}
+		document.activeChart = flowChart.id;
+		flowChart.layout.edgeStyle = 'orthogonal';
+		flowChart.layout.cornerRadius = 24;
+
+		const restored = createWorkspaceState(
+			200,
+			2,
+			normalizeMetaGraphDocument(document, 200, 2),
+		);
+
+		expect(restored.flowEdgeStyle).toBe('orthogonal');
+		expect(restored.flowCornerRadius).toBe(24);
+	});
+
+	it('restores the Curve Flow line style', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		const flowChart = document.charts.find(
+			(chart) => chart.type === 'flow',
+		);
+		if (!flowChart) {
+			throw new Error('Expected default Flow chart.');
+		}
+		document.activeChart = flowChart.id;
+		flowChart.layout.edgeStyle = 'curve';
+
+		const restored = createWorkspaceState(
+			200,
+			2,
+			normalizeMetaGraphDocument(document, 200, 2),
+		);
+
+		expect(restored.flowEdgeStyle).toBe('curve');
 	});
 
 	it('persists connection field direction modes', () => {

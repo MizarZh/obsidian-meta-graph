@@ -691,6 +691,10 @@ function layoutToV2(
 			...(layout.edgeStyle && layout.edgeStyle !== 'orthogonal'
 				? { edgeStyle: layout.edgeStyle }
 				: {}),
+			...(typeof layout.cornerRadius === 'number' &&
+			layout.cornerRadius !== 0
+				? { cornerRadius: layout.cornerRadius }
+				: {}),
 		};
 	}
 	if (type === 'arc') {
@@ -1199,6 +1203,7 @@ function v2ChartToLegacyRecord(
 			direction: layout.direction,
 			flowRelationRules: layout.flowRelationRules,
 			edgeStyle: layout.edgeStyle,
+			cornerRadius: layout.cornerRadius,
 			arcDirection: layout.arcDirection,
 			arcLabelAngle: layout.arcLabelAngle,
 			nodeSort: layout.nodeSort,
@@ -1824,6 +1829,7 @@ function validateLayoutFields(
 			'direction',
 			'flowRelationRules',
 			'edgeStyle',
+			'cornerRadius',
 		],
 		arc: ['arcDirection', 'arcLabelAngle', 'nodeSort', 'nodeSortDirection'],
 		'hierarchical-edge-bundling': ['nodeSort', 'nodeSortDirection'],

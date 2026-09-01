@@ -49,7 +49,7 @@ settings to report them in the developer console.
    Arc, and HEB (hierarchical edge bundling) layouts each keep
    their own source, query, layout, display, and style settings.
 4. Use the flat toolbar settings buttons to edit graph settings, filters, note
-	styles, link styles, and groups in one panel.
+   styles, link styles, and groups in one panel.
 5. Use **Source → Query** for filter-driven charts, or **Source → Workspace**
    to manually add a fixed set of notes. Workspace source shows workspace files,
    including isolated notes, and existing metadata links between them.
@@ -314,6 +314,22 @@ the flow direction. **Lane spacing** controls distance across parallel lanes.
 For left-to-right and right-to-left flows, layer spacing is horizontal and lane
 spacing is vertical.
 
+The **Line** setting supports **Straight**, **Curve**, **Orthogonal**, and
+**Bundled**.
+Curve follows ELK's layer-aware polyline route and smooths its bends into a
+continuous path. Direct links receive a small deterministic bow so parallel
+links remain easier to distinguish.
+When **Orthogonal** or **Bundled** is selected, **Corner radius** controls how
+much each right-angle turn is softened. A value of `0` keeps sharp corners;
+larger values add a short curve approximation without changing ELK's
+layer-aware routing or bundled corridors.
+Bundled routing shares clear channels only for same-source fan-out or same-target
+fan-in edges, then fans each edge out near its source or target. Unrelated
+many-to-many crossings stay on separate orthogonal routes, and separate bundles
+reserve different corridors. This can reduce repeated long routes in dense charts
+while keeping each connection traceable. Labels remain attached to each edge's
+target branch.
+
 Flow groups participate in ELK layout as compound containers. Group rules and
 explicit assignments keep notes inside one colored container while preserving
 cross-group links. Changing group membership, priority, or padding reruns Flow
@@ -331,7 +347,7 @@ want Flow charts to rerun layout immediately after each new connection.
 
 Style-only edits such as note/link colors, sizes, line style, labels, and
 hidden state do not run ELK layout. They update the existing runtime graph and
-refresh the renderer in place, including Flow orthogonal edge segments.
+refresh the renderer in place, including Flow routed edge segments.
 
 ## Development
 

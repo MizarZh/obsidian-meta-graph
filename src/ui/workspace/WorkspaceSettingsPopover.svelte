@@ -102,6 +102,7 @@
 			enableForceLayout={workspaceState.enableForceLayout}
 			flowEdgeStyle={workspaceState.flowEdgeStyle}
 			flowDirection={workspaceState.flowDirection}
+			flowCornerRadius={workspaceState.flowCornerRadius}
 			flowRelationRules={workspaceState.flowRelationRules}
 			flowRelationConflictCount={workspaceState.flowRelationConflictCount}
 			{flowRelationFieldSuggestions}
@@ -144,6 +145,8 @@
 			onFlowEdgeStyle={(style) => controller.setFlowEdgeStyle(style)}
 			onFlowDirection={(direction) =>
 				controller.setFlowDirection(direction)}
+			onFlowCornerRadius={(radius) =>
+				controller.setFlowCornerRadius(radius)}
 			onFlowRelationRules={(rules) =>
 				controller.setFlowRelationRules(rules)}
 			onArcDirection={(direction) =>

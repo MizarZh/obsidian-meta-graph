@@ -10,6 +10,7 @@ import {
 	DEFAULT_GRAPH_LINK_FORCE,
 	DEFAULT_GRAPH_REPEL_FORCE,
 	DEFAULT_GRAPH_RETURN_FORCE,
+	DEFAULT_FLOW_CORNER_RADIUS,
 } from '../meta-graph-model';
 import { cloneSerializable } from './persistence';
 
@@ -55,6 +56,7 @@ type ActiveChartStateFields = Pick<
 	| 'flowSpacing'
 	| 'flowLayerSpacing'
 	| 'flowLaneSpacing'
+	| 'flowCornerRadius'
 	| 'arcSpacing'
 	| 'grouping'
 	| 'manualLayout'
@@ -81,6 +83,7 @@ type ActiveChartFallback = Pick<
 	| 'flowSpacing'
 	| 'flowLayerSpacing'
 	| 'flowLaneSpacing'
+	| 'flowCornerRadius'
 	| 'arcSpacing'
 >;
 
@@ -95,6 +98,7 @@ const INITIAL_ACTIVE_CHART_FALLBACK: ActiveChartFallback = {
 	flowSpacing: 1,
 	flowLayerSpacing: 1,
 	flowLaneSpacing: 1,
+	flowCornerRadius: DEFAULT_FLOW_CORNER_RADIUS,
 	arcSpacing: 1,
 };
 
@@ -200,6 +204,10 @@ function createActiveChartStateFields(
 			chart.type === 'flow'
 				? (chart.layout.laneSpacing ?? chart.layout.spacing)
 				: fallback.flowLaneSpacing,
+		flowCornerRadius:
+			chart.type === 'flow'
+				? (chart.layout.cornerRadius ?? DEFAULT_FLOW_CORNER_RADIUS)
+				: fallback.flowCornerRadius,
 		arcSpacing:
 			chart.type === 'arc' ? chart.layout.spacing : fallback.arcSpacing,
 		grouping: cloneSerializable(chart.grouping),

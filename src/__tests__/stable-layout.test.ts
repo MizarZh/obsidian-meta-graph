@@ -40,6 +40,23 @@ const projection: GraphProjection = {
 	rootIds: new Set(['A.md']),
 };
 
+const bundledProjection: GraphProjection = {
+	...projection,
+	nodes: [...projection.nodes, node('C.md', 'C')],
+	edges: [
+		projection.edges[0]!,
+		{
+			id: 'A-to-C',
+			source: 'A.md',
+			target: 'C.md',
+			relation: 'leads-to',
+			directed: true,
+			sourcePath: 'A.md',
+			sourceField: 'leads-to',
+		},
+	],
+};
+
 describe('stable layout orchestration', () => {
 	it('keys layout snapshots by mode-specific layout inputs', () => {
 		expect(
@@ -192,6 +209,91 @@ describe('stable layout orchestration', () => {
 				groupId: 'research',
 			}),
 		]);
+	});
+
+	it('applies bundled routing through stable Flow layout orchestration', async () => {
+		const graph = new GraphologyAdapter(palette).fromProjection(
+			bundledProjection,
+			new Map([
+				['A.md', { x: 0, y: 0 }],
+				['B.md', { x: 200, y: -60 }],
+				['C.md', { x: 200, y: 60 }],
+			]),
+		);
+		const snapshot = createLayoutSnapshot();
+		for (const [nodeId, position] of [
+			['A.md', { x: 0, y: 0 }],
+			['B.md', { x: 200, y: -60 }],
+			['C.md', { x: 200, y: 60 }],
+		] as const) {
+			snapshot.positions.set(nodeId, position);
+		}
+
+		await applyStableLayout(graph, snapshot, [], {
+			mode: 'flow',
+			forceLayout: false,
+			graphSpacing: 1,
+			graphForceSettings: DEFAULT_GRAPH_FORCE_SETTINGS,
+			flowEdgeStyle: 'bundled',
+			flowDirection: 'LR',
+			flowLayerSpacing: 1,
+			flowLaneSpacing: 1,
+			arcSpacing: 1,
+			arcDirection: 'right',
+			arcLabelAngle: 'auto',
+			nodeSort: 'name',
+			nodeSortDirection: 'asc',
+		});
+
+		expect(graph.hasEdge('A-to-B')).toBe(false);
+		expect(graph.hasEdge('A-to-C')).toBe(false);
+		expect(graph.hasEdge('A-to-B__segment_4')).toBe(true);
+		expect(snapshot.orthogonalRoutes.size).toBe(2);
+	});
+
+	it('applies Curve routing without changing existing Flow positions', async () => {
+		const positions = new Map<string, GraphPosition>([
+			['A.md', { x: 0, y: 0 }],
+			['B.md', { x: 160, y: 0 }],
+		]);
+		const graph = new GraphologyAdapter(palette).fromProjection(
+			projection,
+			positions,
+		);
+		const snapshot = createLayoutSnapshot();
+		for (const [nodeId, position] of positions) {
+			snapshot.positions.set(nodeId, position);
+		}
+
+		await applyStableLayout(graph, snapshot, [], {
+			mode: 'flow',
+			forceLayout: false,
+			graphSpacing: 1,
+			graphForceSettings: DEFAULT_GRAPH_FORCE_SETTINGS,
+			flowEdgeStyle: 'curve',
+			flowDirection: 'LR',
+			flowLayerSpacing: 1,
+			flowLaneSpacing: 1,
+			arcSpacing: 1,
+			arcDirection: 'right',
+			arcLabelAngle: 'auto',
+			nodeSort: 'name',
+			nodeSortDirection: 'asc',
+		});
+
+		expect(graph.getNodeAttributes('A.md')).toMatchObject({ x: 0, y: 0 });
+		expect(graph.getNodeAttributes('B.md')).toMatchObject({ x: 160, y: 0 });
+		expect(graph.hasEdge('A-to-B')).toBe(false);
+		expect(
+			graph.nodes().some((nodeId) => nodeId.startsWith('__flow-bend__')),
+		).toBe(true);
+		expect(
+			graph
+				.edges()
+				.some(
+					(edge) => graph.getEdgeAttribute(edge, 'type') === 'arrow',
+				),
+		).toBe(true);
 	});
 
 	it('reruns graph layout when force layout is requested', async () => {

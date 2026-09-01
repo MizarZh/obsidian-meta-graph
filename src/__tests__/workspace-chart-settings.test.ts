@@ -6,6 +6,7 @@ import {
 	setCubeFaceOpacityInState,
 	setCubeFreeCameraInState,
 	setCubeSizeInState,
+	setFlowCornerRadiusInState,
 	setFlowLaneSpacingInState,
 	setFlowLayerSpacingInState,
 	setFlowRelationRulesInState,
@@ -79,6 +80,21 @@ describe('workspace chart settings', () => {
 		expect(setFlowLayerSpacingInState(flowState, 2).layoutRevision).toBe(1);
 		expect(setFlowLaneSpacingInState(flowState, 2).layoutRevision).toBe(1);
 		expect(setArcSpacingInState(arcState, 2).layoutRevision).toBe(1);
+	});
+
+	it('stores Flow corner radius without requesting a layout', () => {
+		const state = createWorkspaceState(100, 1.5);
+		const flowState = {
+			...state,
+			activeChartId: 'learning-flow',
+			mode: 'flow' as const,
+		};
+
+		const nextState = setFlowCornerRadiusInState(flowState, 24);
+
+		expect(nextState.flowCornerRadius).toBe(24);
+		expect(getActiveChart(nextState).layout.cornerRadius).toBe(24);
+		expect(nextState.layoutRevision).toBe(0);
 	});
 
 	it('stores Arc label angle without changing layout revision', () => {

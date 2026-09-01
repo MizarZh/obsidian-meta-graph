@@ -55,6 +55,7 @@
 		enableForceLayout,
 		flowEdgeStyle,
 		flowDirection,
+		flowCornerRadius,
 		flowRelationRules,
 		flowRelationConflictCount,
 		flowRelationFieldSuggestions,
@@ -94,6 +95,7 @@
 		linkStyleRules,
 		onFlowEdgeStyle,
 		onFlowDirection,
+		onFlowCornerRadius,
 		onFlowRelationRules,
 		onArcDirection,
 		onArcLabelAngle,
@@ -173,6 +175,7 @@
 		enableForceLayout: boolean;
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
+		flowCornerRadius: number;
 		flowRelationRules: FlowRelationRule[];
 		flowRelationConflictCount: number;
 		flowRelationFieldSuggestions: string[];
@@ -212,6 +215,7 @@
 		linkStyleRules: LinkStyleRule[];
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
+		onFlowCornerRadius: (radius: number) => void;
 		onFlowRelationRules: (rules: FlowRelationRule[]) => void;
 		onArcDirection: (direction: ArcDirection) => void;
 		onArcLabelAngle: (angle: ArcLabelAngle) => void;
@@ -304,6 +308,7 @@
 			{enableForceLayout}
 			{flowEdgeStyle}
 			{flowDirection}
+			{flowCornerRadius}
 			{flowRelationRules}
 			{flowRelationConflictCount}
 			{flowRelationFieldSuggestions}
@@ -323,6 +328,7 @@
 			{query}
 			{onFlowEdgeStyle}
 			{onFlowDirection}
+			{onFlowCornerRadius}
 			{onFlowRelationRules}
 			{onArcDirection}
 			{onArcLabelAngle}

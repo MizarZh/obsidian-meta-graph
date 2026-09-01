@@ -287,6 +287,7 @@ export class WorkspaceRendererLifecycle {
 			flowRelationRules: state.flowRelationRules,
 			flowLayerSpacing: state.flowLayerSpacing,
 			flowLaneSpacing: state.flowLaneSpacing,
+			flowCornerRadius: state.flowCornerRadius,
 			arcSpacing: state.arcSpacing,
 			arcDirection: state.arcDirection,
 			arcLabelAngle: state.arcLabelAngle,

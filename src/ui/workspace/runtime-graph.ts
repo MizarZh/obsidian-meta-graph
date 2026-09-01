@@ -188,7 +188,14 @@ export function syncWorkspaceRuntimeGraphStyles(
 		const segments = (segmentsByLogicalEdge.get(edge.id) ?? []).sort(
 			(first, second) => getSegmentIndex(first) - getSegmentIndex(second),
 		);
-		const labelSegment = Math.floor((segments.length - 1) / 2);
+		const bundled = segments.some(
+			(runtimeEdgeId) =>
+				graph.getEdgeAttribute(runtimeEdgeId, 'flowLabelPlacement') ===
+				'target-branch',
+		);
+		const labelSegment = bundled
+			? Math.max(0, segments.length - 2)
+			: Math.floor((segments.length - 1) / 2);
 		for (const [index, runtimeEdgeId] of segments.entries()) {
 			const attributes = graph.getEdgeAttributes(runtimeEdgeId);
 			const target = graph.target(runtimeEdgeId);
