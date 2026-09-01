@@ -66,6 +66,7 @@ export class GroupOverlayLayer {
 	private previousCameraZooming: boolean | undefined;
 	private holdingInteractionBounds = false;
 	private activeDropGroupId: string | undefined;
+	private focusedNodeId: string | undefined;
 	private interaction:
 		| {
 				kind: 'move' | 'resize';
@@ -149,6 +150,14 @@ export class GroupOverlayLayer {
 		}
 	}
 
+	setFocusedNode(nodeId?: string): void {
+		if (this.focusedNodeId === nodeId) {
+			return;
+		}
+		this.focusedNodeId = nodeId;
+		this.update();
+	}
+
 	update(): void {
 		if (this.groups.length === 0) {
 			this.layer.hidden = true;
@@ -164,6 +173,10 @@ export class GroupOverlayLayer {
 			element.classList.toggle('movable', group.movable !== false);
 			element.classList.toggle('resizable', group.resizable !== false);
 			element.classList.toggle('shape-circle', group.shape === 'circle');
+			element.classList.toggle(
+				'muted-by-focus',
+				this.isMutedByFocus(group),
+			);
 			element.style.left = `${rect.left}px`;
 			element.style.top = `${rect.top}px`;
 			element.style.width = `${rect.width}px`;
@@ -180,6 +193,18 @@ export class GroupOverlayLayer {
 				title.title = group.name;
 			}
 		}
+	}
+
+	private isMutedByFocus(group: GroupOverlayGroup): boolean {
+		if (!this.focusedNodeId || !this.callbacks.getGroupNodeIds) {
+			return false;
+		}
+		for (const nodeId of this.callbacks.getGroupNodeIds(group.id)) {
+			if (nodeId === this.focusedNodeId) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	kill(): void {

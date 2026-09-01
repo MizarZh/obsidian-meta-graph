@@ -40,6 +40,8 @@ export function syncWorkspaceRendererGroups(
 		renderer.setManualLayout(manualLayout);
 		return;
 	}
+	const getGroupNodeIdsForGroup = (groupId: string): string[] =>
+		getGroupNodeIds(groupByNode, groupId);
 	renderer.setLayoutGroupGeometries(
 		mode === 'graph'
 			? layoutSnapshot.groupGeometries.map((geometry) =>
@@ -54,6 +56,7 @@ export function syncWorkspaceRendererGroups(
 						: geometry,
 				)
 			: layoutSnapshot.groupGeometries,
+		getGroupNodeIdsForGroup,
 	);
 	renderer.setGroups(
 		createOverlayGroups(
@@ -65,7 +68,7 @@ export function syncWorkspaceRendererGroups(
 		),
 		{
 			...callbacks,
-			getGroupNodeIds: (groupId) => getGroupNodeIds(groupByNode, groupId),
+			getGroupNodeIds: getGroupNodeIdsForGroup,
 		},
 	);
 }

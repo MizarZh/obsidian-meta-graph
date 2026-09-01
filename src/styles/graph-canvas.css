@@ -76,6 +76,12 @@
 	border-radius: 50%;
 }
 
+.knowledge-workspace-group-region.muted-by-focus {
+	--knowledge-workspace-group-color: var(--text-muted, var(--text-faint)) !important;
+	opacity: 0.58;
+	filter: grayscale(1) saturate(0);
+}
+
 .knowledge-workspace-group-region.drop-target {
 	border-color: var(--interactive-accent);
 	background: color-mix(in srgb, var(--interactive-accent) 18%, transparent);

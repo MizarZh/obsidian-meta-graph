@@ -213,6 +213,7 @@ export class SigmaRenderer {
 		}
 		this.updateHoveredNeighborhood();
 		this.instance.setGraph(graph);
+		this.syncGroupFocus();
 		this.groupOverlayLayer.update();
 	}
 
@@ -227,10 +228,15 @@ export class SigmaRenderer {
 		callbacks?: GroupInteractionCallbacks,
 	): void {
 		this.groupOverlayLayer.setGroups(groups, callbacks);
+		this.syncGroupFocus();
 	}
 
-	setLayoutGroupGeometries(geometries: readonly LayoutGroupGeometry[]): void {
-		this.layoutGroupLayer.setGeometries(geometries);
+	setLayoutGroupGeometries(
+		geometries: readonly LayoutGroupGeometry[],
+		getGroupNodeIds?: (groupId: string) => Iterable<string>,
+	): void {
+		this.layoutGroupLayer.setGeometries(geometries, getGroupNodeIds);
+		this.syncGroupFocus();
 	}
 
 	getGroupAtViewportPosition(position: {
@@ -265,6 +271,7 @@ export class SigmaRenderer {
 		}
 		this.hoveredNodeId = nodeId;
 		this.updateHoveredNeighborhood();
+		this.syncGroupFocus();
 		this.instance.refresh();
 	}
 
@@ -326,6 +333,7 @@ export class SigmaRenderer {
 	togglePinnedHover(nodeId: string): void {
 		this.pinnedNodeId = this.pinnedNodeId === nodeId ? undefined : nodeId;
 		this.updateHoveredNeighborhood();
+		this.syncGroupFocus();
 		this.instance.refresh();
 	}
 
@@ -335,6 +343,7 @@ export class SigmaRenderer {
 		}
 		this.pinnedNodeId = undefined;
 		this.updateHoveredNeighborhood();
+		this.syncGroupFocus();
 		this.instance.refresh();
 	}
 
@@ -470,6 +479,12 @@ export class SigmaRenderer {
 
 	private getActiveHoverNodeId(): string | undefined {
 		return this.pinnedNodeId ?? this.hoveredNodeId;
+	}
+
+	private syncGroupFocus(): void {
+		const activeNodeId = this.getActiveHoverNodeId();
+		this.groupOverlayLayer.setFocusedNode(activeNodeId);
+		this.layoutGroupLayer.setFocusedNode(activeNodeId);
 	}
 
 	private updateHoveredNeighborhood(): void {

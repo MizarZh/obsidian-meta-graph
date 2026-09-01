@@ -30,6 +30,10 @@ export class LayoutGroupLayer {
 	private readonly canvas: HTMLCanvasElement;
 	private readonly context: CanvasRenderingContext2D;
 	private geometries: LayoutGroupGeometry[] = [];
+	private getGroupNodeIds:
+		| ((groupId: string) => Iterable<string>)
+		| undefined;
+	private focusedNodeId: string | undefined;
 	private readonly updateBound = () => this.update();
 
 	constructor(
@@ -60,8 +64,20 @@ export class LayoutGroupLayer {
 		sigma.on('afterRender', this.updateBound);
 	}
 
-	setGeometries(geometries: readonly LayoutGroupGeometry[]): void {
+	setGeometries(
+		geometries: readonly LayoutGroupGeometry[],
+		getGroupNodeIds?: (groupId: string) => Iterable<string>,
+	): void {
 		this.geometries = geometries.map((geometry) => ({ ...geometry }));
+		this.getGroupNodeIds = getGroupNodeIds;
+		this.update();
+	}
+
+	setFocusedNode(nodeId?: string): void {
+		if (this.focusedNodeId === nodeId) {
+			return;
+		}
+		this.focusedNodeId = nodeId;
 		this.update();
 	}
 
@@ -73,18 +89,39 @@ export class LayoutGroupLayer {
 			return;
 		}
 		for (const geometry of this.geometries) {
-			if (geometry.kind === 'arc-band') {
-				this.drawArcBand(geometry);
-			} else if (geometry.kind === 'radial-sector') {
-				this.drawRadialSector(geometry);
-			} else if (geometry.kind === 'flow-container') {
-				this.drawFlowContainer(geometry);
-			} else if (geometry.kind === 'graph-container') {
-				this.drawGraphContainer(geometry);
-			} else {
-				this.drawGroupMemberHalos(geometry);
+			this.context.save();
+			if (this.isMutedByFocus(geometry)) {
+				this.context.globalAlpha = 0.38;
+				this.context.filter = 'grayscale(1) saturate(0)';
+			}
+			try {
+				if (geometry.kind === 'arc-band') {
+					this.drawArcBand(geometry);
+				} else if (geometry.kind === 'radial-sector') {
+					this.drawRadialSector(geometry);
+				} else if (geometry.kind === 'flow-container') {
+					this.drawFlowContainer(geometry);
+				} else if (geometry.kind === 'graph-container') {
+					this.drawGraphContainer(geometry);
+				} else {
+					this.drawGroupMemberHalos(geometry);
+				}
+			} finally {
+				this.context.restore();
 			}
 		}
+	}
+
+	private isMutedByFocus(geometry: LayoutGroupGeometry): boolean {
+		if (!this.focusedNodeId || !this.getGroupNodeIds) {
+			return false;
+		}
+		for (const nodeId of this.getGroupNodeIds(geometry.groupId)) {
+			if (nodeId === this.focusedNodeId) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	kill(): void {

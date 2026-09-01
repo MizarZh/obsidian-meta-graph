@@ -20,6 +20,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Dimmed unrelated group overlays and layout halos to neutral gray while a node is hovered or focused, while keeping the active node's group highlighted.
 - Improved reusable settings spacing and slider sizing: controls now use the available panel width, with consistent section gaps, aligned label/control rows, and compact two-column groups for related fields. Compact groups now keep each label and control on one line.
 - Improved hollow Chevron arrows with clearer, wider wings and matching preview/Cube rendering.
 - Updated Connection chip cursors to use a pointer on hover and a grabbing hand only during reordering.
