@@ -20,7 +20,8 @@ export function reduceSigmaNode(
 	palette: GraphPalette,
 ): Partial<NodeDisplayData> {
 	const opacity = clampOpacity(data.opacity ?? 1);
-	const styledColor = opacity === 1 ? {} : { color: withAlpha(data.color, opacity) };
+	const styledColor =
+		opacity === 1 ? {} : { color: withAlpha(data.color, opacity) };
 	if (data.isBend) {
 		return {
 			...data,
@@ -45,7 +46,10 @@ export function reduceSigmaNode(
 	if (node === state.selectedNodeId) {
 		return {
 			...data,
-			color: opacity === 1 ? palette.selected : withAlpha(palette.selected, opacity),
+			color:
+				opacity === 1
+					? palette.selected
+					: withAlpha(palette.selected, opacity),
 			size: data.size + 3,
 			highlighted: true,
 			forceLabel: true,
@@ -80,6 +84,14 @@ export function reduceSigmaEdge(
 	palette: GraphPalette,
 	extremities: readonly [string, string],
 ): Partial<EdgeDisplayData> {
+	if (isCanvasParallelEdge(data, extremities)) {
+		return {
+			...data,
+			hidden: true,
+			label: null,
+			forceLabel: false,
+		};
+	}
 	const opacity = Math.max(0, Math.min(1, data.opacity ?? 1));
 	const color = withAlpha(data.color, opacity);
 	const activeHoverNodeId = state.activeHoverNodeId;
@@ -108,4 +120,13 @@ export function reduceSigmaEdge(
 				size: 0.4,
 				zIndex: 0,
 			};
+}
+
+export function isCanvasParallelEdge(
+	data: RuntimeEdgeAttributes,
+	extremities: readonly [string, string],
+): boolean {
+	if ((data.parallelCount ?? 1) < 2) return false;
+	const [source, target] = extremities;
+	return (data.logicalSource ?? source) !== (data.logicalTarget ?? target);
 }

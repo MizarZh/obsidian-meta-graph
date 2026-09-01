@@ -20,6 +20,11 @@ import type {
 	RuntimeGraph,
 	RuntimeNodeAttributes,
 } from '../graph/model/graphology-adapter';
+import {
+	createParallelCanvasRoute,
+	distanceToPolyline,
+} from '../graph/renderers/sigma/sigma-parallel-edge-layer';
+import { isCanvasParallelEdge } from '../graph/renderers/sigma/sigma-hover-policy';
 
 function edgeAttributes(relation: string): RuntimeEdgeAttributes {
 	return {
@@ -206,6 +211,54 @@ describe('parallel edge lanes', () => {
 });
 
 describe('parallel route geometry', () => {
+	it('creates compact pixel lanes with axis-aligned endpoint stubs', () => {
+		const route = createParallelCanvasRoute(
+			{ x: 20, y: 40 },
+			{ x: 220, y: 100 },
+			10,
+			12,
+			3,
+			{ x: 1, y: 0 },
+		);
+
+		expect(route?.points).toHaveLength(6);
+		expect(route?.arrowDirection).toEqual({ x: 1, y: 0 });
+		expect(route?.points[0]).toEqual({ x: 30, y: 40 });
+		expect(route?.points[1]).toEqual({ x: 38, y: 40 });
+		expect(route?.points[2]).toEqual({ x: 38, y: 43 });
+		expect(route?.points[4]).toEqual({ x: 200, y: 100 });
+		expect(route?.points[5]).toEqual({ x: 208, y: 100 });
+	});
+
+	it('supports precise polyline hit testing', () => {
+		const route = createParallelCanvasRoute(
+			{ x: 0, y: 0 },
+			{ x: 100, y: 0 },
+			5,
+			5,
+			4,
+			{ x: 1, y: 0 },
+		);
+
+		expect(distanceToPolyline({ x: 50, y: 5 }, route!.points)).toBe(1);
+		expect(distanceToPolyline({ x: 50, y: 30 }, route!.points)).toBe(26);
+	});
+
+	it('moves only non-loop parallel edges to the Canvas layer', () => {
+		const attributes = {
+			...edgeAttributes('generic'),
+			parallelCount: 2,
+		};
+		expect(isCanvasParallelEdge(attributes, ['A', 'B'])).toBe(true);
+		expect(isCanvasParallelEdge(attributes, ['A', 'A'])).toBe(false);
+		expect(
+			isCanvasParallelEdge({ ...attributes, parallelCount: 1 }, [
+				'A',
+				'B',
+			]),
+		).toBe(false);
+	});
+
 	it('routes direct parallel edges through compact hidden bends', () => {
 		const graph: RuntimeGraph = new Graph({ multi: true, type: 'mixed' });
 		graph.addNode('A', { ...nodeAttributes(), x: 0, y: 0 });

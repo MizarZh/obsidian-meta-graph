@@ -17,7 +17,6 @@ import {
 	getRotatedNodeLabelBox,
 	getScaledLabelSize,
 } from './sigma-label-geometry';
-import { getParallelOffset } from './patterned-edge-program';
 
 export function createNodeLabelDrawer(
 	getOpacity: () => number,
@@ -107,34 +106,13 @@ export function createEdgeLabelDrawer(
 	getOpacity: () => number,
 ): EdgeLabelDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
 	return (context, edgeData, sourceData, targetData, settings) => {
-		const offset = getParallelOffset(sourceData, targetData, edgeData);
-		const length = Math.hypot(
-			targetData.x - sourceData.x,
-			targetData.y - sourceData.y,
-		);
-		const unitNormal = length
-			? {
-					x: -(targetData.y - sourceData.y) / length,
-					y: (targetData.x - sourceData.x) / length,
-				}
-			: { x: 0, y: 0 };
-		const shiftedSource = {
-			...sourceData,
-			x: sourceData.x + unitNormal.x * offset,
-			y: sourceData.y + unitNormal.y * offset,
-		};
-		const shiftedTarget = {
-			...targetData,
-			x: targetData.x + unitNormal.x * offset,
-			y: targetData.y + unitNormal.y * offset,
-		};
 		context.save();
 		context.globalAlpha = getOpacity();
 		drawStraightEdgeLabel(
 			context,
 			edgeData,
-			shiftedSource,
-			shiftedTarget,
+			sourceData,
+			targetData,
 			settings,
 		);
 		context.restore();

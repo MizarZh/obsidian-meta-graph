@@ -7,12 +7,13 @@ All notable changes to Meta Graph are documented here.
 ### Added
 
 - Added deterministic parallel lanes for multiple relationships between the same two notes. Directed, reverse, and undirected links now keep separate paths, labels, arrows, and 2D/3D/Cube/Flow/Arc/HEB rendering without changing the underlying metadata.
+- Added a DPR-aware Canvas overlay for Sigma parallel edges, including compact endpoint routes, rounded solid/patterned lines, arrows, labels, hover/click hit testing, viewport culling, and cached paths.
 
 ### Fixed
 
 - Kept Flow arrows on the final flow-axis corridor segment when parallel lanes use endpoint branches, preventing RL/LR arrows from pointing vertically into nodes.
 - Reduced direct Graph parallel-lane spacing so two-way links stay visually compact while remaining distinguishable.
-- Separated direct Sigma parallel links at render time with a compact screen-pixel offset; graph coordinates and layout bounds no longer expand with lane separation.
+- Restored Sigma's native programs for ordinary single edges and moved only multi-edge pairs to the compact Canvas overlay, avoiding custom-shader aliasing and seam artifacts without expanding graph coordinates or layout bounds.
 
 ## [1.5.3] - 2026-09-02
 

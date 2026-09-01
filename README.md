@@ -70,9 +70,9 @@ settings to report them in the developer console.
    throttled while dragging so changes preview live without rebuilding the graph
    for every pointer event.
    When two or more relationships connect the same notes (for example `pre` and
-   `related`), Meta Graph assigns stable parallel lanes and draws compact
-   screen-pixel endpoint routes so their paths, arrows, and labels remain
-   distinguishable without widening the graph layout.
+   `related`), Meta Graph assigns stable parallel lanes and draws them on a
+   dedicated Canvas layer. Short endpoint stubs and lanes only a few pixels
+   apart keep paths, arrows, and labels distinct without widening the layout.
 10. Use **Group** settings to add chart-local groups, set priority, colors,
     padding, and Manual or Rule membership. Each note belongs to at most one
     group; an explicit assignment or Ungrouped override takes priority over
@@ -324,9 +324,12 @@ Curve follows ELK's layer-aware polyline route and smooths its bends into a
 continuous path. Direct links receive a small deterministic bow so parallel
 links remain easier to distinguish.
 All relationships between the same pair of notes also receive deterministic
-parallel lanes. Direct Sigma edges use a compact screen-pixel offset (a few
-line widths apart); the lane metadata is runtime-only, so frontmatter and the
-semantic projection remain unchanged.
+parallel lanes. Sigma keeps rendering ordinary single edges with its native
+programs, while a DPR-aware Canvas overlay renders only multi-edge pairs with
+compact screen-pixel routes, rounded joins, arrows, patterns, labels, and edge
+hit testing. Off-screen routes are culled and route geometry is cached. Lane
+metadata remains runtime-only, so frontmatter and the semantic projection are
+unchanged.
 Edge-only Flow refreshes keep node positions while separating newly added
 links. Flow arrows stay on the final flow-axis segment instead of pointing
 along a perpendicular endpoint branch.

@@ -1,4 +1,5 @@
 import Sigma from 'sigma';
+import { EdgeArrowProgram, EdgeRectangleProgram } from 'sigma/rendering';
 import type { LabelPosition } from '../../../core/types';
 import {
 	type RuntimeEdgeAttributes,
@@ -23,8 +24,6 @@ import {
 	DottedChevronArrowEdgeProgram,
 	DottedArrowEdgeProgram,
 	DottedEdgeProgram,
-	ArrowEdgeProgram,
-	SolidEdgeProgram,
 } from './patterned-edge-program';
 import {
 	createEdgeLabelDrawer,
@@ -38,6 +37,7 @@ import {
 	type GroupOverlayGroup,
 } from './sigma-group-overlay';
 import { LayoutGroupLayer } from './sigma-layout-group-layer';
+import { SigmaParallelEdgeLayer } from './sigma-parallel-edge-layer';
 import type { LayoutGroupGeometry } from '../../../layouts/group-geometry';
 import {
 	NodeDiamondProgram,
@@ -68,6 +68,7 @@ export class SigmaRenderer {
 	private forceLabels: boolean;
 	private readonly groupOverlayLayer: GroupOverlayLayer;
 	private readonly layoutGroupLayer: LayoutGroupLayer;
+	private readonly parallelEdgeLayer: SigmaParallelEdgeLayer;
 	private readonly zoomLevelListeners = new Set<(level: number) => void>();
 	private readonly handleCameraUpdated = (): void => {
 		this.emitZoomLevel();
@@ -121,8 +122,8 @@ export class SigmaRenderer {
 				doubleClickZoomingRatio: 1,
 				defaultEdgeType: 'line',
 				edgeProgramClasses: {
-					line: SolidEdgeProgram,
-					arrow: ArrowEdgeProgram,
+					line: EdgeRectangleProgram,
+					arrow: EdgeArrowProgram,
 					dashed: DashedEdgeProgram,
 					'dashed-arrow': DashedArrowEdgeProgram,
 					'chevron-arrow': ChevronArrowEdgeProgram,
@@ -193,6 +194,15 @@ export class SigmaRenderer {
 			.on('doubletap', (event: { preventSigmaDefault(): void }) => {
 				event.preventSigmaDefault();
 			});
+		this.parallelEdgeLayer = new SigmaParallelEdgeLayer(
+			this.instance,
+			() => this.graph,
+			() => ({
+				activeHoverNodeId: this.getActiveHoverNodeId(),
+				mutedEdgeColor: this.palette.mutedEdge,
+			}),
+			() => this.getCurrentLabelOpacity(),
+		);
 		this.groupOverlayLayer = new GroupOverlayLayer(
 			this.instance,
 			() => this.graph,
@@ -212,6 +222,7 @@ export class SigmaRenderer {
 		}
 		this.updateHoveredNeighborhood();
 		this.instance.setGraph(graph);
+		this.parallelEdgeLayer.invalidate();
 		this.syncGroupFocus();
 		this.groupOverlayLayer.update();
 	}
@@ -224,6 +235,7 @@ export class SigmaRenderer {
 
 	refresh(): void {
 		this.instance.refresh();
+		this.parallelEdgeLayer.update();
 	}
 
 	setGroups(
@@ -381,6 +393,13 @@ export class SigmaRenderer {
 			: nodeId;
 	}
 
+	getEdgeAtViewportPosition(position: {
+		x: number;
+		y: number;
+	}): string | undefined {
+		return this.parallelEdgeLayer.getEdgeAtViewportPosition(position);
+	}
+
 	private getNearestNodeAtViewportPosition(position: {
 		x: number;
 		y: number;
@@ -461,6 +480,7 @@ export class SigmaRenderer {
 	kill(): void {
 		this.instance.getCamera().off('updated', this.handleCameraUpdated);
 		this.zoomLevelListeners.clear();
+		this.parallelEdgeLayer.kill();
 		this.groupOverlayLayer.kill();
 		this.layoutGroupLayer.kill();
 		this.instance.kill();
