@@ -9,6 +9,7 @@
 		step,
 		disabled = false,
 		instant = true,
+		showValue = true,
 		format,
 		class: className = '',
 		onChange,
@@ -20,6 +21,7 @@
 		step: number | 'any';
 		disabled?: boolean;
 		instant?: boolean;
+		showValue?: boolean;
 		format?: (value: number) => string;
 		class?: string;
 		onChange: (value: number) => void;
@@ -51,6 +53,16 @@
 		onCommit?.(Number((event.currentTarget as HTMLInputElement).value));
 	}
 
+	function syncValueVisibility(): void {
+		if (!slider) return;
+		for (const child of Array.from(containerEl.children)) {
+			if (child === slider.sliderEl || child.contains(slider.sliderEl)) {
+				continue;
+			}
+			(child as HTMLElement).hidden = !showValue;
+		}
+	}
+
 	$effect(() => {
 		if (!slider) {
 			return;
@@ -63,13 +75,16 @@
 			slider.setValue(value);
 		}
 		slider.setDisabled(disabled);
+		if (format && 'setDisplayFormat' in slider) {
+			slider.setDisplayFormat(format);
+		}
+		syncValueVisibility();
 		syncing = false;
 		if (className) {
 			slider.sliderEl.classList.add(
 				...className.split(/\s+/u).filter(Boolean),
 			);
 		}
-		void format;
 	});
 </script>
 

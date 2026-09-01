@@ -15,6 +15,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Removed the slider's duplicate built-in zoom readout so the editable percentage input remains the single synchronized zoom value.
 - Made Curated note visibility controls respond before graph work, update only affected graph items, keep drag-list identities stable, and defer autosave serialization instead of blocking the click.
 - Kept Curated panel contents mounted while collapsed and removed its width animation to avoid rebuilding and repeatedly reflowing large file lists when reopened.
 - Kept graph hover state out of workspace updates so expanded Curated panels no longer rebuild their full file list while showing local links.

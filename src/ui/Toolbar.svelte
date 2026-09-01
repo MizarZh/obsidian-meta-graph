@@ -644,6 +644,7 @@
 				min={25}
 				max={400}
 				step={5}
+				showValue={false}
 				onChange={onZoomLevel}
 			/>
 		</div>
