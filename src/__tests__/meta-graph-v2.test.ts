@@ -328,6 +328,7 @@ describe('Meta Graph v2 persistence', () => {
 			dockOpen: false,
 			curatedPanelOpen: true,
 			connectionOpen: false,
+			connectionLayout: 'wrap',
 		});
 		expect(savedSession.charts?.[targetChart.id]).toMatchObject({
 			showFilters: false,
@@ -339,6 +340,7 @@ describe('Meta Graph v2 persistence', () => {
 			dockOpen: false,
 			curatedPanelOpen: true,
 			connectionOpen: false,
+			connectionLayout: 'wrap',
 		});
 		expect(serializeWorkspaceStateV2(state, parsed.persistence)).toEqual(
 			migrated,
@@ -442,6 +444,7 @@ describe('Meta Graph v2 persistence', () => {
 					shell: {
 						rightPanelTab: 'unknown',
 						dockOpen: false,
+						connectionLayout: 'wrap',
 					},
 				},
 			}),
@@ -450,7 +453,7 @@ describe('Meta Graph v2 persistence', () => {
 				charts: {
 					map: { dockWidth: 520, focusOnSelect: false },
 				},
-				shell: { dockOpen: false },
+				shell: { dockOpen: false, connectionLayout: 'wrap' },
 			},
 		});
 	});

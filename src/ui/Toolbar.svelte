@@ -38,6 +38,8 @@
 		onZoomOut,
 		zoomLevel,
 		onZoomLevel,
+		connectionUndoCount,
+		onUndoConnection,
 		onFit,
 		onRefresh,
 		settingsPanel,
@@ -65,6 +67,8 @@
 		onZoomOut: () => void;
 		zoomLevel: number;
 		onZoomLevel: (level: number) => void;
+		connectionUndoCount: number;
+		onUndoConnection: () => void;
 		onFit: () => void;
 		onRefresh: () => void;
 		settingsPanel: SettingsPanelMode | undefined;
@@ -648,6 +652,20 @@
 				onChange={onZoomLevel}
 			/>
 		</div>
+		<span class="knowledge-workspace-toolbar-connection-undo">
+			<ObsidianButton
+				icon="undo-2"
+				ariaLabel="Undo last connection"
+				tooltip="Undo connection (Ctrl+Z)"
+				disabled={connectionUndoCount === 0}
+				onClick={onUndoConnection}
+			/>
+			{#if connectionUndoCount > 0}
+				<span class="knowledge-workspace-toolbar-action-count"
+					>{connectionUndoCount}</span
+				>
+			{/if}
+		</span>
 		<ObsidianButton text="Fit graph" onClick={onFit} />
 		<ObsidianButton text="Refresh" onClick={onRefresh} />
 		{#if showDebugButton}

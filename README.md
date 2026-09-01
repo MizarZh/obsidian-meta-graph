@@ -69,16 +69,16 @@ settings to report them in the developer console.
    throttled while dragging so changes preview live without rebuilding the graph
    for every pointer event.
 10. Use **Group** settings to add chart-local groups, set priority, colors,
-   padding, and Manual or Rule membership. Each note belongs to at most one
-   group; an explicit assignment or Ungrouped override takes priority over
-   rules. Graph, Arc, Hierarchical edge bundling, Flow, Free, and Cube render
-   groups according to their layout. Graph and Free share the same group frame,
-   label, and colored member rings without creating metadata links. Graph
-   frames follow their members automatically; Free frames keep editable size
-   and position. Use **Shape** on each group to choose Auto, Circle, or Rectangle;
-   Auto uses circles in Graph and rectangles in Free. Free circles keep a square
-   diameter while resizing. Groups are saved in the workspace file, not note
-   frontmatter.
+    padding, and Manual or Rule membership. Each note belongs to at most one
+    group; an explicit assignment or Ungrouped override takes priority over
+    rules. Graph, Arc, Hierarchical edge bundling, Flow, Free, and Cube render
+    groups according to their layout. Graph and Free share the same group frame,
+    label, and colored member rings without creating metadata links. Graph
+    frames follow their members automatically; Free frames keep editable size
+    and position. Use **Shape** on each group to choose Auto, Circle, or Rectangle;
+    Auto uses circles in Graph and rectangles in Free. Free circles keep a square
+    diameter while resizing. Groups are saved in the workspace file, not note
+    frontmatter.
 11. Increase **Label density** in **Graph** settings when Sigma samples too few
     labels while zoomed out. Enable **Always show labels** to force every visible
     note label through Sigma's label grid. In 3D graph and Cube layouts, use
@@ -87,10 +87,9 @@ settings to report them in the developer console.
     **Arc details** to select Auto, 0°, 45°, or 90°. Auto keeps Right/Left labels
     horizontal and rotates Up/Down labels vertically.
 12. Use the bottom connection panel to select the metadata field and direction
-    used for new links. To add a field or another direction for an existing
-    field, enter the metadata name, choose **One-way**, **Two-way**, or
-    **Reverse**, then select **+**. Input and direction changes remain drafts
-    until added.
+    used for new links. Switch between a horizontally scrolling single row and
+    a wrapped multi-row layout. Select **+** to open the combined metadata and
+    direction editor; right-click a connection to edit, move, or remove it.
 13. Use **Details** for quick connections, or drag the link button on a pinned
     note or template to a graph node. `Ctrl`-drag between graph nodes remains an
     advanced shortcut. One-way writes the source note only; two-way writes both
@@ -124,7 +123,7 @@ settings to report them in the developer console.
     one tab is shown at a time. Pinned notes use the same searchable, filterable
     **Add notes** picker as Workspace files. Template editing opens in a modal;
     drag a row to the graph or use its explicit **Create** and link buttons.
-20. Use **Undo** in the connection panel, or `Ctrl+Z` / `Cmd+Z` while the
+20. Use **Undo connection** in the graph toolbar, or `Ctrl+Z` / `Cmd+Z` while the
     workspace is focused, to undo connection edits made in the current workspace
     session.
 21. Choose **Open notes in** under **Settings -> Meta Graph** to open notes in a

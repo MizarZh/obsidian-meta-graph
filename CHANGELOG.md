@@ -13,6 +13,11 @@ All notable changes to Meta Graph are documented here.
 - Added per-rule actions to move note and link style rules between global and chart scopes.
 - Added configurable note shapes (circle, square, diamond, triangle, hexagon, and star) for defaults, overrides, and style rules.
 
+### Changed
+
+- Redesigned the Connection panel with persistent single-row and wrapped multi-row layouts, compact one-click relation chips, wheel and button scrolling, a combined metadata/direction editor, and context-menu management.
+- Moved connection Undo to the graph toolbar and made Ctrl-drag guidance follow the pointer instead of occupying the Connection panel.
+
 ### Fixed
 
 - Removed the slider's duplicate built-in zoom readout so the editable percentage input remains the single synchronized zoom value.

@@ -94,6 +94,7 @@ import {
 	removeConnectionFieldFromState,
 	reorderConnectionFieldInState,
 	setActiveConnectionFieldInState,
+	updateConnectionFieldInState,
 } from './state/connection-fields';
 import { WorkspaceConnectionService } from './services/connection-service';
 import { createObsidianConnectionService } from './services/connection-adapter';
@@ -1065,6 +1066,20 @@ export class WorkspaceController {
 		this.setWorkspaceState(
 			reorderConnectionFieldInState(this.state, id, targetId, placement),
 		);
+	}
+
+	updateConnectionField(
+		id: string,
+		field: string,
+		mode: ConnectionFieldMode,
+	): void {
+		if (
+			this.setWorkspaceState(
+				updateConnectionFieldInState(this.state, id, field, mode),
+			)
+		) {
+			this.scheduleRefresh();
+		}
 	}
 
 	selectNode(selectedNodeId?: NodeId): void {

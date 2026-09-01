@@ -31,7 +31,7 @@
 	position: absolute;
 	top: 0;
 	right: 0;
-	bottom: 54px;
+	bottom: var(--connection-panel-height, 54px);
 	left: 0;
 }
 
@@ -194,7 +194,7 @@
 .knowledge-workspace-curated-panel {
 	position: absolute;
 	top: var(--size-4-3);
-	bottom: calc(54px + var(--size-4-3));
+	bottom: calc(var(--connection-panel-height, 54px) + var(--size-4-3));
 	left: var(--size-4-3);
 	z-index: 7;
 	display: flex;
@@ -329,7 +329,7 @@
 		var(--shadow-s);
 }
 
-.knowledge-workspace-connection-target-label {
+.knowledge-workspace-connection-drag-status {
 	position: absolute;
 	z-index: 10;
 	top: max(8px, calc(var(--connection-label-y) - 36px));
@@ -340,9 +340,11 @@
 	max-width: min(220px, calc(100% - 16px));
 	padding: 4px 8px;
 	border-radius: 4px;
-	background: var(--connection-label-dark-bg);
-	color: var(--connection-label-dark-text);
-	font-size: var(--connection-label-size);
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	box-shadow: var(--shadow-s);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
 	line-height: 1.3;
 	overflow: hidden;
 	pointer-events: none;
@@ -350,14 +352,10 @@
 	white-space: nowrap;
 }
 
-.theme-light .knowledge-workspace-connection-target-label {
-	background: var(--connection-label-light-bg);
-	color: var(--connection-label-light-text);
-}
-
-.theme-dark .knowledge-workspace-connection-target-label {
-	background: var(--connection-label-dark-bg);
-	color: var(--connection-label-dark-text);
+.knowledge-workspace-connection-drag-status.target {
+	border-color: var(--interactive-accent);
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
 }
 
 .knowledge-workspace-display-controls {

@@ -2,7 +2,7 @@
 	position: absolute;
 	top: 0;
 	right: 0;
-	bottom: 54px;
+	bottom: var(--connection-panel-height, 54px);
 	left: 0;
 	z-index: 4;
 	display: grid;

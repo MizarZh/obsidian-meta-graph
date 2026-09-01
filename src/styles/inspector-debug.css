@@ -145,7 +145,7 @@
 .knowledge-workspace-notice {
 	position: absolute;
 	left: var(--size-4-5);
-	bottom: calc(54px + var(--size-4-4));
+	bottom: calc(var(--connection-panel-height, 54px) + var(--size-4-4));
 	padding: var(--size-4-2) var(--size-4-3);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-m);

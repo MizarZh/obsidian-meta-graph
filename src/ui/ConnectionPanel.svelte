@@ -1,15 +1,15 @@
 <script lang="ts">
-	import { setIcon, type App, type IconName } from 'obsidian';
+	import { Menu, setIcon, type App, type IconName } from 'obsidian';
 	import type {
 		ConnectionFieldMode,
 		ConnectionFieldSpec,
 	} from '../core/types';
+	import type { ConnectionPanelLayout } from '../workspace/meta-graph-v2/types';
 	import {
 		getConnectionDirectionIcon,
 		getConnectionDirectionLabel,
 	} from './connection-direction';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
 	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
 
 	type ReorderPlacement = 'before' | 'after';
@@ -19,41 +19,49 @@
 		fields,
 		metadataFieldSuggestions,
 		activeFieldSpecId,
-		activeField,
-		dragging,
-		dragTarget,
-		undoCount,
 		collapsed,
+		layout,
 		onToggle,
+		onLayoutChange,
+		onHeightChange,
 		onSelectField,
 		onAddField,
+		onUpdateField,
 		onRemoveField,
 		onReorderField,
-		onUndo,
 	}: {
 		app: App;
 		fields: ConnectionFieldSpec[];
 		metadataFieldSuggestions: string[];
 		activeFieldSpecId: string;
-		activeField: string;
-		dragging: boolean;
-		dragTarget?: string;
-		undoCount: number;
 		collapsed: boolean;
+		layout: ConnectionPanelLayout;
 		onToggle: () => void;
+		onLayoutChange: (layout: ConnectionPanelLayout) => void;
+		onHeightChange: (height: number) => void;
 		onSelectField: (field: string, mode: ConnectionFieldMode) => void;
 		onAddField: (field: string, mode: ConnectionFieldMode) => void;
+		onUpdateField: (
+			id: string,
+			field: string,
+			mode: ConnectionFieldMode,
+		) => void;
 		onRemoveField: (field: string) => void;
 		onReorderField: (
 			id: string,
 			targetId: string,
 			placement: ReorderPlacement,
 		) => void;
-		onUndo: () => void;
 	} = $props();
+
 	let fieldInput = $state('');
 	let draftMode = $state<ConnectionFieldMode>('directed');
-	let syncedActiveFieldSpecId = $state('');
+	let addOpen = $state(false);
+	let editingFieldId = $state<string | undefined>(undefined);
+	let fieldInputEl = $state<HTMLInputElement | undefined>(undefined);
+	let railEl = $state<HTMLDivElement | undefined>(undefined);
+	let canScrollLeft = $state(false);
+	let canScrollRight = $state(false);
 	let reorderDrag = $state<
 		| {
 				id: string;
@@ -64,12 +72,13 @@
 		| undefined
 	>();
 	const customField = $derived(fieldInput.trim());
-	const draftField = $derived(customField || activeField.trim());
-	const canAddField = $derived(
-		Boolean(draftField) &&
+	const canSaveField = $derived(
+		Boolean(customField) &&
 			!fields.some(
 				(field) =>
-					field.field === draftField && field.mode === draftMode,
+					field.id !== editingFieldId &&
+					field.field === customField &&
+					field.mode === draftMode,
 			),
 	);
 	const metadataFieldOptions = $derived(
@@ -79,37 +88,33 @@
 			searchText: field,
 		})),
 	);
-	const directionOptions = [
+	const directionOptions: Array<{
+		value: ConnectionFieldMode;
+		label: string;
+	}> = [
 		{ value: 'directed', label: 'One-way' },
 		{ value: 'bidirectional', label: 'Two-way' },
 		{ value: 'reverse', label: 'Reverse' },
 	];
 
 	$effect(() => {
-		if (activeFieldSpecId === syncedActiveFieldSpecId) {
-			return;
-		}
-		syncedActiveFieldSpecId = activeFieldSpecId;
-		const activeSpec = fields.find(
-			(field) => field.id === activeFieldSpecId,
-		);
-		if (activeSpec) {
-			draftMode = activeSpec.mode;
-		}
+		activeFieldSpecId;
+		layout;
+		fields;
+		window.requestAnimationFrame(() => {
+			updateScrollState();
+			if (layout !== 'single' || !railEl) return;
+			const active = Array.from(
+				railEl.querySelectorAll<HTMLElement>(
+					'[data-connection-field-id]',
+				),
+			).find(
+				(element) =>
+					element.dataset.connectionFieldId === activeFieldSpecId,
+			);
+			active?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+		});
 	});
-
-	function addField(): void {
-		if (!draftField || !canAddField) {
-			return;
-		}
-		onAddField(draftField, draftMode);
-		fieldInput = '';
-	}
-
-	function selectField(field: ConnectionFieldSpec): void {
-		draftMode = field.mode;
-		onSelectField(field.field, field.mode);
-	}
 
 	function obsidianIcon(node: HTMLElement, icon: IconName) {
 		setIcon(node, icon);
@@ -120,16 +125,135 @@
 		};
 	}
 
-	function handleFieldPointerDown(id: string, event: PointerEvent): void {
+	function observePanel(node: HTMLElement) {
+		const publishHeight = () =>
+			onHeightChange(node.getBoundingClientRect().height);
+		const observer = new ResizeObserver(publishHeight);
+		observer.observe(node);
+		publishHeight();
+		return { destroy: () => observer.disconnect() };
+	}
+
+	function observeRail(node: HTMLElement) {
+		const observer = new ResizeObserver(updateScrollState);
+		observer.observe(node);
+		updateScrollState();
+		return { destroy: () => observer.disconnect() };
+	}
+
+	function openAdd(): void {
+		editingFieldId = undefined;
+		fieldInput = '';
+		draftMode = 'directed';
+		addOpen = true;
+		window.requestAnimationFrame(() => fieldInputEl?.focus());
+	}
+
+	function openEdit(field: ConnectionFieldSpec): void {
+		editingFieldId = field.id;
+		fieldInput = field.field;
+		draftMode = field.mode;
+		addOpen = true;
+		window.requestAnimationFrame(() => {
+			fieldInputEl?.focus();
+			fieldInputEl?.select();
+		});
+	}
+
+	function closeEditor(): void {
+		addOpen = false;
+		editingFieldId = undefined;
+		fieldInput = '';
+	}
+
+	function saveField(): void {
+		if (!canSaveField) return;
+		if (editingFieldId) {
+			onUpdateField(editingFieldId, customField, draftMode);
+		} else {
+			onAddField(customField, draftMode);
+		}
+		closeEditor();
+	}
+
+	function selectField(field: ConnectionFieldSpec): void {
+		onSelectField(field.field, field.mode);
+	}
+
+	function showFieldMenu(
+		event: MouseEvent,
+		field: ConnectionFieldSpec,
+		index: number,
+	): void {
+		event.preventDefault();
+		const menu = new Menu();
+		menu.addItem((item) =>
+			item
+				.setTitle('Edit')
+				.setIcon('pencil')
+				.onClick(() => openEdit(field)),
+		);
+		menu.addItem((item) =>
+			item
+				.setTitle('Move to start')
+				.setIcon('chevrons-left')
+				.setDisabled(index === 0)
+				.onClick(() => {
+					const first = fields[0];
+					if (first && first.id !== field.id) {
+						onReorderField(field.id, first.id, 'before');
+					}
+				}),
+		);
+		menu.addSeparator();
+		menu.addItem((item) =>
+			item
+				.setTitle('Remove')
+				.setIcon('trash-2')
+				.setWarning(true)
+				.onClick(() => onRemoveField(field.id)),
+		);
+		menu.showAtMouseEvent(event);
+	}
+
+	function updateScrollState(): void {
+		if (!railEl || layout !== 'single') {
+			canScrollLeft = false;
+			canScrollRight = false;
+			return;
+		}
+		canScrollLeft = railEl.scrollLeft > 2;
+		canScrollRight =
+			railEl.scrollLeft + railEl.clientWidth < railEl.scrollWidth - 2;
+	}
+
+	function scrollRail(direction: -1 | 1): void {
+		if (!railEl) return;
+		railEl.scrollBy({
+			left: direction * Math.max(180, railEl.clientWidth * 0.7),
+			behavior: 'smooth',
+		});
+	}
+
+	function handleRailWheel(event: WheelEvent): void {
 		if (
-			event.button !== 0 ||
-			(event.target instanceof HTMLElement &&
-				event.target.closest(
-					'.knowledge-workspace-obsidian-control button',
-				))
+			layout !== 'single' ||
+			!railEl ||
+			railEl.scrollWidth <= railEl.clientWidth
 		) {
 			return;
 		}
+		const delta =
+			Math.abs(event.deltaX) > Math.abs(event.deltaY)
+				? event.deltaX
+				: event.deltaY;
+		if (delta === 0) return;
+		event.preventDefault();
+		railEl.scrollLeft += delta;
+	}
+
+	function handleFieldPointerDown(id: string, event: PointerEvent): void {
+		if (event.button !== 0) return;
 		reorderDrag = {
 			id,
 			startX: event.clientX,
@@ -146,16 +270,12 @@
 	}
 
 	function handleReorderPointerMove(event: PointerEvent): void {
-		if (!reorderDrag) {
-			return;
-		}
+		if (!reorderDrag) return;
 		const distance = Math.hypot(
 			event.clientX - reorderDrag.startX,
 			event.clientY - reorderDrag.startY,
 		);
-		if (!reorderDrag.active && distance < 4) {
-			return;
-		}
+		if (!reorderDrag.active && distance < 4) return;
 		event.preventDefault();
 		reorderDrag = { ...reorderDrag, active: true };
 		reorderAtPoint(reorderDrag.id, event.clientX, event.clientY);
@@ -177,16 +297,12 @@
 		clientY: number,
 	): void {
 		const target = document.elementFromPoint(clientX, clientY);
-		if (!(target instanceof HTMLElement)) {
-			return;
-		}
+		if (!(target instanceof HTMLElement)) return;
 		const targetEl = target.closest<HTMLElement>(
 			'[data-connection-field-id]',
 		);
 		const targetId = targetEl?.dataset.connectionFieldId;
-		if (!targetEl || !targetId || targetId === id) {
-			return;
-		}
+		if (!targetEl || !targetId || targetId === id) return;
 		onReorderField(id, targetId, readPointerPlacement(targetEl, clientX));
 	}
 
@@ -197,7 +313,15 @@
 		const rect = targetEl.getBoundingClientRect();
 		return clientX > rect.left + rect.width / 2 ? 'after' : 'before';
 	}
+
+	function handleWindowKeydown(event: KeyboardEvent): void {
+		if (event.key !== 'Escape' || !addOpen) return;
+		event.preventDefault();
+		closeEditor();
+	}
 </script>
+
+<svelte:window onkeydown={handleWindowKeydown} />
 
 {#if collapsed}
 	<ObsidianButton
@@ -207,121 +331,194 @@
 		onClick={onToggle}
 	/>
 {:else}
-	<section class="knowledge-workspace-connection-panel">
+	<section
+		class:wrap={layout === 'wrap'}
+		class="knowledge-workspace-connection-panel"
+		use:observePanel
+	>
 		<ObsidianButton
 			class="knowledge-workspace-connection-toggle"
 			icon="panel-bottom-close"
 			ariaLabel="Hide connection panel"
+			tooltip="Hide connections"
 			onClick={onToggle}
 		/>
-		<div class="knowledge-workspace-connection-body">
-			<div class="knowledge-workspace-connection-picker">
-				<span class="knowledge-workspace-connection-label"
-					>Connection</span
-				>
-				<div
-					class="knowledge-workspace-connection-tags"
-					aria-label="Connection metadata fields"
-				>
-					{#each fields as field}
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<span
-							class:active={field.id === activeFieldSpecId}
-							class:reordering={reorderDrag?.id === field.id &&
-								reorderDrag.active}
-							class="knowledge-workspace-connection-tag"
-							data-connection-field-id={field.id}
-							onpointerdown={(event) =>
-								handleFieldPointerDown(field.id, event)}
-						>
-							<button
-								type="button"
-								aria-pressed={field.id === activeFieldSpecId}
-								aria-label={`${field.field} ${getConnectionDirectionLabel(field.mode)}`}
-								onclick={() => selectField(field)}
-							>
-								<span
-									class="knowledge-workspace-connection-direction-icon"
-									use:obsidianIcon={getConnectionDirectionIcon(
-										field.mode,
-									)}
-									aria-hidden="true"
-								></span>
-								<span>{field.field}</span>
-							</button>
-							<ObsidianButton
-								icon="x"
-								ariaLabel={`Remove ${field.field}`}
-								onClick={() => onRemoveField(field.id)}
-							/>
-						</span>
-					{/each}
-					{#if fields.length === 0}
-						<span class="knowledge-workspace-connection-empty"
-							>No metadata</span
-						>
-					{/if}
-				</div>
-			</div>
-			<label class="knowledge-workspace-connection-direction">
-				<span class="knowledge-workspace-connection-label"
-					>Direction</span
-				>
-				<ObsidianDropdown
-					value={draftMode}
-					options={directionOptions}
-					disabled={!draftField}
-					ariaLabel="Connection direction"
-					onChange={(value) =>
-						(draftMode = value as ConnectionFieldMode)}
-				/>
-			</label>
-			<form
-				class="knowledge-workspace-connection-custom"
-				onsubmit={(event) => {
-					event.preventDefault();
-					addField();
-				}}
+		<div class="knowledge-workspace-connection-heading">
+			<span>Connections</span>
+			<span class="knowledge-workspace-connection-count"
+				>{fields.length}</span
 			>
-				<ObsidianSuggestInput
-					{app}
-					type="text"
-					placeholder="Custom metadata"
-					ariaLabel="Custom connection metadata"
-					value={fieldInput}
-					options={metadataFieldOptions}
-					onInput={(value) => {
-						fieldInput = value;
-					}}
-					onSelect={(option) => {
-						fieldInput = option.value;
-					}}
-				/>
-				<ObsidianButton
-					icon="plus"
-					ariaLabel="Add metadata direction"
-					disabled={!canAddField}
-					onClick={addField}
-				/>
-			</form>
-			<span
-				class:active={dragging}
-				class:target={Boolean(dragTarget)}
-				class="knowledge-workspace-connection-status"
-			>
-				{dragTarget
-					? 'Release to connect'
-					: dragging
-						? 'Choose target'
-						: 'Ctrl drag'}
-			</span>
+		</div>
+		<div
+			class="knowledge-workspace-connection-layout knowledge-workspace-segmented"
+			role="group"
+			aria-label="Connection layout"
+		>
 			<ObsidianButton
-				class="knowledge-workspace-connection-undo"
-				disabled={undoCount === 0}
-				ariaLabel="Undo last connection"
-				text={`Undo${undoCount > 0 ? ` (${undoCount})` : ''}`}
-				onClick={onUndo}
+				active={layout === 'single'}
+				icon="rows-3"
+				ariaLabel="Single row"
+				tooltip="Single row"
+				onClick={() => onLayoutChange('single')}
 			/>
+			<ObsidianButton
+				active={layout === 'wrap'}
+				icon="layout-grid"
+				ariaLabel="Multiple rows"
+				tooltip="Multiple rows"
+				onClick={() => onLayoutChange('wrap')}
+			/>
+		</div>
+		<div class="knowledge-workspace-connection-rail-shell">
+			{#if layout === 'single'}
+				<ObsidianButton
+					class="knowledge-workspace-connection-scroll"
+					icon="chevron-left"
+					ariaLabel="Scroll connections left"
+					tooltip="Scroll left"
+					disabled={!canScrollLeft}
+					onClick={() => scrollRail(-1)}
+				/>
+			{/if}
+			<div
+				class:wrap={layout === 'wrap'}
+				class:can-scroll-left={canScrollLeft}
+				class:can-scroll-right={canScrollRight}
+				class="knowledge-workspace-connection-tags"
+				aria-label="Connection metadata fields"
+				bind:this={railEl}
+				use:observeRail
+				onscroll={updateScrollState}
+				onwheel={handleRailWheel}
+			>
+				{#each fields as field, index (field.id)}
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<span
+						class:active={field.id === activeFieldSpecId}
+						class:reordering={reorderDrag?.id === field.id &&
+							reorderDrag.active}
+						class="knowledge-workspace-connection-tag"
+						data-connection-field-id={field.id}
+						onpointerdown={(event) =>
+							handleFieldPointerDown(field.id, event)}
+						oncontextmenu={(event) =>
+							showFieldMenu(event, field, index)}
+					>
+						<button
+							type="button"
+							aria-pressed={field.id === activeFieldSpecId}
+							aria-label={`${field.field} ${getConnectionDirectionLabel(field.mode)}`}
+							title={`${field.field} · ${getConnectionDirectionLabel(field.mode)}`}
+							onclick={() => selectField(field)}
+						>
+							<span
+								class="knowledge-workspace-connection-direction-icon"
+								use:obsidianIcon={getConnectionDirectionIcon(
+									field.mode,
+								)}
+								aria-hidden="true"
+							></span>
+							<span>{field.field}</span>
+						</button>
+					</span>
+				{/each}
+				{#if fields.length === 0}
+					<span class="knowledge-workspace-connection-empty"
+						>No connections</span
+					>
+				{/if}
+			</div>
+			{#if layout === 'single'}
+				<ObsidianButton
+					class="knowledge-workspace-connection-scroll"
+					icon="chevron-right"
+					ariaLabel="Scroll connections right"
+					tooltip="Scroll right"
+					disabled={!canScrollRight}
+					onClick={() => scrollRail(1)}
+				/>
+			{/if}
+		</div>
+		<div class="knowledge-workspace-connection-add-wrap">
+			<ObsidianButton
+				class="knowledge-workspace-connection-add"
+				active={addOpen}
+				icon="plus"
+				ariaLabel="Add connection"
+				tooltip="Add connection"
+				onClick={() => (addOpen ? closeEditor() : openAdd())}
+			/>
+			{#if addOpen}
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					class="knowledge-workspace-connection-editor-backdrop"
+					onpointerdown={closeEditor}
+					oncontextmenu={(event) => {
+						event.preventDefault();
+						closeEditor();
+					}}
+				></div>
+				<form
+					class="knowledge-workspace-connection-editor"
+					onsubmit={(event) => {
+						event.preventDefault();
+						saveField();
+					}}
+				>
+					<header>
+						{editingFieldId ? 'Edit connection' : 'Add connection'}
+					</header>
+					<label>
+						<span>Metadata</span>
+						<ObsidianSuggestInput
+							{app}
+							type="text"
+							placeholder="Metadata field"
+							ariaLabel="Connection metadata"
+							value={fieldInput}
+							options={metadataFieldOptions}
+							onInput={(value) => (fieldInput = value)}
+							onSelect={(option) => (fieldInput = option.value)}
+							onInputEl={(element) => (fieldInputEl = element)}
+						/>
+					</label>
+					<div class="knowledge-workspace-connection-editor-field">
+						<span>Direction</span>
+						<div
+							class="knowledge-workspace-connection-mode-options"
+							role="radiogroup"
+							aria-label="Connection direction"
+						>
+							{#each directionOptions as option}
+								<button
+									class:active={draftMode === option.value}
+									type="button"
+									role="radio"
+									aria-checked={draftMode === option.value}
+									onclick={() => (draftMode = option.value)}
+								>
+									<span
+										use:obsidianIcon={getConnectionDirectionIcon(
+											option.value,
+										)}
+										aria-hidden="true"
+									></span>
+									<span>{option.label}</span>
+								</button>
+							{/each}
+						</div>
+					</div>
+					<footer>
+						<ObsidianButton text="Cancel" onClick={closeEditor} />
+						<ObsidianButton
+							cta={true}
+							text={editingFieldId ? 'Save' : 'Add'}
+							disabled={!canSaveField}
+							onClick={saveField}
+						/>
+					</footer>
+				</form>
+			{/if}
 		</div>
 	</section>
 {/if}

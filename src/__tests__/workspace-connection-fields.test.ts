@@ -4,6 +4,7 @@ import {
 	getActiveConnectionModeInState,
 	getConnectionModeForFieldInState,
 	setActiveConnectionFieldInState,
+	updateConnectionFieldInState,
 } from '../workspace/state/connection-fields';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
 
@@ -132,6 +133,53 @@ describe('workspace connection fields', () => {
 			state,
 			runQuery: false,
 		});
+	});
+
+	it('edits a connection in place and keeps it active', () => {
+		const state = addConnectionFieldAndSelectInState(
+			createWorkspaceState(100),
+			'supports',
+			'directed',
+		).state;
+
+		const updated = updateConnectionFieldInState(
+			state,
+			'supports:directed',
+			' supported-by ',
+			'reverse',
+		);
+
+		expect(updated.activeConnectionField).toBe('supported-by');
+		expect(updated.activeConnectionFieldSpecId).toBe(
+			'supported-by:reverse',
+		);
+		expect(updated.connectionFieldSpecs).toContainEqual({
+			id: 'supported-by:reverse',
+			field: 'supported-by',
+			mode: 'reverse',
+		});
+	});
+
+	it('rejects an edit that duplicates another connection', () => {
+		const directed = addConnectionFieldAndSelectInState(
+			createWorkspaceState(100),
+			'supports',
+			'directed',
+		).state;
+		const state = addConnectionFieldAndSelectInState(
+			directed,
+			'supports',
+			'reverse',
+		).state;
+
+		expect(
+			updateConnectionFieldInState(
+				state,
+				'supports:reverse',
+				'supports',
+				'directed',
+			),
+		).toBe(state);
 	});
 
 	it('returns active connection mode from state', () => {

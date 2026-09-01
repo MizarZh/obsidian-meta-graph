@@ -170,6 +170,10 @@ function normalizeWorkspaceSession(
 			...(typeof shell.connectionOpen === 'boolean'
 				? { connectionOpen: shell.connectionOpen }
 				: {}),
+			...(shell.connectionLayout === 'single' ||
+			shell.connectionLayout === 'wrap'
+				? { connectionLayout: shell.connectionLayout }
+				: {}),
 		},
 	};
 }

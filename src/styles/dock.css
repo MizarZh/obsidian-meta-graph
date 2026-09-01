@@ -2,7 +2,7 @@
 	position: absolute;
 	top: var(--size-4-3);
 	right: var(--size-4-3);
-	bottom: calc(54px + var(--size-4-3));
+	bottom: calc(var(--connection-panel-height, 54px) + var(--size-4-3));
 	z-index: 5;
 	display: flex;
 	flex-direction: column;

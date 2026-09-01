@@ -532,6 +532,38 @@
 	margin-left: auto;
 }
 
+.knowledge-workspace-toolbar-connection-undo {
+	position: relative;
+	display: inline-flex;
+}
+
+.knowledge-workspace-toolbar-connection-undo button {
+	display: grid;
+	place-items: center;
+	width: 34px;
+	height: 34px;
+	padding: 0;
+}
+
+.knowledge-workspace-toolbar-action-count {
+	position: absolute;
+	top: -4px;
+	right: -5px;
+	display: grid;
+	place-items: center;
+	min-width: 17px;
+	height: 17px;
+	padding-inline: 4px;
+	border: 2px solid var(--background-primary);
+	border-radius: 999px;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-size: 10px;
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+	pointer-events: none;
+}
+
 .knowledge-workspace-zoom-controls {
 	display: flex;
 	gap: var(--size-4-2);

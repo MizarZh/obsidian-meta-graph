@@ -257,7 +257,10 @@ export interface WorkspaceSessionState {
 		dockOpen?: boolean;
 		curatedPanelOpen?: boolean;
 		connectionOpen?: boolean;
+		connectionLayout?: ConnectionPanelLayout;
 	};
 }
+
+export type ConnectionPanelLayout = 'single' | 'wrap';
 
 export type WorkspaceRightPanelTab = 'details' | 'pinned' | 'templates';

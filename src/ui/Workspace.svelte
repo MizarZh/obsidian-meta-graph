@@ -13,6 +13,7 @@
 		WorkspaceState,
 	} from '../core/types';
 	import type {
+		ConnectionPanelLayout,
 		PersistedMetaGraphDocumentV2,
 		WorkspaceRightPanelTab,
 		WorkspaceSessionState,
@@ -178,6 +179,10 @@
 		initialShellSession?.curatedPanelOpen ?? true,
 	);
 	let connectionOpen = $state(initialShellSession?.connectionOpen ?? true);
+	let connectionLayout = $state<ConnectionPanelLayout>(
+		initialShellSession?.connectionLayout ?? 'single',
+	);
+	let connectionPanelHeight = $state(54);
 	let rightPanelTab = $state<WorkspaceRightPanelTab>(
 		initialShellSession?.rightPanelTab ?? 'details',
 	);
@@ -365,6 +370,7 @@
 				dockOpen,
 				curatedPanelOpen,
 				connectionOpen,
+				connectionLayout,
 			}),
 		);
 	}
@@ -483,6 +489,11 @@
 
 	function toggleConnection(): void {
 		connectionOpen = !connectionOpen;
+		persistSession();
+	}
+
+	function setConnectionLayout(layout: ConnectionPanelLayout): void {
+		connectionLayout = layout;
 		persistSession();
 	}
 
@@ -1191,6 +1202,11 @@
 			return;
 		}
 		event.preventDefault();
+		undoLastConnection();
+	}
+
+	function undoLastConnection(): void {
+		if (workspaceState.connectionUndoCount === 0) return;
 		void controller.undoLastConnection().catch((error: unknown) =>
 			controller.setRendererDebugState({
 				status: 'error',
@@ -1262,6 +1278,8 @@
 		onZoomOut={() => rendererLifecycle.zoomOut()}
 		{zoomLevel}
 		onZoomLevel={(level) => rendererLifecycle.setZoomLevel(level)}
+		connectionUndoCount={workspaceState.connectionUndoCount}
+		onUndoConnection={undoLastConnection}
 		onFit={() => rendererLifecycle.fit()}
 		onRefresh={() => controller.refresh(true)}
 		{settingsPanel}
@@ -1304,7 +1322,9 @@
 				? `${workspaceState.dock.curatedPanelWidth}px`
 				: workspaceState.chartSource === 'curated'
 					? '32px'
-					: '0px'}"
+					: '0px'}; --connection-panel-height: {connectionOpen
+				? `${connectionPanelHeight}px`
+				: '0px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
 			<GraphLoadingOverlay
@@ -1337,12 +1357,17 @@
 					{dockOpen}
 					{curatedPanelOpen}
 					{connectionOpen}
+					{connectionLayout}
 					{rightPanelTab}
 					{initialDetailsNoteContentExpanded}
 					{onDetailsNoteContentExpandedChange}
 					onToggleDock={toggleDock}
 					onToggleCuratedPanel={toggleCuratedPanel}
 					onToggleConnection={toggleConnection}
+					onConnectionLayoutChange={setConnectionLayout}
+					onConnectionPanelHeightChange={(height) => {
+						connectionPanelHeight = Math.max(54, Math.ceil(height));
+					}}
 					onRightPanelTabChange={setRightPanelTab}
 					onLinkPointerDown={dockGraphDrag.handlePointerDown}
 					onCuratedPointerDown={dockCuratedDrop.handlePointerDown}

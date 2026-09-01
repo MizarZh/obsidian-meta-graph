@@ -2,9 +2,11 @@
 	import type { App } from 'obsidian';
 	import type { KnowledgeNode, WorkspaceState } from '../../core/types';
 	import type { ConnectionDragState } from '../../graph/renderers/renderer-events';
-	import { withAlpha } from '../../graph/styles/graph-styles';
 	import type { WorkspaceController } from '../../workspace/workspace-controller';
-	import type { WorkspaceRightPanelTab } from '../../workspace/meta-graph-v2/types';
+	import type {
+		ConnectionPanelLayout,
+		WorkspaceRightPanelTab,
+	} from '../../workspace/meta-graph-v2/types';
 	import ConnectionPanel from '../ConnectionPanel.svelte';
 	import CuratedPanel from '../CuratedPanel.svelte';
 	import DockGraphPanel from '../DockGraphPanel.svelte';
@@ -42,12 +44,15 @@
 		dockOpen,
 		curatedPanelOpen,
 		connectionOpen,
+		connectionLayout,
 		rightPanelTab,
 		initialDetailsNoteContentExpanded,
 		onDetailsNoteContentExpandedChange,
 		onToggleDock,
 		onToggleCuratedPanel,
 		onToggleConnection,
+		onConnectionLayoutChange,
+		onConnectionPanelHeightChange,
 		onRightPanelTabChange,
 		onLinkPointerDown,
 		onCuratedPointerDown,
@@ -83,12 +88,15 @@
 		dockOpen: boolean;
 		curatedPanelOpen: boolean;
 		connectionOpen: boolean;
+		connectionLayout: ConnectionPanelLayout;
 		rightPanelTab: WorkspaceRightPanelTab;
 		initialDetailsNoteContentExpanded: boolean;
 		onDetailsNoteContentExpandedChange: (expanded: boolean) => void;
 		onToggleDock: () => void;
 		onToggleCuratedPanel: () => void;
 		onToggleConnection: () => void;
+		onConnectionLayoutChange: (layout: ConnectionPanelLayout) => void;
+		onConnectionPanelHeightChange: (height: number) => void;
 		onRightPanelTabChange: (tab: WorkspaceRightPanelTab) => void;
 		onLinkPointerDown: (
 			payload: DockDragPayload,
@@ -135,18 +143,22 @@
 		[
 			`--connection-label-x: ${connectionDrag?.x2 ?? 0}px`,
 			`--connection-label-y: ${connectionDrag?.y2 ?? 0}px`,
-			`--connection-label-size: ${workspaceState.labelSize}px`,
-			`--connection-label-light-text: ${workspaceState.labelLightTextColor}`,
-			`--connection-label-light-bg: ${withAlpha(
-				workspaceState.labelLightBackgroundColor,
-				workspaceState.labelLightBackgroundOpacity,
-			)}`,
-			`--connection-label-dark-text: ${workspaceState.labelDarkTextColor}`,
-			`--connection-label-dark-bg: ${withAlpha(
-				workspaceState.labelDarkBackgroundColor,
-				workspaceState.labelDarkBackgroundOpacity,
-			)}`,
 		].join('; '),
+	);
+	const connectionDragHasTarget = $derived(
+		Boolean(
+			connectionDrag?.targetNodeId ||
+			graphConnectionTargetNotePath ||
+			graphConnectionTargetTemplateId ||
+			graphConnectionTargetCurated,
+		),
+	);
+	const connectionDragStatus = $derived(
+		connectionDragHasTarget
+			? connectionDragTargetLabel
+				? `Release to connect · ${connectionDragTargetLabel}`
+				: 'Release to connect'
+			: 'Choose target',
 	);
 
 	const connectionPreviewLineStyle = $derived.by(() => {
@@ -260,12 +272,13 @@
 			y2={connectionDrag.y2}
 		/>
 	</svg>
-	{#if connectionDragTargetLabel}
+	{#if connectionDrag}
 		<div
-			class="knowledge-workspace-connection-target-label"
+			class:target={connectionDragHasTarget}
+			class="knowledge-workspace-connection-drag-status"
 			style={connectionDragTargetLabelStyle}
 		>
-			{connectionDragTargetLabel}
+			{connectionDragStatus}
 		</div>
 	{/if}
 {/if}
@@ -355,17 +368,17 @@
 	fields={workspaceState.connectionFieldSpecs}
 	{metadataFieldSuggestions}
 	activeFieldSpecId={workspaceState.activeConnectionFieldSpecId}
-	activeField={workspaceState.activeConnectionField}
-	dragging={Boolean(connectionDrag)}
-	dragTarget={connectionDrag?.targetNodeId}
-	undoCount={workspaceState.connectionUndoCount}
 	collapsed={!connectionOpen}
+	layout={connectionLayout}
 	onToggle={onToggleConnection}
+	onLayoutChange={onConnectionLayoutChange}
+	onHeightChange={onConnectionPanelHeightChange}
 	onSelectField={(field, mode) =>
 		controller.setActiveConnectionField(field, mode)}
 	onAddField={(field, mode) => controller.addConnectionField(field, mode)}
+	onUpdateField={(id, field, mode) =>
+		controller.updateConnectionField(id, field, mode)}
 	onRemoveField={(field) => controller.removeConnectionField(field)}
 	onReorderField={(id, targetId, placement) =>
 		controller.reorderConnectionField(id, targetId, placement)}
-	onUndo={() => void controller.undoLastConnection().catch(reportError)}
 />

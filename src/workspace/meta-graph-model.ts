@@ -59,6 +59,7 @@ export {
 export type {
 	ParsedMetaGraphWorkspace,
 	PersistedMetaGraphDocumentV2,
+	ConnectionPanelLayout,
 	WorkspacePersistenceContext,
 	WorkspaceSessionState,
 } from './meta-graph-v2/types';

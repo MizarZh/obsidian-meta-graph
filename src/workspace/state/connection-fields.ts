@@ -92,6 +92,51 @@ export function reorderConnectionFieldInState(
 	};
 }
 
+export function updateConnectionFieldInState(
+	state: WorkspaceState,
+	id: string,
+	field: string,
+	mode: ConnectionFieldMode,
+): WorkspaceState {
+	const normalized = field.trim();
+	const index = state.connectionFieldSpecs.findIndex(
+		(spec) => spec.id === id,
+	);
+	if (!normalized || index < 0) {
+		return state;
+	}
+	if (
+		state.connectionFieldSpecs.some(
+			(spec) =>
+				spec.id !== id &&
+				spec.field === normalized &&
+				spec.mode === mode,
+		)
+	) {
+		return state;
+	}
+	const updated = createConnectionFieldSpec(normalized, mode);
+	const connectionFieldSpecs = state.connectionFieldSpecs.map(
+		(spec, specIndex) => (specIndex === index ? updated : spec),
+	);
+	const connectionFields = getConnectionSpecFields(connectionFieldSpecs);
+	const activeSpec =
+		state.activeConnectionFieldSpecId === id
+			? updated
+			: getActiveConnectionSpec(state, connectionFieldSpecs);
+	return {
+		...state,
+		connectionFields,
+		connectionFieldSpecs,
+		connectionFieldModes: normalizeConnectionFieldModes(
+			state.connectionFieldModes,
+			connectionFields,
+		),
+		activeConnectionFieldSpecId: activeSpec?.id ?? '',
+		activeConnectionField: activeSpec?.field ?? '',
+	};
+}
+
 export function setActiveConnectionFieldInState(
 	state: WorkspaceState,
 	field: string,
