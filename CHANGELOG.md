@@ -16,12 +16,15 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
-- Reorganized the connection editor with Connection type first, grouped Source and Target fields, shorter field labels, and wider connection-type options.
+- Reorganized connection controls into a compact left-side action group followed immediately by relationships; single-row mode scrolls overflow, while multi-row mode stays identical until chips actually wrap beneath the actions. The connection editor now places Connection type first, groups Source and Target fields, shortens field labels, and widens type options.
 - Redesigned the Connection panel with persistent single-row and wrapped multi-row layouts, compact one-click relation chips, wheel and button scrolling, a combined metadata/direction editor, and context-menu management.
 - Moved connection Undo to the graph toolbar and made Ctrl-drag guidance follow the pointer instead of occupying the Connection panel.
 
 ### Fixed
 
+- Anchored the Add connection editor directly above its `+` button regardless of transformed workspace containers, and kept the collapsed panel button at the same left-side position as its expanded counterpart.
+- Prevented the Add connection editor from being clipped by the multi-row panel's scroll boundary.
+- Kept single-row and multi-row Connection panel controls visually identical while all relationships still fit on one line.
 - Removed the slider's duplicate built-in zoom readout so the editable percentage input remains the single synchronized zoom value.
 - Made Curated note visibility controls respond before graph work, update only affected graph items, keep drag-list identities stable, and defer autosave serialization instead of blocking the click.
 - Kept Curated panel contents mounted while collapsed and removed its width animation to avoid rebuilding and repeatedly reflowing large file lists when reopened.

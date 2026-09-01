@@ -70,6 +70,9 @@
 	let editingFieldId = $state<string | undefined>(undefined);
 	let fieldInputEl = $state<HTMLInputElement | undefined>(undefined);
 	let railEl = $state<HTMLDivElement | undefined>(undefined);
+	let addWrapEl = $state<HTMLDivElement | undefined>(undefined);
+	let editorLeft = $state(16);
+	let editorBottom = $state(64);
 	let canScrollLeft = $state(false);
 	let canScrollRight = $state(false);
 	let reorderDrag = $state<
@@ -144,9 +147,20 @@
 		};
 	}
 
+	function portal(node: HTMLElement) {
+		document.body.append(node);
+		return {
+			destroy() {
+				node.remove();
+			},
+		};
+	}
+
 	function observePanel(node: HTMLElement) {
-		const publishHeight = () =>
+		const publishHeight = () => {
 			onHeightChange(node.getBoundingClientRect().height);
+			if (addOpen) updateEditorPosition();
+		};
 		const observer = new ResizeObserver(publishHeight);
 		observer.observe(node);
 		publishHeight();
@@ -165,6 +179,7 @@
 		fieldInput = '';
 		reverseFieldInput = '';
 		draftMode = 'directed';
+		updateEditorPosition();
 		addOpen = true;
 		window.requestAnimationFrame(() => fieldInputEl?.focus());
 	}
@@ -174,6 +189,7 @@
 		fieldInput = field.field;
 		reverseFieldInput = field.reverseField ?? '';
 		draftMode = field.mode;
+		updateEditorPosition();
 		addOpen = true;
 		window.requestAnimationFrame(() => {
 			fieldInputEl?.focus();
@@ -186,6 +202,17 @@
 		editingFieldId = undefined;
 		fieldInput = '';
 		reverseFieldInput = '';
+	}
+
+	function updateEditorPosition(): void {
+		if (!addWrapEl) return;
+		const rect = addWrapEl.getBoundingClientRect();
+		const width = Math.min(500, window.innerWidth - 64);
+		editorLeft = Math.max(
+			16,
+			Math.min(rect.left, window.innerWidth - width - 16),
+		);
+		editorBottom = Math.max(16, window.innerHeight - rect.top + 12);
 	}
 
 	function saveField(): void {
@@ -354,7 +381,10 @@
 	}
 </script>
 
-<svelte:window onkeydown={handleWindowKeydown} />
+<svelte:window
+	onkeydown={handleWindowKeydown}
+	onresize={() => addOpen && updateEditorPosition()}
+/>
 
 {#if collapsed}
 	<ObsidianButton
@@ -476,7 +506,10 @@
 				/>
 			{/if}
 		</div>
-		<div class="knowledge-workspace-connection-add-wrap">
+		<div
+			class="knowledge-workspace-connection-add-wrap"
+			bind:this={addWrapEl}
+		>
 			<ObsidianButton
 				class="knowledge-workspace-connection-add"
 				active={addOpen}
@@ -486,114 +519,131 @@
 				onClick={() => (addOpen ? closeEditor() : openAdd())}
 			/>
 			{#if addOpen}
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
-					class="knowledge-workspace-connection-editor-backdrop"
-					onpointerdown={closeEditor}
-					oncontextmenu={(event) => {
-						event.preventDefault();
-						closeEditor();
-					}}
-				></div>
-				<form
-					class="knowledge-workspace-connection-editor"
-					onsubmit={(event) => {
-						event.preventDefault();
-						saveField();
-					}}
+					class="knowledge-workspace-connection-editor-layer"
+					use:portal
 				>
-					<header>
-						{editingFieldId ? 'Edit connection' : 'Add connection'}
-					</header>
-					<div class="knowledge-workspace-connection-editor-field">
-						<span>Connection type</span>
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="knowledge-workspace-connection-editor-backdrop"
+						onpointerdown={closeEditor}
+						oncontextmenu={(event) => {
+							event.preventDefault();
+							closeEditor();
+						}}
+					></div>
+					<form
+						class="knowledge-workspace-connection-editor"
+						style={`left: ${editorLeft}px; bottom: ${editorBottom}px;`}
+						onsubmit={(event) => {
+							event.preventDefault();
+							saveField();
+						}}
+					>
+						<header>
+							{editingFieldId
+								? 'Edit connection'
+								: 'Add connection'}
+						</header>
 						<div
-							class="knowledge-workspace-connection-mode-options"
-							role="radiogroup"
-							aria-label="Connection type"
+							class="knowledge-workspace-connection-editor-field"
 						>
-							{#each directionOptions as option}
-								<button
-									class:active={draftMode === option.value}
-									type="button"
-									role="radio"
-									aria-checked={draftMode === option.value}
-									onclick={() => (draftMode = option.value)}
-								>
-									<span
-										use:obsidianIcon={getConnectionDirectionIcon(
-											option.value,
-										)}
-										aria-hidden="true"
-									></span>
-									<span>{option.label}</span>
-								</button>
-							{/each}
-						</div>
-					</div>
-					<div class="knowledge-workspace-connection-properties">
-						<label>
-							<span
-								>{draftMode === 'paired'
-									? 'Source'
-									: 'Property'}</span
-							>
-							<ObsidianSuggestInput
-								{app}
-								type="text"
-								placeholder="Metadata field"
-								ariaLabel="Connection metadata"
-								value={fieldInput}
-								options={metadataFieldOptions}
-								onInput={(value) => (fieldInput = value)}
-								onSelect={(option) =>
-									(fieldInput = option.value)}
-								onInputEl={(element) =>
-									(fieldInputEl = element)}
-							/>
-						</label>
-						{#if draftMode === 'paired'}
+							<span>Connection type</span>
 							<div
-								class="knowledge-workspace-connection-property-row"
+								class="knowledge-workspace-connection-mode-options"
+								role="radiogroup"
+								aria-label="Connection type"
 							>
-								<span>Target</span>
-								<div
-									class="knowledge-workspace-connection-property-input"
-								>
-									<ObsidianSuggestInput
-										{app}
-										type="text"
-										placeholder="Metadata field"
-										ariaLabel="Target connection metadata"
-										value={reverseFieldInput}
-										options={metadataFieldOptions}
-										onInput={(value) =>
-											(reverseFieldInput = value)}
-										onSelect={(option) =>
-											(reverseFieldInput = option.value)}
-									/>
-									<ObsidianButton
-										icon="arrow-up-down"
-										ariaLabel="Swap source and target metadata"
-										tooltip="Swap fields"
-										disabled={!customField &&
-											!customReverseField}
-										onClick={swapPairedFields}
-									/>
-								</div>
+								{#each directionOptions as option}
+									<button
+										class:active={draftMode ===
+											option.value}
+										type="button"
+										role="radio"
+										aria-checked={draftMode ===
+											option.value}
+										onclick={() =>
+											(draftMode = option.value)}
+									>
+										<span
+											use:obsidianIcon={getConnectionDirectionIcon(
+												option.value,
+											)}
+											aria-hidden="true"
+										></span>
+										<span>{option.label}</span>
+									</button>
+								{/each}
 							</div>
-						{/if}
-					</div>
-					<footer>
-						<ObsidianButton text="Cancel" onClick={closeEditor} />
-						<ObsidianButton
-							cta={true}
-							text={editingFieldId ? 'Save' : 'Add'}
-							disabled={!canSaveField}
-							onClick={saveField}
-						/>
-					</footer>
-				</form>
+						</div>
+						<div class="knowledge-workspace-connection-properties">
+							<label>
+								<span
+									>{draftMode === 'paired'
+										? 'Source'
+										: 'Property'}</span
+								>
+								<ObsidianSuggestInput
+									{app}
+									type="text"
+									placeholder="Metadata field"
+									ariaLabel="Connection metadata"
+									value={fieldInput}
+									options={metadataFieldOptions}
+									onInput={(value) => (fieldInput = value)}
+									onSelect={(option) =>
+										(fieldInput = option.value)}
+									onInputEl={(element) =>
+										(fieldInputEl = element)}
+								/>
+							</label>
+							{#if draftMode === 'paired'}
+								<div
+									class="knowledge-workspace-connection-property-row"
+								>
+									<span>Target</span>
+									<div
+										class="knowledge-workspace-connection-property-input"
+									>
+										<ObsidianSuggestInput
+											{app}
+											type="text"
+											placeholder="Metadata field"
+											ariaLabel="Target connection metadata"
+											value={reverseFieldInput}
+											options={metadataFieldOptions}
+											onInput={(value) =>
+												(reverseFieldInput = value)}
+											onSelect={(option) =>
+												(reverseFieldInput =
+													option.value)}
+										/>
+										<ObsidianButton
+											icon="arrow-up-down"
+											ariaLabel="Swap source and target metadata"
+											tooltip="Swap fields"
+											disabled={!customField &&
+												!customReverseField}
+											onClick={swapPairedFields}
+										/>
+									</div>
+								</div>
+							{/if}
+						</div>
+						<footer>
+							<ObsidianButton
+								text="Cancel"
+								onClick={closeEditor}
+							/>
+							<ObsidianButton
+								cta={true}
+								text={editingFieldId ? 'Save' : 'Add'}
+								disabled={!canSaveField}
+								onClick={saveField}
+							/>
+						</footer>
+					</form>
+				</div>
 			{/if}
 		</div>
 	</section>
