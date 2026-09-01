@@ -419,14 +419,14 @@
 		>
 			<ObsidianButton
 				active={layout === 'single'}
-				icon="rows-3"
+				icon="minus"
 				ariaLabel="Single row"
 				tooltip="Single row"
 				onClick={() => onLayoutChange('single')}
 			/>
 			<ObsidianButton
 				active={layout === 'wrap'}
-				icon="layout-grid"
+				icon="menu"
 				ariaLabel="Multiple rows"
 				tooltip="Multiple rows"
 				onClick={() => onLayoutChange('wrap')}
