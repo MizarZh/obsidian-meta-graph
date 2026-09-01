@@ -2,17 +2,11 @@
 
 All notable changes to Meta Graph are documented here.
 
-## [1.5.2] - 2026-09-01
+## [Unreleased]
 
 ### Added
 
 - Added Paired connections for asymmetric metadata relationships: Ctrl-drag writes a source property and a distinct target property as one atomic, undoable connection, while indexing both halves as one logical edge.
-- Added toolbar zoom controls with smooth 10% step buttons, a continuous slider, editable percentage input, and synchronized zoom levels across 2D, 3D, and Cube views.
-- Added `Ctrl+F` / `Cmd+F` shortcut to focus **Find note** and select the current search text.
-- Added direction-aware arrows to `Ctrl`-drag connection previews: one-way points to the target, two-way points at both ends, and reverse points to the source.
-- Added chart style copy/paste controls for moving node and link styles between charts.
-- Added per-rule actions to move note and link style rules between global and chart scopes.
-- Added configurable note shapes (circle, square, diamond, triangle, hexagon, and star) for defaults, overrides, and style rules.
 
 ### Changed
 
@@ -22,9 +16,24 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Removed duplicate slider readouts in settings; each setting now shows one synchronized value, while the standalone Display control keeps its built-in value.
 - Anchored the Add connection editor directly above its `+` button regardless of transformed workspace containers, and kept the collapsed panel button at the same left-side position as its expanded counterpart.
 - Prevented the Add connection editor from being clipped by the multi-row panel's scroll boundary.
 - Kept single-row and multi-row Connection panel controls visually identical while all relationships still fit on one line.
+
+## [1.5.2] - 2026-09-01
+
+### Added
+
+- Added toolbar zoom controls with smooth 10% step buttons, a continuous slider, editable percentage input, and synchronized zoom levels across 2D, 3D, and Cube views.
+- Added `Ctrl+F` / `Cmd+F` shortcut to focus **Find note** and select the current search text.
+- Added direction-aware arrows to `Ctrl`-drag connection previews: one-way points to the target, two-way points at both ends, and reverse points to the source.
+- Added chart style copy/paste controls for moving node and link styles between charts.
+- Added per-rule actions to move note and link style rules between global and chart scopes.
+- Added configurable note shapes (circle, square, diamond, triangle, hexagon, and star) for defaults, overrides, and style rules.
+
+### Fixed
+
 - Removed the slider's duplicate built-in zoom readout so the editable percentage input remains the single synchronized zoom value.
 - Made Curated note visibility controls respond before graph work, update only affected graph items, keep drag-list identities stable, and defer autosave serialization instead of blocking the click.
 - Kept Curated panel contents mounted while collapsed and removed its width animation to avoid rebuilding and repeatedly reflowing large file lists when reopened.

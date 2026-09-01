@@ -9,7 +9,7 @@
 		step,
 		disabled = false,
 		instant = true,
-		showValue = true,
+		showValue = false,
 		format,
 		class: className = '',
 		onChange,

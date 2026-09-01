@@ -21,6 +21,7 @@
 			min={0.25}
 			max={4}
 			step={0.05}
+			showValue={true}
 			onChange={onInput}
 			{onCommit}
 		/>
