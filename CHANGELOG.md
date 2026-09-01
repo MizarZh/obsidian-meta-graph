@@ -12,7 +12,7 @@ All notable changes to Meta Graph are documented here.
 
 - Kept Flow arrows on the final flow-axis corridor segment when parallel lanes use endpoint branches, preventing RL/LR arrows from pointing vertically into nodes.
 - Reduced direct Graph parallel-lane spacing so two-way links stay visually compact while remaining distinguishable.
-- Routed direct Sigma parallel links through short endpoint branches and one compact straight corridor instead of fanning whole chords apart.
+- Separated direct Sigma parallel links at render time with a compact screen-pixel offset; graph coordinates and layout bounds no longer expand with lane separation.
 
 ## [1.5.3] - 2026-09-02
 

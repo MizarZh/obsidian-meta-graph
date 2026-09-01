@@ -9,7 +9,10 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeNodeAttributes,
 } from '../../model/graphology-adapter';
-import { getParallelEdgeGap } from '../../../layouts/parallel-routes';
+import {
+	getCanonicalParallelLane,
+	getParallelLaneOffset,
+} from '../../model/parallel-edges';
 
 const VERTEX_SHADER_SOURCE = /* glsl */ `
 attribute vec4 a_id;
@@ -19,6 +22,7 @@ attribute float a_normalCoef;
 attribute vec2 a_positionStart;
 attribute vec2 a_positionEnd;
 attribute float a_positionCoef;
+attribute float a_parallelLane;
 
 uniform mat3 u_matrix;
 uniform float u_sizeRatio;
@@ -40,13 +44,27 @@ void main() {
 	float webGLThickness = pixelsThickness * u_correctionRatio / u_sizeRatio;
 	vec2 startClip = (u_matrix * vec3(a_positionStart, 1.0)).xy;
 	vec2 endClip = (u_matrix * vec3(a_positionEnd, 1.0)).xy;
-
-	gl_Position = vec4(
-		(u_matrix * vec3(position + unitNormal * webGLThickness, 1.0)).xy,
-		0.0,
-		1.0
+	vec2 graphNormalClip = (u_matrix * vec3(a_normal, 0.0)).xy;
+	vec2 screenNormal = vec2(
+		graphNormalClip.x * u_resolution.x * 0.5,
+		-graphNormalClip.y * u_resolution.y * 0.5
 	);
-	v_distance = length((endClip - startClip) * u_resolution * 0.5) * a_positionCoef;
+	float screenNormalLength = length(screenNormal);
+	vec2 screenSide = screenNormalLength > 0.001
+		? screenNormal / screenNormalLength
+		: vec2(0.0, 0.0);
+	float laneOffset = a_parallelLane * 4.0;
+	vec2 laneClip = vec2(
+		screenSide.x * laneOffset * 2.0 / u_resolution.x,
+		-screenSide.y * laneOffset * 2.0 / u_resolution.y
+	);
+	vec2 positionClip = (
+		u_matrix * vec3(position + unitNormal * webGLThickness, 1.0)
+	).xy;
+
+	gl_Position = vec4(positionClip + laneClip, 0.0, 1.0);
+	v_distance = length((endClip - startClip) * u_resolution * 0.5)
+		* a_positionCoef;
 
 	#ifdef PICKING_MODE
 	v_color = a_id;
@@ -109,6 +127,11 @@ function createLineProgram(fragmentShaderSource: string) {
 						type: WebGLRenderingContext.UNSIGNED_BYTE,
 						normalized: true,
 					},
+					{
+						name: 'a_parallelLane',
+						size: 1,
+						type: WebGLRenderingContext.FLOAT,
+					},
 				],
 				CONSTANT_ATTRIBUTES: [
 					{
@@ -146,15 +169,17 @@ function createLineProgram(fragmentShaderSource: string) {
 			const edgeLength = Math.hypot(dx, dy);
 			const unitNormalX = edgeLength ? -dy / edgeLength : 0;
 			const unitNormalY = edgeLength ? dx / edgeLength : 0;
-			const offset = getParallelOffset(sourceData, targetData, data);
-			this.array[startIndex++] = sourceData.x + unitNormalX * offset;
-			this.array[startIndex++] = sourceData.y + unitNormalY * offset;
-			this.array[startIndex++] = targetData.x + unitNormalX * offset;
-			this.array[startIndex++] = targetData.y + unitNormalY * offset;
+			this.array[startIndex++] = sourceData.x;
+			this.array[startIndex++] = sourceData.y;
+			this.array[startIndex++] = targetData.x;
+			this.array[startIndex++] = targetData.y;
 			this.array[startIndex++] = unitNormalX * thickness;
 			this.array[startIndex++] = unitNormalY * thickness;
 			this.array[startIndex++] = floatColor(data.color);
-			this.array[startIndex] = edgeIndex;
+			this.array[startIndex++] = edgeIndex;
+			this.array[startIndex] = getCanonicalParallelLane(
+				data as unknown as RuntimeEdgeAttributes,
+			);
 		}
 
 		setUniforms(
@@ -229,6 +254,7 @@ attribute vec2 a_position;
 attribute vec2 a_normal;
 attribute float a_radius;
 attribute float a_arrowSize;
+attribute float a_parallelLane;
 attribute vec3 a_barycentric;
 
 #ifdef PICKING_MODE
@@ -243,6 +269,7 @@ uniform float u_correctionRatio;
 uniform float u_minEdgeThickness;
 uniform float u_lengthToThicknessRatio;
 uniform float u_widenessToThicknessRatio;
+uniform vec2 u_resolution;
 
 varying vec4 v_color;
 varying vec3 v_barycentric;
@@ -252,7 +279,9 @@ const float bias = 255.0 / 254.0;
 void main() {
 	float minThickness = u_minEdgeThickness;
 	float normalLength = length(a_normal);
-	vec2 unitNormal = a_normal / normalLength;
+	vec2 unitNormal = normalLength > 0.0
+		? a_normal / normalLength
+		: vec2(0.0, -1.0);
 	float pixelsThickness = max(normalLength / u_sizeRatio, minThickness);
 	float webGLThickness = pixelsThickness * u_correctionRatio;
 	float webGLNodeRadius = a_radius * 2.0 * u_correctionRatio / u_sizeRatio;
@@ -273,8 +302,23 @@ void main() {
 		+ db * (-(webGLNodeRadius + webGLArrowHeadLength) * unitNormal.x + webGLArrowHeadThickness * unitNormal.y)
 		+ dc * (-(webGLNodeRadius + webGLArrowHeadLength) * unitNormal.x - webGLArrowHeadThickness * unitNormal.y)
 	);
+	vec2 positionClip = (u_matrix * vec3(a_position + delta, 1.0)).xy;
+	vec2 graphNormalClip = (u_matrix * vec3(-a_normal, 0.0)).xy;
+	vec2 screenNormal = vec2(
+		graphNormalClip.x * u_resolution.x * 0.5,
+		-graphNormalClip.y * u_resolution.y * 0.5
+	);
+	float screenNormalLength = length(screenNormal);
+	vec2 screenSide = screenNormalLength > 0.001
+		? screenNormal / screenNormalLength
+		: vec2(0.0, 0.0);
+	float laneOffset = a_parallelLane * 4.0;
+	vec2 laneClip = vec2(
+		screenSide.x * laneOffset * 2.0 / u_resolution.x,
+		-screenSide.y * laneOffset * 2.0 / u_resolution.y
+	);
 
-	gl_Position = vec4((u_matrix * vec3(a_position + delta, 1.0)).xy, 0.0, 1.0);
+	gl_Position = vec4(positionClip + laneClip, 0.0, 1.0);
 	v_barycentric = a_barycentric;
 
 	#ifdef PICKING_MODE
@@ -333,7 +377,8 @@ function createArrowHeadProgram(
 		| 'u_correctionRatio'
 		| 'u_minEdgeThickness'
 		| 'u_lengthToThicknessRatio'
-		| 'u_widenessToThicknessRatio',
+		| 'u_widenessToThicknessRatio'
+		| 'u_resolution',
 		RuntimeNodeAttributes,
 		RuntimeEdgeAttributes
 	> {
@@ -350,6 +395,7 @@ function createArrowHeadProgram(
 					'u_minEdgeThickness',
 					'u_lengthToThicknessRatio',
 					'u_widenessToThicknessRatio',
+					'u_resolution',
 				] as const,
 				ATTRIBUTES: [
 					{
@@ -369,6 +415,11 @@ function createArrowHeadProgram(
 					},
 					{
 						name: 'a_arrowSize',
+						size: 1,
+						type: WebGLRenderingContext.FLOAT,
+					},
+					{
+						name: 'a_parallelLane',
 						size: 1,
 						type: WebGLRenderingContext.FLOAT,
 					},
@@ -413,7 +464,6 @@ function createArrowHeadProgram(
 			const y1 = sourceData.y;
 			const x2 = targetData.x;
 			const y2 = targetData.y;
-			const offset = getParallelOffset(sourceData, targetData, data);
 			const color = floatColor(data.color);
 			const arrowSizeValue = (
 				data as EdgeDisplayData & { arrowSize?: number }
@@ -422,15 +472,6 @@ function createArrowHeadProgram(
 				typeof arrowSizeValue === 'number' ? arrowSizeValue : 1;
 			let dx = x2 - x1;
 			let dy = y2 - y1;
-			const edgeLength = Math.hypot(dx, dy);
-			const unitNormalX = edgeLength ? -dy / edgeLength : 0;
-			const unitNormalY = edgeLength ? dx / edgeLength : 0;
-			const shiftedX1 = x1 + unitNormalX * offset;
-			const shiftedY1 = y1 + unitNormalY * offset;
-			const shiftedX2 = x2 + unitNormalX * offset;
-			const shiftedY2 = y2 + unitNormalY * offset;
-			dx = shiftedX2 - shiftedX1;
-			dy = shiftedY2 - shiftedY1;
 			let length = dx * dx + dy * dy;
 			let normalX = 0;
 			let normalY = 0;
@@ -439,12 +480,15 @@ function createArrowHeadProgram(
 				normalX = -dy * length * thickness;
 				normalY = dx * length * thickness;
 			}
-			this.array[startIndex++] = shiftedX2;
-			this.array[startIndex++] = shiftedY2;
+			this.array[startIndex++] = x2;
+			this.array[startIndex++] = y2;
 			this.array[startIndex++] = -normalX;
 			this.array[startIndex++] = -normalY;
 			this.array[startIndex++] = radius;
 			this.array[startIndex++] = arrowSize;
+			this.array[startIndex++] = getCanonicalParallelLane(
+				data as unknown as RuntimeEdgeAttributes,
+			);
 			this.array[startIndex++] = color;
 			this.array[startIndex] = edgeIndex;
 		}
@@ -474,6 +518,11 @@ function createArrowHeadProgram(
 			gl.uniform1f(
 				uniformLocations.u_widenessToThicknessRatio!,
 				widenessToThicknessRatio,
+			);
+			gl.uniform2f(
+				uniformLocations.u_resolution!,
+				params.width * params.pixelRatio,
+				params.height * params.pixelRatio,
 			);
 		}
 	};
@@ -538,8 +587,8 @@ export {
 };
 
 export function getParallelOffset(
-	sourceData: Pick<NodeDisplayData, 'x' | 'y' | 'size'>,
-	targetData: Pick<NodeDisplayData, 'x' | 'y' | 'size'>,
+	_sourceData: Pick<NodeDisplayData, 'x' | 'y' | 'size'>,
+	_targetData: Pick<NodeDisplayData, 'x' | 'y' | 'size'>,
 	data: {
 		size?: number;
 		logicalEdgeId?: string;
@@ -548,26 +597,11 @@ export function getParallelOffset(
 		parallelDirection?: 1 | -1;
 	},
 ): number {
+	// Edge labels are already in viewport pixels when Sigma calls the drawer;
+	// keep their center on the same fixed-size lane as the WebGL route.
 	const edge = data;
 	if (edge.logicalEdgeId || (edge.parallelCount ?? 1) <= 1) {
 		return 0;
 	}
-	const lane = edge.parallelLane ?? 0;
-	if (!lane) {
-		return 0;
-	}
-	const length = Math.hypot(
-		targetData.x - sourceData.x,
-		targetData.y - sourceData.y,
-	);
-	if (length <= 0.001) {
-		return 0;
-	}
-	const gap = getParallelEdgeGap(
-		length,
-		sourceData.size,
-		targetData.size,
-		data.size,
-	);
-	return lane * (edge.parallelDirection ?? 1) * gap;
+	return getParallelLaneOffset(edge, data.size);
 }

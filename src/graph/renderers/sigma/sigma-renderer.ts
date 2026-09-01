@@ -40,10 +40,6 @@ import {
 import { LayoutGroupLayer } from './sigma-layout-group-layer';
 import type { LayoutGroupGeometry } from '../../../layouts/group-geometry';
 import {
-	applyParallelDirectEdges,
-	syncParallelDirectEdgeRoutes,
-} from '../../../layouts/parallel-routes';
-import {
 	NodeDiamondProgram,
 	NodeHexagonProgram,
 	NodeSquareProgram,
@@ -210,8 +206,6 @@ export class SigmaRenderer {
 	}
 
 	setGraph(graph: RuntimeGraph): void {
-		applyParallelDirectEdges(graph);
-		syncParallelDirectEdgeRoutes(graph);
 		this.graph = graph;
 		if (this.pinnedNodeId && !graph.hasNode(this.pinnedNodeId)) {
 			this.pinnedNodeId = undefined;
@@ -229,7 +223,6 @@ export class SigmaRenderer {
 	}
 
 	refresh(): void {
-		syncParallelDirectEdgeRoutes(this.graph);
 		this.instance.refresh();
 	}
 

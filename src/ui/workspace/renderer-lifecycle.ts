@@ -18,7 +18,6 @@ import {
 	hydrateManualLayoutPositions,
 	type LayoutSnapshot,
 } from '../../layouts/stable-layout';
-import { applyParallelDirectEdges } from '../../layouts/parallel-routes';
 import { createChartGroupByNode } from '../../query/group-ownership';
 import { getWorkspaceGraphForceSettings } from './graph-settings';
 import { createWorkspaceGraphRenderer } from './renderer-factory';
@@ -306,9 +305,6 @@ export class WorkspaceRendererLifecycle {
 		);
 		if (version !== this.renderVersion) {
 			return;
-		}
-		if (getRendererKindForMode(state.mode) === 'sigma') {
-			applyParallelDirectEdges(graph);
 		}
 		prepareWorkspaceRuntimeGraphVisibilityIndex(graph);
 		await this.options.yieldToMainThread?.();
