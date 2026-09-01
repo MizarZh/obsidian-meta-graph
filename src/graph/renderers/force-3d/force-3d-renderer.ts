@@ -243,6 +243,8 @@ export class Force3DRenderer {
 			.linkLabel((link) => link.label || '')
 			.linkColor((link) => this.getLinkColor(link))
 			.linkWidth((link) => Math.max(0.4, link.size))
+			.linkCurvature((link) => link.curvature ?? 0)
+			.linkCurveRotation((link) => link.curveRotation ?? 0)
 			.linkThreeObjectExtend(true)
 			.linkThreeObject((link: Force3DLink) => {
 				const sprite = this.shouldShowLinkLabel(link)
@@ -255,12 +257,40 @@ export class Force3DRenderer {
 				this.linkLabelSprites.set(link.id, sprite);
 				return sprite;
 			})
-			.linkPositionUpdate((object, { start, end }) => {
-				object.position.set(
-					(start.x + end.x) / 2,
-					(start.y + end.y) / 2,
-					(start.z + end.z) / 2,
-				);
+			.linkPositionUpdate((object, { start, end }, link) => {
+				const midpoint = {
+					x: (start.x + end.x) / 2,
+					y: (start.y + end.y) / 2,
+					z: (start.z + end.z) / 2,
+				};
+				const curvature = link.curvature ?? 0;
+				if (curvature) {
+					const dx = end.x - start.x;
+					const dy = end.y - start.y;
+					const dz = end.z - start.z;
+					const length = Math.hypot(dx, dy, dz);
+					if (length > 0.001) {
+						const reference =
+							Math.abs(dz) < length * 0.9
+								? { x: 0, y: 0, z: 1 }
+								: { x: 0, y: 1, z: 0 };
+						const normalX = dy * reference.z - dz * reference.y;
+						const normalY = dz * reference.x - dx * reference.z;
+						const normalZ = dx * reference.y - dy * reference.x;
+						const normalLength = Math.hypot(
+							normalX,
+							normalY,
+							normalZ,
+						);
+						if (normalLength > 0.001) {
+							const offset = curvature * length * 0.5;
+							midpoint.x += (normalX / normalLength) * offset;
+							midpoint.y += (normalY / normalLength) * offset;
+							midpoint.z += (normalZ / normalLength) * offset;
+						}
+					}
+				}
+				object.position.set(midpoint.x, midpoint.y, midpoint.z);
 				return true;
 			})
 			.linkDirectionalArrowLength((link) =>

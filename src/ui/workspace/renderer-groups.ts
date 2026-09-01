@@ -148,5 +148,9 @@ export function moveWorkspaceRuntimeGroupNodes(
 		nodeIds,
 		delta,
 	);
-	renderer.instance.refresh();
+	if (typeof renderer.refresh === 'function') {
+		renderer.refresh();
+	} else {
+		renderer.instance.refresh();
+	}
 }

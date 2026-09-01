@@ -1,8 +1,4 @@
-import {
-	EdgeProgram,
-	createEdgeClampedProgram,
-	createEdgeCompoundProgram,
-} from 'sigma/rendering';
+import { EdgeProgram, createEdgeCompoundProgram } from 'sigma/rendering';
 import type {
 	EdgeDisplayData,
 	NodeDisplayData,
@@ -13,6 +9,7 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeNodeAttributes,
 } from '../../model/graphology-adapter';
+import { getParallelEdgeGap } from '../../../layouts/parallel-routes';
 
 const VERTEX_SHADER_SOURCE = /* glsl */ `
 attribute vec4 a_id;
@@ -66,34 +63,8 @@ interface ProgramInfo {
 	uniformLocations: Record<string, WebGLUniformLocation>;
 }
 
-function createPatternedEdgeProgram(pattern: readonly number[]) {
-	const cycle = pattern.reduce((total, length) => total + length, 0);
-	let offset = 0;
-	const drawRanges: string[] = [];
-	for (const [index, length] of pattern.entries()) {
-		if (index % 2 === 0) {
-			drawRanges.push(
-				`(position >= ${offset.toFixed(1)} && position < ${(offset + length).toFixed(1)})`,
-			);
-		}
-		offset += length;
-	}
-	const fragmentShaderSource = /* glsl */ `
-precision mediump float;
-
-varying vec4 v_color;
-varying float v_distance;
-
-void main(void) {
-	float position = mod(v_distance, ${cycle.toFixed(1)});
-	if (!(${drawRanges.join(' || ')})) {
-		discard;
-	}
-	gl_FragColor = v_color;
-}
-`;
-
-	return class PatternedEdgeProgram extends EdgeProgram<
+function createLineProgram(fragmentShaderSource: string) {
+	return class LineEdgeProgram extends EdgeProgram<
 		'u_matrix' | 'u_sizeRatio' | 'u_correctionRatio' | 'u_resolution',
 		RuntimeNodeAttributes,
 		RuntimeEdgeAttributes
@@ -172,16 +143,16 @@ void main(void) {
 			const thickness = data.size || 1;
 			const dx = targetData.x - sourceData.x;
 			const dy = targetData.y - sourceData.y;
-			const length = Math.hypot(dx, dy);
-			const normalX = length ? (-dy / length) * thickness : 0;
-			const normalY = length ? (dx / length) * thickness : 0;
-
-			this.array[startIndex++] = sourceData.x;
-			this.array[startIndex++] = sourceData.y;
-			this.array[startIndex++] = targetData.x;
-			this.array[startIndex++] = targetData.y;
-			this.array[startIndex++] = normalX;
-			this.array[startIndex++] = normalY;
+			const edgeLength = Math.hypot(dx, dy);
+			const unitNormalX = edgeLength ? -dy / edgeLength : 0;
+			const unitNormalY = edgeLength ? dx / edgeLength : 0;
+			const offset = getParallelOffset(sourceData, targetData, data);
+			this.array[startIndex++] = sourceData.x + unitNormalX * offset;
+			this.array[startIndex++] = sourceData.y + unitNormalY * offset;
+			this.array[startIndex++] = targetData.x + unitNormalX * offset;
+			this.array[startIndex++] = targetData.y + unitNormalY * offset;
+			this.array[startIndex++] = unitNormalX * thickness;
+			this.array[startIndex++] = unitNormalY * thickness;
 			this.array[startIndex++] = floatColor(data.color);
 			this.array[startIndex] = edgeIndex;
 		}
@@ -208,6 +179,46 @@ void main(void) {
 		}
 	};
 }
+
+function createPatternedEdgeProgram(pattern: readonly number[]) {
+	const cycle = pattern.reduce((total, length) => total + length, 0);
+	let offset = 0;
+	const drawRanges: string[] = [];
+	for (const [index, length] of pattern.entries()) {
+		if (index % 2 === 0) {
+			drawRanges.push(
+				`(position >= ${offset.toFixed(1)} && position < ${(offset + length).toFixed(1)})`,
+			);
+		}
+		offset += length;
+	}
+	const fragmentShaderSource = /* glsl */ `
+precision mediump float;
+
+varying vec4 v_color;
+varying float v_distance;
+
+void main(void) {
+	float position = mod(v_distance, ${cycle.toFixed(1)});
+	if (!(${drawRanges.join(' || ')})) {
+		discard;
+	}
+	gl_FragColor = v_color;
+}
+`;
+
+	return createLineProgram(fragmentShaderSource);
+}
+
+const SolidEdgeProgram = createLineProgram(/* glsl */ `
+precision mediump float;
+
+varying vec4 v_color;
+
+void main(void) {
+	gl_FragColor = v_color;
+}
+`);
 
 const DashedEdgeProgram = createPatternedEdgeProgram([10, 7]);
 const DottedEdgeProgram = createPatternedEdgeProgram([2, 5]);
@@ -402,6 +413,7 @@ function createArrowHeadProgram(
 			const y1 = sourceData.y;
 			const x2 = targetData.x;
 			const y2 = targetData.y;
+			const offset = getParallelOffset(sourceData, targetData, data);
 			const color = floatColor(data.color);
 			const arrowSizeValue = (
 				data as EdgeDisplayData & { arrowSize?: number }
@@ -410,6 +422,15 @@ function createArrowHeadProgram(
 				typeof arrowSizeValue === 'number' ? arrowSizeValue : 1;
 			let dx = x2 - x1;
 			let dy = y2 - y1;
+			const edgeLength = Math.hypot(dx, dy);
+			const unitNormalX = edgeLength ? -dy / edgeLength : 0;
+			const unitNormalY = edgeLength ? dx / edgeLength : 0;
+			const shiftedX1 = x1 + unitNormalX * offset;
+			const shiftedY1 = y1 + unitNormalY * offset;
+			const shiftedX2 = x2 + unitNormalX * offset;
+			const shiftedY2 = y2 + unitNormalY * offset;
+			dx = shiftedX2 - shiftedX1;
+			dy = shiftedY2 - shiftedY1;
 			let length = dx * dx + dy * dy;
 			let normalX = 0;
 			let normalY = 0;
@@ -418,8 +439,8 @@ function createArrowHeadProgram(
 				normalX = -dy * length * thickness;
 				normalY = dx * length * thickness;
 			}
-			this.array[startIndex++] = x2;
-			this.array[startIndex++] = y2;
+			this.array[startIndex++] = shiftedX2;
+			this.array[startIndex++] = shiftedY2;
 			this.array[startIndex++] = -normalX;
 			this.array[startIndex++] = -normalY;
 			this.array[startIndex++] = radius;
@@ -472,7 +493,7 @@ const ChevronArrowHeadProgram = createArrowHeadProgram(
 export const ArrowEdgeProgram = createEdgeCompoundProgram<
 	RuntimeNodeAttributes,
 	RuntimeEdgeAttributes
->([createEdgeClampedProgram(), FilledArrowHeadProgram]);
+>([SolidEdgeProgram, FilledArrowHeadProgram]);
 
 export const DashedArrowEdgeProgram = createEdgeCompoundProgram<
 	RuntimeNodeAttributes,
@@ -492,7 +513,7 @@ export const DashDotArrowEdgeProgram = createEdgeCompoundProgram<
 export const ChevronArrowEdgeProgram = createEdgeCompoundProgram<
 	RuntimeNodeAttributes,
 	RuntimeEdgeAttributes
->([createEdgeClampedProgram(), ChevronArrowHeadProgram]);
+>([SolidEdgeProgram, ChevronArrowHeadProgram]);
 
 export const DashedChevronArrowEdgeProgram = createEdgeCompoundProgram<
 	RuntimeNodeAttributes,
@@ -509,4 +530,44 @@ export const DashDotChevronArrowEdgeProgram = createEdgeCompoundProgram<
 	RuntimeEdgeAttributes
 >([DashDotEdgeProgram, ChevronArrowHeadProgram]);
 
-export { DashDotEdgeProgram, DashedEdgeProgram, DottedEdgeProgram };
+export {
+	DashDotEdgeProgram,
+	DashedEdgeProgram,
+	DottedEdgeProgram,
+	SolidEdgeProgram,
+};
+
+export function getParallelOffset(
+	sourceData: Pick<NodeDisplayData, 'x' | 'y' | 'size'>,
+	targetData: Pick<NodeDisplayData, 'x' | 'y' | 'size'>,
+	data: {
+		size?: number;
+		logicalEdgeId?: string;
+		parallelLane?: number;
+		parallelCount?: number;
+		parallelDirection?: 1 | -1;
+	},
+): number {
+	const edge = data;
+	if (edge.logicalEdgeId || (edge.parallelCount ?? 1) <= 1) {
+		return 0;
+	}
+	const lane = edge.parallelLane ?? 0;
+	if (!lane) {
+		return 0;
+	}
+	const length = Math.hypot(
+		targetData.x - sourceData.x,
+		targetData.y - sourceData.y,
+	);
+	if (length <= 0.001) {
+		return 0;
+	}
+	const gap = getParallelEdgeGap(
+		length,
+		sourceData.size,
+		targetData.size,
+		data.size,
+	);
+	return lane * (edge.parallelDirection ?? 1) * gap;
+}

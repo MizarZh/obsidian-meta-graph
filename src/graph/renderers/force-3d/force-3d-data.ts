@@ -5,6 +5,7 @@ import type {
 	RuntimeGraph,
 	RuntimeNodeAttributes,
 } from '../../model/graphology-adapter';
+import { getCanonicalParallelLane } from '../../model/parallel-edges';
 
 export interface Force3DNode extends NodeObject {
 	id: string;
@@ -32,6 +33,8 @@ export interface Force3DLink extends LinkObject<Force3DNode> {
 	directed: boolean;
 	arrowStyle?: LinkArrowStyle;
 	arrowSize?: number;
+	curvature?: number;
+	curveRotation?: number;
 	hidden: boolean;
 	__lineObj?: { visible: boolean };
 	__arrowObj?: { visible: boolean };
@@ -160,6 +163,7 @@ export function syncForce3DDataStyles(
 		const attributes = graph.getEdgeAttributes(link.id);
 		const nextForceLabel = attributes.forceLabel;
 		const nextHidden = attributes.hidden;
+		const nextCurvature = getForce3DLinkCurvature(attributes);
 		if (
 			link.label !== attributes.label ||
 			link.forceLabel !== nextForceLabel
@@ -174,7 +178,8 @@ export function syncForce3DDataStyles(
 			(link.arrowSize ?? 1) !== (attributes.arrowSize ?? 1) ||
 			link.directed !== attributes.type.includes('arrow') ||
 			(link.arrowStyle ?? 'filled') !==
-				(attributes.arrowStyle ?? 'filled')
+				(attributes.arrowStyle ?? 'filled') ||
+			(link.curvature ?? 0) !== nextCurvature
 		) {
 			result.linkStyleChanged = true;
 		}
@@ -201,6 +206,15 @@ export function syncForce3DDataStyles(
 			link.arrowStyle = 'chevron';
 		} else {
 			delete link.arrowStyle;
+		}
+		if (nextCurvature) {
+			link.curvature = nextCurvature;
+		} else {
+			delete link.curvature;
+			delete link.curveRotation;
+		}
+		if (nextCurvature) {
+			link.curveRotation = 0;
 		}
 		link.hidden = nextHidden;
 	}
@@ -289,8 +303,23 @@ function toForce3DLink(
 	} else {
 		delete link.arrowStyle;
 	}
+	const curvature = getForce3DLinkCurvature(attributes);
+	if (curvature) {
+		link.curvature = curvature;
+		link.curveRotation = 0;
+	} else {
+		delete link.curvature;
+		delete link.curveRotation;
+	}
 	link.hidden = attributes.hidden;
 	return link;
+}
+
+function getForce3DLinkCurvature(attributes: RuntimeEdgeAttributes): number {
+	if (attributes.logicalEdgeId || (attributes.parallelCount ?? 1) <= 1) {
+		return 0;
+	}
+	return getCanonicalParallelLane(attributes) * 0.24;
 }
 
 function isVisibleForceNode(graph: RuntimeGraph, nodeId: string): boolean {

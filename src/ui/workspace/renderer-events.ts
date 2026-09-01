@@ -129,7 +129,11 @@ export function bindWorkspaceRendererEvents(
 					options.setActiveNodeDropGroupId(groupId);
 					sigmaRenderer.setActiveDropGroup(groupId);
 				}
-				sigmaRenderer.instance.refresh();
+				if (typeof sigmaRenderer.refresh === 'function') {
+					sigmaRenderer.refresh();
+				} else {
+					sigmaRenderer.instance.refresh();
+				}
 			},
 			onNodeDragEnd: (nodeId) => {
 				if (options.readOnly) return;

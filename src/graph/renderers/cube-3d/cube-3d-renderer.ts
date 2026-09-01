@@ -36,6 +36,7 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 } from '../../model/graphology-adapter';
+import { getCanonicalParallelLane } from '../../model/parallel-edges';
 import type { GraphPalette } from '../../styles/graph-styles';
 import {
 	resolveThreeLabelStyle,
@@ -865,8 +866,11 @@ export class Cube3DRenderer {
 			if (!source || !target) {
 				continue;
 			}
-			const start = source.mesh.position;
-			const end = target.mesh.position;
+			const [start, end] = this.getParallelEdgeEndpoints(
+				source.mesh.position,
+				target.mesh.position,
+				attributes,
+			);
 			const line = this.createEdgeLine(start, end, attributes);
 			if (line) {
 				this.edgeGroup.add(line);
@@ -885,6 +889,30 @@ export class Cube3DRenderer {
 				this.edgeGroup.add(label);
 			}
 		}
+	}
+
+	private getParallelEdgeEndpoints(
+		start: Three.Vector3,
+		end: Three.Vector3,
+		attributes: RuntimeEdgeAttributes,
+	): [Three.Vector3, Three.Vector3] {
+		const lane = getCanonicalParallelLane(attributes);
+		if (Math.abs(lane) < 0.001 || attributes.logicalEdgeId) {
+			return [start, end];
+		}
+		const direction = end.clone().sub(start);
+		const length = direction.length();
+		if (length < 0.001) {
+			return [start, end];
+		}
+		const reference =
+			Math.abs(direction.y) < length * 0.9
+				? new this.three.Vector3(0, 1, 0)
+				: new this.three.Vector3(1, 0, 0);
+		const normal = direction.cross(reference).normalize();
+		const gap = Math.min(length * 0.2, 12);
+		const shift = normal.multiplyScalar(lane * gap);
+		return [start.clone().add(shift), end.clone().add(shift)];
 	}
 
 	private createEdgeLine(

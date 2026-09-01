@@ -69,6 +69,9 @@ settings to report them in the developer console.
    state update the visible graph without rerunning layout. Color inputs are
    throttled while dragging so changes preview live without rebuilding the graph
    for every pointer event.
+   When two or more relationships connect the same notes (for example `pre` and
+   `related`), Meta Graph assigns stable parallel lanes and compact endpoint-bend
+   routes so their paths, arrows, and labels remain distinguishable.
 10. Use **Group** settings to add chart-local groups, set priority, colors,
     padding, and Manual or Rule membership. Each note belongs to at most one
     group; an explicit assignment or Ungrouped override takes priority over
@@ -319,6 +322,11 @@ The **Line** setting supports **Straight**, **Curve**, **Orthogonal**, and
 Curve follows ELK's layer-aware polyline route and smooths its bends into a
 continuous path. Direct links receive a small deterministic bow so parallel
 links remain easier to distinguish.
+All relationships between the same pair of notes also receive deterministic
+parallel lanes. The lane metadata is runtime-only, so frontmatter and the
+semantic projection remain unchanged; edge-only Flow refreshes keep node
+positions while separating newly added links. Flow arrows stay on the final
+flow-axis segment instead of pointing along a perpendicular endpoint branch.
 When **Orthogonal** or **Bundled** is selected, **Corner radius** controls how
 much each right-angle turn is softened. A value of `0` keeps sharp corners;
 larger values add a short curve approximation without changing ELK's

@@ -1,5 +1,4 @@
 import Sigma from 'sigma';
-import { createEdgeArrowProgram } from 'sigma/rendering';
 import type { LabelPosition } from '../../../core/types';
 import {
 	type RuntimeEdgeAttributes,
@@ -24,6 +23,8 @@ import {
 	DottedChevronArrowEdgeProgram,
 	DottedArrowEdgeProgram,
 	DottedEdgeProgram,
+	ArrowEdgeProgram,
+	SolidEdgeProgram,
 } from './patterned-edge-program';
 import {
 	createEdgeLabelDrawer,
@@ -38,6 +39,10 @@ import {
 } from './sigma-group-overlay';
 import { LayoutGroupLayer } from './sigma-layout-group-layer';
 import type { LayoutGroupGeometry } from '../../../layouts/group-geometry';
+import {
+	applyParallelDirectEdges,
+	syncParallelDirectEdgeRoutes,
+} from '../../../layouts/parallel-routes';
 import {
 	NodeDiamondProgram,
 	NodeHexagonProgram,
@@ -120,10 +125,8 @@ export class SigmaRenderer {
 				doubleClickZoomingRatio: 1,
 				defaultEdgeType: 'line',
 				edgeProgramClasses: {
-					arrow: createEdgeArrowProgram<
-						RuntimeNodeAttributes,
-						RuntimeEdgeAttributes
-					>(),
+					line: SolidEdgeProgram,
+					arrow: ArrowEdgeProgram,
 					dashed: DashedEdgeProgram,
 					'dashed-arrow': DashedArrowEdgeProgram,
 					'chevron-arrow': ChevronArrowEdgeProgram,
@@ -207,6 +210,8 @@ export class SigmaRenderer {
 	}
 
 	setGraph(graph: RuntimeGraph): void {
+		applyParallelDirectEdges(graph);
+		syncParallelDirectEdgeRoutes(graph);
 		this.graph = graph;
 		if (this.pinnedNodeId && !graph.hasNode(this.pinnedNodeId)) {
 			this.pinnedNodeId = undefined;
@@ -220,6 +225,11 @@ export class SigmaRenderer {
 	setPalette(palette: GraphPalette): void {
 		this.palette = palette;
 		this.instance.setSetting('labelColor', { color: this.getLabelColor() });
+		this.refresh();
+	}
+
+	refresh(): void {
+		syncParallelDirectEdgeRoutes(this.graph);
 		this.instance.refresh();
 	}
 
@@ -262,7 +272,7 @@ export class SigmaRenderer {
 			return;
 		}
 		this.selectedNodeId = nodeId;
-		this.instance.refresh();
+		this.refresh();
 	}
 
 	setHovered(nodeId?: string): void {
@@ -272,12 +282,12 @@ export class SigmaRenderer {
 		this.hoveredNodeId = nodeId;
 		this.updateHoveredNeighborhood();
 		this.syncGroupFocus();
-		this.instance.refresh();
+		this.refresh();
 	}
 
 	setFadeDistance(fadeDistance: number): void {
 		this.fadeDistance = fadeDistance;
-		this.instance.refresh();
+		this.refresh();
 	}
 
 	setLabelSize(labelSize: number): void {
@@ -287,38 +297,38 @@ export class SigmaRenderer {
 	setLabelBold(labelBold: boolean): void {
 		this.labelBold = labelBold;
 		this.instance.setSetting('labelWeight', this.getLabelWeight());
-		this.instance.refresh();
+		this.refresh();
 	}
 
 	setLabelItalic(labelItalic: boolean): void {
 		this.labelItalic = labelItalic;
-		this.instance.refresh();
+		this.refresh();
 	}
 
 	setLabelPosition(labelPosition: LabelPosition): void {
 		this.labelPosition = labelPosition;
-		this.instance.refresh();
+		this.refresh();
 	}
 
 	setLabelOffset(labelOffset: number): void {
 		this.labelOffset = labelOffset;
-		this.instance.refresh();
+		this.refresh();
 	}
 
 	setLabelColor(labelColor: string): void {
 		this.labelColor = labelColor;
-		this.instance.refresh();
+		this.refresh();
 	}
 
 	setLabelTheme(labelTheme: LabelThemeConfig): void {
 		this.labelTheme = labelTheme;
 		this.instance.setSetting('labelColor', { color: this.getLabelColor() });
-		this.instance.refresh();
+		this.refresh();
 	}
 
 	setLabelBackgroundOpacity(labelBackgroundOpacity: number): void {
 		this.labelBackgroundOpacity = labelBackgroundOpacity;
-		this.instance.refresh();
+		this.refresh();
 	}
 
 	setLabelDensity(labelDensity: number): void {
@@ -327,14 +337,14 @@ export class SigmaRenderer {
 
 	setForceLabels(forceLabels: boolean): void {
 		this.forceLabels = forceLabels;
-		this.instance.refresh();
+		this.refresh();
 	}
 
 	togglePinnedHover(nodeId: string): void {
 		this.pinnedNodeId = this.pinnedNodeId === nodeId ? undefined : nodeId;
 		this.updateHoveredNeighborhood();
 		this.syncGroupFocus();
-		this.instance.refresh();
+		this.refresh();
 	}
 
 	clearPinnedHover(): void {
@@ -344,7 +354,7 @@ export class SigmaRenderer {
 		this.pinnedNodeId = undefined;
 		this.updateHoveredNeighborhood();
 		this.syncGroupFocus();
-		this.instance.refresh();
+		this.refresh();
 	}
 
 	focusNode(nodeId: string): void {

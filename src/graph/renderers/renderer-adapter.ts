@@ -164,7 +164,11 @@ export function refreshRendererGraphStyles(renderer: GraphRenderer): void {
 		renderer.setGraph(renderer.runtimeGraph);
 		return;
 	}
-	renderer.instance.refresh();
+	if (typeof renderer.refresh === 'function') {
+		renderer.refresh();
+	} else {
+		renderer.instance.refresh();
+	}
 }
 
 export function refreshRendererGraphVisibility(

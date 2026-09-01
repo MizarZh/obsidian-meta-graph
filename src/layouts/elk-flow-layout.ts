@@ -20,6 +20,7 @@ import {
 	type FlowGroupGeometry,
 } from './group-geometry';
 import type { LayoutEngine } from './layout-engine';
+import { offsetParallelFlowRoute } from './parallel-routes';
 
 export type OrthogonalRouteMap = Map<string, ElkPoint[]>;
 
@@ -700,10 +701,17 @@ function applyRoutedFlowEdges(
 		const route = routes.get(edge);
 		const sourcePoint = { x: sourceAttributes.x, y: sourceAttributes.y };
 		const targetPoint = { x: targetAttributes.x, y: targetAttributes.y };
-		const routedPoints = transformRoute(
+		const baseRoute =
 			route && route.length > 0
 				? route
-				: createFallbackRoute(sourceAttributes, targetAttributes),
+				: createFallbackRoute(sourceAttributes, targetAttributes);
+		const routedPoints = transformRoute(
+			offsetParallelFlowRoute(
+				baseRoute,
+				sourcePoint,
+				targetPoint,
+				attributes,
+			),
 			sourcePoint,
 			targetPoint,
 			edge,
@@ -739,6 +747,9 @@ function applyRoutedFlowEdges(
 			pathNodes.push(bendNode);
 		}
 		pathNodes.push(target);
+		const arrowSegmentIndex = directed
+			? getFlowArrowSegmentIndex(points, attributes)
+			: -1;
 		const labelSegment =
 			labelPlacement === 'target-branch'
 				? Math.max(0, pathNodes.length - 3)
@@ -750,15 +761,16 @@ function applyRoutedFlowEdges(
 			if (!segmentSource || !segmentTarget) {
 				continue;
 			}
-			const lastSegment = index === pathNodes.length - 2;
+			const arrowSegment = index === arrowSegmentIndex;
 			const segmentKey = `${edge}__segment_${index + 1}`;
 			const styledSegment = {
 				...segmentAttributes,
 				type: getEdgeType(
 					attributes.lineStyle,
-					directed && lastSegment,
+					directed && arrowSegment,
 					attributes.arrowStyle,
 				),
+				...(directed ? { flowArrowSegment: arrowSegment } : {}),
 				label: index === labelSegment ? attributes.label : '',
 				forceLabel: index === labelSegment && Boolean(attributes.label),
 			};
@@ -1279,6 +1291,46 @@ function createFallbackRoute(
 		{ x: middleX, y: target.y },
 		target,
 	];
+}
+
+/**
+ * Parallel Flow lanes attach to each node with a short perpendicular branch.
+ * Put the arrow on the last axis-aligned corridor segment, not on that branch,
+ * so RL/LR arrows remain horizontal (and TD/DT arrows remain vertical).
+ */
+function getFlowArrowSegmentIndex(
+	points: readonly ElkPoint[],
+	attributes: RuntimeEdgeAttributes,
+): number {
+	const lastSegment = points.length - 2;
+	if (
+		lastSegment < 0 ||
+		(attributes.parallelCount ?? 1) <= 1 ||
+		Math.abs(attributes.parallelLane ?? 0) <= FLOW_ROUTE_POINT_EPSILON
+	) {
+		return lastSegment;
+	}
+
+	const source = points[0];
+	const target = points.at(-1);
+	if (!source || !target) {
+		return lastSegment;
+	}
+	const horizontal =
+		Math.abs(target.x - source.x) >= Math.abs(target.y - source.y);
+	for (let index = lastSegment - 1; index >= 0; index -= 1) {
+		const from = points[index];
+		const to = points[index + 1];
+		if (!from || !to) {
+			continue;
+		}
+		const dx = Math.abs(to.x - from.x);
+		const dy = Math.abs(to.y - from.y);
+		if (horizontal ? dx >= dy : dy > dx) {
+			return index;
+		}
+	}
+	return Math.max(0, lastSegment - 1);
 }
 
 function deduplicatePoints(points: ElkPoint[]): ElkPoint[] {

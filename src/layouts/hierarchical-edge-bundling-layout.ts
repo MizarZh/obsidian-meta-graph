@@ -9,6 +9,7 @@ import {
 	getEdgeType,
 	type RuntimeGraph,
 } from '../graph/model/graphology-adapter';
+import { getCanonicalParallelLane } from '../graph/model/parallel-edges';
 import {
 	scaleLayoutGroupPadding,
 	type RadialGroupGeometry,
@@ -19,6 +20,7 @@ import {
 	type LayoutNodeSort,
 	type LayoutSortDirection,
 } from './node-ordering';
+import { offsetParallelPolyline } from './parallel-routes';
 
 interface BundleNode {
 	id?: string;
@@ -142,10 +144,13 @@ function applyBundledEdges(
 		}
 		const directed = graph.isDirected(edge);
 		const attributes = graph.getEdgeAttributes(edge);
-		const points = smoothPoints(
-			sourceLeaf
-				.path(targetLeaf)
-				.map((point) => toCartesian(point.x, point.y)),
+		const points = offsetParallelPolyline(
+			smoothPoints(
+				sourceLeaf
+					.path(targetLeaf)
+					.map((point) => toCartesian(point.x, point.y)),
+			),
+			getCanonicalParallelLane(attributes) * 12,
 		);
 		if (points.length < 2) {
 			continue;

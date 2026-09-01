@@ -21,6 +21,7 @@ import {
 	resolveNodeStyle,
 	type NodeStyleContext,
 } from '../styles/style-rules';
+import { assignParallelEdgeLanes } from './parallel-edges';
 
 export interface GraphPosition {
 	x: number;
@@ -73,6 +74,12 @@ export interface RuntimeEdgeAttributes {
 	logicalSource?: string;
 	logicalTarget?: string;
 	flowLabelPlacement?: 'middle' | 'target-branch';
+	flowArrowSegment?: boolean;
+	parallelDirectRoute?: boolean;
+	parallelGroupKey?: string;
+	parallelLane?: number;
+	parallelCount?: number;
+	parallelDirection?: 1 | -1;
 }
 
 export type RuntimeGraph = Graph<
@@ -305,6 +312,8 @@ export class GraphologyAdapter {
 				);
 			}
 		}
+
+		assignParallelEdgeLanes(graph);
 
 		return graph;
 	}

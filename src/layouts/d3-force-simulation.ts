@@ -166,18 +166,36 @@ export class D3ForceSimulation {
 		for (const node of this.nodes) {
 			this.nodesById.set(node.id, node);
 		}
+		const seenLinkKeys = new Set<string>();
 		const graphLinks = this.graph
 			.edges()
 			.filter((edgeId) => !this.graph.getEdgeAttribute(edgeId, 'hidden'))
-			.map((edgeId) => ({
-				source: this.graph.source(edgeId),
-				target: this.graph.target(edgeId),
-			}))
-			.filter(
-				(link) =>
+			.map((edgeId) => {
+				const attributes = this.graph.getEdgeAttributes(edgeId);
+				const source =
+					attributes.logicalSource ?? this.graph.source(edgeId);
+				const target =
+					attributes.logicalTarget ?? this.graph.target(edgeId);
+				const parallelKey =
+					(attributes.parallelCount ?? 1) > 1
+						? attributes.parallelGroupKey
+						: undefined;
+				const key = attributes.logicalEdgeId ?? parallelKey ?? edgeId;
+				if (seenLinkKeys.has(key)) {
+					return undefined;
+				}
+				seenLinkKeys.add(key);
+				return { source, target };
+			})
+			.filter((link): link is { source: string; target: string } => {
+				if (!link) {
+					return false;
+				}
+				return (
 					this.nodesById.has(link.source) &&
-					this.nodesById.has(link.target),
-			);
+					this.nodesById.has(link.target)
+				);
+			});
 		for (const link of graphLinks) {
 			addNeighbor(this.neighborsById, link.source, link.target);
 			addNeighbor(this.neighborsById, link.target, link.source);
@@ -301,10 +319,18 @@ export class D3ForceSimulation {
 			});
 			this.onPosition?.(node.id, { x, y });
 		}
-		this.renderer.instance.refresh();
+		if (typeof this.renderer.refresh === 'function') {
+			this.renderer.refresh();
+		} else {
+			this.renderer.instance.refresh();
+		}
 		this.syncDraggedNodeToViewportTarget();
 		if (draggedNodeId) {
-			this.renderer.instance.refresh();
+			if (typeof this.renderer.refresh === 'function') {
+				this.renderer.refresh();
+			} else {
+				this.renderer.instance.refresh();
+			}
 		}
 	}
 

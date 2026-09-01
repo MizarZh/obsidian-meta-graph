@@ -200,8 +200,9 @@ export function syncWorkspaceRuntimeGraphStyles(
 			const attributes = graph.getEdgeAttributes(runtimeEdgeId);
 			const target = graph.target(runtimeEdgeId);
 			const isLastSegment = target === attributes.logicalTarget;
+			const isArrowSegment = attributes.flowArrowSegment ?? isLastSegment;
 			const type =
-				edge.directed && isLastSegment
+				edge.directed && isArrowSegment
 					? getEdgeType(style.lineStyle, true, style.arrowStyle)
 					: getEdgeType(style.lineStyle, false, style.arrowStyle);
 			graph.mergeEdgeAttributes(runtimeEdgeId, {

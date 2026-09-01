@@ -4,6 +4,16 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- Added deterministic parallel lanes for multiple relationships between the same two notes. Directed, reverse, and undirected links now keep separate paths, labels, arrows, and 2D/3D/Cube/Flow/Arc/HEB rendering without changing the underlying metadata.
+
+### Fixed
+
+- Kept Flow arrows on the final flow-axis corridor segment when parallel lanes use endpoint branches, preventing RL/LR arrows from pointing vertically into nodes.
+- Reduced direct Graph parallel-lane spacing so two-way links stay visually compact while remaining distinguishable.
+- Routed direct Sigma parallel links through short endpoint branches and one compact straight corridor instead of fanning whole chords apart.
+
 ## [1.5.3] - 2026-09-02
 
 ### Added

@@ -8,6 +8,7 @@ import {
 	getEdgeType,
 	type RuntimeGraph,
 } from '../graph/model/graphology-adapter';
+import { getParallelLane } from '../graph/model/parallel-edges';
 import type { LayoutEngine } from './layout-engine';
 import {
 	scaleLayoutGroupPadding,
@@ -137,6 +138,17 @@ export function applyArcEdges(
 			verticalArc ? targetAttributes.y : targetAttributes.x,
 			verticalArc ? sourceAttributes.x : sourceAttributes.y,
 			direction,
+			getParallelLane(attributes) *
+				getArcParallelGap(
+					Math.abs(
+						(verticalArc
+							? targetAttributes.y
+							: targetAttributes.x) -
+							(verticalArc
+								? sourceAttributes.y
+								: sourceAttributes.x),
+					),
+				),
 		);
 
 		if (points.length < 2) {
@@ -208,13 +220,14 @@ export function createArcPoints(
 	targetAxis: number,
 	offset = 0,
 	direction: ArcDirection = 'right',
+	radiusOffset = 0,
 ): ArcPoint[] {
 	const distance = Math.abs(targetAxis - sourceAxis);
 	if (distance < 0.001) {
 		return [];
 	}
 
-	const radius = distance / 2;
+	const radius = Math.max(distance / 2 + radiusOffset, distance * 0.12);
 	const samples = Math.max(8, Math.min(48, Math.ceil(distance / 16)));
 	const verticalArc = isVerticalArc(direction);
 	const sign = direction === 'left' || direction === 'down' ? -1 : 1;
@@ -227,6 +240,10 @@ export function createArcPoints(
 			? { x: offset + bulge, y: axis }
 			: { x: axis, y: offset + bulge };
 	});
+}
+
+function getArcParallelGap(distance: number): number {
+	return Math.max(8, Math.min(24, distance * 0.12));
 }
 
 function isVerticalArc(direction: ArcDirection): boolean {

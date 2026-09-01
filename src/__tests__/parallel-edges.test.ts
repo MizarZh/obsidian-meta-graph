@@ -1,0 +1,324 @@
+import { describe, expect, it } from 'vitest';
+import Graph from 'graphology';
+import type { GraphProjection } from '../core/types';
+import {
+	assignParallelEdgeLanes,
+	getCanonicalParallelLane,
+	getParallelLane,
+} from '../graph/model/parallel-edges';
+import { GraphologyAdapter } from '../graph/model/graphology-adapter';
+import {
+	applyParallelDirectEdges,
+	createParallelDirectRoute,
+	offsetParallelFlowRoute,
+	offsetParallelPolyline,
+	syncParallelDirectEdgeRoutes,
+} from '../layouts/parallel-routes';
+import { applyOrthogonalFlowEdges } from '../layouts/elk-flow-layout';
+import type {
+	RuntimeEdgeAttributes,
+	RuntimeGraph,
+	RuntimeNodeAttributes,
+} from '../graph/model/graphology-adapter';
+
+function edgeAttributes(relation: string): RuntimeEdgeAttributes {
+	return {
+		relation,
+		type: 'line',
+		size: 1,
+		color: '#000000',
+		hidden: false,
+		label: '',
+		forceLabel: false,
+		lineStyle: 'solid',
+		arrowStyle: 'filled',
+	};
+}
+
+function nodeAttributes(): RuntimeNodeAttributes {
+	return {
+		label: '',
+		x: 0,
+		y: 0,
+		size: 7,
+		color: '#000000',
+		path: '',
+		folder: '',
+		domains: [],
+		tags: [],
+	};
+}
+
+describe('parallel edge lanes', () => {
+	it('annotates mixed projection edges and separates Flow corridors', () => {
+		const projection: GraphProjection = {
+			nodes: [
+				{
+					id: 'A',
+					path: 'A.md',
+					title: 'A',
+					folder: '',
+					domains: [],
+					tags: [],
+				},
+				{
+					id: 'B',
+					path: 'B.md',
+					title: 'B',
+					folder: '',
+					domains: [],
+					tags: [],
+				},
+			],
+			edges: [
+				{
+					id: 'pre',
+					source: 'A',
+					target: 'B',
+					relation: 'pre',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'pre',
+				},
+				{
+					id: 'related',
+					source: 'B',
+					target: 'A',
+					relation: 'related',
+					directed: false,
+					sourcePath: 'B.md',
+					sourceField: 'related',
+				},
+			],
+			rootIds: new Set(['A']),
+		};
+		const graph = new GraphologyAdapter({
+			node: '#111111',
+			selected: '#222222',
+			edge: '#333333',
+			mutedNode: '#555555',
+			mutedEdge: '#666666',
+			label: '#777777',
+			labelBackground: 'rgba(0, 0, 0, 0.8)',
+		}).fromProjection(projection);
+		// Reverse horizontal placement models an RL Flow chart.
+		graph.mergeNodeAttributes('A', { x: 100, y: 0 });
+		graph.mergeNodeAttributes('B', { x: 0, y: 0 });
+
+		expect(graph.getEdgeAttribute('pre', 'parallelCount')).toBe(2);
+		expect(graph.getEdgeAttribute('related', 'parallelCount')).toBe(2);
+
+		applyOrthogonalFlowEdges(graph);
+
+		expect(graph.getNodeAttribute('__flow-bend__pre__1', 'y')).not.toBe(
+			graph.getNodeAttribute('__flow-bend__related__1', 'y'),
+		);
+		const arrowEdge = graph
+			.edges()
+			.find((edge) => graph.getEdgeAttribute(edge, 'type') === 'arrow');
+		expect(arrowEdge).toBeDefined();
+		const arrowSource = graph.source(arrowEdge!);
+		const arrowTarget = graph.target(arrowEdge!);
+		const arrowDx = Math.abs(
+			graph.getNodeAttribute(arrowTarget, 'x') -
+				graph.getNodeAttribute(arrowSource, 'x'),
+		);
+		const arrowDy = Math.abs(
+			graph.getNodeAttribute(arrowTarget, 'y') -
+				graph.getNodeAttribute(arrowSource, 'y'),
+		);
+		expect(arrowDx).toBeGreaterThan(arrowDy);
+		expect(graph.getEdgeAttribute(arrowEdge!, 'flowArrowSegment')).toBe(
+			true,
+		);
+	});
+
+	it('groups directed and undirected edges by unordered endpoints', () => {
+		const graph: RuntimeGraph = new Graph({ multi: true, type: 'mixed' });
+		graph.addNode('A', nodeAttributes());
+		graph.addNode('B', nodeAttributes());
+		graph.addDirectedEdgeWithKey('pre', 'A', 'B', edgeAttributes('pre'));
+		graph.addUndirectedEdgeWithKey(
+			'related',
+			'B',
+			'A',
+			edgeAttributes('related'),
+		);
+
+		assignParallelEdgeLanes(graph);
+
+		expect(graph.getEdgeAttribute('pre', 'parallelCount')).toBe(2);
+		expect(graph.getEdgeAttribute('related', 'parallelCount')).toBe(2);
+		expect(graph.getEdgeAttribute('pre', 'parallelLane')).toBe(-0.5);
+		expect(graph.getEdgeAttribute('related', 'parallelLane')).toBe(0.5);
+		expect(graph.getEdgeAttribute('pre', 'parallelDirection')).toBe(1);
+		expect(graph.getEdgeAttribute('related', 'parallelDirection')).toBe(-1);
+	});
+
+	it('keeps lane assignment deterministic when input edge order changes', () => {
+		const createGraph = (reverse: boolean) => {
+			const graph: RuntimeGraph = new Graph({
+				multi: true,
+				type: 'mixed',
+			});
+			graph.addNode('A', nodeAttributes());
+			graph.addNode('B', nodeAttributes());
+			const add = (id: string, relation: string) =>
+				graph.addDirectedEdgeWithKey(
+					id,
+					'A',
+					'B',
+					edgeAttributes(relation),
+				);
+			if (reverse) {
+				add('related-edge', 'related');
+				add('pre-edge', 'pre');
+			} else {
+				add('pre-edge', 'pre');
+				add('related-edge', 'related');
+			}
+			assignParallelEdgeLanes(graph);
+			return graph;
+		};
+
+		const first = createGraph(false);
+		const second = createGraph(true);
+		expect(first.getEdgeAttribute('pre-edge', 'parallelLane')).toBe(
+			second.getEdgeAttribute('pre-edge', 'parallelLane'),
+		);
+		expect(first.getEdgeAttribute('related-edge', 'parallelLane')).toBe(
+			second.getEdgeAttribute('related-edge', 'parallelLane'),
+		);
+	});
+
+	it('converts lane to canonical orientation for reverse routes', () => {
+		expect(
+			getCanonicalParallelLane({
+				parallelLane: 0.5,
+				parallelCount: 2,
+				parallelDirection: -1,
+			}),
+		).toBe(-0.5);
+		expect(getParallelLane({ parallelLane: 0.5, parallelCount: 1 })).toBe(
+			0,
+		);
+	});
+});
+
+describe('parallel route geometry', () => {
+	it('routes direct parallel edges through compact hidden bends', () => {
+		const graph: RuntimeGraph = new Graph({ multi: true, type: 'mixed' });
+		graph.addNode('A', { ...nodeAttributes(), x: 0, y: 0 });
+		graph.addNode('B', { ...nodeAttributes(), x: 100, y: 0 });
+		graph.addDirectedEdgeWithKey(
+			'first',
+			'A',
+			'B',
+			edgeAttributes('first'),
+		);
+		graph.addDirectedEdgeWithKey(
+			'second',
+			'A',
+			'B',
+			edgeAttributes('second'),
+		);
+		assignParallelEdgeLanes(graph);
+
+		const expected = createParallelDirectRoute(
+			{ x: 0, y: 0 },
+			{ x: 100, y: 0 },
+			7,
+			7,
+			graph.getEdgeAttributes('first'),
+		);
+		applyParallelDirectEdges(graph);
+
+		expect(graph.hasEdge('first')).toBe(false);
+		expect(graph.order).toBe(6);
+		expect(graph.size).toBe(6);
+		expect(expected).toHaveLength(4);
+		const firstSegments = graph
+			.edges()
+			.filter((edge) => edge.startsWith('first__segment_'))
+			.sort();
+		expect(firstSegments).toHaveLength(3);
+		const firstBend = graph.target(firstSegments[0]!);
+		const secondBend = graph.source(firstSegments[2]!);
+		expect(graph.getNodeAttribute(firstBend, 'isBend')).toBe(true);
+		expect(graph.getNodeAttribute(secondBend, 'isBend')).toBe(true);
+		expect(graph.getNodeAttribute(firstBend, 'y')).toBe(
+			graph.getNodeAttribute(secondBend, 'y'),
+		);
+		expect(graph.getEdgeAttribute(firstSegments[1]!, 'type')).toBe('arrow');
+		expect(graph.getEdgeAttribute(firstSegments[1]!, 'label')).toBe('');
+
+		const initialBendY = graph.getNodeAttribute(firstBend, 'y');
+		graph.mergeNodeAttributes('A', { x: 0, y: 20 });
+		syncParallelDirectEdgeRoutes(graph);
+		const moved = createParallelDirectRoute(
+			{ x: 0, y: 20 },
+			{ x: 100, y: 0 },
+			7,
+			7,
+			graph.getEdgeAttributes(firstSegments[1]!),
+		);
+		expect(graph.getNodeAttribute(firstBend, 'y')).toBeCloseTo(moved[1]!.y);
+		expect(graph.getNodeAttribute(firstBend, 'y')).not.toBe(initialBendY);
+	});
+
+	it('adds orthogonal branches and leaves node endpoints unchanged', () => {
+		const route = offsetParallelFlowRoute(
+			[
+				{ x: 0, y: 0 },
+				{ x: 100, y: 0 },
+				{ x: 100, y: 80 },
+			],
+			{ x: 0, y: 0 },
+			{ x: 100, y: 80 },
+			{ parallelLane: 0.5, parallelCount: 2, parallelDirection: 1 },
+		);
+
+		expect(route[0]).toEqual({ x: 0, y: 0 });
+		expect(route.at(-1)).toEqual({ x: 100, y: 80 });
+		expect(route.some((point) => point.y === 1.5)).toBe(true);
+	});
+
+	it('keeps reverse routes on opposite corridors', () => {
+		const forward = offsetParallelFlowRoute(
+			[
+				{ x: 0, y: 0 },
+				{ x: 100, y: 0 },
+			],
+			{ x: 0, y: 0 },
+			{ x: 100, y: 0 },
+			{ parallelLane: -0.5, parallelCount: 2, parallelDirection: 1 },
+		);
+		const reverse = offsetParallelFlowRoute(
+			[
+				{ x: 100, y: 0 },
+				{ x: 0, y: 0 },
+			],
+			{ x: 100, y: 0 },
+			{ x: 0, y: 0 },
+			{ parallelLane: 0.5, parallelCount: 2, parallelDirection: -1 },
+		);
+
+		expect(forward[1]?.y).toBeLessThan(0);
+		expect(reverse[1]?.y).toBeGreaterThan(0);
+	});
+
+	it('tapers sampled curve offset to zero at both endpoints', () => {
+		const points = offsetParallelPolyline(
+			[
+				{ x: 0, y: 0 },
+				{ x: 50, y: 0 },
+				{ x: 100, y: 0 },
+			],
+			10,
+		);
+
+		expect(points[0]).toEqual({ x: 0, y: 0 });
+		expect(points.at(-1)).toEqual({ x: 100, y: 0 });
+		expect(points[1]?.y).toBe(10);
+	});
+});
