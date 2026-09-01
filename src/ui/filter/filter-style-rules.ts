@@ -1,6 +1,7 @@
 import type {
 	DefaultLinkStyle,
 	DefaultNodeStyle,
+	LinkArrowStyle,
 	LinkLineStyle,
 	LinkStyleRule,
 	NodeStyleRule,
@@ -29,7 +30,10 @@ export function createLinkStyleRule(id: string): LinkStyleRule {
 		value: '',
 		color: '#888888',
 		size: 1.5,
+		opacity: 1,
 		lineStyle: 'solid',
+		arrowStyle: 'filled',
+		arrowSize: 1,
 		label: '',
 		showLabel: false,
 		hidden: false,
@@ -107,6 +111,32 @@ export function activeLinkLineStyle(
 		defaultStyle,
 		'lineStyle',
 	) as LinkLineStyle;
+}
+
+export function activeLinkArrowStyle(
+	overrides: DefaultLinkStyle,
+	defaultStyle: Required<DefaultLinkStyle>,
+): LinkArrowStyle {
+	return (activeLinkStyleValue(overrides, defaultStyle, 'arrowStyle') ??
+		'filled') as LinkArrowStyle;
+}
+
+export function activeLinkOpacity(
+	overrides: DefaultLinkStyle,
+	defaultStyle: Required<DefaultLinkStyle>,
+): number {
+	return Number(
+		activeLinkStyleValue(overrides, defaultStyle, 'opacity') ?? 1,
+	);
+}
+
+export function activeLinkArrowSize(
+	overrides: DefaultLinkStyle,
+	defaultStyle: Required<DefaultLinkStyle>,
+): number {
+	return Number(
+		activeLinkStyleValue(overrides, defaultStyle, 'arrowSize') ?? 1,
+	);
 }
 
 export function hasStyleOverride(

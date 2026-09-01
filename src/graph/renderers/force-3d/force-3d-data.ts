@@ -1,5 +1,5 @@
 import type { LinkObject, NodeObject } from '3d-force-graph';
-import type { NodeShape } from '../../../core/types';
+import type { LinkArrowStyle, NodeShape } from '../../../core/types';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
@@ -25,9 +25,12 @@ export interface Force3DLink extends LinkObject<Force3DNode> {
 	target: string | number | Force3DNode;
 	color: string;
 	size: number;
+	opacity?: number;
 	label: string;
 	forceLabel: boolean;
 	directed: boolean;
+	arrowStyle?: LinkArrowStyle;
+	arrowSize?: number;
 	hidden: boolean;
 	__lineObj?: { visible: boolean };
 	__arrowObj?: { visible: boolean };
@@ -157,7 +160,11 @@ export function syncForce3DDataStyles(
 		if (
 			link.color !== attributes.color ||
 			link.size !== attributes.size ||
-			link.directed !== attributes.type.includes('arrow')
+			(link.opacity ?? 1) !== (attributes.opacity ?? 1) ||
+			(link.arrowSize ?? 1) !== (attributes.arrowSize ?? 1) ||
+			link.directed !== attributes.type.includes('arrow') ||
+			(link.arrowStyle ?? 'filled') !==
+				(attributes.arrowStyle ?? 'filled')
 		) {
 			result.linkStyleChanged = true;
 		}
@@ -167,9 +174,24 @@ export function syncForce3DDataStyles(
 		}
 		link.color = attributes.color;
 		link.size = attributes.size;
+		if ((attributes.opacity ?? 1) === 1) {
+			delete link.opacity;
+		} else {
+			link.opacity = attributes.opacity;
+		}
+		if ((attributes.arrowSize ?? 1) === 1) {
+			delete link.arrowSize;
+		} else {
+			link.arrowSize = attributes.arrowSize;
+		}
 		link.label = attributes.label;
 		link.forceLabel = nextForceLabel;
 		link.directed = attributes.type.includes('arrow');
+		if (attributes.arrowStyle === 'chevron') {
+			link.arrowStyle = 'chevron';
+		} else {
+			delete link.arrowStyle;
+		}
 		link.hidden = nextHidden;
 	}
 	return result;
@@ -234,9 +256,24 @@ function toForce3DLink(
 	link.target = attributes.logicalTarget ?? target;
 	link.color = attributes.color;
 	link.size = attributes.size;
+	if ((attributes.opacity ?? 1) === 1) {
+		delete link.opacity;
+	} else {
+		link.opacity = attributes.opacity;
+	}
+	if ((attributes.arrowSize ?? 1) === 1) {
+		delete link.arrowSize;
+	} else {
+		link.arrowSize = attributes.arrowSize;
+	}
 	link.label = attributes.label;
 	link.forceLabel = attributes.forceLabel;
 	link.directed = attributes.type.includes('arrow');
+	if (attributes.arrowStyle === 'chevron') {
+		link.arrowStyle = 'chevron';
+	} else {
+		delete link.arrowStyle;
+	}
 	link.hidden = attributes.hidden;
 	return link;
 }

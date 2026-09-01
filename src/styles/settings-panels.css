@@ -1258,6 +1258,41 @@
 	font-size: var(--font-ui-small);
 }
 
+.knowledge-workspace-link-style-section {
+	display: grid;
+	grid-template-columns: 52px minmax(0, 1fr);
+	gap: var(--size-4-2);
+	align-items: start;
+	padding-block: var(--size-4-1);
+}
+
+.knowledge-workspace-link-style-section > strong {
+	padding-top: 6px;
+	font-size: var(--font-ui-small);
+}
+
+.knowledge-workspace-link-style-section-body {
+	display: grid;
+	gap: var(--size-4-2);
+	min-width: 0;
+}
+
+.knowledge-workspace-link-style-slider {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	min-width: 0;
+}
+
+.knowledge-workspace-link-style-slider > span:first-child {
+	flex: 0 0 auto;
+	font-weight: var(--font-medium, 500);
+}
+
+.knowledge-workspace-link-style-slider > .knowledge-workspace-slider-value {
+	flex: 1 1 auto;
+}
+
 .knowledge-workspace-slider-value {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) 34px;

@@ -1,14 +1,21 @@
 import type {
 	ConnectionFieldMode,
 	KnowledgeEdge,
+	LinkArrowStyle,
 	WorkspaceState,
 } from '../../core/types';
 import {
 	getActiveDefaultLinkStyle,
+	getActiveDefaultLinkArrowSize,
 	getActiveLinkStyleRules,
+	getActiveDefaultLinkArrowStyle,
+	getActiveDefaultLinkOpacity,
 } from '../../graph/styles/active-styles';
 import {
 	resolveLinkStyle,
+	resolveLinkArrowStyle,
+	resolveLinkArrowSize,
+	resolveLinkOpacity,
 	type LinkStyle,
 } from '../../graph/styles/style-rules';
 
@@ -33,7 +40,11 @@ export function resolveConnectionPreviewStyle(
 	state: WorkspaceState,
 	sourceNodeId: string,
 	targetNodeId = sourceNodeId,
-): LinkStyle {
+): LinkStyle & {
+	arrowStyle: LinkArrowStyle;
+	opacity: number;
+	arrowSize: number;
+} {
 	const field = state.activeConnectionField.trim();
 	const defaults = getActiveDefaultLinkStyle(state, 'var(--text-muted)');
 	const edge: KnowledgeEdge = {
@@ -48,11 +59,30 @@ export function resolveConnectionPreviewStyle(
 		sourceField: field,
 	};
 
-	return resolveLinkStyle(edge, getActiveLinkStyleRules(state), {
+	const rules = getActiveLinkStyleRules(state);
+	const style = resolveLinkStyle(edge, rules, {
 		color: defaults.color,
 		size: defaults.size,
 		lineStyle: defaults.lineStyle,
 		label: defaults.showLabel ? defaults.label || field : '',
 		hidden: defaults.hidden,
 	});
+	return {
+		...style,
+		arrowStyle: resolveLinkArrowStyle(
+			edge,
+			rules,
+			getActiveDefaultLinkArrowStyle(state),
+		),
+		opacity: resolveLinkOpacity(
+			edge,
+			rules,
+			getActiveDefaultLinkOpacity(state),
+		),
+		arrowSize: resolveLinkArrowSize(
+			edge,
+			rules,
+			getActiveDefaultLinkArrowSize(state),
+		),
+	};
 }

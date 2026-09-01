@@ -9,7 +9,10 @@ import type {
 	FlowEdgeStyle,
 	FlowRelationRule,
 } from '../core/types';
-import type { RuntimeGraph } from '../graph/model/graphology-adapter';
+import {
+	getEdgeType,
+	type RuntimeGraph,
+} from '../graph/model/graphology-adapter';
 import { createFlowLayoutPlan } from './flow-relation-layout';
 import {
 	scaleLayoutGroupPadding,
@@ -440,10 +443,11 @@ export function applyOrthogonalFlowEdges(
 		graph.dropEdge(edge);
 		const segmentAttributes = {
 			...attributes,
-			type:
-				attributes.lineStyle === 'solid'
-					? 'line'
-					: attributes.lineStyle,
+			type: getEdgeType(
+				attributes.lineStyle,
+				false,
+				attributes.arrowStyle,
+			),
 			label: '',
 			forceLabel: false,
 			logicalEdgeId: edge,
@@ -469,14 +473,11 @@ export function applyOrthogonalFlowEdges(
 			const segmentKey = `${edge}__segment_${index + 1}`;
 			const styledSegment = {
 				...segmentAttributes,
-				type:
-					directed && lastSegment
-						? attributes.lineStyle === 'solid'
-							? 'arrow'
-							: `${attributes.lineStyle}-arrow`
-						: attributes.lineStyle === 'solid'
-							? 'line'
-							: attributes.lineStyle,
+				type: getEdgeType(
+					attributes.lineStyle,
+					directed && lastSegment,
+					attributes.arrowStyle,
+				),
 				label: index === labelSegment ? attributes.label : '',
 				forceLabel: index === labelSegment && Boolean(attributes.label),
 			};

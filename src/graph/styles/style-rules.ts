@@ -1,6 +1,7 @@
 import type {
 	KnowledgeEdge,
 	KnowledgeNode,
+	LinkArrowStyle,
 	LinkLineStyle,
 	LinkStyleRule,
 	NodeFilterOperator,
@@ -26,6 +27,68 @@ export interface LinkStyle {
 	lineStyle: LinkLineStyle;
 	label: string;
 	hidden: boolean;
+}
+
+export function resolveLinkArrowStyle(
+	edge: KnowledgeEdge,
+	rules: LinkStyleRule[],
+	defaultStyle: LinkArrowStyle = 'filled',
+): LinkArrowStyle {
+	return rules.reduce(
+		(style, rule) =>
+			matchesLinkRule(edge, rule) && isLinkArrowStyle(rule.arrowStyle)
+				? rule.arrowStyle
+				: style,
+		defaultStyle,
+	);
+}
+
+export function resolveLinkOpacity(
+	edge: KnowledgeEdge,
+	rules: LinkStyleRule[],
+	defaultStyle = 1,
+): number {
+	return rules.reduce(
+		(style, rule) =>
+			matchesLinkRule(edge, rule) && isLinkOpacity(rule.opacity)
+				? rule.opacity
+				: style,
+		clampLinkOpacity(defaultStyle),
+	);
+}
+
+export function resolveLinkArrowSize(
+	edge: KnowledgeEdge,
+	rules: LinkStyleRule[],
+	defaultStyle = 1,
+): number {
+	return rules.reduce(
+		(style, rule) =>
+			matchesLinkRule(edge, rule) && isLinkArrowSize(rule.arrowSize)
+				? rule.arrowSize
+				: style,
+		clampLinkArrowSize(defaultStyle),
+	);
+}
+
+export function isLinkArrowStyle(value: unknown): value is LinkArrowStyle {
+	return value === 'filled' || value === 'chevron';
+}
+
+export function isLinkOpacity(value: unknown): value is number {
+	return typeof value === 'number' && Number.isFinite(value);
+}
+
+export function isLinkArrowSize(value: unknown): value is number {
+	return typeof value === 'number' && Number.isFinite(value);
+}
+
+function clampLinkOpacity(value: number): number {
+	return Math.max(0, Math.min(1, value));
+}
+
+function clampLinkArrowSize(value: number): number {
+	return Math.max(0.25, Math.min(3, value));
 }
 
 export function resolveNodeStyle(

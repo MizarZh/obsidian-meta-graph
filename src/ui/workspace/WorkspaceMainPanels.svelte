@@ -175,13 +175,38 @@
 				? '10 7'
 				: style.lineStyle === 'dotted'
 					? '2 5'
-					: 'none';
+					: style.lineStyle === 'dash-dot'
+						? '10 5 2 5'
+						: 'none';
 		return [
 			`stroke: ${style.color}`,
 			`stroke-width: ${style.size}px`,
+			`stroke-opacity: ${style.opacity}`,
 			`stroke-dasharray: ${dashArray}`,
 			`visibility: ${style.hidden ? 'hidden' : 'visible'}`,
 		].join('; ');
+	});
+	const connectionPreviewArrowMarker = $derived.by(() => {
+		if (!connectionDrag) {
+			return 'knowledge-workspace-connection-arrow';
+		}
+		return resolveConnectionPreviewStyle(
+			workspaceState,
+			connectionDrag.sourceNodeId,
+			connectionDrag.targetNodeId,
+		).arrowStyle === 'chevron'
+			? 'knowledge-workspace-connection-chevron'
+			: 'knowledge-workspace-connection-arrow';
+	});
+	const connectionPreviewArrowSize = $derived.by(() => {
+		if (!connectionDrag) {
+			return 1;
+		}
+		return resolveConnectionPreviewStyle(
+			workspaceState,
+			connectionDrag.sourceNodeId,
+			connectionDrag.targetNodeId,
+		).arrowSize;
 	});
 	const chartGroups = $derived(
 		workspaceState.mode === 'cube'
@@ -244,21 +269,40 @@
 				viewBox="0 0 8 8"
 				refX="7"
 				refY="4"
-				markerWidth="8"
-				markerHeight="8"
+				markerWidth={8 * connectionPreviewArrowSize}
+				markerHeight={8 * connectionPreviewArrowSize}
 				markerUnits="userSpaceOnUse"
 				orient="auto-start-reverse"
 			>
 				<path d="M 0 0 L 8 4 L 0 8 Z" fill="context-stroke" />
 			</marker>
+			<marker
+				id="knowledge-workspace-connection-chevron"
+				viewBox="0 0 8 8"
+				refX="7"
+				refY="4"
+				markerWidth={8 * connectionPreviewArrowSize}
+				markerHeight={8 * connectionPreviewArrowSize}
+				markerUnits="userSpaceOnUse"
+				orient="auto-start-reverse"
+			>
+				<path
+					d="M 1 1 L 7 4 L 1 7"
+					fill="none"
+					stroke="context-stroke"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
+			</marker>
 		</defs>
 		<line
 			style={connectionPreviewLineStyle}
 			marker-start={connectionPreviewMarkers.start
-				? 'url(#knowledge-workspace-connection-arrow)'
+				? `url(#${connectionPreviewArrowMarker})`
 				: undefined}
 			marker-end={connectionPreviewMarkers.end
-				? 'url(#knowledge-workspace-connection-arrow)'
+				? `url(#${connectionPreviewArrowMarker})`
 				: undefined}
 			class:target={Boolean(
 				connectionDrag.targetNodeId ||

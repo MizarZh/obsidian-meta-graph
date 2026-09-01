@@ -7,12 +7,21 @@ import type {
 	WorkspaceState,
 } from '../../core/types';
 import {
+	getActiveDefaultLinkArrowSize,
 	getActiveDefaultLinkStyle,
+	getActiveDefaultLinkArrowStyle,
+	getActiveDefaultLinkOpacity,
 	getActiveDefaultNodeStyle,
 	getActiveLinkStyleRules,
 	getActiveNodeStyleRules,
+	getActivePlainLinkArrowStyle,
+	getActivePlainLinkArrowSize,
+	getActivePlainLinkOpacity,
 	getActivePlainLinkStyle,
 	getActiveUnresolvedNodeStyle,
+	getActiveUnresolvedLinkArrowStyle,
+	getActiveUnresolvedLinkArrowSize,
+	getActiveUnresolvedLinkOpacity,
 	getActiveUnresolvedLinkStyle,
 } from '../../graph/styles/active-styles';
 import {
@@ -24,6 +33,9 @@ import {
 import type { GraphPalette } from '../../graph/styles/graph-styles';
 import { resolveNodeStyleContext } from '../../graph/styles/node-style-context';
 import {
+	resolveLinkArrowSize,
+	resolveLinkArrowStyle,
+	resolveLinkOpacity,
 	resolveLinkStyle,
 	resolveNodeStyle,
 	type NodeStyleContext,
@@ -39,6 +51,11 @@ export interface RuntimeVisibilityChanges {
 }
 
 const visibilityIndexes = new WeakMap<RuntimeGraph, RuntimeVisibilityIndex>();
+type ActiveLinkStyleWithArrow = ReturnType<typeof getActiveDefaultLinkStyle> & {
+	arrowStyle: ReturnType<typeof getActiveDefaultLinkArrowStyle>;
+	opacity: number;
+	arrowSize: number;
+};
 
 export function createWorkspaceRuntimeGraph(
 	projection: GraphProjection,
@@ -49,13 +66,28 @@ export function createWorkspaceRuntimeGraph(
 	return new GraphologyAdapter(
 		palette,
 		getActiveDefaultNodeStyle(state, palette.node),
-		getActiveDefaultLinkStyle(state, palette.edge),
+		{
+			...getActiveDefaultLinkStyle(state, palette.edge),
+			arrowStyle: getActiveDefaultLinkArrowStyle(state),
+			opacity: getActiveDefaultLinkOpacity(state),
+			arrowSize: getActiveDefaultLinkArrowSize(state),
+		},
 		getActiveNodeStyleRules(state),
 		getActiveLinkStyleRules(state),
 		createNodeStyleContexts(projection, state.grouping, state.manualLayout),
-		getActivePlainLinkStyle(state, palette.mutedEdge),
+		{
+			...getActivePlainLinkStyle(state, palette.mutedEdge),
+			arrowStyle: getActivePlainLinkArrowStyle(state),
+			opacity: getActivePlainLinkOpacity(state),
+			arrowSize: getActivePlainLinkArrowSize(state),
+		},
 		getActiveUnresolvedNodeStyle(state, palette.mutedNode),
-		getActiveUnresolvedLinkStyle(state, '#d97706'),
+		{
+			...getActiveUnresolvedLinkStyle(state, '#d97706'),
+			arrowStyle: getActiveUnresolvedLinkArrowStyle(state),
+			opacity: getActiveUnresolvedLinkOpacity(state),
+			arrowSize: getActiveUnresolvedLinkArrowSize(state),
+		},
 	).fromProjection(projection, positions);
 }
 
@@ -66,13 +98,28 @@ export function syncWorkspaceRuntimeGraphStyles(
 	palette: GraphPalette,
 ): void {
 	const defaultNodeStyle = getActiveDefaultNodeStyle(state, palette.node);
-	const defaultLinkStyle = getActiveDefaultLinkStyle(state, palette.edge);
-	const plainLinkStyle = getActivePlainLinkStyle(state, palette.mutedEdge);
+	const defaultLinkStyle = {
+		...getActiveDefaultLinkStyle(state, palette.edge),
+		arrowStyle: getActiveDefaultLinkArrowStyle(state),
+		opacity: getActiveDefaultLinkOpacity(state),
+		arrowSize: getActiveDefaultLinkArrowSize(state),
+	};
+	const plainLinkStyle = {
+		...getActivePlainLinkStyle(state, palette.mutedEdge),
+		arrowStyle: getActivePlainLinkArrowStyle(state),
+		opacity: getActivePlainLinkOpacity(state),
+		arrowSize: getActivePlainLinkArrowSize(state),
+	};
 	const unresolvedNodeStyle = getActiveUnresolvedNodeStyle(
 		state,
 		palette.mutedNode,
 	);
-	const unresolvedLinkStyle = getActiveUnresolvedLinkStyle(state, '#d97706');
+	const unresolvedLinkStyle = {
+		...getActiveUnresolvedLinkStyle(state, '#d97706'),
+		arrowStyle: getActiveUnresolvedLinkArrowStyle(state),
+		opacity: getActiveUnresolvedLinkOpacity(state),
+		arrowSize: getActiveUnresolvedLinkArrowSize(state),
+	};
 	const nodeRules = getActiveNodeStyleRules(state);
 	const linkRules = getActiveLinkStyleRules(state);
 	const nodeStyleContexts = createNodeStyleContexts(
@@ -125,7 +172,11 @@ export function syncWorkspaceRuntimeGraphStyles(
 			graph.mergeEdgeAttributes(edge.id, {
 				...style,
 				styleHidden: style.hidden,
-				type: getEdgeType(style.lineStyle, edge.directed),
+				type: getEdgeType(
+					style.lineStyle,
+					edge.directed,
+					style.arrowStyle,
+				),
 				kind: edge.kind,
 				semantic: edge.semantic ?? edge.kind !== 'plain-link',
 				hidden:
@@ -144,8 +195,8 @@ export function syncWorkspaceRuntimeGraphStyles(
 			const isLastSegment = target === attributes.logicalTarget;
 			const type =
 				edge.directed && isLastSegment
-					? getEdgeType(style.lineStyle, true)
-					: getEdgeType(style.lineStyle, false);
+					? getEdgeType(style.lineStyle, true, style.arrowStyle)
+					: getEdgeType(style.lineStyle, false, style.arrowStyle);
 			graph.mergeEdgeAttributes(runtimeEdgeId, {
 				...style,
 				styleHidden: style.hidden,
@@ -296,9 +347,9 @@ function createNodeStyleContexts(
 function resolveRuntimeLinkStyle(
 	edge: KnowledgeEdge,
 	linkRules: ReturnType<typeof getActiveLinkStyleRules>,
-	defaultLinkStyle: ReturnType<typeof getActiveDefaultLinkStyle>,
-	plainLinkStyle: ReturnType<typeof getActivePlainLinkStyle>,
-	unresolvedLinkStyle: ReturnType<typeof getActiveUnresolvedLinkStyle>,
+	defaultLinkStyle: ActiveLinkStyleWithArrow,
+	plainLinkStyle: ActiveLinkStyleWithArrow,
+	unresolvedLinkStyle: ActiveLinkStyleWithArrow,
 	palette: GraphPalette,
 ): {
 	color: string;
@@ -307,6 +358,9 @@ function resolveRuntimeLinkStyle(
 	label: string;
 	forceLabel: boolean;
 	lineStyle: ReturnType<typeof resolveLinkStyle>['lineStyle'];
+	arrowStyle: 'filled' | 'chevron';
+	opacity: number;
+	arrowSize: number;
 } {
 	const style = resolveLinkStyle(edge, linkRules, {
 		color: defaultLinkStyle.color || palette.edge,
@@ -317,6 +371,36 @@ function resolveRuntimeLinkStyle(
 			: '',
 		hidden: defaultLinkStyle.hidden,
 	});
+	const arrowStyle = resolveLinkArrowStyle(
+		edge,
+		linkRules,
+		defaultLinkStyle.arrowStyle,
+	);
+	const resolvedArrowStyle = isUnresolvedLinkEdge(edge)
+		? unresolvedLinkStyle.arrowStyle
+		: isPlainLinkEdge(edge)
+			? plainLinkStyle.arrowStyle
+			: arrowStyle;
+	const opacity = resolveLinkOpacity(
+		edge,
+		linkRules,
+		defaultLinkStyle.opacity,
+	);
+	const arrowSize = resolveLinkArrowSize(
+		edge,
+		linkRules,
+		defaultLinkStyle.arrowSize,
+	);
+	const resolvedOpacity = isUnresolvedLinkEdge(edge)
+		? unresolvedLinkStyle.opacity
+		: isPlainLinkEdge(edge)
+			? plainLinkStyle.opacity
+			: opacity;
+	const resolvedArrowSize = isUnresolvedLinkEdge(edge)
+		? unresolvedLinkStyle.arrowSize
+		: isPlainLinkEdge(edge)
+			? plainLinkStyle.arrowSize
+			: arrowSize;
 	const resolvedStyle = isUnresolvedLinkEdge(edge)
 		? {
 				...style,
@@ -343,6 +427,9 @@ function resolveRuntimeLinkStyle(
 		label: resolvedStyle.label,
 		forceLabel: Boolean(resolvedStyle.label),
 		lineStyle: resolvedStyle.lineStyle,
+		arrowStyle: resolvedArrowStyle,
+		opacity: resolvedOpacity,
+		arrowSize: resolvedArrowSize,
 	};
 }
 

@@ -264,7 +264,9 @@ export class Force3DRenderer {
 				return true;
 			})
 			.linkDirectionalArrowLength((link) =>
-				link.directed ? Math.max(2.5, link.size * 2.5) : 0,
+				link.directed
+					? Math.max(2.5, link.size * 2.5 * (link.arrowSize ?? 1))
+					: 0,
 			)
 			.linkDirectionalArrowRelPos(1)
 			.linkDirectionalArrowColor((link) => this.getLinkColor(link))
@@ -774,7 +776,9 @@ export class Force3DRenderer {
 			.linkColor((link: Force3DLink) => this.getLinkColor(link))
 			.linkWidth((link: Force3DLink) => Math.max(0.4, link.size))
 			.linkDirectionalArrowLength((link: Force3DLink) =>
-				link.directed ? Math.max(2.5, link.size * 2.5) : 0,
+				link.directed
+					? Math.max(2.5, link.size * 2.5 * (link.arrowSize ?? 1))
+					: 0,
 			)
 			.linkDirectionalArrowColor((link: Force3DLink) =>
 				this.getLinkColor(link),
@@ -978,15 +982,16 @@ export class Force3DRenderer {
 	}
 
 	private getLinkColor(link: Force3DLink): string {
+		const opacity = Math.max(0, Math.min(1, link.opacity ?? 1));
 		const activeHoverNodeId = this.getActiveHoverNodeId();
 		if (
 			activeHoverNodeId &&
 			(!this.hoveredNeighborhood.has(getLinkEndpointId(link.source)) ||
 				!this.hoveredNeighborhood.has(getLinkEndpointId(link.target)))
 		) {
-			return withAlpha(link.color, 0.12);
+			return withAlpha(link.color, opacity * 0.12);
 		}
-		return link.color;
+		return withAlpha(link.color, opacity);
 	}
 
 	private formatNodeLabel(node: Force3DNode): string {

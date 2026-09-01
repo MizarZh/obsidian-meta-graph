@@ -3,6 +3,7 @@ import type {
 	GraphProjection,
 	KnowledgeEdgeKind,
 	KnowledgeNodeKind,
+	LinkArrowStyle,
 	LinkLineStyle,
 	LinkStyleRule,
 	NodeStyleRule,
@@ -14,6 +15,9 @@ import type {
 import type { GraphPalette } from '../styles/graph-styles';
 import {
 	resolveLinkStyle,
+	resolveLinkArrowSize,
+	resolveLinkArrowStyle,
+	resolveLinkOpacity,
 	resolveNodeStyle,
 	type NodeStyleContext,
 } from '../styles/style-rules';
@@ -53,12 +57,15 @@ export interface RuntimeEdgeAttributes {
 	sourceField?: string;
 	type: string;
 	size: number;
+	opacity?: number;
 	color: string;
 	hidden: boolean;
 	styleHidden?: boolean;
 	label: string;
 	forceLabel: boolean;
 	lineStyle: LinkLineStyle;
+	arrowStyle?: LinkArrowStyle;
+	arrowSize?: number;
 	kind?: KnowledgeEdgeKind;
 	semantic?: boolean;
 	logicalEdgeId?: string;
@@ -94,6 +101,9 @@ export class GraphologyAdapter {
 			color: palette.mutedEdge,
 			size: 1,
 			lineStyle: 'dashed',
+			arrowStyle: 'filled',
+			opacity: 1,
+			arrowSize: 1,
 			label: '',
 			showLabel: false,
 			hidden: false,
@@ -107,6 +117,9 @@ export class GraphologyAdapter {
 			color: '#d97706',
 			size: 1,
 			lineStyle: 'dotted',
+			arrowStyle: 'filled',
+			opacity: 1,
+			arrowSize: 1,
 			label: '',
 			showLabel: false,
 			hidden: false,
@@ -120,7 +133,10 @@ export class GraphologyAdapter {
 			? {
 					color: palette.edge,
 					size: 1.5,
+					opacity: 1,
 					lineStyle: 'solid',
+					arrowStyle: 'filled',
+					arrowSize: 1,
 					label: '',
 					showLabel: false,
 					hidden: false,
@@ -197,6 +213,33 @@ export class GraphologyAdapter {
 					: '',
 				hidden: this.defaultLinkStyle.hidden,
 			});
+			const resolvedArrowStyle = isUnresolvedLinkEdge(edge)
+				? this.unresolvedLinkStyle.arrowStyle
+				: isPlainLinkEdge(edge)
+					? this.plainLinkStyle.arrowStyle
+					: resolveLinkArrowStyle(
+							edge,
+							this.linkStyleRules,
+							this.defaultLinkStyle.arrowStyle,
+						);
+			const resolvedOpacity = isUnresolvedLinkEdge(edge)
+				? this.unresolvedLinkStyle.opacity
+				: isPlainLinkEdge(edge)
+					? this.plainLinkStyle.opacity
+					: resolveLinkOpacity(
+							edge,
+							this.linkStyleRules,
+							this.defaultLinkStyle.opacity,
+						);
+			const resolvedArrowSize = isUnresolvedLinkEdge(edge)
+				? this.unresolvedLinkStyle.arrowSize
+				: isPlainLinkEdge(edge)
+					? this.plainLinkStyle.arrowSize
+					: resolveLinkArrowSize(
+							edge,
+							this.linkStyleRules,
+							this.defaultLinkStyle.arrowSize,
+						);
 			const resolvedStyle = isUnresolvedLinkEdge(edge)
 				? {
 						...style,
@@ -220,12 +263,19 @@ export class GraphologyAdapter {
 				relation: edge.relation,
 				sourcePath: edge.sourcePath,
 				sourceField: edge.sourceField,
-				type: getEdgeType(resolvedStyle.lineStyle, edge.directed),
+				type: getEdgeType(
+					resolvedStyle.lineStyle,
+					edge.directed,
+					resolvedArrowStyle,
+				),
 				size: resolvedStyle.size,
+				opacity: resolvedOpacity,
 				color: resolvedStyle.color,
 				label: resolvedStyle.label,
 				forceLabel: Boolean(resolvedStyle.label),
 				lineStyle: resolvedStyle.lineStyle,
+				arrowStyle: resolvedArrowStyle,
+				arrowSize: resolvedArrowSize,
 				kind: edge.kind,
 				semantic: edge.semantic ?? edge.kind !== 'plain-link',
 				styleHidden: resolvedStyle.hidden,
@@ -271,11 +321,17 @@ function isUnresolvedLinkEdge(edge: { kind?: KnowledgeEdgeKind }): boolean {
 export function getEdgeType(
 	lineStyle: LinkLineStyle,
 	directed: boolean,
+	arrowStyle: LinkArrowStyle = 'filled',
 ): string {
-	if (lineStyle === 'solid') {
-		return directed ? 'arrow' : 'line';
+	if (!directed) {
+		return lineStyle === 'solid' ? 'line' : lineStyle;
 	}
-	return directed ? `${lineStyle}-arrow` : lineStyle;
+	if (arrowStyle === 'chevron') {
+		return lineStyle === 'solid'
+			? 'chevron-arrow'
+			: `${lineStyle}-chevron-arrow`;
+	}
+	return lineStyle === 'solid' ? 'arrow' : `${lineStyle}-arrow`;
 }
 
 function createInitialPosition(

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { GraphProjection } from '../core/types';
 import {
 	GraphologyAdapter,
+	getEdgeType,
 	type GraphPosition,
 } from '../graph/model/graphology-adapter';
 import type { GraphPalette } from '../graph/styles/graph-styles';
@@ -46,6 +47,20 @@ const projection: GraphProjection = {
 };
 
 describe('GraphologyAdapter positions', () => {
+	it('maps chevron arrows for each directed line style', () => {
+		expect(getEdgeType('solid', true, 'chevron')).toBe('chevron-arrow');
+		expect(getEdgeType('dashed', true, 'chevron')).toBe(
+			'dashed-chevron-arrow',
+		);
+		expect(getEdgeType('dotted', true, 'chevron')).toBe(
+			'dotted-chevron-arrow',
+		);
+		expect(getEdgeType('dash-dot', true, 'chevron')).toBe(
+			'dash-dot-chevron-arrow',
+		);
+		expect(getEdgeType('solid', false, 'chevron')).toBe('line');
+	});
+
 	it.each([
 		['LR', 'RIGHT'],
 		['RL', 'LEFT'],

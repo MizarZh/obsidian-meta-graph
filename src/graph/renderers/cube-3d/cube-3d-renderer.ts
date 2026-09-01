@@ -1,6 +1,7 @@
 import type * as Three from 'three';
 import type {
 	LabelPosition,
+	LinkArrowStyle,
 	ManualLayoutConfig,
 	ThreeLabelResolution,
 } from '../../../core/types';
@@ -898,8 +899,21 @@ export class Cube3DRenderer {
 		const material = new this.three.LineMaterial({
 			color: attributes.color,
 			linewidth: getCubeLinkWidth(attributes.size),
+			dashed: attributes.lineStyle !== 'solid',
+			dashSize:
+				attributes.lineStyle === 'dotted'
+					? 2
+					: attributes.lineStyle === 'dash-dot'
+						? 10
+						: 10,
+			gapSize:
+				attributes.lineStyle === 'dotted'
+					? 5
+					: attributes.lineStyle === 'dash-dot'
+						? 7
+						: 7,
 			transparent: true,
-			opacity: 0.72,
+			opacity: attributes.opacity ?? 1,
 			depthWrite: false,
 		});
 		this.updateEdgeLineResolution(material);
@@ -933,11 +947,12 @@ export class Cube3DRenderer {
 			return;
 		}
 		const normalized = direction.normalize();
-		const size = getCubeArrowSize(attributes.size);
+		const size =
+			getCubeArrowSize(attributes.size) * (attributes.arrowSize ?? 1);
 		const material = new this.three.SpriteMaterial({
-			map: this.getArrowTexture(attributes.color),
+			map: this.getArrowTexture(attributes.color, attributes.arrowStyle),
 			transparent: true,
-			opacity: 0.88,
+			opacity: (attributes.opacity ?? 1) * 0.88,
 			depthWrite: false,
 			depthTest: false,
 		});
@@ -954,8 +969,12 @@ export class Cube3DRenderer {
 		this.edgeGroup.add(arrow);
 	}
 
-	private getArrowTexture(color: string): Three.CanvasTexture {
-		const cached = this.arrowTextures.get(color);
+	private getArrowTexture(
+		color: string,
+		arrowStyle: LinkArrowStyle = 'filled',
+	): Three.CanvasTexture {
+		const key = `${color}:${arrowStyle}`;
+		const cached = this.arrowTextures.get(key);
 		if (cached) {
 			return cached;
 		}
@@ -963,8 +982,9 @@ export class Cube3DRenderer {
 			this.three,
 			this.container.ownerDocument,
 			color,
+			arrowStyle,
 		);
-		this.arrowTextures.set(color, texture);
+		this.arrowTextures.set(key, texture);
 		return texture;
 	}
 

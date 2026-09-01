@@ -4,6 +4,7 @@ import type {
 	RuntimeNodeAttributes,
 } from '../../model/graphology-adapter';
 import type { GraphPalette } from '../../styles/graph-styles';
+import { withAlpha } from '../../styles/graph-styles';
 
 export interface SigmaHoverState {
 	activeHoverNodeId?: string;
@@ -64,9 +65,11 @@ export function reduceSigmaEdge(
 	palette: GraphPalette,
 	extremities: readonly [string, string],
 ): Partial<EdgeDisplayData> {
+	const opacity = Math.max(0, Math.min(1, data.opacity ?? 1));
+	const color = withAlpha(data.color, opacity);
 	const activeHoverNodeId = state.activeHoverNodeId;
 	if (!activeHoverNodeId) {
-		return { ...data };
+		return opacity === 1 ? { ...data } : { ...data, color };
 	}
 	const [source, target] = extremities;
 	const connected =
@@ -75,10 +78,18 @@ export function reduceSigmaEdge(
 		data.logicalSource === activeHoverNodeId ||
 		data.logicalTarget === activeHoverNodeId;
 	return connected
-		? { ...data, size: data.size + 1, zIndex: 2 }
+		? {
+				...data,
+				...(opacity === 1 ? {} : { color }),
+				size: data.size + 1,
+				zIndex: 2,
+			}
 		: {
 				...data,
-				color: palette.mutedEdge,
+				color:
+					opacity === 1
+						? palette.mutedEdge
+						: withAlpha(palette.mutedEdge, opacity * 0.12),
 				size: 0.4,
 				zIndex: 0,
 			};

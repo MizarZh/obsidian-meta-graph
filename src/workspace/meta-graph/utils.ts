@@ -1,5 +1,6 @@
 import type {
 	LabelPosition,
+	LinkArrowStyle,
 	LinkLineStyle,
 	NodeFilterField,
 	NodeFilterGroupMode,
@@ -142,9 +143,45 @@ export function readLinkLineStyle(
 export function readOptionalLinkLineStyle(
 	value: unknown,
 ): LinkLineStyle | undefined {
-	return value === 'solid' || value === 'dashed' || value === 'dotted'
+	return value === 'solid' ||
+		value === 'dashed' ||
+		value === 'dotted' ||
+		value === 'dash-dot'
 		? value
 		: undefined;
+}
+
+export function readLinkOpacity(value: unknown, fallback: number): number {
+	return clampNumber(readFiniteNumber(value, fallback), 0, 1);
+}
+
+export function readOptionalLinkOpacity(value: unknown): number | undefined {
+	return typeof value === 'number' && Number.isFinite(value)
+		? clampNumber(value, 0, 1)
+		: undefined;
+}
+
+export function readLinkArrowSize(value: unknown, fallback: number): number {
+	return clampNumber(readFiniteNumber(value, fallback), 0.25, 3);
+}
+
+export function readOptionalLinkArrowSize(value: unknown): number | undefined {
+	return typeof value === 'number' && Number.isFinite(value)
+		? clampNumber(value, 0.25, 3)
+		: undefined;
+}
+
+export function readLinkArrowStyle(
+	value: unknown,
+	fallback: LinkArrowStyle,
+): LinkArrowStyle {
+	return readOptionalLinkArrowStyle(value) ?? fallback;
+}
+
+export function readOptionalLinkArrowStyle(
+	value: unknown,
+): LinkArrowStyle | undefined {
+	return value === 'filled' || value === 'chevron' ? value : undefined;
 }
 
 export function readFilterField(value: unknown): NodeFilterField | undefined {

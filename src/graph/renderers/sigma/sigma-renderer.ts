@@ -14,8 +14,14 @@ import {
 } from '../renderer-label-style';
 import { calculateLabelOpacity } from './label-opacity';
 import {
+	ChevronArrowEdgeProgram,
+	DashDotArrowEdgeProgram,
+	DashDotChevronArrowEdgeProgram,
+	DashDotEdgeProgram,
+	DashedChevronArrowEdgeProgram,
 	DashedArrowEdgeProgram,
 	DashedEdgeProgram,
+	DottedChevronArrowEdgeProgram,
 	DottedArrowEdgeProgram,
 	DottedEdgeProgram,
 } from './patterned-edge-program';
@@ -120,8 +126,14 @@ export class SigmaRenderer {
 					>(),
 					dashed: DashedEdgeProgram,
 					'dashed-arrow': DashedArrowEdgeProgram,
+					'chevron-arrow': ChevronArrowEdgeProgram,
+					'dashed-chevron-arrow': DashedChevronArrowEdgeProgram,
 					dotted: DottedEdgeProgram,
 					'dotted-arrow': DottedArrowEdgeProgram,
+					'dotted-chevron-arrow': DottedChevronArrowEdgeProgram,
+					'dash-dot': DashDotEdgeProgram,
+					'dash-dot-arrow': DashDotArrowEdgeProgram,
+					'dash-dot-chevron-arrow': DashDotChevronArrowEdgeProgram,
 				},
 				nodeProgramClasses: {
 					square: NodeSquareProgram,

@@ -1,5 +1,5 @@
 import type * as Three from 'three';
-import type { NodeShape } from '../../../core/types';
+import type { LinkArrowStyle, NodeShape } from '../../../core/types';
 import type { RuntimeNodeAttributes } from '../../model/graphology-adapter';
 import { createThreeTextSprite } from '../renderer-labels';
 import type { ThreeModule } from './cube-three';
@@ -110,6 +110,7 @@ export function createCubeArrowTexture(
 	three: Pick<ThreeModule, 'CanvasTexture'>,
 	ownerDocument: Document,
 	color: string,
+	arrowStyle: LinkArrowStyle = 'filled',
 ): Three.CanvasTexture {
 	const canvasSize = 64;
 	const canvas = ownerDocument.createElement('canvas');
@@ -118,14 +119,25 @@ export function createCubeArrowTexture(
 	const context = canvas.getContext('2d');
 	if (context) {
 		context.clearRect(0, 0, canvasSize, canvasSize);
+		context.strokeStyle = color;
 		context.fillStyle = color;
+		context.lineWidth = 8;
+		context.lineCap = 'round';
+		context.lineJoin = 'round';
 		context.beginPath();
-		context.moveTo(52, 32);
-		context.lineTo(22, 14);
-		context.lineTo(28, 32);
-		context.lineTo(22, 50);
-		context.closePath();
-		context.fill();
+		if (arrowStyle === 'chevron') {
+			context.moveTo(16, 14);
+			context.lineTo(48, 32);
+			context.lineTo(16, 50);
+			context.stroke();
+		} else {
+			context.moveTo(52, 32);
+			context.lineTo(22, 14);
+			context.lineTo(28, 32);
+			context.lineTo(22, 50);
+			context.closePath();
+			context.fill();
+		}
 	}
 	return new three.CanvasTexture(canvas);
 }

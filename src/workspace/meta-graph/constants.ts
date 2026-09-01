@@ -58,7 +58,10 @@ export const BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE: Required<DefaultNodeStyle> 
 export const BUILT_IN_DEFAULT_LINK_STYLE: Required<DefaultLinkStyle> = {
 	color: '#888888',
 	size: 1.5,
+	opacity: 1,
 	lineStyle: 'solid',
+	arrowStyle: 'filled',
+	arrowSize: 1,
 	label: '',
 	showLabel: false,
 	hidden: false,
@@ -67,7 +70,10 @@ export const BUILT_IN_DEFAULT_LINK_STYLE: Required<DefaultLinkStyle> = {
 export const BUILT_IN_DEFAULT_PLAIN_LINK_STYLE: Required<DefaultLinkStyle> = {
 	color: '#666666',
 	size: 1,
+	opacity: 1,
 	lineStyle: 'dashed',
+	arrowStyle: 'filled',
+	arrowSize: 1,
 	label: '',
 	showLabel: false,
 	hidden: false,
@@ -77,7 +83,10 @@ export const BUILT_IN_DEFAULT_UNRESOLVED_LINK_STYLE: Required<DefaultLinkStyle> 
 	{
 		color: '#d97706',
 		size: 1,
+		opacity: 1,
 		lineStyle: 'dotted',
+		arrowStyle: 'filled',
+		arrowSize: 1,
 		label: '',
 		showLabel: false,
 		hidden: false,

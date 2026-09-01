@@ -6,6 +6,9 @@ import type {
 	NodeStyleRule,
 } from '../core/types';
 import {
+	resolveLinkArrowSize,
+	resolveLinkArrowStyle,
+	resolveLinkOpacity,
 	resolveLinkStyle,
 	resolveNodeStyle,
 } from '../graph/styles/style-rules';
@@ -45,7 +48,10 @@ describe('style rules', () => {
 		expect(state.defaultLinkStyle).toEqual({
 			color: '#888888',
 			size: 1.5,
+			opacity: 1,
 			lineStyle: 'solid',
+			arrowStyle: 'filled',
+			arrowSize: 1,
 			label: '',
 			showLabel: false,
 			hidden: false,
@@ -494,6 +500,46 @@ describe('style rules', () => {
 			label: 'Flow',
 			hidden: true,
 		});
+	});
+
+	it('resolves arrow styles without overriding legacy rules', () => {
+		const rule: LinkStyleRule = {
+			id: 'arrow',
+			field: 'relation',
+			value: 'leads-to',
+			color: '#444444',
+			size: 3,
+			lineStyle: 'solid',
+			arrowStyle: 'chevron',
+			label: '',
+			showLabel: false,
+			hidden: false,
+		};
+		const legacyRule = { ...rule, arrowStyle: undefined };
+
+		expect(resolveLinkArrowStyle(edge, [legacyRule], 'chevron')).toBe(
+			'chevron',
+		);
+		expect(resolveLinkArrowStyle(edge, [rule], 'filled')).toBe('chevron');
+	});
+
+	it('resolves link opacity and arrow size from matching rules', () => {
+		const rule: LinkStyleRule = {
+			id: 'visuals',
+			field: 'relation',
+			value: 'leads-to',
+			color: '#444444',
+			size: 3,
+			opacity: 0.42,
+			lineStyle: 'dash-dot',
+			arrowSize: 1.8,
+			label: '',
+			showLabel: false,
+			hidden: false,
+		};
+
+		expect(resolveLinkOpacity(edge, [rule], 1)).toBe(0.42);
+		expect(resolveLinkArrowSize(edge, [rule], 1)).toBe(1.8);
 	});
 
 	it('uses the same default link color for every relation', () => {

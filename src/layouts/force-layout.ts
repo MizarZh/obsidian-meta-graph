@@ -171,6 +171,7 @@ function createForceAtlasGroupGraph(
 			label: '',
 			forceLabel: false,
 			lineStyle: 'solid',
+			arrowStyle: 'filled',
 			semantic: false,
 			weight: 2,
 		};

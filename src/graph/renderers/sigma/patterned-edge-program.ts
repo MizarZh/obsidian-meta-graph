@@ -1,6 +1,6 @@
 import {
 	EdgeProgram,
-	createEdgeArrowHeadProgram,
+	createEdgeClampedProgram,
 	createEdgeCompoundProgram,
 } from 'sigma/rendering';
 import type {
@@ -66,7 +66,18 @@ interface ProgramInfo {
 	uniformLocations: Record<string, WebGLUniformLocation>;
 }
 
-function createPatternedEdgeProgram(dashLength: number, gapLength: number) {
+function createPatternedEdgeProgram(pattern: readonly number[]) {
+	const cycle = pattern.reduce((total, length) => total + length, 0);
+	let offset = 0;
+	const drawRanges: string[] = [];
+	for (const [index, length] of pattern.entries()) {
+		if (index % 2 === 0) {
+			drawRanges.push(
+				`(position >= ${offset.toFixed(1)} && position < ${(offset + length).toFixed(1)})`,
+			);
+		}
+		offset += length;
+	}
 	const fragmentShaderSource = /* glsl */ `
 precision mediump float;
 
@@ -74,8 +85,8 @@ varying vec4 v_color;
 varying float v_distance;
 
 void main(void) {
-	float cycle = ${dashLength.toFixed(1)} + ${gapLength.toFixed(1)};
-	if (mod(v_distance, cycle) > ${dashLength.toFixed(1)}) {
+	float position = mod(v_distance, ${cycle.toFixed(1)});
+	if (!(${drawRanges.join(' || ')})) {
 		discard;
 	}
 	gl_FragColor = v_color;
@@ -198,17 +209,304 @@ void main(void) {
 	};
 }
 
-const DashedEdgeProgram = createPatternedEdgeProgram(10, 7);
-const DottedEdgeProgram = createPatternedEdgeProgram(2, 5);
+const DashedEdgeProgram = createPatternedEdgeProgram([10, 7]);
+const DottedEdgeProgram = createPatternedEdgeProgram([2, 5]);
+const DashDotEdgeProgram = createPatternedEdgeProgram([10, 5, 2, 5]);
+
+const ARROW_HEAD_VERTEX_SHADER_SOURCE = /* glsl */ `
+attribute vec2 a_position;
+attribute vec2 a_normal;
+attribute float a_radius;
+attribute float a_arrowSize;
+attribute vec3 a_barycentric;
+
+#ifdef PICKING_MODE
+attribute vec4 a_id;
+#else
+attribute vec4 a_color;
+#endif
+
+uniform mat3 u_matrix;
+uniform float u_sizeRatio;
+uniform float u_correctionRatio;
+uniform float u_minEdgeThickness;
+uniform float u_lengthToThicknessRatio;
+uniform float u_widenessToThicknessRatio;
+
+varying vec4 v_color;
+varying vec3 v_barycentric;
+
+const float bias = 255.0 / 254.0;
+
+void main() {
+	float minThickness = u_minEdgeThickness;
+	float normalLength = length(a_normal);
+	vec2 unitNormal = a_normal / normalLength;
+	float pixelsThickness = max(normalLength / u_sizeRatio, minThickness);
+	float webGLThickness = pixelsThickness * u_correctionRatio;
+	float webGLNodeRadius = a_radius * 2.0 * u_correctionRatio / u_sizeRatio;
+	float arrowScale = max(a_arrowSize, 0.25);
+	float webGLArrowHeadLength =
+		webGLThickness * u_lengthToThicknessRatio * 2.0 * arrowScale;
+	float webGLArrowHeadThickness =
+		webGLThickness * u_widenessToThicknessRatio * arrowScale;
+
+	float da = a_barycentric.x;
+	float db = a_barycentric.y;
+	float dc = a_barycentric.z;
+	vec2 delta = vec2(
+		da * (webGLNodeRadius * unitNormal.y)
+		+ db * ((webGLNodeRadius + webGLArrowHeadLength) * unitNormal.y + webGLArrowHeadThickness * unitNormal.x)
+		+ dc * ((webGLNodeRadius + webGLArrowHeadLength) * unitNormal.y - webGLArrowHeadThickness * unitNormal.x),
+		da * (-webGLNodeRadius * unitNormal.x)
+		+ db * (-(webGLNodeRadius + webGLArrowHeadLength) * unitNormal.x + webGLArrowHeadThickness * unitNormal.y)
+		+ dc * (-(webGLNodeRadius + webGLArrowHeadLength) * unitNormal.x - webGLArrowHeadThickness * unitNormal.y)
+	);
+
+	gl_Position = vec4((u_matrix * vec3(a_position + delta, 1.0)).xy, 0.0, 1.0);
+	v_barycentric = a_barycentric;
+
+	#ifdef PICKING_MODE
+	v_color = a_id;
+	#else
+	v_color = a_color;
+	#endif
+	v_color.a *= bias;
+}
+`;
+
+const FILLED_ARROW_HEAD_FRAGMENT_SHADER_SOURCE = /* glsl */ `
+precision mediump float;
+
+varying vec4 v_color;
+
+void main(void) {
+	gl_FragColor = v_color;
+}
+`;
+
+const CHEVRON_ARROW_HEAD_FRAGMENT_SHADER_SOURCE = /* glsl */ `
+precision mediump float;
+
+varying vec4 v_color;
+varying vec3 v_barycentric;
+
+void main(void) {
+	#ifdef PICKING_MODE
+	gl_FragColor = v_color;
+	#else
+	// Keep only the two visible wings of the triangle: a hollow chevron.
+	float wingDistance = min(v_barycentric.y, v_barycentric.z);
+	// A slightly wider feather keeps the open wings readable at normal zoom.
+	float alpha = 1.0 - smoothstep(0.07, 0.22, wingDistance);
+	if (alpha < 0.01) {
+		discard;
+	}
+	gl_FragColor = vec4(v_color.rgb, v_color.a * alpha);
+	#endif
+}
+`;
+
+function createArrowHeadProgram(
+	fragmentShaderSource: string,
+	options: {
+		lengthToThicknessRatio?: number;
+		widenessToThicknessRatio?: number;
+	} = {},
+) {
+	const lengthToThicknessRatio = options.lengthToThicknessRatio ?? 2.5;
+	const widenessToThicknessRatio = options.widenessToThicknessRatio ?? 2;
+	return class ArrowHeadProgram extends EdgeProgram<
+		| 'u_matrix'
+		| 'u_sizeRatio'
+		| 'u_correctionRatio'
+		| 'u_minEdgeThickness'
+		| 'u_lengthToThicknessRatio'
+		| 'u_widenessToThicknessRatio',
+		RuntimeNodeAttributes,
+		RuntimeEdgeAttributes
+	> {
+		getDefinition() {
+			return {
+				VERTICES: 3,
+				VERTEX_SHADER_SOURCE: ARROW_HEAD_VERTEX_SHADER_SOURCE,
+				FRAGMENT_SHADER_SOURCE: fragmentShaderSource,
+				METHOD: WebGLRenderingContext.TRIANGLES,
+				UNIFORMS: [
+					'u_matrix',
+					'u_sizeRatio',
+					'u_correctionRatio',
+					'u_minEdgeThickness',
+					'u_lengthToThicknessRatio',
+					'u_widenessToThicknessRatio',
+				] as const,
+				ATTRIBUTES: [
+					{
+						name: 'a_position',
+						size: 2,
+						type: WebGLRenderingContext.FLOAT,
+					},
+					{
+						name: 'a_normal',
+						size: 2,
+						type: WebGLRenderingContext.FLOAT,
+					},
+					{
+						name: 'a_radius',
+						size: 1,
+						type: WebGLRenderingContext.FLOAT,
+					},
+					{
+						name: 'a_arrowSize',
+						size: 1,
+						type: WebGLRenderingContext.FLOAT,
+					},
+					{
+						name: 'a_color',
+						size: 4,
+						type: WebGLRenderingContext.UNSIGNED_BYTE,
+						normalized: true,
+					},
+					{
+						name: 'a_id',
+						size: 4,
+						type: WebGLRenderingContext.UNSIGNED_BYTE,
+						normalized: true,
+					},
+				],
+				CONSTANT_ATTRIBUTES: [
+					{
+						name: 'a_barycentric',
+						size: 3,
+						type: WebGLRenderingContext.FLOAT,
+					},
+				],
+				CONSTANT_DATA: [
+					[1, 0, 0],
+					[0, 1, 0],
+					[0, 0, 1],
+				],
+			};
+		}
+
+		processVisibleItem(
+			edgeIndex: number,
+			startIndex: number,
+			sourceData: NodeDisplayData,
+			targetData: NodeDisplayData,
+			data: EdgeDisplayData,
+		): void {
+			const thickness = data.size || 1;
+			const radius = targetData.size || 1;
+			const x1 = sourceData.x;
+			const y1 = sourceData.y;
+			const x2 = targetData.x;
+			const y2 = targetData.y;
+			const color = floatColor(data.color);
+			const arrowSizeValue = (
+				data as EdgeDisplayData & { arrowSize?: number }
+			).arrowSize;
+			const arrowSize =
+				typeof arrowSizeValue === 'number' ? arrowSizeValue : 1;
+			let dx = x2 - x1;
+			let dy = y2 - y1;
+			let length = dx * dx + dy * dy;
+			let normalX = 0;
+			let normalY = 0;
+			if (length) {
+				length = 1 / Math.sqrt(length);
+				normalX = -dy * length * thickness;
+				normalY = dx * length * thickness;
+			}
+			this.array[startIndex++] = x2;
+			this.array[startIndex++] = y2;
+			this.array[startIndex++] = -normalX;
+			this.array[startIndex++] = -normalY;
+			this.array[startIndex++] = radius;
+			this.array[startIndex++] = arrowSize;
+			this.array[startIndex++] = color;
+			this.array[startIndex] = edgeIndex;
+		}
+
+		setUniforms(
+			params: RenderParams,
+			{ gl, uniformLocations }: ProgramInfo,
+		): void {
+			gl.uniformMatrix3fv(
+				uniformLocations.u_matrix!,
+				false,
+				params.matrix,
+			);
+			gl.uniform1f(uniformLocations.u_sizeRatio!, params.sizeRatio);
+			gl.uniform1f(
+				uniformLocations.u_correctionRatio!,
+				params.correctionRatio,
+			);
+			gl.uniform1f(
+				uniformLocations.u_minEdgeThickness!,
+				params.minEdgeThickness,
+			);
+			gl.uniform1f(
+				uniformLocations.u_lengthToThicknessRatio!,
+				lengthToThicknessRatio,
+			);
+			gl.uniform1f(
+				uniformLocations.u_widenessToThicknessRatio!,
+				widenessToThicknessRatio,
+			);
+		}
+	};
+}
+
+const FilledArrowHeadProgram = createArrowHeadProgram(
+	FILLED_ARROW_HEAD_FRAGMENT_SHADER_SOURCE,
+);
+const ChevronArrowHeadProgram = createArrowHeadProgram(
+	CHEVRON_ARROW_HEAD_FRAGMENT_SHADER_SOURCE,
+	{
+		lengthToThicknessRatio: 2.25,
+		widenessToThicknessRatio: 2.75,
+	},
+);
+
+export const ArrowEdgeProgram = createEdgeCompoundProgram<
+	RuntimeNodeAttributes,
+	RuntimeEdgeAttributes
+>([createEdgeClampedProgram(), FilledArrowHeadProgram]);
 
 export const DashedArrowEdgeProgram = createEdgeCompoundProgram<
 	RuntimeNodeAttributes,
 	RuntimeEdgeAttributes
->([DashedEdgeProgram, createEdgeArrowHeadProgram()]);
+>([DashedEdgeProgram, FilledArrowHeadProgram]);
 
 export const DottedArrowEdgeProgram = createEdgeCompoundProgram<
 	RuntimeNodeAttributes,
 	RuntimeEdgeAttributes
->([DottedEdgeProgram, createEdgeArrowHeadProgram()]);
+>([DottedEdgeProgram, FilledArrowHeadProgram]);
 
-export { DashedEdgeProgram, DottedEdgeProgram };
+export const DashDotArrowEdgeProgram = createEdgeCompoundProgram<
+	RuntimeNodeAttributes,
+	RuntimeEdgeAttributes
+>([DashDotEdgeProgram, FilledArrowHeadProgram]);
+
+export const ChevronArrowEdgeProgram = createEdgeCompoundProgram<
+	RuntimeNodeAttributes,
+	RuntimeEdgeAttributes
+>([createEdgeClampedProgram(), ChevronArrowHeadProgram]);
+
+export const DashedChevronArrowEdgeProgram = createEdgeCompoundProgram<
+	RuntimeNodeAttributes,
+	RuntimeEdgeAttributes
+>([DashedEdgeProgram, ChevronArrowHeadProgram]);
+
+export const DottedChevronArrowEdgeProgram = createEdgeCompoundProgram<
+	RuntimeNodeAttributes,
+	RuntimeEdgeAttributes
+>([DottedEdgeProgram, ChevronArrowHeadProgram]);
+
+export const DashDotChevronArrowEdgeProgram = createEdgeCompoundProgram<
+	RuntimeNodeAttributes,
+	RuntimeEdgeAttributes
+>([DashDotEdgeProgram, ChevronArrowHeadProgram]);
+
+export { DashDotEdgeProgram, DashedEdgeProgram, DottedEdgeProgram };

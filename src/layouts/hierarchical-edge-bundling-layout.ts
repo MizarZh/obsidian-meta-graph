@@ -5,7 +5,10 @@ import {
 	type HierarchyPointNode,
 } from 'd3-hierarchy';
 import type { ChartGroupDefinition } from '../core/types';
-import type { RuntimeGraph } from '../graph/model/graphology-adapter';
+import {
+	getEdgeType,
+	type RuntimeGraph,
+} from '../graph/model/graphology-adapter';
 import {
 	scaleLayoutGroupPadding,
 	type RadialGroupGeometry,
@@ -167,14 +170,11 @@ function applyBundledEdges(
 			const lastSegment = index === pathNodes.length - 2;
 			const segmentAttributes = {
 				...attributes,
-				type:
-					directed && lastSegment
-						? attributes.lineStyle === 'solid'
-							? 'arrow'
-							: `${attributes.lineStyle}-arrow`
-						: attributes.lineStyle === 'solid'
-							? 'line'
-							: attributes.lineStyle,
+				type: getEdgeType(
+					attributes.lineStyle,
+					directed && lastSegment,
+					attributes.arrowStyle,
+				),
 				label: index === labelSegment ? attributes.label : '',
 				forceLabel: index === labelSegment && Boolean(attributes.label),
 				logicalEdgeId: edge,

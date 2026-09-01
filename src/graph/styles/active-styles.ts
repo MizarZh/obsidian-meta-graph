@@ -1,6 +1,7 @@
 import type {
 	DefaultLinkStyle,
 	DefaultNodeStyle,
+	LinkArrowStyle,
 	LinkStyleRule,
 	NodeStyleRule,
 	WorkspaceState,
@@ -9,6 +10,11 @@ import {
 	BUILT_IN_DEFAULT_NODE_STYLE,
 	BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE,
 } from '../../workspace/meta-graph/constants';
+
+type ActiveLinkStyle = Omit<
+	Required<DefaultLinkStyle>,
+	'arrowStyle' | 'opacity' | 'arrowSize'
+>;
 
 export function getActiveNodeStyleRules(
 	state: Pick<WorkspaceState, 'globalNodeStyleRules' | 'nodeStyleRules'>,
@@ -42,7 +48,7 @@ export function getActiveDefaultNodeStyle(
 export function getActiveDefaultLinkStyle(
 	state: Pick<WorkspaceState, 'linkStyleOverrides' | 'defaultLinkStyle'>,
 	fallbackColor: string,
-): Required<DefaultLinkStyle> {
+): ActiveLinkStyle {
 	return {
 		color:
 			state.linkStyleOverrides.color ??
@@ -61,10 +67,56 @@ export function getActiveDefaultLinkStyle(
 	};
 }
 
+export function getActiveDefaultLinkArrowStyle(
+	state: Pick<WorkspaceState, 'linkStyleOverrides' | 'defaultLinkStyle'>,
+): LinkArrowStyle {
+	return (
+		state.linkStyleOverrides.arrowStyle ??
+		state.defaultLinkStyle.arrowStyle ??
+		'filled'
+	);
+}
+
+export function getActiveDefaultLinkOpacity(
+	state: Pick<WorkspaceState, 'linkStyleOverrides' | 'defaultLinkStyle'>,
+): number {
+	return (
+		state.linkStyleOverrides.opacity ?? state.defaultLinkStyle.opacity ?? 1
+	);
+}
+
+export function getActiveDefaultLinkArrowSize(
+	state: Pick<WorkspaceState, 'linkStyleOverrides' | 'defaultLinkStyle'>,
+): number {
+	return (
+		state.linkStyleOverrides.arrowSize ??
+		state.defaultLinkStyle.arrowSize ??
+		1
+	);
+}
+
+export function getActivePlainLinkArrowStyle(
+	state: Pick<WorkspaceState, 'plainLinkStyleOverrides'>,
+): LinkArrowStyle {
+	return state.plainLinkStyleOverrides.arrowStyle ?? 'filled';
+}
+
+export function getActivePlainLinkOpacity(
+	state: Pick<WorkspaceState, 'plainLinkStyleOverrides'>,
+): number {
+	return state.plainLinkStyleOverrides.opacity ?? 1;
+}
+
+export function getActivePlainLinkArrowSize(
+	state: Pick<WorkspaceState, 'plainLinkStyleOverrides'>,
+): number {
+	return state.plainLinkStyleOverrides.arrowSize ?? 1;
+}
+
 export function getActivePlainLinkStyle(
 	state: Pick<WorkspaceState, 'plainLinkStyleOverrides'>,
 	fallbackColor: string,
-): Required<DefaultLinkStyle> {
+): ActiveLinkStyle {
 	return {
 		color: state.plainLinkStyleOverrides.color ?? fallbackColor,
 		size: state.plainLinkStyleOverrides.size ?? 1,
@@ -91,7 +143,7 @@ export function getActiveUnresolvedNodeStyle(
 export function getActiveUnresolvedLinkStyle(
 	state: Pick<WorkspaceState, 'unresolvedLinkStyleOverrides'>,
 	fallbackColor: string,
-): Required<DefaultLinkStyle> {
+): ActiveLinkStyle {
 	return {
 		color: state.unresolvedLinkStyleOverrides.color ?? fallbackColor,
 		size: state.unresolvedLinkStyleOverrides.size ?? 1,
@@ -100,4 +152,22 @@ export function getActiveUnresolvedLinkStyle(
 		showLabel: false,
 		hidden: state.unresolvedLinkStyleOverrides.hidden ?? false,
 	};
+}
+
+export function getActiveUnresolvedLinkArrowStyle(
+	state: Pick<WorkspaceState, 'unresolvedLinkStyleOverrides'>,
+): LinkArrowStyle {
+	return state.unresolvedLinkStyleOverrides.arrowStyle ?? 'filled';
+}
+
+export function getActiveUnresolvedLinkOpacity(
+	state: Pick<WorkspaceState, 'unresolvedLinkStyleOverrides'>,
+): number {
+	return state.unresolvedLinkStyleOverrides.opacity ?? 1;
+}
+
+export function getActiveUnresolvedLinkArrowSize(
+	state: Pick<WorkspaceState, 'unresolvedLinkStyleOverrides'>,
+): number {
+	return state.unresolvedLinkStyleOverrides.arrowSize ?? 1;
 }

@@ -6,6 +6,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Added configurable link visuals for defaults, overrides, and rules: Line color, width, opacity, and Solid/Dashed/Dotted/Dash-dot patterns; Arrow Filled/Chevron styles with adjustable size. Chevron renders as hollow two-wing arrows.
 - Added Paired connections for asymmetric metadata relationships: Ctrl-drag writes a source property and a distinct target property as one atomic, undoable connection, while indexing both halves as one logical edge.
 
 ### Changed
@@ -16,6 +17,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Improved hollow Chevron arrows with clearer, wider wings and matching preview/Cube rendering.
 - Updated Connection chip cursors to use a pointer on hover and a grabbing hand only during reordering.
 - Removed duplicate slider readouts in settings; each setting now shows one synchronized value, while the standalone Display control keeps its built-in value.
 - Anchored the Add connection editor directly above its `+` button regardless of transformed workspace containers, and kept the collapsed panel button at the same left-side position as its expanded counterpart.

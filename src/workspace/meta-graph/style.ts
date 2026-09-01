@@ -18,10 +18,16 @@ import {
 	normalizeArray,
 	readBoolean,
 	readFiniteNumber,
+	readLinkArrowSize,
+	readLinkArrowStyle,
 	readLinkLineStyle,
 	readOptionalBoolean,
 	readOptionalFiniteNumber,
+	readOptionalLinkArrowSize,
+	readOptionalLinkArrowStyle,
 	readOptionalLinkLineStyle,
+	readLinkOpacity,
+	readOptionalLinkOpacity,
 	readOptionalNodeShape,
 	readOptionalStyleColor,
 	readOptionalStyleLabel,
@@ -48,7 +54,10 @@ export function createDefaultLinkStyleRule(): LinkStyleRule {
 		value: '',
 		color: BUILT_IN_DEFAULT_LINK_STYLE.color,
 		size: BUILT_IN_DEFAULT_LINK_STYLE.size,
+		opacity: BUILT_IN_DEFAULT_LINK_STYLE.opacity,
 		lineStyle: BUILT_IN_DEFAULT_LINK_STYLE.lineStyle,
+		arrowStyle: BUILT_IN_DEFAULT_LINK_STYLE.arrowStyle,
+		arrowSize: BUILT_IN_DEFAULT_LINK_STYLE.arrowSize,
 		label: BUILT_IN_DEFAULT_LINK_STYLE.label,
 		showLabel: BUILT_IN_DEFAULT_LINK_STYLE.showLabel,
 		hidden: BUILT_IN_DEFAULT_LINK_STYLE.hidden,
@@ -63,7 +72,7 @@ export function normalizeNodeStyleRules(value: unknown): NodeStyleRule[] {
 }
 
 export function normalizeLinkStyleRules(value: unknown): LinkStyleRule[] {
-	const allRules = normalizeArray<LinkStyleRule>(value);
+	const allRules = normalizeLinkStyleRuleArray(value);
 	return allRules.filter(
 		(rule) => rule.id !== BASE_STYLE_RULE_ID && rule.field !== 'all',
 	);
@@ -88,9 +97,44 @@ function normalizeNodeStyleRuleArray(value: unknown): NodeStyleRule[] {
 }
 
 export function normalizeGlobalLinkStyleRules(value: unknown): LinkStyleRule[] {
-	return normalizeArray<LinkStyleRule>(value).filter(
+	return normalizeLinkStyleRuleArray(value).filter(
 		(rule) => rule.id !== BASE_STYLE_RULE_ID && rule.field !== 'all',
 	);
+}
+
+function normalizeLinkStyleRuleArray(value: unknown): LinkStyleRule[] {
+	return normalizeArray<LinkStyleRule>(value).map((rule) => {
+		const record: Record<string, unknown> = isRecord(rule) ? rule : {};
+		const normalized = { ...record };
+		if (record.lineStyle !== undefined) {
+			normalized.lineStyle = readLinkLineStyle(record.lineStyle, 'solid');
+		}
+		if (record.arrowStyle !== undefined) {
+			const arrowStyle = readOptionalLinkArrowStyle(record.arrowStyle);
+			if (arrowStyle) {
+				normalized.arrowStyle = arrowStyle;
+			} else {
+				delete normalized.arrowStyle;
+			}
+		}
+		if (record.opacity !== undefined) {
+			const opacity = readOptionalLinkOpacity(record.opacity);
+			if (opacity !== undefined) {
+				normalized.opacity = opacity;
+			} else {
+				delete normalized.opacity;
+			}
+		}
+		if (record.arrowSize !== undefined) {
+			const arrowSize = readOptionalLinkArrowSize(record.arrowSize);
+			if (arrowSize !== undefined) {
+				normalized.arrowSize = arrowSize;
+			} else {
+				delete normalized.arrowSize;
+			}
+		}
+		return normalized as unknown as LinkStyleRule;
+	});
 }
 
 export function normalizeGlobalStyle(value: unknown): GlobalStyleConfig {
@@ -155,9 +199,21 @@ export function normalizeDefaultLinkStyle(
 			record.size ?? legacyBase?.size,
 			BUILT_IN_DEFAULT_LINK_STYLE.size,
 		),
+		opacity: readLinkOpacity(
+			record.opacity ?? legacyBase?.opacity,
+			BUILT_IN_DEFAULT_LINK_STYLE.opacity,
+		),
 		lineStyle: readLinkLineStyle(
 			record.lineStyle ?? legacyBase?.lineStyle,
 			BUILT_IN_DEFAULT_LINK_STYLE.lineStyle,
+		),
+		arrowStyle: readLinkArrowStyle(
+			record.arrowStyle ?? legacyBase?.arrowStyle,
+			BUILT_IN_DEFAULT_LINK_STYLE.arrowStyle,
+		),
+		arrowSize: readLinkArrowSize(
+			record.arrowSize ?? legacyBase?.arrowSize,
+			BUILT_IN_DEFAULT_LINK_STYLE.arrowSize,
 		),
 		label: readStyleLabel(record.label ?? legacyBase?.label),
 		showLabel: readBoolean(
@@ -202,8 +258,17 @@ export function normalizeLinkStyleOverrides(
 	const overrides: DefaultLinkStyle = {};
 	const color = readOptionalStyleColor(record.color ?? legacyBase?.color);
 	const size = readOptionalFiniteNumber(record.size ?? legacyBase?.size);
+	const opacity = readOptionalLinkOpacity(
+		record.opacity ?? legacyBase?.opacity,
+	);
 	const lineStyle = readOptionalLinkLineStyle(
 		record.lineStyle ?? legacyBase?.lineStyle,
+	);
+	const arrowStyle = readOptionalLinkArrowStyle(
+		record.arrowStyle ?? legacyBase?.arrowStyle,
+	);
+	const arrowSize = readOptionalLinkArrowSize(
+		record.arrowSize ?? legacyBase?.arrowSize,
 	);
 	const label = readOptionalStyleLabel(record.label ?? legacyBase?.label);
 	const showLabel = readOptionalBoolean(
@@ -216,8 +281,17 @@ export function normalizeLinkStyleOverrides(
 	if (size !== undefined && size !== defaults.size) {
 		overrides.size = size;
 	}
+	if (opacity !== undefined && opacity !== defaults.opacity) {
+		overrides.opacity = opacity;
+	}
 	if (lineStyle !== undefined && lineStyle !== defaults.lineStyle) {
 		overrides.lineStyle = lineStyle;
+	}
+	if (arrowStyle !== undefined && arrowStyle !== defaults.arrowStyle) {
+		overrides.arrowStyle = arrowStyle;
+	}
+	if (arrowSize !== undefined && arrowSize !== defaults.arrowSize) {
+		overrides.arrowSize = arrowSize;
 	}
 	if (label !== undefined && label !== defaults.label) {
 		overrides.label = label;

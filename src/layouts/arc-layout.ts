@@ -4,7 +4,10 @@ import type {
 	ArcLabelAngle,
 	ChartGroupDefinition,
 } from '../core/types';
-import type { RuntimeGraph } from '../graph/model/graphology-adapter';
+import {
+	getEdgeType,
+	type RuntimeGraph,
+} from '../graph/model/graphology-adapter';
 import type { LayoutEngine } from './layout-engine';
 import {
 	scaleLayoutGroupPadding,
@@ -143,10 +146,11 @@ export function applyArcEdges(
 		graph.dropEdge(edge);
 		const segmentAttributes = {
 			...attributes,
-			type:
-				attributes.lineStyle === 'solid'
-					? 'line'
-					: attributes.lineStyle,
+			type: getEdgeType(
+				attributes.lineStyle,
+				false,
+				attributes.arrowStyle,
+			),
 			label: '',
 			forceLabel: false,
 			logicalEdgeId: edge,
@@ -172,14 +176,11 @@ export function applyArcEdges(
 			const segmentKey = `${edge}__arc_segment_${index + 1}`;
 			const styledSegment = {
 				...segmentAttributes,
-				type:
-					directed && lastSegment
-						? attributes.lineStyle === 'solid'
-							? 'arrow'
-							: `${attributes.lineStyle}-arrow`
-						: attributes.lineStyle === 'solid'
-							? 'line'
-							: attributes.lineStyle,
+				type: getEdgeType(
+					attributes.lineStyle,
+					directed && lastSegment,
+					attributes.arrowStyle,
+				),
 				label: index === labelSegment ? attributes.label : '',
 				forceLabel: index === labelSegment && Boolean(attributes.label),
 			};

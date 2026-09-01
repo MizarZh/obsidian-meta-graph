@@ -2,7 +2,8 @@ import type { NodeFilterField, NodeFilterOperator } from './graph';
 
 export type NodeStyleField = 'all' | NodeFilterField | 'group';
 export type LinkStyleField = 'all' | 'relation' | 'source-field';
-export type LinkLineStyle = 'solid' | 'dashed' | 'dotted';
+export type LinkLineStyle = 'solid' | 'dashed' | 'dotted' | 'dash-dot';
+export type LinkArrowStyle = 'filled' | 'chevron';
 export type NodeShape =
 	'circle' | 'square' | 'diamond' | 'triangle' | 'hexagon' | 'star';
 
@@ -23,7 +24,10 @@ export interface LinkStyleRule {
 	value: string;
 	color: string;
 	size: number;
+	opacity?: number;
 	lineStyle: LinkLineStyle;
+	arrowStyle?: LinkArrowStyle;
+	arrowSize?: number;
 	label: string;
 	showLabel: boolean;
 	hidden: boolean;
@@ -38,7 +42,10 @@ export interface DefaultNodeStyle {
 export interface DefaultLinkStyle {
 	color?: string;
 	size?: number;
+	opacity?: number;
 	lineStyle?: LinkLineStyle;
+	arrowStyle?: LinkArrowStyle;
+	arrowSize?: number;
 	label?: string;
 	showLabel?: boolean;
 	hidden?: boolean;
