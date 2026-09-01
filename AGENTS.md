@@ -197,4 +197,5 @@ Important details:
 - `README.md` is user-facing.
 - `design.md` records current architecture, limitations, and planning notes.
 - Record every feature change in `CHANGELOG.md`.
+- When bumping the plugin version, update the corresponding release version and date in `CHANGELOG.md`.
 - Update docs when changing major behavior, especially connection editing, undo, metadata parsing, Flow layout policy, renderer refresh policy, or workspace/style persistence.

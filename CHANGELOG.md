@@ -2,7 +2,7 @@
 
 All notable changes to Meta Graph are documented here.
 
-## [Unreleased]
+## [1.5.2] - 2026-09-01
 
 ### Added
 
