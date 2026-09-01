@@ -64,12 +64,14 @@ export type LabelPosition =
 	'auto' | 'right' | 'left' | 'top' | 'bottom' | 'center';
 export type NodeOpenMode = 'tab' | 'right-split';
 export type ChartType = ViewMode;
-export type ConnectionFieldMode = 'directed' | 'bidirectional' | 'reverse';
+export type ConnectionFieldMode =
+	'directed' | 'bidirectional' | 'reverse' | 'paired';
 
 export interface ConnectionFieldSpec {
 	id: string;
 	field: string;
 	mode: ConnectionFieldMode;
+	reverseField?: string;
 }
 
 export interface ChartLayoutConfig {

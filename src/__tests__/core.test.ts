@@ -106,6 +106,48 @@ describe('metadata relation parsing', () => {
 		expect(edges).toHaveLength(1);
 	});
 
+	it('canonicalizes both halves of paired metadata to one edge id', () => {
+		const spec = {
+			id: 'prerequisite:paired:next',
+			field: 'prerequisite',
+			mode: 'paired' as const,
+			reverseField: 'next',
+		};
+		const [sourceHalf] = parseRelations(
+			{ prerequisite: '[[B]]' },
+			'A.md',
+			resolver,
+			undefined,
+			[],
+			['prerequisite', 'next'],
+			[spec],
+		);
+		const targetEdges = parseRelations(
+			{ next: '[[A]]' },
+			'B.md',
+			resolver,
+			undefined,
+			[],
+			['prerequisite', 'next'],
+			[spec],
+		);
+		const [targetHalf] = targetEdges;
+
+		expect(sourceHalf).toMatchObject({
+			source: 'A.md',
+			target: 'B.md',
+			relation: 'prerequisite',
+		});
+		expect(targetHalf).toMatchObject({
+			id: sourceHalf?.id,
+			source: 'A.md',
+			target: 'B.md',
+			relation: 'prerequisite',
+			sourceField: 'next',
+		});
+		expect(targetEdges).toHaveLength(1);
+	});
+
 	it('ignores missing links and reports them', () => {
 		const onUnresolved = vi.fn();
 		const edges = parseRelations(
@@ -261,10 +303,7 @@ describe('breadth-first neighborhood query', () => {
 	});
 
 	it('hides plain links unless compatibility display is enabled', () => {
-		const index = buildIndex(
-			[node('A'), node('B')],
-			[plainLink('A', 'B')],
-		);
+		const index = buildIndex([node('A'), node('B')], [plainLink('A', 'B')]);
 
 		expect(projectIds(index, query())).toEqual([]);
 		expect(projectIds(index, query({ showPlainLinks: true }))).toEqual([
@@ -280,9 +319,9 @@ describe('breadth-first neighborhood query', () => {
 		);
 
 		expect(projectIds(index, query())).toEqual([]);
-		expect(
-			projectIds(index, query({ showUnresolvedLinks: true })),
-		).toEqual(['A', '__unresolved__/Missing']);
+		expect(projectIds(index, query({ showUnresolvedLinks: true }))).toEqual(
+			['A', '__unresolved__/Missing'],
+		);
 	});
 
 	it('does not expose unresolved nodes as isolated nodes when hidden', () => {
@@ -563,9 +602,11 @@ describe('curated workspace projection', () => {
 			new CuratedProjectionEngine().project(index, curated).edges,
 		).toEqual([]);
 		expect(
-			new CuratedProjectionEngine().project(index, curated, {
-				showPlainLinks: true,
-			}).edges.map((item) => item.id),
+			new CuratedProjectionEngine()
+				.project(index, curated, {
+					showPlainLinks: true,
+				})
+				.edges.map((item) => item.id),
 		).toEqual([createEdgeId('A', 'plain-link', 'B', true)]);
 	});
 
@@ -595,7 +636,12 @@ describe('curated workspace projection', () => {
 			'__unresolved__/Missing',
 		]);
 		expect(projection.edges.map((item) => item.id)).toEqual([
-			createEdgeId('A', 'unresolved-link', '__unresolved__/Missing', true),
+			createEdgeId(
+				'A',
+				'unresolved-link',
+				'__unresolved__/Missing',
+				true,
+			),
 		]);
 		expect(projection.contextIds).toEqual(
 			new Set(['__unresolved__/Missing']),

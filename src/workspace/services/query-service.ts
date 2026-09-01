@@ -5,6 +5,7 @@ import {
 	type MetadataIndexRecord,
 } from '../../core/metadata-indexer';
 import type {
+	ConnectionFieldSpec,
 	GraphProjection,
 	KnowledgeIndex,
 	MetadataDebugEntry,
@@ -46,7 +47,7 @@ export class WorkspaceProjectionService {
 export function buildWorkspaceIndex(
 	app: App,
 	debug: boolean,
-	connectionFields: string[],
+	connectionFields: string[] | ConnectionFieldSpec[],
 ): WorkspaceIndexSnapshot {
 	return buildWorkspaceIndexState(app, debug, connectionFields).snapshot;
 }
@@ -54,7 +55,7 @@ export function buildWorkspaceIndex(
 export function buildWorkspaceIndexState(
 	app: App,
 	debug: boolean,
-	connectionFields: string[],
+	connectionFields: string[] | ConnectionFieldSpec[],
 ): WorkspaceIndexBuild {
 	const indexer = new MetadataIndexer(app, debug, connectionFields);
 	const records = indexer.buildRecords();

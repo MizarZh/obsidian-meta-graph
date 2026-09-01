@@ -7,7 +7,11 @@ import {
 	removeNode,
 } from '../../core/knowledge-index';
 import type { MetadataIndexRecord } from '../../core/metadata-indexer';
-import type { KnowledgeEdge, KnowledgeNode } from '../../core/types';
+import type {
+	ConnectionFieldSpec,
+	KnowledgeEdge,
+	KnowledgeNode,
+} from '../../core/types';
 import type { LargeVaultMode } from '../../settings/settings';
 import type {
 	WorkspaceIndexBuild,
@@ -121,7 +125,7 @@ export class WorkspaceIndexService {
 
 	async read(
 		debug: boolean,
-		connectionFields: string[],
+		connectionFields: string[] | ConnectionFieldSpec[],
 	): Promise<WorkspaceIndexSnapshot> {
 		await this.readyPromise;
 		const key = createIndexSnapshotKey(debug, connectionFields);
@@ -159,7 +163,7 @@ export class WorkspaceIndexService {
 		pendingKey: string,
 		key: string,
 		debug: boolean,
-		connectionFields: string[],
+		connectionFields: string[] | ConnectionFieldSpec[],
 		revision: number,
 	): Promise<WorkspaceIndexSnapshot> {
 		const startedAt = performance.now();
@@ -185,7 +189,7 @@ export class WorkspaceIndexService {
 	private async rebuildIncrementally(
 		entry: WorkspaceIndexCacheEntry,
 		debug: boolean,
-		connectionFields: string[],
+		connectionFields: string[] | ConnectionFieldSpec[],
 	): Promise<WorkspaceIndexSnapshot> {
 		const startedAt = performance.now();
 		const changedFiles = [...entry.dirtyFiles.values()];
@@ -338,12 +342,16 @@ function incrementValues(
 
 function createIndexSnapshotKey(
 	debug: boolean,
-	connectionFields: string[],
+	connectionFields: string[] | ConnectionFieldSpec[],
 ): string {
 	return JSON.stringify({
 		debug,
-		connectionFields: [...connectionFields].sort((left, right) =>
-			left.localeCompare(right),
-		),
+		connectionFields: connectionFields
+			.map((item) =>
+				typeof item === 'string'
+					? item
+					: `${item.field}:${item.mode}:${item.reverseField ?? ''}`,
+			)
+			.sort((left, right) => left.localeCompare(right)),
 	});
 }

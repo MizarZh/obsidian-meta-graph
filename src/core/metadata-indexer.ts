@@ -18,6 +18,7 @@ import type {
 	KnowledgeNode,
 	MetadataDebugEntry,
 	UnresolvedLink,
+	ConnectionFieldSpec,
 } from './types';
 import { normalizeTags } from './tags';
 
@@ -29,10 +30,25 @@ export class MetadataIndexer {
 	constructor(
 		private readonly app: App,
 		private readonly debug = false,
-		private readonly relationFields: string[] = [],
+		relationConfig: string[] | ConnectionFieldSpec[] = [],
 	) {
 		this.resolver = new ObsidianLinkResolver(app);
+		this.relationSpecs = relationConfig.filter(
+			(item): item is ConnectionFieldSpec => typeof item !== 'string',
+		);
+		this.relationFields = uniqueStrings(
+			relationConfig.flatMap((item) =>
+				typeof item === 'string'
+					? [item]
+					: item.mode === 'paired' && item.reverseField
+						? [item.field, item.reverseField]
+						: [item.field],
+			),
+		);
 	}
+
+	private readonly relationFields: string[];
+	private readonly relationSpecs: ConnectionFieldSpec[];
 
 	build(): KnowledgeIndex {
 		this.unresolvedLinks.length = 0;
@@ -99,6 +115,7 @@ export class MetadataIndexer {
 				},
 				relationFrontmatterLinks,
 				this.relationFields,
+				this.relationSpecs,
 			);
 			for (const edge of edges) {
 				if (filePaths.has(edge.source) && filePaths.has(edge.target)) {
@@ -188,6 +205,7 @@ export class MetadataIndexer {
 			},
 			relationFrontmatterLinks,
 			this.relationFields,
+			this.relationSpecs,
 		).filter(
 			(edge) => filePaths.has(edge.source) && filePaths.has(edge.target),
 		);

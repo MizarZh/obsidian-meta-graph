@@ -49,12 +49,22 @@ export function normalizeMetaGraphDocument(
 		charts.some((chart) => chart.id === record.activeChart)
 			? record.activeChart
 			: (charts[0]?.id ?? createChartId('graph'));
-	const connectionFields = normalizeConnectionFields(record.connectionFields);
+	const legacyConnectionFields = normalizeConnectionFields(
+		record.connectionFields,
+	);
 	const connectionFieldSpecs = normalizeConnectionFieldSpecs(
 		record.connectionFieldSpecs,
-		connectionFields,
+		legacyConnectionFields,
 		record.connectionFieldModes,
 	);
+	const connectionFields = normalizeConnectionFields([
+		...legacyConnectionFields,
+		...connectionFieldSpecs.flatMap((spec) =>
+			spec.mode === 'paired' && spec.reverseField
+				? [spec.field, spec.reverseField]
+				: [spec.field],
+		),
+	]);
 	const connectionFieldModes = normalizeConnectionFieldModes(
 		record.connectionFieldModes,
 		connectionFields,

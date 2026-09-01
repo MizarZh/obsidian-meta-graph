@@ -279,7 +279,7 @@
 	z-index: 9;
 	display: grid;
 	gap: var(--size-4-3);
-	width: min(390px, calc(100vw - 32px));
+	width: min(500px, calc(100vw - 32px));
 	padding: var(--size-4-4);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-m);
@@ -292,14 +292,20 @@
 	font-weight: var(--font-semibold, 600);
 }
 
-.knowledge-workspace-connection-editor > label,
-.knowledge-workspace-connection-editor-field {
+.knowledge-workspace-connection-editor-field,
+.knowledge-workspace-connection-properties > label,
+.knowledge-workspace-connection-property-row {
 	display: grid;
-	grid-template-columns: 72px minmax(0, 1fr);
+	grid-template-columns: 96px minmax(0, 1fr);
 	gap: var(--size-4-3);
 	align-items: center;
 	color: var(--text-muted);
 	font-size: var(--font-ui-small);
+}
+
+.knowledge-workspace-connection-properties {
+	display: grid;
+	gap: var(--size-4-2);
 }
 
 .knowledge-workspace-connection-editor input {
@@ -309,7 +315,7 @@
 
 .knowledge-workspace-connection-mode-options {
 	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-template-columns: repeat(4, minmax(0, 1fr));
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-s);
 	overflow: hidden;
@@ -331,6 +337,7 @@
 	box-shadow: none;
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
+	white-space: nowrap;
 }
 
 .knowledge-workspace-connection-mode-options button:last-child {
@@ -349,6 +356,18 @@
 .knowledge-workspace-connection-mode-options svg {
 	width: 14px;
 	height: 14px;
+}
+
+.knowledge-workspace-connection-property-input {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 34px;
+	gap: var(--size-4-2);
+	align-items: center;
+}
+
+.knowledge-workspace-connection-property-input > button {
+	width: 34px;
+	height: 34px;
 }
 
 .knowledge-workspace-connection-editor > footer {

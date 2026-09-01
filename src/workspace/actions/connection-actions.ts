@@ -5,7 +5,7 @@ import type {
 	WorkspaceState,
 } from '../../core/types';
 import {
-	getConnectionModeForFieldInState,
+	getActiveConnectionSpecInState,
 	setActiveConnectionFieldInState,
 } from '../state/connection-fields';
 import {
@@ -21,6 +21,7 @@ export interface WorkspaceConnectionPort {
 		targetNodeId: NodeId,
 		field: string,
 		mode: ConnectionFieldMode,
+		reverseField?: string,
 	): Promise<boolean>;
 	undoLastConnection(): Promise<boolean>;
 }
@@ -30,6 +31,7 @@ export interface PreparedConnectionAction {
 	runQuery: boolean;
 	request: NormalizedConnectionRequest;
 	mode: ConnectionFieldMode;
+	reverseField?: string;
 }
 
 export interface WorkspaceConnectionActionResult {
@@ -75,12 +77,20 @@ export async function connectPreparedNodesInState(
 	action: PreparedConnectionAction,
 	relayoutFlowAfterConnection: boolean,
 ): Promise<WorkspaceConnectionActionResult> {
-	const changed = await service.connectNodes(
-		action.request.sourceNodeId,
-		action.request.targetNodeId,
-		action.request.field,
-		action.mode,
-	);
+	const changed = action.reverseField
+		? await service.connectNodes(
+				action.request.sourceNodeId,
+				action.request.targetNodeId,
+				action.request.field,
+				action.mode,
+				action.reverseField,
+			)
+		: await service.connectNodes(
+				action.request.sourceNodeId,
+				action.request.targetNodeId,
+				action.request.field,
+				action.mode,
+			);
 	return completeConnectionChangeInState(
 		state,
 		changed,
@@ -136,12 +146,21 @@ function prepareConnectionRequestInState(
 	) {
 		return null;
 	}
-	const result = setActiveConnectionFieldInState(state, request.field);
+	const currentSpec = getActiveConnectionSpecInState(state);
+	const result =
+		currentSpec?.field === request.field
+			? { state, runQuery: false }
+			: setActiveConnectionFieldInState(state, request.field);
+	const activeSpec = getActiveConnectionSpecInState(result.state);
+	if (!activeSpec || activeSpec.field !== request.field) {
+		return null;
+	}
 	return {
 		state: result.state,
 		runQuery: result.runQuery,
 		request,
-		mode: getConnectionModeForFieldInState(result.state, request.field),
+		mode: activeSpec.mode,
+		reverseField: activeSpec.reverseField,
 	};
 }
 

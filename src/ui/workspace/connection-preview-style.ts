@@ -20,7 +20,7 @@ export interface ConnectionPreviewMarkers {
 export function resolveConnectionPreviewMarkers(
 	mode: ConnectionFieldMode,
 ): ConnectionPreviewMarkers {
-	if (mode === 'bidirectional') {
+	if (mode === 'bidirectional' || mode === 'paired') {
 		return { start: true, end: true };
 	}
 	if (mode === 'reverse') {

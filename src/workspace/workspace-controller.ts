@@ -315,7 +315,7 @@ export class WorkspaceController {
 		const indexStartedAt = performance.now();
 		const indexSnapshot = await this.workspaceIndex.read(
 			this.debug,
-			this.state.connectionFields,
+			this.state.connectionFieldSpecs,
 		);
 		if (this.destroyed || refreshVersion !== this.refreshVersion) {
 			return;
@@ -1032,16 +1032,30 @@ export class WorkspaceController {
 		);
 	}
 
-	setActiveConnectionField(field: string, mode: ConnectionFieldMode): void {
-		const result = setActiveConnectionFieldInState(this.state, field, mode);
+	setActiveConnectionField(
+		field: string,
+		mode: ConnectionFieldMode,
+		reverseField?: string,
+	): void {
+		const result = setActiveConnectionFieldInState(
+			this.state,
+			field,
+			mode,
+			reverseField,
+		);
 		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
-	addConnectionField(field: string, mode: ConnectionFieldMode): void {
+	addConnectionField(
+		field: string,
+		mode: ConnectionFieldMode,
+		reverseField?: string,
+	): void {
 		const result = addConnectionFieldAndSelectInState(
 			this.state,
 			field,
 			mode,
+			reverseField,
 		);
 		if (this.setWorkspaceState(result.state, result.runQuery)) {
 			this.scheduleRefresh();
@@ -1072,10 +1086,17 @@ export class WorkspaceController {
 		id: string,
 		field: string,
 		mode: ConnectionFieldMode,
+		reverseField?: string,
 	): void {
 		if (
 			this.setWorkspaceState(
-				updateConnectionFieldInState(this.state, id, field, mode),
+				updateConnectionFieldInState(
+					this.state,
+					id,
+					field,
+					mode,
+					reverseField,
+				),
 			)
 		) {
 			this.scheduleRefresh();

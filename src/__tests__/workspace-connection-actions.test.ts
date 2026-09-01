@@ -12,6 +12,24 @@ import { addConnectionFieldAndSelectInState } from '../workspace/state/connectio
 import { createWorkspaceState } from '../workspace/state/workspace-state';
 
 describe('workspace connection actions', () => {
+	it('preserves the exact active paired connection spec', () => {
+		const state = addConnectionFieldAndSelectInState(
+			createWorkspaceState(100),
+			'prerequisite',
+			'paired',
+			'next',
+		).state;
+
+		expect(
+			prepareConnectNodesInState(
+				state,
+				'Source.md',
+				'Target.md',
+				'prerequisite',
+			),
+		).toMatchObject({ mode: 'paired', reverseField: 'next' });
+	});
+
 	it('rejects requests for unpinned metadata', () => {
 		const action = prepareConnectNodesInState(
 			createWorkspaceState(100),

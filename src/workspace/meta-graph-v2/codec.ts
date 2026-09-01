@@ -42,6 +42,7 @@ import {
 	normalizeMetaGraphDocument,
 	serializeMetaGraphState,
 } from '../meta-graph/document';
+import { createConnectionFieldSpecId } from '../meta-graph/connections';
 import { normalizeFilterRoot } from '../meta-graph/query';
 import {
 	isRecord,
@@ -169,8 +170,11 @@ export function parsePersistedMetaGraphDocumentV2(
 		connections.default &&
 		!connections.fields.some(
 			(field) =>
-				connectionSpecId(field.property, field.mode) ===
-				connections.default,
+				connectionSpecId(
+					field.property,
+					field.mode,
+					field.reverseProperty,
+				) === connections.default,
 		)
 	) {
 		throw new Error(
@@ -235,12 +239,22 @@ export function parsePersistedMetaGraphDocumentV2(
 		charts,
 		activeChart: defaultChart,
 		connectionFields: uniqueStrings(
-			connections.fields.map((field) => field.property),
+			connections.fields.flatMap((field) => [
+				field.property,
+				...(field.reverseProperty ? [field.reverseProperty] : []),
+			]),
 		),
 		connectionFieldSpecs: connections.fields.map((field) => ({
-			id: connectionSpecId(field.property, field.mode),
+			id: connectionSpecId(
+				field.property,
+				field.mode,
+				field.reverseProperty,
+			),
 			field: field.property,
 			mode: field.mode,
+			...(field.reverseProperty
+				? { reverseField: field.reverseProperty }
+				: {}),
 		})),
 		connectionFieldModes: Object.fromEntries(
 			connections.fields.map((field) => [field.property, field.mode]),
@@ -249,8 +263,11 @@ export function parsePersistedMetaGraphDocumentV2(
 		activeConnectionField:
 			connections.fields.find(
 				(field) =>
-					connectionSpecId(field.property, field.mode) ===
-					connections.default,
+					connectionSpecId(
+						field.property,
+						field.mode,
+						field.reverseProperty,
+					) === connections.default,
 			)?.property ?? '',
 		dock: {
 			notes: resources.pinnedNotes.map((path, index) => ({
@@ -336,6 +353,9 @@ export function serializeRuntimeDocumentV2(
 						fields: specs.map((spec) => ({
 							property: spec.field,
 							mode: spec.mode,
+							...(spec.reverseField
+								? { reverseProperty: spec.reverseField }
+								: {}),
 						})),
 					}
 				: {}),
@@ -433,8 +453,9 @@ export function createPersistenceContextFromV1(
 export function connectionSpecId(
 	property: string,
 	mode: ConnectionFieldSpec['mode'],
+	reverseProperty?: string,
 ): string {
-	return `${property.trim()}:${mode}`;
+	return createConnectionFieldSpecId(property, mode, reverseProperty);
 }
 
 function chartToV2(
@@ -960,7 +981,7 @@ function createAnyFilterGroup(
 function normalizeRuntimeConnectionSpecs(
 	document: MetaGraphDocument,
 ): ConnectionFieldSpec[] {
-	const source =
+	const source: ConnectionFieldSpec[] =
 		document.connectionFieldSpecs.length > 0
 			? document.connectionFieldSpecs
 			: document.connectionFields.map((field) => ({
@@ -973,12 +994,26 @@ function normalizeRuntimeConnectionSpecs(
 				}));
 	const seen = new Set<string>();
 	return source.flatMap((spec) => {
-		const id = connectionSpecId(spec.field, spec.mode);
-		if (!spec.field.trim() || seen.has(id)) {
+		const reverseField = spec.reverseField?.trim();
+		const id = connectionSpecId(spec.field, spec.mode, reverseField);
+		if (
+			!spec.field.trim() ||
+			(spec.mode === 'paired' &&
+				(!reverseField || reverseField === spec.field.trim())) ||
+			seen.has(id)
+		) {
 			return [];
 		}
 		seen.add(id);
-		return [{ ...spec, id }];
+		return [
+			{
+				...spec,
+				id,
+				...(spec.mode === 'paired' && reverseField
+					? { reverseField }
+					: { reverseField: undefined }),
+			},
+		];
 	});
 }
 
@@ -1229,44 +1264,72 @@ function normalizeConnections(
 	allowUnknownModes: boolean,
 ): Required<PersistedConnectionsV2> {
 	const record = isRecord(value) ? value : {};
-	const fields: Array<{ property: string; mode: ConnectionFieldMode }> =
-		Array.isArray(record.fields)
-			? record.fields.flatMap((field) => {
-					if (!isRecord(field)) {
-						throw new Error(
-							'Meta Graph v2 connection fields must be YAML objects.',
-						);
-					}
-					const item = field;
-					const property =
-						typeof item.property === 'string'
-							? item.property.trim()
-							: '';
-					if (!property) {
-						throw new Error(
-							'Meta Graph v2 connection field property must be a non-empty string.',
-						);
-					}
-					if (
-						item.mode !== 'directed' &&
-						item.mode !== 'bidirectional' &&
-						item.mode !== 'reverse' &&
-						!allowUnknownModes
-					) {
-						throw new Error(
-							`Meta Graph v2 connection field ${property} has an invalid mode.`,
-						);
-					}
-					const mode: ConnectionFieldMode =
-						item.mode === 'bidirectional' || item.mode === 'reverse'
-							? item.mode
-							: 'directed';
-					return [{ property, mode }];
-				})
-			: [];
+	const fields: Array<{
+		property: string;
+		mode: ConnectionFieldMode;
+		reverseProperty?: string;
+	}> = Array.isArray(record.fields)
+		? record.fields.flatMap((field) => {
+				if (!isRecord(field)) {
+					throw new Error(
+						'Meta Graph v2 connection fields must be YAML objects.',
+					);
+				}
+				const item = field;
+				const property =
+					typeof item.property === 'string'
+						? item.property.trim()
+						: '';
+				if (!property) {
+					throw new Error(
+						'Meta Graph v2 connection field property must be a non-empty string.',
+					);
+				}
+				if (
+					item.mode !== 'directed' &&
+					item.mode !== 'bidirectional' &&
+					item.mode !== 'reverse' &&
+					item.mode !== 'paired' &&
+					!allowUnknownModes
+				) {
+					throw new Error(
+						`Meta Graph v2 connection field ${property} has an invalid mode.`,
+					);
+				}
+				const mode: ConnectionFieldMode =
+					item.mode === 'bidirectional' ||
+					item.mode === 'reverse' ||
+					item.mode === 'paired'
+						? item.mode
+						: 'directed';
+				const reverseProperty =
+					typeof item.reverseProperty === 'string'
+						? item.reverseProperty.trim()
+						: '';
+				if (
+					mode === 'paired' &&
+					(!reverseProperty || reverseProperty === property)
+				) {
+					throw new Error(
+						`Meta Graph v2 paired connection ${property} requires a distinct reverseProperty.`,
+					);
+				}
+				return [
+					{
+						property,
+						mode,
+						...(mode === 'paired' ? { reverseProperty } : {}),
+					},
+				];
+			})
+		: [];
 	const seen = new Set<string>();
 	const uniqueFields = fields.filter((field) => {
-		const id = connectionSpecId(field.property, field.mode);
+		const id = connectionSpecId(
+			field.property,
+			field.mode,
+			field.reverseProperty,
+		);
 		if (seen.has(id)) {
 			throw new Error(`Meta Graph v2 connection is duplicated: ${id}`);
 		}
@@ -1281,6 +1344,7 @@ function normalizeConnections(
 					? connectionSpecId(
 							uniqueFields[0].property,
 							uniqueFields[0].mode,
+							uniqueFields[0].reverseProperty,
 						)
 					: '',
 		fields: uniqueFields,

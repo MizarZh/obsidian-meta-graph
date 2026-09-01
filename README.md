@@ -35,7 +35,8 @@ Parsed metadata relationship directions are:
 
 - Configured connection fields: current note → linked note.
 - Two-way and reverse connection modes affect how new links are written from the
-  connection panel. Metadata parsing still follows the stored metadata link.
+  connection panel. Paired mode writes different source and target properties
+  and indexes both metadata halves as one logical relationship.
 
 Unresolved links are ignored. Enable **Debug unresolved links** in the plugin
 settings to report them in the developer console.
@@ -93,7 +94,9 @@ settings to report them in the developer console.
 13. Use **Details** for quick connections, or drag the link button on a pinned
     note or template to a graph node. `Ctrl`-drag between graph nodes remains an
     advanced shortcut. One-way writes the source note only; two-way writes both
-    notes so each note links to the other.
+    notes so each note links to the other. Paired writes the selected source
+    property on the source note and a distinct target property on the target
+    note; both writes share one Undo operation.
 14. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
     through the force-directed layout. Nearby nodes can move with the graph
     forces, and the layout keeps settling briefly after release. Use
@@ -177,11 +180,14 @@ shared:
         linkRules: []
 
 connections:
-    default: leads-to:directed
-    # Runtime IDs are derived as property:mode.
+    default: prerequisite:paired:next
+    # Runtime IDs are property:mode, or property:paired:reverseProperty.
     fields:
         - property: leads-to
           mode: directed
+        - property: prerequisite
+          mode: paired
+          reverseProperty: next
 
 resources:
     # Pins are shared across every chart and store paths directly.

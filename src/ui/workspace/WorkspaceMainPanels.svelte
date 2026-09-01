@@ -373,11 +373,12 @@
 	onToggle={onToggleConnection}
 	onLayoutChange={onConnectionLayoutChange}
 	onHeightChange={onConnectionPanelHeightChange}
-	onSelectField={(field, mode) =>
-		controller.setActiveConnectionField(field, mode)}
-	onAddField={(field, mode) => controller.addConnectionField(field, mode)}
-	onUpdateField={(id, field, mode) =>
-		controller.updateConnectionField(id, field, mode)}
+	onSelectField={(field, mode, reverseField) =>
+		controller.setActiveConnectionField(field, mode, reverseField)}
+	onAddField={(field, mode, reverseField) =>
+		controller.addConnectionField(field, mode, reverseField)}
+	onUpdateField={(id, field, mode, reverseField) =>
+		controller.updateConnectionField(id, field, mode, reverseField)}
 	onRemoveField={(field) => controller.removeConnectionField(field)}
 	onReorderField={(id, targetId, placement) =>
 		controller.reorderConnectionField(id, targetId, placement)}

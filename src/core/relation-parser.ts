@@ -1,9 +1,11 @@
 import { createEdgeId, normalizePath } from './knowledge-index';
 import { extractLinkText, type LinkResolver } from './link-resolver';
-import type { KnowledgeEdge } from './types';
+import type { ConnectionFieldSpec, KnowledgeEdge } from './types';
 
 interface RelationDefinition {
 	field: string;
+	relation: string;
+	reverse: boolean;
 }
 
 export interface CachedFrontmatterLink {
@@ -26,6 +28,7 @@ export function parseRelations(
 	onUnresolved?: (linkText: string, sourcePath: string) => void,
 	frontmatterLinks: CachedFrontmatterLink[] = [],
 	relationFields: string[] = [],
+	relationSpecs: ConnectionFieldSpec[] = [],
 ): KnowledgeEdge[] {
 	if (!frontmatter) {
 		return [];
@@ -34,7 +37,10 @@ export function parseRelations(
 	const normalizedCurrentPath = normalizePath(currentPath);
 	const edges = new Map<string, KnowledgeEdge>();
 
-	for (const definition of createRelationDefinitions(relationFields)) {
+	for (const definition of createRelationDefinitions(
+		relationFields,
+		relationSpecs,
+	)) {
 		const values = getRelationValues(
 			frontmatter,
 			frontmatterLinks,
@@ -55,16 +61,20 @@ export function parseRelations(
 			}
 
 			const normalizedTargetPath = normalizePath(targetPath);
-			const source = normalizedCurrentPath;
-			const target = normalizedTargetPath;
-			const id = createEdgeId(source, definition.field, target, true);
-				edges.set(id, {
-					id,
-					kind: 'relation',
-					semantic: true,
-					source,
+			const source = definition.reverse
+				? normalizedTargetPath
+				: normalizedCurrentPath;
+			const target = definition.reverse
+				? normalizedCurrentPath
+				: normalizedTargetPath;
+			const id = createEdgeId(source, definition.relation, target, true);
+			edges.set(id, {
+				id,
+				kind: 'relation',
+				semantic: true,
+				source,
 				target,
-				relation: definition.field,
+				relation: definition.relation,
 				directed: true,
 				sourcePath: normalizedCurrentPath,
 				sourceField,
@@ -87,11 +97,42 @@ export function isRelationField(
 
 function createRelationDefinitions(
 	relationFields: string[],
+	relationSpecs: ConnectionFieldSpec[],
 ): RelationDefinition[] {
-	return relationFields
-		.map((field) => field.trim())
-		.filter(Boolean)
-		.map((field) => ({ field }));
+	const definitions: RelationDefinition[] = [];
+	const seen = new Set<string>();
+	const add = (definition: RelationDefinition): void => {
+		const key = [
+			normalizeFieldName(definition.field),
+			definition.relation,
+			definition.reverse ? 'reverse' : 'forward',
+		].join(':');
+		if (!seen.has(key)) {
+			seen.add(key);
+			definitions.push(definition);
+		}
+	};
+
+	for (const spec of relationSpecs) {
+		const field = spec.field.trim();
+		if (!field) continue;
+		add({ field, relation: field, reverse: false });
+		if (spec.mode === 'paired' && spec.reverseField?.trim()) {
+			add({
+				field: spec.reverseField.trim(),
+				relation: field,
+				reverse: true,
+			});
+		}
+	}
+
+	if (relationSpecs.length === 0) {
+		for (const rawField of relationFields) {
+			const field = rawField.trim();
+			if (field) add({ field, relation: field, reverse: false });
+		}
+	}
+	return definitions;
 }
 
 function getRelationValues(

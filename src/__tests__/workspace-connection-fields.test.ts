@@ -124,6 +124,40 @@ describe('workspace connection fields', () => {
 		expect(result.state.query.relations).not.toContain('supports');
 	});
 
+	it('adds a paired field with both metadata properties', () => {
+		const result = addConnectionFieldAndSelectInState(
+			createWorkspaceState(100),
+			' prerequisite ',
+			'paired',
+			' next ',
+		);
+
+		expect(result.state.activeConnectionFieldSpecId).toBe(
+			'prerequisite:paired:next',
+		);
+		expect(result.state.connectionFieldSpecs).toContainEqual({
+			id: 'prerequisite:paired:next',
+			field: 'prerequisite',
+			mode: 'paired',
+			reverseField: 'next',
+		});
+		expect(result.state.connectionFields).toEqual(
+			expect.arrayContaining(['prerequisite', 'next']),
+		);
+	});
+
+	it('rejects paired fields without a distinct target property', () => {
+		const state = createWorkspaceState(100);
+		expect(
+			addConnectionFieldAndSelectInState(
+				state,
+				'prerequisite',
+				'paired',
+				'prerequisite',
+			).state,
+		).toBe(state);
+	});
+
 	it('keeps blank added connection fields stable', () => {
 		const state = createWorkspaceState(100);
 

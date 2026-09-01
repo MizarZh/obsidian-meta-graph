@@ -29,6 +29,7 @@ export {
 } from './meta-graph/constants';
 export {
 	createConnectionFieldSpec,
+	createConnectionFieldSpecId,
 	normalizeConnectionFieldModes,
 	normalizeConnectionFields,
 	normalizeConnectionFieldSpecs,

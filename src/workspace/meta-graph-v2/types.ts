@@ -46,6 +46,7 @@ export interface PersistedConnectionsV2 {
 	fields?: Array<{
 		property: string;
 		mode: ConnectionFieldMode;
+		reverseProperty?: string;
 	}>;
 }
 

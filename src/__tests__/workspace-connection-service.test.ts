@@ -115,6 +115,55 @@ describe('workspace connection service', () => {
 		expect(frontmatter('Target.md')).toEqual({});
 	});
 
+	it('writes paired metadata fields and undoes them as one entry', async () => {
+		const { service, frontmatter } = createConnectionService([
+			'Source.md',
+			'Target.md',
+		]);
+
+		await expect(
+			service.connectNodes(
+				'Source.md',
+				'Target.md',
+				'prerequisite',
+				'paired',
+				'next',
+			),
+		).resolves.toBe(true);
+
+		expect(frontmatter('Source.md')).toEqual({
+			prerequisite: ['[[Target]]'],
+		});
+		expect(frontmatter('Target.md')).toEqual({ next: ['[[Source]]'] });
+		expect(service.undoCount).toBe(1);
+
+		await service.undoLastConnection();
+		expect(frontmatter('Source.md')).toEqual({});
+		expect(frontmatter('Target.md')).toEqual({});
+	});
+
+	it('rolls back the source when a paired target write fails', async () => {
+		const { service, frontmatter } = createConnectionService(
+			['Source.md', 'Target.md'],
+			{},
+			'Target.md',
+		);
+
+		await expect(
+			service.connectNodes(
+				'Source.md',
+				'Target.md',
+				'prerequisite',
+				'paired',
+				'next',
+			),
+		).rejects.toThrow('write failed');
+
+		expect(frontmatter('Source.md')).toEqual({});
+		expect(frontmatter('Target.md')).toEqual({});
+		expect(service.undoCount).toBe(0);
+	});
+
 	it('writes reverse links onto the target note', async () => {
 		const { service, frontmatter } = createConnectionService([
 			'Source.md',
@@ -157,6 +206,7 @@ describe('workspace connection service', () => {
 function createConnectionService(
 	paths: string[],
 	initialFrontmatter: Record<string, Record<string, unknown>> = {},
+	failPath?: string,
 ): {
 	service: WorkspaceConnectionService<TestFile>;
 	frontmatter: (path: string) => Record<string, unknown>;
@@ -175,6 +225,9 @@ function createConnectionService(
 		generateMarkdownLink: (targetFile) =>
 			`[[${targetFile.path.replace(/\.md$/u, '')}]]`,
 		processFrontMatter: async (file, callback) => {
+			if (file.path === failPath) {
+				throw new Error('write failed');
+			}
 			const frontmatter = frontmatterByPath.get(file.path);
 			if (frontmatter) {
 				callback(frontmatter);

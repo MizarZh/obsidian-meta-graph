@@ -39,12 +39,21 @@
 		onToggle: () => void;
 		onLayoutChange: (layout: ConnectionPanelLayout) => void;
 		onHeightChange: (height: number) => void;
-		onSelectField: (field: string, mode: ConnectionFieldMode) => void;
-		onAddField: (field: string, mode: ConnectionFieldMode) => void;
+		onSelectField: (
+			field: string,
+			mode: ConnectionFieldMode,
+			reverseField?: string,
+		) => void;
+		onAddField: (
+			field: string,
+			mode: ConnectionFieldMode,
+			reverseField?: string,
+		) => void;
 		onUpdateField: (
 			id: string,
 			field: string,
 			mode: ConnectionFieldMode,
+			reverseField?: string,
 		) => void;
 		onRemoveField: (field: string) => void;
 		onReorderField: (
@@ -55,6 +64,7 @@
 	} = $props();
 
 	let fieldInput = $state('');
+	let reverseFieldInput = $state('');
 	let draftMode = $state<ConnectionFieldMode>('directed');
 	let addOpen = $state(false);
 	let editingFieldId = $state<string | undefined>(undefined);
@@ -72,13 +82,21 @@
 		| undefined
 	>();
 	const customField = $derived(fieldInput.trim());
+	const customReverseField = $derived(reverseFieldInput.trim());
 	const canSaveField = $derived(
 		Boolean(customField) &&
+			(draftMode !== 'paired' ||
+				(Boolean(customReverseField) &&
+					customReverseField !== customField)) &&
 			!fields.some(
 				(field) =>
 					field.id !== editingFieldId &&
 					field.field === customField &&
-					field.mode === draftMode,
+					field.mode === draftMode &&
+					field.reverseField ===
+						(draftMode === 'paired'
+							? customReverseField
+							: undefined),
 			),
 	);
 	const metadataFieldOptions = $derived(
@@ -95,6 +113,7 @@
 		{ value: 'directed', label: 'One-way' },
 		{ value: 'bidirectional', label: 'Two-way' },
 		{ value: 'reverse', label: 'Reverse' },
+		{ value: 'paired', label: 'Paired' },
 	];
 
 	$effect(() => {
@@ -144,6 +163,7 @@
 	function openAdd(): void {
 		editingFieldId = undefined;
 		fieldInput = '';
+		reverseFieldInput = '';
 		draftMode = 'directed';
 		addOpen = true;
 		window.requestAnimationFrame(() => fieldInputEl?.focus());
@@ -152,6 +172,7 @@
 	function openEdit(field: ConnectionFieldSpec): void {
 		editingFieldId = field.id;
 		fieldInput = field.field;
+		reverseFieldInput = field.reverseField ?? '';
 		draftMode = field.mode;
 		addOpen = true;
 		window.requestAnimationFrame(() => {
@@ -164,20 +185,32 @@
 		addOpen = false;
 		editingFieldId = undefined;
 		fieldInput = '';
+		reverseFieldInput = '';
 	}
 
 	function saveField(): void {
 		if (!canSaveField) return;
 		if (editingFieldId) {
-			onUpdateField(editingFieldId, customField, draftMode);
+			onUpdateField(
+				editingFieldId,
+				customField,
+				draftMode,
+				customReverseField || undefined,
+			);
 		} else {
-			onAddField(customField, draftMode);
+			onAddField(customField, draftMode, customReverseField || undefined);
 		}
 		closeEditor();
 	}
 
 	function selectField(field: ConnectionFieldSpec): void {
-		onSelectField(field.field, field.mode);
+		onSelectField(field.field, field.mode, field.reverseField);
+	}
+
+	function swapPairedFields(): void {
+		const nextField = reverseFieldInput;
+		reverseFieldInput = fieldInput;
+		fieldInput = nextField;
 	}
 
 	function showFieldMenu(
@@ -407,8 +440,8 @@
 						<button
 							type="button"
 							aria-pressed={field.id === activeFieldSpecId}
-							aria-label={`${field.field} ${getConnectionDirectionLabel(field.mode)}`}
-							title={`${field.field} · ${getConnectionDirectionLabel(field.mode)}`}
+							aria-label={`${field.field}${field.reverseField ? ` to ${field.reverseField}` : ''} ${getConnectionDirectionLabel(field.mode)}`}
+							title={`${field.field}${field.reverseField ? ` / ${field.reverseField}` : ''} · ${getConnectionDirectionLabel(field.mode)}`}
 							onclick={() => selectField(field)}
 						>
 							<span
@@ -418,7 +451,11 @@
 								)}
 								aria-hidden="true"
 							></span>
-							<span>{field.field}</span>
+							<span
+								>{field.field}{field.reverseField
+									? ` / ${field.reverseField}`
+									: ''}</span
+							>
 						</button>
 					</span>
 				{/each}
@@ -468,26 +505,12 @@
 					<header>
 						{editingFieldId ? 'Edit connection' : 'Add connection'}
 					</header>
-					<label>
-						<span>Metadata</span>
-						<ObsidianSuggestInput
-							{app}
-							type="text"
-							placeholder="Metadata field"
-							ariaLabel="Connection metadata"
-							value={fieldInput}
-							options={metadataFieldOptions}
-							onInput={(value) => (fieldInput = value)}
-							onSelect={(option) => (fieldInput = option.value)}
-							onInputEl={(element) => (fieldInputEl = element)}
-						/>
-					</label>
 					<div class="knowledge-workspace-connection-editor-field">
-						<span>Direction</span>
+						<span>Connection type</span>
 						<div
 							class="knowledge-workspace-connection-mode-options"
 							role="radiogroup"
-							aria-label="Connection direction"
+							aria-label="Connection type"
 						>
 							{#each directionOptions as option}
 								<button
@@ -507,6 +530,59 @@
 								</button>
 							{/each}
 						</div>
+					</div>
+					<div class="knowledge-workspace-connection-properties">
+						<label>
+							<span
+								>{draftMode === 'paired'
+									? 'Source'
+									: 'Property'}</span
+							>
+							<ObsidianSuggestInput
+								{app}
+								type="text"
+								placeholder="Metadata field"
+								ariaLabel="Connection metadata"
+								value={fieldInput}
+								options={metadataFieldOptions}
+								onInput={(value) => (fieldInput = value)}
+								onSelect={(option) =>
+									(fieldInput = option.value)}
+								onInputEl={(element) =>
+									(fieldInputEl = element)}
+							/>
+						</label>
+						{#if draftMode === 'paired'}
+							<div
+								class="knowledge-workspace-connection-property-row"
+							>
+								<span>Target</span>
+								<div
+									class="knowledge-workspace-connection-property-input"
+								>
+									<ObsidianSuggestInput
+										{app}
+										type="text"
+										placeholder="Metadata field"
+										ariaLabel="Target connection metadata"
+										value={reverseFieldInput}
+										options={metadataFieldOptions}
+										onInput={(value) =>
+											(reverseFieldInput = value)}
+										onSelect={(option) =>
+											(reverseFieldInput = option.value)}
+									/>
+									<ObsidianButton
+										icon="arrow-up-down"
+										ariaLabel="Swap source and target metadata"
+										tooltip="Swap fields"
+										disabled={!customField &&
+											!customReverseField}
+										onClick={swapPairedFields}
+									/>
+								</div>
+							</div>
+						{/if}
 					</div>
 					<footer>
 						<ObsidianButton text="Cancel" onClick={closeEditor} />

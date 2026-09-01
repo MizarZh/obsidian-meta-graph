@@ -53,6 +53,7 @@ export class WorkspaceConnectionService<FileEntry> {
 		direction: DockConnectionDirection,
 		field: string,
 		mode: ConnectionFieldMode,
+		reverseField?: string,
 	): Promise<boolean> {
 		const request = normalizeDockConnectionRequest(
 			notePath,
@@ -63,7 +64,7 @@ export class WorkspaceConnectionService<FileEntry> {
 		if (!request) {
 			return false;
 		}
-		return this.writeConnection(request, mode);
+		return this.writeConnection(request, mode, reverseField);
 	}
 
 	async connectNodes(
@@ -71,6 +72,7 @@ export class WorkspaceConnectionService<FileEntry> {
 		targetNodeId: NodeId,
 		field: string,
 		mode: ConnectionFieldMode,
+		reverseField?: string,
 	): Promise<boolean> {
 		const request = normalizeConnectionRequest(
 			field,
@@ -80,12 +82,13 @@ export class WorkspaceConnectionService<FileEntry> {
 		if (!request) {
 			return false;
 		}
-		return this.writeConnection(request, mode);
+		return this.writeConnection(request, mode, reverseField);
 	}
 
 	private async writeConnection(
 		request: NormalizedConnectionRequest,
 		mode: ConnectionFieldMode,
+		reverseField?: string,
 	): Promise<boolean> {
 		const sourceFile = this.adapter.getFile(request.sourceNodeId);
 		const targetFile = this.adapter.getFile(request.targetNodeId);
@@ -121,19 +124,33 @@ export class WorkspaceConnectionService<FileEntry> {
 			request.field,
 			link,
 		);
-		if (mode === 'bidirectional') {
+		if (mode === 'bidirectional' || mode === 'paired') {
+			const targetField =
+				mode === 'paired' ? reverseField?.trim() : request.field;
+			if (
+				!targetField ||
+				(targetField === request.field && mode === 'paired')
+			) {
+				await this.undoFrontmatterChanges(undo);
+				return false;
+			}
 			const reverseLink = this.adapter.generateMarkdownLink(
 				sourceFile,
 				this.adapter.getPath(targetFile),
 			);
-			undo.push(
-				...(await this.addFrontmatterConnection(
-					targetFile,
-					sourceFile,
-					request.field,
-					reverseLink,
-				)),
-			);
+			try {
+				undo.push(
+					...(await this.addFrontmatterConnection(
+						targetFile,
+						sourceFile,
+						targetField,
+						reverseLink,
+					)),
+				);
+			} catch (error) {
+				await this.undoFrontmatterChanges(undo);
+				throw error;
+			}
 		}
 		return this.recordUndo(undo);
 	}

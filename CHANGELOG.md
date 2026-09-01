@@ -6,6 +6,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Added Paired connections for asymmetric metadata relationships: Ctrl-drag writes a source property and a distinct target property as one atomic, undoable connection, while indexing both halves as one logical edge.
 - Added toolbar zoom controls with smooth 10% step buttons, a continuous slider, editable percentage input, and synchronized zoom levels across 2D, 3D, and Cube views.
 - Added `Ctrl+F` / `Cmd+F` shortcut to focus **Find note** and select the current search text.
 - Added direction-aware arrows to `Ctrl`-drag connection previews: one-way points to the target, two-way points at both ends, and reverse points to the source.
@@ -15,6 +16,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Reorganized the connection editor with Connection type first, grouped Source and Target fields, shorter field labels, and wider connection-type options.
 - Redesigned the Connection panel with persistent single-row and wrapped multi-row layouts, compact one-click relation chips, wheel and button scrolling, a combined metadata/direction editor, and context-menu management.
 - Moved connection Undo to the graph toolbar and made Ctrl-drag guidance follow the pointer instead of occupying the Connection panel.
 

@@ -21,18 +21,28 @@ export function addConnectionFieldToState(
 	state: WorkspaceState,
 	field: string,
 	mode: ConnectionFieldMode,
+	reverseField?: string,
 ): { state: WorkspaceState; normalized?: string } {
 	const normalized = field.trim();
-	if (!normalized) {
+	const normalizedReverse = reverseField?.trim();
+	if (
+		!normalized ||
+		(mode === 'paired' &&
+			(!normalizedReverse || normalizedReverse === normalized))
+	) {
 		return { state };
 	}
 	const connectionFieldSpecs = normalizeConnectionFieldSpecs([
 		...state.connectionFieldSpecs,
-		createConnectionFieldSpec(normalized, mode),
+		createConnectionFieldSpec(normalized, mode, normalizedReverse),
 	]);
 	const activeSpec =
-		findConnectionFieldSpec(connectionFieldSpecs, normalized, mode) ??
-		connectionFieldSpecs[0];
+		findConnectionFieldSpec(
+			connectionFieldSpecs,
+			normalized,
+			mode,
+			normalizedReverse,
+		) ?? connectionFieldSpecs[0];
 	const connectionFields = getConnectionSpecFields(connectionFieldSpecs);
 	return {
 		state: {
@@ -53,10 +63,16 @@ export function addConnectionFieldAndSelectInState(
 	state: WorkspaceState,
 	field: string,
 	mode: ConnectionFieldMode,
+	reverseField?: string,
 ): ConnectionFieldStateResult {
-	const update = addConnectionFieldToState(state, field, mode);
+	const update = addConnectionFieldToState(state, field, mode, reverseField);
 	return update.normalized
-		? setActiveConnectionFieldInState(update.state, update.normalized, mode)
+		? setActiveConnectionFieldInState(
+				update.state,
+				update.normalized,
+				mode,
+				reverseField,
+			)
 		: { state, runQuery: false };
 }
 
@@ -97,12 +113,19 @@ export function updateConnectionFieldInState(
 	id: string,
 	field: string,
 	mode: ConnectionFieldMode,
+	reverseField?: string,
 ): WorkspaceState {
 	const normalized = field.trim();
+	const normalizedReverse = reverseField?.trim();
 	const index = state.connectionFieldSpecs.findIndex(
 		(spec) => spec.id === id,
 	);
-	if (!normalized || index < 0) {
+	if (
+		!normalized ||
+		index < 0 ||
+		(mode === 'paired' &&
+			(!normalizedReverse || normalizedReverse === normalized))
+	) {
 		return state;
 	}
 	if (
@@ -110,12 +133,18 @@ export function updateConnectionFieldInState(
 			(spec) =>
 				spec.id !== id &&
 				spec.field === normalized &&
-				spec.mode === mode,
+				spec.mode === mode &&
+				spec.reverseField ===
+					(mode === 'paired' ? normalizedReverse : undefined),
 		)
 	) {
 		return state;
 	}
-	const updated = createConnectionFieldSpec(normalized, mode);
+	const updated = createConnectionFieldSpec(
+		normalized,
+		mode,
+		normalizedReverse,
+	);
 	const connectionFieldSpecs = state.connectionFieldSpecs.map(
 		(spec, specIndex) => (specIndex === index ? updated : spec),
 	);
@@ -141,13 +170,19 @@ export function setActiveConnectionFieldInState(
 	state: WorkspaceState,
 	field: string,
 	mode?: ConnectionFieldMode,
+	reverseField?: string,
 ): ConnectionFieldStateResult {
 	const normalized = field.trim();
 	if (!normalized) {
 		return { state, runQuery: false };
 	}
 	const activeSpec = mode
-		? findConnectionFieldSpec(state.connectionFieldSpecs, normalized, mode)
+		? findConnectionFieldSpec(
+				state.connectionFieldSpecs,
+				normalized,
+				mode,
+				reverseField?.trim(),
+			)
 		: state.connectionFieldSpecs.find((item) => item.field === normalized);
 	if (!activeSpec) {
 		return { state, runQuery: false };
@@ -165,15 +200,33 @@ export function setActiveConnectionFieldInState(
 export function getConnectionSpecFields(
 	specs: ConnectionFieldSpec[],
 ): string[] {
-	return normalizeConnectionFields(specs.map((spec) => spec.field));
+	return normalizeConnectionFields(
+		specs.flatMap((spec) =>
+			spec.mode === 'paired' && spec.reverseField
+				? [spec.field, spec.reverseField]
+				: [spec.field],
+		),
+	);
 }
 
 export function findConnectionFieldSpec(
 	specs: ConnectionFieldSpec[],
 	field: string,
 	mode: ConnectionFieldMode,
+	reverseField?: string,
 ): ConnectionFieldSpec | undefined {
-	return specs.find((spec) => spec.field === field && spec.mode === mode);
+	return specs.find(
+		(spec) =>
+			spec.field === field &&
+			spec.mode === mode &&
+			(mode !== 'paired' || spec.reverseField === reverseField),
+	);
+}
+
+export function getActiveConnectionSpecInState(
+	state: WorkspaceState,
+): ConnectionFieldSpec | undefined {
+	return getActiveConnectionSpec(state);
 }
 
 export function getActiveConnectionModeInState(

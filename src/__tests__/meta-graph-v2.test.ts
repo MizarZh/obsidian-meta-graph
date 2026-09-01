@@ -122,6 +122,39 @@ describe('Meta Graph v2 persistence', () => {
 		expect(saved).toEqual(migrated);
 	});
 
+	it('round-trips paired connection metadata properties', () => {
+		const document = createDefaultMetaGraphDocument(200, 1.5);
+		document.connectionFieldSpecs = [
+			{
+				id: 'prerequisite:paired:next',
+				field: 'prerequisite',
+				mode: 'paired',
+				reverseField: 'next',
+			},
+		];
+		document.connectionFields = ['prerequisite', 'next'];
+		document.activeConnectionField = 'prerequisite';
+		document.activeConnectionFieldSpecId = 'prerequisite:paired:next';
+		const context = createPersistenceContextFromV1(document);
+
+		const saved = serializeRuntimeDocumentV2(document, context);
+		expect(saved.connections).toEqual({
+			default: 'prerequisite:paired:next',
+			fields: [
+				{
+					property: 'prerequisite',
+					mode: 'paired',
+					reverseProperty: 'next',
+				},
+			],
+		});
+
+		const parsed = parsePersistedMetaGraphDocumentV2(saved, 200, 1.5);
+		expect(parsed.document.connectionFieldSpecs).toEqual(
+			document.connectionFieldSpecs,
+		);
+	});
+
 	it('shows every configured relation when chart relations are omitted', () => {
 		const v2 = migrateV1ToV2(
 			createDefaultMetaGraphDocument(200, 1.5),

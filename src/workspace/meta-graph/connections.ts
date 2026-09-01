@@ -27,7 +27,7 @@ export function normalizeConnectionFieldSpecs(
 	const fallbackSpecs = legacyFields.map((field) =>
 		createConnectionFieldSpec(
 			field,
-			readConnectionFieldMode(
+			readLegacyConnectionFieldMode(
 				isRecord(legacyModes) ? legacyModes[field] : undefined,
 			),
 		),
@@ -51,12 +51,17 @@ export function normalizeConnectionFieldModes(
 export function createConnectionFieldSpec(
 	field: string,
 	mode: ConnectionFieldMode,
+	reverseField?: string,
 ): ConnectionFieldSpec {
 	const normalized = field.trim();
+	const normalizedReverse = reverseField?.trim();
 	return {
-		id: createConnectionFieldSpecId(normalized, mode),
+		id: createConnectionFieldSpecId(normalized, mode, normalizedReverse),
 		field: normalized,
 		mode,
+		...(mode === 'paired' && normalizedReverse
+			? { reverseField: normalizedReverse }
+			: {}),
 	};
 }
 
@@ -69,11 +74,23 @@ function normalizeConnectionFieldSpec(
 		return undefined;
 	}
 	const mode = readConnectionFieldMode(record.mode);
+	const reverseField =
+		typeof record.reverseField === 'string'
+			? record.reverseField.trim()
+			: '';
+	if (mode === 'paired' && (!reverseField || reverseField === field)) {
+		return undefined;
+	}
 	const id =
 		typeof record.id === 'string' && record.id.trim()
 			? record.id.trim()
-			: createConnectionFieldSpecId(field, mode);
-	return { id, field, mode };
+			: createConnectionFieldSpecId(field, mode, reverseField);
+	return {
+		id,
+		field,
+		mode,
+		...(mode === 'paired' ? { reverseField } : {}),
+	};
 }
 
 function uniqueConnectionFieldSpecs(
@@ -82,7 +99,18 @@ function uniqueConnectionFieldSpecs(
 	const seen = new Set<string>();
 	const nextSpecs: ConnectionFieldSpec[] = [];
 	for (const spec of specs) {
-		const key = createConnectionFieldSpecId(spec.field, spec.mode);
+		if (
+			spec.mode === 'paired' &&
+			(!spec.reverseField?.trim() ||
+				spec.reverseField.trim() === spec.field)
+		) {
+			continue;
+		}
+		const key = createConnectionFieldSpecId(
+			spec.field,
+			spec.mode,
+			spec.reverseField,
+		);
 		if (seen.has(key)) {
 			continue;
 		}
@@ -95,15 +123,25 @@ function uniqueConnectionFieldSpecs(
 	return nextSpecs;
 }
 
-function createConnectionFieldSpecId(
+export function createConnectionFieldSpecId(
 	field: string,
 	mode: ConnectionFieldMode,
+	reverseField?: string,
 ): string {
-	return `${field}:${mode}`;
+	return mode === 'paired'
+		? `${field.trim()}:paired:${reverseField?.trim() ?? ''}`
+		: `${field.trim()}:${mode}`;
 }
 
 function readConnectionFieldMode(value: unknown): ConnectionFieldMode {
-	return value === 'bidirectional' || value === 'reverse'
+	return value === 'bidirectional' ||
+		value === 'reverse' ||
+		value === 'paired'
 		? value
 		: DEFAULT_CONNECTION_FIELD_MODE;
+}
+
+function readLegacyConnectionFieldMode(value: unknown): ConnectionFieldMode {
+	const mode = readConnectionFieldMode(value);
+	return mode === 'paired' ? DEFAULT_CONNECTION_FIELD_MODE : mode;
 }
