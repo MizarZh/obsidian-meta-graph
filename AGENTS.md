@@ -37,7 +37,9 @@ pnpm exec svelte-check --tsconfig ./tsconfig.json
 pnpm exec vitest run src/__tests__/core.test.ts src/__tests__/workspace-persistence.test.ts
 ```
 
-Do not run `pnpm dev`, `pnpm build`, or `git diff` if the user explicitly asks not to.
+- Never run `git diff`.
+- Never run `pnpm dev`.
+- After every completed change, run `pnpm build`.
 
 ## Source map
 

@@ -16,6 +16,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Updated Connection chip cursors to use a pointer on hover and a grabbing hand only during reordering.
 - Removed duplicate slider readouts in settings; each setting now shows one synchronized value, while the standalone Display control keeps its built-in value.
 - Anchored the Add connection editor directly above its `+` button regardless of transformed workspace containers, and kept the collapsed panel button at the same left-side position as its expanded counterpart.
 - Prevented the Add connection editor from being clipped by the multi-row panel's scroll boundary.
