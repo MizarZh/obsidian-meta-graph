@@ -153,7 +153,7 @@
 						: `background: ${file.color ?? 'var(--color-green, #44a37f)'}`}
 				></span>
 				<div class="knowledge-workspace-curated-file-title">
-					<strong>{file.title}</strong>
+					<strong title={file.detail}>{file.title}</strong>
 					{#if (selectedTitleCounts[file.title] ?? 0) > 1}
 						<span class="knowledge-workspace-curated-file-path"
 							>{file.detail}</span
@@ -164,11 +164,13 @@
 						class="knowledge-workspace-curated-file-group"
 						class:missing={file.missingGroup}
 						role="group"
+						title={`Group: ${file.groupName}`}
 						onclick={(event) => event.stopPropagation()}
 						onkeydown={(event) => event.stopPropagation()}
 						onpointerdown={(event) => event.stopPropagation()}
 					>
 						<span
+							class="knowledge-workspace-curated-file-group-dot"
 							style={file.groupColor
 								? `background: ${file.groupColor}`
 								: undefined}

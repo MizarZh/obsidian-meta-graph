@@ -13,7 +13,9 @@ export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 
 	display(): void {
 		this.containerEl.empty();
+		this.containerEl.classList.add('knowledge-workspace-settings-page');
 
+		new Setting(this.containerEl).setName('Performance').setHeading();
 		new Setting(this.containerEl)
 			.setName('Large vault mode')
 			.setDesc(
@@ -32,30 +34,7 @@ export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 					}),
 			);
 
-		new Setting(this.containerEl)
-			.setName('Debug unresolved links')
-			.setDesc('Log unresolved metadata links to the developer console.')
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.debug)
-					.onChange(async (value) => {
-						this.plugin.settings.debug = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(this.containerEl)
-			.setName('Show debug button')
-			.setDesc('Show a toolbar button that opens the graph debug panel.')
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.showDebugButton)
-					.onChange(async (value) => {
-						this.plugin.settings.showDebugButton = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
+		new Setting(this.containerEl).setName('Behavior').setHeading();
 		new Setting(this.containerEl)
 			.setName('Relayout flow after connecting nodes')
 			.setDesc(
@@ -103,6 +82,31 @@ export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.openTemplateNoteInNewTab =
 							value === 'open';
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(this.containerEl).setName('Diagnostics').setHeading();
+		new Setting(this.containerEl)
+			.setName('Debug unresolved links')
+			.setDesc('Log unresolved metadata links to the developer console.')
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.debug)
+					.onChange(async (value) => {
+						this.plugin.settings.debug = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(this.containerEl)
+			.setName('Show debug button')
+			.setDesc('Show a toolbar button that opens the graph debug panel.')
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showDebugButton)
+					.onChange(async (value) => {
+						this.plugin.settings.showDebugButton = value;
 						await this.plugin.saveSettings();
 					}),
 			);

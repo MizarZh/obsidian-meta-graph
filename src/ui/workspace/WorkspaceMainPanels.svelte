@@ -327,8 +327,14 @@
 	{/if}
 {/if}
 {#if workspaceState.projection?.nodes.length === 0}
-	<div class="knowledge-workspace-empty">
-		No matching metadata relationships.
+	<div class="knowledge-workspace-empty" role="status">
+		<span class="knowledge-workspace-empty-icon" aria-hidden="true">
+			<span></span>
+		</span>
+		<div>
+			<strong>No matching metadata relationships.</strong>
+			<small>Adjust filters or add notes to this view.</small>
+		</div>
 	</div>
 {/if}
 {#if dockCuratedDropPreview}

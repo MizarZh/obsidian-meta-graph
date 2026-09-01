@@ -157,7 +157,6 @@
 		{ mode: 'note-style', icon: 'palette', label: 'Note style' },
 		{ mode: 'link-style', icon: 'route', label: 'Link style' },
 	]);
-
 	function getViewIcon(type: ViewMode | undefined): IconName {
 		return VIEW_ICONS[type ?? 'graph'];
 	}
@@ -666,8 +665,22 @@
 				>
 			{/if}
 		</span>
-		<ObsidianButton text="Fit graph" onClick={onFit} />
-		<ObsidianButton text="Refresh" onClick={onRefresh} />
+		<ObsidianButton
+			class="knowledge-workspace-toolbar-fit"
+			icon="crosshair"
+			text="Fit graph"
+			ariaLabel="Fit graph"
+			tooltip="Fit graph"
+			onClick={onFit}
+		/>
+		<ObsidianButton
+			class="knowledge-workspace-toolbar-refresh"
+			icon="refresh-cw"
+			text="Refresh"
+			ariaLabel="Refresh graph"
+			tooltip="Refresh graph"
+			onClick={onRefresh}
+		/>
 		{#if showDebugButton}
 			<ObsidianButton
 				active={debugOpen}

@@ -777,7 +777,8 @@
 	overflow: hidden;
 }
 
-.knowledge-workspace-curated-file-group > span {
+.knowledge-workspace-curated-file-group
+	> .knowledge-workspace-curated-file-group-dot {
 	flex: 0 0 auto;
 	width: 8px;
 	height: 8px;
@@ -785,7 +786,8 @@
 	background: var(--text-faint);
 }
 
-.knowledge-workspace-curated-file-group.missing > span {
+.knowledge-workspace-curated-file-group.missing
+	> .knowledge-workspace-curated-file-group-dot {
 	background: var(--text-warning);
 }
 

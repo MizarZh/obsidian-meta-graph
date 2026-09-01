@@ -48,8 +48,8 @@ settings to report them in the developer console.
 3. Add or select a chart in the graph toolbar. Graph, 3D graph, Cube, Free, Flow,
    Arc, and HEB (hierarchical edge bundling) layouts each keep
    their own source, query, layout, display, and style settings.
-4. Use the toolbar settings buttons to edit graph settings, filters, note
-   styles, and link styles in one panel.
+4. Use the flat toolbar settings buttons to edit graph settings, filters, note
+	styles, link styles, and groups in one panel.
 5. Use **Source → Query** for filter-driven charts, or **Source → Workspace**
    to manually add a fixed set of notes. Workspace source shows workspace files,
    including isolated notes, and existing metadata links between them.

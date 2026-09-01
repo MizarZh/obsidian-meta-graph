@@ -12,6 +12,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Refreshed the workspace UI with a unified Quiet Workbench visual system: polished flat toolbar settings, consistent surfaces and controls across dock, curated, inspector, and connection panels, plus container-aware narrow-pane behavior.
+- Refined Curated workspace file rows with non-clipping controls and a compact inline Group picker that keeps ownership clear without adding a second line.
 - Consolidated settings controls into reusable Svelte sections, rows, grids, sliders, toggles, dropdowns, colors, text inputs, and segmented controls across graph, text, group, node, and link settings.
 - Changed note shape selection to an icon-based tiled control for faster visual comparison; shape names remain available through accessible labels and tooltips.
 - Reorganized connection controls into a compact left-side action group followed immediately by relationships; single-row mode scrolls overflow, while multi-row mode stays identical until chips actually wrap beneath the actions. Their controls now use one-line and multiple-line icons. The connection editor places Connection type first, groups Source and Target fields, shortens field labels, and widens type options.
@@ -20,6 +22,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Restored the toolbar zoom slider after the visual refresh and kept it aligned with the zoom buttons and editable percentage input.
 - Dimmed unrelated group overlays and layout halos to neutral gray while a node is hovered or focused, while keeping the active node's group highlighted.
 - Improved reusable settings spacing and slider sizing: controls now use the available panel width, with consistent section gaps, aligned label/control rows, and compact two-column groups for related fields. Compact groups now keep each label and control on one line.
 - Improved hollow Chevron arrows with clearer, wider wings and matching preview/Cube rendering.
