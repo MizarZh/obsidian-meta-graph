@@ -15,6 +15,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Kept graph hover state out of workspace updates so expanded Curated panels no longer rebuild their full file list while showing local links.
 - Fixed 3D graph nodes staying at the origin instead of following force-layout coordinates.
 - Fixed 3D graph note shape changes not rebuilding custom node sprites.
 - Query charts now default to showing all configured relations and refresh after connection-field edits.

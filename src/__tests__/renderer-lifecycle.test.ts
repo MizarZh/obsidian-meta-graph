@@ -71,7 +71,7 @@ vi.mock('../ui/workspace/renderer-factory', () => ({
 
 function createRenderer(): GraphRenderer {
 	return {
-		runtimeGraph: {},
+		runtimeGraph: { hasNode: vi.fn(() => true) },
 		instance: { refresh: vi.fn() },
 		setGraph: vi.fn(),
 		setSelected: vi.fn(),
@@ -191,6 +191,39 @@ describe('WorkspaceRendererLifecycle', () => {
 			expect.objectContaining({ status: 'rendered' }),
 		);
 		expect(setRenderPending.mock.calls).toEqual([[true], [false]]);
+	});
+
+	it('restores ephemeral hover without reading workspace hover state', async () => {
+		const state = { ...createState(), hoveredNodeId: 'workspace-hover' };
+		let ephemeralHover: string | undefined = 'ephemeral-hover';
+		const renderer = createRenderer();
+		vi.mocked(createWorkspaceGraphRenderer).mockResolvedValue(renderer);
+		const lifecycle = new WorkspaceRendererLifecycle({
+			readState: () => state,
+			readCanvas: () => ({}) as HTMLDivElement,
+			readLayoutSnapshot: createLayoutSnapshot,
+			readContainerSize: () => ({ width: 800, height: 600 }),
+			waitForCanvasSize: async () => true,
+			bindEvents: () => vi.fn(),
+			syncRendererGroups: vi.fn(),
+			setRendererDebugState: vi.fn(),
+			readHoveredNodeId: () => ephemeralHover,
+		});
+		vi.mocked(createWorkspaceRuntimeGraph).mockReturnValue({
+			order: 1,
+			size: 0,
+			nodes: () => ['a'],
+			hasNode: (nodeId: string) => nodeId === 'ephemeral-hover',
+		} as never);
+
+		await lifecycle.rebuild();
+
+		expect(renderer.setHovered).toHaveBeenLastCalledWith('ephemeral-hover');
+
+		ephemeralHover = undefined;
+		await lifecycle.rebuild();
+
+		expect(renderer.setHovered).toHaveBeenLastCalledWith(undefined);
 	});
 
 	it('clears loading state when rendering fails', async () => {

@@ -35,6 +35,7 @@ export interface WorkspaceRendererLifecycleOptions {
 	setFlowRelationConflictCount?(count: number): void;
 	setRenderPending?(pending: boolean): void;
 	setZoomLevel?(level: number): void;
+	readHoveredNodeId?(): string | undefined;
 	isLargeVaultModeActive?(): boolean;
 	yieldToMainThread?(): Promise<void>;
 	recordPerformance?(
@@ -262,7 +263,7 @@ export class WorkspaceRendererLifecycle {
 				this.unbindEvents =
 					this.options.bindEvents(progressiveRenderer);
 				progressiveRenderer.setSelected(state.selectedNodeId);
-				progressiveRenderer.setHovered(state.hoveredNodeId);
+				progressiveRenderer.setHovered(this.readHoveredNodeId(state));
 				progressiveRenderer.fit();
 				progressiveFirstRender = true;
 			} else if (progressiveRenderer) {
@@ -353,7 +354,7 @@ export class WorkspaceRendererLifecycle {
 		this.options.syncRendererGroups();
 		this.bindZoomLevel(this.currentRenderer);
 		this.currentRenderer.setSelected(state.selectedNodeId);
-		this.currentRenderer.setHovered(state.hoveredNodeId);
+		this.currentRenderer.setHovered(this.readHoveredNodeId(state));
 		if (firstRender || fitAfterRender) {
 			this.currentRenderer.fit();
 		}
@@ -392,6 +393,16 @@ export class WorkspaceRendererLifecycle {
 			this.options.setZoomLevel?.(level),
 		);
 		this.options.setZoomLevel?.(renderer.getZoomLevel());
+	}
+
+	private readHoveredNodeId(state: WorkspaceState): string | undefined {
+		const hoveredNodeId = this.options.readHoveredNodeId
+			? this.options.readHoveredNodeId()
+			: state.hoveredNodeId;
+		return hoveredNodeId &&
+			this.currentRenderer?.runtimeGraph.hasNode(hoveredNodeId)
+			? hoveredNodeId
+			: undefined;
 	}
 }
 

@@ -141,6 +141,7 @@
 		sourceVersion?: number;
 	} = $props();
 	let workspaceState: WorkspaceState = $state(getInitialState());
+	let hoveredNodeId: string | undefined;
 	let workspaceRoot: HTMLDivElement;
 	let canvas: HTMLDivElement;
 	let findNoteInput: HTMLInputElement | undefined;
@@ -211,6 +212,7 @@
 		setZoomLevel: (level) => {
 			zoomLevel = level;
 		},
+		readHoveredNodeId: () => hoveredNodeId,
 		isLargeVaultModeActive: () => controller.isLargeVaultModeActive(),
 		yieldToMainThread: () => yieldForLargeVault(),
 		recordPerformance: (name, durationMs, details) =>
@@ -220,7 +222,7 @@
 		window,
 		readCanvas: () => canvas,
 		readRenderer: () => rendererLifecycle.renderer,
-		readHoveredNodeId: () => workspaceState.hoveredNodeId,
+		readHoveredNodeId: () => hoveredNodeId,
 		setDockDrag: (payload) => {
 			dockDrag = payload;
 		},
@@ -505,7 +507,7 @@
 					});
 			} else {
 				rendererLifecycle.setSelected(nextState.selectedNodeId);
-				rendererLifecycle.setHovered(nextState.hoveredNodeId);
+				rendererLifecycle.setHovered(hoveredNodeId);
 			}
 		});
 
@@ -587,7 +589,10 @@
 				activeNodeDropGroupId = groupId;
 			},
 			onSelect: (nodeId?: string) => controller.selectNode(nodeId),
-			onHover: (nodeId?: string) => controller.hoverNode(nodeId),
+			onHover: (nodeId?: string) => {
+				hoveredNodeId = nodeId;
+				rendererLifecycle.setHovered(nodeId);
+			},
 			onOpen: (nodeId) => void openNote(nodeId),
 			onConnectionDrag: setGraphConnectionDrag,
 			onConnect: connectVisibleNodes,
