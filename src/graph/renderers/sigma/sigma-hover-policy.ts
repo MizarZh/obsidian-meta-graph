@@ -9,6 +9,7 @@ import { isCanvasParallelEdge } from './sigma-parallel-edge-policy';
 
 export interface SigmaHoverState {
 	activeHoverNodeId?: string;
+	pinnedNodeId?: string;
 	selectedNodeId?: string;
 	selectedEdgeId?: string;
 	hoveredEdgeId?: string;
@@ -85,7 +86,10 @@ export function reduceSigmaEdge(
 	data: RuntimeEdgeAttributes,
 	state: Pick<
 		SigmaHoverState,
-		'activeHoverNodeId' | 'selectedEdgeId' | 'hoveredEdgeId'
+		| 'activeHoverNodeId'
+		| 'pinnedNodeId'
+		| 'selectedEdgeId'
+		| 'hoveredEdgeId'
 	>,
 	palette: GraphPalette,
 	extremities: readonly [string, string],
@@ -117,6 +121,8 @@ export function reduceSigmaEdge(
 	}
 	if (
 		state.hoveredEdgeId &&
+		(!state.pinnedNodeId ||
+			isEdgeConnectedToNode(data, extremities, state.pinnedNodeId)) &&
 		(data.logicalEdgeId ?? runtimeEdgeId) === state.hoveredEdgeId
 	) {
 		return {
@@ -152,4 +158,19 @@ export function reduceSigmaEdge(
 				size: 0.4,
 				zIndex: 0,
 			};
+}
+
+function isEdgeConnectedToNode(
+	data: RuntimeEdgeAttributes,
+	extremities: readonly [string, string],
+	nodeId?: string,
+): boolean {
+	if (!nodeId) return false;
+	const [source, target] = extremities;
+	return Boolean(
+		source === nodeId ||
+			target === nodeId ||
+			data.logicalSource === nodeId ||
+			data.logicalTarget === nodeId,
+	);
 }

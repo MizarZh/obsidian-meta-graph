@@ -493,12 +493,21 @@ describe('parallel route geometry', () => {
 		};
 		const hovered = { edgeId: 'hovered', source: 'A', target: 'B' };
 		const selected = { edgeId: 'selected', source: 'A', target: 'B' };
+		const pinnedState = {
+			activeHoverNodeId: 'focus',
+			pinnedNodeId: 'focus',
+			selectedEdgeId: 'selected',
+		};
 
 		expect(getEdgeFocusPriority(muted, state)).toBe(0);
 		expect(getEdgeFocusPriority(connected, state)).toBe(1);
 		expect(getEdgeFocusPriority(routed, state)).toBe(1);
 		expect(getEdgeFocusPriority(hovered, state, 'hovered')).toBe(2);
 		expect(getEdgeFocusPriority(selected, state)).toBe(3);
+		expect(getEdgeFocusPriority(hovered, pinnedState, 'hovered')).toBe(0);
+		expect(
+			getEdgeFocusPriority(connected, pinnedState, 'connected'),
+		).toBe(2);
 	});
 
 	it('orders routed native segments into one continuous logical path', () => {

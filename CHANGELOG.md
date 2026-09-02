@@ -25,6 +25,7 @@ All notable changes to Meta Graph are documented here.
 ### Fixed
 
 - Kept pin/hover neighborhood links above unrelated Sigma and Canvas edges, including routed Flow, Arc, and HEB segments; continuous logical strokes and crossing masks prevent visual artifacts and seams at bends.
+- Suppressed hover emphasis for unrelated Sigma edges while a node neighborhood is pinned; pinned-neighborhood links remain hoverable.
 - Moved HEB group labels inside the outer radial boundary, preventing outside note labels from obscuring them.
 - Preserved smooth layout-owned curves for parallel Arc links.
 - Preserved smooth layout-owned bundled paths for parallel HEB links.

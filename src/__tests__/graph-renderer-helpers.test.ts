@@ -374,6 +374,23 @@ describe('graph renderer helpers', () => {
 				'segment-1',
 			),
 		).toMatchObject({ size: edge.size + 2, zIndex: 2 });
+		expect(
+			reduceSigmaEdge(
+				{ ...edge, logicalEdgeId: 'other-edge' },
+				{
+					activeHoverNodeId: 'A.md',
+					pinnedNodeId: 'A.md',
+					hoveredEdgeId: 'other-edge',
+				},
+				palette,
+				['C.md', 'D.md'],
+				'other-edge-segment',
+			),
+		).toMatchObject({
+			color: palette.mutedEdge,
+			size: 0.4,
+			zIndex: 0,
+		});
 	});
 
 	it('computes Sigma label geometry independent of renderer lifecycle', () => {

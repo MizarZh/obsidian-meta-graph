@@ -87,6 +87,7 @@ export interface OrderedNativeEdgeSegmentDescriptor extends NativeEdgeSegmentDes
 
 export interface ParallelEdgeLayerState {
 	activeHoverNodeId?: string;
+	pinnedNodeId?: string;
 	selectedEdgeId?: string;
 	hoveredEdgeId?: string;
 	selectedEdgeColor: string;
@@ -693,7 +694,7 @@ export class SigmaParallelEdgeLayer {
 		const selected = edgeMatchesId(descriptor, state.selectedEdgeId);
 		const connectedToHover =
 			selected ||
-			edgeMatchesId(descriptor, hoveredEdgeId) ||
+			isEdgeHoverActive(descriptor, state, hoveredEdgeId) ||
 			!state.activeHoverNodeId ||
 			isEdgeConnectedToNode(descriptor, state.activeHoverNodeId);
 		const opacity = Math.max(0, Math.min(1, attributes.opacity ?? 1));
@@ -1871,11 +1872,14 @@ function getEdgeFocusDescriptor(visual: EdgeVisual): EdgeFocusDescriptor {
 
 export function getEdgeFocusPriority(
 	visual: EdgeFocusDescriptor,
-	state: Pick<ParallelEdgeLayerState, 'activeHoverNodeId' | 'selectedEdgeId'>,
+	state: Pick<
+		ParallelEdgeLayerState,
+		'activeHoverNodeId' | 'pinnedNodeId' | 'selectedEdgeId'
+	>,
 	hoveredEdgeId?: string,
 ): number {
 	if (edgeMatchesId(visual, state.selectedEdgeId)) return 3;
-	if (edgeMatchesId(visual, hoveredEdgeId)) return 2;
+	if (isEdgeHoverActive(visual, state, hoveredEdgeId)) return 2;
 	if (isEdgeConnectedToNode(visual, state.activeHoverNodeId)) return 1;
 	return 0;
 }
@@ -1888,11 +1892,23 @@ function getEdgeEmphasis(
 	const descriptor = getEdgeFocusDescriptor(visual);
 	if (
 		edgeMatchesId(descriptor, state.selectedEdgeId) ||
-		edgeMatchesId(descriptor, hoveredEdgeId)
+		isEdgeHoverActive(descriptor, state, hoveredEdgeId)
 	) {
 		return 2;
 	}
 	return isEdgeConnectedToNode(descriptor, state.activeHoverNodeId) ? 1 : 0;
+}
+
+function isEdgeHoverActive(
+	visual: EdgeFocusDescriptor,
+	state: Pick<ParallelEdgeLayerState, 'pinnedNodeId'>,
+	hoveredEdgeId?: string,
+): boolean {
+	return Boolean(
+		edgeMatchesId(visual, hoveredEdgeId) &&
+			(!state.pinnedNodeId ||
+				isEdgeConnectedToNode(visual, state.pinnedNodeId)),
+	);
 }
 
 function edgeMatchesId(visual: EdgeFocusDescriptor, edgeId?: string): boolean {

@@ -213,6 +213,7 @@ export class SigmaRenderer {
 			() => this.graph,
 			() => ({
 				activeHoverNodeId: this.getActiveHoverNodeId(),
+				pinnedNodeId: this.pinnedNodeId,
 				selectedEdgeId: this.selectedEdgeId,
 				hoveredEdgeId: this.hoveredEdgeId,
 				selectedEdgeColor: this.palette.selected,
@@ -564,6 +565,7 @@ export class SigmaRenderer {
 	private getHoverState() {
 		return {
 			activeHoverNodeId: this.getActiveHoverNodeId(),
+			pinnedNodeId: this.pinnedNodeId,
 			selectedNodeId: this.selectedNodeId,
 			selectedEdgeId: this.selectedEdgeId,
 			hoveredEdgeId: this.hoveredEdgeId,
