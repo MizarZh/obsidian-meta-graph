@@ -24,6 +24,7 @@ import {
 	createParallelCanvasRoute,
 	createParallelCanvasRouteFromPolyline,
 	distanceToPolyline,
+	getEdgeFocusPriority,
 } from '../graph/renderers/sigma/sigma-parallel-edge-layer';
 import { isCanvasParallelEdge } from '../graph/renderers/sigma/sigma-parallel-edge-policy';
 import { resolveEdgeVisualMetrics } from '../graph/renderers/sigma/sigma-edge-visual-metrics';
@@ -479,7 +480,31 @@ describe('parallel route geometry', () => {
 		).toBe(true);
 	});
 
-	it('routes direct parallel edges through compact hidden bends', () => {
+	it('keeps focused native and Canvas routes above muted routes', () => {
+		const state = {
+			activeHoverNodeId: 'focus',
+			selectedEdgeId: 'selected',
+		};
+		const muted = { edgeId: 'muted', source: 'A', target: 'B' };
+		const connected = { edgeId: 'connected', source: 'focus', target: 'B' };
+		const routed = {
+			edgeId: 'routed',
+			source: '__bend__1',
+			target: '__bend__2',
+			logicalSource: 'focus',
+			logicalTarget: 'B',
+		};
+		const hovered = { edgeId: 'hovered', source: 'A', target: 'B' };
+		const selected = { edgeId: 'selected', source: 'A', target: 'B' };
+
+		expect(getEdgeFocusPriority(muted, state)).toBe(0);
+		expect(getEdgeFocusPriority(connected, state)).toBe(1);
+		expect(getEdgeFocusPriority(routed, state)).toBe(1);
+		expect(getEdgeFocusPriority(hovered, state, 'hovered')).toBe(2);
+		expect(getEdgeFocusPriority(selected, state)).toBe(3);
+	});
+
+	 it('routes direct parallel edges through compact hidden bends', () => {
 		const graph: RuntimeGraph = new Graph({ multi: true, type: 'mixed' });
 		graph.addNode('A', { ...nodeAttributes(), x: 0, y: 0 });
 		graph.addNode('B', { ...nodeAttributes(), x: 100, y: 0 });

@@ -214,6 +214,7 @@ export class SigmaRenderer {
 			() => ({
 				activeHoverNodeId: this.getActiveHoverNodeId(),
 				selectedEdgeId: this.selectedEdgeId,
+				hoveredEdgeId: this.hoveredEdgeId,
 				selectedEdgeColor: this.palette.selected,
 				mutedEdgeColor: this.palette.mutedEdge,
 			}),

@@ -18,6 +18,9 @@ import { isCanvasParallelEdge } from './sigma-parallel-edge-policy';
 const LAYER_ID = 'parallel-edges';
 const HIT_CELL_SIZE = 64;
 const ENDPOINT_STUB_PX = 8;
+// Keep the shield narrower than the minimum parallel-lane spacing so adjacent
+// focused links remain distinguishable while crossing fragments are covered.
+const FOCUS_EDGE_CLEARANCE_PX = 1;
 
 export interface ViewportPoint {
 	x: number;
@@ -31,6 +34,7 @@ export interface ParallelCanvasRoute {
 }
 
 interface ParallelEdgeVisual {
+	kind: 'canvas';
 	edgeId: string;
 	runtimeEdgeIds: string[];
 	source: string;
@@ -39,6 +43,18 @@ interface ParallelEdgeVisual {
 	directed: boolean;
 }
 
+interface NativeEdgeVisual {
+	kind: 'native';
+	edgeId: string;
+	runtimeEdgeId: string;
+	source: string;
+	target: string;
+	attributes: RuntimeEdgeAttributes;
+	directed: boolean;
+}
+
+type EdgeVisual = ParallelEdgeVisual | NativeEdgeVisual;
+
 interface CachedRoute {
 	signature: string;
 	route: ParallelCanvasRoute;
@@ -46,7 +62,7 @@ interface CachedRoute {
 }
 
 interface VisibleRoute {
-	visual: ParallelEdgeVisual;
+	visual: EdgeVisual;
 	route: ParallelCanvasRoute;
 	path?: Path2D;
 	metrics: EdgeVisualMetrics;
@@ -55,6 +71,7 @@ interface VisibleRoute {
 export interface ParallelEdgeLayerState {
 	activeHoverNodeId?: string;
 	selectedEdgeId?: string;
+	hoveredEdgeId?: string;
 	selectedEdgeColor: string;
 	mutedEdgeColor: string;
 }
@@ -66,6 +83,7 @@ export class SigmaParallelEdgeLayer {
 	private readonly hitGrid = new Map<string, VisibleRoute[]>();
 	private flowRouteIndexGraph?: RuntimeGraph;
 	private flowRouteIndex = new Map<string, FlowRouteCandidate>();
+	private edgeVisualIndex?: EdgeVisualIndex;
 	private visibleRoutes: VisibleRoute[] = [];
 	private hoveredEdgeId?: string;
 	private animationFrame?: number;
@@ -109,6 +127,7 @@ export class SigmaParallelEdgeLayer {
 		this.routeCache.clear();
 		this.flowRouteIndexGraph = undefined;
 		this.flowRouteIndex.clear();
+		this.edgeVisualIndex = undefined;
 		this.scheduleUpdate();
 	}
 
@@ -140,9 +159,28 @@ export class SigmaParallelEdgeLayer {
 		this.visibleRoutes = [];
 		this.hitGrid.clear();
 
-		const visuals = collectParallelEdgeVisuals(this.getGraph());
-		const pixelRatio = this.getPixelRatio();
 		const state = this.getState();
+		const hoveredEdgeId = this.hoveredEdgeId ?? state.hoveredEdgeId;
+		const graph = this.getGraph();
+		const edgeIndex = this.getEdgeVisualIndex(graph);
+		const focusBackground =
+			state.activeHoverNodeId || state.selectedEdgeId || hoveredEdgeId
+				? readCanvasBackgroundColor(this.sigma.getContainer())
+				: undefined;
+		const visuals = sortEdgeVisuals(
+			[
+				...collectParallelEdgeVisuals(graph, edgeIndex.canvasEdgeIds),
+				...collectNativeFocusEdgeVisuals(
+					graph,
+					state,
+					hoveredEdgeId,
+					edgeIndex,
+				),
+			],
+			state,
+			hoveredEdgeId,
+		);
+		const pixelRatio = this.getPixelRatio();
 		for (const visual of visuals) {
 			const metricOptions = {
 				edgeSize: visual.attributes.size,
@@ -156,16 +194,19 @@ export class SigmaParallelEdgeLayer {
 				pixelRatio,
 			} satisfies EdgeVisualMetricsOptions;
 			const routeMetrics = resolveEdgeVisualMetrics(metricOptions);
-			const emphasized =
-				visual.edgeId === state.selectedEdgeId ||
-				visual.edgeId === this.hoveredEdgeId;
+			const emphasis = getEdgeEmphasis(
+				visual,
+				state,
+				hoveredEdgeId,
+			);
 			const metrics = resolveEdgeVisualMetrics({
 				...metricOptions,
-				edgeSize: emphasized
-					? visual.attributes.size + 2
-					: visual.attributes.size,
+				edgeSize: visual.attributes.size + emphasis,
 			});
-			const cached = this.getRoute(visual, routeMetrics);
+			const cached =
+				visual.kind === 'canvas'
+					? this.getRoute(visual, routeMetrics)
+					: this.getNativeRoute(visual);
 			if (
 				!cached ||
 				!intersectsViewport(cached.route.bounds, width, height)
@@ -179,8 +220,14 @@ export class SigmaParallelEdgeLayer {
 				metrics,
 			};
 			this.visibleRoutes.push(visible);
-			this.indexRoute(visible);
-			this.drawRoute(visible);
+			if (visual.kind === 'canvas') {
+				this.indexRoute(visible);
+			}
+			this.drawRoute(
+				visible,
+				visual.kind === 'canvas',
+				focusBackground,
+			);
 		}
 		this.canvas.hidden = this.visibleRoutes.length === 0;
 	}
@@ -194,6 +241,7 @@ export class SigmaParallelEdgeLayer {
 		this.routeCache.clear();
 		this.flowRouteIndexGraph = undefined;
 		this.flowRouteIndex.clear();
+		this.edgeVisualIndex = undefined;
 		this.hitGrid.clear();
 		this.sigma.killLayer(LAYER_ID);
 	}
@@ -251,7 +299,8 @@ export class SigmaParallelEdgeLayer {
 			flowRoute?.direction ?? '',
 			...(flowRoute?.route.flatMap((point) => [point.x, point.y]) ?? []),
 		].join('|');
-		const existing = this.routeCache.get(visual.edgeId);
+		const cacheKey = `canvas:${visual.edgeId}`;
+		const existing = this.routeCache.get(cacheKey);
 		if (existing?.signature === signature) {
 			return existing;
 		}
@@ -284,7 +333,65 @@ export class SigmaParallelEdgeLayer {
 			route,
 			path: createPath(route.points),
 		};
-		this.routeCache.set(visual.edgeId, cached);
+		this.routeCache.set(cacheKey, cached);
+		return cached;
+	}
+
+	private getNativeRoute(visual: NativeEdgeVisual): CachedRoute | undefined {
+		const graph = this.getGraph();
+		if (!graph.hasNode(visual.source) || !graph.hasNode(visual.target)) {
+			return undefined;
+		}
+		const sourceAttributes = graph.getNodeAttributes(visual.source);
+		const targetAttributes = graph.getNodeAttributes(visual.target);
+		if (sourceAttributes.hidden || targetAttributes.hidden) {
+			return undefined;
+		}
+		const source = this.sigma.graphToViewport(sourceAttributes);
+		const target = this.sigma.graphToViewport(targetAttributes);
+		const sizeScaler = this.sigma as unknown as {
+			scaleSize(size?: number): number;
+		};
+		const sourceRadius = Math.max(
+			0,
+			sizeScaler.scaleSize(sourceAttributes.size),
+		);
+		const targetRadius = Math.max(
+			0,
+			sizeScaler.scaleSize(targetAttributes.size),
+		);
+		const signature = [
+			'native',
+			visual.runtimeEdgeId,
+			source.x,
+			source.y,
+			target.x,
+			target.y,
+			sourceRadius,
+			targetRadius,
+		].join('|');
+		const cacheKey = `native:${visual.runtimeEdgeId}`;
+		const existing = this.routeCache.get(cacheKey);
+		if (existing?.signature === signature) {
+			return existing;
+		}
+		const route = createParallelCanvasRoute(
+			source,
+			target,
+			sourceRadius,
+			targetRadius,
+			0,
+			{ x: target.x - source.x, y: target.y - source.y },
+		);
+		if (!route) {
+			return undefined;
+		}
+		const cached: CachedRoute = {
+			signature,
+			route,
+			path: createPath(route.points),
+		};
+		this.routeCache.set(cacheKey, cached);
 		return cached;
 	}
 
@@ -297,6 +404,14 @@ export class SigmaParallelEdgeLayer {
 		this.flowRouteIndexGraph = graph;
 		this.flowRouteIndex = collectFlowRouteIndex(graph);
 		return this.flowRouteIndex;
+	}
+
+	private getEdgeVisualIndex(graph: RuntimeGraph): EdgeVisualIndex {
+		if (this.edgeVisualIndex?.graph === graph) {
+			return this.edgeVisualIndex;
+		}
+		this.edgeVisualIndex = createEdgeVisualIndex(graph);
+		return this.edgeVisualIndex;
 	}
 
 	private readRouteAxis(
@@ -338,19 +453,30 @@ export class SigmaParallelEdgeLayer {
 			: normalize(direct);
 	}
 
-	private drawRoute(visible: VisibleRoute): void {
+	private drawRoute(
+		visible: VisibleRoute,
+		drawLabel: boolean,
+		focusBackground?: string,
+	): void {
 		const { visual, route } = visible;
 		const attributes = visual.attributes;
 		const state = this.getState();
-		const selected = visual.edgeId === state.selectedEdgeId;
+		const hoveredEdgeId = this.hoveredEdgeId ?? state.hoveredEdgeId;
+		const descriptor = getEdgeFocusDescriptor(visual);
+		const selected = edgeMatchesId(descriptor, state.selectedEdgeId);
 		const connectedToHover =
 			selected ||
+			edgeMatchesId(descriptor, hoveredEdgeId) ||
 			!state.activeHoverNodeId ||
-			visual.source === state.activeHoverNodeId ||
-			visual.target === state.activeHoverNodeId;
+			isEdgeConnectedToNode(descriptor, state.activeHoverNodeId);
 		const opacity = Math.max(0, Math.min(1, attributes.opacity ?? 1));
+		const focused =
+			getEdgeFocusPriority(descriptor, state, hoveredEdgeId) > 0;
 
 		this.context.save();
+		if (focused && focusBackground) {
+			this.drawFocusShield(visible, opacity, focusBackground);
+		}
 		this.context.globalAlpha = connectedToHover ? opacity : opacity * 0.18;
 		this.context.strokeStyle = connectedToHover
 			? selected
@@ -361,19 +487,40 @@ export class SigmaParallelEdgeLayer {
 		this.context.lineCap = 'round';
 		this.context.lineJoin = 'round';
 		this.context.setLineDash(visible.metrics.dashPattern);
-		if (visible.path) {
-			this.context.stroke(visible.path);
-		} else {
-			tracePolyline(this.context, route.points);
-			this.context.stroke();
-		}
+		this.strokeRoute(visible);
 		this.context.setLineDash([]);
 		if (visual.directed) {
 			this.drawArrow(visible);
 		}
-		if (attributes.label) {
+		if (drawLabel && attributes.label) {
 			this.drawLabel(visible);
 		}
+		this.context.restore();
+	}
+
+	private strokeRoute(visible: VisibleRoute): void {
+		if (visible.path) {
+			this.context.stroke(visible.path);
+		} else {
+			tracePolyline(this.context, visible.route.points);
+			this.context.stroke();
+		}
+	}
+
+	private drawFocusShield(
+		visible: VisibleRoute,
+		opacity: number,
+		background: string,
+	): void {
+		this.context.save();
+		this.context.globalAlpha = opacity;
+		this.context.strokeStyle = background;
+		this.context.lineWidth =
+			visible.metrics.lineWidth + FOCUS_EDGE_CLEARANCE_PX * 2;
+		this.context.lineCap = 'round';
+		this.context.lineJoin = 'round';
+		this.context.setLineDash([]);
+		this.strokeRoute(visible);
 		this.context.restore();
 	}
 
@@ -1208,14 +1355,68 @@ export function distanceToPolyline(
 	return distance;
 }
 
-function collectParallelEdgeVisuals(graph: RuntimeGraph): ParallelEdgeVisual[] {
-	const visuals = new Map<string, ParallelEdgeVisual>();
+interface EdgeVisualIndex {
+	graph: RuntimeGraph;
+	canvasEdgeIds: string[];
+	edgeIdsByNode: Map<string, string[]>;
+	edgeIdsByLogicalId: Map<string, string[]>;
+}
+
+function createEdgeVisualIndex(graph: RuntimeGraph): EdgeVisualIndex {
+	const index: EdgeVisualIndex = {
+		graph,
+		canvasEdgeIds: [],
+		edgeIdsByNode: new Map(),
+		edgeIdsByLogicalId: new Map(),
+	};
 	graph.forEachEdge((runtimeEdgeId, attributes, source, target) => {
+		const logicalSource = attributes.logicalSource ?? source;
+		const logicalTarget = attributes.logicalTarget ?? target;
+		appendIndexedEdge(index.edgeIdsByNode, logicalSource, runtimeEdgeId);
+		if (logicalTarget !== logicalSource) {
+			appendIndexedEdge(index.edgeIdsByNode, logicalTarget, runtimeEdgeId);
+		}
+		const edgeId = attributes.logicalEdgeId ?? runtimeEdgeId;
+		appendIndexedEdge(index.edgeIdsByLogicalId, edgeId, runtimeEdgeId);
+		if (edgeId !== runtimeEdgeId) {
+			appendIndexedEdge(
+				index.edgeIdsByLogicalId,
+				runtimeEdgeId,
+				runtimeEdgeId,
+			);
+		}
+		if (isCanvasParallelEdge(attributes, [source, target])) {
+			index.canvasEdgeIds.push(runtimeEdgeId);
+		}
+	});
+	return index;
+}
+
+function appendIndexedEdge(
+	index: Map<string, string[]>,
+	key: string,
+	edgeId: string,
+): void {
+	const edgeIds = index.get(key) ?? [];
+	edgeIds.push(edgeId);
+	index.set(key, edgeIds);
+}
+
+function collectParallelEdgeVisuals(
+	graph: RuntimeGraph,
+	runtimeEdgeIds: readonly string[] = graph.edges(),
+): ParallelEdgeVisual[] {
+	const visuals = new Map<string, ParallelEdgeVisual>();
+	for (const runtimeEdgeId of runtimeEdgeIds) {
+		if (!graph.hasEdge(runtimeEdgeId)) continue;
+		const attributes = graph.getEdgeAttributes(runtimeEdgeId);
+		const source = graph.source(runtimeEdgeId);
+		const target = graph.target(runtimeEdgeId);
 		if (
 			attributes.hidden ||
 			!isCanvasParallelEdge(attributes, [source, target])
 		) {
-			return;
+			continue;
 		}
 		const logicalSource = attributes.logicalSource ?? source;
 		const logicalTarget = attributes.logicalTarget ?? target;
@@ -1237,9 +1438,10 @@ function collectParallelEdgeVisuals(graph: RuntimeGraph): ParallelEdgeVisual[] {
 					forceLabel: true,
 				};
 			}
-			return;
+			continue;
 		}
 		visuals.set(edgeId, {
+			kind: 'canvas',
 			edgeId,
 			runtimeEdgeIds: [runtimeEdgeId],
 			source: logicalSource,
@@ -1247,8 +1449,176 @@ function collectParallelEdgeVisuals(graph: RuntimeGraph): ParallelEdgeVisual[] {
 			attributes,
 			directed: graph.isDirected(runtimeEdgeId),
 		});
-	});
+	}
 	return [...visuals.values()];
+}
+
+function collectNativeFocusEdgeVisuals(
+	graph: RuntimeGraph,
+	state: ParallelEdgeLayerState,
+	hoveredEdgeId?: string,
+	index?: EdgeVisualIndex,
+): NativeEdgeVisual[] {
+	const visuals: NativeEdgeVisual[] = [];
+	for (const runtimeEdgeId of collectNativeFocusEdgeIds(
+		state,
+		hoveredEdgeId,
+		index,
+	)) {
+		if (!graph.hasEdge(runtimeEdgeId)) continue;
+		const attributes = graph.getEdgeAttributes(runtimeEdgeId);
+		const source = graph.source(runtimeEdgeId);
+		const target = graph.target(runtimeEdgeId);
+		if (
+			attributes.hidden ||
+			isCanvasParallelEdge(attributes, [source, target])
+		) {
+			continue;
+		}
+		const visual: NativeEdgeVisual = {
+			kind: 'native',
+			edgeId: attributes.logicalEdgeId ?? runtimeEdgeId,
+			runtimeEdgeId,
+			source,
+			target,
+			attributes,
+			directed:
+				graph.isDirected(runtimeEdgeId) && isArrowEdgeType(attributes.type),
+		};
+		if (
+			getEdgeFocusPriority(
+				getEdgeFocusDescriptor(visual),
+				state,
+				hoveredEdgeId,
+			) > 0
+		) {
+			visuals.push(visual);
+		}
+	}
+	return visuals;
+}
+
+function collectNativeFocusEdgeIds(
+	state: ParallelEdgeLayerState,
+	hoveredEdgeId: string | undefined,
+	index?: EdgeVisualIndex,
+): Set<string> {
+	const candidateIds = new Set<string>();
+	if (!index) return candidateIds;
+	if (state.activeHoverNodeId) {
+		for (const edgeId of index.edgeIdsByNode.get(state.activeHoverNodeId) ?? []) {
+			candidateIds.add(edgeId);
+		}
+	}
+	for (const edgeId of [state.selectedEdgeId, hoveredEdgeId]) {
+		if (!edgeId) continue;
+		for (const runtimeEdgeId of index.edgeIdsByLogicalId.get(edgeId) ?? []) {
+			candidateIds.add(runtimeEdgeId);
+		}
+	}
+	return candidateIds;
+}
+
+export interface EdgeFocusDescriptor {
+	edgeId: string;
+	source: string;
+	target: string;
+	logicalEdgeId?: string;
+	logicalSource?: string;
+	logicalTarget?: string;
+}
+
+function getEdgeFocusDescriptor(visual: EdgeVisual): EdgeFocusDescriptor {
+	return {
+		edgeId: visual.edgeId,
+		source: visual.source,
+		target: visual.target,
+		logicalEdgeId: visual.attributes.logicalEdgeId,
+		logicalSource: visual.attributes.logicalSource,
+		logicalTarget: visual.attributes.logicalTarget,
+	};
+}
+
+export function getEdgeFocusPriority(
+	visual: EdgeFocusDescriptor,
+	state: Pick<
+		ParallelEdgeLayerState,
+		'activeHoverNodeId' | 'selectedEdgeId'
+	>,
+	hoveredEdgeId?: string,
+): number {
+	if (edgeMatchesId(visual, state.selectedEdgeId)) return 3;
+	if (edgeMatchesId(visual, hoveredEdgeId)) return 2;
+	if (isEdgeConnectedToNode(visual, state.activeHoverNodeId)) return 1;
+	return 0;
+}
+
+function getEdgeEmphasis(
+	visual: EdgeVisual,
+	state: ParallelEdgeLayerState,
+	hoveredEdgeId?: string,
+): number {
+	const descriptor = getEdgeFocusDescriptor(visual);
+	if (
+		edgeMatchesId(descriptor, state.selectedEdgeId) ||
+		edgeMatchesId(descriptor, hoveredEdgeId)
+	) {
+		return 2;
+	}
+	return isEdgeConnectedToNode(descriptor, state.activeHoverNodeId)
+		? 1
+		: 0;
+}
+
+function edgeMatchesId(
+	visual: EdgeFocusDescriptor,
+	edgeId?: string,
+): boolean {
+	return Boolean(
+		edgeId &&
+		(visual.edgeId === edgeId || visual.logicalEdgeId === edgeId),
+	);
+}
+
+function isEdgeConnectedToNode(
+	visual: EdgeFocusDescriptor,
+	nodeId?: string,
+): boolean {
+	return Boolean(
+		nodeId &&
+		(visual.source === nodeId ||
+			visual.target === nodeId ||
+			visual.logicalSource === nodeId ||
+			visual.logicalTarget === nodeId),
+	);
+}
+
+function sortEdgeVisuals(
+	visuals: readonly EdgeVisual[],
+	state: ParallelEdgeLayerState,
+	hoveredEdgeId?: string,
+): EdgeVisual[] {
+	const buckets: EdgeVisual[][] = [[], [], [], []];
+	for (const visual of visuals) {
+		const priority = getEdgeFocusPriority(
+			getEdgeFocusDescriptor(visual),
+			state,
+			hoveredEdgeId,
+		);
+		buckets[priority]!.push(visual);
+	}
+	return buckets.flat();
+}
+
+function isArrowEdgeType(type: string): boolean {
+	return type === 'arrow' || type.endsWith('-arrow');
+}
+
+function readCanvasBackgroundColor(container: HTMLElement): string {
+	return (
+		getComputedStyle(container).getPropertyValue('--background-primary').trim() ||
+		'#ffffff'
+	);
 }
 
 interface FlowRouteCandidate {
