@@ -174,17 +174,17 @@
 			options={LABEL_POSITION_OPTIONS}
 			onChange={onLabelPosition}
 		/>
-		<SliderSetting
-			label="Text offset"
-			value={labelOffset}
-			min={0}
-			max={2.5}
-			step={0.1}
-			format={(value) => value.toFixed(1)}
-			onChange={onLabelOffset}
-			onCommit={onLabelOffset}
-		/>
 	{/if}
+	<SliderSetting
+		label="Text offset"
+		value={labelOffset}
+		min={0}
+		max={2.5}
+		step={0.1}
+		format={(value) => value.toFixed(1)}
+		onChange={onLabelOffset}
+		onCommit={onLabelOffset}
+	/>
 	{#if mode === 'arc'}
 		<SegmentedSetting
 			label="Label angle"

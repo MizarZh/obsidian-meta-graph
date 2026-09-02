@@ -10,6 +10,7 @@ All notable changes to Meta Graph are documented here.
 - Added unified transient node, logical-edge, and group selection. Native Sigma edge picking and the parallel-edge Canvas hit grid now select the same logical edge, including every segment of a Flow route; native and Canvas edge hover use the same zoom-aware emphasis.
 - Added deterministic parallel lanes for multiple relationships between the same two notes. Directed, reverse, and undirected links now keep separate paths, labels, arrows, and 2D/3D/Cube/Flow/Arc/HEB rendering without changing the underlying metadata.
 - Added a DPR-aware Canvas overlay for Sigma parallel edges, including compact endpoint routes, rounded solid/patterned lines, arrows, labels, hover/click hit testing, viewport culling, and cached paths.
+- Added the **Text offset** setting to HEB labels, so radial note labels can be moved farther from their nodes.
 - Added centralized graph actions with Obsidian command-palette entries, shortcut help, viewport shortcuts, selected-node open/focus shortcuts, and consistent keyboard behavior across note lists.
 - Added transaction-safe connection Redo with toolbar, `Ctrl/Cmd+Shift+Z`, and `Ctrl/Cmd+Y` access.
 
@@ -21,6 +22,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Moved HEB group labels inside the outer radial boundary, preventing outside note labels from obscuring them.
+- Kept Arc parallel links on layout-owned curved paths instead of replacing them with straight Canvas routes.
 - Kept parallel HEB links on their smooth layout-owned bundled paths instead of replacing them with orthogonal Canvas fallback routes.
 - Kept pinned and hovered Sigma labels above the highlighted-node WebGL layer, so centered labels remain readable while a neighborhood is pinned.
 - Fixed Sigma **Text position: Center** falling through to the right-side layout. Graph and Flow labels now center both their text and background box on the node.

@@ -7,6 +7,7 @@ import {
 	createArcPoints,
 	getArcLabelPlacement,
 } from '../layouts/arc-layout';
+import { isCanvasParallelEdge } from '../graph/renderers/sigma/sigma-parallel-edge-policy';
 import {
 	normalizeLayoutGroupPadding,
 	scaleLayoutGroupPadding,
@@ -70,6 +71,57 @@ describe('ArcLayout', () => {
 				.mapEdges((_edge, attributes) => attributes.label)
 				.filter(Boolean),
 		).toEqual(['Next']);
+	});
+
+	it('keeps parallel links on layout-owned arcs', async () => {
+		const firstEdge = projection.edges[0];
+		if (!firstEdge) {
+			throw new Error('Arc parallel-edge test requires a base edge.');
+		}
+		const graph = new GraphologyAdapter(palette).fromProjection({
+			...projection,
+			edges: [
+				firstEdge,
+				{
+					...firstEdge,
+					id: 'A-to-C-related',
+					relation: 'related',
+					directed: false,
+					sourceField: 'related',
+				},
+			],
+		});
+
+		await new ArcLayout(1, 'up').apply(graph);
+
+		const segmentIds = graph
+			.edges()
+			.filter((edgeId) => edgeId.includes('__arc_segment_'));
+		expect(segmentIds.length).toBeGreaterThan(2);
+		expect(
+			segmentIds.every((edgeId) => {
+				const attributes = graph.getEdgeAttributes(edgeId);
+				return (
+					attributes.parallelRouteOwner === 'layout' &&
+					!isCanvasParallelEdge(attributes, [
+						graph.source(edgeId),
+						graph.target(edgeId),
+					])
+				);
+			}),
+		).toBe(true);
+
+		const firstMidpointY = graph.getNodeAttribute(
+			'__arc-bend__A-to-C__4',
+			'y',
+		);
+		const secondMidpointY = graph.getNodeAttribute(
+			'__arc-bend__A-to-C-related__4',
+			'y',
+		);
+		expect(firstMidpointY).toBeGreaterThan(0);
+		expect(secondMidpointY).toBeGreaterThan(0);
+		expect(firstMidpointY).not.toBeCloseTo(secondMidpointY);
 	});
 
 	it('creates right-facing semicircle points from source to target', () => {

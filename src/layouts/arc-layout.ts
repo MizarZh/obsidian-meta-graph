@@ -168,6 +168,7 @@ export function applyArcEdges(
 			logicalEdgeId: edge,
 			logicalSource: source,
 			logicalTarget: target,
+			parallelRouteOwner: 'layout' as const,
 		};
 		const pathNodes = [source];
 		for (const [index, point] of points.slice(1, -1).entries()) {

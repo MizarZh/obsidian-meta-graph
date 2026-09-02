@@ -15,6 +15,7 @@ import { scaleLayoutGroupPadding } from '../../../layouts/group-geometry';
 
 const LAYER_ID = 'layout-groups';
 const GROUP_MEMBER_HALO_GAP = 3;
+const RADIAL_GROUP_LABEL_INSET = 15;
 
 interface Point {
 	x: number;
@@ -226,23 +227,22 @@ export class LayoutGroupLayer {
 		this.context.restore();
 
 		const middleAngle = (geometry.startAngle + geometry.endAngle) / 2;
-		const labelBase = this.sigma.graphToViewport(
-			radialPoint(middleAngle, outerRadius),
+		const labelRadius = Math.max(
+			innerRadius,
+			outerRadius - RADIAL_GROUP_LABEL_INSET,
 		);
-		const center = this.sigma.graphToViewport({ x: 0, y: 0 });
-		const radial = normalize({
-			x: labelBase.x - center.x,
-			y: labelBase.y - center.y,
-		});
+		const labelBase = this.sigma.graphToViewport(
+			radialPoint(middleAngle, labelRadius),
+		);
 		const tangentStart = this.sigma.graphToViewport(
-			radialPoint(middleAngle - 0.01, outerRadius),
+			radialPoint(middleAngle - 0.01, labelRadius),
 		);
 		const tangentEnd = this.sigma.graphToViewport(
-			radialPoint(middleAngle + 0.01, outerRadius),
+			radialPoint(middleAngle + 0.01, labelRadius),
 		);
 		this.drawLabel(
 			geometry.name,
-			add(labelBase, scale(radial, 15)),
+			labelBase,
 			Math.atan2(
 				tangentEnd.y - tangentStart.y,
 				tangentEnd.x - tangentStart.x,
