@@ -49,18 +49,18 @@ export interface ParallelEdgeRouteAttributes {
 }
 
 /**
- * Pixel distance between adjacent visual lanes.
+ * Pixel distance between adjacent visual lanes, derived from visible line width.
  *
  * The renderer deliberately keeps this independent from graph coordinates:
  * zooming or a large node should never turn two parallel links into a huge
  * detour. The small clamp also keeps labels and arrows in the same compact
  * corridor as the line program.
  */
-export function getParallelLaneStep(edgeSize = 1): number {
-	const size = Number.isFinite(edgeSize) && edgeSize > 0 ? edgeSize : 1;
-	// Sigma keeps a 1.7px minimum edge half-width. Mirror that floor here so
-	// labels use the same lane center as the WebGL line/arrow programs.
-	return Math.max(3, Math.min(8, Math.max(size, 1.7) * 2.5));
+export function getParallelLaneStep(lineWidth = 1): number {
+	const width = Number.isFinite(lineWidth) && lineWidth > 0 ? lineWidth : 1;
+	// Preserve Sigma's default floor for non-Canvas callers that only have the
+	// unscaled edge size. Canvas callers pass the resolved visible line width.
+	return Math.max(3, Math.min(8, Math.max(width, 1.7) * 2.5));
 }
 
 export function getParallelLaneOffset(

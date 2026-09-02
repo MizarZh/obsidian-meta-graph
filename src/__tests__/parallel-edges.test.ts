@@ -26,6 +26,7 @@ import {
 	distanceToPolyline,
 } from '../graph/renderers/sigma/sigma-parallel-edge-layer';
 import { isCanvasParallelEdge } from '../graph/renderers/sigma/sigma-hover-policy';
+import { resolveEdgeVisualMetrics } from '../graph/renderers/sigma/sigma-edge-visual-metrics';
 
 function edgeAttributes(relation: string): RuntimeEdgeAttributes {
 	return {
@@ -218,6 +219,44 @@ describe('parallel edge lanes', () => {
 		expect(getParallelLane({ parallelLane: 0.5, parallelCount: 1 })).toBe(
 			0,
 		);
+	});
+});
+
+describe('parallel edge visual metrics', () => {
+	it('applies Sigma zoom scaling and minimum thickness consistently', () => {
+		const metrics = resolveEdgeVisualMetrics({
+			edgeSize: 1,
+			arrowSize: 1,
+			arrowStyle: 'filled',
+			lineStyle: 'dashed',
+			scaleSize: (size) => size / 2,
+			minEdgeThickness: 1.7,
+		});
+
+		expect(metrics.lineWidth).toBe(1.7);
+		expect(metrics.arrowLength).toBe(8.5);
+		expect(metrics.arrowHalfWidth).toBe(3.4);
+		expect(metrics.dashPattern).toEqual([5, 3.5]);
+		expect(metrics.laneStep).toBe(4.25);
+		expect(metrics.hitWidth).toBe(6);
+	});
+
+	it('clamps lane growth while keeping hit width independent', () => {
+		const metrics = resolveEdgeVisualMetrics({
+			edgeSize: 8,
+			arrowSize: 1,
+			arrowStyle: 'chevron',
+			lineStyle: 'solid',
+			scaleSize: (size) => size / 2,
+			minEdgeThickness: 1.7,
+		});
+
+		expect(metrics.lineWidth).toBe(4);
+		expect(metrics.arrowLength).toBe(18);
+		expect(metrics.arrowHalfWidth).toBe(11);
+		expect(metrics.dashPattern).toEqual([]);
+		expect(metrics.laneStep).toBe(8);
+		expect(metrics.hitWidth).toBe(10);
 	});
 });
 

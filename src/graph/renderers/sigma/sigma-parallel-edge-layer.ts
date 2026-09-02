@@ -6,11 +6,16 @@ import type {
 	RuntimeGraph,
 	RuntimeNodeAttributes,
 } from '../../model/graphology-adapter';
-import { getParallelLaneOffset } from '../../model/parallel-edges';
+import {
+	getCanonicalParallelLane,
+} from '../../model/parallel-edges';
+import {
+	resolveEdgeVisualMetrics,
+	type EdgeVisualMetrics,
+} from './sigma-edge-visual-metrics';
 
 const LAYER_ID = 'parallel-edges';
 const HIT_CELL_SIZE = 64;
-const HIT_PADDING = 6;
 const ENDPOINT_STUB_PX = 8;
 
 export interface ViewportPoint {
@@ -43,7 +48,7 @@ interface VisibleRoute {
 	visual: ParallelEdgeVisual;
 	route: ParallelCanvasRoute;
 	path?: Path2D;
-	lineWidth: number;
+	metrics: EdgeVisualMetrics;
 }
 
 export interface ParallelEdgeLayerState {
@@ -114,10 +119,7 @@ export class SigmaParallelEdgeLayer {
 				position,
 				candidate.route.points,
 			);
-			const tolerance = Math.max(
-				HIT_PADDING,
-				candidate.lineWidth / 2 + 3,
-			);
+				const tolerance = candidate.metrics.hitWidth / 2;
 			if (
 				distance > tolerance ||
 				(nearest && distance >= nearest.distance)
@@ -139,19 +141,26 @@ export class SigmaParallelEdgeLayer {
 
 		const visuals = collectParallelEdgeVisuals(this.getGraph());
 		for (const visual of visuals) {
-			const cached = this.getRoute(visual);
+			const metrics = resolveEdgeVisualMetrics({
+				edgeSize: visual.attributes.size,
+				arrowSize: visual.attributes.arrowSize,
+				arrowStyle: visual.attributes.arrowStyle,
+				lineStyle: visual.attributes.lineStyle,
+				scaleSize: (size) => this.sigma.scaleSize(size),
+				minEdgeThickness: this.sigma.getSetting('minEdgeThickness'),
+			});
+			const cached = this.getRoute(visual, metrics);
 			if (
 				!cached ||
 				!intersectsViewport(cached.route.bounds, width, height)
 			) {
 				continue;
 			}
-			const lineWidth = Math.max(1, visual.attributes.size || 1);
 			const visible = {
 				visual,
 				route: cached.route,
 				path: cached.path,
-				lineWidth,
+				metrics,
 			};
 			this.visibleRoutes.push(visible);
 			this.indexRoute(visible);
@@ -174,7 +183,10 @@ export class SigmaParallelEdgeLayer {
 		this.sigma.killLayer(LAYER_ID);
 	}
 
-	private getRoute(visual: ParallelEdgeVisual): CachedRoute | undefined {
+	private getRoute(
+		visual: ParallelEdgeVisual,
+		metrics: EdgeVisualMetrics,
+	): CachedRoute | undefined {
 		const graph = this.getGraph();
 		if (!graph.hasNode(visual.source) || !graph.hasNode(visual.target)) {
 			return undefined;
@@ -197,10 +209,8 @@ export class SigmaParallelEdgeLayer {
 			0,
 			sizeScaler.scaleSize(targetAttributes.size),
 		);
-		const laneOffset = getParallelLaneOffset(
-			visual.attributes,
-			visual.attributes.size,
-		);
+		const laneOffset =
+			getCanonicalParallelLane(visual.attributes) * metrics.laneStep;
 		const flowRoute = readLogicalFlowRoute(
 			graph,
 			visual,
@@ -330,11 +340,11 @@ export class SigmaParallelEdgeLayer {
 		this.context.strokeStyle = connectedToHover
 			? attributes.color
 			: state.mutedEdgeColor;
-		this.context.lineWidth =
-			visible.lineWidth + (hovered || selected ? 2 : 0);
+			this.context.lineWidth =
+				visible.metrics.lineWidth + (hovered || selected ? 2 : 0);
 		this.context.lineCap = 'round';
 		this.context.lineJoin = 'round';
-		this.context.setLineDash(getLineDash(attributes.lineStyle));
+			this.context.setLineDash(visible.metrics.dashPattern);
 		if (visible.path) {
 			this.context.stroke(visible.path);
 		} else {
@@ -358,9 +368,8 @@ export class SigmaParallelEdgeLayer {
 		if (!tip) return;
 		const direction = visible.route.arrowDirection;
 		const normal = { x: -direction.y, y: direction.x };
-		const scale = Math.max(0.25, attributes.arrowSize ?? 1);
-		const length = Math.max(5, visible.lineWidth * 3.2) * scale;
-		const halfWidth = Math.max(3.5, visible.lineWidth * 2.2) * scale;
+		const length = visible.metrics.arrowLength;
+		const halfWidth = visible.metrics.arrowHalfWidth;
 		const base = {
 			x: tip.x - direction.x * length,
 			y: tip.y - direction.y * length,
@@ -378,7 +387,7 @@ export class SigmaParallelEdgeLayer {
 		this.context.lineTo(tip.x, tip.y);
 		this.context.lineTo(right.x, right.y);
 		if (attributes.arrowStyle === 'chevron') {
-			this.context.lineWidth = Math.max(1.5, visible.lineWidth);
+			this.context.lineWidth = Math.max(1.5, visible.metrics.lineWidth);
 			this.context.stroke();
 			return;
 		}
@@ -427,7 +436,7 @@ export class SigmaParallelEdgeLayer {
 	}
 
 	private indexRoute(route: VisibleRoute): void {
-		const bounds = expandBounds(route.route.bounds, HIT_PADDING);
+		const bounds = expandBounds(route.route.bounds, route.metrics.hitWidth / 2);
 		const firstX = Math.floor(bounds.left / HIT_CELL_SIZE);
 		const lastX = Math.floor(bounds.right / HIT_CELL_SIZE);
 		const firstY = Math.floor(bounds.top / HIT_CELL_SIZE);
@@ -1287,13 +1296,6 @@ function tracePolyline(
 	context.beginPath();
 	context.moveTo(first.x, first.y);
 	for (const point of points.slice(1)) context.lineTo(point.x, point.y);
-}
-
-function getLineDash(lineStyle: RuntimeEdgeAttributes['lineStyle']): number[] {
-	if (lineStyle === 'dashed') return [10, 7];
-	if (lineStyle === 'dotted') return [2, 5];
-	if (lineStyle === 'dash-dot') return [10, 5, 2, 5];
-	return [];
 }
 
 function snapToPrimaryAxis(

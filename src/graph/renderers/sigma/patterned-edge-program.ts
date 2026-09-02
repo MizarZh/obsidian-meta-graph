@@ -13,6 +13,7 @@ import {
 	getCanonicalParallelLane,
 	getParallelLaneOffset,
 } from '../../model/parallel-edges';
+import { EDGE_DASH_PATTERNS } from './sigma-edge-visual-metrics';
 
 const VERTEX_SHADER_SOURCE = /* glsl */ `
 attribute vec4 a_id;
@@ -83,7 +84,11 @@ interface ProgramInfo {
 
 function createLineProgram(fragmentShaderSource: string) {
 	return class LineEdgeProgram extends EdgeProgram<
-		'u_matrix' | 'u_sizeRatio' | 'u_correctionRatio' | 'u_resolution',
+		| 'u_matrix'
+		| 'u_sizeRatio'
+		| 'u_correctionRatio'
+		| 'u_resolution'
+		| 'u_patternScale',
 		RuntimeNodeAttributes,
 		RuntimeEdgeAttributes
 	> {
@@ -98,6 +103,7 @@ function createLineProgram(fragmentShaderSource: string) {
 					'u_sizeRatio',
 					'u_correctionRatio',
 					'u_resolution',
+					'u_patternScale',
 				] as const,
 				ATTRIBUTES: [
 					{
@@ -201,6 +207,10 @@ function createLineProgram(fragmentShaderSource: string) {
 				params.width * params.pixelRatio,
 				params.height * params.pixelRatio,
 			);
+			gl.uniform1f(
+				uniformLocations.u_patternScale!,
+				1 / Math.max(params.sizeRatio, 0.001),
+			);
 		}
 	};
 }
@@ -222,9 +232,13 @@ precision mediump float;
 
 varying vec4 v_color;
 varying float v_distance;
+uniform float u_patternScale;
 
 void main(void) {
-	float position = mod(v_distance, ${cycle.toFixed(1)});
+	float position = mod(
+		v_distance / max(u_patternScale, 0.001),
+		${cycle.toFixed(1)}
+	);
 	if (!(${drawRanges.join(' || ')})) {
 		discard;
 	}
@@ -245,9 +259,11 @@ void main(void) {
 }
 `);
 
-const DashedEdgeProgram = createPatternedEdgeProgram([10, 7]);
-const DottedEdgeProgram = createPatternedEdgeProgram([2, 5]);
-const DashDotEdgeProgram = createPatternedEdgeProgram([10, 5, 2, 5]);
+const DashedEdgeProgram = createPatternedEdgeProgram(EDGE_DASH_PATTERNS.dashed);
+const DottedEdgeProgram = createPatternedEdgeProgram(EDGE_DASH_PATTERNS.dotted);
+const DashDotEdgeProgram = createPatternedEdgeProgram(
+	EDGE_DASH_PATTERNS['dash-dot'],
+);
 
 const ARROW_HEAD_VERTEX_SHADER_SOURCE = /* glsl */ `
 attribute vec2 a_position;

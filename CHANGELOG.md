@@ -17,6 +17,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Unified Sigma parallel-edge Canvas line widths, arrows, dash spacing, and compact lane spacing with Sigma's zoom scaling and minimum edge thickness; hit targets now keep an independent minimum width.
 - Replaced the keyboard shortcut overlay with a grouped side-by-side reference panel that keeps the graph interactive while open.
 - Made `Space` pin or unpin the hovered node's neighborhood; with no hovered node it clears the current pinned focus.
 - Kept Flow arrows on the final flow-axis corridor segment when parallel lanes use endpoint branches, preventing RL/LR arrows from pointing vertically into nodes.
