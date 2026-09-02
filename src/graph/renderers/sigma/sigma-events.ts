@@ -58,10 +58,28 @@ export function bindGraphEvents(
 			callbacks.onOpen(node);
 		}
 	};
+	const clickEdge = ({
+		edge,
+		event,
+	}: {
+		edge: string;
+		event: {
+			original: MouseEvent | TouchEvent;
+			preventSigmaDefault(): void;
+		};
+	}) => {
+		if (shouldSuppressClick(event)) return;
+		const logicalEdgeId = renderer.getLogicalEdgeId(edge);
+		if (!logicalEdgeId) return;
+		renderer.clearPinnedHover();
+		callbacks.onSelectEdge?.(logicalEdgeId);
+	};
 	const clickStage = ({
 		event,
 	}: {
 		event: {
+			x: number;
+			y: number;
 			original: MouseEvent | TouchEvent;
 			preventSigmaDefault(): void;
 		};
@@ -70,6 +88,17 @@ export function bindGraphEvents(
 			return;
 		}
 		renderer.clearPinnedHover();
+		const position = { x: event.x, y: event.y };
+		const canvasEdgeId = renderer.getEdgeAtViewportPosition(position);
+		if (canvasEdgeId) {
+			callbacks.onSelectEdge?.(canvasEdgeId);
+			return;
+		}
+		const groupId = renderer.getGroupAtViewportPosition(position);
+		if (groupId) {
+			callbacks.onSelectGroup?.(groupId);
+			return;
+		}
 		callbacks.onSelect(undefined);
 	};
 
@@ -105,6 +134,14 @@ export function bindGraphEvents(
 			callbacks.onConnectionDrag?.(connectionDrag);
 		}
 		callbacks.onHover(undefined);
+	};
+	const enterEdge = ({ edge }: { edge: string }) => {
+		const logicalEdgeId = renderer.getLogicalEdgeId(edge);
+		if (logicalEdgeId) renderer.setHoveredEdge(logicalEdgeId);
+	};
+	const leaveEdge = ({ edge }: { edge: string }) => {
+		const logicalEdgeId = renderer.getLogicalEdgeId(edge);
+		if (logicalEdgeId) renderer.clearHoveredEdge(logicalEdgeId);
 	};
 	const downNode = ({
 		node,
@@ -313,11 +350,14 @@ export function bindGraphEvents(
 
 	sigma.on('downNode', downNode);
 	sigma.on('clickNode', clickNode);
+	sigma.on('clickEdge', clickEdge);
 	sigma.on('doubleClickNode', doubleClickNode);
 	sigma.on('clickStage', clickStage);
 	sigma.on('rightClickNode', rightClickNode);
 	sigma.on('enterNode', enterNode);
 	sigma.on('leaveNode', leaveNode);
+	sigma.on('enterEdge', enterEdge);
+	sigma.on('leaveEdge', leaveEdge);
 	sigma.on('upNode', upNode);
 	sigma.on('upStage', upStage);
 	mouseCaptor.on('mousemovebody', moveBody);
@@ -328,11 +368,14 @@ export function bindGraphEvents(
 		endConnectionDrag();
 		sigma.off('downNode', downNode);
 		sigma.off('clickNode', clickNode);
+		sigma.off('clickEdge', clickEdge);
 		sigma.off('doubleClickNode', doubleClickNode);
 		sigma.off('clickStage', clickStage);
 		sigma.off('rightClickNode', rightClickNode);
 		sigma.off('enterNode', enterNode);
 		sigma.off('leaveNode', leaveNode);
+		sigma.off('enterEdge', enterEdge);
+		sigma.off('leaveEdge', leaveEdge);
 		sigma.off('upNode', upNode);
 		sigma.off('upStage', upStage);
 		mouseCaptor.off('mousemovebody', moveBody);

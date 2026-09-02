@@ -95,6 +95,19 @@ export class WorkspaceRendererLifecycle {
 		this.currentRenderer?.setSelected(nodeId);
 	}
 
+	setSelection(
+		nodeId?: string,
+		edgeId?: string,
+		groupId?: string,
+	): void {
+		const renderer = this.currentRenderer;
+		if (!renderer) return;
+		renderer.setSelected(nodeId);
+		if (isForce3DRenderer(renderer) || isCube3DRenderer(renderer)) return;
+		renderer.setSelectedEdge(edgeId);
+		renderer.setSelectedGroup(groupId);
+	}
+
 	setHovered(nodeId?: string): void {
 		this.currentRenderer?.setHovered(nodeId);
 	}
@@ -273,7 +286,11 @@ export class WorkspaceRendererLifecycle {
 				this.currentRenderer = progressiveRenderer;
 				this.unbindEvents =
 					this.options.bindEvents(progressiveRenderer);
-				progressiveRenderer.setSelected(state.selectedNodeId);
+					this.setSelection(
+						state.selectedNodeId,
+						state.selectedEdgeId,
+						state.selectedGroupId,
+					);
 				progressiveRenderer.setHovered(this.readHoveredNodeId(state));
 				progressiveRenderer.fit();
 				progressiveFirstRender = true;
@@ -366,7 +383,11 @@ export class WorkspaceRendererLifecycle {
 
 		this.options.syncRendererGroups();
 		this.bindZoomLevel(this.currentRenderer);
-		this.currentRenderer.setSelected(state.selectedNodeId);
+		this.setSelection(
+			state.selectedNodeId,
+			state.selectedEdgeId,
+			state.selectedGroupId,
+		);
 		this.currentRenderer.setHovered(this.readHoveredNodeId(state));
 		if (firstRender || fitAfterRender) {
 			this.currentRenderer.fit();

@@ -31,6 +31,8 @@ export interface WorkspaceRendererEventOptions {
 	getActiveNodeDropGroupId(): string | undefined;
 	setActiveNodeDropGroupId(groupId?: string): void;
 	onSelect(nodeId?: string): void;
+	onSelectEdge(edgeId: string): void;
+	onSelectGroup(groupId: string): void;
 	onHover(nodeId?: string): void;
 	onOpen(nodeId: string): void;
 	onConnectionDrag(state: ConnectionDragState | undefined): void;
@@ -48,6 +50,8 @@ export function bindWorkspaceRendererEvents(
 	const capabilities = getModeCapabilities(options.mode);
 	const baseCallbacks = {
 		onSelect: (nodeId?: string) => options.onSelect(nodeId),
+		onSelectEdge: (edgeId: string) => options.onSelectEdge(edgeId),
+		onSelectGroup: (groupId: string) => options.onSelectGroup(groupId),
 		onHover: (nodeId?: string) => options.onHover(nodeId),
 		onOpen: (nodeId: string) => options.onOpen(nodeId),
 		onConnectionDrag: (state?: ConnectionDragState) => {

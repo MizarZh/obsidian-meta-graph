@@ -159,6 +159,8 @@ import { createWorkspaceDebugSnapshot } from './runtime/debug-snapshot';
 import {
 	hoverNodeInState,
 	openWorkspaceNode,
+	selectEdgeInState,
+	selectGroupInState,
 	selectNodeInState,
 	setCurrentFileInState,
 } from './actions/file-actions';
@@ -1113,6 +1115,14 @@ export class WorkspaceController {
 
 	selectNode(selectedNodeId?: NodeId): void {
 		this.setWorkspaceState(selectNodeInState(this.state, selectedNodeId));
+	}
+
+	selectEdge(selectedEdgeId: string): void {
+		this.setWorkspaceState(selectEdgeInState(this.state, selectedEdgeId));
+	}
+
+	selectGroup(selectedGroupId: string): void {
+		this.setWorkspaceState(selectGroupInState(this.state, selectedGroupId));
 	}
 
 	hoverNode(hoveredNodeId?: NodeId): void {

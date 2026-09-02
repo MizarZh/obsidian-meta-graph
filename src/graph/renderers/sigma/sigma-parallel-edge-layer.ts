@@ -11,6 +11,7 @@ import {
 	EDGE_CHEVRON_WING_RATIO,
 	resolveEdgeVisualMetrics,
 	type EdgeVisualMetrics,
+	type EdgeVisualMetricsOptions,
 } from './sigma-edge-visual-metrics';
 
 const LAYER_ID = 'parallel-edges';
@@ -52,6 +53,8 @@ interface VisibleRoute {
 
 export interface ParallelEdgeLayerState {
 	activeHoverNodeId?: string;
+	selectedEdgeId?: string;
+	selectedEdgeColor: string;
 	mutedEdgeColor: string;
 }
 
@@ -64,7 +67,6 @@ export class SigmaParallelEdgeLayer {
 	private flowRouteIndex = new Map<string, FlowRouteCandidate>();
 	private visibleRoutes: VisibleRoute[] = [];
 	private hoveredEdgeId?: string;
-	private selectedEdgeId?: string;
 	private animationFrame?: number;
 	private readonly updateBound = () => this.update();
 
@@ -100,7 +102,6 @@ export class SigmaParallelEdgeLayer {
 		const container = sigma.getContainer();
 		container.addEventListener('pointermove', this.handlePointerMove);
 		container.addEventListener('pointerleave', this.handlePointerLeave);
-		container.addEventListener('click', this.handleClick);
 	}
 
 	invalidate(): void {
@@ -140,8 +141,9 @@ export class SigmaParallelEdgeLayer {
 
 		const visuals = collectParallelEdgeVisuals(this.getGraph());
 		const pixelRatio = this.getPixelRatio();
+		const state = this.getState();
 		for (const visual of visuals) {
-			const metrics = resolveEdgeVisualMetrics({
+			const metricOptions = {
 				edgeSize: visual.attributes.size,
 				arrowSize: visual.attributes.arrowSize,
 				arrowStyle: visual.attributes.arrowStyle,
@@ -151,8 +153,18 @@ export class SigmaParallelEdgeLayer {
 				antiAliasingFeather:
 					this.sigma.getSetting('antiAliasingFeather'),
 				pixelRatio,
+			} satisfies EdgeVisualMetricsOptions;
+			const routeMetrics = resolveEdgeVisualMetrics(metricOptions);
+			const emphasized =
+				visual.edgeId === state.selectedEdgeId ||
+				visual.edgeId === this.hoveredEdgeId;
+			const metrics = resolveEdgeVisualMetrics({
+				...metricOptions,
+				edgeSize: emphasized
+					? visual.attributes.size + 2
+					: visual.attributes.size,
 			});
-			const cached = this.getRoute(visual, metrics);
+			const cached = this.getRoute(visual, routeMetrics);
 			if (
 				!cached ||
 				!intersectsViewport(cached.route.bounds, width, height)
@@ -178,7 +190,6 @@ export class SigmaParallelEdgeLayer {
 		const container = this.sigma.getContainer();
 		container.removeEventListener('pointermove', this.handlePointerMove);
 		container.removeEventListener('pointerleave', this.handlePointerLeave);
-		container.removeEventListener('click', this.handleClick);
 		this.routeCache.clear();
 		this.flowRouteIndexGraph = undefined;
 		this.flowRouteIndex.clear();
@@ -330,21 +341,22 @@ export class SigmaParallelEdgeLayer {
 		const { visual, route } = visible;
 		const attributes = visual.attributes;
 		const state = this.getState();
+		const selected = visual.edgeId === state.selectedEdgeId;
 		const connectedToHover =
+			selected ||
 			!state.activeHoverNodeId ||
 			visual.source === state.activeHoverNodeId ||
 			visual.target === state.activeHoverNodeId;
-		const hovered = visual.edgeId === this.hoveredEdgeId;
-		const selected = visual.edgeId === this.selectedEdgeId;
 		const opacity = Math.max(0, Math.min(1, attributes.opacity ?? 1));
 
 		this.context.save();
 		this.context.globalAlpha = connectedToHover ? opacity : opacity * 0.18;
 		this.context.strokeStyle = connectedToHover
-			? attributes.color
+			? selected
+				? state.selectedEdgeColor
+				: attributes.color
 			: state.mutedEdgeColor;
-		this.context.lineWidth =
-			visible.metrics.lineWidth + (hovered || selected ? 2 : 0);
+		this.context.lineWidth = visible.metrics.lineWidth;
 		this.context.lineCap = 'round';
 		this.context.lineJoin = 'round';
 		this.context.setLineDash(visible.metrics.dashPattern);
@@ -505,13 +517,6 @@ export class SigmaParallelEdgeLayer {
 	private readonly handlePointerLeave = (): void => {
 		if (!this.hoveredEdgeId) return;
 		this.hoveredEdgeId = undefined;
-		this.scheduleUpdate();
-	};
-
-	private readonly handleClick = (event: MouseEvent): void => {
-		const edgeId = this.getEdgeAtViewportPosition(this.readPointer(event));
-		if (edgeId === this.selectedEdgeId) return;
-		this.selectedEdgeId = edgeId;
 		this.scheduleUpdate();
 	};
 

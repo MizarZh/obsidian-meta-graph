@@ -24,9 +24,48 @@ export function selectNodeInState(
 	state: WorkspaceState,
 	selectedNodeId?: NodeId,
 ): WorkspaceState {
-	return state.selectedNodeId === selectedNodeId
+	return state.selectedNodeId === selectedNodeId &&
+		state.selectedEdgeId === undefined &&
+		state.selectedGroupId === undefined
 		? state
-		: { ...state, selectedNodeId };
+		: {
+				...state,
+				selectedNodeId,
+				selectedEdgeId: undefined,
+				selectedGroupId: undefined,
+			};
+}
+
+export function selectEdgeInState(
+	state: WorkspaceState,
+	selectedEdgeId: string,
+): WorkspaceState {
+	return state.selectedEdgeId === selectedEdgeId &&
+		state.selectedNodeId === undefined &&
+		state.selectedGroupId === undefined
+		? state
+		: {
+				...state,
+				selectedNodeId: undefined,
+				selectedEdgeId,
+				selectedGroupId: undefined,
+			};
+}
+
+export function selectGroupInState(
+	state: WorkspaceState,
+	selectedGroupId: string,
+): WorkspaceState {
+	return state.selectedGroupId === selectedGroupId &&
+		state.selectedNodeId === undefined &&
+		state.selectedEdgeId === undefined
+		? state
+		: {
+				...state,
+				selectedNodeId: undefined,
+				selectedEdgeId: undefined,
+				selectedGroupId,
+			};
 }
 
 export function hoverNodeInState(

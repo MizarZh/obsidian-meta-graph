@@ -2,6 +2,8 @@ export interface GraphEventCallbacks {
 	enableForceLayout?: boolean;
 	enableNodeDragging?: boolean;
 	onSelect(nodeId?: string): void;
+	onSelectEdge?(edgeId: string): void;
+	onSelectGroup?(groupId: string): void;
 	onHover(nodeId?: string): void;
 	onOpen(nodeId: string): void;
 	onNodeDrag?(

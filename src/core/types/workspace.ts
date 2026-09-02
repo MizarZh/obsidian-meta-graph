@@ -282,6 +282,8 @@ export interface WorkspaceState {
 	layoutRevision: number;
 	currentNoteId?: NodeId;
 	selectedNodeId?: NodeId;
+	selectedEdgeId?: string;
+	selectedGroupId?: string;
 	hoveredNodeId?: NodeId;
 	query: GraphQuery;
 	curated: CuratedWorkspaceConfig;

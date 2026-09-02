@@ -352,6 +352,28 @@ describe('graph renderer helpers', () => {
 				'B.md',
 			]),
 		).toMatchObject({ color: palette.mutedEdge, size: 0.4, zIndex: 0 });
+		expect(
+			reduceSigmaEdge(
+				{ ...edge, logicalEdgeId: 'logical-edge' },
+				{ selectedEdgeId: 'logical-edge' },
+				palette,
+				['A.md', 'B.md'],
+				'segment-2',
+			),
+		).toMatchObject({
+			color: palette.selected,
+			size: edge.size + 2,
+			zIndex: 3,
+		});
+		expect(
+			reduceSigmaEdge(
+				{ ...edge, logicalEdgeId: 'logical-edge' },
+				{ hoveredEdgeId: 'logical-edge' },
+				palette,
+				['A.md', 'B.md'],
+				'segment-1',
+			),
+		).toMatchObject({ size: edge.size + 2, zIndex: 2 });
 	});
 
 	it('computes Sigma label geometry independent of renderer lifecycle', () => {

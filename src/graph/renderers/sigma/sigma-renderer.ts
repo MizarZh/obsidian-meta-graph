@@ -55,6 +55,9 @@ export type {
 export class SigmaRenderer {
 	readonly instance: Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>;
 	private selectedNodeId?: string;
+	private selectedEdgeId?: string;
+	private selectedGroupId?: string;
+	private hoveredEdgeId?: string;
 	private hoveredNodeId?: string;
 	private pinnedNodeId?: string;
 	private hoveredNeighborhood = new Set<string>();
@@ -117,6 +120,7 @@ export class SigmaRenderer {
 			container,
 			{
 				allowInvalidContainer: true,
+				enableEdgeEvents: true,
 				minCameraRatio: 0.25,
 				maxCameraRatio: 4,
 				doubleClickZoomingDuration: 0,
@@ -156,6 +160,7 @@ export class SigmaRenderer {
 						this.getHoverState(),
 						this.palette,
 						this.graph.extremities(edge),
+						edge,
 					),
 				defaultDrawNodeLabel: createNodeLabelDrawer(
 					() => this.getCurrentLabelOpacity(),
@@ -198,9 +203,11 @@ export class SigmaRenderer {
 		this.parallelEdgeLayer = new SigmaParallelEdgeLayer(
 			this.instance,
 			() => this.graph,
-				() => ({
-					activeHoverNodeId: this.getActiveHoverNodeId(),
-					mutedEdgeColor: this.palette.mutedEdge,
+					() => ({
+						activeHoverNodeId: this.getActiveHoverNodeId(),
+						selectedEdgeId: this.selectedEdgeId,
+						selectedEdgeColor: this.palette.selected,
+						mutedEdgeColor: this.palette.mutedEdge,
 				}),
 			() => this.getCurrentLabelOpacity(),
 		);
@@ -278,6 +285,30 @@ export class SigmaRenderer {
 			return;
 		}
 		this.selectedNodeId = nodeId;
+		this.refresh();
+	}
+
+	setSelectedEdge(edgeId?: string): void {
+		if (this.selectedEdgeId === edgeId) return;
+		this.selectedEdgeId = edgeId;
+		this.refresh();
+	}
+
+	setSelectedGroup(groupId?: string): void {
+		if (this.selectedGroupId === groupId) return;
+		this.selectedGroupId = groupId;
+		this.groupOverlayLayer.setSelectedGroup(groupId);
+	}
+
+	setHoveredEdge(edgeId?: string): void {
+		if (this.hoveredEdgeId === edgeId) return;
+		this.hoveredEdgeId = edgeId;
+		this.refresh();
+	}
+
+	clearHoveredEdge(edgeId: string): void {
+		if (this.hoveredEdgeId !== edgeId) return;
+		this.hoveredEdgeId = undefined;
 		this.refresh();
 	}
 
@@ -401,6 +432,12 @@ export class SigmaRenderer {
 		return this.parallelEdgeLayer.getEdgeAtViewportPosition(position);
 	}
 
+	getLogicalEdgeId(runtimeEdgeId: string): string | undefined {
+		if (!this.graph.hasEdge(runtimeEdgeId)) return undefined;
+		const attributes = this.graph.getEdgeAttributes(runtimeEdgeId);
+		return attributes.logicalEdgeId ?? runtimeEdgeId;
+	}
+
 	private getNearestNodeAtViewportPosition(position: {
 		x: number;
 		y: number;
@@ -496,6 +533,8 @@ export class SigmaRenderer {
 		return {
 			activeHoverNodeId: this.getActiveHoverNodeId(),
 			selectedNodeId: this.selectedNodeId,
+			selectedEdgeId: this.selectedEdgeId,
+			hoveredEdgeId: this.hoveredEdgeId,
 			hoveredNeighborhood: this.hoveredNeighborhood,
 			forceLabels: this.forceLabels,
 		};

@@ -9,6 +9,8 @@ import { withAlpha } from '../../styles/graph-styles';
 export interface SigmaHoverState {
 	activeHoverNodeId?: string;
 	selectedNodeId?: string;
+	selectedEdgeId?: string;
+	hoveredEdgeId?: string;
 	hoveredNeighborhood: ReadonlySet<string>;
 	forceLabels: boolean;
 }
@@ -80,9 +82,13 @@ function clampOpacity(value: number): number {
 
 export function reduceSigmaEdge(
 	data: RuntimeEdgeAttributes,
-	state: Pick<SigmaHoverState, 'activeHoverNodeId'>,
+	state: Pick<
+		SigmaHoverState,
+		'activeHoverNodeId' | 'selectedEdgeId' | 'hoveredEdgeId'
+	>,
 	palette: GraphPalette,
 	extremities: readonly [string, string],
+	runtimeEdgeId?: string,
 ): Partial<EdgeDisplayData> {
 	if (isCanvasParallelEdge(data, extremities)) {
 		return {
@@ -94,6 +100,31 @@ export function reduceSigmaEdge(
 	}
 	const opacity = Math.max(0, Math.min(1, data.opacity ?? 1));
 	const color = withAlpha(data.color, opacity);
+	if (
+		state.selectedEdgeId &&
+		(data.logicalEdgeId ?? runtimeEdgeId) === state.selectedEdgeId
+	) {
+		return {
+			...data,
+			color:
+				opacity === 1
+					? palette.selected
+					: withAlpha(palette.selected, opacity),
+			size: data.size + 2,
+			zIndex: 3,
+		};
+	}
+	if (
+		state.hoveredEdgeId &&
+		(data.logicalEdgeId ?? runtimeEdgeId) === state.hoveredEdgeId
+	) {
+		return {
+			...data,
+			...(opacity === 1 ? {} : { color }),
+			size: data.size + 2,
+			zIndex: 2,
+		};
+	}
 	const activeHoverNodeId = state.activeHoverNodeId;
 	if (!activeHoverNodeId) {
 		return opacity === 1 ? { ...data } : { ...data, color };

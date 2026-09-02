@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
 	hoverNodeInState,
 	openWorkspaceNode,
+	selectEdgeInState,
+	selectGroupInState,
 	selectNodeInState,
 	setCurrentFileInState,
 } from '../workspace/actions/file-actions';
@@ -32,6 +34,32 @@ describe('workspace file actions', () => {
 		expect(selectNodeInState(selected, 'A.md')).toBe(selected);
 		expect(hovered.hoveredNodeId).toBe('B.md');
 		expect(hoverNodeInState(hovered, 'B.md')).toBe(hovered);
+	});
+
+	it('keeps node, logical edge, and group selection mutually exclusive', () => {
+		const state = createWorkspaceState(100);
+		const edgeSelected = selectEdgeInState(state, 'logical-edge');
+		const groupSelected = selectGroupInState(edgeSelected, 'group-a');
+		const nodeSelected = selectNodeInState(groupSelected, 'A.md');
+		const cleared = selectNodeInState(nodeSelected, undefined);
+
+		expect(edgeSelected).toMatchObject({
+			selectedNodeId: undefined,
+			selectedEdgeId: 'logical-edge',
+			selectedGroupId: undefined,
+		});
+		expect(groupSelected).toMatchObject({
+			selectedNodeId: undefined,
+			selectedEdgeId: undefined,
+			selectedGroupId: 'group-a',
+		});
+		expect(nodeSelected).toMatchObject({
+			selectedNodeId: 'A.md',
+			selectedEdgeId: undefined,
+			selectedGroupId: undefined,
+		});
+		expect(cleared.selectedNodeId).toBeUndefined();
+		expect(selectNodeInState(cleared, undefined)).toBe(cleared);
 	});
 
 	it('opens existing files through the provided opener', async () => {

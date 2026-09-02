@@ -172,6 +172,15 @@ Important details:
 - Keep the parallel-edge Canvas at Sigma's real `devicePixelRatio`. Do not cap it, or high-DPI resampling will change perceived thickness.
 - Native solid and patterned edge programs must share the same feather rule so one Canvas compensation matches every edge type.
 
+## Sigma logical edge selection
+
+- Workspace node, logical-edge, and group selections are transient and mutually exclusive.
+- Native Sigma `clickEdge` IDs must resolve through `logicalEdgeId`; selecting one Flow segment highlights every segment of that logical edge.
+- Canvas parallel edges must submit their logical ID through the shared event callbacks. Do not restore private selection state inside `SigmaParallelEdgeLayer`.
+- Stage click priority is Canvas edge, group, then blank-stage clearing; native edge and node picking are handled by Sigma before `clickStage`.
+- Native reducers and the Canvas layer must read the same `selectedEdgeId`, selected color, and `size + 2` emphasis rule.
+- Native `enterEdge` / `leaveEdge` must map through `logicalEdgeId`; native and Canvas hover emphasis both resolve metrics from `edge.size + 2` rather than adding fixed post-scale pixels.
+
 ## Coding guidelines
 
 - Keep `src/main.ts` focused on lifecycle, commands, and view registration.

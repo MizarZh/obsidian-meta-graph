@@ -76,6 +76,8 @@ function createRenderer(): GraphRenderer {
 		instance: { refresh: vi.fn() },
 		setGraph: vi.fn(),
 		setSelected: vi.fn(),
+		setSelectedEdge: vi.fn(),
+		setSelectedGroup: vi.fn(),
 		setHovered: vi.fn(),
 		fit: vi.fn(),
 		zoomBy: vi.fn(),

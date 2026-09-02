@@ -660,7 +660,11 @@
 						});
 					});
 			} else {
-				rendererLifecycle.setSelected(nextState.selectedNodeId);
+				rendererLifecycle.setSelection(
+					nextState.selectedNodeId,
+					nextState.selectedEdgeId,
+					nextState.selectedGroupId,
+				);
 				rendererLifecycle.setHovered(hoveredNodeId);
 			}
 		});
@@ -743,7 +747,9 @@
 			setActiveNodeDropGroupId: (groupId) => {
 				activeNodeDropGroupId = groupId;
 			},
-			onSelect: (nodeId?: string) => controller.selectNode(nodeId),
+				onSelect: (nodeId?: string) => controller.selectNode(nodeId),
+				onSelectEdge: (edgeId) => controller.selectEdge(edgeId),
+				onSelectGroup: (groupId) => controller.selectGroup(groupId),
 			onHover: (nodeId?: string) => {
 				hoveredNodeId = nodeId;
 				rendererLifecycle.setHovered(nodeId);
@@ -776,6 +782,7 @@
 			getLayoutSnapshot(),
 			workspaceState.enableForceLayout,
 			{
+				onSelectGroup: (groupId) => controller.selectGroup(groupId),
 				onMoveStart: () => {
 					if (workspaceState.mode === 'graph') {
 						rendererLifecycle.stopForceLayoutSimulation();

@@ -23,6 +23,7 @@ export interface GroupGeometry {
 }
 
 export interface GroupInteractionCallbacks {
+	onSelectGroup?(groupId: string): void;
 	onMoveStart?(groupId: string): void;
 	onMovePreview?(groupId: string, delta: { x: number; y: number }): void;
 	onMoveCommit?(groupId: string, delta: { x: number; y: number }): void;
@@ -67,6 +68,7 @@ export class GroupOverlayLayer {
 	private holdingInteractionBounds = false;
 	private activeDropGroupId: string | undefined;
 	private focusedNodeId: string | undefined;
+	private selectedGroupId: string | undefined;
 	private interaction:
 		| {
 				kind: 'move' | 'resize';
@@ -150,6 +152,12 @@ export class GroupOverlayLayer {
 		}
 	}
 
+	setSelectedGroup(groupId?: string): void {
+		if (this.selectedGroupId === groupId) return;
+		this.selectedGroupId = groupId;
+		this.update();
+	}
+
 	setFocusedNode(nodeId?: string): void {
 		if (this.focusedNodeId === nodeId) {
 			return;
@@ -176,6 +184,10 @@ export class GroupOverlayLayer {
 			element.classList.toggle(
 				'muted-by-focus',
 				this.isMutedByFocus(group),
+			);
+			element.classList.toggle(
+				'selected',
+				group.id === this.selectedGroupId,
 			);
 			element.style.left = `${rect.left}px`;
 			element.style.top = `${rect.top}px`;
@@ -356,6 +368,7 @@ export class GroupOverlayLayer {
 		}
 		event.preventDefault();
 		event.stopPropagation();
+		this.callbacks.onSelectGroup?.(group.id);
 		const target = event.currentTarget;
 		if (target instanceof HTMLElement) {
 			target.setPointerCapture(event.pointerId);

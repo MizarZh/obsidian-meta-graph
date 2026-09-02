@@ -6,6 +6,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Added unified transient node, logical-edge, and group selection. Native Sigma edge picking and the parallel-edge Canvas hit grid now select the same logical edge, including every segment of a Flow route; native and Canvas edge hover use the same zoom-aware emphasis.
 - Added deterministic parallel lanes for multiple relationships between the same two notes. Directed, reverse, and undirected links now keep separate paths, labels, arrows, and 2D/3D/Cube/Flow/Arc/HEB rendering without changing the underlying metadata.
 - Added a DPR-aware Canvas overlay for Sigma parallel edges, including compact endpoint routes, rounded solid/patterned lines, arrows, labels, hover/click hit testing, viewport culling, and cached paths.
 - Added centralized graph actions with Obsidian command-palette entries, shortcut help, viewport shortcuts, selected-node open/focus shortcuts, and consistent keyboard behavior across note lists.

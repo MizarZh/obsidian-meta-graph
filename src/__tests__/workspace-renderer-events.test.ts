@@ -76,7 +76,15 @@ describe('bindWorkspaceRendererEvents', () => {
 		const renderer = createSigmaRenderer();
 		const onConnect = vi.fn();
 		const onSelect = vi.fn();
-		const options = { ...createOptions(renderer), onConnect, onSelect };
+		const onSelectEdge = vi.fn();
+		const onSelectGroup = vi.fn();
+		const options = {
+			...createOptions(renderer),
+			onConnect,
+			onSelect,
+			onSelectEdge,
+			onSelectGroup,
+		};
 
 		bindWorkspaceRendererEvents({
 			...options,
@@ -88,10 +96,14 @@ describe('bindWorkspaceRendererEvents', () => {
 		rendererEventMock.callbacks?.onNodeDrag?.('A', { x: 1, y: 2 });
 		rendererEventMock.callbacks?.onConnect?.('A', 'B');
 		rendererEventMock.callbacks?.onSelect('A');
+		rendererEventMock.callbacks?.onSelectEdge?.('edge-a');
+		rendererEventMock.callbacks?.onSelectGroup?.('group-a');
 
 		expect(renderer.holdCurrentBounds).not.toHaveBeenCalled();
 		expect(onConnect).not.toHaveBeenCalled();
 		expect(onSelect).toHaveBeenCalledWith('A');
+		expect(onSelectEdge).toHaveBeenCalledWith('edge-a');
+		expect(onSelectGroup).toHaveBeenCalledWith('group-a');
 		expect(rendererEventMock.callbacks?.enableNodeDragging).toBe(false);
 	});
 });
@@ -117,6 +129,8 @@ function createOptions(
 		getActiveNodeDropGroupId: () => undefined,
 		setActiveNodeDropGroupId: vi.fn(),
 		onSelect: vi.fn(),
+		onSelectEdge: vi.fn(),
+		onSelectGroup: vi.fn(),
 		onHover: vi.fn(),
 		onOpen: vi.fn(),
 		onConnectionDrag: vi.fn(),
