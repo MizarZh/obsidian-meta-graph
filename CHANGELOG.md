@@ -22,26 +22,24 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
-- Kept pin/hover neighborhood links above unrelated Sigma and Canvas edges, including routed Flow, Arc, and HEB segments, and masked crossing fragments to prevent visual artifacts.
-- Joined focused Flow, Arc, and HEB runtime segments into one continuous logical path, so pin/hover bold strokes have seamless round joins and continuous dash phases at bends.
+- Kept pin/hover neighborhood links above unrelated Sigma and Canvas edges, including routed Flow, Arc, and HEB segments; continuous logical strokes and crossing masks prevent visual artifacts and seams at bends.
 - Moved HEB group labels inside the outer radial boundary, preventing outside note labels from obscuring them.
-- Kept Arc parallel links on layout-owned curved paths instead of replacing them with straight Canvas routes.
-- Kept parallel HEB links on their smooth layout-owned bundled paths instead of replacing them with orthogonal Canvas fallback routes.
+- Preserved smooth layout-owned curves for parallel Arc links.
+- Preserved smooth layout-owned bundled paths for parallel HEB links.
 - Kept pinned and hovered Sigma labels above the highlighted-node WebGL layer, so centered labels remain readable while a neighborhood is pinned.
-- Fixed Sigma **Text position: Center** falling through to the right-side layout. Graph and Flow labels now center both their text and background box on the node.
+- Centered Graph and Flow node text and background boxes when **Text position: Center** is selected.
 - Prevented Sigma's synchronous constructor render from reading the renderer instance before assignment when **Scale text with zoom** is enabled, including transitions back from 3D views.
 - Unified Sigma parallel-edge Canvas line widths and arrow bounds with native Sigma's pixel geometry and visible ink coverage. Canvas now uses Sigma's zoom scaling, minimum edge thickness, inward feather compensation, and full device pixel ratio; native solid and patterned arrow lines share the same antialiasing feather. Arrow geometry, dash spacing, compact lane spacing, deterministic Chevron fills, and independent hit widths remain consistent.
 - Replaced the keyboard shortcut overlay with a grouped side-by-side reference panel that keeps the graph interactive while open.
 - Made `Space` pin or unpin the hovered node's neighborhood; with no hovered node it clears the current pinned focus.
 - Kept Flow arrows on the final flow-axis corridor segment when parallel lanes use endpoint branches, preventing RL/LR arrows from pointing vertically into nodes.
-- Reduced direct Graph parallel-lane spacing so two-way links stay visually compact while remaining distinguishable.
-- Fixed Flow Orthogonal routes that became diagonal at node ports or inside the parallel-edge Canvas overlay. ELK routes are normalized into axis-aligned segments, parallel lanes reuse the normalized route, and arrows/labels/hit testing follow the same geometry.
-- Fixed the Flow corner-radius setting not reaching parallel-edge Canvas routes. Parallel lanes now reuse the sampled rounded base route and offset its local tangents, so their corners keep the configured radius.
-- Fixed parallel Curve routes falling back to orthogonal Canvas geometry. Flow segments now carry a route kind, and Curve lanes reuse the sampled curve route with tangent-based offsets.
-- Fixed parallel Curve endpoints acquiring a right-angle hook and vertical arrows. Curve lanes now use smooth endpoint transitions and the saved Flow direction for arrow orientation.
-- Fixed parallel Flow lanes entering node tops or bottoms when lane offsets approached node radii. All Flow route kinds now use side-center ports with external fan-out/fan-in branches.
-- Kept Orthogonal and Rounded parallel lanes on the configured Flow axis for undirected edges too, so RL/LR routes cannot fall back to vertical node ports when node spacing is diagonal.
-- Restored Sigma's native programs for ordinary single edges and moved only multi-edge pairs to the compact Canvas overlay, avoiding custom-shader aliasing and seam artifacts without expanding graph coordinates or layout bounds.
+- Kept direct Graph parallel lanes compact while remaining distinguishable.
+- Kept parallel Flow Orthogonal routes axis-aligned at node ports and through the Canvas overlay; arrows, labels, and hit testing follow the same geometry.
+- Applied the configured Flow corner radius to parallel Canvas routes by reusing the sampled rounded route and offsetting local tangents.
+- Kept parallel Curve lanes on sampled curve routes with tangent-based offsets.
+- Kept parallel Curve endpoints smooth and arrows aligned with the Flow direction.
+- Kept parallel Flow lanes on side-center ports with external fan-out/fan-in branches.
+- Kept undirected Orthogonal and Rounded parallel lanes on the configured Flow axis, including RL/LR routes.
 
 ## [1.5.3] - 2026-09-02
 
