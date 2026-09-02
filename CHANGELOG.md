@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-09-03
+
 ### Added
 
 - Added a per-chart **Scale text with zoom** option for Sigma views. Node and edge label fonts now use Sigma's same zoom-to-size rule without inheriting each node's individual size.
