@@ -639,7 +639,7 @@ export function createParallelCanvasRouteFromPolyline(
 
 /**
  * Clips a Curve route to node circles while keeping a short flow-axis tangent
- * at each endpoint. Quadratic transitions remove the right-angle hook caused
+ * at each endpoint. Cubic transitions remove the right-angle hook caused
  * by inserting an axis-aligned elbow into the sampled curve.
  */
 function clipCurveRouteEndpoints(
@@ -652,22 +652,18 @@ function clipCurveRouteEndpoints(
 ): ViewportPoint[] {
 	if (points.length < 2) return points.map((point) => ({ ...point }));
 	const shifted = points.map((point) => ({ ...point }));
-	const first = shifted[0]!;
 	const firstNext = shifted[1]!;
 	const lastIndex = shifted.length - 1;
-	const last = shifted[lastIndex]!;
 	const lastPrevious = shifted[lastIndex - 1]!;
-	const sourceTip = clipEndpointToCircle(
+	const sourceTip = createDirectionalPort(
 		source,
 		Math.max(0, sourceRadius),
-		first,
 		axis,
 		true,
 	);
-	const targetTip = clipEndpointToCircle(
+	const targetTip = createDirectionalPort(
 		target,
 		Math.max(0, targetRadius),
-		last,
 		axis,
 		false,
 	);
@@ -943,6 +939,12 @@ function shiftPointForSegment(
 	return { x: point.x - offset * (Math.sign(dy) || 1), y: point.y };
 }
 
+/**
+ * Attaches an axis-aligned route to side-center node ports. Lane separation is
+ * introduced only after a short outward stub, so the node boundary never
+ * becomes a top/bottom port for horizontal Flow routes (or left/right for
+ * vertical Flow routes).
+ */
 function clipRouteEndpoints(
 	points: readonly ViewportPoint[],
 	source: ViewportPoint,
@@ -952,72 +954,111 @@ function clipRouteEndpoints(
 	axis: ViewportPoint,
 ): ViewportPoint[] {
 	if (points.length < 2) return points.map((point) => ({ ...point }));
-	const clipped = points.map((point) => ({ ...point }));
-	const first = clipped[0]!;
-	const firstNext = clipped[1]!;
-	const lastIndex = clipped.length - 1;
-	const last = clipped[lastIndex]!;
-	const lastPrevious = clipped[lastIndex - 1]!;
-	clipped[0] = clipEndpointToCircle(
+	const shifted = points.map((point) => ({ ...point }));
+	const lastIndex = shifted.length - 1;
+	if (shifted.length === 2) {
+		return deduplicateViewportPoints([
+			createDirectionalPort(
+				source,
+				Math.max(0, sourceRadius),
+				axis,
+				true,
+			),
+			createDirectionalPort(
+				target,
+				Math.max(0, targetRadius),
+				axis,
+				false,
+			),
+		]);
+	}
+	const firstCorridor = shifted[1]!;
+	const lastCorridor = shifted[lastIndex - 1]!;
+	const sourcePort = createDirectionalPort(
 		source,
 		Math.max(0, sourceRadius),
-		first,
 		axis,
 		true,
 	);
-	clipped[lastIndex] = clipEndpointToCircle(
+	const targetPort = createDirectionalPort(
 		target,
 		Math.max(0, targetRadius),
-		last,
 		axis,
 		false,
 	);
-	if (Math.abs(axis.x) >= Math.abs(axis.y)) {
-		clipped[1] = {
-			x: firstNext.x,
-			y: clipped[0].y,
-		};
-		clipped[lastIndex - 1] = {
-			x: lastPrevious.x,
-			y: clipped[lastIndex].y,
-		};
-	} else {
-		clipped[1] = {
-			x: clipped[0].x,
-			y: firstNext.y,
-		};
-		clipped[lastIndex - 1] = {
-			x: clipped[lastIndex].x,
-			y: lastPrevious.y,
-		};
-	}
-	return deduplicateViewportPoints(clipped);
+	const available = Math.max(
+		0,
+		dotAlongAxis(targetPort, sourcePort, axis),
+	);
+	const sourceReach = Math.max(
+		0,
+		dotAlongAxis(firstCorridor, sourcePort, axis),
+	);
+	const targetReach = Math.max(
+		0,
+		dotAlongAxis(targetPort, lastCorridor, axis),
+	);
+	const stub = Math.min(
+		ENDPOINT_STUB_PX,
+		available / 4,
+		sourceReach / 2,
+		targetReach / 2,
+	);
+	const sourceStub = add(sourcePort, scale(axis, stub));
+	const targetStub = add(targetPort, scale(axis, -stub));
+	const sourceFanout = connectDirectionalPort(
+		sourceStub,
+		firstCorridor,
+		axis,
+	);
+	const targetFanout = connectDirectionalPort(
+		targetStub,
+		lastCorridor,
+		axis,
+	);
+	return deduplicateViewportPoints([
+		sourcePort,
+		sourceStub,
+		sourceFanout,
+		...shifted.slice(1, -1),
+		targetFanout,
+		targetStub,
+		targetPort,
+	]);
 }
 
-function clipEndpointToCircle(
+function createDirectionalPort(
 	center: ViewportPoint,
 	radius: number,
-	shiftedEndpoint: ViewportPoint,
 	axis: ViewportPoint,
 	source: boolean,
 ): ViewportPoint {
-	if (radius <= 0.001) return { ...shiftedEndpoint };
-	const horizontal = Math.abs(axis.x) >= Math.abs(axis.y);
-	const maxCross = Math.max(0, radius - 0.5);
-	if (horizontal) {
-		const cross = clamp(shiftedEndpoint.y - center.y, -maxCross, maxCross);
-		const primary = Math.sqrt(Math.max(0, radius * radius - cross * cross));
-		return {
-			x: center.x + (source ? axis.x : -axis.x) * primary,
-			y: center.y + cross,
-		};
-	}
-	const cross = clamp(shiftedEndpoint.x - center.x, -maxCross, maxCross);
-	const primary = Math.sqrt(Math.max(0, radius * radius - cross * cross));
 	return {
-		x: center.x + cross,
-		y: center.y + (source ? axis.y : -axis.y) * primary,
+		x: center.x + (source ? axis.x : -axis.x) * radius,
+		y: center.y + (source ? axis.y : -axis.y) * radius,
 	};
+}
+
+function connectDirectionalPort(
+	port: ViewportPoint,
+	corridor: ViewportPoint,
+	axis: ViewportPoint,
+): ViewportPoint {
+	if (Math.abs(axis.x) >= Math.abs(axis.y)) {
+		return { x: port.x, y: corridor.y };
+	}
+	return { x: corridor.x, y: port.y };
+}
+
+function dotAlongAxis(
+	point: ViewportPoint,
+	reference: ViewportPoint,
+	axis: ViewportPoint,
+): number {
+	return (
+		(point.x - reference.x) * axis.x +
+		(point.y - reference.y) * axis.y
+	);
 }
 
 function isAxisAlignedViewport(
@@ -1067,10 +1108,6 @@ function distanceSquared(
 	const dx = left.x - right.x;
 	const dy = left.y - right.y;
 	return dx * dx + dy * dy;
-}
-
-function clamp(value: number, minimum: number, maximum: number): number {
-	return Math.max(minimum, Math.min(maximum, value));
 }
 
 function findLongestSegment(

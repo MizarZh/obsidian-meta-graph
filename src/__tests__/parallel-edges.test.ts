@@ -236,8 +236,12 @@ describe('parallel route geometry', () => {
 		expect(route?.arrowDirection).toEqual({ x: 1, y: 0 });
 		expect(route?.points[0]?.x).toBeGreaterThan(20);
 		expect(route?.points.at(-1)?.x).toBeLessThan(220);
-		expect(route?.points[0]?.y).toBeCloseTo(43);
-		expect(route?.points.at(-1)?.y).toBeCloseTo(103);
+		expect(route?.points[0]?.x).toBeCloseTo(30);
+		expect(route?.points.at(-1)?.x).toBeCloseTo(208);
+		expect(route?.points[0]?.y).toBeCloseTo(40);
+		expect(route?.points.at(-1)?.y).toBeCloseTo(100);
+		// Lane separation starts after the side ports, outside the node circles.
+		expect(route?.points.some((point) => point.y > 40)).toBe(true);
 		expect(route?.points.every(isAxisAlignedSegment)).toBe(true);
 	});
 
@@ -315,6 +319,8 @@ describe('parallel route geometry', () => {
 
 		expect(route).toBeDefined();
 		expect(route?.arrowDirection).toEqual({ x: 1, y: 0 });
+		expect(route?.points[0]?.y).toBeCloseTo(40);
+		expect(route?.points.at(-1)?.y).toBeCloseTo(100);
 		expect(
 			route!.points.some(
 				(point, index) =>
@@ -339,6 +345,8 @@ describe('parallel route geometry', () => {
 
 		expect(route?.points.every(isAxisAlignedSegment)).toBe(true);
 		expect(route?.arrowDirection).toEqual({ x: 0, y: 1 });
+		expect(route?.points[0]?.x).toBeCloseTo(40);
+		expect(route?.points.at(-1)?.x).toBeCloseTo(100);
 	});
 
 	it('supports precise polyline hit testing', () => {
