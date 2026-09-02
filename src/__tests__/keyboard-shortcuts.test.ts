@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	resolveWorkspaceShortcut,
 	shouldHandleConnectionUndoShortcut,
 	shouldHandleFindNoteShortcut,
 } from '../ui/interactions/keyboard-shortcuts';
@@ -61,6 +62,63 @@ describe('connection undo shortcut', () => {
 		expect(shouldHandleConnectionUndoShortcut(input({ key: 'x' }))).toBe(
 			false,
 		);
+	});
+});
+
+describe('workspace shortcuts', () => {
+	it('maps selection, viewport, refresh, and help keys', () => {
+		expect(
+			resolveWorkspaceShortcut(
+				input({ key: 'Enter', selectedNodeId: 'A.md' }),
+			),
+		).toBe('open-selected');
+		expect(
+			resolveWorkspaceShortcut(
+				input({ key: ' ', selectedNodeId: 'A.md' }),
+			),
+		).toBe('toggle-pinned-focus');
+		expect(
+			resolveWorkspaceShortcut(
+				input({ key: ' ', hoveredNodeId: 'B.md' }),
+			),
+		).toBe('toggle-pinned-focus');
+		expect(resolveWorkspaceShortcut(input({ key: ' ' }))).toBe(
+			'toggle-pinned-focus',
+		);
+		expect(resolveWorkspaceShortcut(input({ key: '0' }))).toBe('fit-graph');
+		expect(resolveWorkspaceShortcut(input({ key: '1' }))).toBe(
+			'reset-zoom',
+		);
+		expect(
+			resolveWorkspaceShortcut(input({ key: 'R', shiftKey: true })),
+		).toBe('refresh-graph');
+		expect(resolveWorkspaceShortcut(input({ key: '?' }))).toBe(
+			'show-shortcuts',
+		);
+	});
+
+	it('maps redo only when history exists and leaves editable controls alone', () => {
+		expect(
+			resolveWorkspaceShortcut(
+				input({
+					metaKey: true,
+					shiftKey: true,
+					connectionRedoCount: 1,
+				}),
+			),
+		).toBe('redo');
+		expect(
+			resolveWorkspaceShortcut(
+				input({
+					metaKey: true,
+					shiftKey: true,
+					connectionRedoCount: 0,
+				}),
+			),
+		).toBeUndefined();
+		expect(
+			resolveWorkspaceShortcut(input({ key: '0', editableTarget: true })),
+		).toBeUndefined();
 	});
 });
 

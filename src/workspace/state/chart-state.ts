@@ -76,6 +76,7 @@ export function setActiveChartInState(
 				})),
 			},
 			connectionUndoCount: state.connectionUndoCount,
+			connectionRedoCount: state.connectionRedoCount,
 		},
 		runQuery: true,
 	};

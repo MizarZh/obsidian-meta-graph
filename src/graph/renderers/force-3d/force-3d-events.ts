@@ -31,13 +31,12 @@ export function bindForce3DEvents(
 				renderer.togglePinnedHover(node.id);
 				return;
 			}
-			if (event.ctrlKey) {
+			if (event.ctrlKey || event.metaKey) {
 				event.preventDefault();
 				callbacks.onSelect(node.id);
 				return;
 			}
 			callbacks.onSelect(node.id);
-			callbacks.onOpen(node.id);
 		})
 		.onNodeRightClick((node, event) => {
 			event.preventDefault();
@@ -78,6 +77,15 @@ export function bindForce3DEvents(
 		window.addEventListener('pointercancel', pointerCancel, {
 			capture: true,
 		});
+	};
+	const doubleClick = (event: MouseEvent) => {
+		const nodeId = renderer.getNodeAtViewportPosition(
+			renderer.getViewportPosition(event),
+		);
+		if (!nodeId) return;
+		event.preventDefault();
+		callbacks.onSelect(nodeId);
+		callbacks.onOpen(nodeId);
 	};
 
 	const pointerMove = (event: PointerEvent) => {
@@ -142,6 +150,7 @@ export function bindForce3DEvents(
 	}
 
 	element.addEventListener('pointerdown', pointerDown, { capture: true });
+	element.addEventListener('dblclick', doubleClick);
 	return () => {
 		if (connectionDrag) {
 			callbacks.onConnectionDrag?.(undefined);
@@ -162,6 +171,7 @@ export function bindForce3DEvents(
 		element.removeEventListener('pointerdown', pointerDown, {
 			capture: true,
 		});
+		element.removeEventListener('dblclick', doubleClick);
 		window.removeEventListener('pointermove', pointerMove, {
 			capture: true,
 		});

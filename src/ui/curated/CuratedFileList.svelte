@@ -22,10 +22,10 @@
 		reorderEnabled = true,
 		onCheckboxClick,
 		onFileClick,
+		onFileKeydown,
 		onPointerDown,
 		onReorderFiles,
 		onOpenNote,
-		onSelectNote,
 		onMoveFileToGroup,
 		onSetFileHidden,
 		onRemoveFile,
@@ -37,10 +37,10 @@
 		reorderEnabled?: boolean;
 		onCheckboxClick: (path: string, event: MouseEvent) => void;
 		onFileClick: (path: string, event: MouseEvent) => void;
+		onFileKeydown: (path: string, event: KeyboardEvent) => void;
 		onPointerDown: (path: string, event: PointerEvent) => void;
 		onReorderFiles: (paths: string[]) => void;
 		onOpenNote: (path: string) => void;
-		onSelectNote: (path: string) => void;
 		onMoveFileToGroup: (path: string, groupId: string) => void;
 		onSetFileHidden: (path: string, hidden: boolean) => void;
 		onRemoveFile: (path: string) => void;
@@ -129,12 +129,7 @@
 					: undefined}
 				onclick={(event) => onFileClick(file.path, event)}
 				onpointerdown={(event) => onPointerDown(file.path, event)}
-				onkeydown={(event) => {
-					if (event.key === 'Enter' || event.key === ' ') {
-						event.preventDefault();
-						onSelectNote(file.path);
-					}
-				}}
+				onkeydown={(event) => onFileKeydown(file.path, event)}
 			>
 				<span
 					class="knowledge-workspace-drag-handle"

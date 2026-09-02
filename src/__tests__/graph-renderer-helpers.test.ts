@@ -263,6 +263,16 @@ describe('graph renderer helpers', () => {
 		});
 
 		expect(isConnectionDragStart(event)).toBe(true);
+		expect(
+			isConnectionDragStart(
+				createPointerEvent({
+					metaKey: true,
+					button: 0,
+					x: 70,
+					y: 80,
+				}),
+			),
+		).toBe(true);
 
 		const start = createConnectionDragState(renderer, 'A.md', {
 			x: 12,
@@ -472,18 +482,21 @@ function createDragRenderer(): ConnectionDragRenderer {
 }
 
 function createPointerEvent({
-	ctrlKey,
+	ctrlKey = false,
+	metaKey = false,
 	button,
 	x,
 	y,
 }: {
-	ctrlKey: boolean;
+	ctrlKey?: boolean;
+	metaKey?: boolean;
 	button: number;
 	x: number;
 	y: number;
 }): PointerEvent {
 	return {
 		ctrlKey,
+		metaKey,
 		button,
 		clientX: x,
 		clientY: y,

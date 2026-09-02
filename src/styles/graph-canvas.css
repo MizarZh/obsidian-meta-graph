@@ -2,6 +2,7 @@
 	position: relative;
 	--dock-panel-width: clamp(240px, 25vw, 320px);
 	--curated-panel-width: 0px;
+	flex: 1 1 auto;
 	min-width: 0;
 	height: 100%;
 	min-height: 0;
@@ -33,6 +34,114 @@
 	right: 0;
 	bottom: var(--connection-panel-height, 54px);
 	left: 0;
+}
+
+.knowledge-workspace-shortcut-panel {
+	display: flex;
+	flex: 0 0 clamp(280px, 28vw, 360px);
+	flex-direction: column;
+	width: clamp(280px, 28vw, 360px);
+	max-width: 48%;
+	min-width: min(280px, 48%);
+	min-height: 0;
+	overflow: hidden;
+	border-left: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+}
+
+.knowledge-workspace-shortcut-panel > header {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--size-4-3);
+	min-height: 48px;
+	padding: var(--size-4-2) var(--size-4-3) var(--size-4-2) var(--size-4-4);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.knowledge-workspace-shortcut-panel h3 {
+	margin: 0;
+	font-size: var(--font-ui-medium);
+	font-weight: var(--font-semibold);
+}
+
+.knowledge-workspace-shortcut-list {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: var(--size-4-4);
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--size-4-4);
+}
+
+.knowledge-workspace-shortcut-list section {
+	display: grid;
+	gap: var(--size-4-1);
+}
+
+.knowledge-workspace-shortcut-list h4 {
+	margin: 0;
+	padding: 0 var(--size-4-2);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-semibold);
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.knowledge-workspace-shortcut-group {
+	overflow: hidden;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-secondary-alt);
+}
+
+.knowledge-workspace-shortcut-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: var(--size-4-4);
+	min-height: 42px;
+	padding: var(--size-4-2) var(--size-4-3);
+}
+
+.knowledge-workspace-shortcut-row + .knowledge-workspace-shortcut-row {
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.knowledge-workspace-shortcut-keys {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--size-4-1);
+}
+
+.knowledge-workspace-shortcut-keys > span {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+}
+
+.knowledge-workspace-shortcut-list kbd {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 34px;
+	height: 26px;
+	padding: 0 8px;
+	border: 1px solid var(--background-modifier-border);
+	border-bottom-color: var(--background-modifier-border-hover);
+	border-radius: var(--radius-s);
+	background: var(--background-secondary);
+	box-shadow: 0 1px 0 var(--background-modifier-border-hover);
+	color: var(--text-normal);
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-medium);
+	line-height: 1;
+	white-space: nowrap;
 }
 
 .meta-graph-cube-canvas {
@@ -77,7 +186,10 @@
 }
 
 .knowledge-workspace-group-region.muted-by-focus {
-	--knowledge-workspace-group-color: var(--text-muted, var(--text-faint)) !important;
+	--knowledge-workspace-group-color: var(
+		--text-muted,
+		var(--text-faint)
+	) !important;
 	opacity: 0.58;
 	filter: grayscale(1) saturate(0);
 }

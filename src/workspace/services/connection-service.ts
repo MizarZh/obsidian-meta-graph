@@ -36,8 +36,16 @@ export interface ConnectionUndoChange {
 
 type ConnectionUndoEntry = ConnectionUndoChange[];
 
+interface FrontmatterSnapshot {
+	sourcePath: string;
+	field: string;
+	hadField: boolean;
+	value: unknown;
+}
+
 export class WorkspaceConnectionService<FileEntry> {
 	private readonly undoStack: ConnectionUndoEntry[] = [];
+	private readonly redoStack: ConnectionUndoEntry[] = [];
 
 	constructor(
 		private readonly adapter: WorkspaceConnectionAdapter<FileEntry>,
@@ -45,6 +53,10 @@ export class WorkspaceConnectionService<FileEntry> {
 
 	get undoCount(): number {
 		return this.undoStack.length;
+	}
+
+	get redoCount(): number {
+		return this.redoStack.length;
 	}
 
 	async connectDockNote(
@@ -161,8 +173,31 @@ export class WorkspaceConnectionService<FileEntry> {
 			if (!undo) {
 				break;
 			}
-			if (await this.undoFrontmatterChanges(undo)) {
-				return true;
+			try {
+				if (await this.undoFrontmatterChanges(undo)) {
+					this.redoStack.push(undo);
+					return true;
+				}
+			} catch (error) {
+				this.undoStack.push(undo);
+				throw error;
+			}
+		}
+		return false;
+	}
+
+	async redoLastConnection(): Promise<boolean> {
+		while (this.redoStack.length > 0) {
+			const redo = this.redoStack.pop();
+			if (!redo) break;
+			try {
+				if (await this.redoFrontmatterChanges(redo)) {
+					this.undoStack.push(redo);
+					return true;
+				}
+			} catch (error) {
+				this.redoStack.push(redo);
+				throw error;
 			}
 		}
 		return false;
@@ -173,7 +208,65 @@ export class WorkspaceConnectionService<FileEntry> {
 			return false;
 		}
 		this.undoStack.push(undo);
+		this.redoStack.length = 0;
 		return true;
+	}
+
+	private async redoFrontmatterChanges(
+		changes: ConnectionUndoEntry,
+	): Promise<boolean> {
+		let changed = false;
+		const applied: FrontmatterSnapshot[] = [];
+		try {
+			for (const redo of changes) {
+				const sourceFile = this.adapter.getFile(redo.sourcePath);
+				if (!this.adapter.isFile(sourceFile)) continue;
+				await this.adapter.processFrontMatter(
+					sourceFile,
+					(frontmatter) => {
+						const data = asFrontmatterRecord(frontmatter);
+						const currentValue = data[redo.field];
+						const currentValues = toFrontmatterArray(currentValue);
+						const targetPath = this.resolveStoredLinkPath(
+							redo.link,
+							redo.sourcePath,
+						);
+						if (
+							currentValues.some((value) =>
+								this.frontmatterValueLinksToTarget(
+									value,
+									redo.sourcePath,
+									targetPath,
+								),
+							)
+						) {
+							return;
+						}
+						applied.push({
+							sourcePath: redo.sourcePath,
+							field: redo.field,
+							hadField: Object.prototype.hasOwnProperty.call(
+								data,
+								redo.field,
+							),
+							value: cloneFrontmatterValue(currentValue),
+						});
+						data[redo.field] = [...currentValues, redo.link];
+						changed = true;
+					},
+				);
+			}
+		} catch (error) {
+			await this.restoreFrontmatterSnapshots(applied);
+			throw error;
+		}
+		return changed;
+	}
+
+	private resolveStoredLinkPath(link: string, sourcePath: string): string {
+		const linkText = extractLinkText(link);
+		const resolved = this.adapter.resolveLink(linkText, sourcePath);
+		return resolved ? this.adapter.getPath(resolved) : linkText;
 	}
 
 	private frontmatterValueLinksToTarget(
@@ -232,38 +325,81 @@ export class WorkspaceConnectionService<FileEntry> {
 		changes: ConnectionUndoEntry,
 	): Promise<boolean> {
 		let changed = false;
-		for (const undo of [...changes].reverse()) {
-			const sourceFile = this.adapter.getFile(undo.sourcePath);
-			if (!this.adapter.isFile(sourceFile)) {
-				continue;
-			}
+		const applied: FrontmatterSnapshot[] = [];
+		try {
+			for (const undo of [...changes].reverse()) {
+				const sourceFile = this.adapter.getFile(undo.sourcePath);
+				if (!this.adapter.isFile(sourceFile)) {
+					continue;
+				}
 
-			await this.adapter.processFrontMatter(sourceFile, (frontmatter) => {
-				const data = asFrontmatterRecord(frontmatter);
-				const currentValue = data[undo.field];
-				const currentValues = toFrontmatterArray(currentValue);
-				const remainingValues = currentValues.filter(
-					(value) => !frontmatterValueEquals(value, undo.link),
+				await this.adapter.processFrontMatter(
+					sourceFile,
+					(frontmatter) => {
+						const data = asFrontmatterRecord(frontmatter);
+						const currentValue = data[undo.field];
+						const currentValues = toFrontmatterArray(currentValue);
+						const remainingValues = currentValues.filter(
+							(value) =>
+								!frontmatterValueEquals(value, undo.link),
+						);
+						if (remainingValues.length === currentValues.length) {
+							return;
+						}
+						applied.push({
+							sourcePath: undo.sourcePath,
+							field: undo.field,
+							hadField: Object.prototype.hasOwnProperty.call(
+								data,
+								undo.field,
+							),
+							value: cloneFrontmatterValue(currentValue),
+						});
+
+						const previousValues = toFrontmatterArray(
+							undo.previousValue,
+						);
+						if (
+							undo.hadField &&
+							valuesEqual(remainingValues, previousValues)
+						) {
+							data[undo.field] = undo.previousValue;
+						} else if (
+							!undo.hadField &&
+							remainingValues.length === 0
+						) {
+							delete data[undo.field];
+						} else {
+							data[undo.field] = remainingValues;
+						}
+						changed = true;
+					},
 				);
-				if (remainingValues.length === currentValues.length) {
-					return;
-				}
-
-				const previousValues = toFrontmatterArray(undo.previousValue);
-				if (
-					undo.hadField &&
-					valuesEqual(remainingValues, previousValues)
-				) {
-					data[undo.field] = undo.previousValue;
-				} else if (!undo.hadField && remainingValues.length === 0) {
-					delete data[undo.field];
-				} else {
-					data[undo.field] = remainingValues;
-				}
-				changed = true;
-			});
+			}
+		} catch (error) {
+			await this.restoreFrontmatterSnapshots(applied);
+			throw error;
 		}
 		return changed;
+	}
+
+	private async restoreFrontmatterSnapshots(
+		snapshots: FrontmatterSnapshot[],
+	): Promise<void> {
+		for (const snapshot of [...snapshots].reverse()) {
+			const sourceFile = this.adapter.getFile(snapshot.sourcePath);
+			if (!this.adapter.isFile(sourceFile)) continue;
+			await this.adapter.processFrontMatter(sourceFile, (frontmatter) => {
+				const data = asFrontmatterRecord(frontmatter);
+				if (snapshot.hadField) {
+					data[snapshot.field] = cloneFrontmatterValue(
+						snapshot.value,
+					);
+				} else {
+					delete data[snapshot.field];
+				}
+			});
+		}
 	}
 }
 

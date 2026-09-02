@@ -55,7 +55,7 @@ export function findClosestScreenNode(
 }
 
 export function isConnectionDragStart(event: PointerEvent): boolean {
-	return event.ctrlKey && event.button === 0;
+	return (event.ctrlKey || event.metaKey) && event.button === 0;
 }
 
 export function createConnectionDragState(

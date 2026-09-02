@@ -16,6 +16,7 @@ import type {
 } from './meta-graph-v2/types';
 import { applyWorkspaceSession } from './workspace-session';
 import { serializeWorkspaceStateV2 } from './meta-graph-v2/codec';
+import type { WorkspaceActionId } from '../ui/interactions/keyboard-shortcuts';
 
 type MountedWorkspace = Parameters<typeof import('svelte').unmount>[0];
 type MetaGraphDocumentModule = typeof import('./meta-graph-document');
@@ -29,6 +30,10 @@ export class KnowledgeWorkspaceView extends TextFileView {
 	private rightSplitLeaf?: WorkspaceLeaf;
 	private persistence?: WorkspacePersistenceContext;
 	private sessionKey?: string;
+	private workspaceActions?: {
+		canExecute(action: WorkspaceActionId): boolean;
+		execute(action: WorkspaceActionId): boolean;
+	};
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -110,6 +115,14 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		this.controller?.setRelayoutFlowAfterConnection(
 			this.plugin.settings.relayoutFlowAfterConnection,
 		);
+	}
+
+	canExecuteAction(action: WorkspaceActionId): boolean {
+		return this.workspaceActions?.canExecute(action) ?? false;
+	}
+
+	executeAction(action: WorkspaceActionId): boolean {
+		return this.workspaceActions?.execute(action) ?? false;
 	}
 
 	private async renderMetaGraphData(data: string): Promise<void> {
@@ -195,6 +208,16 @@ export class KnowledgeWorkspaceView extends TextFileView {
 					this.persistSession(nextSession),
 				onAutoSave: (nextDocument: PersistedMetaGraphDocumentV2) =>
 					this.persistDocument(nextDocument),
+				onWorkspaceActionsChange: (
+					host:
+						| {
+								canExecute(action: WorkspaceActionId): boolean;
+								execute(action: WorkspaceActionId): boolean;
+						  }
+						| undefined,
+				) => {
+					this.workspaceActions = host;
+				},
 			},
 		});
 		this.controller.initialize(this.plugin.getLastActiveFile());
@@ -254,6 +277,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 	}
 
 	private async unmountWorkspace(): Promise<void> {
+		this.workspaceActions = undefined;
 		this.controller?.dispose();
 		this.controller = undefined;
 		this.persistence = undefined;

@@ -22,10 +22,11 @@
 	} = $props();
 
 	function handleKeyDown(event: KeyboardEvent): void {
-		if (!open || event.key !== 'Escape') {
+		if (event.defaultPrevented || !open || event.key !== 'Escape') {
 			return;
 		}
 		event.preventDefault();
+		event.stopPropagation();
 		onClose();
 	}
 

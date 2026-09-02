@@ -104,6 +104,7 @@ import {
 	prepareConnectDockNoteInState,
 	prepareConnectNodesInState,
 	undoLastConnectionInState,
+	redoLastConnectionInState,
 	type WorkspaceConnectionActionResult,
 } from './actions/connection-actions';
 import {
@@ -1157,6 +1158,13 @@ export class WorkspaceController {
 		this.assertWritable();
 		this.applyConnectionActionResult(
 			await undoLastConnectionInState(this.state, this.connectionService),
+		);
+	}
+
+	async redoLastConnection(): Promise<void> {
+		this.assertWritable();
+		this.applyConnectionActionResult(
+			await redoLastConnectionInState(this.state, this.connectionService),
 		);
 	}
 

@@ -303,6 +303,7 @@ export interface WorkspaceState {
 	activeConnectionFieldSpecId: string;
 	activeConnectionField: string;
 	connectionUndoCount: number;
+	connectionRedoCount: number;
 	dock: MetaGraphDock;
 	projection?: GraphProjection;
 	availableFolders: string[];

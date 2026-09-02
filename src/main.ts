@@ -25,6 +25,7 @@ import {
 import { WorkspaceIndexService } from './workspace/services/workspace-index-service';
 import type { WorkspaceSessionState } from './workspace/meta-graph-v2/types';
 import { normalizeWorkspaceSessions } from './workspace/workspace-session';
+import type { WorkspaceActionId } from './ui/interactions/keyboard-shortcuts';
 
 export default class KnowledgeWorkspacePlugin extends Plugin {
 	settings!: KnowledgeWorkspaceSettings;
@@ -123,10 +124,110 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 				return true;
 			},
 		});
+		this.registerWorkspaceActionCommands();
 		this.addRibbonIcon('git-fork', 'Create graph', () => {
 			void this.createMetaGraphFile();
 		});
 		this.addSettingTab(new KnowledgeWorkspaceSettingsTab(this.app, this));
+	}
+
+	private registerWorkspaceActionCommands(): void {
+		const commands: Array<{
+			id: string;
+			name: string;
+			action: WorkspaceActionId;
+		}> = [
+			{
+				id: 'find-meta-graph-note',
+				name: 'Find graph note',
+				action: 'find-note',
+			},
+			{
+				id: 'open-selected-meta-graph-note',
+				name: 'Open selected graph note',
+				action: 'open-selected',
+			},
+			{
+				id: 'toggle-meta-graph-pinned-focus',
+				name: 'Pin or unpin selected graph neighborhood',
+				action: 'toggle-pinned-focus',
+			},
+			{ id: 'fit-meta-graph', name: 'Fit graph', action: 'fit-graph' },
+			{
+				id: 'reset-meta-graph-zoom',
+				name: 'Reset graph zoom',
+				action: 'reset-zoom',
+			},
+			{
+				id: 'zoom-in-meta-graph',
+				name: 'Zoom in graph',
+				action: 'zoom-in',
+			},
+			{
+				id: 'zoom-out-meta-graph',
+				name: 'Zoom out graph',
+				action: 'zoom-out',
+			},
+			{
+				id: 'refresh-meta-graph',
+				name: 'Refresh graph',
+				action: 'refresh-graph',
+			},
+			{
+				id: 'undo-meta-graph-connection',
+				name: 'Undo last graph connection',
+				action: 'undo',
+			},
+			{
+				id: 'redo-meta-graph-connection',
+				name: 'Redo last graph connection',
+				action: 'redo',
+			},
+			{
+				id: 'show-meta-graph-shortcuts',
+				name: 'Show graph keyboard shortcuts',
+				action: 'show-shortcuts',
+			},
+			{
+				id: 'toggle-meta-graph-dock',
+				name: 'Toggle graph right panel',
+				action: 'toggle-dock',
+			},
+			{
+				id: 'toggle-meta-graph-curated',
+				name: 'Toggle graph workspace files',
+				action: 'toggle-curated-panel',
+			},
+			{
+				id: 'toggle-meta-graph-connections',
+				name: 'Toggle graph connections',
+				action: 'toggle-connection-panel',
+			},
+			{
+				id: 'previous-meta-graph-view',
+				name: 'Previous graph view',
+				action: 'previous-view',
+			},
+			{
+				id: 'next-meta-graph-view',
+				name: 'Next graph view',
+				action: 'next-view',
+			},
+		];
+		for (const command of commands) {
+			this.addCommand({
+				id: command.id,
+				name: command.name,
+				checkCallback: (checking) => {
+					const view = this.app.workspace.getActiveViewOfType(
+						KnowledgeWorkspaceView,
+					);
+					if (!view?.canExecuteAction(command.action)) return false;
+					if (!checking) view.executeAction(command.action);
+					return true;
+				},
+			});
+		}
 	}
 
 	async saveSettings(): Promise<void> {

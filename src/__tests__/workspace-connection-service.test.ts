@@ -61,6 +61,95 @@ describe('workspace connection service', () => {
 		expect(frontmatter('Source.md')).toEqual({
 			'leads-to': '[[Existing]]',
 		});
+
+		await expect(service.redoLastConnection()).resolves.toBe(true);
+
+		expect(frontmatter('Source.md')).toEqual({
+			'leads-to': ['[[Existing]]', '[[Target]]'],
+		});
+		expect(service.undoCount).toBe(1);
+		expect(service.redoCount).toBe(0);
+	});
+
+	it('clears redo history after a new connection', async () => {
+		const { service } = createConnectionService([
+			'Source.md',
+			'Target.md',
+			'Other.md',
+		]);
+		await service.connectNodes(
+			'Source.md',
+			'Target.md',
+			'leads-to',
+			'directed',
+		);
+		await service.undoLastConnection();
+		expect(service.redoCount).toBe(1);
+
+		await service.connectNodes(
+			'Source.md',
+			'Other.md',
+			'leads-to',
+			'directed',
+		);
+
+		expect(service.redoCount).toBe(0);
+		await expect(service.redoLastConnection()).resolves.toBe(false);
+	});
+
+	it('rolls back an incomplete paired redo and keeps its history entry', async () => {
+		let failingPath: string | undefined;
+		const { service, frontmatter } = createConnectionService(
+			['Source.md', 'Target.md'],
+			{},
+			() => failingPath,
+		);
+		await service.connectNodes(
+			'Source.md',
+			'Target.md',
+			'prerequisite',
+			'paired',
+			'next',
+		);
+		await service.undoLastConnection();
+		failingPath = 'Target.md';
+
+		await expect(service.redoLastConnection()).rejects.toThrow(
+			'write failed',
+		);
+
+		expect(frontmatter('Source.md')).toEqual({});
+		expect(frontmatter('Target.md')).toEqual({});
+		expect(service.undoCount).toBe(0);
+		expect(service.redoCount).toBe(1);
+	});
+
+	it('rolls back an incomplete paired undo and keeps its history entry', async () => {
+		let failingPath: string | undefined;
+		const { service, frontmatter } = createConnectionService(
+			['Source.md', 'Target.md'],
+			{},
+			() => failingPath,
+		);
+		await service.connectNodes(
+			'Source.md',
+			'Target.md',
+			'prerequisite',
+			'paired',
+			'next',
+		);
+		failingPath = 'Source.md';
+
+		await expect(service.undoLastConnection()).rejects.toThrow(
+			'write failed',
+		);
+
+		expect(frontmatter('Source.md')).toEqual({
+			prerequisite: ['[[Target]]'],
+		});
+		expect(frontmatter('Target.md')).toEqual({ next: ['[[Source]]'] });
+		expect(service.undoCount).toBe(1);
+		expect(service.redoCount).toBe(0);
 	});
 
 	it('skips duplicate links resolved through existing aliases', async () => {
@@ -206,7 +295,7 @@ describe('workspace connection service', () => {
 function createConnectionService(
 	paths: string[],
 	initialFrontmatter: Record<string, Record<string, unknown>> = {},
-	failPath?: string,
+	failPath?: string | (() => string | undefined),
 ): {
 	service: WorkspaceConnectionService<TestFile>;
 	frontmatter: (path: string) => Record<string, unknown>;
@@ -225,7 +314,9 @@ function createConnectionService(
 		generateMarkdownLink: (targetFile) =>
 			`[[${targetFile.path.replace(/\.md$/u, '')}]]`,
 		processFrontMatter: async (file, callback) => {
-			if (file.path === failPath) {
+			const currentFailPath =
+				typeof failPath === 'function' ? failPath() : failPath;
+			if (file.path === currentFailPath) {
 				throw new Error('write failed');
 			}
 			const frontmatter = frontmatterByPath.get(file.path);

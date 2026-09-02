@@ -216,6 +216,20 @@
 		else toggleSelected(path);
 	}
 
+	function handleFileKeydown(path: string, event: KeyboardEvent): void {
+		if (event.target !== event.currentTarget) return;
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			const file = selectedFiles.find((entry) => entry.path === path);
+			if (!file?.missing) onOpenNote(path);
+			return;
+		}
+		if (event.key !== ' ') return;
+		event.preventDefault();
+		if (event.shiftKey) selectFileRange(path);
+		else toggleSelected(path);
+	}
+
 	function clearSelection(): void {
 		onSelectedPathsChange(new Set());
 		lastSelectedPath = undefined;
@@ -518,10 +532,10 @@
 			reorderEnabled={!listSearchActive && filterCount === 0}
 			onCheckboxClick={handleFileCheckboxClick}
 			onFileClick={handleFileClick}
+			onFileKeydown={handleFileKeydown}
 			onPointerDown={handleFilePointerDown}
 			{onReorderFiles}
 			{onOpenNote}
-			{onSelectNote}
 			onMoveFileToGroup={moveFileToGroup}
 			onSetFileHidden={(path, hidden) => onSetFilesHidden([path], hidden)}
 			{onRemoveFile}

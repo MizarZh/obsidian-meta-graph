@@ -16,6 +16,7 @@ import {
 
 export interface WorkspaceConnectionPort {
 	readonly undoCount: number;
+	readonly redoCount: number;
 	connectNodes(
 		sourceNodeId: NodeId,
 		targetNodeId: NodeId,
@@ -24,6 +25,7 @@ export interface WorkspaceConnectionPort {
 		reverseField?: string,
 	): Promise<boolean>;
 	undoLastConnection(): Promise<boolean>;
+	redoLastConnection(): Promise<boolean>;
 }
 
 export interface PreparedConnectionAction {
@@ -105,7 +107,20 @@ export async function undoLastConnectionInState(
 ): Promise<WorkspaceConnectionActionResult> {
 	const changed = await service.undoLastConnection();
 	return {
-		state: updateConnectionUndoCountInState(state, service.undoCount),
+		state: updateConnectionHistoryCountInState(state, service),
+		changed,
+		refresh: changed,
+		forceLayout: false,
+	};
+}
+
+export async function redoLastConnectionInState(
+	state: WorkspaceState,
+	service: WorkspaceConnectionPort,
+): Promise<WorkspaceConnectionActionResult> {
+	const changed = await service.redoLastConnection();
+	return {
+		state: updateConnectionHistoryCountInState(state, service),
 		changed,
 		refresh: changed,
 		forceLayout: false,
@@ -127,7 +142,10 @@ export function completeConnectionChangeInState(
 		};
 	}
 	return {
-		state: updateConnectionUndoCountInState(state, undoCount),
+		state: updateConnectionHistoryCountInState(state, {
+			undoCount,
+			redoCount: 0,
+		}),
 		changed: true,
 		refresh: true,
 		forceLayout: state.mode === 'flow' && relayoutFlowAfterConnection,
@@ -164,11 +182,19 @@ function prepareConnectionRequestInState(
 	};
 }
 
-function updateConnectionUndoCountInState(
+function updateConnectionHistoryCountInState(
 	state: WorkspaceState,
-	connectionUndoCount: number,
+	counts: Pick<WorkspaceConnectionPort, 'undoCount' | 'redoCount'>,
 ): WorkspaceState {
-	return state.connectionUndoCount === connectionUndoCount
-		? state
-		: { ...state, connectionUndoCount };
+	if (
+		state.connectionUndoCount === counts.undoCount &&
+		state.connectionRedoCount === counts.redoCount
+	) {
+		return state;
+	}
+	return {
+		...state,
+		connectionUndoCount: counts.undoCount,
+		connectionRedoCount: counts.redoCount,
+	};
 }

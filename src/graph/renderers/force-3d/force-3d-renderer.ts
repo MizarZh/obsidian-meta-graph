@@ -89,7 +89,6 @@ export class Force3DRenderer {
 	private readonly linkLabelSprites = new Map<string, Three.Sprite>();
 	private readonly blockDoubleClick = (event: MouseEvent): void => {
 		event.preventDefault();
-		event.stopPropagation();
 	};
 	private zoomLevel = 100;
 	private lastCameraDistance = 0;

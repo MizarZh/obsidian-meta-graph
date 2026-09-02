@@ -106,7 +106,6 @@ export class Cube3DRenderer {
 	private readonly zoomLevelListeners = new Set<(level: number) => void>();
 	private readonly blockDoubleClick = (event: MouseEvent): void => {
 		event.preventDefault();
-		event.stopPropagation();
 	};
 
 	static async create(

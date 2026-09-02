@@ -51,6 +51,7 @@ export function createWorkspaceState(
 			metaGraphDocument.activeConnectionFieldSpecId,
 		activeConnectionField: metaGraphDocument.activeConnectionField,
 		connectionUndoCount: 0,
+		connectionRedoCount: 0,
 		dock: {
 			...cloneSerializable(metaGraphDocument.dock),
 			dockWidth: activeChart.presentation.dockWidth,

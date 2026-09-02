@@ -39,7 +39,9 @@
 		zoomLevel,
 		onZoomLevel,
 		connectionUndoCount,
+		connectionRedoCount,
 		onUndoConnection,
+		onRedoConnection,
 		onFit,
 		onRefresh,
 		settingsPanel,
@@ -47,6 +49,8 @@
 		showDebugButton,
 		debugOpen,
 		onToggleDebug,
+		shortcutsOpen,
+		onShowShortcuts,
 	}: {
 		app: App;
 		mode: ViewMode;
@@ -68,7 +72,9 @@
 		zoomLevel: number;
 		onZoomLevel: (level: number) => void;
 		connectionUndoCount: number;
+		connectionRedoCount: number;
 		onUndoConnection: () => void;
+		onRedoConnection: () => void;
 		onFit: () => void;
 		onRefresh: () => void;
 		settingsPanel: SettingsPanelMode | undefined;
@@ -76,6 +82,8 @@
 		showDebugButton: boolean;
 		debugOpen: boolean;
 		onToggleDebug: () => void;
+		shortcutsOpen: boolean;
+		onShowShortcuts: () => void;
 	} = $props();
 
 	let pickerOpen = $state(false);
@@ -264,10 +272,13 @@
 	}
 
 	function handleWindowKeydown(event: KeyboardEvent): void {
-		if (event.key === 'Escape' && createOpen) {
-			event.preventDefault();
-			closeCreate();
-		}
+		if (event.defaultPrevented || event.key !== 'Escape') return;
+		if (!createOpen && !configOpen && !pickerOpen) return;
+		event.preventDefault();
+		event.stopPropagation();
+		if (createOpen) closeCreate();
+		else if (configOpen) closeConfig();
+		else pickerOpen = false;
 	}
 
 	function commitName(): void {
@@ -666,6 +677,13 @@
 			{/if}
 		</span>
 		<ObsidianButton
+			icon="redo-2"
+			ariaLabel="Redo last connection"
+			tooltip="Redo connection (Ctrl+Shift+Z or Ctrl+Y)"
+			disabled={connectionRedoCount === 0}
+			onClick={onRedoConnection}
+		/>
+		<ObsidianButton
 			class="knowledge-workspace-toolbar-fit"
 			icon="crosshair"
 			text="Fit graph"
@@ -688,5 +706,12 @@
 				onClick={onToggleDebug}
 			/>
 		{/if}
+		<ObsidianButton
+			icon="circle-help"
+			active={shortcutsOpen}
+			ariaLabel="Keyboard shortcuts"
+			tooltip="Keyboard shortcuts (?)"
+			onClick={onShowShortcuts}
+		/>
 	</div>
 </div>

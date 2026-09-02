@@ -8,9 +8,17 @@ All notable changes to Meta Graph are documented here.
 
 - Added deterministic parallel lanes for multiple relationships between the same two notes. Directed, reverse, and undirected links now keep separate paths, labels, arrows, and 2D/3D/Cube/Flow/Arc/HEB rendering without changing the underlying metadata.
 - Added a DPR-aware Canvas overlay for Sigma parallel edges, including compact endpoint routes, rounded solid/patterned lines, arrows, labels, hover/click hit testing, viewport culling, and cached paths.
+- Added centralized graph actions with Obsidian command-palette entries, shortcut help, viewport shortcuts, selected-node open/focus shortcuts, and consistent keyboard behavior across note lists.
+- Added transaction-safe connection Redo with toolbar, `Ctrl/Cmd+Shift+Z`, and `Ctrl/Cmd+Y` access.
+
+### Changed
+
+- Changed graph node interaction to single-click selection and double-click open across 2D, 3D, and Cube renderers. Existing `Ctrl`/`Cmd`-drag connection editing remains available; no Connection tool mode was added.
 
 ### Fixed
 
+- Replaced the keyboard shortcut overlay with a grouped side-by-side reference panel that keeps the graph interactive while open.
+- Made `Space` pin or unpin the hovered node's neighborhood; with no hovered node it clears the current pinned focus.
 - Kept Flow arrows on the final flow-axis corridor segment when parallel lanes use endpoint branches, preventing RL/LR arrows from pointing vertically into nodes.
 - Reduced direct Graph parallel-lane spacing so two-way links stay visually compact while remaining distinguishable.
 - Restored Sigma's native programs for ordinary single edges and moved only multi-edge pairs to the compact Canvas overlay, avoiding custom-shader aliasing and seam artifacts without expanding graph coordinates or layout bounds.

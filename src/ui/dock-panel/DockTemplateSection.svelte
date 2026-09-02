@@ -222,7 +222,16 @@
 		templateId: string,
 		event: KeyboardEvent,
 	): void {
-		if (event.key !== 'Enter' && event.key !== ' ') return;
+		if (event.target !== event.currentTarget) return;
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			const template = templates.find((entry) => entry.id === templateId);
+			if (template && !template.templateMissing) {
+				onOpenNote(template.templatePath);
+			}
+			return;
+		}
+		if (event.key !== ' ') return;
 		event.preventDefault();
 		if (event.shiftKey) selectTemplateRange(templateId);
 		else toggleSelected(templateId);

@@ -1,8 +1,9 @@
 .knowledge-workspace-body {
 	position: relative;
-	display: block;
+	display: flex;
 	flex: 1;
 	min-height: 0;
+	overflow: hidden;
 }
 
 .knowledge-workspace-settings-backdrop {

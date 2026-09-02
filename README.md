@@ -96,8 +96,8 @@ settings to report them in the developer console.
     a wrapped multi-row layout. Select **+** to open the combined metadata and
     direction editor; right-click a connection to edit, move, or remove it.
 13. Use **Details** for quick connections, or drag the link button on a pinned
-    note or template to a graph node. `Ctrl`-drag between graph nodes remains an
-    advanced shortcut. One-way writes the source note only; two-way writes both
+    note or template to a graph node. `Ctrl`/`Cmd`-drag between graph nodes remains
+    an advanced shortcut. One-way writes the source note only; two-way writes both
     notes so each note links to the other. Paired writes the selected source
     property on the source note and a distinct target property on the target
     note; both writes share one Undo operation.
@@ -110,7 +110,7 @@ settings to report them in the developer console.
     only runs its initial ForceAtlas placement once for a chart; later refreshes,
     force setting changes, added notes, and added links keep existing positions.
     New nodes are placed near positioned neighbors when possible, then Force
-    layout can move them through the force field. `Ctrl`-drag still creates
+    layout can move them through the force field. `Ctrl`/`Cmd`-drag still creates
     links.
 15. In Free views, drag nodes directly to place them by hand. Free views do not
     run an automatic layout after the first placement, and dragged node
@@ -124,23 +124,35 @@ settings to report them in the developer console.
 18. In Cube views, each cube face is a group. Drag the background to
     rotate the cube, drag nodes within their face to save their placement, use
     `Shift`-click for local relationship focus, right-click for selection
-    details, and `Ctrl`-drag between nodes to add links. Use **Face opacity** in
+    details, and `Ctrl`/`Cmd`-drag between nodes to add links. Use **Face opacity** in
     **Graph** settings to control cube face transparency.
 19. Use **Details**, **Pinned notes**, and **Templates** in the right panel. Only
     one tab is shown at a time. Pinned notes use the same searchable, filterable
     **Add notes** picker as Workspace files. Template editing opens in a modal;
     drag a row to the graph or use its explicit **Create** and link buttons.
-20. Use **Undo connection** in the graph toolbar, or `Ctrl+Z` / `Cmd+Z` while the
-    workspace is focused, to undo connection edits made in the current workspace
-    session.
-21. Choose **Open notes in** under **Settings -> Meta Graph** to open notes in a
+20. Click a graph node to select it; double-click or press `Enter` to open it.
+    Press `Space` while hovering a node to pin or unpin its relationship focus.
+    With no hovered node, `Space` clears the current pinned focus. `Esc` closes
+    the active graph popup first, then clears list or graph selection.
+21. Use **Undo connection** / **Redo connection** in the graph toolbar. While the
+    workspace is focused, `Ctrl+Z` / `Cmd+Z` undoes and
+    `Ctrl+Shift+Z` / `Cmd+Shift+Z` (or `Ctrl+Y` / `Cmd+Y`) redoes connection edits
+    from the current session. New connection edits clear redo history.
+22. Keyboard graph controls: `Ctrl+F` / `Cmd+F` finds a note, `0` fits the graph,
+    `1` resets zoom, `+` and `-` zoom, `Shift+R` refreshes and relayouts, and `?`
+    toggles a side-by-side shortcut reference panel that remains visible while
+    operating the graph. These actions are also available in Obsidian's command
+    palette, where users can assign custom hotkeys. In Workspace files, Pinned
+    notes, and Templates lists, `Enter` opens the focused note and `Space` toggles
+    selection.
+23. Choose **Open notes in** under **Settings -> Meta Graph** to open notes in a
     new tab or a reused right split. Use the fold/unfold button in **Details** to show
     read-only note content below its metadata. **After creating a note** controls whether
     template-created notes stay on the graph or open with the same policy.
-22. Select **Debug** to inspect or copy the current query, projection,
+24. Select **Debug** to inspect or copy the current query, projection,
     canonical index, adjacency maps, unresolved links, and performance timings
     as JSON.
-23. Choose **Large vault mode** under **Settings -> Meta Graph**. **Auto**
+25. Choose **Large vault mode** under **Settings -> Meta Graph**. **Auto**
     enables cooperative rendering and layout workers at 5,000 Markdown files.
     When active, metadata edits use incremental per-file indexing; file create,
     delete, and rename operations use a conservative full rebuild to preserve

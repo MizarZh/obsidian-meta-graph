@@ -375,8 +375,10 @@
 	}
 
 	function handleWindowKeydown(event: KeyboardEvent): void {
-		if (event.key !== 'Escape' || !addOpen) return;
+		if (event.defaultPrevented || event.key !== 'Escape' || !addOpen)
+			return;
 		event.preventDefault();
+		event.stopPropagation();
 		closeEditor();
 	}
 </script>

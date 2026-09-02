@@ -5,6 +5,7 @@ import {
 	connectPreparedNodesInState,
 	prepareConnectDockNoteInState,
 	prepareConnectNodesInState,
+	redoLastConnectionInState,
 	undoLastConnectionInState,
 	type WorkspaceConnectionPort,
 } from '../workspace/actions/connection-actions';
@@ -101,6 +102,7 @@ describe('workspace connection actions', () => {
 			forceLayout: true,
 		});
 		expect(result.state.connectionUndoCount).toBe(3);
+		expect(result.state.connectionRedoCount).toBe(0);
 	});
 
 	it('updates undo count after undo without forcing refresh when nothing changed', async () => {
@@ -118,6 +120,22 @@ describe('workspace connection actions', () => {
 		expect(result.state.connectionUndoCount).toBe(1);
 	});
 
+	it('updates both history counts after redo', async () => {
+		const state = { ...createWorkspaceState(100), connectionRedoCount: 1 };
+		const service = createConnectionService(true, 2, 0);
+
+		const result = await redoLastConnectionInState(state, service);
+
+		expect(service.redoLastConnectionMock).toHaveBeenCalled();
+		expect(result).toMatchObject({
+			changed: true,
+			refresh: true,
+			forceLayout: false,
+		});
+		expect(result.state.connectionUndoCount).toBe(2);
+		expect(result.state.connectionRedoCount).toBe(0);
+	});
+
 	it('keeps unchanged connection results stable', () => {
 		const state = createWorkspaceState(100);
 
@@ -133,9 +151,11 @@ describe('workspace connection actions', () => {
 function createConnectionService(
 	changed: boolean,
 	undoCount: number,
+	redoCount = 0,
 ): WorkspaceConnectionPort & {
 	connectNodesMock: ReturnType<typeof vi.fn>;
 	undoLastConnectionMock: ReturnType<typeof vi.fn>;
+	redoLastConnectionMock: ReturnType<typeof vi.fn>;
 } {
 	const connectNodesMock = vi.fn(
 		(
@@ -146,11 +166,15 @@ function createConnectionService(
 		) => Promise.resolve(changed),
 	);
 	const undoLastConnectionMock = vi.fn(() => Promise.resolve(changed));
+	const redoLastConnectionMock = vi.fn(() => Promise.resolve(changed));
 	return {
 		undoCount,
+		redoCount,
 		connectNodes: connectNodesMock,
 		undoLastConnection: undoLastConnectionMock,
+		redoLastConnection: redoLastConnectionMock,
 		connectNodesMock,
 		undoLastConnectionMock,
+		redoLastConnectionMock,
 	};
 }

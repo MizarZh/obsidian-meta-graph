@@ -152,7 +152,6 @@ export function bindCube3DEvents(
 					renderer.togglePinnedHover(finishedNodeId);
 				} else {
 					callbacks.onSelect(finishedNodeId);
-					callbacks.onOpen(finishedNodeId);
 				}
 			}
 			suppressClickUntil = moved ? Date.now() + 500 : 0;
@@ -204,6 +203,15 @@ export function bindCube3DEvents(
 		}
 		callbacks.onSelect(nodeId);
 	};
+	const doubleClick = (event: MouseEvent) => {
+		const nodeId = renderer.getNodeAtViewportPosition(
+			renderer.getViewportPosition(event),
+		);
+		if (!nodeId) return;
+		event.preventDefault();
+		callbacks.onSelect(nodeId);
+		callbacks.onOpen(nodeId);
+	};
 
 	function endPointerState(): void {
 		if (connectionDrag) {
@@ -230,6 +238,7 @@ export function bindCube3DEvents(
 	element.addEventListener('pointermove', pointerMove);
 	element.addEventListener('wheel', wheel, { passive: false });
 	element.addEventListener('contextmenu', contextMenu);
+	element.addEventListener('dblclick', doubleClick);
 
 	return () => {
 		endPointerState();
@@ -239,5 +248,6 @@ export function bindCube3DEvents(
 		element.removeEventListener('pointermove', pointerMove);
 		element.removeEventListener('wheel', wheel);
 		element.removeEventListener('contextmenu', contextMenu);
+		element.removeEventListener('dblclick', doubleClick);
 	};
 }

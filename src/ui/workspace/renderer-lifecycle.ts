@@ -99,6 +99,14 @@ export class WorkspaceRendererLifecycle {
 		this.currentRenderer?.setHovered(nodeId);
 	}
 
+	togglePinnedHover(nodeId: string): void {
+		this.currentRenderer?.togglePinnedHover(nodeId);
+	}
+
+	clearPinnedHover(): void {
+		this.currentRenderer?.clearPinnedHover();
+	}
+
 	refreshPalette(): void {
 		const canvas = this.options.readCanvas();
 		if (this.currentRenderer && canvas) {

@@ -161,7 +161,14 @@
 	}
 
 	function handleNoteKeydown(path: string, event: KeyboardEvent): void {
-		if (event.key !== 'Enter' && event.key !== ' ') return;
+		if (event.target !== event.currentTarget) return;
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			const note = notes.find((entry) => entry.path === path);
+			if (!note?.broken) onOpenNote(path);
+			return;
+		}
+		if (event.key !== ' ') return;
 		event.preventDefault();
 		if (event.shiftKey) selectNoteRange(path);
 		else toggleSelected(path);

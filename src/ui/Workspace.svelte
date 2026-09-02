@@ -45,8 +45,9 @@
 		type GraphConnectionDropAction,
 	} from './interactions/graph-connection-drop';
 	import {
-		shouldHandleConnectionUndoShortcut,
-		shouldHandleFindNoteShortcut,
+		WORKSPACE_ACTION_DEFINITIONS,
+		resolveWorkspaceShortcut,
+		type WorkspaceActionId,
 	} from './interactions/keyboard-shortcuts';
 	import {
 		getDockNoteEntries,
@@ -110,6 +111,7 @@
 
 	import { ConfirmDeleteViewModal } from './ConfirmDeleteWorkspaceModal';
 	import { SwitchModeWarningModal } from './SwitchModeWarningModal';
+	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import Toolbar from './Toolbar.svelte';
 
 	let {
@@ -126,6 +128,7 @@
 		onDetailsNoteContentExpandedChange,
 		onOpenNodeInRightSplit,
 		getNodeOpenMode,
+		onWorkspaceActionsChange,
 		readOnly = false,
 		sourceVersion = 2,
 	}: {
@@ -144,6 +147,14 @@
 		onDetailsNoteContentExpandedChange: (expanded: boolean) => void;
 		onOpenNodeInRightSplit: (nodeId: string) => Promise<void>;
 		getNodeOpenMode: () => NodeOpenMode;
+		onWorkspaceActionsChange?: (
+			host:
+				| {
+						canExecute(action: WorkspaceActionId): boolean;
+						execute(action: WorkspaceActionId): boolean;
+				  }
+				| undefined,
+		) => void;
 		readOnly?: boolean;
 		sourceVersion?: number;
 	} = $props();
@@ -187,6 +198,7 @@
 		initialShellSession?.rightPanelTab ?? 'details',
 	);
 	let graphLoading = $state(false);
+	let shortcutHelpOpen = $state(false);
 	let zoomLevel = $state(100);
 	let graphLoadingTarget = $state<string | undefined>(undefined);
 	let suppressNodeOpenUntil = 0;
@@ -538,11 +550,14 @@
 			attributeFilter: ['class'],
 		});
 		workspaceRoot.addEventListener('keydown', handleWorkspaceKeydown);
-		window.addEventListener('keydown', handleWindowShortcut, true);
 		workspaceRoot.addEventListener(
 			'pointerdown',
 			focusWorkspaceForShortcuts,
 		);
+		onWorkspaceActionsChange?.({
+			canExecute: canExecuteWorkspaceAction,
+			execute: executeWorkspaceAction,
+		});
 		window.addEventListener(
 			'mousemove',
 			graphDockConnection.handleMouseMove,
@@ -661,7 +676,7 @@
 				'keydown',
 				handleWorkspaceKeydown,
 			);
-			window.removeEventListener('keydown', handleWindowShortcut, true);
+			onWorkspaceActionsChange?.(undefined);
 			workspaceRoot.removeEventListener(
 				'pointerdown',
 				focusWorkspaceForShortcuts,
@@ -1184,25 +1199,22 @@
 	}
 
 	function handleWorkspaceKeydown(event: KeyboardEvent): void {
-		if (focusFindNoteInput(event)) {
-			return;
-		}
-		if (readOnly) return;
-		if (
-			!shouldHandleConnectionUndoShortcut({
-				key: event.key,
-				ctrlKey: event.ctrlKey,
-				metaKey: event.metaKey,
-				altKey: event.altKey,
-				shiftKey: event.shiftKey,
-				connectionUndoCount: workspaceState.connectionUndoCount,
-				editableTarget: isEditableTarget(event.target),
-			})
-		) {
-			return;
-		}
+		if (event.defaultPrevented) return;
+		const action = resolveWorkspaceShortcut({
+			key: event.key,
+			ctrlKey: event.ctrlKey,
+			metaKey: event.metaKey,
+			altKey: event.altKey,
+			shiftKey: event.shiftKey,
+			connectionUndoCount: workspaceState.connectionUndoCount,
+			connectionRedoCount: workspaceState.connectionRedoCount,
+			editableTarget: isEditableTarget(event.target),
+			selectedNodeId: workspaceState.selectedNodeId,
+			hoveredNodeId,
+		});
+		if (!action || !executeWorkspaceAction(action)) return;
 		event.preventDefault();
-		undoLastConnection();
+		event.stopPropagation();
 	}
 
 	function undoLastConnection(): void {
@@ -1215,34 +1227,114 @@
 		);
 	}
 
-	function handleWindowShortcut(event: KeyboardEvent): void {
-		if (
-			!(event.target instanceof Node) ||
-			!workspaceRoot.contains(event.target)
-		) {
-			return;
-		}
-		focusFindNoteInput(event);
+	function redoLastConnection(): void {
+		if (workspaceState.connectionRedoCount === 0) return;
+		void controller.redoLastConnection().catch((error: unknown) =>
+			controller.setRendererDebugState({
+				status: 'error',
+				error: formatError(error),
+			}),
+		);
 	}
 
-	function focusFindNoteInput(event: KeyboardEvent): boolean {
-		if (
-			!findNoteInput ||
-			!shouldHandleFindNoteShortcut({
-				key: event.key,
-				ctrlKey: event.ctrlKey,
-				metaKey: event.metaKey,
-				altKey: event.altKey,
-				shiftKey: event.shiftKey,
-			})
-		) {
-			return false;
-		}
-		event.preventDefault();
-		event.stopPropagation();
+	function focusFindNoteInput(): boolean {
+		if (!findNoteInput) return false;
 		findNoteInput.focus({ preventScroll: true });
 		findNoteInput.select();
 		return true;
+	}
+
+	function canExecuteWorkspaceAction(action: WorkspaceActionId): boolean {
+		if (action === 'find-note') return Boolean(findNoteInput);
+		if (action === 'undo')
+			return !readOnly && workspaceState.connectionUndoCount > 0;
+		if (action === 'redo')
+			return !readOnly && workspaceState.connectionRedoCount > 0;
+		if (action === 'open-selected') {
+			return Boolean(workspaceState.selectedNodeId);
+		}
+		if (action === 'toggle-curated-panel') {
+			return workspaceState.chartSource === 'curated';
+		}
+		if (action === 'previous-view' || action === 'next-view') {
+			return workspaceState.charts.length > 1;
+		}
+		return true;
+	}
+
+	function executeWorkspaceAction(action: WorkspaceActionId): boolean {
+		if (!canExecuteWorkspaceAction(action)) return false;
+		switch (action) {
+			case 'find-note':
+				return focusFindNoteInput();
+			case 'undo':
+				undoLastConnection();
+				return true;
+			case 'redo':
+				redoLastConnection();
+				return true;
+			case 'open-selected':
+				void openNote(workspaceState.selectedNodeId!);
+				return true;
+			case 'toggle-pinned-focus':
+				if (hoveredNodeId) {
+					rendererLifecycle.togglePinnedHover(hoveredNodeId);
+				} else {
+					rendererLifecycle.clearPinnedHover();
+				}
+				return true;
+			case 'fit-graph':
+				rendererLifecycle.fit();
+				return true;
+			case 'reset-zoom':
+				rendererLifecycle.setZoomLevel(100);
+				return true;
+			case 'zoom-in':
+				rendererLifecycle.zoomIn();
+				return true;
+			case 'zoom-out':
+				rendererLifecycle.zoomOut();
+				return true;
+			case 'refresh-graph':
+				void controller.refresh(true);
+				return true;
+			case 'show-shortcuts':
+				shortcutHelpOpen = !shortcutHelpOpen;
+				return true;
+			case 'toggle-dock':
+				toggleDock();
+				return true;
+			case 'toggle-curated-panel':
+				toggleCuratedPanel();
+				return true;
+			case 'toggle-connection-panel':
+				toggleConnection();
+				return true;
+			case 'previous-view':
+			case 'next-view': {
+				const index = workspaceState.charts.findIndex(
+					(chart) => chart.id === workspaceState.activeChartId,
+				);
+				const delta = action === 'previous-view' ? -1 : 1;
+				const next =
+					workspaceState.charts[
+						(index + delta + workspaceState.charts.length) %
+							workspaceState.charts.length
+					];
+				if (next) void switchActiveChart(next.id);
+				return Boolean(next);
+			}
+			case 'escape':
+				if (shortcutHelpOpen) shortcutHelpOpen = false;
+				else if (settingsPanel) settingsPanel = undefined;
+				else if (curatedSelection.size > 0)
+					curatedSelection = new Set();
+				else {
+					rendererLifecycle.clearPinnedHover();
+					controller.selectNode(undefined);
+				}
+				return true;
+		}
 	}
 
 	function isEditableTarget(target: EventTarget | null): boolean {
@@ -1279,7 +1371,9 @@
 		{zoomLevel}
 		onZoomLevel={(level) => rendererLifecycle.setZoomLevel(level)}
 		connectionUndoCount={workspaceState.connectionUndoCount}
+		connectionRedoCount={workspaceState.connectionRedoCount}
 		onUndoConnection={undoLastConnection}
+		onRedoConnection={redoLastConnection}
 		onFit={() => rendererLifecycle.fit()}
 		onRefresh={() => controller.refresh(true)}
 		{settingsPanel}
@@ -1287,6 +1381,8 @@
 		{showDebugButton}
 		{debugOpen}
 		onToggleDebug={toggleDebug}
+		shortcutsOpen={shortcutHelpOpen}
+		onShowShortcuts={() => (shortcutHelpOpen = !shortcutHelpOpen)}
 	/>
 	<div
 		class="knowledge-workspace-body"
@@ -1385,6 +1481,49 @@
 				/>
 			</div>
 		</main>
+		{#if shortcutHelpOpen}
+			<aside
+				class="knowledge-workspace-shortcut-panel"
+				aria-label="Keyboard shortcuts"
+			>
+				<header>
+					<h3>Keyboard shortcuts</h3>
+					<ObsidianButton
+						icon="x"
+						ariaLabel="Close keyboard shortcuts"
+						tooltip="Close"
+						onClick={() => (shortcutHelpOpen = false)}
+					/>
+				</header>
+				<div class="knowledge-workspace-shortcut-list">
+					{#each ['Navigation', 'Selection', 'History'] as group}
+						<section>
+							<h4>{group}</h4>
+							<div class="knowledge-workspace-shortcut-group">
+								{#each WORKSPACE_ACTION_DEFINITIONS.filter((action) => action.shortcut && action.group === group) as action}
+									<div
+										class="knowledge-workspace-shortcut-row"
+									>
+										<span>{action.label}</span>
+										<div
+											class="knowledge-workspace-shortcut-keys"
+										>
+											{#each action.shortcut
+												?.replaceAll('Mod', navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl')
+												.split(' / ') ?? [] as shortcut, index}
+												{#if index > 0}<span>or</span
+													>{/if}
+												<kbd>{shortcut}</kbd>
+											{/each}
+										</div>
+									</div>
+								{/each}
+							</div>
+						</section>
+					{/each}
+				</div>
+			</aside>
+		{/if}
 	</div>
 	{#if debugOpen}
 		<DebugPanel

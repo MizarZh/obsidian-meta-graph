@@ -33,7 +33,10 @@ export function bindGraphEvents(
 		if (shouldSuppressClick(event)) {
 			return;
 		}
-		if ('ctrlKey' in event.original && event.original.ctrlKey) {
+		if (
+			'ctrlKey' in event.original &&
+			(event.original.ctrlKey || event.original.metaKey)
+		) {
 			event.original.preventDefault();
 			event.preventSigmaDefault();
 			return;
@@ -48,7 +51,12 @@ export function bindGraphEvents(
 			return;
 		}
 		callbacks.onSelect(node);
-		callbacks.onOpen(node);
+	};
+	const doubleClickNode = ({ node }: { node: string }) => {
+		if (!sigma.getGraph().getNodeAttribute(node, 'isBend')) {
+			callbacks.onSelect(node);
+			callbacks.onOpen(node);
+		}
 	};
 	const clickStage = ({
 		event,
@@ -117,6 +125,7 @@ export function bindGraphEvents(
 		}
 		if (
 			!event.original.ctrlKey &&
+			!event.original.metaKey &&
 			(callbacks.enableForceLayout || callbacks.enableNodeDragging)
 		) {
 			event.original.preventDefault();
@@ -134,7 +143,7 @@ export function bindGraphEvents(
 			callbacks.onSelect(node);
 			return;
 		}
-		if (!event.original.ctrlKey) {
+		if (!event.original.ctrlKey && !event.original.metaKey) {
 			return;
 		}
 		event.original.preventDefault();
@@ -304,6 +313,7 @@ export function bindGraphEvents(
 
 	sigma.on('downNode', downNode);
 	sigma.on('clickNode', clickNode);
+	sigma.on('doubleClickNode', doubleClickNode);
 	sigma.on('clickStage', clickStage);
 	sigma.on('rightClickNode', rightClickNode);
 	sigma.on('enterNode', enterNode);
@@ -318,6 +328,7 @@ export function bindGraphEvents(
 		endConnectionDrag();
 		sigma.off('downNode', downNode);
 		sigma.off('clickNode', clickNode);
+		sigma.off('doubleClickNode', doubleClickNode);
 		sigma.off('clickStage', clickStage);
 		sigma.off('rightClickNode', rightClickNode);
 		sigma.off('enterNode', enterNode);
