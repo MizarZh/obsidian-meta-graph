@@ -21,6 +21,7 @@ All notable changes to Meta Graph are documented here.
 - Made `Space` pin or unpin the hovered node's neighborhood; with no hovered node it clears the current pinned focus.
 - Kept Flow arrows on the final flow-axis corridor segment when parallel lanes use endpoint branches, preventing RL/LR arrows from pointing vertically into nodes.
 - Reduced direct Graph parallel-lane spacing so two-way links stay visually compact while remaining distinguishable.
+- Fixed Flow Orthogonal routes that became diagonal at node ports or inside the parallel-edge Canvas overlay. ELK routes are normalized into axis-aligned segments, parallel lanes reuse the normalized route, and arrows/labels/hit testing follow the same geometry.
 - Restored Sigma's native programs for ordinary single edges and moved only multi-edge pairs to the compact Canvas overlay, avoiding custom-shader aliasing and seam artifacts without expanding graph coordinates or layout bounds.
 
 ## [1.5.3] - 2026-09-02

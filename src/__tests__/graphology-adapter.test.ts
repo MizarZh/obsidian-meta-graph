@@ -173,6 +173,17 @@ describe('GraphologyAdapter positions', () => {
 		expect(graph.getEdgeAttribute('A-to-B__segment_3', 'type')).toBe(
 			'arrow',
 		);
+		expect(
+			graph.getEdgeAttribute('A-to-B__segment_1', 'flowRouteOrthogonal'),
+		).toBe(true);
+		expect(
+			graph.getEdgeAttribute('A-to-B__segment_1', 'flowRoute'),
+		).toEqual([
+			{ x: 0, y: 0 },
+			{ x: 50, y: 0 },
+			{ x: 50, y: 80 },
+			{ x: 100, y: 80 },
+		]);
 		expect(graph.getNodeAttribute('__flow-bend__A-to-B__1', 'isBend')).toBe(
 			true,
 		);
@@ -617,9 +628,16 @@ describe('GraphologyAdapter positions', () => {
 		applyOrthogonalFlowEdges(graph, routes);
 
 		expect(graph.getNodeAttributes('__flow-bend__A-to-B__2')).toMatchObject(
+			{ x: 120, y: 0 },
+		);
+		expect(graph.getNodeAttributes('__flow-bend__A-to-B__3')).toMatchObject(
 			{ x: 120, y: 60 },
 		);
-		expect(graph.getEdgeAttributes('A-to-B__segment_2')).toMatchObject({
+		const styledSegment = graph
+			.edges()
+			.find((edge) => graph.getEdgeAttribute(edge, 'label') === 'Styled');
+		expect(styledSegment).toBeDefined();
+		expect(graph.getEdgeAttributes(styledSegment!)).toMatchObject({
 			color: '#ff0000',
 			size: 4,
 			lineStyle: 'dashed',

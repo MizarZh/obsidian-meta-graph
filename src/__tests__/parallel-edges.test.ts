@@ -22,6 +22,7 @@ import type {
 } from '../graph/model/graphology-adapter';
 import {
 	createParallelCanvasRoute,
+	createParallelCanvasRouteFromPolyline,
 	distanceToPolyline,
 } from '../graph/renderers/sigma/sigma-parallel-edge-layer';
 import { isCanvasParallelEdge } from '../graph/renderers/sigma/sigma-hover-policy';
@@ -115,9 +116,19 @@ describe('parallel edge lanes', () => {
 
 		applyOrthogonalFlowEdges(graph);
 
-		expect(graph.getNodeAttribute('__flow-bend__pre__1', 'y')).not.toBe(
-			graph.getNodeAttribute('__flow-bend__related__1', 'y'),
-		);
+		const parallelBendY = graph
+			.nodes()
+			.filter((nodeId) => nodeId.includes('__flow-bend__'))
+			.map((nodeId) => graph.getNodeAttribute(nodeId, 'y'));
+		expect(new Set(parallelBendY).size).toBeGreaterThan(1);
+		for (const edge of graph.edges()) {
+			const source = graph.getNodeAttributes(graph.source(edge));
+			const target = graph.getNodeAttributes(graph.target(edge));
+			expect(
+				Math.abs(source.x - target.x) < 0.001 ||
+					Math.abs(source.y - target.y) < 0.001,
+			).toBe(true);
+		}
 		const arrowEdge = graph
 			.edges()
 			.find((edge) => graph.getEdgeAttribute(edge, 'type') === 'arrow');
@@ -221,13 +232,48 @@ describe('parallel route geometry', () => {
 			{ x: 1, y: 0 },
 		);
 
-		expect(route?.points).toHaveLength(6);
+		expect(route?.points.length).toBeGreaterThan(2);
 		expect(route?.arrowDirection).toEqual({ x: 1, y: 0 });
-		expect(route?.points[0]).toEqual({ x: 30, y: 40 });
-		expect(route?.points[1]).toEqual({ x: 38, y: 40 });
-		expect(route?.points[2]).toEqual({ x: 38, y: 43 });
-		expect(route?.points[4]).toEqual({ x: 200, y: 100 });
-		expect(route?.points[5]).toEqual({ x: 208, y: 100 });
+		expect(route?.points[0]?.x).toBeGreaterThan(20);
+		expect(route?.points.at(-1)?.x).toBeLessThan(220);
+		expect(route?.points[0]?.y).toBeCloseTo(43);
+		expect(route?.points.at(-1)?.y).toBeCloseTo(103);
+		expect(route?.points.every(isAxisAlignedSegment)).toBe(true);
+	});
+
+	it('keeps ELK-shaped parallel routes axis-aligned at every segment', () => {
+		const route = createParallelCanvasRouteFromPolyline(
+			[
+				{ x: 20, y: 40 },
+				{ x: 80, y: 40 },
+				{ x: 80, y: 100 },
+				{ x: 220, y: 100 },
+			],
+			{ x: 20, y: 40 },
+			{ x: 220, y: 100 },
+			10,
+			12,
+			3,
+			{ x: 1, y: 0 },
+		);
+
+		expect(route).toBeDefined();
+		expect(route?.points.every(isAxisAlignedSegment)).toBe(true);
+		expect(route?.arrowDirection).toEqual({ x: 1, y: 0 });
+	});
+
+	it('keeps vertical Flow directions axis-aligned too', () => {
+		const route = createParallelCanvasRoute(
+			{ x: 40, y: 20 },
+			{ x: 100, y: 220 },
+			10,
+			12,
+			-3,
+			{ x: 0, y: 1 },
+		);
+
+		expect(route?.points.every(isAxisAlignedSegment)).toBe(true);
+		expect(route?.arrowDirection).toEqual({ x: 0, y: 1 });
 	});
 
 	it('supports precise polyline hit testing', () => {
@@ -375,3 +421,15 @@ describe('parallel route geometry', () => {
 		expect(points[1]?.y).toBe(10);
 	});
 });
+
+function isAxisAlignedSegment(
+	point: { x: number; y: number },
+	index: number,
+	points?: readonly { x: number; y: number }[],
+): boolean {
+	const next = points?.[index + 1];
+	if (!next) return true;
+	return (
+		Math.abs(point.x - next.x) < 0.001 || Math.abs(point.y - next.y) < 0.001
+	);
+}

@@ -54,6 +54,8 @@ export class SigmaParallelEdgeLayer {
 	private readonly context: CanvasRenderingContext2D;
 	private readonly routeCache = new Map<string, CachedRoute>();
 	private readonly hitGrid = new Map<string, VisibleRoute[]>();
+	private flowRouteIndexGraph?: RuntimeGraph;
+	private flowRouteIndex = new Map<string, FlowRouteCandidate>();
 	private visibleRoutes: VisibleRoute[] = [];
 	private hoveredEdgeId?: string;
 	private selectedEdgeId?: string;
@@ -97,6 +99,8 @@ export class SigmaParallelEdgeLayer {
 
 	invalidate(): void {
 		this.routeCache.clear();
+		this.flowRouteIndexGraph = undefined;
+		this.flowRouteIndex.clear();
 		this.scheduleUpdate();
 	}
 
@@ -162,6 +166,8 @@ export class SigmaParallelEdgeLayer {
 		container.removeEventListener('pointerleave', this.handlePointerLeave);
 		container.removeEventListener('click', this.handleClick);
 		this.routeCache.clear();
+		this.flowRouteIndexGraph = undefined;
+		this.flowRouteIndex.clear();
 		this.hitGrid.clear();
 		this.sigma.killLayer(LAYER_ID);
 	}
@@ -194,6 +200,11 @@ export class SigmaParallelEdgeLayer {
 			visual.attributes,
 			visual.attributes.size,
 		);
+		const flowRoute = readLogicalFlowRoute(
+			graph,
+			visual,
+			this.getFlowRouteIndex(graph),
+		);
 		const signature = [
 			source.x,
 			source.y,
@@ -204,19 +215,30 @@ export class SigmaParallelEdgeLayer {
 			axis.x,
 			axis.y,
 			laneOffset,
+			...(flowRoute?.flatMap((point) => [point.x, point.y]) ?? []),
 		].join('|');
 		const existing = this.routeCache.get(visual.edgeId);
 		if (existing?.signature === signature) {
 			return existing;
 		}
-		const route = createParallelCanvasRoute(
-			source,
-			target,
-			sourceRadius,
-			targetRadius,
-			laneOffset,
-			axis,
-		);
+		const route = flowRoute
+			? createParallelCanvasRouteFromPolyline(
+					flowRoute.map((point) => this.sigma.graphToViewport(point)),
+					source,
+					target,
+					sourceRadius,
+					targetRadius,
+					laneOffset,
+					axis,
+				)
+			: createParallelCanvasRoute(
+					source,
+					target,
+					sourceRadius,
+					targetRadius,
+					laneOffset,
+					axis,
+				);
 		if (!route) {
 			return undefined;
 		}
@@ -227,6 +249,17 @@ export class SigmaParallelEdgeLayer {
 		};
 		this.routeCache.set(visual.edgeId, cached);
 		return cached;
+	}
+
+	private getFlowRouteIndex(
+		graph: RuntimeGraph,
+	): ReadonlyMap<string, FlowRouteCandidate> {
+		if (this.flowRouteIndexGraph === graph) {
+			return this.flowRouteIndex;
+		}
+		this.flowRouteIndexGraph = graph;
+		this.flowRouteIndex = collectFlowRouteIndex(graph);
+		return this.flowRouteIndex;
 	}
 
 	private readRouteAxis(
@@ -336,8 +369,9 @@ export class SigmaParallelEdgeLayer {
 
 	private drawLabel(visible: VisibleRoute): void {
 		const points = visible.route.points;
-		const start = points[2] ?? points[0];
-		const end = points[3] ?? points.at(-1);
+		const labelSegment = findLongestSegment(points);
+		const start = labelSegment ? points[labelSegment] : points[0];
+		const end = labelSegment ? points[labelSegment + 1] : points.at(-1);
 		if (!start || !end) return;
 		const attributes = visible.visual.attributes;
 		const position = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
@@ -422,7 +456,7 @@ export class SigmaParallelEdgeLayer {
 		};
 		this.animationFrame = view
 			? view.requestAnimationFrame(update)
-			: requestAnimationFrame(update);
+			: window.requestAnimationFrame(update);
 	}
 
 	private cancelScheduledUpdate(): void {
@@ -468,7 +502,41 @@ export function createParallelCanvasRoute(
 	if (axis.x * direct.x + axis.y * direct.y < 0) {
 		axis = { x: -axis.x, y: -axis.y };
 	}
+	if (Math.abs(axis.x) > 0.001 && Math.abs(axis.y) > 0.001) {
+		return createDirectParallelChordRoute(
+			source,
+			target,
+			sourceRadius,
+			targetRadius,
+			laneOffset,
+			axis,
+		);
+	}
+	const bridge =
+		axis.x !== 0
+			? { x: (source.x + target.x) / 2, y: source.y }
+			: { x: source.x, y: (source.y + target.y) / 2 };
+	return createParallelCanvasRouteFromPolyline(
+		[source, bridge, target],
+		source,
+		target,
+		sourceRadius,
+		targetRadius,
+		laneOffset,
+		axis,
+	);
+}
+
+function createDirectParallelChordRoute(
+	source: ViewportPoint,
+	target: ViewportPoint,
+	sourceRadius: number,
+	targetRadius: number,
+	laneOffset: number,
+	axis: ViewportPoint,
+): ParallelCanvasRoute {
 	const normal = { x: -axis.y, y: axis.x };
+	const distance = distanceBetweenViewport(source, target);
 	const available = Math.max(0, distance - sourceRadius - targetRadius);
 	const stub = Math.min(ENDPOINT_STUB_PX, Math.max(2, available / 4));
 	const sourcePort = add(source, scale(axis, sourceRadius));
@@ -489,6 +557,334 @@ export function createParallelCanvasRoute(
 		arrowDirection: axis,
 		bounds: boundsOf(points),
 	};
+}
+
+/**
+ * Creates a compact parallel route from an existing Flow polyline. The base
+ * polyline is kept as the source of truth; each lane is offset segment by
+ * segment, with corner intersections preserving strict orthogonality.
+ */
+export function createParallelCanvasRouteFromPolyline(
+	basePoints: readonly ViewportPoint[],
+	source: ViewportPoint,
+	target: ViewportPoint,
+	sourceRadius: number,
+	targetRadius: number,
+	laneOffset: number,
+	preferredAxis?: ViewportPoint,
+): ParallelCanvasRoute | undefined {
+	const direct = { x: target.x - source.x, y: target.y - source.y };
+	const distance = Math.hypot(direct.x, direct.y);
+	if (distance < 0.001) return undefined;
+	let axis = normalize(preferredAxis ?? direct);
+	if (axis.x * direct.x + axis.y * direct.y < 0) {
+		axis = { x: -axis.x, y: -axis.y };
+	}
+	const normalized = ensureEndpointAxis(
+		normalizeViewportRoute(basePoints, axis),
+		axis,
+	);
+	if (normalized.length < 2) return undefined;
+	const shifted = offsetOrthogonalPolyline(normalized, laneOffset);
+	const points = clipRouteEndpoints(
+		shifted,
+		source,
+		target,
+		sourceRadius,
+		targetRadius,
+		axis,
+	);
+	return {
+		points,
+		arrowDirection: axis,
+		bounds: boundsOf(points),
+	};
+}
+
+function normalizeViewportRoute(
+	points: readonly ViewportPoint[],
+	axis: ViewportPoint,
+): ViewportPoint[] {
+	const sourcePoints = deduplicateViewportPoints(points);
+	if (sourcePoints.length < 2) return sourcePoints;
+	const horizontal = Math.abs(axis.x) >= Math.abs(axis.y);
+	const normalized: ViewportPoint[] = [sourcePoints[0]!];
+	for (let index = 1; index < sourcePoints.length; index += 1) {
+		const current = sourcePoints[index]!;
+		const previous = normalized.at(-1)!;
+		if (isAxisAlignedViewport(previous, current)) {
+			normalized.push(current);
+			continue;
+		}
+		const isLast = index === sourcePoints.length - 1;
+		const elbow = horizontal
+			? isLast
+				? { x: previous.x, y: current.y }
+				: { x: current.x, y: previous.y }
+			: isLast
+				? { x: current.x, y: previous.y }
+				: { x: previous.x, y: current.y };
+		normalized.push(elbow, current);
+	}
+	return deduplicateViewportPoints(normalized);
+}
+
+function ensureEndpointAxis(
+	points: readonly ViewportPoint[],
+	axis: ViewportPoint,
+): ViewportPoint[] {
+	if (points.length < 2) return points.map((point) => ({ ...point }));
+	const horizontal = Math.abs(axis.x) >= Math.abs(axis.y);
+	const result = [...points].map((point) => ({ ...point }));
+	const first = result[0]!;
+	const firstNext = result[1]!;
+	if (
+		horizontal
+			? !isHorizontal(first, firstNext)
+			: !isVertical(first, firstNext)
+	) {
+		const stub = Math.max(
+			2,
+			Math.min(
+				ENDPOINT_STUB_PX,
+				distanceBetweenViewport(first, firstNext) / 2,
+			),
+		);
+		const firstStub = add(first, scale(axis, stub));
+		const firstJoin = horizontal
+			? { x: firstStub.x, y: firstNext.y }
+			: { x: firstNext.x, y: firstStub.y };
+		result.splice(1, 0, firstStub, firstJoin);
+	}
+
+	const lastIndex = result.length - 1;
+	const last = result[lastIndex]!;
+	const previous = result[lastIndex - 1]!;
+	if (
+		horizontal ? !isHorizontal(previous, last) : !isVertical(previous, last)
+	) {
+		const stub = Math.max(
+			2,
+			Math.min(
+				ENDPOINT_STUB_PX,
+				distanceBetweenViewport(previous, last) / 2,
+			),
+		);
+		const lastStub = add(last, scale(axis, -stub));
+		const lastJoin = horizontal
+			? { x: lastStub.x, y: previous.y }
+			: { x: previous.x, y: lastStub.y };
+		result.splice(result.length - 1, 0, lastJoin, lastStub);
+	}
+	return deduplicateViewportPoints(result);
+}
+
+function offsetOrthogonalPolyline(
+	points: readonly ViewportPoint[],
+	offset: number,
+): ViewportPoint[] {
+	const sourcePoints = deduplicateViewportPoints(points);
+	if (sourcePoints.length < 2 || Math.abs(offset) < 0.001) {
+		return sourcePoints.map((point) => ({ ...point }));
+	}
+	const shifted: ViewportPoint[] = [];
+	for (let index = 0; index < sourcePoints.length; index += 1) {
+		const point = sourcePoints[index]!;
+		if (index === 0) {
+			shifted.push(
+				shiftPointForSegment(point, sourcePoints[index + 1]!, offset),
+			);
+			continue;
+		}
+		if (index === sourcePoints.length - 1) {
+			shifted.push(
+				shiftPointForSegment(
+					point,
+					point,
+					offset,
+					sourcePoints[index - 1],
+				),
+			);
+			continue;
+		}
+		const previous = sourcePoints[index - 1]!;
+		const next = sourcePoints[index + 1]!;
+		const incoming = shiftPointForSegment(point, point, offset, previous);
+		const outgoing = shiftPointForSegment(point, next, offset);
+		const incomingHorizontal = isHorizontal(previous, point);
+		const outgoingHorizontal = isHorizontal(point, next);
+		if (incomingHorizontal === outgoingHorizontal) {
+			shifted.push(incoming);
+		} else if (incomingHorizontal) {
+			shifted.push({ x: outgoing.x, y: incoming.y });
+		} else {
+			shifted.push({ x: incoming.x, y: outgoing.y });
+		}
+	}
+	return deduplicateViewportPoints(shifted);
+}
+
+function shiftPointForSegment(
+	point: ViewportPoint,
+	to: ViewportPoint,
+	offset: number,
+	from?: ViewportPoint,
+): ViewportPoint {
+	const start = from ?? point;
+	const dx = to.x - start.x;
+	const dy = to.y - start.y;
+	if (Math.abs(dx) >= Math.abs(dy)) {
+		return { x: point.x, y: point.y + offset * (Math.sign(dx) || 1) };
+	}
+	return { x: point.x - offset * (Math.sign(dy) || 1), y: point.y };
+}
+
+function clipRouteEndpoints(
+	points: readonly ViewportPoint[],
+	source: ViewportPoint,
+	target: ViewportPoint,
+	sourceRadius: number,
+	targetRadius: number,
+	axis: ViewportPoint,
+): ViewportPoint[] {
+	if (points.length < 2) return points.map((point) => ({ ...point }));
+	const clipped = points.map((point) => ({ ...point }));
+	const first = clipped[0]!;
+	const firstNext = clipped[1]!;
+	const lastIndex = clipped.length - 1;
+	const last = clipped[lastIndex]!;
+	const lastPrevious = clipped[lastIndex - 1]!;
+	clipped[0] = clipEndpointToCircle(
+		source,
+		Math.max(0, sourceRadius),
+		first,
+		axis,
+		true,
+	);
+	clipped[lastIndex] = clipEndpointToCircle(
+		target,
+		Math.max(0, targetRadius),
+		last,
+		axis,
+		false,
+	);
+	if (Math.abs(axis.x) >= Math.abs(axis.y)) {
+		clipped[1] = {
+			x: firstNext.x,
+			y: clipped[0].y,
+		};
+		clipped[lastIndex - 1] = {
+			x: lastPrevious.x,
+			y: clipped[lastIndex].y,
+		};
+	} else {
+		clipped[1] = {
+			x: clipped[0].x,
+			y: firstNext.y,
+		};
+		clipped[lastIndex - 1] = {
+			x: clipped[lastIndex].x,
+			y: lastPrevious.y,
+		};
+	}
+	return deduplicateViewportPoints(clipped);
+}
+
+function clipEndpointToCircle(
+	center: ViewportPoint,
+	radius: number,
+	shiftedEndpoint: ViewportPoint,
+	axis: ViewportPoint,
+	source: boolean,
+): ViewportPoint {
+	if (radius <= 0.001) return { ...shiftedEndpoint };
+	const horizontal = Math.abs(axis.x) >= Math.abs(axis.y);
+	const maxCross = Math.max(0, radius - 0.5);
+	if (horizontal) {
+		const cross = clamp(shiftedEndpoint.y - center.y, -maxCross, maxCross);
+		const primary = Math.sqrt(Math.max(0, radius * radius - cross * cross));
+		return {
+			x: center.x + (source ? axis.x : -axis.x) * primary,
+			y: center.y + cross,
+		};
+	}
+	const cross = clamp(shiftedEndpoint.x - center.x, -maxCross, maxCross);
+	const primary = Math.sqrt(Math.max(0, radius * radius - cross * cross));
+	return {
+		x: center.x + cross,
+		y: center.y + (source ? axis.y : -axis.y) * primary,
+	};
+}
+
+function isAxisAlignedViewport(
+	left: ViewportPoint,
+	right: ViewportPoint,
+): boolean {
+	return isHorizontal(left, right) || isVertical(left, right);
+}
+
+function isHorizontal(left: ViewportPoint, right: ViewportPoint): boolean {
+	return Math.abs(left.y - right.y) < 0.001;
+}
+
+function isVertical(left: ViewportPoint, right: ViewportPoint): boolean {
+	return Math.abs(left.x - right.x) < 0.001;
+}
+
+function deduplicateViewportPoints(
+	points: readonly ViewportPoint[],
+): ViewportPoint[] {
+	const result: ViewportPoint[] = [];
+	for (const point of points) {
+		const previous = result.at(-1);
+		if (
+			previous &&
+			Math.abs(previous.x - point.x) < 0.001 &&
+			Math.abs(previous.y - point.y) < 0.001
+		) {
+			continue;
+		}
+		result.push({ ...point });
+	}
+	return result;
+}
+
+function distanceBetweenViewport(
+	left: ViewportPoint,
+	right: ViewportPoint,
+): number {
+	return Math.hypot(right.x - left.x, right.y - left.y);
+}
+
+function distanceSquared(
+	left: ViewportPoint,
+	right: { x: number; y: number },
+): number {
+	const dx = left.x - right.x;
+	const dy = left.y - right.y;
+	return dx * dx + dy * dy;
+}
+
+function clamp(value: number, minimum: number, maximum: number): number {
+	return Math.max(minimum, Math.min(maximum, value));
+}
+
+function findLongestSegment(
+	points: readonly ViewportPoint[],
+): number | undefined {
+	let longestIndex: number | undefined;
+	let longestLength = 0;
+	for (let index = 0; index < points.length - 1; index += 1) {
+		const start = points[index];
+		const end = points[index + 1];
+		if (!start || !end) continue;
+		const length = distanceBetweenViewport(start, end);
+		if (length > longestLength) {
+			longestLength = length;
+			longestIndex = index;
+		}
+	}
+	return longestIndex;
 }
 
 export function distanceToPolyline(
@@ -542,6 +938,77 @@ function collectParallelEdgeVisuals(graph: RuntimeGraph): ParallelEdgeVisual[] {
 		});
 	});
 	return [...visuals.values()];
+}
+
+interface FlowRouteCandidate {
+	logicalEdgeId: string;
+	lane: number;
+	route: readonly ViewportPoint[];
+}
+
+/**
+ * Reads the orthogonal route saved by the Flow layout. A parallel group uses
+ * the route closest to its center lane so Canvas only adds a small screen
+ * space offset instead of reproducing ELK's per-edge port spacing.
+ */
+function readLogicalFlowRoute(
+	graph: RuntimeGraph,
+	visual: ParallelEdgeVisual,
+	index: ReadonlyMap<string, FlowRouteCandidate>,
+): readonly ViewportPoint[] | undefined {
+	const groupKey = visual.attributes.parallelGroupKey;
+	const candidate = index.get(groupKey ?? visual.edgeId);
+	if (!candidate || candidate.route.length < 2) {
+		return undefined;
+	}
+
+	const source = graph.getNodeAttributes(visual.source);
+	const target = graph.getNodeAttributes(visual.target);
+	const first = candidate.route[0];
+	const last = candidate.route.at(-1);
+	if (!first || !last) {
+		return undefined;
+	}
+	const forwardDistance =
+		distanceSquared(first, source) + distanceSquared(last, target);
+	const reverseDistance =
+		distanceSquared(first, target) + distanceSquared(last, source);
+	return reverseDistance < forwardDistance
+		? [...candidate.route].reverse()
+		: candidate.route.map((point) => ({ ...point }));
+}
+
+function collectFlowRouteIndex(
+	graph: RuntimeGraph,
+): Map<string, FlowRouteCandidate> {
+	const index = new Map<string, FlowRouteCandidate>();
+	graph.forEachEdge((runtimeEdgeId, attributes) => {
+		if (
+			attributes.hidden ||
+			!attributes.flowRouteOrthogonal ||
+			!attributes.flowRoute?.length
+		) {
+			return;
+		}
+		const logicalEdgeId = attributes.logicalEdgeId ?? runtimeEdgeId;
+		const key = attributes.parallelGroupKey ?? logicalEdgeId;
+		const candidate: FlowRouteCandidate = {
+			logicalEdgeId,
+			lane: Math.abs(attributes.parallelLane ?? 0),
+			route: attributes.flowRoute.map((point) => ({ ...point })),
+		};
+		const existing = index.get(key);
+		if (
+			!existing ||
+			candidate.lane < existing.lane ||
+			(candidate.lane === existing.lane &&
+				candidate.logicalEdgeId.localeCompare(existing.logicalEdgeId) <
+					0)
+		) {
+			index.set(key, candidate);
+		}
+	});
+	return index;
 }
 
 function createPath(points: readonly ViewportPoint[]): Path2D | undefined {

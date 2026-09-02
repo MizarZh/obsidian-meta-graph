@@ -260,6 +260,7 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 				graph,
 				snapshot.orthogonalRoutes,
 				options.flowCornerRadius ?? 0,
+				options.flowDirection,
 			);
 		} else {
 			snapshot.orthogonalRoutes = createOrthogonalRouteMap();
@@ -275,6 +276,7 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 				graph,
 				snapshot.orthogonalRoutes,
 				options.flowCornerRadius ?? 0,
+				options.flowDirection,
 			);
 		} else if (options.flowEdgeStyle === 'curve') {
 			applyCurvedFlowEdges(
@@ -294,6 +296,7 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 				graph,
 				snapshot.orthogonalRoutes,
 				options.flowCornerRadius ?? 0,
+				options.flowDirection,
 			);
 		}
 		snapshot.groupGeometries = createFlowGroupGeometriesFromGraph(

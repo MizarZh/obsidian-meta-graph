@@ -75,6 +75,13 @@ export interface RuntimeEdgeAttributes {
 	logicalTarget?: string;
 	flowLabelPlacement?: 'middle' | 'target-branch';
 	flowArrowSegment?: boolean;
+	/**
+	 * Base orthogonal route in graph coordinates. Sigma's parallel Canvas
+	 * layer uses this as the single source of truth instead of rebuilding a
+	 * direct source-to-target chord.
+	 */
+	flowRoute?: GraphPosition[];
+	flowRouteOrthogonal?: boolean;
 	parallelDirectRoute?: boolean;
 	parallelGroupKey?: string;
 	parallelLane?: number;

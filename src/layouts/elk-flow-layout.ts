@@ -118,6 +118,7 @@ export class ElkFlowLayout implements LayoutEngine {
 					graph,
 					this.orthogonalRoutes,
 					this.cornerRadius,
+					this.direction,
 				);
 			} else if (this.edgeStyle === 'curve') {
 				applyCurvedFlowEdges(
@@ -365,8 +366,14 @@ export function toElkDirection(
 export function applyElkOrthogonalRoutes(
 	graph: RuntimeGraph,
 	elkEdges: ElkExtendedEdge[],
+	direction: FlowDirection = 'LR',
 ): void {
-	applyOrthogonalFlowEdges(graph, extractElkOrthogonalRoutes(elkEdges));
+	applyOrthogonalFlowEdges(
+		graph,
+		extractElkOrthogonalRoutes(elkEdges),
+		0,
+		direction,
+	);
 }
 
 export function extractElkOrthogonalRoutes(
@@ -565,7 +572,11 @@ export function createBundledFlowRoutes(
 			record.id,
 			route
 				? route.map((point) => ({ ...point }))
-				: createFallbackRoute(record.sourcePoint, record.targetPoint),
+				: createFallbackRoute(
+						record.sourcePoint,
+						record.targetPoint,
+						direction,
+					),
 		);
 	}
 	return routes;
@@ -642,13 +653,25 @@ export function applyOrthogonalFlowEdges(
 	graph: RuntimeGraph,
 	routes: ReadonlyMap<string, ElkPoint[]> = new Map(),
 	cornerRadius = 0,
+	direction: FlowDirection = 'LR',
 ): void {
 	if (cornerRadius <= FLOW_ROUTE_POINT_EPSILON) {
-		applyRoutedFlowEdges(graph, routes, 'middle');
+		applyRoutedFlowEdges(
+			graph,
+			routes,
+			'middle',
+			undefined,
+			direction,
+			true,
+		);
 		return;
 	}
-	applyRoutedFlowEdges(graph, routes, 'middle', (route) =>
-		roundOrthogonalRoute(route, cornerRadius),
+	applyRoutedFlowEdges(
+		graph,
+		routes,
+		'middle',
+		(route) => roundOrthogonalRoute(route, cornerRadius),
+		direction,
 	);
 }
 
@@ -670,13 +693,25 @@ export function applyBundledFlowEdges(
 	graph: RuntimeGraph,
 	routes: ReadonlyMap<string, ElkPoint[]> = new Map(),
 	cornerRadius = 0,
+	direction: FlowDirection = 'LR',
 ): void {
 	if (cornerRadius <= FLOW_ROUTE_POINT_EPSILON) {
-		applyRoutedFlowEdges(graph, routes, 'target-branch');
+		applyRoutedFlowEdges(
+			graph,
+			routes,
+			'target-branch',
+			undefined,
+			direction,
+			true,
+		);
 		return;
 	}
-	applyRoutedFlowEdges(graph, routes, 'target-branch', (route) =>
-		roundOrthogonalRoute(route, cornerRadius),
+	applyRoutedFlowEdges(
+		graph,
+		routes,
+		'target-branch',
+		(route) => roundOrthogonalRoute(route, cornerRadius),
+		direction,
 	);
 }
 
@@ -685,6 +720,8 @@ function applyRoutedFlowEdges(
 	routes: ReadonlyMap<string, ElkPoint[]>,
 	labelPlacement: 'middle' | 'target-branch',
 	transformRoute: RouteTransform = (route) => route,
+	direction: FlowDirection = 'LR',
+	storeOrthogonalRoute = false,
 ): void {
 	const logicalEdges = graph
 		.edges()
@@ -704,10 +741,22 @@ function applyRoutedFlowEdges(
 		const baseRoute =
 			route && route.length > 0
 				? route
-				: createFallbackRoute(sourceAttributes, targetAttributes);
+				: createFallbackRoute(
+						sourceAttributes,
+						targetAttributes,
+						direction,
+					);
+		const rawBasePoints = deduplicatePoints([
+			sourcePoint,
+			...baseRoute,
+			targetPoint,
+		]);
+		const normalizedBasePoints = storeOrthogonalRoute
+			? normalizeOrthogonalRoute(rawBasePoints, direction)
+			: rawBasePoints;
 		const routedPoints = transformRoute(
 			offsetParallelFlowRoute(
-				baseRoute,
+				normalizedBasePoints,
 				sourcePoint,
 				targetPoint,
 				attributes,
@@ -716,11 +765,14 @@ function applyRoutedFlowEdges(
 			targetPoint,
 			edge,
 		);
-		const points = deduplicatePoints(
+		const rawPoints = deduplicatePoints(
 			routedPoints.length > 0
 				? [sourcePoint, ...routedPoints, targetPoint]
 				: [sourcePoint, targetPoint],
 		);
+		const points = storeOrthogonalRoute
+			? normalizeOrthogonalRoute(rawPoints, direction)
+			: rawPoints;
 		if (points.length < 2) {
 			continue;
 		}
@@ -739,6 +791,14 @@ function applyRoutedFlowEdges(
 			logicalSource: source,
 			logicalTarget: target,
 			flowLabelPlacement: labelPlacement,
+			...(storeOrthogonalRoute
+				? {
+						flowRoute: normalizedBasePoints.map((point) => ({
+							...point,
+						})),
+						flowRouteOrthogonal: true,
+					}
+				: {}),
 		};
 		const pathNodes = [source];
 		for (const [index, point] of points.slice(1, -1).entries()) {
@@ -1280,17 +1340,142 @@ function createBundledFlowRoute(
 function createFallbackRoute(
 	source: { x: number; y: number },
 	target: { x: number; y: number },
+	direction: FlowDirection = 'LR',
 ): ElkPoint[] {
-	if (Math.abs(source.y - target.y) < 0.001) {
+	const horizontal = direction === 'LR' || direction === 'RL';
+	if (horizontal) {
+		if (Math.abs(source.y - target.y) < 0.001) {
+			return [source, target];
+		}
+		const middleX = (source.x + target.x) / 2;
+		return [
+			source,
+			{ x: middleX, y: source.y },
+			{ x: middleX, y: target.y },
+			target,
+		];
+	}
+	if (Math.abs(source.x - target.x) < 0.001) {
 		return [source, target];
 	}
-	const middleX = (source.x + target.x) / 2;
+	const middleY = (source.y + target.y) / 2;
 	return [
 		source,
-		{ x: middleX, y: source.y },
-		{ x: middleX, y: target.y },
+		{ x: source.x, y: middleY },
+		{ x: target.x, y: middleY },
 		target,
 	];
+}
+
+/**
+ * ELK routes terminate at rectangular node ports. Sigma renders nodes from
+ * their centers, so a direct center-to-port segment can be diagonal whenever
+ * ELK chooses an off-center port. Insert one axis-aligned elbow at every
+ * diagonal transition while preserving horizontal/vertical endpoint flow.
+ */
+export function normalizeOrthogonalRoute(
+	points: readonly ElkPoint[],
+	direction: FlowDirection = 'LR',
+): ElkPoint[] {
+	const sourcePoints = deduplicatePoints(
+		points.map((point) => ({ x: point.x, y: point.y })),
+	);
+	if (sourcePoints.length < 2) {
+		return sourcePoints;
+	}
+	const horizontal = direction === 'LR' || direction === 'RL';
+	const normalized: ElkPoint[] = [sourcePoints[0]!];
+	for (let index = 1; index < sourcePoints.length; index += 1) {
+		const current = sourcePoints[index]!;
+		const previous = normalized.at(-1)!;
+		if (isAxisAligned(previous, current)) {
+			normalized.push(current);
+			continue;
+		}
+		const isLast = index === sourcePoints.length - 1;
+		const elbow = horizontal
+			? isLast
+				? { x: previous.x, y: current.y }
+				: { x: current.x, y: previous.y }
+			: isLast
+				? { x: current.x, y: previous.y }
+				: { x: previous.x, y: current.y };
+		normalized.push(elbow, current);
+	}
+	return ensureFlowEndpointAxis(deduplicatePoints(normalized), horizontal);
+}
+
+function isAxisAligned(left: ElkPoint, right: ElkPoint): boolean {
+	return (
+		Math.abs(left.x - right.x) <= FLOW_ROUTE_POINT_EPSILON ||
+		Math.abs(left.y - right.y) <= FLOW_ROUTE_POINT_EPSILON
+	);
+}
+
+function ensureFlowEndpointAxis(
+	points: readonly ElkPoint[],
+	horizontal: boolean,
+): ElkPoint[] {
+	if (points.length < 2) {
+		return points.map((point) => ({ ...point }));
+	}
+	const result = points.map((point) => ({ ...point }));
+	const first = result[0]!;
+	const firstNext = result[1]!;
+	const axisSign = horizontal
+		? Math.sign(result.at(-1)!.x - first.x) || 1
+		: Math.sign(result.at(-1)!.y - first.y) || 1;
+	if (
+		horizontal
+			? !isHorizontal(first, firstNext)
+			: !isVertical(first, firstNext)
+	) {
+		const stub = Math.max(
+			2,
+			Math.min(
+				8,
+				Math.hypot(firstNext.x - first.x, firstNext.y - first.y) / 2,
+			),
+		);
+		const firstStub = horizontal
+			? { x: first.x + axisSign * stub, y: first.y }
+			: { x: first.x, y: first.y + axisSign * stub };
+		const firstJoin = horizontal
+			? { x: firstStub.x, y: firstNext.y }
+			: { x: firstNext.x, y: firstStub.y };
+		result.splice(1, 0, firstStub, firstJoin);
+	}
+
+	const lastIndex = result.length - 1;
+	const last = result[lastIndex]!;
+	const previous = result[lastIndex - 1]!;
+	if (
+		horizontal ? !isHorizontal(previous, last) : !isVertical(previous, last)
+	) {
+		const stub = Math.max(
+			2,
+			Math.min(
+				8,
+				Math.hypot(last.x - previous.x, last.y - previous.y) / 2,
+			),
+		);
+		const lastStub = horizontal
+			? { x: last.x - axisSign * stub, y: last.y }
+			: { x: last.x, y: last.y - axisSign * stub };
+		const lastJoin = horizontal
+			? { x: lastStub.x, y: previous.y }
+			: { x: previous.x, y: lastStub.y };
+		result.splice(result.length - 1, 0, lastJoin, lastStub);
+	}
+	return deduplicatePoints(result);
+}
+
+function isHorizontal(left: ElkPoint, right: ElkPoint): boolean {
+	return Math.abs(left.y - right.y) <= FLOW_ROUTE_POINT_EPSILON;
+}
+
+function isVertical(left: ElkPoint, right: ElkPoint): boolean {
+	return Math.abs(left.x - right.x) <= FLOW_ROUTE_POINT_EPSILON;
 }
 
 /**
