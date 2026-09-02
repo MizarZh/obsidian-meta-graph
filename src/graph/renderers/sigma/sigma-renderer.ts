@@ -1,5 +1,5 @@
 import Sigma from 'sigma';
-import { EdgeArrowProgram, EdgeRectangleProgram } from 'sigma/rendering';
+import { EdgeRectangleProgram } from 'sigma/rendering';
 import type { LabelPosition } from '../../../core/types';
 import {
 	type RuntimeEdgeAttributes,
@@ -14,6 +14,7 @@ import {
 } from '../renderer-label-style';
 import { calculateLabelOpacity } from './label-opacity';
 import {
+	ArrowEdgeProgram,
 	ChevronArrowEdgeProgram,
 	DashDotArrowEdgeProgram,
 	DashDotChevronArrowEdgeProgram,
@@ -123,7 +124,7 @@ export class SigmaRenderer {
 				defaultEdgeType: 'line',
 				edgeProgramClasses: {
 					line: EdgeRectangleProgram,
-					arrow: EdgeArrowProgram,
+					arrow: ArrowEdgeProgram,
 					dashed: DashedEdgeProgram,
 					'dashed-arrow': DashedArrowEdgeProgram,
 					'chevron-arrow': ChevronArrowEdgeProgram,
@@ -197,10 +198,10 @@ export class SigmaRenderer {
 		this.parallelEdgeLayer = new SigmaParallelEdgeLayer(
 			this.instance,
 			() => this.graph,
-			() => ({
-				activeHoverNodeId: this.getActiveHoverNodeId(),
-				mutedEdgeColor: this.palette.mutedEdge,
-			}),
+				() => ({
+					activeHoverNodeId: this.getActiveHoverNodeId(),
+					mutedEdgeColor: this.palette.mutedEdge,
+				}),
 			() => this.getCurrentLabelOpacity(),
 		);
 		this.groupOverlayLayer = new GroupOverlayLayer(

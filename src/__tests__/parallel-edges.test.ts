@@ -223,6 +223,56 @@ describe('parallel edge lanes', () => {
 });
 
 describe('parallel edge visual metrics', () => {
+	it('matches Sigma full-width geometry across size and zoom ranges', () => {
+		for (const size of [0.5, 1, 2, 4]) {
+			for (const cameraRatio of [0.25, 0.5, 1, 2, 4]) {
+				const metrics = resolveEdgeVisualMetrics({
+					edgeSize: size,
+					arrowSize: 1,
+					arrowStyle: 'filled',
+					lineStyle: 'solid',
+					scaleSize: (value) => value / Math.sqrt(cameraRatio),
+					minEdgeThickness: 1.7,
+				});
+				const expectedLineWidth = Math.max(
+					size / Math.sqrt(cameraRatio),
+					1.7,
+				);
+
+				expect(metrics.nominalLineWidth).toBeCloseTo(
+					expectedLineWidth,
+				);
+				expect(metrics.lineWidth).toBeCloseTo(expectedLineWidth);
+				expect(metrics.arrowLength).toBeCloseTo(
+					expectedLineWidth * 2.5,
+				);
+				expect(metrics.arrowHalfWidth).toBeCloseTo(expectedLineWidth);
+			}
+		}
+	});
+
+	it('matches Sigma feathered ink coverage across pixel ratios', () => {
+		for (const pixelRatio of [1, 1.5, 2, 3]) {
+			const metrics = resolveEdgeVisualMetrics({
+				edgeSize: 2,
+				arrowSize: 1,
+				arrowStyle: 'filled',
+				lineStyle: 'solid',
+				scaleSize: (size) => size,
+				minEdgeThickness: 1.7,
+				antiAliasingFeather: 1,
+				pixelRatio,
+			});
+
+			expect(metrics.nominalLineWidth).toBe(2);
+			expect(metrics.lineWidth).toBeCloseTo(2 - 1 / pixelRatio);
+			// Arrow and lane geometry remain based on nominal width.
+			expect(metrics.arrowLength).toBe(5);
+			expect(metrics.arrowHalfWidth).toBe(2);
+			expect(metrics.laneStep).toBe(5);
+		}
+	});
+
 	it('applies Sigma zoom scaling and minimum thickness consistently', () => {
 		const metrics = resolveEdgeVisualMetrics({
 			edgeSize: 1,
@@ -234,8 +284,8 @@ describe('parallel edge visual metrics', () => {
 		});
 
 		expect(metrics.lineWidth).toBe(1.7);
-		expect(metrics.arrowLength).toBe(8.5);
-		expect(metrics.arrowHalfWidth).toBe(3.4);
+		expect(metrics.arrowLength).toBe(4.25);
+		expect(metrics.arrowHalfWidth).toBe(1.7);
 		expect(metrics.dashPattern).toEqual([5, 3.5]);
 		expect(metrics.laneStep).toBe(4.25);
 		expect(metrics.hitWidth).toBe(6);
@@ -252,11 +302,11 @@ describe('parallel edge visual metrics', () => {
 		});
 
 		expect(metrics.lineWidth).toBe(4);
-		expect(metrics.arrowLength).toBe(18);
-		expect(metrics.arrowHalfWidth).toBe(11);
+		expect(metrics.arrowLength).toBe(9);
+		expect(metrics.arrowHalfWidth).toBe(5.5);
 		expect(metrics.dashPattern).toEqual([]);
 		expect(metrics.laneStep).toBe(8);
-		expect(metrics.hitWidth).toBe(10);
+		expect(metrics.hitWidth).toBe(6);
 	});
 });
 

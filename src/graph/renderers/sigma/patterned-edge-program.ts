@@ -13,7 +13,10 @@ import {
 	getCanonicalParallelLane,
 	getParallelLaneOffset,
 } from '../../model/parallel-edges';
-import { EDGE_DASH_PATTERNS } from './sigma-edge-visual-metrics';
+import {
+	EDGE_ARROW_RATIOS,
+	EDGE_DASH_PATTERNS,
+} from './sigma-edge-visual-metrics';
 
 const VERTEX_SHADER_SOURCE = /* glsl */ `
 attribute vec4 a_id;
@@ -28,12 +31,18 @@ attribute float a_parallelLane;
 uniform mat3 u_matrix;
 uniform float u_sizeRatio;
 uniform float u_correctionRatio;
+uniform float u_minEdgeThickness;
+uniform float u_zoomRatio;
+uniform float u_pixelRatio;
+uniform float u_feather;
 uniform vec2 u_resolution;
 
 varying vec4 v_color;
 varying float v_distance;
+varying vec2 v_normal;
+varying float v_thickness;
+varying float v_feather;
 
-const float minThickness = 1.7;
 const float bias = 255.0 / 254.0;
 
 void main() {
@@ -41,7 +50,10 @@ void main() {
 	vec2 position = mix(a_positionStart, a_positionEnd, a_positionCoef);
 	float normalLength = length(normal);
 	vec2 unitNormal = normalLength > 0.0 ? normal / normalLength : normal;
-	float pixelsThickness = max(normalLength, minThickness * u_sizeRatio);
+	float pixelsThickness = max(
+		normalLength,
+		u_minEdgeThickness * u_sizeRatio
+	);
 	float webGLThickness = pixelsThickness * u_correctionRatio / u_sizeRatio;
 	vec2 startClip = (u_matrix * vec3(a_positionStart, 1.0)).xy;
 	vec2 endClip = (u_matrix * vec3(a_positionEnd, 1.0)).xy;
@@ -66,6 +78,10 @@ void main() {
 	gl_Position = vec4(positionClip + laneClip, 0.0, 1.0);
 	v_distance = length((endClip - startClip) * u_resolution * 0.5)
 		* a_positionCoef;
+	v_normal = unitNormal;
+	v_thickness = webGLThickness / u_zoomRatio;
+	v_feather =
+		u_feather * u_correctionRatio / u_zoomRatio / u_pixelRatio * 2.0;
 
 	#ifdef PICKING_MODE
 	v_color = a_id;
@@ -87,6 +103,10 @@ function createLineProgram(fragmentShaderSource: string) {
 		| 'u_matrix'
 		| 'u_sizeRatio'
 		| 'u_correctionRatio'
+		| 'u_minEdgeThickness'
+		| 'u_zoomRatio'
+		| 'u_pixelRatio'
+		| 'u_feather'
 		| 'u_resolution'
 		| 'u_patternScale',
 		RuntimeNodeAttributes,
@@ -102,6 +122,10 @@ function createLineProgram(fragmentShaderSource: string) {
 					'u_matrix',
 					'u_sizeRatio',
 					'u_correctionRatio',
+					'u_minEdgeThickness',
+					'u_zoomRatio',
+					'u_pixelRatio',
+					'u_feather',
 					'u_resolution',
 					'u_patternScale',
 				] as const,
@@ -202,6 +226,16 @@ function createLineProgram(fragmentShaderSource: string) {
 				uniformLocations.u_correctionRatio!,
 				params.correctionRatio,
 			);
+			gl.uniform1f(
+				uniformLocations.u_minEdgeThickness!,
+				params.minEdgeThickness,
+			);
+			gl.uniform1f(uniformLocations.u_zoomRatio!, params.zoomRatio);
+			gl.uniform1f(uniformLocations.u_pixelRatio!, params.pixelRatio);
+			gl.uniform1f(
+				uniformLocations.u_feather!,
+				params.antiAliasingFeather,
+			);
 			gl.uniform2f(
 				uniformLocations.u_resolution!,
 				params.width * params.pixelRatio,
@@ -232,7 +266,12 @@ precision mediump float;
 
 varying vec4 v_color;
 varying float v_distance;
+varying vec2 v_normal;
+varying float v_thickness;
+varying float v_feather;
 uniform float u_patternScale;
+
+const vec4 transparent = vec4(0.0, 0.0, 0.0, 0.0);
 
 void main(void) {
 	float position = mod(
@@ -242,7 +281,17 @@ void main(void) {
 	if (!(${drawRanges.join(' || ')})) {
 		discard;
 	}
+	#ifdef PICKING_MODE
 	gl_FragColor = v_color;
+	#else
+	float distanceFromCenter = length(v_normal) * v_thickness;
+	float featherMix = smoothstep(
+		v_thickness - v_feather,
+		v_thickness,
+		distanceFromCenter
+	);
+	gl_FragColor = mix(v_color, transparent, featherMix);
+	#endif
 }
 `;
 
@@ -253,9 +302,24 @@ const SolidEdgeProgram = createLineProgram(/* glsl */ `
 precision mediump float;
 
 varying vec4 v_color;
+varying vec2 v_normal;
+varying float v_thickness;
+varying float v_feather;
+
+const vec4 transparent = vec4(0.0, 0.0, 0.0, 0.0);
 
 void main(void) {
+	#ifdef PICKING_MODE
 	gl_FragColor = v_color;
+	#else
+	float distanceFromCenter = length(v_normal) * v_thickness;
+	float featherMix = smoothstep(
+		v_thickness - v_feather,
+		v_thickness,
+		distanceFromCenter
+	);
+	gl_FragColor = mix(v_color, transparent, featherMix);
+	#endif
 }
 `);
 
@@ -546,13 +610,11 @@ function createArrowHeadProgram(
 
 const FilledArrowHeadProgram = createArrowHeadProgram(
 	FILLED_ARROW_HEAD_FRAGMENT_SHADER_SOURCE,
+	EDGE_ARROW_RATIOS.filled,
 );
 const ChevronArrowHeadProgram = createArrowHeadProgram(
 	CHEVRON_ARROW_HEAD_FRAGMENT_SHADER_SOURCE,
-	{
-		lengthToThicknessRatio: 2.25,
-		widenessToThicknessRatio: 2.75,
-	},
+	EDGE_ARROW_RATIOS.chevron,
 );
 
 export const ArrowEdgeProgram = createEdgeCompoundProgram<

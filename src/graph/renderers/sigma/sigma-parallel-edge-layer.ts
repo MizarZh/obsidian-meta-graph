@@ -6,10 +6,9 @@ import type {
 	RuntimeGraph,
 	RuntimeNodeAttributes,
 } from '../../model/graphology-adapter';
+import { getCanonicalParallelLane } from '../../model/parallel-edges';
 import {
-	getCanonicalParallelLane,
-} from '../../model/parallel-edges';
-import {
+	EDGE_CHEVRON_WING_RATIO,
 	resolveEdgeVisualMetrics,
 	type EdgeVisualMetrics,
 } from './sigma-edge-visual-metrics';
@@ -119,7 +118,7 @@ export class SigmaParallelEdgeLayer {
 				position,
 				candidate.route.points,
 			);
-				const tolerance = candidate.metrics.hitWidth / 2;
+			const tolerance = candidate.metrics.hitWidth / 2;
 			if (
 				distance > tolerance ||
 				(nearest && distance >= nearest.distance)
@@ -140,6 +139,7 @@ export class SigmaParallelEdgeLayer {
 		this.hitGrid.clear();
 
 		const visuals = collectParallelEdgeVisuals(this.getGraph());
+		const pixelRatio = this.getPixelRatio();
 		for (const visual of visuals) {
 			const metrics = resolveEdgeVisualMetrics({
 				edgeSize: visual.attributes.size,
@@ -148,6 +148,9 @@ export class SigmaParallelEdgeLayer {
 				lineStyle: visual.attributes.lineStyle,
 				scaleSize: (size) => this.sigma.scaleSize(size),
 				minEdgeThickness: this.sigma.getSetting('minEdgeThickness'),
+				antiAliasingFeather:
+					this.sigma.getSetting('antiAliasingFeather'),
+				pixelRatio,
 			});
 			const cached = this.getRoute(visual, metrics);
 			if (
@@ -340,11 +343,11 @@ export class SigmaParallelEdgeLayer {
 		this.context.strokeStyle = connectedToHover
 			? attributes.color
 			: state.mutedEdgeColor;
-			this.context.lineWidth =
-				visible.metrics.lineWidth + (hovered || selected ? 2 : 0);
+		this.context.lineWidth =
+			visible.metrics.lineWidth + (hovered || selected ? 2 : 0);
 		this.context.lineCap = 'round';
 		this.context.lineJoin = 'round';
-			this.context.setLineDash(visible.metrics.dashPattern);
+		this.context.setLineDash(visible.metrics.dashPattern);
 		if (visible.path) {
 			this.context.stroke(visible.path);
 		} else {
@@ -387,12 +390,53 @@ export class SigmaParallelEdgeLayer {
 		this.context.lineTo(tip.x, tip.y);
 		this.context.lineTo(right.x, right.y);
 		if (attributes.arrowStyle === 'chevron') {
-			this.context.lineWidth = Math.max(1.5, visible.metrics.lineWidth);
-			this.context.stroke();
+			this.drawChevronArrow(tip, left, right);
 			return;
 		}
 		this.context.closePath();
 		this.context.fillStyle = this.context.strokeStyle;
+		this.context.fill();
+	}
+
+	private drawChevronArrow(
+		tip: ViewportPoint,
+		left: ViewportPoint,
+		right: ViewportPoint,
+	): void {
+		const leftBaseInner = interpolateViewport(
+			left,
+			right,
+			EDGE_CHEVRON_WING_RATIO,
+		);
+		const leftTipInner = interpolateViewport(
+			tip,
+			right,
+			EDGE_CHEVRON_WING_RATIO,
+		);
+		const rightBaseInner = interpolateViewport(
+			right,
+			left,
+			EDGE_CHEVRON_WING_RATIO,
+		);
+		const rightTipInner = interpolateViewport(
+			tip,
+			left,
+			EDGE_CHEVRON_WING_RATIO,
+		);
+		this.context.fillStyle = this.context.strokeStyle;
+		this.context.beginPath();
+		this.context.moveTo(tip.x, tip.y);
+		this.context.lineTo(left.x, left.y);
+		this.context.lineTo(leftBaseInner.x, leftBaseInner.y);
+		this.context.lineTo(leftTipInner.x, leftTipInner.y);
+		this.context.closePath();
+		this.context.fill();
+		this.context.beginPath();
+		this.context.moveTo(tip.x, tip.y);
+		this.context.lineTo(right.x, right.y);
+		this.context.lineTo(rightBaseInner.x, rightBaseInner.y);
+		this.context.lineTo(rightTipInner.x, rightTipInner.y);
+		this.context.closePath();
 		this.context.fill();
 	}
 
@@ -498,13 +542,7 @@ export class SigmaParallelEdgeLayer {
 
 	private syncCanvasSize(): void {
 		const { width, height } = this.sigma.getDimensions();
-		const ratio = Math.min(
-			2,
-			Math.max(
-				1,
-				this.canvas.ownerDocument.defaultView?.devicePixelRatio ?? 1,
-			),
-		);
+		const ratio = this.getPixelRatio();
 		const pixelWidth = Math.round(width * ratio);
 		const pixelHeight = Math.round(height * ratio);
 		if (this.canvas.width !== pixelWidth) this.canvas.width = pixelWidth;
@@ -513,6 +551,12 @@ export class SigmaParallelEdgeLayer {
 		this.canvas.style.width = `${width}px`;
 		this.canvas.style.height = `${height}px`;
 		this.context.setTransform(ratio, 0, 0, ratio, 0, 0);
+	}
+
+	private getPixelRatio(): number {
+		const ratio =
+			this.canvas.ownerDocument.defaultView?.devicePixelRatio ?? 1;
+		return Number.isFinite(ratio) && ratio > 0 ? ratio : 1;
 	}
 }
 
@@ -1329,6 +1373,17 @@ function normalize(point: ViewportPoint): ViewportPoint {
 
 function add(left: ViewportPoint, right: ViewportPoint): ViewportPoint {
 	return { x: left.x + right.x, y: left.y + right.y };
+}
+
+function interpolateViewport(
+	start: ViewportPoint,
+	end: ViewportPoint,
+	ratio: number,
+): ViewportPoint {
+	return {
+		x: start.x + (end.x - start.x) * ratio,
+		y: start.y + (end.y - start.y) * ratio,
+	};
 }
 
 function scale(point: ViewportPoint, amount: number): ViewportPoint {
