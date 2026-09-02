@@ -25,6 +25,7 @@ import {
 	createParallelCanvasRouteFromPolyline,
 	distanceToPolyline,
 	getEdgeFocusPriority,
+	orderNativeEdgeSegments,
 } from '../graph/renderers/sigma/sigma-parallel-edge-layer';
 import { isCanvasParallelEdge } from '../graph/renderers/sigma/sigma-parallel-edge-policy';
 import { resolveEdgeVisualMetrics } from '../graph/renderers/sigma/sigma-edge-visual-metrics';
@@ -240,9 +241,7 @@ describe('parallel edge visual metrics', () => {
 					1.7,
 				);
 
-				expect(metrics.nominalLineWidth).toBeCloseTo(
-					expectedLineWidth,
-				);
+				expect(metrics.nominalLineWidth).toBeCloseTo(expectedLineWidth);
 				expect(metrics.lineWidth).toBeCloseTo(expectedLineWidth);
 				expect(metrics.arrowLength).toBeCloseTo(
 					expectedLineWidth * 2.5,
@@ -382,8 +381,8 @@ describe('parallel route geometry', () => {
 			route!.points.some(
 				(point, index) =>
 					index > 0 &&
-						Math.abs(point.x - route!.points[index - 1]!.x) > 0.001 &&
-						Math.abs(point.y - route!.points[index - 1]!.y) > 0.001,
+					Math.abs(point.x - route!.points[index - 1]!.x) > 0.001 &&
+					Math.abs(point.y - route!.points[index - 1]!.y) > 0.001,
 			),
 		).toBe(true);
 		expect(route?.arrowDirection).toEqual({ x: 1, y: 0 });
@@ -415,10 +414,8 @@ describe('parallel route geometry', () => {
 			route!.points.some(
 				(point, index) =>
 					index > 0 &&
-					(Math.abs(point.x - route!.points[index - 1]!.x) > 0.001 &&
-						Math.abs(
-							point.y - route!.points[index - 1]!.y,
-						) > 0.001),
+					Math.abs(point.x - route!.points[index - 1]!.x) > 0.001 &&
+					Math.abs(point.y - route!.points[index - 1]!.y) > 0.001,
 			),
 		).toBe(true);
 	});
@@ -504,7 +501,66 @@ describe('parallel route geometry', () => {
 		expect(getEdgeFocusPriority(selected, state)).toBe(3);
 	});
 
-	 it('routes direct parallel edges through compact hidden bends', () => {
+	it('orders routed native segments into one continuous logical path', () => {
+		const ordered = orderNativeEdgeSegments(
+			[
+				{
+					runtimeEdgeId: 'edge__segment_3',
+					source: 'bend-2',
+					target: 'B',
+				},
+				{
+					runtimeEdgeId: 'edge__segment_1',
+					source: 'A',
+					target: 'bend-1',
+				},
+				{
+					runtimeEdgeId: 'edge__segment_2',
+					source: 'bend-1',
+					target: 'bend-2',
+				},
+			],
+			'A',
+			'B',
+		);
+
+		expect(ordered.map((segment) => segment.runtimeEdgeId)).toEqual([
+			'edge__segment_1',
+			'edge__segment_2',
+			'edge__segment_3',
+		]);
+		expect(ordered.every((segment) => !segment.reversed)).toBe(true);
+	});
+
+	it('reverses undirected segment orientation when needed to join the route', () => {
+		const ordered = orderNativeEdgeSegments(
+			[
+				{
+					runtimeEdgeId: 'edge__segment_2',
+					source: 'bend',
+					target: 'A',
+				},
+				{
+					runtimeEdgeId: 'edge__segment_1',
+					source: 'B',
+					target: 'bend',
+				},
+			],
+			'A',
+			'B',
+		);
+
+		expect(ordered.map((segment) => segment.runtimeEdgeId)).toEqual([
+			'edge__segment_2',
+			'edge__segment_1',
+		]);
+		expect(ordered.map((segment) => segment.reversed)).toEqual([
+			true,
+			true,
+		]);
+	});
+
+	it('routes direct parallel edges through compact hidden bends', () => {
 		const graph: RuntimeGraph = new Graph({ multi: true, type: 'mixed' });
 		graph.addNode('A', { ...nodeAttributes(), x: 0, y: 0 });
 		graph.addNode('B', { ...nodeAttributes(), x: 100, y: 0 });

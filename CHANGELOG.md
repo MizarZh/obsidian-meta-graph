@@ -23,6 +23,7 @@ All notable changes to Meta Graph are documented here.
 ### Fixed
 
 - Kept pin/hover neighborhood links above unrelated Sigma and Canvas edges, including routed Flow, Arc, and HEB segments, and masked crossing fragments to prevent visual artifacts.
+- Joined focused Flow, Arc, and HEB runtime segments into one continuous logical path, so pin/hover bold strokes have seamless round joins and continuous dash phases at bends.
 - Moved HEB group labels inside the outer radial boundary, preventing outside note labels from obscuring them.
 - Kept Arc parallel links on layout-owned curved paths instead of replacing them with straight Canvas routes.
 - Kept parallel HEB links on their smooth layout-owned bundled paths instead of replacing them with orthogonal Canvas fallback routes.

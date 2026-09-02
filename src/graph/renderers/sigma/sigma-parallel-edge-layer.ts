@@ -30,6 +30,8 @@ export interface ViewportPoint {
 export interface ParallelCanvasRoute {
 	points: readonly ViewportPoint[];
 	arrowDirection: ViewportPoint;
+	/** Optional arrow tip for native logical routes whose arrow is not at the end. */
+	arrowTip?: ViewportPoint;
 	bounds: { left: number; top: number; right: number; bottom: number };
 }
 
@@ -43,14 +45,19 @@ interface ParallelEdgeVisual {
 	directed: boolean;
 }
 
+interface NativeEdgeSegment extends NativeEdgeSegmentDescriptor {
+	attributes: RuntimeEdgeAttributes;
+	directed: boolean;
+}
+
 interface NativeEdgeVisual {
 	kind: 'native';
 	edgeId: string;
-	runtimeEdgeId: string;
 	source: string;
 	target: string;
 	attributes: RuntimeEdgeAttributes;
 	directed: boolean;
+	segments: NativeEdgeSegment[];
 }
 
 type EdgeVisual = ParallelEdgeVisual | NativeEdgeVisual;
@@ -66,6 +73,16 @@ interface VisibleRoute {
 	route: ParallelCanvasRoute;
 	path?: Path2D;
 	metrics: EdgeVisualMetrics;
+}
+
+export interface NativeEdgeSegmentDescriptor {
+	runtimeEdgeId: string;
+	source: string;
+	target: string;
+}
+
+export interface OrderedNativeEdgeSegmentDescriptor extends NativeEdgeSegmentDescriptor {
+	reversed: boolean;
 }
 
 export interface ParallelEdgeLayerState {
@@ -181,6 +198,7 @@ export class SigmaParallelEdgeLayer {
 			hoveredEdgeId,
 		);
 		const pixelRatio = this.getPixelRatio();
+		const visibleRoutes: VisibleRoute[] = [];
 		for (const visual of visuals) {
 			const metricOptions = {
 				edgeSize: visual.attributes.size,
@@ -189,16 +207,13 @@ export class SigmaParallelEdgeLayer {
 				lineStyle: visual.attributes.lineStyle,
 				scaleSize: (size) => this.sigma.scaleSize(size),
 				minEdgeThickness: this.sigma.getSetting('minEdgeThickness'),
-				antiAliasingFeather:
-					this.sigma.getSetting('antiAliasingFeather'),
+				antiAliasingFeather: this.sigma.getSetting(
+					'antiAliasingFeather',
+				),
 				pixelRatio,
 			} satisfies EdgeVisualMetricsOptions;
 			const routeMetrics = resolveEdgeVisualMetrics(metricOptions);
-			const emphasis = getEdgeEmphasis(
-				visual,
-				state,
-				hoveredEdgeId,
-			);
+			const emphasis = getEdgeEmphasis(visual, state, hoveredEdgeId);
 			const metrics = resolveEdgeVisualMetrics({
 				...metricOptions,
 				edgeSize: visual.attributes.size + emphasis,
@@ -219,16 +234,13 @@ export class SigmaParallelEdgeLayer {
 				path: cached.path,
 				metrics,
 			};
-			this.visibleRoutes.push(visible);
+			visibleRoutes.push(visible);
 			if (visual.kind === 'canvas') {
 				this.indexRoute(visible);
 			}
-			this.drawRoute(
-				visible,
-				visual.kind === 'canvas',
-				focusBackground,
-			);
 		}
+		this.visibleRoutes = visibleRoutes;
+		this.drawVisibleRoutes(visibleRoutes, focusBackground);
 		this.canvas.hidden = this.visibleRoutes.length === 0;
 	}
 
@@ -360,9 +372,184 @@ export class SigmaParallelEdgeLayer {
 			0,
 			sizeScaler.scaleSize(targetAttributes.size),
 		);
+		const orderedDescriptors = orderNativeEdgeSegments(
+			visual.segments,
+			visual.source,
+			visual.target,
+		);
+		const segmentById = new Map(
+			visual.segments.map((segment) => [segment.runtimeEdgeId, segment]),
+		);
+		const orderedSegments = orderedDescriptors
+			.map((descriptor) => {
+				const segment = segmentById.get(descriptor.runtimeEdgeId);
+				return segment
+					? { segment, reversed: descriptor.reversed }
+					: undefined;
+			})
+			.filter(
+				(
+					entry,
+				): entry is {
+					segment: NativeEdgeSegment;
+					reversed: boolean;
+				} => Boolean(entry),
+			);
+		const firstOrdered = orderedSegments[0];
+		const lastOrdered = orderedSegments.at(-1);
+		const firstStart = firstOrdered
+			? firstOrdered.reversed
+				? firstOrdered.segment.target
+				: firstOrdered.segment.source
+			: undefined;
+		const lastEnd = lastOrdered
+			? lastOrdered.reversed
+				? lastOrdered.segment.source
+				: lastOrdered.segment.target
+			: undefined;
+		const completeRoute =
+			orderedSegments.length === visual.segments.length &&
+			firstStart === visual.source &&
+			lastEnd === visual.target;
+		if (!completeRoute) {
+			return this.getDirectNativeRoute(
+				visual,
+				source,
+				target,
+				sourceRadius,
+				targetRadius,
+			);
+		}
+		const rawPoints: ViewportPoint[] = [];
+		const viewportPointByNode = new Map<string, ViewportPoint>();
+		const readNodePoint = (nodeId: string): ViewportPoint | undefined => {
+			const cached = viewportPointByNode.get(nodeId);
+			if (cached) return cached;
+			if (!graph.hasNode(nodeId)) return undefined;
+			const point = this.sigma.graphToViewport(
+				graph.getNodeAttributes(nodeId),
+			);
+			viewportPointByNode.set(nodeId, point);
+			return point;
+		};
+		for (const { segment, reversed } of orderedSegments) {
+			const startNode = reversed ? segment.target : segment.source;
+			const endNode = reversed ? segment.source : segment.target;
+			const start = readNodePoint(startNode);
+			const end = readNodePoint(endNode);
+			if (!start || !end) {
+				return this.getDirectNativeRoute(
+					visual,
+					source,
+					target,
+					sourceRadius,
+					targetRadius,
+				);
+			}
+			if (rawPoints.length === 0) rawPoints.push(start);
+			else if (!sameViewportPoint(rawPoints.at(-1)!, start)) {
+				rawPoints.push(start);
+			}
+			rawPoints.push(end);
+		}
+		const routePoints = clipContinuousRouteEndpoints(
+			rawPoints,
+			source,
+			target,
+			sourceRadius,
+			targetRadius,
+		);
+		if (routePoints.length < 2) {
+			return undefined;
+		}
+		const arrowSegment = [...orderedSegments]
+			.reverse()
+			.find(
+				({ segment }) =>
+					segment.directed &&
+					(segment.attributes.flowArrowSegment === true ||
+						isArrowEdgeType(segment.attributes.type)),
+			);
+		const finalPoint = routePoints.at(-1);
+		const finalPrevious = routePoints.at(-2);
+		const finalDirection =
+			finalPoint && finalPrevious
+				? normalizeVector({
+						x: finalPoint.x - finalPrevious.x,
+						y: finalPoint.y - finalPrevious.y,
+					})
+				: undefined;
+		let arrowTip = finalPoint;
+		let arrowDirection =
+			finalDirection ??
+			normalize({
+				x: target.x - source.x,
+				y: target.y - source.y,
+			});
+		if (arrowSegment) {
+			const { segment, reversed } = arrowSegment;
+			const startNode = reversed ? segment.target : segment.source;
+			const endNode = reversed ? segment.source : segment.target;
+			const arrowStart = readNodePoint(startNode);
+			const arrowEnd = readNodePoint(endNode);
+			const direction =
+				arrowStart && arrowEnd
+					? normalizeVector({
+							x: arrowEnd.x - arrowStart.x,
+							y: arrowEnd.y - arrowStart.y,
+						})
+					: undefined;
+			if (direction) arrowDirection = direction;
+			if (endNode === visual.target) arrowTip = routePoints.at(-1);
+			else arrowTip = arrowEnd ?? arrowTip;
+		}
 		const signature = [
 			'native',
-			visual.runtimeEdgeId,
+			visual.edgeId,
+			source.x,
+			source.y,
+			target.x,
+			target.y,
+			sourceRadius,
+			targetRadius,
+			...orderedDescriptors.flatMap((descriptor) => [
+				descriptor.runtimeEdgeId,
+				descriptor.source,
+				descriptor.target,
+				descriptor.reversed ? 1 : 0,
+			]),
+			...rawPoints.flatMap((point) => [point.x, point.y]),
+		].join('|');
+		const cacheKey = `native:${visual.edgeId}`;
+		const existing = this.routeCache.get(cacheKey);
+		if (existing?.signature === signature) {
+			return existing;
+		}
+		const route: ParallelCanvasRoute = {
+			points: routePoints,
+			arrowDirection,
+			arrowTip,
+			bounds: boundsOf(routePoints),
+		};
+		const cached: CachedRoute = {
+			signature,
+			route,
+			path: createPath(route.points),
+		};
+		this.routeCache.set(cacheKey, cached);
+		return cached;
+	}
+
+	private getDirectNativeRoute(
+		visual: NativeEdgeVisual,
+		source: ViewportPoint,
+		target: ViewportPoint,
+		sourceRadius: number,
+		targetRadius: number,
+	): CachedRoute | undefined {
+		const signature = [
+			'native-fallback',
+			visual.edgeId,
 			source.x,
 			source.y,
 			target.x,
@@ -370,11 +557,9 @@ export class SigmaParallelEdgeLayer {
 			sourceRadius,
 			targetRadius,
 		].join('|');
-		const cacheKey = `native:${visual.runtimeEdgeId}`;
+		const cacheKey = `native:${visual.edgeId}`;
 		const existing = this.routeCache.get(cacheKey);
-		if (existing?.signature === signature) {
-			return existing;
-		}
+		if (existing?.signature === signature) return existing;
 		const route = createParallelCanvasRoute(
 			source,
 			target,
@@ -383,9 +568,7 @@ export class SigmaParallelEdgeLayer {
 			0,
 			{ x: target.x - source.x, y: target.y - source.y },
 		);
-		if (!route) {
-			return undefined;
-		}
+		if (!route) return undefined;
 		const cached: CachedRoute = {
 			signature,
 			route,
@@ -453,15 +636,59 @@ export class SigmaParallelEdgeLayer {
 			: normalize(direct);
 	}
 
-	private drawRoute(
-		visible: VisibleRoute,
-		drawLabel: boolean,
+	private drawVisibleRoutes(
+		visibleRoutes: readonly VisibleRoute[],
 		focusBackground?: string,
 	): void {
-		const { visual, route } = visible;
-		const attributes = visual.attributes;
 		const state = this.getState();
 		const hoveredEdgeId = this.hoveredEdgeId ?? state.hoveredEdgeId;
+		const buckets: VisibleRoute[][] = [[], [], [], []];
+		for (const visible of visibleRoutes) {
+			const priority = getEdgeFocusPriority(
+				getEdgeFocusDescriptor(visible.visual),
+				state,
+				hoveredEdgeId,
+			);
+			buckets[priority]!.push(visible);
+		}
+		for (const bucket of buckets) {
+			if (focusBackground) {
+				for (const visible of bucket) {
+					const descriptor = getEdgeFocusDescriptor(visible.visual);
+					if (
+						getEdgeFocusPriority(
+							descriptor,
+							state,
+							hoveredEdgeId,
+						) === 0
+					) {
+						continue;
+					}
+					const opacity = Math.max(
+						0,
+						Math.min(1, visible.visual.attributes.opacity ?? 1),
+					);
+					this.drawFocusShield(visible, opacity, focusBackground);
+				}
+			}
+			for (const visible of bucket) {
+				this.drawActualRoute(
+					visible,
+					visible.visual.kind === 'canvas',
+					hoveredEdgeId,
+				);
+			}
+		}
+	}
+
+	private drawActualRoute(
+		visible: VisibleRoute,
+		drawLabel: boolean,
+		hoveredEdgeId?: string,
+	): void {
+		const { visual } = visible;
+		const attributes = visual.attributes;
+		const state = this.getState();
 		const descriptor = getEdgeFocusDescriptor(visual);
 		const selected = edgeMatchesId(descriptor, state.selectedEdgeId);
 		const connectedToHover =
@@ -470,13 +697,8 @@ export class SigmaParallelEdgeLayer {
 			!state.activeHoverNodeId ||
 			isEdgeConnectedToNode(descriptor, state.activeHoverNodeId);
 		const opacity = Math.max(0, Math.min(1, attributes.opacity ?? 1));
-		const focused =
-			getEdgeFocusPriority(descriptor, state, hoveredEdgeId) > 0;
 
 		this.context.save();
-		if (focused && focusBackground) {
-			this.drawFocusShield(visible, opacity, focusBackground);
-		}
 		this.context.globalAlpha = connectedToHover ? opacity : opacity * 0.18;
 		this.context.strokeStyle = connectedToHover
 			? selected
@@ -527,7 +749,7 @@ export class SigmaParallelEdgeLayer {
 	private drawArrow(visible: VisibleRoute): void {
 		const { attributes } = visible.visual;
 		const points = visible.route.points;
-		const tip = points.at(-1);
+		const tip = visible.route.arrowTip ?? points.at(-1);
 		if (!tip) return;
 		const direction = visible.route.arrowDirection;
 		const normal = { x: -direction.y, y: direction.x };
@@ -640,7 +862,10 @@ export class SigmaParallelEdgeLayer {
 	}
 
 	private indexRoute(route: VisibleRoute): void {
-		const bounds = expandBounds(route.route.bounds, route.metrics.hitWidth / 2);
+		const bounds = expandBounds(
+			route.route.bounds,
+			route.metrics.hitWidth / 2,
+		);
 		const firstX = Math.floor(bounds.left / HIT_CELL_SIZE);
 		const lastX = Math.floor(bounds.right / HIT_CELL_SIZE);
 		const firstY = Math.floor(bounds.top / HIT_CELL_SIZE);
@@ -834,15 +1059,15 @@ export function createParallelCanvasRouteFromPolyline(
 					sourceRadius,
 					targetRadius,
 					axis,
-			  )
+				)
 			: clipRouteEndpoints(
-						shifted,
-						source,
-						target,
-						sourceRadius,
-						targetRadius,
-						axis,
-				  );
+					shifted,
+					source,
+					target,
+					sourceRadius,
+					targetRadius,
+					axis,
+				);
 	return {
 		points,
 		arrowDirection: axis,
@@ -977,13 +1202,13 @@ function offsetSmoothPolyline(
 			? normalizeVector({
 					x: point.x - previous.x,
 					y: point.y - previous.y,
-			  })
+				})
 			: undefined;
 		const outgoing = next
 			? normalizeVector({
 					x: next.x - point.x,
 					y: next.y - point.y,
-			  })
+				})
 			: undefined;
 		const tangent = averageDirection(incoming, outgoing);
 		if (!tangent) return { ...point };
@@ -1199,10 +1424,7 @@ function clipRouteEndpoints(
 		axis,
 		false,
 	);
-	const available = Math.max(
-		0,
-		dotAlongAxis(targetPort, sourcePort, axis),
-	);
+	const available = Math.max(0, dotAlongAxis(targetPort, sourcePort, axis));
 	const sourceReach = Math.max(
 		0,
 		dotAlongAxis(firstCorridor, sourcePort, axis),
@@ -1224,11 +1446,7 @@ function clipRouteEndpoints(
 		firstCorridor,
 		axis,
 	);
-	const targetFanout = connectDirectionalPort(
-		targetStub,
-		lastCorridor,
-		axis,
-	);
+	const targetFanout = connectDirectionalPort(targetStub, lastCorridor, axis);
 	return deduplicateViewportPoints([
 		sourcePort,
 		sourceStub,
@@ -1268,10 +1486,7 @@ function dotAlongAxis(
 	reference: ViewportPoint,
 	axis: ViewportPoint,
 ): number {
-	return (
-		(point.x - reference.x) * axis.x +
-		(point.y - reference.y) * axis.y
-	);
+	return (point.x - reference.x) * axis.x + (point.y - reference.y) * axis.y;
 }
 
 function isAxisAlignedViewport(
@@ -1312,6 +1527,85 @@ function distanceBetweenViewport(
 	right: ViewportPoint,
 ): number {
 	return Math.hypot(right.x - left.x, right.y - left.y);
+}
+
+/** Orders runtime segments into one logical path and records reversals. */
+export function orderNativeEdgeSegments(
+	segments: readonly NativeEdgeSegmentDescriptor[],
+	source: string,
+	target: string,
+): OrderedNativeEdgeSegmentDescriptor[] {
+	const remaining = [...segments].sort((left, right) =>
+		left.runtimeEdgeId.localeCompare(right.runtimeEdgeId),
+	);
+	const ordered: OrderedNativeEdgeSegmentDescriptor[] = [];
+	let current = source;
+	while (remaining.length > 0) {
+		const forwardIndex = remaining.findIndex(
+			(segment) => segment.source === current,
+		);
+		const reverseIndex =
+			forwardIndex >= 0
+				? -1
+				: remaining.findIndex((segment) => segment.target === current);
+		const selectedIndex = forwardIndex >= 0 ? forwardIndex : reverseIndex;
+		if (selectedIndex < 0) break;
+		const selected = remaining.splice(selectedIndex, 1)[0]!;
+		const reversed = selectedIndex === reverseIndex;
+		ordered.push({ ...selected, reversed });
+		current = reversed ? selected.source : selected.target;
+		if (current === target) break;
+	}
+	return ordered;
+}
+
+/** Clips only the true logical endpoints; bend points stay in the path. */
+function clipContinuousRouteEndpoints(
+	points: readonly ViewportPoint[],
+	source: ViewportPoint,
+	target: ViewportPoint,
+	sourceRadius: number,
+	targetRadius: number,
+): ViewportPoint[] {
+	const normalized = deduplicateViewportPoints(points);
+	if (normalized.length < 2) return normalized;
+	const direct = normalizeVector({
+		x: target.x - source.x,
+		y: target.y - source.y,
+	}) ?? { x: 1, y: 0 };
+	const first = normalized[0]!;
+	const firstNext = normalized[1]!;
+	const last = normalized.at(-1)!;
+	const lastPrevious = normalized[normalized.length - 2]!;
+	const firstDirection =
+		normalizeVector({
+			x: firstNext.x - first.x,
+			y: firstNext.y - first.y,
+		}) ?? direct;
+	const lastDirection =
+		normalizeVector({
+			x: last.x - lastPrevious.x,
+			y: last.y - lastPrevious.y,
+		}) ?? direct;
+	const sourceInset = Math.min(
+		Math.max(0, sourceRadius),
+		distanceBetweenViewport(source, firstNext) * 0.45,
+	);
+	const targetInset = Math.min(
+		Math.max(0, targetRadius),
+		distanceBetweenViewport(target, lastPrevious) * 0.45,
+	);
+	return deduplicateViewportPoints([
+		add(source, scale(firstDirection, sourceInset)),
+		...normalized.slice(1, -1),
+		add(target, scale(lastDirection, -targetInset)),
+	]);
+}
+
+function sameViewportPoint(left: ViewportPoint, right: ViewportPoint): boolean {
+	return (
+		Math.abs(left.x - right.x) < 0.001 && Math.abs(left.y - right.y) < 0.001
+	);
 }
 
 function distanceSquared(
@@ -1374,7 +1668,11 @@ function createEdgeVisualIndex(graph: RuntimeGraph): EdgeVisualIndex {
 		const logicalTarget = attributes.logicalTarget ?? target;
 		appendIndexedEdge(index.edgeIdsByNode, logicalSource, runtimeEdgeId);
 		if (logicalTarget !== logicalSource) {
-			appendIndexedEdge(index.edgeIdsByNode, logicalTarget, runtimeEdgeId);
+			appendIndexedEdge(
+				index.edgeIdsByNode,
+				logicalTarget,
+				runtimeEdgeId,
+			);
 		}
 		const edgeId = attributes.logicalEdgeId ?? runtimeEdgeId;
 		appendIndexedEdge(index.edgeIdsByLogicalId, edgeId, runtimeEdgeId);
@@ -1459,7 +1757,7 @@ function collectNativeFocusEdgeVisuals(
 	hoveredEdgeId?: string,
 	index?: EdgeVisualIndex,
 ): NativeEdgeVisual[] {
-	const visuals: NativeEdgeVisual[] = [];
+	const visuals = new Map<string, NativeEdgeVisual>();
 	for (const runtimeEdgeId of collectNativeFocusEdgeIds(
 		state,
 		hoveredEdgeId,
@@ -1475,27 +1773,57 @@ function collectNativeFocusEdgeVisuals(
 		) {
 			continue;
 		}
-		const visual: NativeEdgeVisual = {
-			kind: 'native',
-			edgeId: attributes.logicalEdgeId ?? runtimeEdgeId,
+		const edgeId = attributes.logicalEdgeId ?? runtimeEdgeId;
+		const logicalSource = attributes.logicalSource ?? source;
+		const logicalTarget = attributes.logicalTarget ?? target;
+		const segment: NativeEdgeSegment = {
 			runtimeEdgeId,
 			source,
 			target,
 			attributes,
-			directed:
-				graph.isDirected(runtimeEdgeId) && isArrowEdgeType(attributes.type),
+			directed: graph.isDirected(runtimeEdgeId),
 		};
-		if (
+		const existing = visuals.get(edgeId);
+		if (existing) {
+			existing.segments.push(segment);
+			if (
+				isArrowEdgeType(attributes.type) &&
+				!isArrowEdgeType(existing.attributes.type)
+			) {
+				existing.attributes = attributes;
+			}
+			continue;
+		}
+		const visual: NativeEdgeVisual = {
+			kind: 'native',
+			edgeId,
+			source: logicalSource,
+			target: logicalTarget,
+			attributes,
+			directed:
+				segment.directed &&
+				(attributes.flowArrowSegment === true ||
+					isArrowEdgeType(attributes.type)),
+			segments: [segment],
+		};
+		visuals.set(edgeId, visual);
+	}
+	for (const visual of visuals.values()) {
+		visual.directed = visual.segments.some(
+			(segment) =>
+				segment.directed &&
+				(segment.attributes.flowArrowSegment === true ||
+					isArrowEdgeType(segment.attributes.type)),
+		);
+	}
+	return [...visuals.values()].filter(
+		(visual) =>
 			getEdgeFocusPriority(
 				getEdgeFocusDescriptor(visual),
 				state,
 				hoveredEdgeId,
-			) > 0
-		) {
-			visuals.push(visual);
-		}
-	}
-	return visuals;
+			) > 0,
+	);
 }
 
 function collectNativeFocusEdgeIds(
@@ -1506,13 +1834,15 @@ function collectNativeFocusEdgeIds(
 	const candidateIds = new Set<string>();
 	if (!index) return candidateIds;
 	if (state.activeHoverNodeId) {
-		for (const edgeId of index.edgeIdsByNode.get(state.activeHoverNodeId) ?? []) {
+		for (const edgeId of index.edgeIdsByNode.get(state.activeHoverNodeId) ??
+			[]) {
 			candidateIds.add(edgeId);
 		}
 	}
 	for (const edgeId of [state.selectedEdgeId, hoveredEdgeId]) {
 		if (!edgeId) continue;
-		for (const runtimeEdgeId of index.edgeIdsByLogicalId.get(edgeId) ?? []) {
+		for (const runtimeEdgeId of index.edgeIdsByLogicalId.get(edgeId) ??
+			[]) {
 			candidateIds.add(runtimeEdgeId);
 		}
 	}
@@ -1541,10 +1871,7 @@ function getEdgeFocusDescriptor(visual: EdgeVisual): EdgeFocusDescriptor {
 
 export function getEdgeFocusPriority(
 	visual: EdgeFocusDescriptor,
-	state: Pick<
-		ParallelEdgeLayerState,
-		'activeHoverNodeId' | 'selectedEdgeId'
-	>,
+	state: Pick<ParallelEdgeLayerState, 'activeHoverNodeId' | 'selectedEdgeId'>,
 	hoveredEdgeId?: string,
 ): number {
 	if (edgeMatchesId(visual, state.selectedEdgeId)) return 3;
@@ -1565,18 +1892,12 @@ function getEdgeEmphasis(
 	) {
 		return 2;
 	}
-	return isEdgeConnectedToNode(descriptor, state.activeHoverNodeId)
-		? 1
-		: 0;
+	return isEdgeConnectedToNode(descriptor, state.activeHoverNodeId) ? 1 : 0;
 }
 
-function edgeMatchesId(
-	visual: EdgeFocusDescriptor,
-	edgeId?: string,
-): boolean {
+function edgeMatchesId(visual: EdgeFocusDescriptor, edgeId?: string): boolean {
 	return Boolean(
-		edgeId &&
-		(visual.edgeId === edgeId || visual.logicalEdgeId === edgeId),
+		edgeId && (visual.edgeId === edgeId || visual.logicalEdgeId === edgeId),
 	);
 }
 
@@ -1616,8 +1937,9 @@ function isArrowEdgeType(type: string): boolean {
 
 function readCanvasBackgroundColor(container: HTMLElement): string {
 	return (
-		getComputedStyle(container).getPropertyValue('--background-primary').trim() ||
-		'#ffffff'
+		getComputedStyle(container)
+			.getPropertyValue('--background-primary')
+			.trim() || '#ffffff'
 	);
 }
 
@@ -1630,9 +1952,9 @@ interface FlowRouteCandidate {
 }
 
 /**
-	 * Reads the logical route saved by the Flow layout. A parallel group uses the
-	 * route closest to its center lane so Canvas only adds a small screen-space
-	 * offset instead of reproducing ELK's per-edge port spacing.
+ * Reads the logical route saved by the Flow layout. A parallel group uses the
+ * route closest to its center lane so Canvas only adds a small screen-space
+ * offset instead of reproducing ELK's per-edge port spacing.
  */
 function readLogicalFlowRoute(
 	graph: RuntimeGraph,
@@ -1658,7 +1980,10 @@ function readLogicalFlowRoute(
 		distanceSquared(first, target) + distanceSquared(last, source);
 	return reverseDistance < forwardDistance
 		? { ...candidate, route: [...candidate.route].reverse() }
-		: { ...candidate, route: candidate.route.map((point) => ({ ...point })) };
+		: {
+				...candidate,
+				route: candidate.route.map((point) => ({ ...point })),
+			};
 }
 
 function collectFlowRouteIndex(
@@ -1673,11 +1998,7 @@ function collectFlowRouteIndex(
 				: attributes.flowRouteOrthogonal
 					? 'orthogonal'
 					: undefined);
-		if (
-			attributes.hidden ||
-			!kind ||
-			!attributes.flowRoute?.length
-		) {
+		if (attributes.hidden || !kind || !attributes.flowRoute?.length) {
 			return;
 		}
 		const logicalEdgeId = attributes.logicalEdgeId ?? runtimeEdgeId;
@@ -1742,8 +2063,7 @@ function snapToFlowAxis(
 ): ViewportPoint {
 	const horizontal = direction === 'LR' || direction === 'RL';
 	const primary = horizontal ? vector.x : vector.y;
-	const fallbackSign =
-		direction === 'RL' || direction === 'DT' ? -1 : 1;
+	const fallbackSign = direction === 'RL' || direction === 'DT' ? -1 : 1;
 	const sign = Math.sign(primary) || fallbackSign;
 	return horizontal ? { x: sign, y: 0 } : { x: 0, y: sign };
 }
