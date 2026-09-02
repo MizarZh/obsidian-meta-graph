@@ -5,6 +5,7 @@ import type {
 } from '../../model/graphology-adapter';
 import type { GraphPalette } from '../../styles/graph-styles';
 import { withAlpha } from '../../styles/graph-styles';
+import { isCanvasParallelEdge } from './sigma-parallel-edge-policy';
 
 export interface SigmaHoverState {
 	activeHoverNodeId?: string;
@@ -151,13 +152,4 @@ export function reduceSigmaEdge(
 				size: 0.4,
 				zIndex: 0,
 			};
-}
-
-export function isCanvasParallelEdge(
-	data: RuntimeEdgeAttributes,
-	extremities: readonly [string, string],
-): boolean {
-	if ((data.parallelCount ?? 1) < 2) return false;
-	const [source, target] = extremities;
-	return (data.logicalSource ?? source) !== (data.logicalTarget ?? target);
 }

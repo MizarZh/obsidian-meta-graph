@@ -25,7 +25,7 @@ import {
 	createParallelCanvasRouteFromPolyline,
 	distanceToPolyline,
 } from '../graph/renderers/sigma/sigma-parallel-edge-layer';
-import { isCanvasParallelEdge } from '../graph/renderers/sigma/sigma-hover-policy';
+import { isCanvasParallelEdge } from '../graph/renderers/sigma/sigma-parallel-edge-policy';
 import { resolveEdgeVisualMetrics } from '../graph/renderers/sigma/sigma-edge-visual-metrics';
 
 function edgeAttributes(relation: string): RuntimeEdgeAttributes {
@@ -465,6 +465,18 @@ describe('parallel route geometry', () => {
 				'B',
 			]),
 		).toBe(false);
+		expect(
+			isCanvasParallelEdge(
+				{ ...attributes, parallelRouteOwner: 'layout' },
+				['A', 'B'],
+			),
+		).toBe(false);
+		expect(
+			isCanvasParallelEdge(
+				{ ...attributes, parallelRouteOwner: 'canvas' },
+				['A', 'B'],
+			),
+		).toBe(true);
 	});
 
 	it('routes direct parallel edges through compact hidden bends', () => {

@@ -96,6 +96,8 @@ export interface RuntimeEdgeAttributes {
 	parallelLane?: number;
 	parallelCount?: number;
 	parallelDirection?: 1 | -1;
+	/** Selects whether layout geometry or the Canvas overlay owns lane routing. */
+	parallelRouteOwner?: 'layout' | 'canvas';
 }
 
 export type RuntimeGraph = Graph<

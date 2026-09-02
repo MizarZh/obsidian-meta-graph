@@ -21,6 +21,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Kept parallel HEB links on their smooth layout-owned bundled paths instead of replacing them with orthogonal Canvas fallback routes.
 - Kept pinned and hovered Sigma labels above the highlighted-node WebGL layer, so centered labels remain readable while a neighborhood is pinned.
 - Fixed Sigma **Text position: Center** falling through to the right-side layout. Graph and Flow labels now center both their text and background box on the node.
 - Prevented Sigma's synchronous constructor render from reading the renderer instance before assignment when **Scale text with zoom** is enabled, including transitions back from 3D views.

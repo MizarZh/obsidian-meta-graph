@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ChartGroupDefinition, GraphProjection } from '../core/types';
 import { GraphologyAdapter } from '../graph/model/graphology-adapter';
+import { isCanvasParallelEdge } from '../graph/renderers/sigma/sigma-parallel-edge-policy';
 import type { GraphPalette } from '../graph/styles/graph-styles';
 import {
 	HierarchicalEdgeBundlingLayout,
@@ -55,6 +56,11 @@ describe('HierarchicalEdgeBundlingLayout', () => {
 				.mapEdges((_edge, attributes) => attributes.logicalEdgeId)
 				.filter(Boolean),
 		).toContain('A-to-B');
+		expect(
+			graph.mapEdges(
+				(_edge, attributes) => attributes.parallelRouteOwner,
+			),
+		).toEqual(expect.arrayContaining(['layout']));
 	});
 
 	it('keeps final segment directed when source edge is directed', async () => {
@@ -67,6 +73,60 @@ describe('HierarchicalEdgeBundlingLayout', () => {
 			.filter((item) => item.type === 'arrow');
 
 		expect(arrowSegments.length).toBe(1);
+	});
+
+	it('keeps parallel links on their layout-owned bundled paths', async () => {
+		const graph = new GraphologyAdapter(palette).fromProjection({
+			...projection,
+			edges: [
+				...projection.edges,
+				{
+					...projection.edges[0]!,
+					id: 'A-related-B',
+					relation: 'related',
+					directed: false,
+				},
+			],
+		});
+
+		await new HierarchicalEdgeBundlingLayout().apply(graph);
+
+		const segments = graph
+			.mapEdges((edge, attributes, source, target) => ({
+				edge,
+				attributes,
+				source,
+				target,
+			}))
+			.filter(({ attributes }) => attributes.logicalEdgeId);
+		expect(segments.length).toBeGreaterThan(2);
+		expect(
+			segments.every(
+				({ attributes }) =>
+					attributes.parallelRouteOwner === 'layout' &&
+					attributes.parallelCount === 2,
+			),
+		).toBe(true);
+		expect(
+			segments.every(
+				({ attributes, source, target }) =>
+					!isCanvasParallelEdge(attributes, [source, target]),
+			),
+		).toBe(true);
+
+		const routePoints = (logicalEdgeId: string) =>
+			graph
+				.nodes()
+				.filter((nodeId) =>
+					nodeId.startsWith(
+						`__hierarchical-edge-bundling-bend__${logicalEdgeId}__`,
+					),
+				)
+				.map((nodeId) => {
+					const { x, y } = graph.getNodeAttributes(nodeId);
+					return { x, y };
+				});
+		expect(routePoints('A-to-B')).not.toEqual(routePoints('A-related-B'));
 	});
 
 	it('keeps labels radial and readable around the circle', () => {

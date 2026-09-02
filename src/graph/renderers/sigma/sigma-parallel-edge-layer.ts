@@ -13,6 +13,7 @@ import {
 	type EdgeVisualMetrics,
 	type EdgeVisualMetricsOptions,
 } from './sigma-edge-visual-metrics';
+import { isCanvasParallelEdge } from './sigma-parallel-edge-policy';
 
 const LAYER_ID = 'parallel-edges';
 const HIT_CELL_SIZE = 64;
@@ -1210,10 +1211,14 @@ export function distanceToPolyline(
 function collectParallelEdgeVisuals(graph: RuntimeGraph): ParallelEdgeVisual[] {
 	const visuals = new Map<string, ParallelEdgeVisual>();
 	graph.forEachEdge((runtimeEdgeId, attributes, source, target) => {
-		if ((attributes.parallelCount ?? 1) < 2 || attributes.hidden) return;
+		if (
+			attributes.hidden ||
+			!isCanvasParallelEdge(attributes, [source, target])
+		) {
+			return;
+		}
 		const logicalSource = attributes.logicalSource ?? source;
 		const logicalTarget = attributes.logicalTarget ?? target;
-		if (logicalSource === logicalTarget) return;
 		const edgeId = attributes.logicalEdgeId ?? runtimeEdgeId;
 		const existing = visuals.get(edgeId);
 		if (existing) {

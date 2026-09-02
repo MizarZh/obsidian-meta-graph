@@ -185,6 +185,7 @@ function applyBundledEdges(
 				logicalEdgeId: edge,
 				logicalSource: source,
 				logicalTarget: target,
+				parallelRouteOwner: 'layout' as const,
 			};
 			const segmentKey = `${edge}__hierarchical_edge_bundling_segment_${index + 1}`;
 			if (directed) {
