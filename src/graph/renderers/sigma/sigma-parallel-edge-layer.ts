@@ -554,6 +554,8 @@ export class SigmaParallelEdgeLayer {
 	}
 
 	private getPixelRatio(): number {
+		// Must match Sigma exactly: capping DPR makes the browser resample this
+		// Canvas layer while native WebGL edges remain at full device resolution.
 		const ratio =
 			this.canvas.ownerDocument.defaultView?.devicePixelRatio ?? 1;
 		return Number.isFinite(ratio) && ratio > 0 ? ratio : 1;

@@ -164,6 +164,14 @@ Important details:
 - Color controls use `ObsidianColorInput` and its throttled commit helper so drag previews update live without committing every pointer event.
 - Display settings such as label size/color/density stay in `syncRendererDisplaySettings`; do not convert them into graph rebuilds.
 
+## Sigma edge width policy
+
+- `Sigma.scaleSize(edge.size)` is the nominal full CSS-pixel width, not a half-width.
+- Native WebGL edges feather inward, while Canvas strokes preserve their nominal ink coverage. Canvas parallel edges therefore subtract `antiAliasingFeather / devicePixelRatio` from visual stroke width.
+- Arrow geometry, lane spacing, and hit width must use the nominal width; only the Canvas stroke uses the feather-compensated width.
+- Keep the parallel-edge Canvas at Sigma's real `devicePixelRatio`. Do not cap it, or high-DPI resampling will change perceived thickness.
+- Native solid and patterned edge programs must share the same feather rule so one Canvas compensation matches every edge type.
+
 ## Coding guidelines
 
 - Keep `src/main.ts` focused on lifecycle, commands, and view registration.
