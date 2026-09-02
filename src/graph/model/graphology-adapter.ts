@@ -28,6 +28,8 @@ export interface GraphPosition {
 	y: number;
 }
 
+export type FlowRouteKind = 'orthogonal' | 'rounded' | 'curve';
+
 export interface RuntimeNodeAttributes {
 	label: string;
 	kind?: KnowledgeNodeKind;
@@ -76,12 +78,16 @@ export interface RuntimeEdgeAttributes {
 	flowLabelPlacement?: 'middle' | 'target-branch';
 	flowArrowSegment?: boolean;
 	/**
-	 * Base orthogonal route in graph coordinates. Sigma's parallel Canvas
-	 * layer uses this as the single source of truth instead of rebuilding a
-	 * direct source-to-target chord.
+	 * Base Flow route in graph coordinates. Sigma's parallel Canvas layer uses
+	 * this as the single source of truth instead of rebuilding a direct
+	 * source-to-target chord.
 	 */
 	flowRoute?: GraphPosition[];
+	/** Geometry encoded by flowRoute, shared by native and parallel renderers. */
+	flowRouteKind?: FlowRouteKind;
 	flowRouteOrthogonal?: boolean;
+	/** Legacy alias for flowRouteKind === 'rounded'. */
+	flowRouteRounded?: boolean;
 	parallelDirectRoute?: boolean;
 	parallelGroupKey?: string;
 	parallelLane?: number;

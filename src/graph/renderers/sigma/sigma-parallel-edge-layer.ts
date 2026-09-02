@@ -1,5 +1,6 @@
 import Sigma from 'sigma';
 import type {
+	FlowRouteKind,
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
@@ -215,7 +216,8 @@ export class SigmaParallelEdgeLayer {
 			axis.x,
 			axis.y,
 			laneOffset,
-			...(flowRoute?.flatMap((point) => [point.x, point.y]) ?? []),
+			flowRoute?.kind ?? '',
+			...(flowRoute?.route.flatMap((point) => [point.x, point.y]) ?? []),
 		].join('|');
 		const existing = this.routeCache.get(visual.edgeId);
 		if (existing?.signature === signature) {
@@ -223,13 +225,16 @@ export class SigmaParallelEdgeLayer {
 		}
 		const route = flowRoute
 			? createParallelCanvasRouteFromPolyline(
-					flowRoute.map((point) => this.sigma.graphToViewport(point)),
+					flowRoute.route.map((point) =>
+						this.sigma.graphToViewport(point),
+					),
 					source,
 					target,
 					sourceRadius,
 					targetRadius,
 					laneOffset,
 					axis,
+					flowRoute.kind !== 'orthogonal',
 				)
 			: createParallelCanvasRoute(
 					source,
@@ -561,8 +566,8 @@ function createDirectParallelChordRoute(
 
 /**
  * Creates a compact parallel route from an existing Flow polyline. The base
- * polyline is kept as the source of truth; each lane is offset segment by
- * segment, with corner intersections preserving strict orthogonality.
+ * polyline is kept as the source of truth. Axis-aligned routes use offset
+ * segment intersections; sampled smooth routes use local tangent offsets.
  */
 export function createParallelCanvasRouteFromPolyline(
 	basePoints: readonly ViewportPoint[],
@@ -572,6 +577,7 @@ export function createParallelCanvasRouteFromPolyline(
 	targetRadius: number,
 	laneOffset: number,
 	preferredAxis?: ViewportPoint,
+	smooth = false,
 ): ParallelCanvasRoute | undefined {
 	const direct = { x: target.x - source.x, y: target.y - source.y };
 	const distance = Math.hypot(direct.x, direct.y);
@@ -581,11 +587,15 @@ export function createParallelCanvasRouteFromPolyline(
 		axis = { x: -axis.x, y: -axis.y };
 	}
 	const normalized = ensureEndpointAxis(
-		normalizeViewportRoute(basePoints, axis),
+		smooth
+			? deduplicateViewportPoints(basePoints)
+			: normalizeViewportRoute(basePoints, axis),
 		axis,
 	);
 	if (normalized.length < 2) return undefined;
-	const shifted = offsetOrthogonalPolyline(normalized, laneOffset);
+	const shifted = smooth
+		? offsetSmoothPolyline(normalized, laneOffset)
+		: offsetOrthogonalPolyline(normalized, laneOffset);
 	const points = clipRouteEndpoints(
 		shifted,
 		source,
@@ -599,6 +609,63 @@ export function createParallelCanvasRouteFromPolyline(
 		arrowDirection: axis,
 		bounds: boundsOf(points),
 	};
+}
+
+/**
+ * Offsets a sampled smooth route without replacing its curve with new
+ * orthogonal elbows. A local averaged tangent keeps the offset smooth
+ * through each sampled corner while preserving the source geometry.
+ */
+function offsetSmoothPolyline(
+	points: readonly ViewportPoint[],
+	offset: number,
+): ViewportPoint[] {
+	const sourcePoints = deduplicateViewportPoints(points);
+	if (sourcePoints.length < 2 || Math.abs(offset) < 0.001) {
+		return sourcePoints.map((point) => ({ ...point }));
+	}
+	return sourcePoints.map((point, index) => {
+		const previous = sourcePoints[index - 1];
+		const next = sourcePoints[index + 1];
+		const incoming = previous
+			? normalizeVector({
+					x: point.x - previous.x,
+					y: point.y - previous.y,
+			  })
+			: undefined;
+		const outgoing = next
+			? normalizeVector({
+					x: next.x - point.x,
+					y: next.y - point.y,
+			  })
+			: undefined;
+		const tangent = averageDirection(incoming, outgoing);
+		if (!tangent) return { ...point };
+		return {
+			x: point.x - tangent.y * offset,
+			y: point.y + tangent.x * offset,
+		};
+	});
+}
+
+function normalizeVector(vector: ViewportPoint): ViewportPoint | undefined {
+	const length = Math.hypot(vector.x, vector.y);
+	return length > 0.001
+		? { x: vector.x / length, y: vector.y / length }
+		: undefined;
+}
+
+function averageDirection(
+	incoming: ViewportPoint | undefined,
+	outgoing: ViewportPoint | undefined,
+): ViewportPoint | undefined {
+	if (!incoming) return outgoing;
+	if (!outgoing) return incoming;
+	const averaged = normalizeVector({
+		x: incoming.x + outgoing.x,
+		y: incoming.y + outgoing.y,
+	});
+	return averaged ?? outgoing;
 }
 
 function normalizeViewportRoute(
@@ -944,18 +1011,19 @@ interface FlowRouteCandidate {
 	logicalEdgeId: string;
 	lane: number;
 	route: readonly ViewportPoint[];
+	kind: FlowRouteKind;
 }
 
 /**
- * Reads the orthogonal route saved by the Flow layout. A parallel group uses
- * the route closest to its center lane so Canvas only adds a small screen
- * space offset instead of reproducing ELK's per-edge port spacing.
+	 * Reads the logical route saved by the Flow layout. A parallel group uses the
+	 * route closest to its center lane so Canvas only adds a small screen-space
+	 * offset instead of reproducing ELK's per-edge port spacing.
  */
 function readLogicalFlowRoute(
 	graph: RuntimeGraph,
 	visual: ParallelEdgeVisual,
 	index: ReadonlyMap<string, FlowRouteCandidate>,
-): readonly ViewportPoint[] | undefined {
+): FlowRouteCandidate | undefined {
 	const groupKey = visual.attributes.parallelGroupKey;
 	const candidate = index.get(groupKey ?? visual.edgeId);
 	if (!candidate || candidate.route.length < 2) {
@@ -974,8 +1042,8 @@ function readLogicalFlowRoute(
 	const reverseDistance =
 		distanceSquared(first, target) + distanceSquared(last, source);
 	return reverseDistance < forwardDistance
-		? [...candidate.route].reverse()
-		: candidate.route.map((point) => ({ ...point }));
+		? { ...candidate, route: [...candidate.route].reverse() }
+		: { ...candidate, route: candidate.route.map((point) => ({ ...point })) };
 }
 
 function collectFlowRouteIndex(
@@ -983,9 +1051,16 @@ function collectFlowRouteIndex(
 ): Map<string, FlowRouteCandidate> {
 	const index = new Map<string, FlowRouteCandidate>();
 	graph.forEachEdge((runtimeEdgeId, attributes) => {
+		const kind =
+			attributes.flowRouteKind ??
+			(attributes.flowRouteRounded
+				? 'rounded'
+				: attributes.flowRouteOrthogonal
+					? 'orthogonal'
+					: undefined);
 		if (
 			attributes.hidden ||
-			!attributes.flowRouteOrthogonal ||
+			!kind ||
 			!attributes.flowRoute?.length
 		) {
 			return;
@@ -996,6 +1071,7 @@ function collectFlowRouteIndex(
 			logicalEdgeId,
 			lane: Math.abs(attributes.parallelLane ?? 0),
 			route: attributes.flowRoute.map((point) => ({ ...point })),
+			kind,
 		};
 		const existing = index.get(key);
 		if (

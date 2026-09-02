@@ -177,6 +177,9 @@ describe('GraphologyAdapter positions', () => {
 			graph.getEdgeAttribute('A-to-B__segment_1', 'flowRouteOrthogonal'),
 		).toBe(true);
 		expect(
+			graph.getEdgeAttribute('A-to-B__segment_1', 'flowRouteKind'),
+		).toBe('orthogonal');
+		expect(
 			graph.getEdgeAttribute('A-to-B__segment_1', 'flowRoute'),
 		).toEqual([
 			{ x: 0, y: 0 },
@@ -221,6 +224,31 @@ describe('GraphologyAdapter positions', () => {
 		expect(graph.getEdgeAttribute(segmentIds.at(-1)!, 'type')).toBe(
 			'arrow',
 		);
+		expect(
+			graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteRounded'),
+		).toBe(true);
+		expect(
+			graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteKind'),
+		).toBe('rounded');
+		expect(
+			graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteOrthogonal'),
+		).not.toBe(true);
+		const flowRoute = graph.getEdgeAttribute(
+			segmentIds[0]!,
+			'flowRoute',
+		);
+		expect(flowRoute).toBeDefined();
+		const flowRoutePoints = flowRoute ?? [];
+		expect(
+			flowRoutePoints.some(
+				(point, index) =>
+					index > 0 &&
+					(Math.abs(point.x - flowRoutePoints[index - 1]!.x) > 0.001 &&
+						Math.abs(
+							point.y - flowRoutePoints[index - 1]!.y,
+						) > 0.001),
+			),
+		).toBe(true);
 	});
 
 	it('creates deterministic curved segments for direct Flow edges', () => {
@@ -269,6 +297,23 @@ describe('GraphologyAdapter positions', () => {
 			.find((edge) => edge.endsWith('__segment_8'));
 		expect(terminalSegment).toBeDefined();
 		expect(graph.getEdgeAttribute(terminalSegment!, 'type')).toBe('arrow');
+		expect(
+			graph.getEdgeAttribute('A-to-B__segment_1', 'flowRouteKind'),
+		).toBe('curve');
+		const flowRoute = graph.getEdgeAttribute(
+			'A-to-B__segment_1',
+			'flowRoute',
+		);
+		expect(flowRoute?.[0]).toEqual({ x: 0, y: 0 });
+		expect(flowRoute?.at(-1)).toEqual({ x: 160, y: 0 });
+		expect(
+			flowRoute?.some(
+				(point, index) =>
+					index > 0 &&
+					(Math.abs(point.x - flowRoute[index - 1]!.x) > 0.001 &&
+						Math.abs(point.y - flowRoute[index - 1]!.y) > 0.001),
+			),
+		).toBe(true);
 	});
 
 	it('shares bundled flow channels and keeps labels on target branches', () => {
@@ -386,6 +431,12 @@ describe('GraphologyAdapter positions', () => {
 		expect(graph.getEdgeAttribute(segmentIds.at(-1)!, 'type')).toBe(
 			'arrow',
 		);
+		expect(
+			graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteRounded'),
+		).toBe(true);
+		expect(
+			graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteKind'),
+		).toBe('rounded');
 	});
 
 	it('does not merge unrelated many-to-many crossings', () => {

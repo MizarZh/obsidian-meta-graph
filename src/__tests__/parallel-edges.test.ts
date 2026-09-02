@@ -262,6 +262,39 @@ describe('parallel route geometry', () => {
 		expect(route?.arrowDirection).toEqual({ x: 1, y: 0 });
 	});
 
+	it('preserves rounded corners when offsetting a parallel Flow route', () => {
+		const route = createParallelCanvasRouteFromPolyline(
+			[
+				{ x: 20, y: 40 },
+				{ x: 70, y: 40 },
+				{ x: 78, y: 42 },
+				{ x: 86, y: 48 },
+				{ x: 92, y: 56 },
+				{ x: 94, y: 64 },
+				{ x: 94, y: 100 },
+				{ x: 220, y: 100 },
+			],
+			{ x: 20, y: 40 },
+			{ x: 220, y: 100 },
+			10,
+			12,
+			3,
+			{ x: 1, y: 0 },
+			true,
+		);
+
+		expect(route).toBeDefined();
+		expect(
+			route!.points.some(
+				(point, index) =>
+					index > 0 &&
+						Math.abs(point.x - route!.points[index - 1]!.x) > 0.001 &&
+						Math.abs(point.y - route!.points[index - 1]!.y) > 0.001,
+			),
+		).toBe(true);
+		expect(route?.arrowDirection).toEqual({ x: 1, y: 0 });
+	});
+
 	it('keeps vertical Flow directions axis-aligned too', () => {
 		const route = createParallelCanvasRoute(
 			{ x: 40, y: 20 },

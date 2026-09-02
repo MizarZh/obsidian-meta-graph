@@ -11,6 +11,7 @@ import type {
 } from '../core/types';
 import {
 	getEdgeType,
+	type FlowRouteKind,
 	type RuntimeEdgeAttributes,
 	type RuntimeGraph,
 } from '../graph/model/graphology-adapter';
@@ -663,15 +664,22 @@ export function applyOrthogonalFlowEdges(
 			undefined,
 			direction,
 			true,
+			undefined,
+			'orthogonal',
 		);
 		return;
 	}
+	const roundRoute = (route: ElkPoint[]): ElkPoint[] =>
+		roundOrthogonalRoute(route, cornerRadius);
 	applyRoutedFlowEdges(
 		graph,
 		routes,
 		'middle',
-		(route) => roundOrthogonalRoute(route, cornerRadius),
+		roundRoute,
 		direction,
+		false,
+		roundRoute,
+		'rounded',
 	);
 }
 
@@ -680,12 +688,22 @@ export function applyCurvedFlowEdges(
 	routes: ReadonlyMap<string, ElkPoint[]> = new Map(),
 	direction: FlowDirection = 'LR',
 ): void {
+	const curveRoute = (
+		route: ElkPoint[],
+		source: ElkPoint,
+		target: ElkPoint,
+		edgeId: string,
+	): ElkPoint[] =>
+		createCurvedFlowRoute(route, source, target, direction, edgeId);
 	applyRoutedFlowEdges(
 		graph,
 		routes,
 		'middle',
-		(route, source, target, edgeId) =>
-			createCurvedFlowRoute(route, source, target, direction, edgeId),
+		curveRoute,
+		direction,
+		false,
+		curveRoute,
+		'curve',
 	);
 }
 
@@ -703,15 +721,22 @@ export function applyBundledFlowEdges(
 			undefined,
 			direction,
 			true,
+			undefined,
+			'orthogonal',
 		);
 		return;
 	}
+	const roundRoute = (route: ElkPoint[]): ElkPoint[] =>
+		roundOrthogonalRoute(route, cornerRadius);
 	applyRoutedFlowEdges(
 		graph,
 		routes,
 		'target-branch',
-		(route) => roundOrthogonalRoute(route, cornerRadius),
+		roundRoute,
 		direction,
+		false,
+		roundRoute,
+		'rounded',
 	);
 }
 
@@ -722,6 +747,8 @@ function applyRoutedFlowEdges(
 	transformRoute: RouteTransform = (route) => route,
 	direction: FlowDirection = 'LR',
 	storeOrthogonalRoute = false,
+	flowRouteTransform?: RouteTransform,
+	flowRouteKind?: FlowRouteKind,
 ): void {
 	const logicalEdges = graph
 		.edges()
@@ -751,9 +778,26 @@ function applyRoutedFlowEdges(
 			...baseRoute,
 			targetPoint,
 		]);
-		const normalizedBasePoints = storeOrthogonalRoute
-			? normalizeOrthogonalRoute(rawBasePoints, direction)
-			: rawBasePoints;
+		const normalizedBasePoints =
+			flowRouteKind === 'orthogonal' || flowRouteKind === 'rounded'
+				? normalizeOrthogonalRoute(rawBasePoints, direction)
+				: rawBasePoints;
+		const canvasBasePoints =
+			flowRouteKind === 'curve' ? rawBasePoints : normalizedBasePoints;
+		const canvasFlowRoute = flowRouteKind
+			? deduplicatePoints([
+					sourcePoint,
+					...(flowRouteTransform
+						? flowRouteTransform(
+								canvasBasePoints,
+								sourcePoint,
+								targetPoint,
+								edge,
+							)
+						: canvasBasePoints),
+					targetPoint,
+			  ])
+			: undefined;
 		const routedPoints = transformRoute(
 			offsetParallelFlowRoute(
 				normalizedBasePoints,
@@ -770,7 +814,7 @@ function applyRoutedFlowEdges(
 				? [sourcePoint, ...routedPoints, targetPoint]
 				: [sourcePoint, targetPoint],
 		);
-		const points = storeOrthogonalRoute
+		const points = flowRouteKind === 'orthogonal' || storeOrthogonalRoute
 			? normalizeOrthogonalRoute(rawPoints, direction)
 			: rawPoints;
 		if (points.length < 2) {
@@ -791,12 +835,17 @@ function applyRoutedFlowEdges(
 			logicalSource: source,
 			logicalTarget: target,
 			flowLabelPlacement: labelPlacement,
-			...(storeOrthogonalRoute
+			...(canvasFlowRoute && flowRouteKind
 				? {
-						flowRoute: normalizedBasePoints.map((point) => ({
+						flowRoute: canvasFlowRoute.map((point) => ({
 							...point,
 						})),
-						flowRouteOrthogonal: true,
+						flowRouteKind,
+						...(flowRouteKind === 'orthogonal'
+							? { flowRouteOrthogonal: true }
+							: flowRouteKind === 'rounded'
+								? { flowRouteRounded: true }
+								: {}),
 					}
 				: {}),
 		};
