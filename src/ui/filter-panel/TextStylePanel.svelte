@@ -125,20 +125,31 @@
 	<SliderSetting
 		label="Font size"
 		value={labelSize}
-		min={8}
+		min={4}
 		max={28}
 		step={0.5}
 		format={(value) => value.toFixed(1)}
 		onChange={onLabelSize}
 		onCommit={onLabelSize}
 	/>
-	{#if mode !== 'graph-3d' && mode !== 'cube'}
+	<SettingGrid>
+		{#if mode !== 'graph-3d' && mode !== 'cube'}
+			<ToggleSetting
+				label="Scale text with zoom"
+				value={scaleLabelsWithZoom}
+				onChange={onScaleLabelsWithZoom}
+			/>
+		{/if}
 		<ToggleSetting
-			label="Scale text with zoom"
-			value={scaleLabelsWithZoom}
-			onChange={onScaleLabelsWithZoom}
+			label="Always show labels"
+			description={mode === 'graph-3d'
+				? '3D graph always renders every visible label.'
+				: ''}
+			value={mode === 'graph-3d' ? true : forceLabels}
+			disabled={mode === 'graph-3d'}
+			onChange={onForceLabels}
 		/>
-	{/if}
+	</SettingGrid>
 	{#if mode === 'graph-3d' || mode === 'cube'}
 		<DropdownSetting
 			label="3D text clarity"
@@ -148,15 +159,6 @@
 				onThreeLabelResolution(value as ThreeLabelResolution)}
 		/>
 	{/if}
-	<ToggleSetting
-		label="Always show labels"
-		description={mode === 'graph-3d'
-			? '3D graph always renders every visible label.'
-			: ''}
-		value={mode === 'graph-3d' ? true : forceLabels}
-		disabled={mode === 'graph-3d'}
-		onChange={onForceLabels}
-	/>
 	<SettingGrid>
 		<ToggleSetting label="Bold" value={labelBold} onChange={onLabelBold} />
 		<ToggleSetting

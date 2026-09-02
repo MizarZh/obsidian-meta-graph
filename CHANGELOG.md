@@ -15,6 +15,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Lowered the Label settings **Font size** minimum to 4 and aligned **Scale text with zoom** with **Always show labels** in one row on Sigma charts.
 - Renamed **Text style** to **Label settings**, moved Arc **Label angle** out of Graph settings, and centralized **Always show labels** in the label panel for every chart type.
 - Changed graph node interaction to single-click selection and double-click open across 2D, 3D, and Cube renderers. Existing `Ctrl`/`Cmd`-drag connection editing remains available; no Connection tool mode was added.
 
