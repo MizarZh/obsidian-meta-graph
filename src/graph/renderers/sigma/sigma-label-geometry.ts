@@ -27,6 +27,15 @@ export function getRotatedNodeLabelBox(
 	textAlign: CanvasTextAlign;
 } {
 	const outward = direction > 0 ? 1 : -1;
+	if (position === 'center') {
+		return {
+			x: -width / 2,
+			y: -height / 2,
+			textX: 0,
+			textY: 0,
+			textAlign: 'center',
+		};
+	}
 	if (position === 'left') {
 		const x = outward > 0 ? -nodeSize - gap - width : nodeSize + gap;
 		return {
@@ -81,6 +90,15 @@ export function getNodeLabelBox(
 	textY: number;
 	textAlign: CanvasTextAlign;
 } {
+	if (position === 'center') {
+		return {
+			x: nodeX - width / 2,
+			y: nodeY - height / 2,
+			textX: nodeX,
+			textY: nodeY,
+			textAlign: 'center',
+		};
+	}
 	if (position === 'left') {
 		const textX = nodeX - nodeSize - gap;
 		return {

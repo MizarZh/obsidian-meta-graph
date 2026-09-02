@@ -19,6 +19,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Fixed Sigma **Text position: Center** falling through to the right-side layout. Graph and Flow labels now center both their text and background box on the node.
 - Prevented Sigma's synchronous constructor render from reading the renderer instance before assignment when **Scale text with zoom** is enabled, including transitions back from 3D views.
 - Unified Sigma parallel-edge Canvas line widths and arrow bounds with native Sigma's pixel geometry and visible ink coverage. Canvas now uses Sigma's zoom scaling, minimum edge thickness, inward feather compensation, and full device pixel ratio; native solid and patterned arrow lines share the same antialiasing feather. Arrow geometry, dash spacing, compact lane spacing, deterministic Chevron fills, and independent hit widths remain consistent.
 - Replaced the keyboard shortcut overlay with a grouped side-by-side reference panel that keeps the graph interactive while open.
