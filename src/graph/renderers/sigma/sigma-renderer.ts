@@ -224,6 +224,7 @@ export class SigmaRenderer {
 			() => this.graph,
 		);
 		this.layoutGroupLayer = new LayoutGroupLayer(this.instance);
+		this.raiseHoverLabelLayer();
 		this.instance.getCamera().on('updated', this.handleCameraUpdated);
 		if (this.scaleLabelsWithZoom) {
 			// Sigma draws once inside its constructor, before this.instance is assigned.
@@ -546,6 +547,17 @@ export class SigmaRenderer {
 	private emitZoomLevel(): void {
 		const level = this.getZoomLevel();
 		this.zoomLevelListeners.forEach((listener) => listener(level));
+	}
+
+	private raiseHoverLabelLayer(): void {
+		const canvases = this.instance.getCanvases();
+		const hoverLabels = canvases.hovers;
+		const mouse = canvases.mouse;
+		if (!hoverLabels || !mouse) return;
+		// Sigma normally puts highlighted-node WebGL above hover labels. Centered
+		// labels overlap the node, so pinned/hovered labels must sit above it while
+		// the mouse canvas remains the top interaction layer.
+		mouse.before(hoverLabels);
 	}
 
 	private getHoverState() {
