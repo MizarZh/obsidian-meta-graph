@@ -210,7 +210,7 @@ export class SigmaParallelEdgeLayer {
 			visual,
 			source,
 			target,
-			flowRoute?.kind === 'curve' ? flowRoute.direction : undefined,
+			flowRoute?.direction,
 		);
 		const signature = [
 			source.x,
@@ -223,6 +223,7 @@ export class SigmaParallelEdgeLayer {
 			axis.y,
 			laneOffset,
 			flowRoute?.kind ?? '',
+			flowRoute?.direction ?? '',
 			...(flowRoute?.route.flatMap((point) => [point.x, point.y]) ?? []),
 		].join('|');
 		const existing = this.routeCache.get(visual.edgeId);
@@ -282,6 +283,10 @@ export class SigmaParallelEdgeLayer {
 		const graph = this.getGraph();
 		const direct = { x: target.x - source.x, y: target.y - source.y };
 		if (flowDirection) {
+			// The layout direction is authoritative for every Flow edge, including
+			// undirected links that have no native arrow segment to infer an axis
+			// from. This keeps RL/LR lanes on the side ports instead of falling back
+			// to a diagonal node-to-node vector.
 			return snapToFlowAxis(flowDirection, direct);
 		}
 		const arrowSegment = visual.runtimeEdgeIds.find(
