@@ -27,6 +27,7 @@ type ActiveChartStateFields = Pick<
 	| 'nodeSortDirection'
 	| 'fadeDistance'
 	| 'labelSize'
+	| 'scaleLabelsWithZoom'
 	| 'threeLabelResolution'
 	| 'labelBold'
 	| 'labelItalic'
@@ -142,6 +143,7 @@ function createActiveChartStateFields(
 		nodeSortDirection: chart.layout.nodeSortDirection ?? 'asc',
 		fadeDistance: chart.display.fadeDistance,
 		labelSize: chart.display.labelSize,
+		scaleLabelsWithZoom: chart.display.scaleLabelsWithZoom,
 		threeLabelResolution: chart.display.threeLabelResolution,
 		labelBold: chart.display.labelBold,
 		labelItalic: chart.display.labelItalic,

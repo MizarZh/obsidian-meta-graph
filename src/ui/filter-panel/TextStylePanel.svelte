@@ -32,6 +32,7 @@
 	let {
 		mode,
 		labelSize,
+		scaleLabelsWithZoom,
 		threeLabelResolution,
 		labelBold,
 		labelItalic,
@@ -46,6 +47,7 @@
 		labelDarkBackgroundOpacity,
 		labelBackgroundOpacity,
 		onLabelSize,
+		onScaleLabelsWithZoom,
 		onThreeLabelResolution,
 		onLabelBold,
 		onLabelItalic,
@@ -63,6 +65,7 @@
 	}: {
 		mode: ViewMode;
 		labelSize: number;
+		scaleLabelsWithZoom: boolean;
 		threeLabelResolution: ThreeLabelResolution;
 		labelBold: boolean;
 		labelItalic: boolean;
@@ -77,6 +80,7 @@
 		labelDarkBackgroundOpacity: number;
 		labelBackgroundOpacity: number;
 		onLabelSize: (value: number) => void;
+		onScaleLabelsWithZoom: (value: boolean) => void;
 		onThreeLabelResolution: (value: ThreeLabelResolution) => void;
 		onLabelBold: (value: boolean) => void;
 		onLabelItalic: (value: boolean) => void;
@@ -110,6 +114,13 @@
 		onChange={onLabelSize}
 		onCommit={onLabelSize}
 	/>
+	{#if mode !== 'graph-3d' && mode !== 'cube'}
+		<ToggleSetting
+			label="Scale text with zoom"
+			value={scaleLabelsWithZoom}
+			onChange={onScaleLabelsWithZoom}
+		/>
+	{/if}
 	{#if mode === 'graph-3d' || mode === 'cube'}
 		<DropdownSetting
 			label="3D text clarity"

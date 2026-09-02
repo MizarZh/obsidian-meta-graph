@@ -34,6 +34,7 @@
 		mode,
 		fadeDistance,
 		labelSize,
+		scaleLabelsWithZoom,
 		threeLabelResolution,
 		labelBold,
 		labelItalic,
@@ -103,6 +104,7 @@
 		onLayoutSortDirection,
 		onFadeDistance,
 		onLabelSize,
+		onScaleLabelsWithZoom,
 		onThreeLabelResolution,
 		onLabelBold,
 		onLabelItalic,
@@ -154,6 +156,7 @@
 		mode: ViewMode;
 		fadeDistance: number;
 		labelSize: number;
+		scaleLabelsWithZoom: boolean;
 		threeLabelResolution: ThreeLabelResolution;
 		labelBold: boolean;
 		labelItalic: boolean;
@@ -223,6 +226,7 @@
 		onLayoutSortDirection: (direction: LayoutSortDirection) => void;
 		onFadeDistance: (value: number) => void;
 		onLabelSize: (value: number) => void;
+		onScaleLabelsWithZoom: (value: boolean) => void;
 		onThreeLabelResolution: (value: ThreeLabelResolution) => void;
 		onLabelBold: (value: boolean) => void;
 		onLabelItalic: (value: boolean) => void;
@@ -357,6 +361,7 @@
 		<TextStylePanel
 			{mode}
 			{labelSize}
+			{scaleLabelsWithZoom}
 			{threeLabelResolution}
 			{labelBold}
 			{labelItalic}
@@ -371,6 +376,7 @@
 			{labelDarkBackgroundOpacity}
 			{labelBackgroundOpacity}
 			{onLabelSize}
+			{onScaleLabelsWithZoom}
 			{onThreeLabelResolution}
 			{onLabelBold}
 			{onLabelItalic}

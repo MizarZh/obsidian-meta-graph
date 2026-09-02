@@ -93,6 +93,13 @@ export function setLabelSizeInState(
 	return setDisplayValue(state, 'labelSize', labelSize);
 }
 
+export function setScaleLabelsWithZoomInState(
+	state: WorkspaceState,
+	scaleLabelsWithZoom: boolean,
+): WorkspaceState {
+	return setDisplayValue(state, 'scaleLabelsWithZoom', scaleLabelsWithZoom);
+}
+
 export function setThreeLabelResolutionInState(
 	state: WorkspaceState,
 	threeLabelResolution: ThreeLabelResolution,

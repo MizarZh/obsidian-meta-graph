@@ -27,6 +27,7 @@ export function createWorkspaceGraphRenderer(
 		manualLayout: state.manualLayout,
 		fadeDistance: state.fadeDistance,
 		labelSize: state.labelSize,
+		scaleLabelsWithZoom: state.scaleLabelsWithZoom,
 		threeLabelResolution: state.threeLabelResolution,
 		labelBold: state.labelBold,
 		labelItalic: state.labelItalic,

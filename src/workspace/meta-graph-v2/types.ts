@@ -172,6 +172,7 @@ export interface PersistedDisplayV2 {
 	fadeDistance: number;
 	labels?: {
 		size?: number;
+		scaleWithZoom?: boolean;
 		threeResolution?: ThreeLabelResolution;
 		bold?: boolean;
 		italic?: boolean;

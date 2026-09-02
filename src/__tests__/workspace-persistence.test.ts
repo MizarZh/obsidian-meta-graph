@@ -35,6 +35,7 @@ describe('workspace persistence', () => {
 
 		expect(activeChart?.display.fadeDistance).toBe(2);
 		expect(activeChart?.display.labelDensity).toBe(0.8);
+		expect(activeChart?.display.scaleLabelsWithZoom).toBe(false);
 		expect(activeChart?.display.threeLabelResolution).toBe('standard');
 		expect(activeChart?.display.forceLabels).toBe(false);
 		expect(activeChart?.layout.spacing).toBe(1);
@@ -62,6 +63,19 @@ describe('workspace persistence', () => {
 		const normalizedDocument = normalizeMetaGraphDocument(document, 200, 2);
 		const normalized = createWorkspaceState(200, 2, normalizedDocument);
 		expect(normalized.threeLabelResolution).toBe('standard');
+	});
+
+	it('persists label zoom scaling per chart', () => {
+		const document = createDefaultMetaGraphDocument(200, 2);
+		const graphChart = document.charts[0];
+		if (!graphChart) throw new Error('Graph chart is missing.');
+		graphChart.display.scaleLabelsWithZoom = true;
+
+		const restored = createWorkspaceState(200, 2, document);
+		const saved = serializeMetaGraphState(restored);
+
+		expect(restored.scaleLabelsWithZoom).toBe(true);
+		expect(saved.charts[0]?.display.scaleLabelsWithZoom).toBe(true);
 	});
 
 	it('normalizes label density into the supported range', () => {

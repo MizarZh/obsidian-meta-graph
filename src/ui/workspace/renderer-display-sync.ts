@@ -4,6 +4,7 @@ import type { WorkspaceStateChanges } from './change-tracker';
 interface DisplayRenderer {
 	setFadeDistance(value: number): void;
 	setLabelSize(value: number): void;
+	setScaleLabelsWithZoom?(value: boolean): void;
 	setThreeLabelResolution?(
 		value: WorkspaceState['threeLabelResolution'],
 	): void;
@@ -41,6 +42,9 @@ export function syncRendererDisplaySettings(
 	}
 	if (changes.labelSizeChanged) {
 		renderer?.setLabelSize(state.labelSize);
+	}
+	if (changes.scaleLabelsWithZoomChanged) {
+		renderer?.setScaleLabelsWithZoom?.(state.scaleLabelsWithZoom);
 	}
 	if (
 		changes.threeLabelResolutionChanged &&

@@ -35,6 +35,7 @@ import {
 	DEFAULT_LABEL_OFFSET,
 	DEFAULT_LABEL_POSITION,
 	DEFAULT_LABEL_SIZE,
+	DEFAULT_SCALE_LABELS_WITH_ZOOM,
 	DEFAULT_THREE_LABEL_RESOLUTION,
 } from '../meta-graph/constants';
 import {
@@ -789,6 +790,10 @@ function displayToV2(chart: MetaGraphChart): PersistedDisplayV2 {
 			display.labelSize !== DEFAULT_LABEL_SIZE
 				? display.labelSize
 				: undefined,
+		scaleWithZoom:
+			display.scaleLabelsWithZoom !== DEFAULT_SCALE_LABELS_WITH_ZOOM
+				? display.scaleLabelsWithZoom
+				: undefined,
 		threeResolution:
 			display.threeLabelResolution !== DEFAULT_THREE_LABEL_RESOLUTION
 				? display.threeLabelResolution
@@ -1217,6 +1222,7 @@ function v2ChartToLegacyRecord(
 		display: {
 			fadeDistance: display.fadeDistance ?? fadeDistance,
 			labelSize: labels.size,
+			scaleLabelsWithZoom: labels.scaleWithZoom,
 			threeLabelResolution: labels.threeResolution,
 			labelBold: labels.bold,
 			labelItalic: labels.italic,

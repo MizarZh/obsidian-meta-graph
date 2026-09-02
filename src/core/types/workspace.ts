@@ -146,6 +146,7 @@ export interface ManualLayoutConfig {
 export interface ChartDisplayConfig {
 	fadeDistance: number;
 	labelSize: number;
+	scaleLabelsWithZoom: boolean;
 	threeLabelResolution: ThreeLabelResolution;
 	labelBold: boolean;
 	labelItalic: boolean;
@@ -246,6 +247,7 @@ export interface WorkspaceState {
 	nodeSortDirection: LayoutSortDirection;
 	fadeDistance: number;
 	labelSize: number;
+	scaleLabelsWithZoom: boolean;
 	threeLabelResolution: ThreeLabelResolution;
 	labelBold: boolean;
 	labelItalic: boolean;

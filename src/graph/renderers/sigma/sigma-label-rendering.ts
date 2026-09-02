@@ -15,10 +15,10 @@ import type {
 import {
 	getNodeLabelBox,
 	getRotatedNodeLabelBox,
-	getScaledLabelSize,
 } from './sigma-label-geometry';
 
 export function createNodeLabelDrawer(
+	getRenderedLabelSize: (baseSize: number) => number,
 	getOpacity: () => number,
 	getLabelPosition: () => LabelPosition,
 	getLabelOffset: () => number,
@@ -31,7 +31,7 @@ export function createNodeLabelDrawer(
 			return;
 		}
 
-		const labelSize = getScaledLabelSize(settings.labelSize, data.size);
+		const labelSize = getRenderedLabelSize(settings.labelSize);
 		const font = `${getLabelStyle()} ${settings.labelWeight} ${labelSize}px ${settings.labelFont}`;
 		const paddingX = 5;
 		const paddingY = 3;
@@ -58,6 +58,7 @@ export function createNodeLabelDrawer(
 }
 
 export function createNodeHoverDrawer(
+	getRenderedLabelSize: (baseSize: number) => number,
 	getOpacity: () => number,
 	getLabelPosition: () => LabelPosition,
 	getLabelOffset: () => number,
@@ -70,7 +71,7 @@ export function createNodeHoverDrawer(
 		if (typeof data.label !== 'string') return;
 
 		const { labelFont: font, labelWeight: weight } = settings;
-		const size = getScaledLabelSize(settings.labelSize, data.size);
+		const size = getRenderedLabelSize(settings.labelSize);
 		context.font = `${getLabelStyle()} ${weight} ${size}px ${font}`;
 
 		context.save();
@@ -103,18 +104,16 @@ export function createNodeHoverDrawer(
 }
 
 export function createEdgeLabelDrawer(
+	getRenderedLabelSize: (baseSize: number) => number,
 	getOpacity: () => number,
 ): EdgeLabelDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
 	return (context, edgeData, sourceData, targetData, settings) => {
 		context.save();
 		context.globalAlpha = getOpacity();
-		drawStraightEdgeLabel(
-			context,
-			edgeData,
-			sourceData,
-			targetData,
-			settings,
-		);
+		drawStraightEdgeLabel(context, edgeData, sourceData, targetData, {
+			...settings,
+			edgeLabelSize: getRenderedLabelSize(settings.edgeLabelSize),
+		});
 		context.restore();
 	};
 }

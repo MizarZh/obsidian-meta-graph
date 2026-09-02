@@ -81,6 +81,7 @@
 			mode={workspaceState.mode}
 			fadeDistance={workspaceState.fadeDistance}
 			labelSize={workspaceState.labelSize}
+			scaleLabelsWithZoom={workspaceState.scaleLabelsWithZoom}
 			threeLabelResolution={workspaceState.threeLabelResolution}
 			labelBold={workspaceState.labelBold}
 			labelItalic={workspaceState.labelItalic}
@@ -157,6 +158,8 @@
 				controller.setLayoutSortDirection(direction)}
 			onFadeDistance={(value) => controller.setFadeDistance(value)}
 			onLabelSize={(value) => controller.setLabelSize(value)}
+			onScaleLabelsWithZoom={(value) =>
+				controller.setScaleLabelsWithZoom(value)}
 			onThreeLabelResolution={(value) =>
 				controller.setThreeLabelResolution(value)}
 			onLabelBold={(value) => controller.setLabelBold(value)}

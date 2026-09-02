@@ -31,6 +31,7 @@ import {
 	createNodeHoverDrawer,
 	createNodeLabelDrawer,
 } from './sigma-label-rendering';
+import { getZoomAwareLabelSize } from './sigma-label-geometry';
 import { reduceSigmaEdge, reduceSigmaNode } from './sigma-hover-policy';
 import {
 	GroupOverlayLayer,
@@ -70,6 +71,7 @@ export class SigmaRenderer {
 	private labelTheme: LabelThemeConfig;
 	private labelBackgroundOpacity: number;
 	private forceLabels: boolean;
+	private scaleLabelsWithZoom: boolean;
 	private readonly groupOverlayLayer: GroupOverlayLayer;
 	private readonly layoutGroupLayer: LayoutGroupLayer;
 	private readonly parallelEdgeLayer: SigmaParallelEdgeLayer;
@@ -84,6 +86,7 @@ export class SigmaRenderer {
 		private palette: GraphPalette,
 		fadeDistance = 1.5,
 		labelSize = 14,
+		scaleLabelsWithZoom = false,
 		labelBold = false,
 		labelItalic = false,
 		labelPosition: LabelPosition = 'right',
@@ -100,6 +103,7 @@ export class SigmaRenderer {
 		labelDarkBackgroundOpacity = 0.62,
 	) {
 		this.fadeDistance = fadeDistance;
+		this.scaleLabelsWithZoom = scaleLabelsWithZoom;
 		this.labelPosition = labelPosition;
 		this.labelOffset = labelOffset;
 		this.labelBold = labelBold;
@@ -163,6 +167,7 @@ export class SigmaRenderer {
 						edge,
 					),
 				defaultDrawNodeLabel: createNodeLabelDrawer(
+					(baseSize) => this.getRenderedLabelSize(baseSize),
 					() => this.getCurrentLabelOpacity(),
 					() => this.labelPosition,
 					() => this.labelOffset,
@@ -171,6 +176,7 @@ export class SigmaRenderer {
 					() => this.getLabelStyle(),
 				),
 				defaultDrawNodeHover: createNodeHoverDrawer(
+					(baseSize) => this.getRenderedLabelSize(baseSize),
 					() => this.getCurrentLabelOpacity(),
 					() => this.labelPosition,
 					() => this.labelOffset,
@@ -178,12 +184,14 @@ export class SigmaRenderer {
 					() => this.getLabelBackground(),
 					() => this.getLabelStyle(),
 				),
-				defaultDrawEdgeLabel: createEdgeLabelDrawer(() =>
-					this.getCurrentLabelOpacity(),
+				defaultDrawEdgeLabel: createEdgeLabelDrawer(
+					(baseSize) => this.getRenderedLabelSize(baseSize),
+					() => this.getCurrentLabelOpacity(),
 				),
 				renderEdgeLabels: true,
 				labelColor: { color: palette.label },
 				labelSize,
+				edgeLabelSize: labelSize,
 				labelWeight: this.getLabelWeight(),
 				labelDensity,
 				labelRenderedSizeThreshold: 0,
@@ -203,12 +211,12 @@ export class SigmaRenderer {
 		this.parallelEdgeLayer = new SigmaParallelEdgeLayer(
 			this.instance,
 			() => this.graph,
-					() => ({
-						activeHoverNodeId: this.getActiveHoverNodeId(),
-						selectedEdgeId: this.selectedEdgeId,
-						selectedEdgeColor: this.palette.selected,
-						mutedEdgeColor: this.palette.mutedEdge,
-				}),
+			() => ({
+				activeHoverNodeId: this.getActiveHoverNodeId(),
+				selectedEdgeId: this.selectedEdgeId,
+				selectedEdgeColor: this.palette.selected,
+				mutedEdgeColor: this.palette.mutedEdge,
+			}),
 			() => this.getCurrentLabelOpacity(),
 		);
 		this.groupOverlayLayer = new GroupOverlayLayer(
@@ -328,7 +336,13 @@ export class SigmaRenderer {
 	}
 
 	setLabelSize(labelSize: number): void {
-		this.instance.setSetting('labelSize', labelSize);
+		this.instance.setSettings({ labelSize, edgeLabelSize: labelSize });
+	}
+
+	setScaleLabelsWithZoom(scaleLabelsWithZoom: boolean): void {
+		if (this.scaleLabelsWithZoom === scaleLabelsWithZoom) return;
+		this.scaleLabelsWithZoom = scaleLabelsWithZoom;
+		this.refresh();
 	}
 
 	setLabelBold(labelBold: boolean): void {
@@ -562,6 +576,14 @@ export class SigmaRenderer {
 		return calculateLabelOpacity(
 			this.fadeDistance,
 			this.instance?.getCamera().getState().ratio ?? 1,
+		);
+	}
+
+	private getRenderedLabelSize(baseSize: number): number {
+		return getZoomAwareLabelSize(
+			baseSize,
+			(size) => this.instance.scaleSize(size),
+			this.scaleLabelsWithZoom,
 		);
 	}
 

@@ -26,6 +26,7 @@ import {
 	DEFAULT_LABEL_OFFSET,
 	DEFAULT_LABEL_POSITION,
 	DEFAULT_LABEL_SIZE,
+	DEFAULT_SCALE_LABELS_WITH_ZOOM,
 	DEFAULT_THREE_LABEL_RESOLUTION,
 } from './constants';
 import {
@@ -77,6 +78,7 @@ export function createDefaultChart(
 		display: {
 			fadeDistance,
 			labelSize: DEFAULT_LABEL_SIZE,
+			scaleLabelsWithZoom: DEFAULT_SCALE_LABELS_WITH_ZOOM,
 			threeLabelResolution: DEFAULT_THREE_LABEL_RESOLUTION,
 			labelBold: DEFAULT_LABEL_BOLD,
 			labelItalic: DEFAULT_LABEL_ITALIC,
@@ -196,6 +198,10 @@ export function normalizeChart(
 			labelSize: readFiniteNumber(
 				display.labelSize,
 				fallback.display.labelSize,
+			),
+			scaleLabelsWithZoom: readBoolean(
+				display.scaleLabelsWithZoom,
+				fallback.display.scaleLabelsWithZoom,
 			),
 			threeLabelResolution: readThreeLabelResolution(
 				display.threeLabelResolution,

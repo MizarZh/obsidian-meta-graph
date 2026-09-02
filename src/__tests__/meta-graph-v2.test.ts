@@ -16,6 +16,23 @@ import {
 } from '../workspace/workspace-session';
 
 describe('Meta Graph v2 persistence', () => {
+	it('round-trips label zoom scaling', () => {
+		const document = createDefaultMetaGraphDocument(200, 1.5);
+		const chart = document.charts[0];
+		if (!chart) throw new Error('Expected default chart.');
+		chart.display.scaleLabelsWithZoom = true;
+		const context = createPersistenceContextFromV1(document);
+		const state = createWorkspaceState(200, 1.5, document);
+
+		const saved = serializeWorkspaceStateV2(state, context);
+		expect(saved.charts[0]?.display.labels?.scaleWithZoom).toBe(true);
+
+		const parsed = parsePersistedMetaGraphDocumentV2(saved, 200, 1.5);
+		expect(parsed.document.charts[0]?.display.scaleLabelsWithZoom).toBe(
+			true,
+		);
+	});
+
 	it('migrates v1 into one canonical v2 representation', () => {
 		const v1 = createDefaultMetaGraphDocument(200, 1.5);
 		const chart = v1.charts[0];

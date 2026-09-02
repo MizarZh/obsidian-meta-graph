@@ -10,6 +10,7 @@ describe('renderer display sync', () => {
 			...createWorkspaceState(200),
 			fadeDistance: 2,
 			labelSize: 18,
+			scaleLabelsWithZoom: true,
 			threeLabelResolution: 'high' as const,
 			labelItalic: true,
 		};
@@ -18,12 +19,14 @@ describe('renderer display sync', () => {
 			...noChanges(),
 			fadeDistanceChanged: true,
 			labelSizeChanged: true,
+			scaleLabelsWithZoomChanged: true,
 			threeLabelResolutionChanged: true,
 			labelItalicChanged: true,
 		});
 
 		expect(renderer.setFadeDistance).toHaveBeenCalledWith(2);
 		expect(renderer.setLabelSize).toHaveBeenCalledWith(18);
+		expect(renderer.setScaleLabelsWithZoom).toHaveBeenCalledWith(true);
 		expect(renderer.setThreeLabelResolution).toHaveBeenCalledWith('high');
 		expect(renderer.setLabelItalic).toHaveBeenCalledWith(true);
 		expect(renderer.setLabelPosition).not.toHaveBeenCalled();
@@ -34,6 +37,7 @@ function createRenderer() {
 	return {
 		setFadeDistance: vi.fn(),
 		setLabelSize: vi.fn(),
+		setScaleLabelsWithZoom: vi.fn(),
 		setThreeLabelResolution: vi.fn(),
 		setLabelBold: vi.fn(),
 		setLabelItalic: vi.fn(),
@@ -56,6 +60,7 @@ function noChanges(): WorkspaceStateChanges {
 		manualLayoutChanged: false,
 		fadeDistanceChanged: false,
 		labelSizeChanged: false,
+		scaleLabelsWithZoomChanged: false,
 		threeLabelResolutionChanged: false,
 		labelBoldChanged: false,
 		labelItalicChanged: false,

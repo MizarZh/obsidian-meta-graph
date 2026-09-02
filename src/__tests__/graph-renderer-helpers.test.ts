@@ -28,7 +28,7 @@ import {
 import {
 	getNodeLabelBox,
 	getRotatedNodeLabelBox,
-	getScaledLabelSize,
+	getZoomAwareLabelSize,
 } from '../graph/renderers/sigma/sigma-label-geometry';
 import {
 	reduceSigmaEdge,
@@ -377,7 +377,8 @@ describe('graph renderer helpers', () => {
 	});
 
 	it('computes Sigma label geometry independent of renderer lifecycle', () => {
-		expect(getScaledLabelSize(14, 7)).toBe(14);
+		expect(getZoomAwareLabelSize(14, (size) => size * 2, false)).toBe(14);
+		expect(getZoomAwareLabelSize(14, (size) => size * 2, true)).toBe(28);
 		expect(getNodeLabelBox(10, 20, 5, 30, 12, 5, 'right')).toEqual({
 			x: 15,
 			y: 14,

@@ -17,6 +17,7 @@ export const DEFAULT_CONNECTION_FIELD = '';
 export const DEFAULT_CONNECTION_FIELDS: string[] = [];
 export const DEFAULT_CONNECTION_FIELD_MODE: ConnectionFieldMode = 'directed';
 export const DEFAULT_LABEL_SIZE = 14;
+export const DEFAULT_SCALE_LABELS_WITH_ZOOM = false;
 export const DEFAULT_THREE_LABEL_RESOLUTION: ThreeLabelResolution = 'standard';
 export const DEFAULT_LABEL_BOLD = false;
 export const DEFAULT_LABEL_ITALIC = false;

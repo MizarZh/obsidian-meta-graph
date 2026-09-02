@@ -69,6 +69,7 @@ import {
 	setLabelOffsetInState,
 	setLabelPositionInState,
 	setLabelSizeInState,
+	setScaleLabelsWithZoomInState,
 	setThreeLabelResolutionInState,
 	setLayoutNodeSortInState,
 	setLayoutSortDirectionInState,
@@ -439,6 +440,12 @@ export class WorkspaceController {
 
 	setLabelSize(labelSize: number): void {
 		this.setWorkspaceState(setLabelSizeInState(this.state, labelSize));
+	}
+
+	setScaleLabelsWithZoom(scaleLabelsWithZoom: boolean): void {
+		this.setWorkspaceState(
+			setScaleLabelsWithZoomInState(this.state, scaleLabelsWithZoom),
+		);
 	}
 
 	setThreeLabelResolution(resolution: ThreeLabelResolution): void {

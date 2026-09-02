@@ -29,6 +29,7 @@ export interface GraphRendererOptions {
 	manualLayout: ManualLayoutConfig;
 	fadeDistance: number;
 	labelSize: number;
+	scaleLabelsWithZoom: boolean;
 	threeLabelResolution: ThreeLabelResolution;
 	labelBold: boolean;
 	labelItalic: boolean;
@@ -260,6 +261,7 @@ export async function createGraphRenderer(
 		options.palette,
 		options.fadeDistance,
 		options.labelSize,
+		options.scaleLabelsWithZoom,
 		options.labelBold,
 		options.labelItalic,
 		options.labelPosition,
