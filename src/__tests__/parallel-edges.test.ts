@@ -295,6 +295,38 @@ describe('parallel route geometry', () => {
 		expect(route?.arrowDirection).toEqual({ x: 1, y: 0 });
 	});
 
+	it('keeps Curve parallel endpoints smooth and flow-axis aligned', () => {
+		const route = createParallelCanvasRouteFromPolyline(
+			[
+				{ x: 20, y: 40 },
+				{ x: 54, y: 56 },
+				{ x: 92, y: 42 },
+				{ x: 140, y: 70 },
+				{ x: 220, y: 100 },
+			],
+			{ x: 20, y: 40 },
+			{ x: 220, y: 100 },
+			10,
+			12,
+			3,
+			{ x: 1, y: 0 },
+			'curve',
+		);
+
+		expect(route).toBeDefined();
+		expect(route?.arrowDirection).toEqual({ x: 1, y: 0 });
+		expect(
+			route!.points.some(
+				(point, index) =>
+					index > 0 &&
+					(Math.abs(point.x - route!.points[index - 1]!.x) > 0.001 &&
+						Math.abs(
+							point.y - route!.points[index - 1]!.y,
+						) > 0.001),
+			),
+		).toBe(true);
+	});
+
 	it('keeps vertical Flow directions axis-aligned too', () => {
 		const route = createParallelCanvasRoute(
 			{ x: 40, y: 20 },

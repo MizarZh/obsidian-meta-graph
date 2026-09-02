@@ -1,4 +1,5 @@
 import Sigma from 'sigma';
+import type { FlowDirection } from '../../../core/types';
 import type {
 	FlowRouteKind,
 	RuntimeEdgeAttributes,
@@ -196,7 +197,6 @@ export class SigmaParallelEdgeLayer {
 			0,
 			sizeScaler.scaleSize(targetAttributes.size),
 		);
-		const axis = this.readRouteAxis(visual, source, target);
 		const laneOffset = getParallelLaneOffset(
 			visual.attributes,
 			visual.attributes.size,
@@ -205,6 +205,12 @@ export class SigmaParallelEdgeLayer {
 			graph,
 			visual,
 			this.getFlowRouteIndex(graph),
+		);
+		const axis = this.readRouteAxis(
+			visual,
+			source,
+			target,
+			flowRoute?.kind === 'curve' ? flowRoute.direction : undefined,
 		);
 		const signature = [
 			source.x,
@@ -234,7 +240,7 @@ export class SigmaParallelEdgeLayer {
 					targetRadius,
 					laneOffset,
 					axis,
-					flowRoute.kind !== 'orthogonal',
+					flowRoute.kind,
 				)
 			: createParallelCanvasRoute(
 					source,
@@ -271,8 +277,13 @@ export class SigmaParallelEdgeLayer {
 		visual: ParallelEdgeVisual,
 		source: ViewportPoint,
 		target: ViewportPoint,
+		flowDirection?: FlowDirection,
 	): ViewportPoint {
 		const graph = this.getGraph();
+		const direct = { x: target.x - source.x, y: target.y - source.y };
+		if (flowDirection) {
+			return snapToFlowAxis(flowDirection, direct);
+		}
 		const arrowSegment = visual.runtimeEdgeIds.find(
 			(edgeId) =>
 				graph.hasEdge(edgeId) &&
@@ -292,7 +303,6 @@ export class SigmaParallelEdgeLayer {
 				{ x: target.x - source.x, y: target.y - source.y },
 			);
 		}
-		const direct = { x: target.x - source.x, y: target.y - source.y };
 		return visual.attributes.logicalEdgeId
 			? snapToPrimaryAxis(direct, direct)
 			: normalize(direct);
@@ -577,7 +587,7 @@ export function createParallelCanvasRouteFromPolyline(
 	targetRadius: number,
 	laneOffset: number,
 	preferredAxis?: ViewportPoint,
-	smooth = false,
+	routeKind: FlowRouteKind | boolean = 'orthogonal',
 ): ParallelCanvasRoute | undefined {
 	const direct = { x: target.x - source.x, y: target.y - source.y };
 	const distance = Math.hypot(direct.x, direct.y);
@@ -586,28 +596,155 @@ export function createParallelCanvasRouteFromPolyline(
 	if (axis.x * direct.x + axis.y * direct.y < 0) {
 		axis = { x: -axis.x, y: -axis.y };
 	}
-	const normalized = ensureEndpointAxis(
-		smooth
-			? deduplicateViewportPoints(basePoints)
-			: normalizeViewportRoute(basePoints, axis),
-		axis,
-	);
+	const resolvedRouteKind: FlowRouteKind =
+		typeof routeKind === 'boolean'
+			? routeKind
+				? 'rounded'
+				: 'orthogonal'
+			: routeKind;
+	const smooth = resolvedRouteKind !== 'orthogonal';
+	const base = smooth
+		? deduplicateViewportPoints(basePoints)
+		: normalizeViewportRoute(basePoints, axis);
+	const normalized =
+		resolvedRouteKind === 'curve' ? base : ensureEndpointAxis(base, axis);
 	if (normalized.length < 2) return undefined;
 	const shifted = smooth
 		? offsetSmoothPolyline(normalized, laneOffset)
 		: offsetOrthogonalPolyline(normalized, laneOffset);
-	const points = clipRouteEndpoints(
-		shifted,
-		source,
-		target,
-		sourceRadius,
-		targetRadius,
-		axis,
-	);
+	const points =
+		resolvedRouteKind === 'curve'
+			? clipCurveRouteEndpoints(
+					shifted,
+					source,
+					target,
+					sourceRadius,
+					targetRadius,
+					axis,
+			  )
+			: clipRouteEndpoints(
+						shifted,
+						source,
+						target,
+						sourceRadius,
+						targetRadius,
+						axis,
+				  );
 	return {
 		points,
 		arrowDirection: axis,
 		bounds: boundsOf(points),
+	};
+}
+
+/**
+ * Clips a Curve route to node circles while keeping a short flow-axis tangent
+ * at each endpoint. Quadratic transitions remove the right-angle hook caused
+ * by inserting an axis-aligned elbow into the sampled curve.
+ */
+function clipCurveRouteEndpoints(
+	points: readonly ViewportPoint[],
+	source: ViewportPoint,
+	target: ViewportPoint,
+	sourceRadius: number,
+	targetRadius: number,
+	axis: ViewportPoint,
+): ViewportPoint[] {
+	if (points.length < 2) return points.map((point) => ({ ...point }));
+	const shifted = points.map((point) => ({ ...point }));
+	const first = shifted[0]!;
+	const firstNext = shifted[1]!;
+	const lastIndex = shifted.length - 1;
+	const last = shifted[lastIndex]!;
+	const lastPrevious = shifted[lastIndex - 1]!;
+	const sourceTip = clipEndpointToCircle(
+		source,
+		Math.max(0, sourceRadius),
+		first,
+		axis,
+		true,
+	);
+	const targetTip = clipEndpointToCircle(
+		target,
+		Math.max(0, targetRadius),
+		last,
+		axis,
+		false,
+	);
+	if (shifted.length === 2) {
+		return deduplicateViewportPoints([sourceTip, targetTip]);
+	}
+	const sourceTransition = createEndpointTransition(
+		sourceTip,
+		firstNext,
+		axis,
+		normalizeVector({
+			x: (shifted[2] ?? firstNext).x - firstNext.x,
+			y: (shifted[2] ?? firstNext).y - firstNext.y,
+		}) ?? axis,
+	);
+	const targetTransition = createEndpointTransition(
+		lastPrevious,
+		targetTip,
+		normalizeVector({
+			x: lastPrevious.x - (shifted[lastIndex - 2] ?? lastPrevious).x,
+			y: lastPrevious.y - (shifted[lastIndex - 2] ?? lastPrevious).y,
+		}) ?? axis,
+		axis,
+	);
+	return deduplicateViewportPoints([
+		...sourceTransition,
+		...shifted.slice(2, -2),
+		...targetTransition,
+	]);
+}
+
+function createEndpointTransition(
+	start: ViewportPoint,
+	end: ViewportPoint,
+	startTangent: ViewportPoint,
+	endTangent: ViewportPoint,
+): ViewportPoint[] {
+	const distance = distanceBetweenViewport(start, end);
+	if (distance < 0.001) return [start, end];
+	const stub = Math.min(ENDPOINT_STUB_PX, distance / 2);
+	const firstControl = add(start, scale(startTangent, stub));
+	const secondControl = add(end, scale(endTangent, -stub));
+	const samples: ViewportPoint[] = [start];
+	for (let step = 1; step < 4; step += 1) {
+		samples.push(
+			cubicViewportPoint(
+				start,
+				firstControl,
+				secondControl,
+				end,
+				step / 4,
+			),
+		);
+	}
+	samples.push(end);
+	return samples;
+}
+
+function cubicViewportPoint(
+	start: ViewportPoint,
+	firstControl: ViewportPoint,
+	secondControl: ViewportPoint,
+	end: ViewportPoint,
+	t: number,
+): ViewportPoint {
+	const inverse = 1 - t;
+	return {
+		x:
+			inverse * inverse * inverse * start.x +
+			3 * inverse * inverse * t * firstControl.x +
+			3 * inverse * t * t * secondControl.x +
+			t * t * t * end.x,
+		y:
+			inverse * inverse * inverse * start.y +
+			3 * inverse * inverse * t * firstControl.y +
+			3 * inverse * t * t * secondControl.y +
+			t * t * t * end.y,
 	};
 }
 
@@ -1012,6 +1149,7 @@ interface FlowRouteCandidate {
 	lane: number;
 	route: readonly ViewportPoint[];
 	kind: FlowRouteKind;
+	direction?: FlowDirection;
 }
 
 /**
@@ -1072,6 +1210,7 @@ function collectFlowRouteIndex(
 			lane: Math.abs(attributes.parallelLane ?? 0),
 			route: attributes.flowRoute.map((point) => ({ ...point })),
 			kind,
+			direction: attributes.flowRouteDirection,
 		};
 		const existing = index.get(key);
 		if (
@@ -1125,6 +1264,18 @@ function snapToPrimaryAxis(
 		return { x: Math.sign(vector.x) || Math.sign(fallback.x) || 1, y: 0 };
 	}
 	return { x: 0, y: Math.sign(vector.y) || Math.sign(fallback.y) || 1 };
+}
+
+function snapToFlowAxis(
+	direction: FlowDirection,
+	vector: ViewportPoint,
+): ViewportPoint {
+	const horizontal = direction === 'LR' || direction === 'RL';
+	const primary = horizontal ? vector.x : vector.y;
+	const fallbackSign =
+		direction === 'RL' || direction === 'DT' ? -1 : 1;
+	const sign = Math.sign(primary) || fallbackSign;
+	return horizontal ? { x: sign, y: 0 } : { x: 0, y: sign };
 }
 
 function normalize(point: ViewportPoint): ViewportPoint {

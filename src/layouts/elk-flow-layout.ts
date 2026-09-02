@@ -841,6 +841,7 @@ function applyRoutedFlowEdges(
 							...point,
 						})),
 						flowRouteKind,
+						flowRouteDirection: direction,
 						...(flowRouteKind === 'orthogonal'
 							? { flowRouteOrthogonal: true }
 							: flowRouteKind === 'rounded'

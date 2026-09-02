@@ -1,6 +1,7 @@
 import Graph from 'graphology';
 import type {
 	GraphProjection,
+	FlowDirection,
 	KnowledgeEdgeKind,
 	KnowledgeNodeKind,
 	LinkArrowStyle,
@@ -85,6 +86,8 @@ export interface RuntimeEdgeAttributes {
 	flowRoute?: GraphPosition[];
 	/** Geometry encoded by flowRoute, shared by native and parallel renderers. */
 	flowRouteKind?: FlowRouteKind;
+	/** Flow layout direction used to orient parallel Curve arrows. */
+	flowRouteDirection?: FlowDirection;
 	flowRouteOrthogonal?: boolean;
 	/** Legacy alias for flowRouteKind === 'rounded'. */
 	flowRouteRounded?: boolean;

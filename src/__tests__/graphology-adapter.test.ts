@@ -300,6 +300,9 @@ describe('GraphologyAdapter positions', () => {
 		expect(
 			graph.getEdgeAttribute('A-to-B__segment_1', 'flowRouteKind'),
 		).toBe('curve');
+		expect(
+			graph.getEdgeAttribute('A-to-B__segment_1', 'flowRouteDirection'),
+		).toBe('LR');
 		const flowRoute = graph.getEdgeAttribute(
 			'A-to-B__segment_1',
 			'flowRoute',

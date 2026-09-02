@@ -24,6 +24,7 @@ All notable changes to Meta Graph are documented here.
 - Fixed Flow Orthogonal routes that became diagonal at node ports or inside the parallel-edge Canvas overlay. ELK routes are normalized into axis-aligned segments, parallel lanes reuse the normalized route, and arrows/labels/hit testing follow the same geometry.
 - Fixed the Flow corner-radius setting not reaching parallel-edge Canvas routes. Parallel lanes now reuse the sampled rounded base route and offset its local tangents, so their corners keep the configured radius.
 - Fixed parallel Curve routes falling back to orthogonal Canvas geometry. Flow segments now carry a route kind, and Curve lanes reuse the sampled curve route with tangent-based offsets.
+- Fixed parallel Curve endpoints acquiring a right-angle hook and vertical arrows. Curve lanes now use smooth endpoint transitions and the saved Flow direction for arrow orientation.
 - Restored Sigma's native programs for ordinary single edges and moved only multi-edge pairs to the compact Canvas overlay, avoiding custom-shader aliasing and seam artifacts without expanding graph coordinates or layout bounds.
 
 ## [1.5.3] - 2026-09-02
