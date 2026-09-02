@@ -10,7 +10,6 @@
 	import { MAX_FLOW_CORNER_RADIUS } from '../../workspace/meta-graph-model';
 	import type {
 		ArcDirection,
-		ArcLabelAngle,
 		FlowDirection,
 		FlowEdgeStyle,
 		FlowRelationRule,
@@ -28,7 +27,6 @@
 		cubeFaceOpacity,
 		cubeSize,
 		cubeFreeCamera,
-		forceLabels,
 		enableForceLayout,
 		flowEdgeStyle,
 		flowDirection,
@@ -37,7 +35,6 @@
 		flowRelationConflictCount,
 		flowRelationFieldSuggestions,
 		arcDirection,
-		arcLabelAngle,
 		nodeSort,
 		nodeSortDirection,
 		graphCenterForce,
@@ -55,7 +52,6 @@
 		onFlowCornerRadius,
 		onFlowRelationRules,
 		onArcDirection,
-		onArcLabelAngle,
 		onLayoutNodeSort,
 		onLayoutSortDirection,
 		onFadeDistance,
@@ -63,7 +59,6 @@
 		onCubeFaceOpacity,
 		onCubeSize,
 		onCubeFreeCamera,
-		onForceLabels,
 		onEnableForceLayout,
 		onGraphSpacing,
 		onGraphCenterForce,
@@ -84,7 +79,6 @@
 		cubeFaceOpacity: number;
 		cubeSize: number;
 		cubeFreeCamera: boolean;
-		forceLabels: boolean;
 		enableForceLayout: boolean;
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
@@ -93,7 +87,6 @@
 		flowRelationConflictCount: number;
 		flowRelationFieldSuggestions: string[];
 		arcDirection: ArcDirection;
-		arcLabelAngle: ArcLabelAngle;
 		nodeSort: LayoutNodeSort;
 		nodeSortDirection: LayoutSortDirection;
 		graphCenterForce: number;
@@ -111,7 +104,6 @@
 		onFlowCornerRadius: (radius: number) => void;
 		onFlowRelationRules: (rules: FlowRelationRule[]) => void;
 		onArcDirection: (direction: ArcDirection) => void;
-		onArcLabelAngle: (angle: ArcLabelAngle) => void;
 		onLayoutNodeSort: (sort: LayoutNodeSort) => void;
 		onLayoutSortDirection: (direction: LayoutSortDirection) => void;
 		onFadeDistance: (value: number) => void;
@@ -119,7 +111,6 @@
 		onCubeFaceOpacity: (value: number) => void;
 		onCubeSize: (value: number) => void;
 		onCubeFreeCamera: (value: boolean) => void;
-		onForceLabels: (value: boolean) => void;
 		onEnableForceLayout: (value: boolean) => void;
 		onGraphSpacing: (spacing: number) => void;
 		onGraphCenterForce: (value: number) => void;
@@ -151,7 +142,6 @@
 		sort: boolean;
 		sigmaDisplay: boolean;
 		cubeDisplay: boolean;
-		forceLabels: boolean;
 	};
 
 	const MODE_SETTING_VISIBILITY: Record<ViewMode, ModeSettingVisibility> = {
@@ -164,7 +154,6 @@
 			sort: false,
 			sigmaDisplay: true,
 			cubeDisplay: false,
-			forceLabels: true,
 		},
 		'graph-3d': {
 			graphLayout: false,
@@ -175,7 +164,6 @@
 			sort: false,
 			sigmaDisplay: false,
 			cubeDisplay: false,
-			forceLabels: false,
 		},
 		cube: {
 			graphLayout: false,
@@ -186,7 +174,6 @@
 			sort: false,
 			sigmaDisplay: false,
 			cubeDisplay: true,
-			forceLabels: true,
 		},
 		free: {
 			graphLayout: false,
@@ -197,7 +184,6 @@
 			sort: false,
 			sigmaDisplay: true,
 			cubeDisplay: false,
-			forceLabels: true,
 		},
 		flow: {
 			graphLayout: false,
@@ -208,7 +194,6 @@
 			sort: false,
 			sigmaDisplay: true,
 			cubeDisplay: false,
-			forceLabels: true,
 		},
 		arc: {
 			graphLayout: false,
@@ -219,7 +204,6 @@
 			sort: true,
 			sigmaDisplay: true,
 			cubeDisplay: false,
-			forceLabels: true,
 		},
 		'hierarchical-edge-bundling': {
 			graphLayout: false,
@@ -230,7 +214,6 @@
 			sort: true,
 			sigmaDisplay: true,
 			cubeDisplay: false,
-			forceLabels: true,
 		},
 	};
 
@@ -276,15 +259,6 @@
 		{ value: 'left', label: 'Left' },
 		{ value: 'up', label: 'Up' },
 		{ value: 'down', label: 'Down' },
-	];
-	const ARC_LABEL_ANGLE_OPTIONS: Array<{
-		value: ArcLabelAngle;
-		label: string;
-	}> = [
-		{ value: 'auto', label: 'Auto' },
-		{ value: 0, label: '0°' },
-		{ value: 45, label: '45°' },
-		{ value: 90, label: '90°' },
 	];
 	const FLOW_DIRECTION_OPTIONS: Array<{
 		value: FlowDirection;
@@ -478,7 +452,7 @@
 			/>
 		</SettingsSection>
 	{/if}
-	{#if settingsVisibility.sigmaDisplay || settingsVisibility.cubeDisplay || settingsVisibility.forceLabels}
+	{#if settingsVisibility.sigmaDisplay || settingsVisibility.cubeDisplay}
 		<SettingsSection title="Display" bind:open={displayOpen}>
 			{#if settingsVisibility.sigmaDisplay}
 				<SliderSetting
@@ -530,13 +504,6 @@
 					onCommit={onCubeFaceOpacity}
 				/>
 			{/if}
-			{#if settingsVisibility.forceLabels}
-				<ToggleSetting
-					label="Always show labels"
-					value={forceLabels}
-					onChange={onForceLabels}
-				/>
-			{/if}
 		</SettingsSection>
 	{/if}
 	{#if mode === 'flow'}
@@ -580,12 +547,6 @@
 				value={arcDirection}
 				options={ARC_DIRECTION_OPTIONS}
 				onChange={onArcDirection}
-			/>
-			<SegmentedSetting
-				label="Label angle"
-				value={arcLabelAngle}
-				options={ARC_LABEL_ANGLE_OPTIONS}
-				onChange={onArcLabelAngle}
 			/>
 		</SettingsSection>
 	{/if}

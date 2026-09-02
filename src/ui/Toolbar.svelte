@@ -161,7 +161,7 @@
 				]
 			: []),
 		{ mode: 'groups', icon: 'group', label: 'Group' },
-		{ mode: 'text-style', icon: 'type', label: 'Text style' },
+		{ mode: 'text-style', icon: 'type', label: 'Label settings' },
 		{ mode: 'note-style', icon: 'palette', label: 'Note style' },
 		{ mode: 'link-style', icon: 'route', label: 'Link style' },
 	]);

@@ -85,12 +85,12 @@ settings to report them in the developer console.
     diameter while resizing. Groups are saved in the workspace file, not note
     frontmatter.
 11. Increase **Label density** in **Graph** settings when Sigma samples too few
-    labels while zoomed out. Enable **Always show labels** to force every visible
-    note label through Sigma's label grid. In 3D graph and Cube layouts, use
-    **3D text clarity** in **Text style** to increase label texture resolution;
-    higher settings use more GPU memory. In Arc views, use **Label angle** under
-    **Arc details** to select Auto, 0°, 45°, or 90°. Auto keeps Right/Left labels
-    horizontal and rotates Up/Down labels vertically.
+    labels while zoomed out. Use **Label settings** for **Always show labels** and
+    the shared font controls. In 3D graph and Cube layouts, use **3D text clarity**
+    there to increase label texture resolution; higher settings use more GPU
+    memory. In Arc views, **Label angle** is also under **Label settings** and
+    supports Auto, 0°, 45°, or 90°. Auto keeps Right/Left labels horizontal and
+    rotates Up/Down labels vertically.
 12. Use the bottom connection panel to select the metadata field and direction
     used for new links. Switch between a horizontally scrolling single row and
     a wrapped multi-row layout. Select **+** to open the combined metadata and

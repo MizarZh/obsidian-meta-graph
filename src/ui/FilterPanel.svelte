@@ -308,7 +308,6 @@
 			{cubeFaceOpacity}
 			{cubeSize}
 			{cubeFreeCamera}
-			{forceLabels}
 			{enableForceLayout}
 			{flowEdgeStyle}
 			{flowDirection}
@@ -317,7 +316,6 @@
 			{flowRelationConflictCount}
 			{flowRelationFieldSuggestions}
 			{arcDirection}
-			{arcLabelAngle}
 			{nodeSort}
 			{nodeSortDirection}
 			{graphCenterForce}
@@ -335,7 +333,6 @@
 			{onFlowCornerRadius}
 			{onFlowRelationRules}
 			{onArcDirection}
-			{onArcLabelAngle}
 			{onLayoutNodeSort}
 			{onLayoutSortDirection}
 			{onFadeDistance}
@@ -343,7 +340,6 @@
 			{onCubeFaceOpacity}
 			{onCubeSize}
 			{onCubeFreeCamera}
-			{onForceLabels}
 			{onEnableForceLayout}
 			{onGraphSpacing}
 			{onGraphCenterForce}
@@ -362,6 +358,8 @@
 			{mode}
 			{labelSize}
 			{scaleLabelsWithZoom}
+			{forceLabels}
+			{arcLabelAngle}
 			{threeLabelResolution}
 			{labelBold}
 			{labelItalic}
@@ -377,6 +375,8 @@
 			{labelBackgroundOpacity}
 			{onLabelSize}
 			{onScaleLabelsWithZoom}
+			{onForceLabels}
+			{onArcLabelAngle}
 			{onThreeLabelResolution}
 			{onLabelBold}
 			{onLabelItalic}

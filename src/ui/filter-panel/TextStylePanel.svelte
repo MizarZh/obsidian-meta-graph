@@ -7,6 +7,7 @@
 	import SliderSetting from '../settings/fields/SliderSetting.svelte';
 	import ToggleSetting from '../settings/fields/ToggleSetting.svelte';
 	import type {
+		ArcLabelAngle,
 		LabelPosition,
 		ThreeLabelResolution,
 		ViewMode,
@@ -28,11 +29,22 @@
 		{ value: 'high', label: 'High' },
 		{ value: 'ultra', label: 'Ultra' },
 	] satisfies Array<{ value: ThreeLabelResolution; label: string }>;
+	const ARC_LABEL_ANGLE_OPTIONS: Array<{
+		value: ArcLabelAngle;
+		label: string;
+	}> = [
+		{ value: 'auto', label: 'Auto' },
+		{ value: 0, label: '0°' },
+		{ value: 45, label: '45°' },
+		{ value: 90, label: '90°' },
+	];
 
 	let {
 		mode,
 		labelSize,
 		scaleLabelsWithZoom,
+		forceLabels,
+		arcLabelAngle,
 		threeLabelResolution,
 		labelBold,
 		labelItalic,
@@ -48,6 +60,8 @@
 		labelBackgroundOpacity,
 		onLabelSize,
 		onScaleLabelsWithZoom,
+		onForceLabels,
+		onArcLabelAngle,
 		onThreeLabelResolution,
 		onLabelBold,
 		onLabelItalic,
@@ -66,6 +80,8 @@
 		mode: ViewMode;
 		labelSize: number;
 		scaleLabelsWithZoom: boolean;
+		forceLabels: boolean;
+		arcLabelAngle: ArcLabelAngle;
 		threeLabelResolution: ThreeLabelResolution;
 		labelBold: boolean;
 		labelItalic: boolean;
@@ -81,6 +97,8 @@
 		labelBackgroundOpacity: number;
 		onLabelSize: (value: number) => void;
 		onScaleLabelsWithZoom: (value: boolean) => void;
+		onForceLabels: (value: boolean) => void;
+		onArcLabelAngle: (value: ArcLabelAngle) => void;
 		onThreeLabelResolution: (value: ThreeLabelResolution) => void;
 		onLabelBold: (value: boolean) => void;
 		onLabelItalic: (value: boolean) => void;
@@ -103,7 +121,7 @@
 </script>
 
 <section>
-	<header><h3>Text style</h3></header>
+	<header><h3>Label settings</h3></header>
 	<SliderSetting
 		label="Font size"
 		value={labelSize}
@@ -130,6 +148,15 @@
 				onThreeLabelResolution(value as ThreeLabelResolution)}
 		/>
 	{/if}
+	<ToggleSetting
+		label="Always show labels"
+		description={mode === 'graph-3d'
+			? '3D graph always renders every visible label.'
+			: ''}
+		value={mode === 'graph-3d' ? true : forceLabels}
+		disabled={mode === 'graph-3d'}
+		onChange={onForceLabels}
+	/>
 	<SettingGrid>
 		<ToggleSetting label="Bold" value={labelBold} onChange={onLabelBold} />
 		<ToggleSetting
@@ -154,6 +181,14 @@
 			format={(value) => value.toFixed(1)}
 			onChange={onLabelOffset}
 			onCommit={onLabelOffset}
+		/>
+	{/if}
+	{#if mode === 'arc'}
+		<SegmentedSetting
+			label="Label angle"
+			value={arcLabelAngle}
+			options={ARC_LABEL_ANGLE_OPTIONS}
+			onChange={(value) => onArcLabelAngle(value as ArcLabelAngle)}
 		/>
 	{/if}
 	{#if usesThemeProfiles}
