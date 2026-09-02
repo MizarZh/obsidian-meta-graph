@@ -225,6 +225,11 @@ export class SigmaRenderer {
 		);
 		this.layoutGroupLayer = new LayoutGroupLayer(this.instance);
 		this.instance.getCamera().on('updated', this.handleCameraUpdated);
+		if (this.scaleLabelsWithZoom) {
+			// Sigma draws once inside its constructor, before this.instance is assigned.
+			// Redraw now so the initialization fallback is replaced by the zoomed size.
+			this.refresh();
+		}
 	}
 
 	get runtimeGraph(): RuntimeGraph {
@@ -580,9 +585,11 @@ export class SigmaRenderer {
 	}
 
 	private getRenderedLabelSize(baseSize: number): number {
+		const instance = this.instance as
+			Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes> | undefined;
 		return getZoomAwareLabelSize(
 			baseSize,
-			(size) => this.instance.scaleSize(size),
+			instance ? (size) => instance.scaleSize(size) : undefined,
 			this.scaleLabelsWithZoom,
 		);
 	}

@@ -3,10 +3,12 @@ import type { LabelPosition } from '../../../core/types';
 /** Keeps label zoom independent from each node's own visual size. */
 export function getZoomAwareLabelSize(
 	baseLabelSize: number,
-	scaleSize: (size: number) => number,
+	scaleSize: ((size: number) => number) | undefined,
 	scaleWithZoom: boolean,
 ): number {
-	return scaleWithZoom ? scaleSize(baseLabelSize) : baseLabelSize;
+	return scaleWithZoom && scaleSize
+		? scaleSize(baseLabelSize)
+		: baseLabelSize;
 }
 
 export function getRotatedNodeLabelBox(

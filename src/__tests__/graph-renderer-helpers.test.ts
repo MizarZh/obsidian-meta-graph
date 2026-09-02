@@ -377,6 +377,7 @@ describe('graph renderer helpers', () => {
 	});
 
 	it('computes Sigma label geometry independent of renderer lifecycle', () => {
+		expect(getZoomAwareLabelSize(14, undefined, true)).toBe(14);
 		expect(getZoomAwareLabelSize(14, (size) => size * 2, false)).toBe(14);
 		expect(getZoomAwareLabelSize(14, (size) => size * 2, true)).toBe(28);
 		expect(getNodeLabelBox(10, 20, 5, 30, 12, 5, 'right')).toEqual({
