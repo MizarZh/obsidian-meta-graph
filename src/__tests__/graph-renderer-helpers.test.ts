@@ -399,6 +399,26 @@ describe('graph renderer helpers', () => {
 			size: 0.4,
 			zIndex: 0,
 		});
+		expect(
+			reduceSigmaNode(
+				'B.md',
+				node,
+				{
+					hoveredNeighborhood: new Set(),
+					forceLabels: true,
+					forceMotionActive: true,
+				},
+				palette,
+			),
+		).toMatchObject({ label: null, forceLabel: false });
+		expect(
+			reduceSigmaEdge(
+				edge,
+				{ forceMotionActive: true },
+				palette,
+				['A.md', 'B.md'],
+			),
+		).toMatchObject({ label: null, forceLabel: false });
 	});
 
 	it('computes Sigma label geometry independent of renderer lifecycle', () => {

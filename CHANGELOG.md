@@ -14,6 +14,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Batched Sigma Force ticks into one Graphology position update and one scheduled render, removed the extra drag refresh, suppresses ordinary labels and Canvas hit-grid rebuilding while nodes move, and restores a final full-quality frame after alpha or displacement settling.
 - Cached normalized Canvas text widths across Sigma node, hover, native-edge, parallel-edge, and Group labels, avoiding repeated measurements during camera and hover redraws while keeping the cache bounded.
 - Coalesced Sigma node, pinned-neighborhood, and native-edge hover changes to one animation-frame update and refreshes only changed neighborhood nodes and logical-edge segments without rebuilding render indices.
 - Reused Sigma's node and native-edge hover events when resolving pointer target priority, removing the extra GPU node pick and all-node nearest-target scan from passive mouse movement.

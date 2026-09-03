@@ -15,6 +15,7 @@ export interface SigmaHoverState {
 	hoveredEdgeId?: string;
 	hoveredNeighborhood: ReadonlySet<string>;
 	forceLabels: boolean;
+	forceMotionActive?: boolean;
 }
 
 export interface SigmaEdgeDisplayData extends Partial<EdgeDisplayData> {
@@ -77,7 +78,9 @@ export function reduceSigmaNode(
 	return {
 		...data,
 		...styledColor,
-		forceLabel: state.forceLabels,
+		...(state.forceMotionActive
+			? { label: null, forceLabel: false }
+			: { forceLabel: state.forceLabels }),
 		zIndex: 0,
 	};
 }
@@ -94,6 +97,7 @@ export function reduceSigmaEdge(
 		| 'pinnedNodeId'
 		| 'selectedEdgeId'
 		| 'hoveredEdgeId'
+		| 'forceMotionActive'
 	>,
 	palette: GraphPalette,
 	extremities: readonly [string, string],
@@ -140,7 +144,13 @@ export function reduceSigmaEdge(
 	}
 	const activeHoverNodeId = state.activeHoverNodeId;
 	if (!activeHoverNodeId) {
-		return opacity === 1 ? { ...data } : { ...data, color };
+		return {
+			...data,
+			...(opacity === 1 ? {} : { color }),
+			...(state.forceMotionActive
+				? { label: null, forceLabel: false }
+				: {}),
+		};
 	}
 	const [source, target] = extremities;
 	const connected =
@@ -163,6 +173,9 @@ export function reduceSigmaEdge(
 						? palette.mutedEdge
 						: withAlpha(palette.mutedEdge, opacity * 0.12),
 				size: 0.4,
+				...(state.forceMotionActive
+					? { label: null, forceLabel: false }
+					: {}),
 				zIndex: 0,
 			};
 }

@@ -96,6 +96,7 @@ export interface OrderedNativeEdgeSegmentDescriptor extends NativeEdgeSegmentDes
 export interface ParallelEdgeLayerState {
 	activeHoverNodeId?: string;
 	pinnedNodeId?: string;
+	forceMotionActive?: boolean;
 	selectedEdgeId?: string;
 	hoveredEdgeId?: string;
 	selectedEdgeColor: string;
@@ -248,7 +249,7 @@ export class SigmaParallelEdgeLayer {
 				metrics,
 			};
 			visibleRoutes.push(visible);
-			if (visual.kind === 'canvas') {
+			if (visual.kind === 'canvas' && !state.forceMotionActive) {
 				this.indexRoute(visible);
 			}
 		}
@@ -707,6 +708,11 @@ export class SigmaParallelEdgeLayer {
 		const state = this.getState();
 		const descriptor = getEdgeFocusDescriptor(visual);
 		const selected = edgeMatchesId(descriptor, state.selectedEdgeId);
+		const preserveMotionLabel =
+			!state.forceMotionActive ||
+			selected ||
+			isEdgeHoverActive(descriptor, state, hoveredEdgeId) ||
+			isEdgeConnectedToNode(descriptor, state.pinnedNodeId);
 		const connectedToHover =
 			selected ||
 			isEdgeHoverActive(descriptor, state, hoveredEdgeId) ||
@@ -730,7 +736,7 @@ export class SigmaParallelEdgeLayer {
 		if (visual.directed) {
 			this.drawArrow(visible);
 		}
-		if (drawLabel && attributes.label) {
+		if (drawLabel && preserveMotionLabel && attributes.label) {
 			this.drawLabel(visible, labelStyle);
 		}
 		this.context.restore();

@@ -52,6 +52,7 @@ describe('bindWorkspaceRendererEvents', () => {
 			{ x: 1, y: 2 },
 			{ x: 10, y: 20 },
 		);
+		expect(renderer.instance.refresh).not.toHaveBeenCalled();
 	});
 
 	it('keeps held bounds for manual free dragging', () => {
@@ -70,6 +71,7 @@ describe('bindWorkspaceRendererEvents', () => {
 			'A',
 			{ x: 1, y: 2, fixed: true },
 		);
+		expect(renderer.instance.refresh).toHaveBeenCalledOnce();
 	});
 
 	it('keeps navigation callbacks but disables write gestures when read-only', () => {

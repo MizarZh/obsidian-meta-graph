@@ -116,6 +116,7 @@ export function bindWorkspaceRendererEvents(
 					getNextNodeOpenSuppressUntil(Date.now()),
 				);
 				const dragAction = getSigmaDragAction(capabilities);
+				let refreshImmediately = true;
 				if (dragAction.kind === 'manual-position') {
 					sigmaRenderer.holdCurrentBounds();
 					sigmaRenderer.runtimeGraph.mergeNodeAttributes(nodeId, {
@@ -124,6 +125,7 @@ export function bindWorkspaceRendererEvents(
 						fixed: true,
 					});
 				} else {
+					refreshImmediately = false;
 					options
 						.getOrCreateForceLayoutSimulation(sigmaRenderer)
 						.drag(nodeId, position, viewportPosition);
@@ -139,6 +141,7 @@ export function bindWorkspaceRendererEvents(
 					options.setActiveNodeDropGroupId(groupId);
 					sigmaRenderer.setActiveDropGroup(groupId);
 				}
+				if (!refreshImmediately) return;
 				if (typeof sigmaRenderer.refresh === 'function') {
 					sigmaRenderer.refresh();
 				} else {

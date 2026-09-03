@@ -28,11 +28,7 @@ describe('D3ForceSimulation', () => {
 		graph.addNode('A', node(0, 0));
 		graph.addNode('B', node(1, 0));
 		graph.addEdgeWithKey('A-B', 'A', 'B', edge());
-		const renderer = {
-			instance: { refresh: vi.fn() },
-			holdCurrentBounds: vi.fn(),
-			clearHeldBounds: vi.fn(),
-		} as unknown as SigmaRenderer;
+		const renderer = createRenderer();
 
 		const simulation = new D3ForceSimulation(graph, renderer);
 		simulation.start();
@@ -43,6 +39,7 @@ describe('D3ForceSimulation', () => {
 		vi.advanceTimersByTime(4000);
 
 		expect(renderer.clearHeldBounds).toHaveBeenCalledTimes(1);
+		expect(renderer.endForceMotion).toHaveBeenCalledTimes(1);
 	});
 
 	it('starts rebuilt simulations at interaction heat instead of full heat', () => {
@@ -59,16 +56,13 @@ describe('D3ForceSimulation', () => {
 		graph.addNode('A', node(0, 0));
 		graph.addNode('B', node(1, 0));
 		graph.addEdgeWithKey('A-B', 'A', 'B', edge());
-		const renderer = {
-			instance: { refresh: vi.fn() },
-			holdCurrentBounds: vi.fn(),
-			clearHeldBounds: vi.fn(),
-		} as unknown as SigmaRenderer;
+		const renderer = createRenderer();
 
 		const simulation = new D3ForceSimulation(graph, renderer);
 		simulation.start();
 
 		expect(readSimulationAlpha(simulation)).toBeCloseTo(0.12);
+		expect(renderer.beginForceMotion).toHaveBeenCalledOnce();
 	});
 
 	it('scales dynamic repulsion to graph coordinates', () => {
@@ -80,11 +74,7 @@ describe('D3ForceSimulation', () => {
 		graph.addNode('A', node(0, 0));
 		graph.addNode('B', node(2.5, 0));
 		graph.addEdgeWithKey('A-B', 'A', 'B', edge());
-		const renderer = {
-			instance: { refresh: vi.fn() },
-			holdCurrentBounds: vi.fn(),
-			clearHeldBounds: vi.fn(),
-		} as unknown as SigmaRenderer;
+		const renderer = createRenderer();
 
 		const simulation = new D3ForceSimulation(graph, renderer);
 		const charge = readChargeForce(simulation);
@@ -108,14 +98,7 @@ describe('D3ForceSimulation', () => {
 		graph.addNode('A', node(0, 0));
 		graph.addNode('B', node(10, 0));
 		graph.addEdgeWithKey('A-B', 'A', 'B', edge());
-		const renderer = {
-			instance: {
-				refresh: vi.fn(),
-				viewportToGraph: vi.fn(() => ({ x: 3, y: 4 })),
-			},
-			holdCurrentBounds: vi.fn(),
-			clearHeldBounds: vi.fn(),
-		} as unknown as SigmaRenderer;
+		const renderer = createRenderer(() => ({ x: 3, y: 4 }));
 
 		const simulation = new D3ForceSimulation(graph, renderer);
 		simulation.drag('A', { x: 0, y: 0 }, { x: 400, y: 300 });
@@ -138,11 +121,7 @@ describe('D3ForceSimulation', () => {
 		graph.addNode('B', node(10, 0));
 		graph.addNode('C', node(20, 0));
 		graph.addEdgeWithKey('A-B', 'A', 'B', edge());
-		const renderer = {
-			instance: { refresh: vi.fn() },
-			holdCurrentBounds: vi.fn(),
-			clearHeldBounds: vi.fn(),
-		} as unknown as SigmaRenderer;
+		const renderer = createRenderer();
 
 		const simulation = new D3ForceSimulation(
 			graph,
@@ -176,7 +155,68 @@ describe('D3ForceSimulation', () => {
 		expect(forceNodes.get('A')?.vx).toBeGreaterThan(0);
 		expect(forceNodes.get('C')?.vx).toBeLessThan(0);
 	});
+
+	it('publishes all tick positions through one graph batch event', () => {
+		const graph = new Graph<
+			RuntimeNodeAttributes,
+			RuntimeEdgeAttributes,
+			Record<string, never>
+		>({ multi: true, type: 'mixed' });
+		graph.addNode('A', node(0, 0));
+		graph.addNode('B', node(10, 0));
+		const renderer = createRenderer();
+		const batchUpdate = vi.fn();
+		const nodeUpdate = vi.fn();
+		graph.on('eachNodeAttributesUpdated', batchUpdate);
+		graph.on('nodeAttributesUpdated', nodeUpdate);
+		const simulation = new D3ForceSimulation(graph, renderer);
+
+		applyTick(simulation);
+
+		expect(batchUpdate).toHaveBeenCalledOnce();
+		expect(nodeUpdate).not.toHaveBeenCalled();
+	});
+
+	it('restores the full-quality frame after consecutive stable ticks', () => {
+		vi.useFakeTimers();
+		vi.stubGlobal('window', {
+			clearTimeout: globalThis.clearTimeout,
+			setTimeout: globalThis.setTimeout,
+		});
+		const graph = new Graph<
+			RuntimeNodeAttributes,
+			RuntimeEdgeAttributes,
+			Record<string, never>
+		>({ multi: true, type: 'mixed' });
+		graph.addNode('A', node(0, 0));
+		const renderer = createRenderer();
+		const simulation = new D3ForceSimulation(graph, renderer);
+		simulation.start();
+
+		for (let frame = 0; frame < 8; frame += 1) applyTick(simulation);
+
+		expect(renderer.endForceMotion).toHaveBeenCalledOnce();
+		expect(renderer.clearHeldBounds).toHaveBeenCalledOnce();
+	});
 });
+
+function createRenderer(
+	viewportToGraph: (position: { x: number; y: number }) => {
+		x: number;
+		y: number;
+	} = () => ({ x: 0, y: 0 }),
+): SigmaRenderer {
+	return {
+		instance: {
+			refresh: vi.fn(),
+			viewportToGraph: vi.fn(viewportToGraph),
+		},
+		holdCurrentBounds: vi.fn(),
+		clearHeldBounds: vi.fn(),
+		beginForceMotion: vi.fn(),
+		endForceMotion: vi.fn(),
+	} as unknown as SigmaRenderer;
+}
 
 function readSimulationAlpha(simulation: D3ForceSimulation): number {
 	return (

@@ -91,6 +91,7 @@ export class SigmaRenderer {
 	private labelTheme: LabelThemeConfig;
 	private forceLabels: boolean;
 	private scaleLabelsWithZoom: boolean;
+	private forceMotionActive = false;
 	private readonly groupOverlayLayer: GroupOverlayLayer;
 	private readonly layoutGroupLayer: LayoutGroupLayer;
 	private readonly parallelEdgeLayer: SigmaParallelEdgeLayer;
@@ -238,6 +239,7 @@ export class SigmaRenderer {
 			() => ({
 				activeHoverNodeId: this.getActiveHoverNodeId(),
 				pinnedNodeId: this.pinnedNodeId,
+				forceMotionActive: this.forceMotionActive,
 				selectedEdgeId: this.selectedEdgeId,
 				hoveredEdgeId: this.hoveredEdgeId,
 				selectedEdgeColor: this.palette.selected,
@@ -297,6 +299,25 @@ export class SigmaRenderer {
 		this.hoverRefreshCoordinator.synchronize(this.readHoverRefreshState());
 		this.syncGroupFocus();
 		this.instance.refresh();
+	}
+
+	beginForceMotion(): void {
+		if (this.forceMotionActive) return;
+		this.forceMotionActive = true;
+		this.instance.refresh({
+			partialGraph: {
+				nodes: this.graph.nodes(),
+				edges: this.graph.edges(),
+			},
+			skipIndexation: true,
+			schedule: true,
+		});
+	}
+
+	endForceMotion(): void {
+		if (!this.forceMotionActive) return;
+		this.forceMotionActive = false;
+		this.refresh();
 	}
 
 	setGroups(
@@ -604,6 +625,7 @@ export class SigmaRenderer {
 			hoveredEdgeId: this.hoveredEdgeId,
 			hoveredNeighborhood: this.hoveredNeighborhood,
 			forceLabels: this.forceLabels,
+			forceMotionActive: this.forceMotionActive,
 		};
 	}
 
