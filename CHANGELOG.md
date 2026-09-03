@@ -21,6 +21,7 @@ All notable changes to Meta Graph are documented here.
 ### Fixed
 
 - Kept focused and pinned Sigma arrows at their base size while applying emphasis to line width.
+- Replaced Details focus buttons' pin icons with the crosshair icon used by Fit graph.
 - Fixed Group and relationship details cards inheriting dock flex sizing, which could create large blank areas, overlap member/conflict rows, and stretch the delete action across the panel.
 - Simplified relationship summary rows to show only direction and property, keeping hidden plain body links out of the list.
 - Added bounded filename labels with ellipsis and full-name hover tooltips throughout the details inspectors.

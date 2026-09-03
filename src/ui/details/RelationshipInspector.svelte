@@ -132,12 +132,12 @@
 			</dl>
 			<div class="knowledge-workspace-detail-actions">
 				<ObsidianButton
-					icon="pin"
+					icon="crosshair"
 					text="Focus source"
 					onClick={() => onFocusNode(edge.source)}
 				/>
 				<ObsidianButton
-					icon="pin"
+					icon="crosshair"
 					text="Focus target"
 					onClick={() => onFocusNode(edge.target)}
 				/>

@@ -249,7 +249,7 @@
 								class="knowledge-workspace-group-member-actions"
 							>
 								<ObsidianButton
-									icon="pin"
+									icon="crosshair"
 									ariaLabel={`Focus ${member.title}`}
 									tooltip="Focus"
 									onClick={() => onFocusNode(member.id)}
