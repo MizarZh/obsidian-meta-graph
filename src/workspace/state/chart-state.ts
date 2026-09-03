@@ -118,7 +118,7 @@ export function duplicateActiveChartAndSetTypeInState(
 	state: WorkspaceState,
 	type: ViewMode,
 ): WorkspaceChartStateResult {
-	const nextState = duplicateActiveChartInState(state);
+	const nextState = duplicateActiveChartState(state);
 	return setActiveChartTypeInState(nextState, type);
 }
 
@@ -127,8 +127,17 @@ export function duplicateActiveChartAndSetSourceInState(
 	source: ChartSource,
 	curatedPaths: readonly string[] = [],
 ): WorkspaceChartStateResult {
-	const nextState = duplicateActiveChartInState(state);
+	const nextState = duplicateActiveChartState(state);
 	return setActiveChartSourceInState(nextState, source, curatedPaths);
+}
+
+export function duplicateActiveChartInState(
+	state: WorkspaceState,
+): WorkspaceChartStateResult {
+	return {
+		state: duplicateActiveChartState(state),
+		runQuery: false,
+	};
 }
 
 export function setActiveChartNameInState(
@@ -237,7 +246,7 @@ function getActiveChart(state: WorkspaceState): MetaGraphChart {
 	return chart;
 }
 
-function duplicateActiveChartInState(state: WorkspaceState): WorkspaceState {
+function duplicateActiveChartState(state: WorkspaceState): WorkspaceState {
 	const activeChart = getActiveChart(state);
 	const duplicate = cloneSerializable({
 		...activeChart,

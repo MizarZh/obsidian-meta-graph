@@ -173,6 +173,7 @@ import {
 import {
 	addChartInState,
 	deleteActiveChartInState,
+	duplicateActiveChartInState,
 	duplicateActiveChartAndSetSourceInState,
 	duplicateActiveChartAndSetTypeInState,
 	setActiveChartInState,
@@ -361,6 +362,11 @@ export class WorkspaceController {
 
 	addChart(input: CreateChartInput): void {
 		const result = addChartInState(this.state, input);
+		this.setWorkspaceState(result.state, result.runQuery);
+	}
+
+	duplicateActiveChart(): void {
+		const result = duplicateActiveChartInState(this.state);
 		this.setWorkspaceState(result.state, result.runQuery);
 	}
 

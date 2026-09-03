@@ -28,6 +28,7 @@
 		readOnly = false,
 		onSelectChart,
 		onCreateChart,
+		onDuplicateChart,
 		onRenameChart,
 		onChartType,
 		onChartSource,
@@ -61,6 +62,7 @@
 		readOnly?: boolean;
 		onSelectChart: (id: string) => void | Promise<void>;
 		onCreateChart: (input: CreateChartInput) => void;
+		onDuplicateChart: () => void;
 		onRenameChart: (name: string) => void;
 		onChartType: (mode: ViewMode) => void;
 		onChartSource: (source: ChartSource) => void;
@@ -577,16 +579,26 @@
 					/>
 				</label>
 				{@render sourceSelector(chartSource, onChartSource)}
-				<ObsidianButton
-					class="knowledge-workspace-delete-view"
-					disabled={charts.length <= 1}
-					text="Delete view"
-					destructive={true}
-					onClick={() => {
-						onDeleteChart();
-						closeConfig();
-					}}
-				/>
+				<div class="knowledge-workspace-view-actions">
+					<ObsidianButton
+						text="Duplicate view"
+						disabled={readOnly}
+						onClick={() => {
+							onDuplicateChart();
+							closeConfig();
+						}}
+					/>
+					<ObsidianButton
+						class="knowledge-workspace-delete-view"
+						disabled={charts.length <= 1 || readOnly}
+						text="Delete view"
+						destructive={true}
+						onClick={() => {
+							onDeleteChart();
+							closeConfig();
+						}}
+					/>
+				</div>
 			</div>
 		{/if}
 	</div>

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	addChartInState,
 	deleteActiveChartInState,
+	duplicateActiveChartInState,
 	duplicateActiveChartAndSetSourceInState,
 	duplicateActiveChartAndSetTypeInState,
 	setActiveChartInState,
@@ -72,6 +73,22 @@ describe('workspace chart state', () => {
 		expect(result.runQuery).toBe(false);
 		expect(result.state.charts[0]?.id).toBe(state.charts[0]?.id);
 		expect(result.state.charts[0]?.name).toBe('Project graph');
+	});
+
+	it('duplicates the active chart without changing its configuration', () => {
+		const state = createWorkspaceState(100);
+
+		const result = duplicateActiveChartInState(state);
+
+		expect(result.runQuery).toBe(false);
+		expect(result.state.charts).toHaveLength(state.charts.length + 1);
+		expect(result.state.activeChartId).toBe('knowledge-map-copy');
+		expect(result.state.charts[0]).toEqual(state.charts[0]);
+		expect(result.state.charts.at(-1)).toEqual({
+			...state.charts[0],
+			id: 'knowledge-map-copy',
+			name: 'Graph copy',
+		});
 	});
 
 	it('changes chart type with a forced layout revision', () => {

@@ -1667,6 +1667,7 @@
 		{readOnly}
 		onSelectChart={switchActiveChart}
 		onCreateChart={(input) => controller.addChart(input)}
+		onDuplicateChart={() => controller.duplicateActiveChart()}
 		onRenameChart={(name) => controller.setActiveChartName(name)}
 		onChartType={requestChartTypeChange}
 		onChartSource={requestChartSourceChange}
