@@ -14,6 +14,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Reused Sigma's node and native-edge hover events when resolving pointer target priority, removing the extra GPU node pick and all-node nearest-target scan from passive mouse movement.
 - Removed the duplicate Sigma parallel-edge Canvas redraw after renderer refreshes; `afterRender` now owns normal Canvas synchronization, with one scheduled initial paint retained for new layers.
 - Split workspace state subscriptions, index/query refresh, connection writes, and template-note orchestration out of `WorkspaceController` into focused collaborators while preserving its public API.
 - Replaced settings-panel prop drilling with typed graph, label, query, style, suggestion, and group view/action ports; settings UI no longer receives the workspace controller or complete workspace state.

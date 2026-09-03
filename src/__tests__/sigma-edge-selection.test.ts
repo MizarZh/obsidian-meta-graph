@@ -57,6 +57,38 @@ describe('Sigma logical edge selection', () => {
 		expect(harness.clearHoveredEdge).toHaveBeenCalledWith('logical-edge');
 	});
 
+	it('reuses Sigma hover events instead of picking nodes again on mouse move', () => {
+		const harness = createHarness();
+		bindGraphEvents(harness.renderer, createCallbacks());
+		const moveBody = harness.mouseHandlers.get('mousemovebody')!;
+		const moveEvent = { x: 20, y: 30, preventSigmaDefault: vi.fn() };
+
+		harness.sigmaHandlers.get('enterNode')?.({ node: 'node-a' });
+		moveBody(moveEvent);
+		expect(harness.getNode).not.toHaveBeenCalled();
+		expect(harness.getCanvasEdge).not.toHaveBeenCalled();
+		expect(harness.getGroup).not.toHaveBeenCalled();
+		expect(harness.setHoveredGroup).toHaveBeenLastCalledWith(undefined);
+
+		harness.sigmaHandlers.get('leaveNode')?.({ node: 'node-a' });
+		harness.getLogicalEdgeId.mockReturnValue('logical-edge');
+		harness.sigmaHandlers.get('enterEdge')?.({ edge: 'segment-a' });
+		moveBody(moveEvent);
+		expect(harness.getCanvasEdge).not.toHaveBeenCalled();
+		expect(harness.getGroup).not.toHaveBeenCalled();
+
+		harness.sigmaHandlers.get('leaveEdge')?.({ edge: 'segment-a' });
+		harness.getCanvasEdge.mockReturnValue('canvas-edge');
+		moveBody(moveEvent);
+		expect(harness.getGroup).not.toHaveBeenCalled();
+
+		harness.getCanvasEdge.mockReturnValue(undefined);
+		harness.getGroup.mockReturnValue('group-a');
+		moveBody(moveEvent);
+		expect(harness.setHoveredGroup).toHaveBeenLastCalledWith('group-a');
+		expect(harness.getNode).not.toHaveBeenCalled();
+	});
+
 	it('routes right-click targets to context menus with selection priority', () => {
 		const harness = createHarness();
 		const callbacks = createCallbacks();
@@ -131,17 +163,17 @@ function createCallbacks(): GraphEventCallbacks & {
 function createHarness() {
 	const sigmaHandlers = new Map<string, (payload: unknown) => void>();
 	const mouseHandlers = new Map<string, (payload: unknown) => void>();
-	const getCanvasEdge = vi.fn<
-		(position: { x: number; y: number }) => string | undefined
-	>();
-	const getGroup = vi.fn<
-		(position: { x: number; y: number }) => string | undefined
-	>();
-	const getLogicalEdgeId = vi.fn<
-		(runtimeEdgeId: string) => string | undefined
-	>();
+	const getCanvasEdge =
+		vi.fn<(position: { x: number; y: number }) => string | undefined>();
+	const getGroup =
+		vi.fn<(position: { x: number; y: number }) => string | undefined>();
+	const getLogicalEdgeId =
+		vi.fn<(runtimeEdgeId: string) => string | undefined>();
+	const getNode =
+		vi.fn<(position: { x: number; y: number }) => string | undefined>();
 	const setHoveredEdge = vi.fn<(edgeId: string) => void>();
 	const clearHoveredEdge = vi.fn<(edgeId: string) => void>();
+	const setHoveredGroup = vi.fn<(groupId?: string) => void>();
 	const sigma = {
 		on: vi.fn((name: string, handler: (payload: unknown) => void) => {
 			sigmaHandlers.set(name, handler);
@@ -161,11 +193,13 @@ function createHarness() {
 	};
 	const renderer = {
 		instance: sigma,
+		getNodeAtViewportPosition: getNode,
 		getEdgeAtViewportPosition: getCanvasEdge,
 		getGroupAtViewportPosition: getGroup,
 		getLogicalEdgeId,
 		setHoveredEdge,
 		clearHoveredEdge,
+		setHoveredGroup,
 		clearPinnedHover: vi.fn(),
 		togglePinnedHover: vi.fn(),
 	} as unknown as SigmaRenderer;
@@ -175,8 +209,11 @@ function createHarness() {
 		getCanvasEdge,
 		getGroup,
 		getLogicalEdgeId,
+		getNode,
 		setHoveredEdge,
 		clearHoveredEdge,
+		setHoveredGroup,
+		mouseHandlers,
 	};
 }
 

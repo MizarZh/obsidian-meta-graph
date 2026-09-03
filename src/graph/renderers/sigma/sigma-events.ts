@@ -12,6 +12,8 @@ export function bindGraphEvents(
 	const mouseCaptor = sigma.getMouseCaptor();
 	let connectionDrag: ConnectionDragState | undefined;
 	let draggedNodeId: string | undefined;
+	let hoveredNodeId: string | undefined;
+	let hoveredNativeEdgeId: string | undefined;
 	let draggedNodeStart: { x: number; y: number } | undefined;
 	let draggedNodeViewportOffset: { x: number; y: number } | undefined;
 	let hasDraggedNode = false;
@@ -182,6 +184,7 @@ export function bindGraphEvents(
 
 	const enterNode = ({ node }: { node: string }) => {
 		if (!sigma.getGraph().getNodeAttribute(node, 'isBend')) {
+			hoveredNodeId = node;
 			if (connectionDrag && node !== connectionDrag.sourceNodeId) {
 				connectionDrag = { ...connectionDrag, targetNodeId: node };
 				callbacks.onConnectionDrag?.(connectionDrag);
@@ -190,6 +193,9 @@ export function bindGraphEvents(
 		}
 	};
 	const leaveNode = ({ node }: { node: string }) => {
+		if (hoveredNodeId === node) {
+			hoveredNodeId = undefined;
+		}
 		if (connectionDrag?.targetNodeId === node) {
 			connectionDrag = { ...connectionDrag, targetNodeId: undefined };
 			callbacks.onConnectionDrag?.(connectionDrag);
@@ -198,11 +204,19 @@ export function bindGraphEvents(
 	};
 	const enterEdge = ({ edge }: { edge: string }) => {
 		const logicalEdgeId = renderer.getLogicalEdgeId(edge);
-		if (logicalEdgeId) renderer.setHoveredEdge(logicalEdgeId);
+		if (logicalEdgeId) {
+			hoveredNativeEdgeId = logicalEdgeId;
+			renderer.setHoveredEdge(logicalEdgeId);
+		}
 	};
 	const leaveEdge = ({ edge }: { edge: string }) => {
 		const logicalEdgeId = renderer.getLogicalEdgeId(edge);
-		if (logicalEdgeId) renderer.clearHoveredEdge(logicalEdgeId);
+		if (logicalEdgeId) {
+			if (hoveredNativeEdgeId === logicalEdgeId) {
+				hoveredNativeEdgeId = undefined;
+			}
+			renderer.clearHoveredEdge(logicalEdgeId);
+		}
 	};
 	const downNode = ({
 		node,
@@ -290,7 +304,8 @@ export function bindGraphEvents(
 		if (!connectionDrag) {
 			const position = { x: event.x, y: event.y };
 			const hasHigherPriorityTarget = Boolean(
-				renderer.getNodeAtViewportPosition(position) ??
+				hoveredNodeId ??
+				hoveredNativeEdgeId ??
 				renderer.getEdgeAtViewportPosition(position),
 			);
 			renderer.setHoveredGroup(
