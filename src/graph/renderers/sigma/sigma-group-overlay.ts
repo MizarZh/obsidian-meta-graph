@@ -24,6 +24,7 @@ export interface GroupGeometry {
 
 export interface GroupInteractionCallbacks {
 	onSelectGroup?(groupId: string): void;
+	onContextMenu?(groupId: string, event: MouseEvent): void;
 	onMoveStart?(groupId: string): void;
 	onMovePreview?(groupId: string, delta: { x: number; y: number }): void;
 	onMoveCommit?(groupId: string, delta: { x: number; y: number }): void;
@@ -324,6 +325,12 @@ export class GroupOverlayLayer {
 		title.addEventListener('pointerdown', (event) =>
 			this.startInteraction(event, group.id, 'move'),
 		);
+		element.addEventListener('contextmenu', (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+			this.callbacks.onSelectGroup?.(group.id);
+			this.callbacks.onContextMenu?.(group.id, event);
+		});
 		element.appendChild(title);
 		for (const direction of [
 			'left',

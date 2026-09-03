@@ -6,6 +6,7 @@ export interface GraphEventCallbacks {
 	onSelectGroup?(groupId: string): void;
 	onHover(nodeId?: string): void;
 	onOpen(nodeId: string): void;
+	onContextMenu?(target: GraphContextMenuTarget, event: MouseEvent): void;
 	onNodeDrag?(
 		nodeId: string,
 		position: { x: number; y: number },
@@ -15,6 +16,12 @@ export interface GraphEventCallbacks {
 	onConnectionDrag?(state?: ConnectionDragState): void;
 	onConnect?(sourceNodeId: string, targetNodeId: string): void;
 }
+
+export type GraphContextMenuTarget =
+	| { kind: 'node'; nodeId: string }
+	| { kind: 'edge'; edgeId: string }
+	| { kind: 'group'; groupId: string }
+	| { kind: 'stage' };
 
 export interface ConnectionDragState {
 	sourceNodeId: string;

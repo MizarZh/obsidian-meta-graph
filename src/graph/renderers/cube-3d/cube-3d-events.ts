@@ -199,9 +199,12 @@ export function bindCube3DEvents(
 		);
 		event.preventDefault();
 		if (!nodeId) {
+			callbacks.onSelect(undefined);
+			callbacks.onContextMenu?.({ kind: 'stage' }, event);
 			return;
 		}
 		callbacks.onSelect(nodeId);
+		callbacks.onContextMenu?.({ kind: 'node', nodeId }, event);
 	};
 	const doubleClick = (event: MouseEvent) => {
 		const nodeId = renderer.getNodeAtViewportPosition(

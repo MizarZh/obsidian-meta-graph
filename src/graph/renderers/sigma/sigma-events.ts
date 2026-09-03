@@ -116,7 +116,68 @@ export function bindGraphEvents(
 		event.preventSigmaDefault();
 		if (!sigma.getGraph().getNodeAttribute(node, 'isBend')) {
 			callbacks.onSelect(node);
+			if (isMouseContextEvent(event.original)) {
+				callbacks.onContextMenu?.(
+					{ kind: 'node', nodeId: node },
+					event.original,
+				);
+			}
 		}
+	};
+	const rightClickEdge = ({
+		edge,
+		event,
+	}: {
+		edge: string;
+		event: {
+			original: MouseEvent | TouchEvent;
+			preventSigmaDefault(): void;
+		};
+	}) => {
+		event.original.preventDefault();
+		event.preventSigmaDefault();
+		const logicalEdgeId = renderer.getLogicalEdgeId(edge);
+		if (!logicalEdgeId || !isMouseContextEvent(event.original)) return;
+		callbacks.onSelectEdge?.(logicalEdgeId);
+		callbacks.onContextMenu?.(
+			{ kind: 'edge', edgeId: logicalEdgeId },
+			event.original,
+		);
+	};
+	const rightClickStage = ({
+		event,
+	}: {
+		event: {
+			x: number;
+			y: number;
+			original: MouseEvent | TouchEvent;
+			preventSigmaDefault(): void;
+		};
+	}) => {
+		event.original.preventDefault();
+		event.preventSigmaDefault();
+		if (!isMouseContextEvent(event.original)) return;
+		const position = { x: event.x, y: event.y };
+		const canvasEdgeId = renderer.getEdgeAtViewportPosition(position);
+		if (canvasEdgeId) {
+			callbacks.onSelectEdge?.(canvasEdgeId);
+			callbacks.onContextMenu?.(
+				{ kind: 'edge', edgeId: canvasEdgeId },
+				event.original,
+			);
+			return;
+		}
+		const groupId = renderer.getGroupAtViewportPosition(position);
+		if (groupId) {
+			callbacks.onSelectGroup?.(groupId);
+			callbacks.onContextMenu?.(
+				{ kind: 'group', groupId },
+				event.original,
+			);
+			return;
+		}
+		callbacks.onSelect(undefined);
+		callbacks.onContextMenu?.({ kind: 'stage' }, event.original);
 	};
 
 	const enterNode = ({ node }: { node: string }) => {
@@ -348,12 +409,20 @@ export function bindGraphEvents(
 		};
 	}
 
+	function isMouseContextEvent(
+		event: MouseEvent | TouchEvent,
+	): event is MouseEvent {
+		return 'clientX' in event && 'clientY' in event;
+	}
+
 	sigma.on('downNode', downNode);
 	sigma.on('clickNode', clickNode);
 	sigma.on('clickEdge', clickEdge);
 	sigma.on('doubleClickNode', doubleClickNode);
 	sigma.on('clickStage', clickStage);
 	sigma.on('rightClickNode', rightClickNode);
+	sigma.on('rightClickEdge', rightClickEdge);
+	sigma.on('rightClickStage', rightClickStage);
 	sigma.on('enterNode', enterNode);
 	sigma.on('leaveNode', leaveNode);
 	sigma.on('enterEdge', enterEdge);
@@ -372,6 +441,8 @@ export function bindGraphEvents(
 		sigma.off('doubleClickNode', doubleClickNode);
 		sigma.off('clickStage', clickStage);
 		sigma.off('rightClickNode', rightClickNode);
+		sigma.off('rightClickEdge', rightClickEdge);
+		sigma.off('rightClickStage', rightClickStage);
 		sigma.off('enterNode', enterNode);
 		sigma.off('leaveNode', leaveNode);
 		sigma.off('enterEdge', enterEdge);

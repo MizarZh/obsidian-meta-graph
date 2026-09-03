@@ -1,5 +1,8 @@
 import type { ViewMode } from '../../core/types';
-import type { ConnectionDragState } from '../../graph/renderers/renderer-events';
+import type {
+	ConnectionDragState,
+	GraphContextMenuTarget,
+} from '../../graph/renderers/renderer-events';
 import type { GraphPosition } from '../../graph/model/graphology-adapter';
 import {
 	getModeCapabilities,
@@ -35,6 +38,7 @@ export interface WorkspaceRendererEventOptions {
 	onSelectGroup(groupId: string): void;
 	onHover(nodeId?: string): void;
 	onOpen(nodeId: string): void;
+	onContextMenu?(target: GraphContextMenuTarget, event: MouseEvent): void;
 	onConnectionDrag(state: ConnectionDragState | undefined): void;
 	onConnect(sourceNodeId: string, targetNodeId: string): void;
 	onCommitManualNodePosition(
@@ -54,6 +58,8 @@ export function bindWorkspaceRendererEvents(
 		onSelectGroup: (groupId: string) => options.onSelectGroup(groupId),
 		onHover: (nodeId?: string) => options.onHover(nodeId),
 		onOpen: (nodeId: string) => options.onOpen(nodeId),
+		onContextMenu: (target: GraphContextMenuTarget, event: MouseEvent) =>
+			options.onContextMenu?.(target, event),
 		onConnectionDrag: (state?: ConnectionDragState) => {
 			if (!options.readOnly) options.onConnectionDrag(state);
 		},

@@ -123,8 +123,8 @@ settings to report them in the developer console.
     **Automatic** in Details to return the note to rule-based ownership.
 18. In Cube views, each cube face is a group. Drag the background to
     rotate the cube, drag nodes within their face to save their placement, use
-    `Shift`-click for local relationship focus, right-click for selection
-    details, and `Ctrl`/`Cmd`-drag between nodes to add links. Use **Face opacity** in
+    `Shift`-click for local relationship focus, right-click for a contextual menu,
+    and `Ctrl`/`Cmd`-drag between nodes to add links. Use **Face opacity** in
     **Graph** settings to control cube face transparency.
 19. Use **Details**, **Pinned notes**, and **Templates** in the right panel. Only
     one tab is shown at a time. Pinned notes use the same searchable, filterable

@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- Added context-aware graph menus for nodes, logical edges, groups, and blank canvas areas across Sigma, 3D, and Cube views. Menus expose safe navigation, focus, details, grouping, visibility, clipboard, and viewport actions while preserving right-click target selection.
+
 ### Fixed
 
 - Kept focused and pinned Sigma arrows at their base size while applying emphasis to line width.

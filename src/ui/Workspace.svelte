@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { App } from 'obsidian';
+	import { Menu, Notice, TFile, type App } from 'obsidian';
 	import { onMount } from 'svelte';
 	import type {
 		ChartSource,
@@ -20,7 +20,10 @@
 	} from '../workspace/meta-graph-v2/types';
 	import { createWorkspaceSessionState } from '../workspace/workspace-session';
 	import { formatError as formatErrorMessage } from '../core/errors';
-	import type { ConnectionDragState } from '../graph/renderers/renderer-events';
+	import type {
+		ConnectionDragState,
+		GraphContextMenuTarget,
+	} from '../graph/renderers/renderer-events';
 	import { readGraphPalette } from '../graph/styles/graph-styles';
 	import {
 		refreshRendererGraphVisibility,
@@ -748,14 +751,15 @@
 			setActiveNodeDropGroupId: (groupId) => {
 				activeNodeDropGroupId = groupId;
 			},
-				onSelect: (nodeId?: string) => controller.selectNode(nodeId),
-				onSelectEdge: (edgeId) => controller.selectEdge(edgeId),
-				onSelectGroup: (groupId) => controller.selectGroup(groupId),
+			onSelect: (nodeId?: string) => controller.selectNode(nodeId),
+			onSelectEdge: (edgeId) => controller.selectEdge(edgeId),
+			onSelectGroup: (groupId) => controller.selectGroup(groupId),
 			onHover: (nodeId?: string) => {
 				hoveredNodeId = nodeId;
 				rendererLifecycle.setHovered(nodeId);
 			},
 			onOpen: (nodeId) => void openNote(nodeId),
+			onContextMenu: showGraphContextMenu,
 			onConnectionDrag: setGraphConnectionDrag,
 			onConnect: connectVisibleNodes,
 			onCommitManualNodePosition: (nodeId, position, groupId) => {
@@ -772,6 +776,241 @@
 		await controller.openNode(nodeId);
 	}
 
+	async function openNoteInNewTab(nodeId: string): Promise<void> {
+		const file = app.vault.getAbstractFileByPath(nodeId);
+		if (file instanceof TFile) {
+			await app.workspace.getLeaf('tab').openFile(file);
+		}
+	}
+
+	function showGraphContextMenu(
+		target: GraphContextMenuTarget,
+		event: MouseEvent,
+	): void {
+		const menu = new Menu();
+		if (target.kind === 'node') {
+			addNodeContextMenuItems(menu, target.nodeId);
+		} else if (target.kind === 'edge') {
+			addEdgeContextMenuItems(menu, target.edgeId);
+		} else if (target.kind === 'group') {
+			addGroupContextMenuItems(menu, target.groupId);
+		} else {
+			addStageContextMenuItems(menu);
+		}
+		menu.showAtMouseEvent(event);
+	}
+
+	function addNodeContextMenuItems(menu: Menu, nodeId: string): void {
+		menu.addItem((item) =>
+			item
+				.setTitle('Open')
+				.setIcon('file')
+				.onClick(() => void openNote(nodeId)),
+		);
+		menu.addItem((item) =>
+			item
+				.setTitle('Open in new tab')
+				.setIcon('file-plus')
+				.onClick(() => void openNoteInNewTab(nodeId)),
+		);
+		menu.addItem((item) =>
+			item
+				.setTitle('Focus relationships')
+				.setIcon('pin')
+				.onClick(() => rendererLifecycle.togglePinnedHover(nodeId)),
+		);
+		menu.addItem((item) =>
+			item
+				.setTitle('Show details')
+				.setIcon('panel-right')
+				.onClick(showSelectionDetails),
+		);
+
+		const groups =
+			workspaceState.mode === 'cube'
+				? workspaceState.manualLayout.groups
+				: workspaceState.mode === 'graph' || workspaceState.mode === 'free'
+					? workspaceState.grouping.groups
+					: [];
+		if (groups.length > 0) {
+			menu.addSeparator();
+			const currentGroupId =
+				createWorkspaceGroupByNode(workspaceState).get(nodeId);
+			for (const group of groups) {
+				menu.addItem((item) =>
+					item
+						.setTitle(`Move to group: ${group.name}`)
+						.setIcon('folder-input')
+						.setChecked(currentGroupId === group.id)
+						.setDisabled(readOnly || currentGroupId === group.id)
+						.onClick(() => controller.setNodeGroup(nodeId, group.id)),
+				);
+			}
+			if (workspaceState.mode !== 'cube' && currentGroupId) {
+				menu.addItem((item) =>
+					item
+						.setTitle('Remove from group')
+						.setIcon('folder-minus')
+						.setDisabled(readOnly)
+						.onClick(() => controller.setNodeGroup(nodeId, null)),
+				);
+			}
+		}
+
+		menu.addSeparator();
+		if (workspaceState.chartSource === 'curated') {
+			menu.addItem((item) =>
+				item
+					.setTitle('Hide note')
+					.setIcon('eye-off')
+					.setDisabled(readOnly)
+					.onClick(() =>
+						controller.setCuratedFilesHidden([nodeId], true),
+					),
+			);
+		}
+		menu.addItem((item) =>
+			item
+				.setTitle('Copy wiki link')
+				.setIcon('copy')
+				.onClick(() =>
+					void copyContextText(`[[${nodeId.replace(/\.md$/i, '')}]]`),
+				),
+		);
+	}
+
+	function addEdgeContextMenuItems(menu: Menu, edgeId: string): void {
+		const edge = workspaceState.projection?.edges.find(
+			(item) => item.id === edgeId,
+		);
+		menu.addItem((item) =>
+			item
+				.setTitle('Show details')
+				.setIcon('panel-right')
+				.onClick(showSelectionDetails),
+		);
+		if (!edge) return;
+		const sourceTitle = getContextNodeTitle(edge.source);
+		const targetTitle = getContextNodeTitle(edge.target);
+		menu.addSeparator();
+		menu.addItem((item) =>
+			item
+				.setTitle(`Open source: ${sourceTitle}`)
+				.setIcon('file-input')
+				.onClick(() => void openNote(edge.source)),
+		);
+		menu.addItem((item) =>
+			item
+				.setTitle(`Open target: ${targetTitle}`)
+				.setIcon('file-output')
+				.onClick(() => void openNote(edge.target)),
+		);
+		menu.addItem((item) =>
+			item
+				.setTitle(`Focus source: ${sourceTitle}`)
+				.setIcon('pin')
+				.onClick(() => rendererLifecycle.togglePinnedHover(edge.source)),
+		);
+		menu.addItem((item) =>
+			item
+				.setTitle(`Focus target: ${targetTitle}`)
+				.setIcon('pin')
+				.onClick(() => rendererLifecycle.togglePinnedHover(edge.target)),
+		);
+		menu.addSeparator();
+		menu.addItem((item) =>
+			item
+				.setTitle('Copy relationship')
+				.setIcon('copy')
+				.onClick(() =>
+					void copyContextText(
+						`${sourceTitle} ${edge.directed ? `—[${edge.relation}]→` : `—[${edge.relation}]—`} ${targetTitle}`,
+					),
+				),
+		);
+	}
+
+	function addGroupContextMenuItems(menu: Menu, groupId: string): void {
+		const group = [
+			...workspaceState.grouping.groups,
+			...workspaceState.manualLayout.groups,
+		].find((item) => item.id === groupId);
+		menu.addItem((item) =>
+			item
+				.setTitle(group?.name ?? 'Group')
+				.setIcon('group')
+				.setIsLabel(true),
+		);
+		menu.addItem((item) =>
+			item
+				.setTitle('Show details')
+				.setIcon('panel-right')
+				.onClick(showSelectionDetails),
+		);
+	}
+
+	function addStageContextMenuItems(menu: Menu): void {
+		menu.addItem((item) =>
+			item
+				.setTitle('Fit graph')
+				.setIcon('maximize')
+				.onClick(() => rendererLifecycle.fit()),
+		);
+		menu.addItem((item) =>
+			item
+				.setTitle('Reset zoom')
+				.setIcon('scan')
+				.onClick(() => rendererLifecycle.setZoomLevel(100)),
+		);
+		menu.addItem((item) =>
+			item
+				.setTitle('Refresh')
+				.setIcon('refresh-cw')
+				.onClick(() => void controller.refresh(true)),
+		);
+		menu.addSeparator();
+		menu.addItem((item) =>
+			item
+				.setTitle('Clear selection and focus')
+				.setIcon('circle-off')
+				.onClick(() => {
+					rendererLifecycle.clearPinnedHover();
+					controller.selectNode(undefined);
+				}),
+		);
+		if (workspaceState.mode === 'graph' || workspaceState.mode === 'free') {
+			menu.addItem((item) =>
+				item
+					.setTitle('Add group')
+					.setIcon('folder-plus')
+					.setDisabled(readOnly)
+					.onClick(() => controller.addGroup()),
+			);
+		}
+	}
+
+	function showSelectionDetails(): void {
+		rightPanelTab = 'details';
+		dockOpen = true;
+		persistSession();
+	}
+
+	function getContextNodeTitle(nodeId: string): string {
+		return (
+			workspaceState.projection?.nodes.find((node) => node.id === nodeId)
+				?.title ?? nodeId
+		);
+	}
+
+	async function copyContextText(value: string): Promise<void> {
+		try {
+			await navigator.clipboard.writeText(value);
+			new Notice('Copied to clipboard');
+		} catch {
+			new Notice('Unable to copy to clipboard');
+		}
+	}
+
 	function syncRendererGroups(): void {
 		const groupByNode = createWorkspaceGroupByNode(workspaceState);
 		syncWorkspaceRendererGroups(
@@ -784,6 +1023,8 @@
 			workspaceState.enableForceLayout,
 			{
 				onSelectGroup: (groupId) => controller.selectGroup(groupId),
+				onContextMenu: (groupId, event) =>
+					showGraphContextMenu({ kind: 'group', groupId }, event),
 				onMoveStart: () => {
 					if (workspaceState.mode === 'graph') {
 						rendererLifecycle.stopForceLayoutSimulation();

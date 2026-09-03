@@ -41,6 +41,18 @@ export function bindForce3DEvents(
 		.onNodeRightClick((node, event) => {
 			event.preventDefault();
 			callbacks.onSelect(node.id);
+			callbacks.onContextMenu?.(
+				{ kind: 'node', nodeId: node.id },
+				event,
+			);
+		})
+		.onLinkRightClick((link, event) => {
+			event.preventDefault();
+			callbacks.onSelectEdge?.(link.id);
+			callbacks.onContextMenu?.(
+				{ kind: 'edge', edgeId: link.id },
+				event,
+			);
 		})
 		.onNodeHover((node) => {
 			callbacks.onHover(node?.id);
@@ -48,6 +60,11 @@ export function bindForce3DEvents(
 		.onBackgroundClick(() => {
 			renderer.clearPinnedHover();
 			callbacks.onSelect(undefined);
+		})
+		.onBackgroundRightClick((event) => {
+			event.preventDefault();
+			callbacks.onSelect(undefined);
+			callbacks.onContextMenu?.({ kind: 'stage' }, event);
 		});
 
 	const pointerDown = (event: PointerEvent) => {
@@ -166,8 +183,10 @@ export function bindForce3DEvents(
 		instance
 			.onNodeClick(() => undefined)
 			.onNodeRightClick(() => undefined)
+			.onLinkRightClick(() => undefined)
 			.onNodeHover(() => undefined)
-			.onBackgroundClick(() => undefined);
+			.onBackgroundClick(() => undefined)
+			.onBackgroundRightClick(() => undefined);
 		element.removeEventListener('pointerdown', pointerDown, {
 			capture: true,
 		});

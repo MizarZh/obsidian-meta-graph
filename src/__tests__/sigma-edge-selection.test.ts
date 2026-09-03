@@ -56,17 +56,73 @@ describe('Sigma logical edge selection', () => {
 		expect(harness.setHoveredEdge).toHaveBeenCalledWith('logical-edge');
 		expect(harness.clearHoveredEdge).toHaveBeenCalledWith('logical-edge');
 	});
+
+	it('routes right-click targets to context menus with selection priority', () => {
+		const harness = createHarness();
+		const callbacks = createCallbacks();
+		bindGraphEvents(harness.renderer, callbacks);
+		const original = {
+			clientX: 20,
+			clientY: 30,
+			preventDefault: vi.fn(),
+		} as unknown as MouseEvent;
+		const event = {
+			original,
+			preventSigmaDefault: vi.fn(),
+		};
+
+		harness.getLogicalEdgeId.mockReturnValue('logical-edge');
+		harness.sigmaHandlers.get('rightClickEdge')?.({
+			edge: 'flow-segment',
+			event,
+		});
+		expect(callbacks.onSelectEdge).toHaveBeenCalledWith('logical-edge');
+		expect(callbacks.onContextMenu).toHaveBeenCalledWith(
+			{ kind: 'edge', edgeId: 'logical-edge' },
+			original,
+		);
+
+		harness.getCanvasEdge.mockReturnValue('canvas-edge');
+		harness.sigmaHandlers.get('rightClickStage')?.({
+			event: { ...event, x: 20, y: 30 },
+		});
+		expect(callbacks.onContextMenu).toHaveBeenLastCalledWith(
+			{ kind: 'edge', edgeId: 'canvas-edge' },
+			original,
+		);
+
+		harness.getCanvasEdge.mockReturnValue(undefined);
+		harness.getGroup.mockReturnValue('group-a');
+		harness.sigmaHandlers.get('rightClickStage')?.({
+			event: { ...event, x: 20, y: 30 },
+		});
+		expect(callbacks.onContextMenu).toHaveBeenLastCalledWith(
+			{ kind: 'group', groupId: 'group-a' },
+			original,
+		);
+
+		harness.getGroup.mockReturnValue(undefined);
+		harness.sigmaHandlers.get('rightClickStage')?.({
+			event: { ...event, x: 20, y: 30 },
+		});
+		expect(callbacks.onContextMenu).toHaveBeenLastCalledWith(
+			{ kind: 'stage' },
+			original,
+		);
+	});
 });
 
 function createCallbacks(): GraphEventCallbacks & {
 	onSelect: ReturnType<typeof vi.fn>;
 	onSelectEdge: ReturnType<typeof vi.fn>;
 	onSelectGroup: ReturnType<typeof vi.fn>;
+	onContextMenu: ReturnType<typeof vi.fn>;
 } {
 	return {
 		onSelect: vi.fn(),
 		onSelectEdge: vi.fn(),
 		onSelectGroup: vi.fn(),
+		onContextMenu: vi.fn(),
 		onHover: vi.fn(),
 		onOpen: vi.fn(),
 	};
