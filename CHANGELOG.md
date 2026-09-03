@@ -14,6 +14,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Moved workspace renderer refresh decisions into a pure render plan and fixed-order coordinator, keeping rebuild, display, style, visibility, group, force-layout, and selection updates explicit.
 - Reduced large-graph rebuild work by indexing initial-position adjacency, batching Group ownership resolution, caching query filter results, and resolving each link style rule set once per edge.
 - Reorganized renderer construction, capability policy, and refresh operations behind typed options and small adapter modules without changing renderer behavior.
 - Captured full runtime graph diagnostics only while Debug is open, avoiding normal-render serialization and redundant workspace notifications.

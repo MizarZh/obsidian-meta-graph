@@ -5,7 +5,6 @@
 		ChartSource,
 		DebugSnapshot,
 		DockConnectionDirection,
-		GraphProjection,
 		KnowledgeNode,
 		NodeOpenMode,
 		SettingsPanelMode,
@@ -24,12 +23,7 @@
 		ConnectionDragState,
 		GraphContextMenuTarget,
 	} from '../graph/renderers/renderer-events';
-	import { readGraphPalette } from '../graph/styles/graph-styles';
-	import {
-		refreshRendererGraphVisibility,
-		refreshRendererGraphStyles,
-		type GraphRenderer,
-	} from '../graph/renderers/renderer-adapter';
+	import type { GraphRenderer } from '../graph/renderers/renderer-adapter';
 	import {
 		LayoutSnapshotStore,
 		type LayoutSnapshot,
@@ -59,7 +53,6 @@
 		getWorkspaceNodeColor,
 		getWorkspaceNodeColors,
 	} from './workspace/derived';
-	import { syncRendererDisplaySettings } from './workspace/renderer-display-sync';
 	import { shouldCloseSettingsPanelForChartSource } from './workspace/settings-panel';
 	import {
 		readInteractiveAccentColor,
@@ -71,16 +64,6 @@
 		openWorkspaceCreateTemplateNote,
 	} from './workspace/workspace-template-flow';
 	import { WorkspaceAutoSave } from './workspace/autosave';
-	import {
-		analyzeWorkspaceStateChanges,
-		createWorkspaceRenderBaseline,
-		syncWorkspaceRenderBaselineStyles,
-		type WorkspaceRenderBaseline,
-	} from './workspace/change-tracker';
-	import {
-		syncWorkspaceRuntimeGraphStyles,
-		syncWorkspaceRuntimeGraphVisibility,
-	} from './workspace/runtime-graph';
 	import { bindWorkspaceRendererEvents } from './workspace/renderer-events';
 	import {
 		moveWorkspaceRuntimeGroupNodes,
@@ -90,6 +73,7 @@
 		createWorkspaceGroupByNode,
 		WorkspaceRendererLifecycle,
 	} from './workspace/renderer-lifecycle';
+	import { WorkspaceRenderCoordinator } from './workspace/renderer-coordinator';
 	import {
 		DockCuratedDropController,
 		type DockCuratedDropAction,
@@ -171,7 +155,6 @@
 	let lastThemeSignature = '';
 	let lastCanvasWidth = 0;
 	let lastCanvasHeight = 0;
-	let renderBaseline: WorkspaceRenderBaseline = {};
 	let debugOpen = $state(false);
 	let settingsPanel = $state<SettingsPanelMode | undefined>(undefined);
 	let settingsPopoverLeft = $state(0);
@@ -208,11 +191,6 @@
 	let graphLoadingTarget = $state<string | undefined>(undefined);
 	let suppressNodeOpenUntil = 0;
 	let activeNodeDropGroupId: string | undefined;
-	let visibilityPaintFrame: number | undefined;
-	let visibilityApplyFrame: number | undefined;
-	let pendingVisibilityRenderer: GraphRenderer | undefined;
-	let pendingVisibilityPrevious: GraphProjection | undefined;
-	let pendingVisibilityNext: GraphProjection | undefined;
 	const activeChartName = $derived(
 		workspaceState.charts.find(
 			(chart) => chart.id === workspaceState.activeChartId,
@@ -249,6 +227,20 @@
 		readHoveredNodeId: () => hoveredNodeId,
 		isLargeVaultModeActive: () => controller.isLargeVaultModeActive(),
 		yieldToMainThread: () => yieldForLargeVault(),
+		recordPerformance: (name, durationMs, details) =>
+			controller.recordPerformance(name, durationMs, details),
+	});
+	const renderCoordinator = new WorkspaceRenderCoordinator({
+		window,
+		rendererLifecycle,
+		readCanvas: () => canvas,
+		readHoveredNodeId: () => hoveredNodeId,
+		syncRendererGroups: () => syncRendererGroups(),
+		setRendererError: (error) =>
+			controller.setRendererDebugState({
+				status: 'error',
+				error: formatError(error),
+			}),
 		recordPerformance: (name, durationMs, details) =>
 			controller.recordPerformance(name, durationMs, details),
 	});
@@ -393,108 +385,6 @@
 		);
 	}
 
-	function scheduleRendererVisibilitySync(
-		renderer: GraphRenderer,
-		previousProjection: GraphProjection | undefined,
-		nextProjection: GraphProjection,
-	): void {
-		if (pendingVisibilityRenderer !== renderer) {
-			pendingVisibilityPrevious = previousProjection;
-		}
-		pendingVisibilityRenderer = renderer;
-		pendingVisibilityNext = nextProjection;
-		if (
-			visibilityPaintFrame !== undefined ||
-			visibilityApplyFrame !== undefined
-		) {
-			return;
-		}
-		visibilityPaintFrame = window.requestAnimationFrame(() => {
-			visibilityPaintFrame = undefined;
-			visibilityApplyFrame = window.requestAnimationFrame(() => {
-				visibilityApplyFrame = undefined;
-				applyPendingRendererVisibility();
-			});
-		});
-	}
-
-	function applyPendingRendererVisibility(): void {
-		const renderer = pendingVisibilityRenderer;
-		const previousProjection = pendingVisibilityPrevious;
-		const nextProjection = pendingVisibilityNext;
-		pendingVisibilityRenderer = undefined;
-		pendingVisibilityPrevious = undefined;
-		pendingVisibilityNext = undefined;
-		if (
-			!renderer ||
-			!nextProjection ||
-			rendererLifecycle.renderer !== renderer
-		) {
-			return;
-		}
-		const changedNodeIds = readChangedVisibilityNodeIds(
-			previousProjection,
-			nextProjection,
-		);
-		if (changedNodeIds.length === 0) {
-			return;
-		}
-		const startedAt = performance.now();
-		const changes = syncWorkspaceRuntimeGraphVisibility(
-			renderer.runtimeGraph,
-			nextProjection,
-			changedNodeIds,
-		);
-		if (changes.nodeIds.length > 0 || changes.edgeIds.length > 0) {
-			refreshRendererGraphVisibility(renderer, changes);
-		}
-		controller.recordPerformance(
-			'render.visibility',
-			performance.now() - startedAt,
-			{
-				nodeCount: changes.nodeIds.length,
-				edgeCount: changes.edgeIds.length,
-			},
-		);
-	}
-
-	function cancelPendingRendererVisibilitySync(): void {
-		if (visibilityPaintFrame !== undefined) {
-			window.cancelAnimationFrame(visibilityPaintFrame);
-			visibilityPaintFrame = undefined;
-		}
-		if (visibilityApplyFrame !== undefined) {
-			window.cancelAnimationFrame(visibilityApplyFrame);
-			visibilityApplyFrame = undefined;
-		}
-		pendingVisibilityRenderer = undefined;
-		pendingVisibilityPrevious = undefined;
-		pendingVisibilityNext = undefined;
-	}
-
-	function readChangedVisibilityNodeIds(
-		previousProjection: GraphProjection | undefined,
-		nextProjection: GraphProjection,
-	): string[] {
-		if (!previousProjection) {
-			return nextProjection.nodes.map((node) => node.id);
-		}
-		const previousHidden = previousProjection.hiddenNodeIds ?? new Set();
-		const nextHidden = nextProjection.hiddenNodeIds ?? new Set();
-		const changed = new Set<string>();
-		for (const nodeId of previousHidden) {
-			if (!nextHidden.has(nodeId)) {
-				changed.add(nodeId);
-			}
-		}
-		for (const nodeId of nextHidden) {
-			if (!previousHidden.has(nodeId)) {
-				changed.add(nodeId);
-			}
-		}
-		return [...changed];
-	}
-
 	function toggleDock(): void {
 		dockOpen = !dockOpen;
 		persistSession();
@@ -591,18 +481,8 @@
 
 		const unsubscribe = controller.subscribe((nextState) => {
 			const previousState = workspaceState;
-			const changes = analyzeWorkspaceStateChanges(
-				nextState,
-				previousState,
-				renderBaseline,
-			);
 			workspaceState = nextState;
 			persistSession(nextState);
-			if (changes.manualLayoutChanged) {
-				renderBaseline.manualLayout = nextState.manualLayout;
-				renderBaseline.grouping = nextState.grouping;
-				syncRendererGroups();
-			}
 			if (
 				shouldCloseSettingsPanelForChartSource(
 					settingsPanel,
@@ -612,72 +492,12 @@
 				settingsPanel = undefined;
 			}
 			autoSave.schedule(nextState);
-			const currentRenderer = rendererLifecycle.renderer;
-			syncRendererDisplaySettings(currentRenderer, nextState, changes);
-			if (
-				(changes.styleRulesChanged ||
-					changes.manualLayoutChanged ||
-					changes.graphVisibilityChanged) &&
-				!changes.shouldRebuild &&
-				currentRenderer &&
-				nextState.projection &&
-				canvas
-			) {
-				if (
-					changes.graphVisibilityChanged &&
-					!changes.styleRulesChanged &&
-					!changes.manualLayoutChanged
-				) {
-					scheduleRendererVisibilitySync(
-						currentRenderer,
-						previousState.projection,
-						nextState.projection,
-					);
-				} else {
-					cancelPendingRendererVisibilitySync();
-					syncWorkspaceRuntimeGraphStyles(
-						currentRenderer.runtimeGraph,
-						nextState.projection,
-						nextState,
-						readGraphPalette(canvas),
-					);
-					refreshRendererGraphStyles(currentRenderer);
-				}
-				syncWorkspaceRenderBaselineStyles(renderBaseline, nextState);
-			}
-			if (changes.forceLayoutChanged) {
-				rendererLifecycle.handleForceLayoutToggle(
-					nextState.enableForceLayout,
-				);
-				syncRendererGroups();
-			}
-			if (changes.graphForceSettingsChanged) {
-				rendererLifecycle.restartSigmaForceLayoutIfNeeded();
-			}
-			if (changes.shouldRebuild) {
-				cancelPendingRendererVisibilitySync();
-				renderBaseline = createWorkspaceRenderBaseline(nextState);
-				void rendererLifecycle
-					.rebuild(changes.fitAfterRender, changes.forceLayout)
-					.catch((error: unknown) => {
-						controller.setRendererDebugState({
-							status: 'error',
-							error: formatError(error),
-						});
-					});
-			} else {
-				rendererLifecycle.setSelection(
-					nextState.selectedNodeId,
-					nextState.selectedEdgeId,
-					nextState.selectedGroupId,
-				);
-				rendererLifecycle.setHovered(hoveredNodeId);
-			}
+			renderCoordinator.apply(nextState, previousState);
 		});
 
 		return () => {
 			graphLoadingCoordinator.dispose();
-			cancelPendingRendererVisibilitySync();
+			renderCoordinator.dispose();
 			autoSave.flush();
 			unsubscribe();
 			resizeObserver.disconnect();
