@@ -68,6 +68,7 @@ pnpm exec vitest run src/__tests__/core.test.ts src/__tests__/workspace-persiste
 - `src/ui/filter/`: pure helpers for filter tree editing, style-rule operations, and throttled/deferred setting commits.
 - `src/ui/workspace/change-tracker.ts`: classifies workspace changes into rebuild, display sync, style sync, and layout flags.
 - `src/ui/workspace/render-plan.ts` and `renderer-coordinator.ts`: convert change flags into an explicit render plan and apply renderer updates in fixed order.
+- `src/ui/workspace/settings-ports.ts`: projects workspace state and controller commands into domain-specific settings view/action ports.
 - `src/ui/workspace/runtime-graph.ts`: creates runtime Graphology graphs and syncs style-only changes onto existing runtime graphs.
 - `src/ui/workspace/renderer-events.ts`: workspace renderer event policy for Sigma, 3D, and Cube renderers.
 - `src/ui/workspace/renderer-groups.ts`: renderer group overlay sync and runtime group movement previews.

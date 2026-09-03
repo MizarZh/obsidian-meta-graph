@@ -60,7 +60,6 @@
 		onCubeSize,
 		onCubeFreeCamera,
 		onEnableForceLayout,
-		onGraphSpacing,
 		onGraphCenterForce,
 		onGraphRepelForce,
 		onGraphLinkForce,
@@ -112,7 +111,6 @@
 		onCubeSize: (value: number) => void;
 		onCubeFreeCamera: (value: boolean) => void;
 		onEnableForceLayout: (value: boolean) => void;
-		onGraphSpacing: (spacing: number) => void;
 		onGraphCenterForce: (value: number) => void;
 		onGraphRepelForce: (value: number) => void;
 		onGraphLinkForce: (value: number) => void;
@@ -221,13 +219,6 @@
 
 	function formatCompact(value: number, precision: number): string {
 		return value.toFixed(precision).replace(/\.?0+$/u, '');
-	}
-
-	function commitSpacing(spacing: number): void {
-		if (mode === 'graph' || mode === 'graph-3d' || mode === 'cube') {
-			onGraphSpacing(spacing);
-		}
-		if (mode === 'arc') onArcSpacing(spacing);
 	}
 
 	const NODE_SORT_OPTIONS: Array<{ value: LayoutNodeSort; label: string }> = [
@@ -430,8 +421,8 @@
 				max={4}
 				step={0.25}
 				format={(value) => formatCompact(value, 2)}
-				onChange={commitSpacing}
-				onCommit={commitSpacing}
+				onChange={onArcSpacing}
+				onCommit={onArcSpacing}
 			/>
 		</SettingsSection>
 	{/if}

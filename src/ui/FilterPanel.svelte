@@ -1,435 +1,187 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
+	import type { SettingsPanelMode } from '../core/types';
+	import type {
+		WorkspaceSettingsActions,
+		WorkspaceSettingsView,
+	} from './workspace/settings-ports';
 	import FilterRulesPanel from './filter-panel/FilterRulesPanel.svelte';
 	import GraphSettingsPanel from './filter-panel/GraphSettingsPanel.svelte';
 	import LinkStylePanel from './filter-panel/LinkStylePanel.svelte';
 	import NodeStylePanel from './filter-panel/NodeStylePanel.svelte';
 	import StyleTransferControls from './filter-panel/StyleTransferControls.svelte';
 	import TextStylePanel from './filter-panel/TextStylePanel.svelte';
-	import type {
-		ArcDirection,
-		ArcLabelAngle,
-		ChartGroupDefinition,
-		ChartStyleConfig,
-		DefaultLinkStyle,
-		DefaultNodeStyle,
-		FlowDirection,
-		FlowEdgeStyle,
-		FlowRelationRule,
-		GraphQuery,
-		LabelPosition,
-		LayoutNodeSort,
-		LayoutSortDirection,
-		LinkStyleRule,
-		NodeStyleRule,
-		SettingsPanelMode,
-		ThreeLabelResolution,
-		ViewMode,
-	} from '../core/types';
 
 	let {
 		app,
 		panel,
-		mode,
-		fadeDistance,
-		labelSize,
-		scaleLabelsWithZoom,
-		threeLabelResolution,
-		labelBold,
-		labelItalic,
-		labelPosition,
-		labelOffset,
-		labelLightTextColor,
-		labelLightBackgroundColor,
-		labelLightBackgroundOpacity,
-		labelDarkTextColor,
-		labelDarkBackgroundColor,
-		labelDarkBackgroundOpacity,
-		labelDensity,
-		cubeFaceOpacity,
-		cubeSize,
-		cubeFreeCamera,
-		forceLabels,
-		enableForceLayout,
-		flowEdgeStyle,
-		flowDirection,
-		flowCornerRadius,
-		flowRelationRules,
-		flowRelationConflictCount,
-		flowRelationFieldSuggestions,
-		arcDirection,
-		arcLabelAngle,
-		nodeSort,
-		nodeSortDirection,
-		graphSpacing,
-		graphCenterForce,
-		graphRepelForce,
-		graphLinkForce,
-		graphDragLinkForce,
-		graphReturnForce,
-		graphLinkDistance,
-		flowLayerSpacing,
-		flowLaneSpacing,
-		arcSpacing,
-		query,
-		globalQuery,
-		folders,
-		tags,
-		metadataFieldSuggestions,
-		metadataFieldTypes,
-		metadataFieldValueSuggestions,
-		filePathSuggestions,
-		groups,
-		defaultNodeStyle,
-		defaultLinkStyle,
-		globalNodeStyleRules,
-		nodeStyleOverrides,
-		unresolvedNodeStyleOverrides,
-		nodeStyleRules,
-		globalLinkStyleRules,
-		linkStyleOverrides,
-		plainLinkStyleOverrides,
-		unresolvedLinkStyleOverrides,
-		linkStyleRules,
-		onFlowEdgeStyle,
-		onFlowDirection,
-		onFlowCornerRadius,
-		onFlowRelationRules,
-		onArcDirection,
-		onArcLabelAngle,
-		onLayoutNodeSort,
-		onLayoutSortDirection,
-		onFadeDistance,
-		onLabelSize,
-		onScaleLabelsWithZoom,
-		onThreeLabelResolution,
-		onLabelBold,
-		onLabelItalic,
-		onLabelPosition,
-		onLabelOffset,
-		onLabelLightTextColor,
-		onLabelLightBackgroundColor,
-		onLabelLightBackgroundOpacity,
-		onLabelDarkTextColor,
-		onLabelDarkBackgroundColor,
-		onLabelDarkBackgroundOpacity,
-		onLabelDensity,
-		onCubeFaceOpacity,
-		onCubeSize,
-		onCubeFreeCamera,
-		onForceLabels,
-		onEnableForceLayout,
-		onGraphSpacing,
-		onGraphCenterForce,
-		onGraphRepelForce,
-		onGraphLinkForce,
-		onGraphDragLinkForce,
-		onGraphReturnForce,
-		onGraphLinkDistance,
-		onFlowLayerSpacing,
-		onFlowLaneSpacing,
-		onArcSpacing,
-		onChange,
-		onGlobalChange,
-		onDefaultNodeStyle,
-		onDefaultLinkStyle,
-		onGlobalNodeStyleRulesChange,
-		onNodeStyleOverrides,
-		onUnresolvedNodeStyleOverrides,
-		onNodeStyleRulesChange,
-		onGlobalLinkStyleRulesChange,
-		onLinkStyleOverrides,
-		onPlainLinkStyleOverrides,
-		onUnresolvedLinkStyleOverrides,
-		onLinkStyleRulesChange,
-		onMoveNodeStyleRule,
-		onMoveLinkStyleRule,
-		onChartStyle,
+		view,
+		actions,
 	}: {
 		app: App;
 		panel: SettingsPanelMode;
-		mode: ViewMode;
-		fadeDistance: number;
-		labelSize: number;
-		scaleLabelsWithZoom: boolean;
-		threeLabelResolution: ThreeLabelResolution;
-		labelBold: boolean;
-		labelItalic: boolean;
-		labelPosition: LabelPosition;
-		labelOffset: number;
-		labelLightTextColor: string;
-		labelLightBackgroundColor: string;
-		labelLightBackgroundOpacity: number;
-		labelDarkTextColor: string;
-		labelDarkBackgroundColor: string;
-		labelDarkBackgroundOpacity: number;
-		labelDensity: number;
-		cubeFaceOpacity: number;
-		cubeSize: number;
-		cubeFreeCamera: boolean;
-		forceLabels: boolean;
-		enableForceLayout: boolean;
-		flowEdgeStyle: FlowEdgeStyle;
-		flowDirection: FlowDirection;
-		flowCornerRadius: number;
-		flowRelationRules: FlowRelationRule[];
-		flowRelationConflictCount: number;
-		flowRelationFieldSuggestions: string[];
-		arcDirection: ArcDirection;
-		arcLabelAngle: ArcLabelAngle;
-		nodeSort: LayoutNodeSort;
-		nodeSortDirection: LayoutSortDirection;
-		graphSpacing: number;
-		graphCenterForce: number;
-		graphRepelForce: number;
-		graphLinkForce: number;
-		graphDragLinkForce: number;
-		graphReturnForce: number;
-		graphLinkDistance: number;
-		flowLayerSpacing: number;
-		flowLaneSpacing: number;
-		arcSpacing: number;
-		query: GraphQuery;
-		globalQuery: GraphQuery;
-		folders: string[];
-		tags: string[];
-		metadataFieldSuggestions: string[];
-		metadataFieldTypes: Record<string, string>;
-		metadataFieldValueSuggestions: Record<string, string[]>;
-		filePathSuggestions: string[];
-		groups: ChartGroupDefinition[];
-		defaultNodeStyle: Required<DefaultNodeStyle>;
-		defaultLinkStyle: Required<DefaultLinkStyle>;
-		globalNodeStyleRules: NodeStyleRule[];
-		nodeStyleOverrides: DefaultNodeStyle;
-		unresolvedNodeStyleOverrides: DefaultNodeStyle;
-		nodeStyleRules: NodeStyleRule[];
-		globalLinkStyleRules: LinkStyleRule[];
-		linkStyleOverrides: DefaultLinkStyle;
-		plainLinkStyleOverrides: DefaultLinkStyle;
-		unresolvedLinkStyleOverrides: DefaultLinkStyle;
-		linkStyleRules: LinkStyleRule[];
-		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
-		onFlowDirection: (direction: FlowDirection) => void;
-		onFlowCornerRadius: (radius: number) => void;
-		onFlowRelationRules: (rules: FlowRelationRule[]) => void;
-		onArcDirection: (direction: ArcDirection) => void;
-		onArcLabelAngle: (angle: ArcLabelAngle) => void;
-		onLayoutNodeSort: (sort: LayoutNodeSort) => void;
-		onLayoutSortDirection: (direction: LayoutSortDirection) => void;
-		onFadeDistance: (value: number) => void;
-		onLabelSize: (value: number) => void;
-		onScaleLabelsWithZoom: (value: boolean) => void;
-		onThreeLabelResolution: (value: ThreeLabelResolution) => void;
-		onLabelBold: (value: boolean) => void;
-		onLabelItalic: (value: boolean) => void;
-		onLabelPosition: (position: LabelPosition) => void;
-		onLabelOffset: (value: number) => void;
-		onLabelLightTextColor: (color: string) => void;
-		onLabelLightBackgroundColor: (color: string) => void;
-		onLabelLightBackgroundOpacity: (value: number) => void;
-		onLabelDarkTextColor: (color: string) => void;
-		onLabelDarkBackgroundColor: (color: string) => void;
-		onLabelDarkBackgroundOpacity: (value: number) => void;
-		onLabelDensity: (value: number) => void;
-		onCubeFaceOpacity: (value: number) => void;
-		onCubeSize: (value: number) => void;
-		onCubeFreeCamera: (value: boolean) => void;
-		onForceLabels: (value: boolean) => void;
-		onEnableForceLayout: (value: boolean) => void;
-		onGraphSpacing: (spacing: number) => void;
-		onGraphCenterForce: (value: number) => void;
-		onGraphRepelForce: (value: number) => void;
-		onGraphLinkForce: (value: number) => void;
-		onGraphDragLinkForce: (value: number) => void;
-		onGraphReturnForce: (value: number) => void;
-		onGraphLinkDistance: (value: number) => void;
-		onFlowLayerSpacing: (spacing: number) => void;
-		onFlowLaneSpacing: (spacing: number) => void;
-		onArcSpacing: (spacing: number) => void;
-		onChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
-		onGlobalChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
-		onDefaultNodeStyle: (style: Required<DefaultNodeStyle>) => void;
-		onDefaultLinkStyle: (style: Required<DefaultLinkStyle>) => void;
-		onGlobalNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
-		onNodeStyleOverrides: (style: DefaultNodeStyle) => void;
-		onUnresolvedNodeStyleOverrides: (style: DefaultNodeStyle) => void;
-		onNodeStyleRulesChange: (rules: NodeStyleRule[]) => void;
-		onGlobalLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
-		onLinkStyleOverrides: (style: DefaultLinkStyle) => void;
-		onPlainLinkStyleOverrides: (style: DefaultLinkStyle) => void;
-		onUnresolvedLinkStyleOverrides: (style: DefaultLinkStyle) => void;
-		onLinkStyleRulesChange: (rules: LinkStyleRule[]) => void;
-		onMoveNodeStyleRule: (
-			id: string,
-			targetScope: 'global' | 'current',
-		) => void;
-		onMoveLinkStyleRule: (
-			id: string,
-			targetScope: 'global' | 'current',
-		) => void;
-		onChartStyle: (style: ChartStyleConfig) => void;
+		view: WorkspaceSettingsView;
+		actions: WorkspaceSettingsActions;
 	} = $props();
-
-	const chartStyle = $derived({
-		nodeOverrides: nodeStyleOverrides,
-		unresolvedNodeOverrides: unresolvedNodeStyleOverrides,
-		linkOverrides: linkStyleOverrides,
-		plainLinkOverrides: plainLinkStyleOverrides,
-		unresolvedLinkOverrides: unresolvedLinkStyleOverrides,
-		nodeRules: nodeStyleRules,
-		linkRules: linkStyleRules,
-	} satisfies ChartStyleConfig);
 </script>
 
 <aside class="knowledge-workspace-filters">
 	{#if panel === 'note-style' || panel === 'link-style'}
-		<StyleTransferControls style={chartStyle} onPaste={onChartStyle} />
+		<StyleTransferControls
+			style={view.styles.chart}
+			onPaste={actions.styles.setChart}
+		/>
 	{/if}
 	{#if panel === 'graph'}
 		<GraphSettingsPanel
 			{app}
-			{mode}
-			{fadeDistance}
-			{labelDensity}
-			{cubeFaceOpacity}
-			{cubeSize}
-			{cubeFreeCamera}
-			{enableForceLayout}
-			{flowEdgeStyle}
-			{flowDirection}
-			{flowCornerRadius}
-			{flowRelationRules}
-			{flowRelationConflictCount}
-			{flowRelationFieldSuggestions}
-			{arcDirection}
-			{nodeSort}
-			{nodeSortDirection}
-			{graphCenterForce}
-			{graphRepelForce}
-			{graphLinkForce}
-			{graphDragLinkForce}
-			{graphReturnForce}
-			{graphLinkDistance}
-			{flowLayerSpacing}
-			{flowLaneSpacing}
-			{arcSpacing}
-			{query}
-			{onFlowEdgeStyle}
-			{onFlowDirection}
-			{onFlowCornerRadius}
-			{onFlowRelationRules}
-			{onArcDirection}
-			{onLayoutNodeSort}
-			{onLayoutSortDirection}
-			{onFadeDistance}
-			{onLabelDensity}
-			{onCubeFaceOpacity}
-			{onCubeSize}
-			{onCubeFreeCamera}
-			{onEnableForceLayout}
-			{onGraphSpacing}
-			{onGraphCenterForce}
-			{onGraphRepelForce}
-			{onGraphLinkForce}
-			{onGraphDragLinkForce}
-			{onGraphReturnForce}
-			{onGraphLinkDistance}
-			{onFlowLayerSpacing}
-			{onFlowLaneSpacing}
-			{onArcSpacing}
-			{onChange}
+			mode={view.graph.mode}
+			fadeDistance={view.graph.fadeDistance}
+			labelDensity={view.graph.labelDensity}
+			cubeFaceOpacity={view.graph.cubeFaceOpacity}
+			cubeSize={view.graph.cubeSize}
+			cubeFreeCamera={view.graph.cubeFreeCamera}
+			enableForceLayout={view.graph.enableForceLayout}
+			flowEdgeStyle={view.graph.flowEdgeStyle}
+			flowDirection={view.graph.flowDirection}
+			flowCornerRadius={view.graph.flowCornerRadius}
+			flowRelationRules={view.graph.flowRelationRules}
+			flowRelationConflictCount={view.graph.flowRelationConflictCount}
+			flowRelationFieldSuggestions={view.suggestions.flowRelationFields}
+			arcDirection={view.graph.arcDirection}
+			nodeSort={view.graph.nodeSort}
+			nodeSortDirection={view.graph.nodeSortDirection}
+			graphCenterForce={view.graph.graphCenterForce}
+			graphRepelForce={view.graph.graphRepelForce}
+			graphLinkForce={view.graph.graphLinkForce}
+			graphDragLinkForce={view.graph.graphDragLinkForce}
+			graphReturnForce={view.graph.graphReturnForce}
+			graphLinkDistance={view.graph.graphLinkDistance}
+			flowLayerSpacing={view.graph.flowLayerSpacing}
+			flowLaneSpacing={view.graph.flowLaneSpacing}
+			arcSpacing={view.graph.arcSpacing}
+			query={view.graph.query}
+			onFlowEdgeStyle={actions.graph.setFlowEdgeStyle}
+			onFlowDirection={actions.graph.setFlowDirection}
+			onFlowCornerRadius={actions.graph.setFlowCornerRadius}
+			onFlowRelationRules={actions.graph.setFlowRelationRules}
+			onArcDirection={actions.graph.setArcDirection}
+			onLayoutNodeSort={actions.graph.setLayoutNodeSort}
+			onLayoutSortDirection={actions.graph.setLayoutSortDirection}
+			onFadeDistance={actions.graph.setFadeDistance}
+			onLabelDensity={actions.graph.setLabelDensity}
+			onCubeFaceOpacity={actions.graph.setCubeFaceOpacity}
+			onCubeSize={actions.graph.setCubeSize}
+			onCubeFreeCamera={actions.graph.setCubeFreeCamera}
+			onEnableForceLayout={actions.graph.setEnableForceLayout}
+			onGraphCenterForce={actions.graph.setGraphCenterForce}
+			onGraphRepelForce={actions.graph.setGraphRepelForce}
+			onGraphLinkForce={actions.graph.setGraphLinkForce}
+			onGraphDragLinkForce={actions.graph.setGraphDragLinkForce}
+			onGraphReturnForce={actions.graph.setGraphReturnForce}
+			onGraphLinkDistance={actions.graph.setGraphLinkDistance}
+			onFlowLayerSpacing={actions.graph.setFlowLayerSpacing}
+			onFlowLaneSpacing={actions.graph.setFlowLaneSpacing}
+			onArcSpacing={actions.graph.setArcSpacing}
+			onChange={actions.graph.updateQuery}
 		/>
 	{:else if panel === 'text-style'}
 		<TextStylePanel
-			{mode}
-			{labelSize}
-			{scaleLabelsWithZoom}
-			{forceLabels}
-			{arcLabelAngle}
-			{threeLabelResolution}
-			{labelBold}
-			{labelItalic}
-			{labelPosition}
-			{labelOffset}
-			{labelLightTextColor}
-			{labelLightBackgroundColor}
-			{labelLightBackgroundOpacity}
-			{labelDarkTextColor}
-			{labelDarkBackgroundColor}
-			{labelDarkBackgroundOpacity}
-			{onLabelSize}
-			{onScaleLabelsWithZoom}
-			{onForceLabels}
-			{onArcLabelAngle}
-			{onThreeLabelResolution}
-			{onLabelBold}
-			{onLabelItalic}
-			{onLabelPosition}
-			{onLabelOffset}
-			{onLabelLightTextColor}
-			{onLabelLightBackgroundColor}
-			{onLabelLightBackgroundOpacity}
-			{onLabelDarkTextColor}
-			{onLabelDarkBackgroundColor}
-			{onLabelDarkBackgroundOpacity}
+			mode={view.labels.mode}
+			labelSize={view.labels.labelSize}
+			scaleLabelsWithZoom={view.labels.scaleLabelsWithZoom}
+			forceLabels={view.labels.forceLabels}
+			arcLabelAngle={view.labels.arcLabelAngle}
+			threeLabelResolution={view.labels.threeLabelResolution}
+			labelBold={view.labels.labelBold}
+			labelItalic={view.labels.labelItalic}
+			labelPosition={view.labels.labelPosition}
+			labelOffset={view.labels.labelOffset}
+			labelLightTextColor={view.labels.labelLightTextColor}
+			labelLightBackgroundColor={view.labels.labelLightBackgroundColor}
+			labelLightBackgroundOpacity={view.labels
+				.labelLightBackgroundOpacity}
+			labelDarkTextColor={view.labels.labelDarkTextColor}
+			labelDarkBackgroundColor={view.labels.labelDarkBackgroundColor}
+			labelDarkBackgroundOpacity={view.labels.labelDarkBackgroundOpacity}
+			onLabelSize={actions.labels.setLabelSize}
+			onScaleLabelsWithZoom={actions.labels.setScaleLabelsWithZoom}
+			onForceLabels={actions.labels.setForceLabels}
+			onArcLabelAngle={actions.labels.setArcLabelAngle}
+			onThreeLabelResolution={actions.labels.setThreeLabelResolution}
+			onLabelBold={actions.labels.setLabelBold}
+			onLabelItalic={actions.labels.setLabelItalic}
+			onLabelPosition={actions.labels.setLabelPosition}
+			onLabelOffset={actions.labels.setLabelOffset}
+			onLabelLightTextColor={actions.labels.setLabelLightTextColor}
+			onLabelLightBackgroundColor={actions.labels
+				.setLabelLightBackgroundColor}
+			onLabelLightBackgroundOpacity={actions.labels
+				.setLabelLightBackgroundOpacity}
+			onLabelDarkTextColor={actions.labels.setLabelDarkTextColor}
+			onLabelDarkBackgroundColor={actions.labels
+				.setLabelDarkBackgroundColor}
+			onLabelDarkBackgroundOpacity={actions.labels
+				.setLabelDarkBackgroundOpacity}
 		/>
 	{:else if panel === 'filters'}
 		<FilterRulesPanel
 			{app}
-			{query}
-			{globalQuery}
-			{folders}
-			{tags}
-			{metadataFieldSuggestions}
-			{metadataFieldTypes}
-			{metadataFieldValueSuggestions}
-			{filePathSuggestions}
-			{onChange}
-			{onGlobalChange}
+			query={view.query.currentQuery}
+			globalQuery={view.query.globalQuery}
+			folders={view.suggestions.folders}
+			tags={view.suggestions.tags}
+			metadataFieldSuggestions={view.suggestions.metadataFields}
+			metadataFieldTypes={view.suggestions.metadataFieldTypes}
+			metadataFieldValueSuggestions={view.suggestions.metadataFieldValues}
+			filePathSuggestions={view.suggestions.filePaths}
+			onChange={actions.query.updateCurrent}
+			onGlobalChange={actions.query.updateGlobal}
 		/>
 	{:else if panel === 'note-style'}
 		<NodeStylePanel
 			{app}
-			{folders}
-			{tags}
-			{metadataFieldSuggestions}
-			{metadataFieldTypes}
-			{metadataFieldValueSuggestions}
-			{filePathSuggestions}
-			{groups}
-			{defaultNodeStyle}
-			{globalNodeStyleRules}
-			{nodeStyleOverrides}
-			{unresolvedNodeStyleOverrides}
-			{nodeStyleRules}
-			showUnresolvedLinks={query.showUnresolvedLinks}
-			{onDefaultNodeStyle}
-			{onGlobalNodeStyleRulesChange}
-			{onNodeStyleOverrides}
-			{onUnresolvedNodeStyleOverrides}
-			{onNodeStyleRulesChange}
-			{onMoveNodeStyleRule}
+			folders={view.suggestions.folders}
+			tags={view.suggestions.tags}
+			metadataFieldSuggestions={view.suggestions.metadataFields}
+			metadataFieldTypes={view.suggestions.metadataFieldTypes}
+			metadataFieldValueSuggestions={view.suggestions.metadataFieldValues}
+			filePathSuggestions={view.suggestions.filePaths}
+			groups={view.suggestions.groups}
+			defaultNodeStyle={view.styles.defaultNode}
+			globalNodeStyleRules={view.styles.globalNodeRules}
+			nodeStyleOverrides={view.styles.nodeOverrides}
+			unresolvedNodeStyleOverrides={view.styles.unresolvedNodeOverrides}
+			nodeStyleRules={view.styles.nodeRules}
+			showUnresolvedLinks={view.query.currentQuery.showUnresolvedLinks}
+			onDefaultNodeStyle={actions.styles.setDefaultNode}
+			onGlobalNodeStyleRulesChange={actions.styles.setGlobalNodeRules}
+			onNodeStyleOverrides={actions.styles.setNodeOverrides}
+			onUnresolvedNodeStyleOverrides={actions.styles
+				.setUnresolvedNodeOverrides}
+			onNodeStyleRulesChange={actions.styles.setNodeRules}
+			onMoveNodeStyleRule={actions.styles.moveNodeRule}
 		/>
 	{:else}
 		<LinkStylePanel
 			{app}
-			{metadataFieldSuggestions}
-			{defaultLinkStyle}
-			{globalLinkStyleRules}
-			{linkStyleOverrides}
-			{plainLinkStyleOverrides}
-			{unresolvedLinkStyleOverrides}
-			{linkStyleRules}
-			showPlainLinks={query.showPlainLinks}
-			showUnresolvedLinks={query.showUnresolvedLinks}
-			{onDefaultLinkStyle}
-			{onGlobalLinkStyleRulesChange}
-			{onLinkStyleOverrides}
-			{onPlainLinkStyleOverrides}
-			{onUnresolvedLinkStyleOverrides}
-			{onLinkStyleRulesChange}
-			{onMoveLinkStyleRule}
+			metadataFieldSuggestions={view.suggestions.metadataFields}
+			defaultLinkStyle={view.styles.defaultLink}
+			globalLinkStyleRules={view.styles.globalLinkRules}
+			linkStyleOverrides={view.styles.linkOverrides}
+			plainLinkStyleOverrides={view.styles.plainLinkOverrides}
+			unresolvedLinkStyleOverrides={view.styles.unresolvedLinkOverrides}
+			linkStyleRules={view.styles.linkRules}
+			showPlainLinks={view.query.currentQuery.showPlainLinks}
+			showUnresolvedLinks={view.query.currentQuery.showUnresolvedLinks}
+			onDefaultLinkStyle={actions.styles.setDefaultLink}
+			onGlobalLinkStyleRulesChange={actions.styles.setGlobalLinkRules}
+			onLinkStyleOverrides={actions.styles.setLinkOverrides}
+			onPlainLinkStyleOverrides={actions.styles.setPlainLinkOverrides}
+			onUnresolvedLinkStyleOverrides={actions.styles
+				.setUnresolvedLinkOverrides}
+			onLinkStyleRulesChange={actions.styles.setLinkRules}
+			onMoveLinkStyleRule={actions.styles.moveLinkRule}
 		/>
 	{/if}
 </aside>

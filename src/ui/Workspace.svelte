@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Menu, Notice, TFile, type App } from 'obsidian';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import type {
 		ChartSource,
 		DebugSnapshot,
@@ -54,6 +54,10 @@
 		getWorkspaceNodeColors,
 	} from './workspace/derived';
 	import { shouldCloseSettingsPanelForChartSource } from './workspace/settings-panel';
+	import {
+		createWorkspaceSettingsActions,
+		createWorkspaceSettingsView,
+	} from './workspace/settings-ports';
 	import {
 		readInteractiveAccentColor,
 		readThemeSignature,
@@ -204,6 +208,9 @@
 			graphLoadingTarget = state.label;
 		},
 	});
+	const settingsActions = createWorkspaceSettingsActions(
+		untrack(() => controller),
+	);
 
 	const layoutSnapshots = new LayoutSnapshotStore();
 	const rendererLifecycle = new WorkspaceRendererLifecycle({
@@ -1001,6 +1008,14 @@
 	const filePathSuggestions = $derived(
 		getFilePathSuggestions(indexedNodeSnapshot),
 	);
+	const settingsView = $derived(
+		createWorkspaceSettingsView(workspaceState, {
+			metadataFields: metadataFieldSuggestions,
+			metadataFieldTypes,
+			metadataFieldValues: metadataFieldValueSuggestions,
+			filePaths: filePathSuggestions,
+		}),
+	);
 	const curatedConditionDraft = $derived.by(
 		() =>
 			curatedConditionDrafts[workspaceState.activeChartId] ??
@@ -1521,15 +1536,11 @@
 		{#if settingsPanel}
 			<WorkspaceSettingsPopover
 				{app}
-				{controller}
-				{workspaceState}
+				view={settingsView}
+				actions={settingsActions}
 				{readOnly}
 				{settingsPanel}
 				{settingsPopoverLeft}
-				{metadataFieldSuggestions}
-				{metadataFieldTypes}
-				{metadataFieldValueSuggestions}
-				{filePathSuggestions}
 				onClose={() => {
 					settingsPanel = undefined;
 				}}
