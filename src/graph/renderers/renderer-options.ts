@@ -34,6 +34,10 @@ export interface SigmaRendererOptions extends RendererBaseOptions {
 	scaleLabelsWithZoom: boolean;
 }
 
+export interface G6RendererOptions extends RendererBaseOptions {
+	scaleLabelsWithZoom: boolean;
+}
+
 export interface Force3DRendererOptions extends RendererBaseOptions {
 	enableForceLayout: boolean;
 }

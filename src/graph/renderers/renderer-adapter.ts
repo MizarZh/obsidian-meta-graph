@@ -29,6 +29,7 @@ export {
 	isCube3DRenderer,
 	isForce3DRenderer,
 	isForceSimulationRenderer,
+	isG6Renderer,
 	isPlanarRenderer,
 	isSigmaRenderer,
 } from './renderer-instance';

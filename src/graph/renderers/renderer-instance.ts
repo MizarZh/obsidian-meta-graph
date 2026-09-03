@@ -1,5 +1,6 @@
 import { Cube3DRenderer } from './cube-3d/cube-3d-renderer';
 import { Force3DRenderer } from './force-3d/force-3d-renderer';
+import { G6Renderer } from './g6/g6-renderer';
 import {
 	type GraphRenderer,
 	type RendererCapabilities,
@@ -79,7 +80,8 @@ export function isCube3DRenderer(
 export function isPlanarRenderer(
 	renderer: GraphRenderer,
 ): renderer is PlanarRenderer {
-	return getRendererCapabilities(renderer).kind === 'sigma';
+	const kind = getRendererCapabilities(renderer).kind;
+	return kind === 'sigma' || kind === 'g6';
 }
 
 export function isForceSimulationRenderer(
@@ -95,4 +97,8 @@ export function isSigmaRenderer(
 	renderer: GraphRenderer,
 ): renderer is SigmaRenderer {
 	return renderer instanceof SigmaRenderer;
+}
+
+export function isG6Renderer(renderer: GraphRenderer): renderer is G6Renderer {
+	return renderer instanceof G6Renderer;
 }
