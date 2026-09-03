@@ -48,13 +48,20 @@ export function getChartSourceSwitchWarning(
 		return undefined;
 	}
 	if (hasManualLayout(state)) {
+		const queryToCurated =
+			state.chartSource === 'query' && nextSource === 'curated';
 		return {
 			severity: 'contextual',
 			title: 'Source change may hide current layout',
-			details: [
-				'Manual positions are kept, but they may not apply to the new node set.',
-				'Duplicate the view to keep the current source unchanged.',
-			],
+			details: queryToCurated
+				? [
+						'Manual positions are kept, but they may not apply to the new node set.',
+						'Copy query notes to Curated to keep this Query view, or Continue to switch this view with those notes.',
+					]
+				: [
+						'Manual positions are kept, but they may not apply to the new node set.',
+						'Duplicate the view to keep the current source unchanged.',
+					],
 			confirmLabel: 'Continue',
 		};
 	}

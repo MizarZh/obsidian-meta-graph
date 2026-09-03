@@ -1305,12 +1305,36 @@
 			controller.setActiveChartSource(source);
 			return;
 		}
+		const copyQueryNotesToCurated =
+			workspaceState.chartSource === 'query' && source === 'curated';
+		const queryNotePaths = copyQueryNotesToCurated
+			? readCurrentQueryNotePaths()
+			: [];
 		new SwitchModeWarningModal(
 			app,
 			warning,
-			() => controller.setActiveChartSource(source),
-			() => controller.duplicateActiveChartAndSetSource(source),
+			() => controller.setActiveChartSource(source, queryNotePaths),
+			() =>
+				controller.duplicateActiveChartAndSetSource(
+					source,
+					queryNotePaths,
+				),
+			copyQueryNotesToCurated ? 'Copy to Curated' : undefined,
 		).open();
+	}
+
+	function readCurrentQueryNotePaths(): string[] {
+		const paths = new Set<string>();
+		for (const node of workspaceState.projection?.nodes ?? []) {
+			if (node.kind === 'unresolved') {
+				continue;
+			}
+			const path = node.path.trim();
+			if (path) {
+				paths.add(path);
+			}
+		}
+		return [...paths];
 	}
 
 	function focusNodeFromSearch(nodeId: string): void {

@@ -95,6 +95,24 @@ describe('workspace chart state', () => {
 		expect(result.state.charts[0]?.source).toBe('curated');
 	});
 
+	it('adds query note paths when switching to curated source', () => {
+		const state = createWorkspaceState(100);
+
+		const result = setActiveChartSourceInState(state, 'curated', [
+			'Folder\\A.md',
+			'B.md',
+			'Folder/A.md',
+		]);
+
+		expect(result.state.curated.files).toEqual([
+			{ path: 'Folder/A.md' },
+			{ path: 'B.md' },
+		]);
+		expect(result.state.charts[0]?.curated.files).toEqual(
+			result.state.curated.files,
+		);
+	});
+
 	it('deletes the active chart and activates the first remaining chart', () => {
 		const state = setActiveChartInState(
 			addChartInState(createWorkspaceState(100), {
@@ -163,6 +181,23 @@ describe('workspace chart state', () => {
 		expect(result.state.chartSource).toBe('curated');
 		expect(result.state.charts[0]?.source).toBe('query');
 		expect(result.state.charts.at(-1)?.source).toBe('curated');
+	});
+
+	it('copies query note paths onto the duplicated curated chart', () => {
+		const state = createWorkspaceState(100);
+
+		const result = duplicateActiveChartAndSetSourceInState(
+			state,
+			'curated',
+			['A.md', 'B.md'],
+		);
+
+		expect(result.state.charts[0]?.source).toBe('query');
+		expect(result.state.charts[0]?.curated.files).toEqual([]);
+		expect(result.state.curated.files).toEqual([
+			{ path: 'A.md' },
+			{ path: 'B.md' },
+		]);
 	});
 
 	it('preserves canonical groups and Free frames across 2D chart types', () => {

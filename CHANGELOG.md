@@ -7,6 +7,7 @@ All notable changes to Meta Graph are documented here.
 ### Added
 
 - Added context-aware graph menus for nodes, logical edges, groups, and blank canvas areas across Sigma, 3D, and Cube views. Menus expose safe navigation, focus, details, grouping, visibility, clipboard, and viewport actions while preserving right-click target selection.
+- Added a Query-to-Curated source switch choice that copies the current Query notes into Curated, either on the duplicated view or the current view.
 - Added one Group capability model across Graph, Free, Flow, Arc, HEB, Cube, and Graph 3D, separating membership policy from spatial behavior. Cube faces are now fixed System groups in the canonical group definitions, and every supported 2D layout shares group selection, hover, context-menu hit testing, and explicit node assignment.
 - Added dedicated relationship and Group views to the right-side Details panel. Relationship details keep the selected metadata relationship prominent and list the other indexed links between the same notes separately; Group details show capabilities, rule summaries, visible members, assignment sources, geometry, and conflicts.
 

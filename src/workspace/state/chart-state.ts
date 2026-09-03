@@ -9,6 +9,7 @@ import {
 	createDefaultChart,
 	createDefaultCuratedWorkspace,
 } from '../meta-graph-model';
+import { addCuratedFilePaths } from './curated-workspace';
 import { normalizeCubeLayout } from './manual-layout';
 import { cloneSerializable } from './persistence';
 import { createWorkspaceState } from './workspace-state';
@@ -124,9 +125,10 @@ export function duplicateActiveChartAndSetTypeInState(
 export function duplicateActiveChartAndSetSourceInState(
 	state: WorkspaceState,
 	source: ChartSource,
+	curatedPaths: readonly string[] = [],
 ): WorkspaceChartStateResult {
 	const nextState = duplicateActiveChartInState(state);
-	return setActiveChartSourceInState(nextState, source);
+	return setActiveChartSourceInState(nextState, source, curatedPaths);
 }
 
 export function setActiveChartNameInState(
@@ -185,15 +187,21 @@ export function setActiveChartTypeInState(
 export function setActiveChartSourceInState(
 	state: WorkspaceState,
 	source: ChartSource,
+	curatedPaths: readonly string[] = [],
 ): WorkspaceChartStateResult {
 	const activeChart = getActiveChart(state);
 	if (activeChart.source === source) {
 		return { state, runQuery: false };
 	}
+	const curated = activeChart.curated ?? createDefaultCuratedWorkspace();
+	const nextCurated =
+		source === 'curated' && curatedPaths.length > 0
+			? addCuratedFilePaths(curated, [...curatedPaths]).curated
+			: curated;
 	return {
 		state: updateActiveChartState(state, {
 			source,
-			curated: activeChart.curated ?? createDefaultCuratedWorkspace(),
+			curated: nextCurated,
 		}),
 		runQuery: true,
 	};

@@ -374,8 +374,15 @@ export class WorkspaceController {
 		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
-	setActiveChartSource(source: ChartSource): void {
-		const result = setActiveChartSourceInState(this.state, source);
+	setActiveChartSource(
+		source: ChartSource,
+		curatedPaths: readonly string[] = [],
+	): void {
+		const result = setActiveChartSourceInState(
+			this.state,
+			source,
+			curatedPaths,
+		);
 		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
@@ -384,10 +391,14 @@ export class WorkspaceController {
 		this.setWorkspaceState(result.state, result.runQuery);
 	}
 
-	duplicateActiveChartAndSetSource(source: ChartSource): void {
+	duplicateActiveChartAndSetSource(
+		source: ChartSource,
+		curatedPaths: readonly string[] = [],
+	): void {
 		const result = duplicateActiveChartAndSetSourceInState(
 			this.state,
 			source,
+			curatedPaths,
 		);
 		this.setWorkspaceState(result.state, result.runQuery);
 	}

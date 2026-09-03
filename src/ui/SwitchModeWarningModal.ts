@@ -7,6 +7,7 @@ export class SwitchModeWarningModal extends Modal {
 		private readonly warning: WorkspaceSwitchWarning,
 		private readonly onConfirm: () => void,
 		private readonly onDuplicate: () => void,
+		private readonly duplicateLabel = 'Duplicate view',
 	) {
 		super(app);
 	}
@@ -21,7 +22,7 @@ export class SwitchModeWarningModal extends Modal {
 				button.setButtonText('Cancel').onClick(() => this.close()),
 			)
 			.addButton((button) =>
-				button.setButtonText('Duplicate view').onClick(() => {
+				button.setButtonText(this.duplicateLabel).onClick(() => {
 					this.onDuplicate();
 					this.close();
 				}),
