@@ -463,23 +463,32 @@ describe('Cube3DRenderer smoke', () => {
 	});
 
 	it('creates, updates graph and layout, then destroys without throwing', async () => {
-		const renderer = await Cube3DRenderer.create(
-			createGraph(['A.md', 'B.md']),
-			createContainer(),
+		const renderer = await Cube3DRenderer.create({
+			graph: createGraph(['A.md', 'B.md']),
+			container: createContainer(),
 			palette,
-			{ nodes: {}, groups: [] },
-			1.5,
-			14,
-			false,
-			false,
-			'right',
-			0.8,
-			0.55,
-			180,
-			true,
-			false,
-			true,
-		);
+			manualLayout: { nodes: {}, groups: [] },
+			fadeDistance: 1.5,
+			labelSize: 14,
+			labelBold: false,
+			labelItalic: false,
+			labelPosition: 'right',
+			labelOffset: 1,
+			labelLightTextColor: '#111111',
+			labelLightBackgroundColor: '#ffffff',
+			labelLightBackgroundOpacity: 0.82,
+			labelDarkTextColor: '#ffffff',
+			labelDarkBackgroundColor: '#000000',
+			labelDarkBackgroundOpacity: 0.62,
+			labelDensity: 0.8,
+			forceLabels: false,
+			threeLabelResolution: 'standard',
+			cubeFaceOpacity: 0.55,
+			cubeSize: 180,
+			cubeFreeCamera: true,
+			enableForceLayout: false,
+			isStale: () => false,
+		});
 
 		expect(renderer).toBeDefined();
 		const initialTextures = [...canvasTextures];
@@ -505,12 +514,32 @@ describe('Cube3DRenderer smoke', () => {
 	});
 
 	it('colors selection without fading other nodes', async () => {
-		const renderer = await Cube3DRenderer.create(
-			createGraph(['A.md', 'B.md']),
-			createContainer(),
+		const renderer = await Cube3DRenderer.create({
+			graph: createGraph(['A.md', 'B.md']),
+			container: createContainer(),
 			palette,
-			{ nodes: {}, groups: [] },
-		);
+			manualLayout: { nodes: {}, groups: [] },
+			fadeDistance: 1.5,
+			labelSize: 14,
+			labelBold: false,
+			labelItalic: false,
+			labelPosition: 'right',
+			labelOffset: 1,
+			labelLightTextColor: '#111111',
+			labelLightBackgroundColor: '#ffffff',
+			labelLightBackgroundOpacity: 0.82,
+			labelDarkTextColor: '#ffffff',
+			labelDarkBackgroundColor: '#000000',
+			labelDarkBackgroundOpacity: 0.62,
+			labelDensity: 0.8,
+			forceLabels: false,
+			threeLabelResolution: 'standard',
+			cubeFaceOpacity: 0.55,
+			cubeSize: 180,
+			cubeFreeCamera: true,
+			enableForceLayout: false,
+			isStale: () => false,
+		});
 		const nodes = (
 			renderer as unknown as {
 				nodeObjects: Map<string, { mesh: Sprite; color: string }>;

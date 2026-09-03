@@ -51,6 +51,8 @@ import {
 	createThreeTextSprite,
 	resolveThreeLabelPixelRatio,
 } from '../renderer-labels';
+import type { RendererCapabilities } from '../renderer-capabilities';
+import type { Cube3DRendererOptions } from '../renderer-options';
 
 interface CubeNodeObject {
 	id: string;
@@ -61,7 +63,24 @@ interface CubeNodeObject {
 	label?: Three.Sprite;
 }
 
+interface Cube3DRendererRuntimeOptions extends Cube3DRendererOptions {
+	three: ThreeModule;
+}
+
 export class Cube3DRenderer {
+	private readonly three: ThreeModule;
+	private graph: RuntimeGraph;
+	private readonly container: HTMLElement;
+	private palette: GraphPalette;
+	readonly capabilities: RendererCapabilities = {
+		kind: 'cube-3d',
+		supportsGroupOverlay: false,
+		supportsLayoutGroupGeometry: false,
+		supportsManualLayout: true,
+		supportsEdgePicking: false,
+		supportsNodeDragging: true,
+		supportsConnectionMoveScheduling: true,
+	};
 	private readonly scene: Three.Scene;
 	private readonly camera: Three.PerspectiveCamera;
 	private readonly webgl: Three.WebGLRenderer;
@@ -109,105 +128,40 @@ export class Cube3DRenderer {
 	};
 
 	static async create(
-		graph: RuntimeGraph,
-		container: HTMLElement,
-		palette: GraphPalette,
-		manualLayout: ManualLayoutConfig,
-		_fadeDistance = 1.5,
-		labelSize = 14,
-		labelBold = false,
-		labelItalic = false,
-		labelPosition: LabelPosition = 'right',
-		labelDensity = 0.8,
-		cubeFaceOpacity = 0.55,
-		cubeSize = 180,
-		cubeFreeCamera = true,
-		_forceLayout = false,
-		forceLabels = false,
-		isStale: () => boolean = () => false,
-		labelOffset = 1,
-		labelLightTextColor = '#111111',
-		labelLightBackgroundColor = '#ffffff',
-		labelLightBackgroundOpacity = 0.82,
-		labelDarkTextColor = '#ffffff',
-		labelDarkBackgroundColor = '#000000',
-		labelDarkBackgroundOpacity = 0.62,
-		threeLabelResolution: ThreeLabelResolution = 'standard',
+		options: Cube3DRendererOptions,
 	): Promise<Cube3DRenderer | undefined> {
 		const three = await loadThree();
-		if (isStale()) {
+		if (options.isStale()) {
 			return undefined;
 		}
-		return new Cube3DRenderer(
-			three,
-			graph,
-			container,
-			palette,
-			manualLayout,
-			labelSize,
-			labelBold,
-			labelItalic,
-			labelPosition,
-			labelDensity,
-			cubeFaceOpacity,
-			cubeSize,
-			cubeFreeCamera,
-			forceLabels,
-			labelOffset,
-			labelLightTextColor,
-			labelLightBackgroundColor,
-			labelLightBackgroundOpacity,
-			labelDarkTextColor,
-			labelDarkBackgroundColor,
-			labelDarkBackgroundOpacity,
-			threeLabelResolution,
-		);
+		return new Cube3DRenderer({ ...options, three });
 	}
 
-	private constructor(
-		private readonly three: ThreeModule,
-		private graph: RuntimeGraph,
-		private readonly container: HTMLElement,
-		private palette: GraphPalette,
-		manualLayout: ManualLayoutConfig,
-		labelSize: number,
-		labelBold: boolean,
-		labelItalic: boolean,
-		labelPosition: LabelPosition,
-		labelDensity: number,
-		cubeFaceOpacity: number,
-		cubeSize: number,
-		cubeFreeCamera: boolean,
-		forceLabels: boolean,
-		labelOffset: number,
-		labelLightTextColor: string,
-		labelLightBackgroundColor: string,
-		labelLightBackgroundOpacity: number,
-		labelDarkTextColor: string,
-		labelDarkBackgroundColor: string,
-		labelDarkBackgroundOpacity: number,
-		threeLabelResolution: ThreeLabelResolution,
-	) {
-		this.manualLayout = manualLayout;
-		this.labelSize = labelSize;
-		this.labelBold = labelBold;
-		this.labelItalic = labelItalic;
-		this.labelPosition = labelPosition;
-		this.labelOffset = labelOffset;
+	private constructor(options: Cube3DRendererRuntimeOptions) {
+		this.three = options.three;
+		this.graph = options.graph;
+		this.container = options.container;
+		this.palette = options.palette;
+		this.manualLayout = options.manualLayout;
+		this.labelSize = options.labelSize;
+		this.labelBold = options.labelBold;
+		this.labelItalic = options.labelItalic;
+		this.labelPosition = options.labelPosition;
+		this.labelOffset = options.labelOffset;
 		this.labelTheme = {
-			labelLightTextColor,
-			labelLightBackgroundColor,
-			labelLightBackgroundOpacity,
-			labelDarkTextColor,
-			labelDarkBackgroundColor,
-			labelDarkBackgroundOpacity,
+			labelLightTextColor: options.labelLightTextColor,
+			labelLightBackgroundColor: options.labelLightBackgroundColor,
+			labelLightBackgroundOpacity: options.labelLightBackgroundOpacity,
+			labelDarkTextColor: options.labelDarkTextColor,
+			labelDarkBackgroundColor: options.labelDarkBackgroundColor,
+			labelDarkBackgroundOpacity: options.labelDarkBackgroundOpacity,
 		};
-		this.labelDensity = labelDensity;
-		this.threeLabelResolution = threeLabelResolution;
-		this.cubeFaceOpacity = cubeFaceOpacity;
-		this.cubeSize = normalizeCubeSize(cubeSize);
-		this.cubeFreeCamera = cubeFreeCamera;
-		this.forceLabels = forceLabels;
+		this.labelDensity = options.labelDensity;
+		this.threeLabelResolution = options.threeLabelResolution;
+		this.cubeFaceOpacity = options.cubeFaceOpacity;
+		this.cubeSize = normalizeCubeSize(options.cubeSize);
+		this.cubeFreeCamera = options.cubeFreeCamera;
+		this.forceLabels = options.forceLabels;
 		this.scene = new this.three.Scene();
 		this.scene.background = new this.three.Color(
 			this.palette.background ?? '#202020',
@@ -251,7 +205,7 @@ export class Cube3DRenderer {
 		this.resizeObserver.observe(this.container);
 		this.buildFaces();
 		this.resize();
-		this.setGraph(graph);
+		this.setGraph(options.graph);
 	}
 
 	get runtimeGraph(): RuntimeGraph {

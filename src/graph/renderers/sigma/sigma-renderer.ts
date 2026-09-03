@@ -48,6 +48,8 @@ import {
 	NodeStarProgram,
 	NodeTriangleProgram,
 } from './node-shape-programs';
+import type { RendererCapabilities } from '../renderer-capabilities';
+import type { SigmaRendererOptions } from '../renderer-options';
 export type {
 	GroupGeometry,
 	GroupInteractionCallbacks,
@@ -55,6 +57,17 @@ export type {
 
 export class SigmaRenderer {
 	readonly instance: Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>;
+	private graph: RuntimeGraph;
+	private palette: GraphPalette;
+	readonly capabilities: RendererCapabilities = {
+		kind: 'sigma',
+		supportsGroupOverlay: true,
+		supportsLayoutGroupGeometry: true,
+		supportsManualLayout: false,
+		supportsEdgePicking: true,
+		supportsNodeDragging: true,
+		supportsConnectionMoveScheduling: false,
+	};
 	private selectedNodeId?: string;
 	private selectedEdgeId?: string;
 	private selectedGroupId?: string;
@@ -78,26 +91,29 @@ export class SigmaRenderer {
 		this.emitZoomLevel();
 	};
 
-	constructor(
-		private graph: RuntimeGraph,
-		container: HTMLElement,
-		private palette: GraphPalette,
-		fadeDistance = 1.5,
-		labelSize = 14,
-		scaleLabelsWithZoom = false,
-		labelBold = false,
-		labelItalic = false,
-		labelPosition: LabelPosition = 'right',
-		labelOffset = 1,
-		labelDensity = 0.8,
-		forceLabels = false,
-		labelLightTextColor = '#111111',
-		labelLightBackgroundColor = '#ffffff',
-		labelLightBackgroundOpacity = 0.82,
-		labelDarkTextColor = '#ffffff',
-		labelDarkBackgroundColor = '#000000',
-		labelDarkBackgroundOpacity = 0.62,
-	) {
+	constructor(options: SigmaRendererOptions) {
+		const {
+			graph,
+			container,
+			palette,
+			fadeDistance,
+			labelSize,
+			scaleLabelsWithZoom,
+			labelBold,
+			labelItalic,
+			labelPosition,
+			labelOffset,
+			labelDensity,
+			forceLabels,
+			labelLightTextColor,
+			labelLightBackgroundColor,
+			labelLightBackgroundOpacity,
+			labelDarkTextColor,
+			labelDarkBackgroundColor,
+			labelDarkBackgroundOpacity,
+		} = options;
+		this.graph = graph;
+		this.palette = palette;
 		this.fadeDistance = fadeDistance;
 		this.scaleLabelsWithZoom = scaleLabelsWithZoom;
 		this.labelPosition = labelPosition;

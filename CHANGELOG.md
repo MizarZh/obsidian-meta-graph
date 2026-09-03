@@ -15,6 +15,7 @@ All notable changes to Meta Graph are documented here.
 ### Changed
 
 - Reduced large-graph rebuild work by indexing initial-position adjacency, batching Group ownership resolution, caching query filter results, and resolving each link style rule set once per edge.
+- Reorganized renderer construction, capability policy, and refresh operations behind typed options and small adapter modules without changing renderer behavior.
 - Captured full runtime graph diagnostics only while Debug is open, avoiding normal-render serialization and redundant workspace notifications.
 - Consolidated plain and unresolved link classification and removed obsolete metadata-index and legacy label-control paths.
 - Unified non-Cube Group visuals around persistent member halos, faint layout-specific regions, horizontal pill titles, and group-colored hover/selection states. Cube keeps its face-based visual language and emphasizes the whole face on hover or selection.

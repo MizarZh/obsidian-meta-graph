@@ -3,6 +3,7 @@ import { serializeRuntimeGraph } from '../../graph/model/runtime-graph-debug';
 import { readGraphPalette } from '../../graph/styles/graph-styles';
 import {
 	getModeCapabilities,
+	getRendererCapabilities,
 	getRendererKind,
 	getRendererKindForMode,
 	isCube3DRenderer,
@@ -101,9 +102,14 @@ export class WorkspaceRendererLifecycle {
 		const renderer = this.currentRenderer;
 		if (!renderer) return;
 		renderer.setSelected(nodeId);
-		if (isForce3DRenderer(renderer)) return;
-		if (isCube3DRenderer(renderer)) {
+		const capabilities = getRendererCapabilities(renderer);
+		if (capabilities.kind === 'force-3d') return;
+		if (capabilities.kind === 'cube-3d') {
+			if (!isCube3DRenderer(renderer)) return;
 			renderer.setSelectedGroup(groupId);
+			return;
+		}
+		if (isForce3DRenderer(renderer) || isCube3DRenderer(renderer)) {
 			return;
 		}
 		renderer.setSelectedEdge(edgeId);

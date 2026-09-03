@@ -5,6 +5,7 @@ import type {
 } from '../../core/types';
 import type { GraphPosition } from '../../graph/model/graphology-adapter';
 import {
+	getRendererCapabilities,
 	getModeCapabilities,
 	isCube3DRenderer,
 	isForce3DRenderer,
@@ -34,16 +35,29 @@ export function syncWorkspaceRendererGroups(
 	forceLayoutEnabled: boolean,
 	callbacks: GroupInteractionCallbacks,
 ): void {
-	if (!renderer || isForce3DRenderer(renderer)) {
+	if (!renderer) {
 		return;
 	}
-	if (isCube3DRenderer(renderer)) {
+	const capabilities = getRendererCapabilities(renderer);
+	if (capabilities.supportsManualLayout) {
+		if (!isCube3DRenderer(renderer)) {
+			return;
+		}
 		renderer.setManualLayout(
 			createCubeRendererManualLayout(
 				{ engine: 'cube-3d', spacing: 1, manual: manualLayout },
 				grouping,
 			),
 		);
+		return;
+	}
+	if (
+		!capabilities.supportsGroupOverlay ||
+		!capabilities.supportsLayoutGroupGeometry
+	) {
+		return;
+	}
+	if (isForce3DRenderer(renderer) || isCube3DRenderer(renderer)) {
 		return;
 	}
 	const getGroupNodeIdsForGroup = (groupId: string): string[] =>
@@ -139,11 +153,10 @@ export function moveWorkspaceRuntimeGroupNodes(
 	nodeIds: Iterable<string>,
 	delta: GraphPosition,
 ): void {
-	if (
-		!renderer ||
-		isForce3DRenderer(renderer) ||
-		isCube3DRenderer(renderer)
-	) {
+	if (!renderer || !getRendererCapabilities(renderer).supportsGroupOverlay) {
+		return;
+	}
+	if (isForce3DRenderer(renderer) || isCube3DRenderer(renderer)) {
 		return;
 	}
 	moveRuntimeGroupNodes(

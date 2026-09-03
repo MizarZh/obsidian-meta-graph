@@ -27,6 +27,8 @@ import {
 	createThreeTextSprite,
 	resolveThreeLabelPixelRatio,
 } from '../renderer-labels';
+import type { RendererCapabilities } from '../renderer-capabilities';
+import type { Force3DRendererOptions } from '../renderer-options';
 import { createCubeNodeSprite } from '../cube-3d/cube-sprites';
 
 interface ThreeRuntime {
@@ -53,8 +55,25 @@ interface ZoomControls {
 	removeEventListener?(type: 'change', listener: () => void): void;
 }
 
+interface Force3DRendererRuntimeOptions extends Force3DRendererOptions {
+	instance: ForceGraph3DInstance<Force3DNode, Force3DLink>;
+	three: ThreeRuntime;
+}
+
 export class Force3DRenderer {
 	readonly instance: ForceGraph3DInstance<Force3DNode, Force3DLink>;
+	private graph: RuntimeGraph;
+	private readonly container: HTMLElement;
+	private palette: GraphPalette;
+	readonly capabilities: RendererCapabilities = {
+		kind: 'force-3d',
+		supportsGroupOverlay: false,
+		supportsLayoutGroupGeometry: false,
+		supportsManualLayout: false,
+		supportsEdgePicking: true,
+		supportsNodeDragging: true,
+		supportsConnectionMoveScheduling: true,
+	};
 	private selectedNodeId?: string;
 	private hoveredNodeId?: string;
 	private pinnedNodeId?: string;
@@ -109,101 +128,41 @@ export class Force3DRenderer {
 	};
 
 	static async create(
-		graph: RuntimeGraph,
-		container: HTMLElement,
-		palette: GraphPalette,
-		fadeDistance = 1.5,
-		labelSize = 14,
-		labelBold = false,
-		labelItalic = false,
-		labelPosition: LabelPosition = 'right',
-		labelDensity = 0.8,
-		enableNodeDrag = false,
-		forceLabels = false,
-		isStale: () => boolean = () => false,
-		labelOffset = 1,
-		labelLightTextColor = '#111111',
-		labelLightBackgroundColor = '#ffffff',
-		labelLightBackgroundOpacity = 0.82,
-		labelDarkTextColor = '#ffffff',
-		labelDarkBackgroundColor = '#000000',
-		labelDarkBackgroundOpacity = 0.62,
-		threeLabelResolution: ThreeLabelResolution = 'standard',
+		options: Force3DRendererOptions,
 	): Promise<Force3DRenderer | undefined> {
 		const [ForceGraph3D, three] = await Promise.all([
 			loadForceGraph3D(),
 			loadThree(),
 		]);
-		if (isStale()) {
+		if (options.isStale()) {
 			return undefined;
 		}
-		const instance = new ForceGraph3D(container, {
+		const instance = new ForceGraph3D(options.container, {
 			controlType: 'trackball',
 		});
-		return new Force3DRenderer(
-			instance,
-			graph,
-			container,
-			palette,
-			fadeDistance,
-			labelSize,
-			labelBold,
-			labelItalic,
-			labelPosition,
-			labelDensity,
-			enableNodeDrag,
-			forceLabels,
-			three,
-			labelOffset,
-			labelLightTextColor,
-			labelLightBackgroundColor,
-			labelLightBackgroundOpacity,
-			labelDarkTextColor,
-			labelDarkBackgroundColor,
-			labelDarkBackgroundOpacity,
-			threeLabelResolution,
-		);
+		return new Force3DRenderer({ ...options, instance, three });
 	}
 
-	private constructor(
-		instance: ForceGraph3DInstance<Force3DNode, Force3DLink>,
-		private graph: RuntimeGraph,
-		private readonly container: HTMLElement,
-		private palette: GraphPalette,
-		_fadeDistance = 1.5,
-		_labelSize = 14,
-		labelBold = false,
-		labelItalic = false,
-		_labelPosition: LabelPosition = 'right',
-		_labelDensity = 0.8,
-		enableNodeDrag = false,
-		_forceLabels = false,
-		three: ThreeRuntime,
-		labelOffset = 1,
-		labelLightTextColor = '#111111',
-		labelLightBackgroundColor = '#ffffff',
-		labelLightBackgroundOpacity = 0.82,
-		labelDarkTextColor = '#ffffff',
-		labelDarkBackgroundColor = '#000000',
-		labelDarkBackgroundOpacity = 0.62,
-		threeLabelResolution: ThreeLabelResolution = 'standard',
-	) {
-		this.labelPosition = _labelPosition;
-		this.labelOffset = labelOffset;
-		this.labelBold = labelBold;
-		this.labelItalic = labelItalic;
+	private constructor(options: Force3DRendererRuntimeOptions) {
+		this.graph = options.graph;
+		this.container = options.container;
+		this.palette = options.palette;
+		this.labelPosition = options.labelPosition;
+		this.labelOffset = options.labelOffset;
+		this.labelBold = options.labelBold;
+		this.labelItalic = options.labelItalic;
 		this.labelTheme = {
-			labelLightTextColor,
-			labelLightBackgroundColor,
-			labelLightBackgroundOpacity,
-			labelDarkTextColor,
-			labelDarkBackgroundColor,
-			labelDarkBackgroundOpacity,
+			labelLightTextColor: options.labelLightTextColor,
+			labelLightBackgroundColor: options.labelLightBackgroundColor,
+			labelLightBackgroundOpacity: options.labelLightBackgroundOpacity,
+			labelDarkTextColor: options.labelDarkTextColor,
+			labelDarkBackgroundColor: options.labelDarkBackgroundColor,
+			labelDarkBackgroundOpacity: options.labelDarkBackgroundOpacity,
 		};
-		this.labelSize = _labelSize;
-		this.threeLabelResolution = threeLabelResolution;
-		this.three = three;
-		this.instance = instance;
+		this.labelSize = options.labelSize;
+		this.threeLabelResolution = options.threeLabelResolution;
+		this.three = options.three;
+		this.instance = options.instance;
 		this.container.addEventListener('dblclick', this.blockDoubleClick, {
 			capture: true,
 		});
@@ -212,7 +171,7 @@ export class Force3DRenderer {
 			.pauseAnimation()
 			.backgroundColor(this.palette.background ?? '#202020')
 			.showNavInfo(false)
-			.enableNodeDrag(enableNodeDrag)
+			.enableNodeDrag(options.enableForceLayout)
 			.nodeId('id')
 			.nodeLabel((node) => this.formatNodeLabel(node))
 			.nodeVal((node) => node.size)
@@ -291,7 +250,7 @@ export class Force3DRenderer {
 			.linkDirectionalArrowColor((link) => this.getLinkColor(link))
 			.cooldownTicks(120);
 		this.resize();
-		this.scheduleGraphData(graph);
+		this.scheduleGraphData(this.graph);
 		this.lastCameraDistance = this.getCameraDistance();
 		this.applyZoomBounds(this.lastCameraDistance);
 		this.readZoomControls().addEventListener?.(
@@ -311,7 +270,7 @@ export class Force3DRenderer {
 		}
 		this.updateHoveredNeighborhood();
 		if (!this.initialized) {
-			this.scheduleGraphData(graph);
+			this.scheduleGraphData(this.graph);
 			return;
 		}
 		this.nodeLabelSprites.clear();
@@ -319,7 +278,7 @@ export class Force3DRenderer {
 		this.linkLabelSprites.clear();
 		this.snapshotForceData();
 		this.instance.graphData(
-			toForce3DData(graph, this.forceNodeCache, this.forceLinkCache),
+			toForce3DData(this.graph, this.forceNodeCache, this.forceLinkCache),
 		);
 		this.rebuildNodeObjects();
 		this.refreshWhenReady();
