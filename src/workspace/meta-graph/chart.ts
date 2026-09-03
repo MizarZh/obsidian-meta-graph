@@ -14,8 +14,6 @@ import {
 	DEFAULT_FORCE_LABELS,
 	DEFAULT_LABEL_BOLD,
 	DEFAULT_LABEL_ITALIC,
-	DEFAULT_LABEL_BACKGROUND_OPACITY,
-	DEFAULT_LABEL_COLOR,
 	DEFAULT_LABEL_DARK_BACKGROUND_COLOR,
 	DEFAULT_LABEL_DARK_BACKGROUND_OPACITY,
 	DEFAULT_LABEL_DARK_TEXT_COLOR,
@@ -96,14 +94,12 @@ export function createDefaultChart(
 			labelItalic: DEFAULT_LABEL_ITALIC,
 			labelPosition: DEFAULT_LABEL_POSITION,
 			labelOffset: DEFAULT_LABEL_OFFSET,
-			labelColor: DEFAULT_LABEL_COLOR,
 			labelLightTextColor: DEFAULT_LABEL_LIGHT_TEXT_COLOR,
 			labelLightBackgroundColor: DEFAULT_LABEL_LIGHT_BACKGROUND_COLOR,
 			labelLightBackgroundOpacity: DEFAULT_LABEL_LIGHT_BACKGROUND_OPACITY,
 			labelDarkTextColor: DEFAULT_LABEL_DARK_TEXT_COLOR,
 			labelDarkBackgroundColor: DEFAULT_LABEL_DARK_BACKGROUND_COLOR,
 			labelDarkBackgroundOpacity: DEFAULT_LABEL_DARK_BACKGROUND_OPACITY,
-			labelBackgroundOpacity: DEFAULT_LABEL_BACKGROUND_OPACITY,
 			labelDensity: DEFAULT_LABEL_DENSITY,
 			cubeFaceOpacity: DEFAULT_CUBE_FACE_OPACITY,
 			cubeSize: DEFAULT_CUBE_SIZE,
@@ -235,10 +231,6 @@ export function normalizeChart(
 				display.labelOffset,
 				fallback.display.labelOffset,
 			),
-			labelColor:
-				typeof display.labelColor === 'string'
-					? display.labelColor.trim()
-					: fallback.display.labelColor,
 			labelLightTextColor: readColorString(
 				display.labelLightTextColor,
 				fallback.display.labelLightTextColor,
@@ -270,10 +262,6 @@ export function normalizeChart(
 				),
 				0,
 				1,
-			),
-			labelBackgroundOpacity: readFiniteNumber(
-				display.labelBackgroundOpacity,
-				fallback.display.labelBackgroundOpacity,
 			),
 			labelDensity: clampNumber(
 				readFiniteNumber(

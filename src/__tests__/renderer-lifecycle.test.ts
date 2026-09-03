@@ -9,6 +9,7 @@ import {
 	type LayoutSnapshot,
 } from '../layouts/stable-layout';
 import { D3ForceSimulation } from '../layouts/d3-force-simulation';
+import { serializeRuntimeGraph } from '../graph/model/runtime-graph-debug';
 import { WorkspaceRendererLifecycle } from '../ui/workspace/renderer-lifecycle';
 import { createWorkspaceState } from '../workspace/state/workspace-state';
 import { createWorkspaceRuntimeGraph } from '../ui/workspace/runtime-graph';
@@ -194,6 +195,34 @@ describe('WorkspaceRendererLifecycle', () => {
 			expect.objectContaining({ status: 'rendered' }),
 		);
 		expect(setRenderPending.mock.calls).toEqual([[true], [false]]);
+	});
+
+	it('skips runtime diagnostics until explicitly requested', async () => {
+		const renderer = createRenderer();
+		const setRendererDebugState = vi.fn();
+		vi.mocked(createWorkspaceGraphRenderer).mockResolvedValue(renderer);
+		const lifecycle = new WorkspaceRendererLifecycle({
+			readState: createState,
+			readCanvas: () => ({}) as HTMLDivElement,
+			readLayoutSnapshot: createLayoutSnapshot,
+			readContainerSize: () => ({ width: 800, height: 600 }),
+			waitForCanvasSize: async () => true,
+			bindEvents: () => vi.fn(),
+			syncRendererGroups: vi.fn(),
+			setRendererDebugState,
+			shouldCaptureRuntimeDebug: () => false,
+		});
+
+		await lifecycle.rebuild();
+
+		expect(setRendererDebugState).not.toHaveBeenCalled();
+		expect(serializeRuntimeGraph).not.toHaveBeenCalled();
+
+		lifecycle.publishDebugState();
+		expect(serializeRuntimeGraph).toHaveBeenCalledOnce();
+		expect(setRendererDebugState).toHaveBeenCalledWith(
+			expect.objectContaining({ status: 'rendered' }),
+		);
 	});
 
 	it('restores ephemeral hover without reading workspace hover state', async () => {

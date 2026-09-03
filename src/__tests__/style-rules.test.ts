@@ -138,8 +138,6 @@ describe('style rules', () => {
 							fadeDistance: 1.5,
 							labelSize: 14,
 							labelPosition: 'right',
-							labelColor: '',
-							labelBackgroundOpacity: 0.82,
 							labelDensity: 0.8,
 							cubeFaceOpacity: 0.55,
 							cubeSize: 180,

@@ -44,14 +44,6 @@ export class WorkspaceProjectionService {
 	}
 }
 
-export function buildWorkspaceIndex(
-	app: App,
-	debug: boolean,
-	connectionFields: string[] | ConnectionFieldSpec[],
-): WorkspaceIndexSnapshot {
-	return buildWorkspaceIndexState(app, debug, connectionFields).snapshot;
-}
-
 export function buildWorkspaceIndexState(
 	app: App,
 	debug: boolean,

@@ -79,14 +79,12 @@
 			labelItalic={workspaceState.labelItalic}
 			labelPosition={workspaceState.labelPosition}
 			labelOffset={workspaceState.labelOffset}
-			labelColor={workspaceState.labelColor}
 			labelLightTextColor={workspaceState.labelLightTextColor}
 			labelLightBackgroundColor={workspaceState.labelLightBackgroundColor}
 			labelLightBackgroundOpacity={workspaceState.labelLightBackgroundOpacity}
 			labelDarkTextColor={workspaceState.labelDarkTextColor}
 			labelDarkBackgroundColor={workspaceState.labelDarkBackgroundColor}
 			labelDarkBackgroundOpacity={workspaceState.labelDarkBackgroundOpacity}
-			labelBackgroundOpacity={workspaceState.labelBackgroundOpacity}
 			labelDensity={workspaceState.labelDensity}
 			cubeFaceOpacity={workspaceState.cubeFaceOpacity}
 			cubeSize={workspaceState.cubeSize}
@@ -157,7 +155,6 @@
 			onLabelPosition={(position) =>
 				controller.setLabelPosition(position)}
 			onLabelOffset={(value) => controller.setLabelOffset(value)}
-			onLabelColor={(color) => controller.setLabelColor(color)}
 			onLabelLightTextColor={(color) =>
 				controller.setLabelLightTextColor(color)}
 			onLabelLightBackgroundColor={(color) =>
@@ -170,8 +167,6 @@
 				controller.setLabelDarkBackgroundColor(color)}
 			onLabelDarkBackgroundOpacity={(value) =>
 				controller.setLabelDarkBackgroundOpacity(value)}
-			onLabelBackgroundOpacity={(value) =>
-				controller.setLabelBackgroundOpacity(value)}
 			onLabelDensity={(value) => controller.setLabelDensity(value)}
 			onCubeFaceOpacity={(value) => controller.setCubeFaceOpacity(value)}
 			onCubeSize={(value) => controller.setCubeSize(value)}

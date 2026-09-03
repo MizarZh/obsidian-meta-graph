@@ -30,6 +30,47 @@ export interface LinkStyle {
 	hidden: boolean;
 }
 
+export interface LinkVisualStyle extends LinkStyle {
+	arrowStyle: LinkArrowStyle;
+	opacity: number;
+	arrowSize: number;
+}
+
+export function resolveLinkVisualStyle(
+	edge: KnowledgeEdge,
+	rules: LinkStyleRule[],
+	defaults: LinkVisualStyle,
+): LinkVisualStyle {
+	return rules.reduce<LinkVisualStyle>(
+		(style, rule) => {
+			if (!matchesLinkRule(edge, rule)) {
+				return style;
+			}
+			return {
+				color: rule.color || style.color,
+				size: rule.size,
+				lineStyle: rule.lineStyle,
+				label: rule.showLabel ? rule.label.trim() || edge.relation : '',
+				hidden: rule.hidden,
+				arrowStyle: isLinkArrowStyle(rule.arrowStyle)
+					? rule.arrowStyle
+					: style.arrowStyle,
+				opacity: isLinkOpacity(rule.opacity)
+					? clampLinkOpacity(rule.opacity)
+					: style.opacity,
+				arrowSize: isLinkArrowSize(rule.arrowSize)
+					? clampLinkArrowSize(rule.arrowSize)
+					: style.arrowSize,
+			};
+		},
+		{
+			...defaults,
+			opacity: clampLinkOpacity(defaults.opacity),
+			arrowSize: clampLinkArrowSize(defaults.arrowSize),
+		},
+	);
+}
+
 export function resolveLinkArrowStyle(
 	edge: KnowledgeEdge,
 	rules: LinkStyleRule[],

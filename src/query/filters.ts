@@ -9,6 +9,7 @@ import type {
 	NodeFilterOperator,
 } from '../core/types';
 import { normalizeTag } from '../core/tags';
+import { isPlainLinkEdge, isUnresolvedLinkEdge } from '../core/edge-kind';
 
 export function nodeMatchesFilters(
 	node: KnowledgeNode,
@@ -375,14 +376,6 @@ export function edgeMatchesFilters(
 		edgeMatchesQueryFilters(edge, globalQuery) &&
 		edgeMatchesQueryFilters(edge, query)
 	);
-}
-
-function isPlainLinkEdge(edge: KnowledgeEdge): boolean {
-	return edge.kind === 'plain-link' || (!edge.kind && edge.semantic === false);
-}
-
-function isUnresolvedLinkEdge(edge: KnowledgeEdge): boolean {
-	return edge.kind === 'unresolved-link';
 }
 
 function edgeMatchesQueryFilters(

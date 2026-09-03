@@ -44,9 +44,7 @@ export interface WorkspaceStateChanges {
 	labelItalicChanged: boolean;
 	labelPositionChanged: boolean;
 	labelOffsetChanged: boolean;
-	labelColorChanged: boolean;
 	labelThemeChanged: boolean;
-	labelBackgroundOpacityChanged: boolean;
 	labelDensityChanged: boolean;
 	cubeFaceOpacityChanged: boolean;
 	cubeSizeChanged: boolean;
@@ -222,11 +220,6 @@ export function analyzeWorkspaceStateChanges(
 			currentState,
 			'labelOffset',
 		),
-		labelColorChanged: stateValueChanged(
-			nextState,
-			currentState,
-			'labelColor',
-		),
 		labelThemeChanged:
 			stateValueChanged(nextState, currentState, 'labelLightTextColor') ||
 			stateValueChanged(
@@ -250,11 +243,6 @@ export function analyzeWorkspaceStateChanges(
 				currentState,
 				'labelDarkBackgroundOpacity',
 			),
-		labelBackgroundOpacityChanged: stateValueChanged(
-			nextState,
-			currentState,
-			'labelBackgroundOpacity',
-		),
 		labelDensityChanged: stateValueChanged(
 			nextState,
 			currentState,

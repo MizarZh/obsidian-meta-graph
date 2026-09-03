@@ -4,6 +4,7 @@ import type {
 	GraphQuery,
 	KnowledgeEdge,
 	KnowledgeIndex,
+	KnowledgeNode,
 	NodeId,
 } from '../core/types';
 import { edgeMatchesFilters, nodeMatchesFilters } from './filters';
@@ -101,6 +102,16 @@ export class GraphQueryEngine {
 	): GraphProjection {
 		const includedNodeIds = new Set<NodeId>();
 		const edges: KnowledgeEdge[] = [];
+		const nodeFilterMatches = new Map<NodeId, boolean>();
+		const matchesNode = (node: KnowledgeNode): boolean => {
+			const cached = nodeFilterMatches.get(node.id);
+			if (cached !== undefined) {
+				return cached;
+			}
+			const matches = nodeMatchesFilters(node, query, globalQuery);
+			nodeFilterMatches.set(node.id, matches);
+			return matches;
+		};
 
 		for (const edge of index.edges.values()) {
 			if (!edgeMatchesFilters(edge, query, globalQuery)) {
@@ -111,8 +122,8 @@ export class GraphQueryEngine {
 			if (
 				!source ||
 				!target ||
-				!nodeMatchesFilters(source, query, globalQuery) ||
-				!nodeMatchesFilters(target, query, globalQuery)
+				!matchesNode(source) ||
+				!matchesNode(target)
 			) {
 				continue;
 			}
@@ -134,16 +145,10 @@ export class GraphQueryEngine {
 				if (includedNodeIds.size >= query.maxNodes) {
 					break;
 				}
-				if (
-					node.kind === 'unresolved' &&
-					!query.showUnresolvedLinks
-				) {
+				if (node.kind === 'unresolved' && !query.showUnresolvedLinks) {
 					continue;
 				}
-				if (
-					!includedNodeIds.has(nodeId) &&
-					nodeMatchesFilters(node, query, globalQuery)
-				) {
+				if (!includedNodeIds.has(nodeId) && matchesNode(node)) {
 					includedNodeIds.add(nodeId);
 				}
 			}

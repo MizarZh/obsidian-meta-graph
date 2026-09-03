@@ -33,6 +33,34 @@ describe('Meta Graph v2 persistence', () => {
 		);
 	});
 
+	it('ignores obsolete label colors without overriding theme profiles', () => {
+		const document = createDefaultMetaGraphDocument(200, 1.5);
+		const context = createPersistenceContextFromV1(document);
+		const saved = serializeRuntimeDocumentV2(document, context);
+		const chart = saved.charts[0];
+		if (!chart) throw new Error('Expected default chart.');
+		chart.display.labels = {
+			color: '#123456',
+			backgroundOpacity: 0.4,
+		};
+
+		const parsed = parsePersistedMetaGraphDocumentV2(saved, 200, 1.5);
+		const display = parsed.document.charts[0]?.display;
+		expect(display?.labelLightTextColor).toBe('#111111');
+		expect(display?.labelDarkTextColor).toBe('#ffffff');
+		expect(display?.labelLightBackgroundOpacity).toBe(0.82);
+		expect(display?.labelDarkBackgroundOpacity).toBe(0.62);
+
+		const resaved = serializeRuntimeDocumentV2(
+			parsed.document,
+			parsed.persistence,
+		);
+		expect(resaved.charts[0]?.display.labels?.color).toBeUndefined();
+		expect(
+			resaved.charts[0]?.display.labels?.backgroundOpacity,
+		).toBeUndefined();
+	});
+
 	it('migrates v1 into one canonical v2 representation', () => {
 		const v1 = createDefaultMetaGraphDocument(200, 1.5);
 		const chart = v1.charts[0];

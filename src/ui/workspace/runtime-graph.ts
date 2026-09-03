@@ -1,10 +1,10 @@
 import type {
 	GraphProjection,
-	ChartGroupingConfig,
 	KnowledgeEdge,
 	KnowledgeNode,
 	WorkspaceState,
 } from '../../core/types';
+import { isPlainLinkEdge, isUnresolvedLinkEdge } from '../../core/edge-kind';
 import {
 	getActiveDefaultLinkArrowSize,
 	getActiveDefaultLinkStyle,
@@ -30,12 +30,9 @@ import {
 	type RuntimeGraph,
 } from '../../graph/model/graphology-adapter';
 import type { GraphPalette } from '../../graph/styles/graph-styles';
-import { resolveNodeStyleContext } from '../../graph/styles/node-style-context';
+import { resolveNodeStyleContexts } from '../../graph/styles/node-style-context';
 import {
-	resolveLinkArrowSize,
-	resolveLinkArrowStyle,
-	resolveLinkOpacity,
-	resolveLinkStyle,
+	resolveLinkVisualStyle,
 	resolveNodeStyle,
 	type NodeStyleContext,
 } from '../../graph/styles/style-rules';
@@ -73,7 +70,7 @@ export function createWorkspaceRuntimeGraph(
 		},
 		getActiveNodeStyleRules(state),
 		getActiveLinkStyleRules(state),
-		createNodeStyleContexts(projection, state.grouping),
+		resolveNodeStyleContexts(projection.nodes, state.grouping),
 		{
 			...getActivePlainLinkStyle(state, palette.mutedEdge),
 			arrowStyle: getActivePlainLinkArrowStyle(state),
@@ -121,8 +118,8 @@ export function syncWorkspaceRuntimeGraphStyles(
 	};
 	const nodeRules = getActiveNodeStyleRules(state);
 	const linkRules = getActiveLinkStyleRules(state);
-	const nodeStyleContexts = createNodeStyleContexts(
-		projection,
+	const nodeStyleContexts = resolveNodeStyleContexts(
+		projection.nodes,
 		state.grouping,
 	);
 
@@ -340,18 +337,6 @@ function resolveRuntimeNodeStyle(
 	};
 }
 
-function createNodeStyleContexts(
-	projection: GraphProjection,
-	grouping: ChartGroupingConfig,
-): ReadonlyMap<string, NodeStyleContext> {
-	return new Map(
-		projection.nodes.map((node) => [
-			node.id,
-			resolveNodeStyleContext(node, grouping),
-		]),
-	);
-}
-
 function resolveRuntimeLinkStyle(
 	edge: KnowledgeEdge,
 	linkRules: ReturnType<typeof getActiveLinkStyleRules>,
@@ -365,69 +350,39 @@ function resolveRuntimeLinkStyle(
 	hidden: boolean;
 	label: string;
 	forceLabel: boolean;
-	lineStyle: ReturnType<typeof resolveLinkStyle>['lineStyle'];
+	lineStyle: ActiveLinkStyleWithArrow['lineStyle'];
 	arrowStyle: 'filled' | 'chevron';
 	opacity: number;
 	arrowSize: number;
 } {
-	const style = resolveLinkStyle(edge, linkRules, {
-		color: defaultLinkStyle.color || palette.edge,
-		size: defaultLinkStyle.size,
-		lineStyle: defaultLinkStyle.lineStyle,
-		label: defaultLinkStyle.showLabel
-			? defaultLinkStyle.label || edge.relation
-			: '',
-		hidden: defaultLinkStyle.hidden,
-	});
-	const arrowStyle = resolveLinkArrowStyle(
-		edge,
-		linkRules,
-		defaultLinkStyle.arrowStyle,
-	);
-	const resolvedArrowStyle = isUnresolvedLinkEdge(edge)
-		? unresolvedLinkStyle.arrowStyle
+	const specialStyle = isUnresolvedLinkEdge(edge)
+		? unresolvedLinkStyle
 		: isPlainLinkEdge(edge)
-			? plainLinkStyle.arrowStyle
-			: arrowStyle;
-	const opacity = resolveLinkOpacity(
-		edge,
-		linkRules,
-		defaultLinkStyle.opacity,
-	);
-	const arrowSize = resolveLinkArrowSize(
-		edge,
-		linkRules,
-		defaultLinkStyle.arrowSize,
-	);
-	const resolvedOpacity = isUnresolvedLinkEdge(edge)
-		? unresolvedLinkStyle.opacity
-		: isPlainLinkEdge(edge)
-			? plainLinkStyle.opacity
-			: opacity;
-	const resolvedArrowSize = isUnresolvedLinkEdge(edge)
-		? unresolvedLinkStyle.arrowSize
-		: isPlainLinkEdge(edge)
-			? plainLinkStyle.arrowSize
-			: arrowSize;
-	const resolvedStyle = isUnresolvedLinkEdge(edge)
+			? plainLinkStyle
+			: undefined;
+	const resolvedStyle = specialStyle
 		? {
-				...style,
-				color: unresolvedLinkStyle.color,
-				size: unresolvedLinkStyle.size,
-				lineStyle: unresolvedLinkStyle.lineStyle,
-				hidden: unresolvedLinkStyle.hidden,
+				color: specialStyle.color,
+				size: specialStyle.size,
+				lineStyle: specialStyle.lineStyle,
 				label: '',
+				hidden: specialStyle.hidden,
+				arrowStyle: specialStyle.arrowStyle,
+				opacity: specialStyle.opacity,
+				arrowSize: specialStyle.arrowSize,
 			}
-		: isPlainLinkEdge(edge)
-			? {
-					...style,
-					color: plainLinkStyle.color,
-					size: plainLinkStyle.size,
-					lineStyle: plainLinkStyle.lineStyle,
-					hidden: plainLinkStyle.hidden,
-					label: '',
-				}
-			: style;
+		: resolveLinkVisualStyle(edge, linkRules, {
+				color: defaultLinkStyle.color || palette.edge,
+				size: defaultLinkStyle.size,
+				lineStyle: defaultLinkStyle.lineStyle,
+				label: defaultLinkStyle.showLabel
+					? defaultLinkStyle.label || edge.relation
+					: '',
+				hidden: defaultLinkStyle.hidden,
+				arrowStyle: defaultLinkStyle.arrowStyle,
+				opacity: defaultLinkStyle.opacity,
+				arrowSize: defaultLinkStyle.arrowSize,
+			});
 	return {
 		color: resolvedStyle.color,
 		size: resolvedStyle.size,
@@ -435,18 +390,8 @@ function resolveRuntimeLinkStyle(
 		label: resolvedStyle.label,
 		forceLabel: Boolean(resolvedStyle.label),
 		lineStyle: resolvedStyle.lineStyle,
-		arrowStyle: resolvedArrowStyle,
-		opacity: resolvedOpacity,
-		arrowSize: resolvedArrowSize,
+		arrowStyle: resolvedStyle.arrowStyle,
+		opacity: resolvedStyle.opacity,
+		arrowSize: resolvedStyle.arrowSize,
 	};
-}
-
-function isPlainLinkEdge(edge: KnowledgeEdge): boolean {
-	return (
-		edge.kind === 'plain-link' || (!edge.kind && edge.semantic === false)
-	);
-}
-
-function isUnresolvedLinkEdge(edge: KnowledgeEdge): boolean {
-	return edge.kind === 'unresolved-link';
 }

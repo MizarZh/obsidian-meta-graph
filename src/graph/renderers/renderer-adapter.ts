@@ -35,14 +35,12 @@ export interface GraphRendererOptions {
 	labelItalic: boolean;
 	labelPosition: LabelPosition;
 	labelOffset: number;
-	labelColor: string;
 	labelLightTextColor: string;
 	labelLightBackgroundColor: string;
 	labelLightBackgroundOpacity: number;
 	labelDarkTextColor: string;
 	labelDarkBackgroundColor: string;
 	labelDarkBackgroundOpacity: number;
-	labelBackgroundOpacity: number;
 	labelDensity: number;
 	cubeFaceOpacity: number;
 	cubeSize: number;
@@ -207,8 +205,6 @@ export async function createGraphRenderer(
 			options.labelBold,
 			options.labelItalic,
 			options.labelPosition,
-			options.labelColor,
-			options.labelBackgroundOpacity,
 			options.labelDensity,
 			options.enableForceLayout,
 			options.forceLabels,
@@ -235,8 +231,6 @@ export async function createGraphRenderer(
 			options.labelBold,
 			options.labelItalic,
 			options.labelPosition,
-			options.labelColor,
-			options.labelBackgroundOpacity,
 			options.labelDensity,
 			options.cubeFaceOpacity,
 			options.cubeSize,
@@ -266,8 +260,6 @@ export async function createGraphRenderer(
 		options.labelItalic,
 		options.labelPosition,
 		options.labelOffset,
-		options.labelColor,
-		options.labelBackgroundOpacity,
 		options.labelDensity,
 		options.forceLabels,
 		options.labelLightTextColor,

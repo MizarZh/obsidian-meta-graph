@@ -56,13 +56,11 @@ import {
 	setForceLabelsInState,
 	setGraphForceSettingInState,
 	setGraphSpacingInState,
-	setLabelBackgroundOpacityInState,
 	setLabelBoldInState,
 	setLabelItalicInState,
 	setLabelDarkBackgroundColorInState,
 	setLabelDarkBackgroundOpacityInState,
 	setLabelDarkTextColorInState,
-	setLabelColorInState,
 	setLabelDensityInState,
 	setLabelLightBackgroundColorInState,
 	setLabelLightBackgroundOpacityInState,
@@ -494,10 +492,6 @@ export class WorkspaceController {
 		this.setWorkspaceState(setLabelOffsetInState(this.state, labelOffset));
 	}
 
-	setLabelColor(labelColor: string): void {
-		this.setWorkspaceState(setLabelColorInState(this.state, labelColor));
-	}
-
 	setLabelLightTextColor(labelLightTextColor: string): void {
 		this.setWorkspaceState(
 			setLabelLightTextColorInState(this.state, labelLightTextColor),
@@ -537,15 +531,6 @@ export class WorkspaceController {
 	setLabelDarkBackgroundOpacity(value: number): void {
 		this.setWorkspaceState(
 			setLabelDarkBackgroundOpacityInState(this.state, value),
-		);
-	}
-
-	setLabelBackgroundOpacity(labelBackgroundOpacity: number): void {
-		this.setWorkspaceState(
-			setLabelBackgroundOpacityInState(
-				this.state,
-				labelBackgroundOpacity,
-			),
 		);
 	}
 

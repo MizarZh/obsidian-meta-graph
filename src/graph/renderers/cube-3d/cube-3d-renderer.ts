@@ -91,13 +91,11 @@ export class Cube3DRenderer {
 	private animationFrame: number | undefined;
 	private zoomAnimationFrame: number | undefined;
 	private resizeObserver: ResizeObserver;
-	private labelColor: string;
 	private labelPosition: LabelPosition;
 	private labelOffset: number;
 	private labelBold: boolean;
 	private labelItalic: boolean;
 	private labelTheme: LabelThemeConfig;
-	private labelBackgroundOpacity: number;
 	private labelSize: number;
 	private threeLabelResolution: ThreeLabelResolution;
 	private labelDensity: number;
@@ -120,8 +118,6 @@ export class Cube3DRenderer {
 		labelBold = false,
 		labelItalic = false,
 		labelPosition: LabelPosition = 'right',
-		labelColor = '',
-		labelBackgroundOpacity = 0.82,
 		labelDensity = 0.8,
 		cubeFaceOpacity = 0.55,
 		cubeSize = 180,
@@ -152,8 +148,6 @@ export class Cube3DRenderer {
 			labelBold,
 			labelItalic,
 			labelPosition,
-			labelColor,
-			labelBackgroundOpacity,
 			labelDensity,
 			cubeFaceOpacity,
 			cubeSize,
@@ -180,8 +174,6 @@ export class Cube3DRenderer {
 		labelBold: boolean,
 		labelItalic: boolean,
 		labelPosition: LabelPosition,
-		labelColor: string,
-		labelBackgroundOpacity: number,
 		labelDensity: number,
 		cubeFaceOpacity: number,
 		cubeSize: number,
@@ -202,7 +194,6 @@ export class Cube3DRenderer {
 		this.labelItalic = labelItalic;
 		this.labelPosition = labelPosition;
 		this.labelOffset = labelOffset;
-		this.labelColor = labelColor;
 		this.labelTheme = {
 			labelLightTextColor,
 			labelLightBackgroundColor,
@@ -211,7 +202,6 @@ export class Cube3DRenderer {
 			labelDarkBackgroundColor,
 			labelDarkBackgroundOpacity,
 		};
-		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.labelDensity = labelDensity;
 		this.threeLabelResolution = threeLabelResolution;
 		this.cubeFaceOpacity = cubeFaceOpacity;
@@ -370,20 +360,8 @@ export class Cube3DRenderer {
 		this.scheduleRender();
 	}
 
-	setLabelColor(labelColor: string): void {
-		this.labelColor = labelColor;
-		this.rebuildGraphObjects();
-		this.scheduleRender();
-	}
-
 	setLabelTheme(labelTheme: LabelThemeConfig): void {
 		this.labelTheme = labelTheme;
-		this.rebuildGraphObjects();
-		this.scheduleRender();
-	}
-
-	setLabelBackgroundOpacity(labelBackgroundOpacity: number): void {
-		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.rebuildGraphObjects();
 		this.scheduleRender();
 	}
@@ -518,8 +496,8 @@ export class Cube3DRenderer {
 		this.resizeObserver.disconnect();
 		this.clearObjectGroup(this.edgeGroup);
 		this.clearObjectGroup(this.faceEdgeGroup);
-		this.clearObjectGroup(this.nodeGroup);
-		this.clearObjectGroup(this.labelGroup);
+		this.clearObjectGroup(this.nodeGroup, true);
+		this.clearObjectGroup(this.labelGroup, true);
 		this.arrowTextures.forEach((texture) => texture.dispose());
 		this.arrowTextures.clear();
 		this.webgl.dispose();
@@ -809,8 +787,8 @@ export class Cube3DRenderer {
 	}
 
 	private rebuildGraphObjects(): void {
-		this.clearObjectGroup(this.nodeGroup);
-		this.clearObjectGroup(this.labelGroup);
+		this.clearObjectGroup(this.nodeGroup, true);
+		this.clearObjectGroup(this.labelGroup, true);
 		this.nodeObjects.clear();
 		const displayPositions = resolveCubeDisplayPositions(
 			this.graph,
@@ -1444,23 +1422,37 @@ export class Cube3DRenderer {
 		);
 	}
 
-	private clearObjectGroup(group: Three.Group): void {
+	private clearObjectGroup(
+		group: Three.Group,
+		disposeTextures = false,
+	): void {
 		for (const object of [...group.children]) {
 			group.remove(object);
-			this.disposeObject(object);
+			this.disposeObject(object, disposeTextures);
 		}
 	}
 
-	private disposeObject(object: Three.Object3D): void {
+	private disposeObject(
+		object: Three.Object3D,
+		disposeTextures = false,
+	): void {
 		const mesh = object as Three.Mesh;
 		const line = object as Three.Line;
 		const geometry = mesh.geometry ?? line.geometry;
 		geometry?.dispose();
 		const material = mesh.material ?? line.material;
+		const disposeMaterial = (item: Three.Material): void => {
+			if (disposeTextures) {
+				(
+					item as Three.Material & { map?: Three.Texture }
+				).map?.dispose();
+			}
+			item.dispose();
+		};
 		if (Array.isArray(material)) {
-			material.forEach((item) => item.dispose());
+			material.forEach(disposeMaterial);
 		} else {
-			material?.dispose();
+			if (material) disposeMaterial(material);
 		}
 	}
 }

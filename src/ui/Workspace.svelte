@@ -238,6 +238,7 @@
 		syncRendererGroups: () => syncRendererGroups(),
 		setRendererDebugState: (state) =>
 			controller.setRendererDebugState(state),
+		shouldCaptureRuntimeDebug: () => debugOpen,
 		setFlowRelationConflictCount: (count) =>
 			controller.setFlowRelationConflictCount(count),
 		setRenderPending: (pending) =>
@@ -1148,7 +1149,6 @@
 			workspaceState.globalNodeStyleRules,
 			workspaceState.nodeStyleRules,
 			workspaceState.grouping,
-			workspaceState.manualLayout,
 		];
 		if (
 			cacheKey.length === nodeColorCacheKey.length &&
@@ -1189,7 +1189,9 @@
 
 	function toggleDebug(): void {
 		debugOpen = !debugOpen;
-		if (!debugOpen) {
+		if (debugOpen) {
+			rendererLifecycle.publishDebugState();
+		} else {
 			window.requestAnimationFrame(() => rendererLifecycle.resize());
 		}
 	}

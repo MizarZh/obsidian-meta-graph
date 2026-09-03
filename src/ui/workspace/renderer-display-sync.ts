@@ -12,7 +12,6 @@ interface DisplayRenderer {
 	setLabelItalic(value: boolean): void;
 	setLabelPosition(value: WorkspaceState['labelPosition']): void;
 	setLabelOffset(value: number): void;
-	setLabelColor(value: string): void;
 	setLabelTheme(
 		state: Pick<
 			WorkspaceState,
@@ -24,7 +23,6 @@ interface DisplayRenderer {
 			| 'labelDarkBackgroundOpacity'
 		>,
 	): void;
-	setLabelBackgroundOpacity(value: number): void;
 	setLabelDensity(value: number): void;
 	setForceLabels(value: boolean): void;
 	setCubeFaceOpacity?(value: number): void;
@@ -64,14 +62,8 @@ export function syncRendererDisplaySettings(
 	if (changes.labelOffsetChanged) {
 		renderer?.setLabelOffset(state.labelOffset);
 	}
-	if (changes.labelColorChanged) {
-		renderer?.setLabelColor(state.labelColor);
-	}
 	if (changes.labelThemeChanged) {
 		renderer?.setLabelTheme(state);
-	}
-	if (changes.labelBackgroundOpacityChanged) {
-		renderer?.setLabelBackgroundOpacity(state.labelBackgroundOpacity);
 	}
 	if (changes.labelDensityChanged) {
 		renderer?.setLabelDensity(state.labelDensity);

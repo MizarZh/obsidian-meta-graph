@@ -36,6 +36,7 @@ export interface WorkspaceRendererLifecycleOptions {
 	bindEvents(renderer: GraphRenderer): () => void;
 	syncRendererGroups(): void;
 	setRendererDebugState(state: RendererDebugState): void;
+	shouldCaptureRuntimeDebug?(): boolean;
 	setFlowRelationConflictCount?(count: number): void;
 	setRenderPending?(pending: boolean): void;
 	setZoomLevel?(level: number): void;
@@ -119,6 +120,23 @@ export class WorkspaceRendererLifecycle {
 
 	clearPinnedHover(): void {
 		this.currentRenderer?.clearPinnedHover();
+	}
+
+	publishDebugState(): void {
+		const state = this.options.readState();
+		const renderer = this.currentRenderer;
+		this.options.setRendererDebugState(
+			renderer
+				? {
+						status: 'rendered',
+						mode: state.mode,
+						container: this.options.readContainerSize(),
+						runtimeGraph: serializeRuntimeGraph(
+							renderer.runtimeGraph,
+						),
+					}
+				: { status: 'idle' },
+		);
 	}
 
 	refreshPalette(): void {
@@ -212,15 +230,15 @@ export class WorkspaceRendererLifecycle {
 			!canvas
 		) {
 			this.clearRenderer();
-			this.options.setRendererDebugState({ status: 'idle' });
+			this.setDebugState(() => ({ status: 'idle' }));
 			return;
 		}
 
-		this.options.setRendererDebugState({
+		this.setDebugState(() => ({
 			status: 'waiting-for-size',
 			mode: initialState.mode,
 			container: this.options.readContainerSize(),
-		});
+		}));
 		const hasSize = await this.options.waitForCanvasSize();
 		if (!hasSize || version !== this.renderVersion) {
 			if (!hasSize) {
@@ -234,7 +252,7 @@ export class WorkspaceRendererLifecycle {
 		const state = this.options.readState();
 		if (!state.projection || !canRenderProjection(state)) {
 			this.clearRenderer();
-			this.options.setRendererDebugState({ status: 'idle' });
+			this.setDebugState(() => ({ status: 'idle' }));
 			return;
 		}
 
@@ -264,12 +282,12 @@ export class WorkspaceRendererLifecycle {
 			.nodes()
 			.filter((nodeId) => !positions.has(nodeId));
 		const groupByNode = createWorkspaceGroupByNode(state);
-		this.options.setRendererDebugState({
+		this.setDebugState(() => ({
 			status: 'layout',
 			mode: state.mode,
 			container: this.options.readContainerSize(),
 			runtimeGraph: serializeRuntimeGraph(graph),
-		});
+		}));
 		let progressiveFirstRender = false;
 		if (
 			!this.currentRenderer &&
@@ -407,12 +425,12 @@ export class WorkspaceRendererLifecycle {
 		if (firstRender || fitAfterRender) {
 			this.currentRenderer.fit();
 		}
-		this.options.setRendererDebugState({
+		this.setDebugState(() => ({
 			status: 'rendered',
 			mode: state.mode,
 			container: this.options.readContainerSize(),
 			runtimeGraph: serializeRuntimeGraph(graph),
-		});
+		}));
 		this.options.recordPerformance?.(
 			'render.total',
 			performance.now() - rebuildStartedAt,
@@ -452,6 +470,13 @@ export class WorkspaceRendererLifecycle {
 			this.currentRenderer?.runtimeGraph.hasNode(hoveredNodeId)
 			? hoveredNodeId
 			: undefined;
+	}
+
+	private setDebugState(createState: () => RendererDebugState): void {
+		if (this.options.shouldCaptureRuntimeDebug?.() === false) {
+			return;
+		}
+		this.options.setRendererDebugState(createState());
 	}
 }
 

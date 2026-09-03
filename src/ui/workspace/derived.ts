@@ -7,7 +7,10 @@ import {
 	getActiveDefaultNodeStyle,
 	getActiveNodeStyleRules,
 } from '../../graph/styles/active-styles';
-import { resolveNodeStyleContext } from '../../graph/styles/node-style-context';
+import {
+	resolveNodeStyleContext,
+	resolveNodeStyleContexts,
+} from '../../graph/styles/node-style-context';
 import { resolveNodeStyle } from '../../graph/styles/style-rules';
 
 type DockNotes = WorkspaceState['dock']['notes'];
@@ -94,12 +97,21 @@ export function getWorkspaceNodeColors(
 	state: WorkspaceState,
 	defaultColor: string,
 ): Map<string, string> {
+	const values = [...nodes];
 	const colors = new Map<string, string>();
-	for (const node of nodes) {
+	const rules = getActiveNodeStyleRules(state);
+	const defaultNodeStyle = getActiveDefaultNodeStyle(state, defaultColor);
+	const contexts = resolveNodeStyleContexts(values, state.grouping);
+	for (const node of values) {
 		if (!colors.has(node.path)) {
 			colors.set(
 				node.path,
-				getWorkspaceNodeColor(node, state, defaultColor),
+				resolveNodeStyle(
+					node,
+					rules,
+					defaultNodeStyle,
+					contexts.get(node.id),
+				).color,
 			);
 		}
 	}

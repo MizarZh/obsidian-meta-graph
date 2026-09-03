@@ -135,13 +135,6 @@ export function setLabelOffsetInState(
 	return setDisplayValue(state, 'labelOffset', Math.max(0, labelOffset));
 }
 
-export function setLabelColorInState(
-	state: WorkspaceState,
-	labelColor: string,
-): WorkspaceState {
-	return setDisplayValue(state, 'labelColor', labelColor);
-}
-
 export function setLabelLightTextColorInState(
 	state: WorkspaceState,
 	labelLightTextColor: string,
@@ -197,17 +190,6 @@ export function setLabelDarkBackgroundOpacityInState(
 		state,
 		'labelDarkBackgroundOpacity',
 		Math.max(0, Math.min(1, labelDarkBackgroundOpacity)),
-	);
-}
-
-export function setLabelBackgroundOpacityInState(
-	state: WorkspaceState,
-	labelBackgroundOpacity: number,
-): WorkspaceState {
-	return setDisplayValue(
-		state,
-		'labelBackgroundOpacity',
-		labelBackgroundOpacity,
 	);
 }
 

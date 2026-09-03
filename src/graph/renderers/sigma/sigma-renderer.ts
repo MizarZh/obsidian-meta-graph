@@ -67,9 +67,7 @@ export class SigmaRenderer {
 	private labelOffset: number;
 	private labelBold: boolean;
 	private labelItalic: boolean;
-	private labelColor: string;
 	private labelTheme: LabelThemeConfig;
-	private labelBackgroundOpacity: number;
 	private forceLabels: boolean;
 	private scaleLabelsWithZoom: boolean;
 	private readonly groupOverlayLayer: GroupOverlayLayer;
@@ -91,8 +89,6 @@ export class SigmaRenderer {
 		labelItalic = false,
 		labelPosition: LabelPosition = 'right',
 		labelOffset = 1,
-		labelColor = '',
-		labelBackgroundOpacity = 0.82,
 		labelDensity = 0.8,
 		forceLabels = false,
 		labelLightTextColor = '#111111',
@@ -108,7 +104,6 @@ export class SigmaRenderer {
 		this.labelOffset = labelOffset;
 		this.labelBold = labelBold;
 		this.labelItalic = labelItalic;
-		this.labelColor = labelColor;
 		this.labelTheme = {
 			labelLightTextColor,
 			labelLightBackgroundColor,
@@ -117,7 +112,6 @@ export class SigmaRenderer {
 			labelDarkBackgroundColor,
 			labelDarkBackgroundOpacity,
 		};
-		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.forceLabels = forceLabels;
 		this.instance = new Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>(
 			graph,
@@ -382,19 +376,9 @@ export class SigmaRenderer {
 		this.refresh();
 	}
 
-	setLabelColor(labelColor: string): void {
-		this.labelColor = labelColor;
-		this.refresh();
-	}
-
 	setLabelTheme(labelTheme: LabelThemeConfig): void {
 		this.labelTheme = labelTheme;
 		this.instance.setSetting('labelColor', { color: this.getLabelColor() });
-		this.refresh();
-	}
-
-	setLabelBackgroundOpacity(labelBackgroundOpacity: number): void {
-		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.refresh();
 	}
 

@@ -5,6 +5,7 @@ import type {
 	KnowledgeIndex,
 	NodeId,
 } from '../core/types';
+import { isPlainLinkEdge, isUnresolvedLinkEdge } from '../core/edge-kind';
 
 export class CuratedProjectionEngine {
 	project(
@@ -63,12 +64,4 @@ export class CuratedProjectionEngine {
 			hiddenNodeIds,
 		};
 	}
-}
-
-function isPlainLinkEdge(edge: KnowledgeEdge): boolean {
-	return edge.kind === 'plain-link' || (!edge.kind && edge.semantic === false);
-}
-
-function isUnresolvedLinkEdge(edge: KnowledgeEdge): boolean {
-	return edge.kind === 'unresolved-link';
 }

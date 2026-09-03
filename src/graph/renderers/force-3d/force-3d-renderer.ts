@@ -59,13 +59,11 @@ export class Force3DRenderer {
 	private hoveredNodeId?: string;
 	private pinnedNodeId?: string;
 	private hoveredNeighborhood = new Set<string>();
-	private labelColor: string;
 	private labelPosition: LabelPosition;
 	private labelOffset: number;
 	private labelBold: boolean;
 	private labelItalic: boolean;
 	private labelTheme: LabelThemeConfig;
-	private labelBackgroundOpacity: number;
 	private labelSize: number;
 	private threeLabelResolution: ThreeLabelResolution;
 	private readonly three: ThreeRuntime;
@@ -119,8 +117,6 @@ export class Force3DRenderer {
 		labelBold = false,
 		labelItalic = false,
 		labelPosition: LabelPosition = 'right',
-		labelColor = '',
-		labelBackgroundOpacity = 0.82,
 		labelDensity = 0.8,
 		enableNodeDrag = false,
 		forceLabels = false,
@@ -154,8 +150,6 @@ export class Force3DRenderer {
 			labelBold,
 			labelItalic,
 			labelPosition,
-			labelColor,
-			labelBackgroundOpacity,
 			labelDensity,
 			enableNodeDrag,
 			forceLabels,
@@ -181,8 +175,6 @@ export class Force3DRenderer {
 		labelBold = false,
 		labelItalic = false,
 		_labelPosition: LabelPosition = 'right',
-		labelColor = '',
-		labelBackgroundOpacity = 0.82,
 		_labelDensity = 0.8,
 		enableNodeDrag = false,
 		_forceLabels = false,
@@ -196,7 +188,6 @@ export class Force3DRenderer {
 		labelDarkBackgroundOpacity = 0.62,
 		threeLabelResolution: ThreeLabelResolution = 'standard',
 	) {
-		this.labelColor = labelColor;
 		this.labelPosition = _labelPosition;
 		this.labelOffset = labelOffset;
 		this.labelBold = labelBold;
@@ -209,7 +200,6 @@ export class Force3DRenderer {
 			labelDarkBackgroundColor,
 			labelDarkBackgroundOpacity,
 		};
-		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.labelSize = _labelSize;
 		this.threeLabelResolution = threeLabelResolution;
 		this.three = three;
@@ -231,7 +221,7 @@ export class Force3DRenderer {
 			.nodeResolution(18)
 			.nodeThreeObjectExtend(false)
 			.nodeThreeObject((node: Force3DNode) => this.createNodeObject(node))
-			.nodePositionUpdate((object: Object3D, coordinates, node) => {
+			.nodePositionUpdate((_object: Object3D, coordinates, node) => {
 				const label = this.nodeLabelSprites.get(node.id);
 				if (label) {
 					this.positionNodeLabel(label, coordinates, node);
@@ -427,20 +417,8 @@ export class Force3DRenderer {
 		this.scheduleVisualUpdate({ nodeLabelPositions: true });
 	}
 
-	setLabelColor(labelColor: string): void {
-		this.labelColor = labelColor;
-		this.applyTooltipStyles();
-		this.scheduleVisualUpdate({ allLabelSprites: true });
-	}
-
 	setLabelTheme(labelTheme: LabelThemeConfig): void {
 		this.labelTheme = labelTheme;
-		this.applyTooltipStyles();
-		this.scheduleVisualUpdate({ allLabelSprites: true });
-	}
-
-	setLabelBackgroundOpacity(labelBackgroundOpacity: number): void {
-		this.labelBackgroundOpacity = labelBackgroundOpacity;
 		this.applyTooltipStyles();
 		this.scheduleVisualUpdate({ allLabelSprites: true });
 	}

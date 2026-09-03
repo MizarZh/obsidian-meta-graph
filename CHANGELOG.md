@@ -14,12 +14,17 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Reduced large-graph rebuild work by indexing initial-position adjacency, batching Group ownership resolution, caching query filter results, and resolving each link style rule set once per edge.
+- Captured full runtime graph diagnostics only while Debug is open, avoiding normal-render serialization and redundant workspace notifications.
+- Consolidated plain and unresolved link classification and removed obsolete metadata-index and legacy label-control paths.
 - Unified non-Cube Group visuals around persistent member halos, faint layout-specific regions, horizontal pill titles, and group-colored hover/selection states. Cube keeps its face-based visual language and emphasizes the whole face on hover or selection.
 - Renamed Group **Mode** to **Membership** and clarified its values as **Manual assignment**, **Rule-based**, and **System**.
 - Moved Cube face membership out of manual node placements into canonical group overrides. Legacy Cube placements are migrated on load and materialized only at the renderer compatibility boundary.
 
 ### Fixed
 
+- Kept theme-aware black/white label profiles when reading obsolete label color fields, and stopped writing those obsolete fields.
+- Released Cube node and label Canvas textures during graph rebuilds and renderer teardown.
 - Kept focused and pinned Sigma arrows at their base size while applying emphasis to line width.
 - Replaced Details focus buttons' pin icons with the crosshair icon used by Fit graph.
 - Fixed Group and relationship details cards inheriting dock flex sizing, which could create large blank areas, overlap member/conflict rows, and stretch the delete action across the panel.

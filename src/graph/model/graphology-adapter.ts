@@ -13,12 +13,10 @@ import type {
 	DefaultLinkStyle,
 	DefaultNodeStyle,
 } from '../../core/types';
+import { isPlainLinkEdge, isUnresolvedLinkEdge } from '../../core/edge-kind';
 import type { GraphPalette } from '../styles/graph-styles';
 import {
-	resolveLinkStyle,
-	resolveLinkArrowSize,
-	resolveLinkArrowStyle,
-	resolveLinkOpacity,
+	resolveLinkVisualStyle,
 	resolveNodeStyle,
 	type NodeStyleContext,
 } from '../styles/style-rules';
@@ -189,6 +187,7 @@ export class GraphologyAdapter {
 			RuntimeEdgeAttributes,
 			Record<string, never>
 		>({ multi: true, type: 'mixed' });
+		const initialPositionIndex = createInitialPositionIndex(projection);
 
 		for (const node of projection.nodes) {
 			const isPrimary = projection.primaryIds?.has(node.id) ?? false;
@@ -207,7 +206,7 @@ export class GraphologyAdapter {
 			);
 			const position =
 				positions.get(node.id) ??
-				createInitialPosition(node.id, projection, positions);
+				createInitialPosition(node.id, initialPositionIndex, positions);
 			const resolvedNodeStyle =
 				node.kind === 'unresolved' ? this.unresolvedNodeStyle : style;
 			graph.addNode(node.id, {
@@ -236,61 +235,34 @@ export class GraphologyAdapter {
 		}
 
 		for (const edge of projection.edges) {
-			const style = resolveLinkStyle(edge, this.linkStyleRules, {
-				color: this.defaultLinkStyle.color || this.palette.edge,
-				size: this.defaultLinkStyle.size,
-				lineStyle: this.defaultLinkStyle.lineStyle,
-				label: this.defaultLinkStyle.showLabel
-					? this.defaultLinkStyle.label || edge.relation
-					: '',
-				hidden: this.defaultLinkStyle.hidden,
-			});
-			const resolvedArrowStyle = isUnresolvedLinkEdge(edge)
-				? this.unresolvedLinkStyle.arrowStyle
+			const specialStyle = isUnresolvedLinkEdge(edge)
+				? this.unresolvedLinkStyle
 				: isPlainLinkEdge(edge)
-					? this.plainLinkStyle.arrowStyle
-					: resolveLinkArrowStyle(
-							edge,
-							this.linkStyleRules,
-							this.defaultLinkStyle.arrowStyle,
-						);
-			const resolvedOpacity = isUnresolvedLinkEdge(edge)
-				? this.unresolvedLinkStyle.opacity
-				: isPlainLinkEdge(edge)
-					? this.plainLinkStyle.opacity
-					: resolveLinkOpacity(
-							edge,
-							this.linkStyleRules,
-							this.defaultLinkStyle.opacity,
-						);
-			const resolvedArrowSize = isUnresolvedLinkEdge(edge)
-				? this.unresolvedLinkStyle.arrowSize
-				: isPlainLinkEdge(edge)
-					? this.plainLinkStyle.arrowSize
-					: resolveLinkArrowSize(
-							edge,
-							this.linkStyleRules,
-							this.defaultLinkStyle.arrowSize,
-						);
-			const resolvedStyle = isUnresolvedLinkEdge(edge)
+					? this.plainLinkStyle
+					: undefined;
+			const resolvedStyle = specialStyle
 				? {
-						...style,
-						color: this.unresolvedLinkStyle.color,
-						size: this.unresolvedLinkStyle.size,
-						lineStyle: this.unresolvedLinkStyle.lineStyle,
-						hidden: this.unresolvedLinkStyle.hidden,
+						color: specialStyle.color,
+						size: specialStyle.size,
+						lineStyle: specialStyle.lineStyle,
 						label: '',
+						hidden: specialStyle.hidden,
+						arrowStyle: specialStyle.arrowStyle,
+						opacity: specialStyle.opacity,
+						arrowSize: specialStyle.arrowSize,
 					}
-				: isPlainLinkEdge(edge)
-					? {
-							...style,
-							color: this.plainLinkStyle.color,
-							size: this.plainLinkStyle.size,
-							lineStyle: this.plainLinkStyle.lineStyle,
-							hidden: this.plainLinkStyle.hidden,
-							label: '',
-						}
-					: style;
+				: resolveLinkVisualStyle(edge, this.linkStyleRules, {
+						color: this.defaultLinkStyle.color || this.palette.edge,
+						size: this.defaultLinkStyle.size,
+						lineStyle: this.defaultLinkStyle.lineStyle,
+						label: this.defaultLinkStyle.showLabel
+							? this.defaultLinkStyle.label || edge.relation
+							: '',
+						hidden: this.defaultLinkStyle.hidden,
+						arrowStyle: this.defaultLinkStyle.arrowStyle,
+						opacity: this.defaultLinkStyle.opacity,
+						arrowSize: this.defaultLinkStyle.arrowSize,
+					});
 			const attributes: RuntimeEdgeAttributes = {
 				relation: edge.relation,
 				sourcePath: edge.sourcePath,
@@ -298,16 +270,16 @@ export class GraphologyAdapter {
 				type: getEdgeType(
 					resolvedStyle.lineStyle,
 					edge.directed,
-					resolvedArrowStyle,
+					resolvedStyle.arrowStyle,
 				),
 				size: resolvedStyle.size,
-				opacity: resolvedOpacity,
+				opacity: resolvedStyle.opacity,
 				color: resolvedStyle.color,
 				label: resolvedStyle.label,
 				forceLabel: Boolean(resolvedStyle.label),
 				lineStyle: resolvedStyle.lineStyle,
-				arrowStyle: resolvedArrowStyle,
-				arrowSize: resolvedArrowSize,
+				arrowStyle: resolvedStyle.arrowStyle,
+				arrowSize: resolvedStyle.arrowSize,
 				kind: edge.kind,
 				semantic: edge.semantic ?? edge.kind !== 'plain-link',
 				styleHidden: resolvedStyle.hidden,
@@ -339,19 +311,6 @@ export class GraphologyAdapter {
 	}
 }
 
-function isPlainLinkEdge(edge: {
-	kind?: KnowledgeEdgeKind;
-	semantic?: boolean;
-}): boolean {
-	return (
-		edge.kind === 'plain-link' || (!edge.kind && edge.semantic === false)
-	);
-}
-
-function isUnresolvedLinkEdge(edge: { kind?: KnowledgeEdgeKind }): boolean {
-	return edge.kind === 'unresolved-link';
-}
-
 export function getEdgeType(
 	lineStyle: LinkLineStyle,
 	directed: boolean,
@@ -368,14 +327,58 @@ export function getEdgeType(
 	return lineStyle === 'solid' ? 'arrow' : `${lineStyle}-arrow`;
 }
 
+interface InitialPositionIndex {
+	connectedIdsByNode: ReadonlyMap<string, readonly string[]>;
+	edgeCountByNode: ReadonlyMap<string, number>;
+	titleLengthByNode: ReadonlyMap<string, number>;
+	openAngleByAnchor: Map<string, number>;
+}
+
+function createInitialPositionIndex(
+	projection: GraphProjection,
+): InitialPositionIndex {
+	const connectedIdsByNode = new Map<string, string[]>();
+	const edgeCountByNode = new Map<string, number>();
+	for (const edge of projection.edges) {
+		appendConnectedNode(connectedIdsByNode, edge.source, edge.target);
+		edgeCountByNode.set(
+			edge.source,
+			(edgeCountByNode.get(edge.source) ?? 0) + 1,
+		);
+		if (edge.target !== edge.source) {
+			appendConnectedNode(connectedIdsByNode, edge.target, edge.source);
+			edgeCountByNode.set(
+				edge.target,
+				(edgeCountByNode.get(edge.target) ?? 0) + 1,
+			);
+		}
+	}
+	return {
+		connectedIdsByNode,
+		edgeCountByNode,
+		titleLengthByNode: new Map(
+			projection.nodes.map((node) => [node.id, node.title.length]),
+		),
+		openAngleByAnchor: new Map(),
+	};
+}
+
+function appendConnectedNode(
+	connectedIdsByNode: Map<string, string[]>,
+	nodeId: string,
+	neighborId: string,
+): void {
+	const connectedIds = connectedIdsByNode.get(nodeId) ?? [];
+	connectedIds.push(neighborId);
+	connectedIdsByNode.set(nodeId, connectedIds);
+}
+
 function createInitialPosition(
 	nodeId: string,
-	projection: GraphProjection,
+	index: InitialPositionIndex,
 	positions: ReadonlyMap<string, GraphPosition>,
 ): GraphPosition {
-	const connectedIds = projection.edges
-		.filter((edge) => edge.source === nodeId || edge.target === nodeId)
-		.map((edge) => (edge.source === nodeId ? edge.target : edge.source));
+	const connectedIds = index.connectedIdsByNode.get(nodeId) ?? [];
 	const neighborId = connectedIds.find((candidate) =>
 		positions.has(candidate),
 	);
@@ -387,10 +390,14 @@ function createInitialPosition(
 			y: Math.sin(angle),
 		};
 	}
-	const angle = findOpenAngle(nodeId, neighborId, positions);
+	let angle = index.openAngleByAnchor.get(neighborId);
+	if (angle === undefined) {
+		angle = findOpenAngle(nodeId, neighborId, positions);
+		index.openAngleByAnchor.set(neighborId, angle);
+	}
 	const radius =
-		estimateNeighborRadius(neighborId, projection) +
-		estimateNodeRadius(nodeId, projection) +
+		estimateNeighborRadius(neighborId, index) +
+		estimateNodeRadius(nodeId, index) +
 		0.8;
 	return {
 		x: anchor.x + Math.cos(angle) * radius,
@@ -436,20 +443,17 @@ function findOpenAngle(
 
 function estimateNeighborRadius(
 	nodeId: string,
-	projection: GraphProjection,
+	index: InitialPositionIndex,
 ): number {
-	const edgeCount = projection.edges.filter(
-		(edge) => edge.source === nodeId || edge.target === nodeId,
-	).length;
+	const edgeCount = index.edgeCountByNode.get(nodeId) ?? 0;
 	return 0.35 + Math.min(0.7, edgeCount * 0.08);
 }
 
 function estimateNodeRadius(
 	nodeId: string,
-	projection: GraphProjection,
+	index: InitialPositionIndex,
 ): number {
-	const node = projection.nodes.find((item) => item.id === nodeId);
-	const titleLength = node?.title.length ?? 8;
+	const titleLength = index.titleLengthByNode.get(nodeId) ?? 8;
 	return 0.35 + Math.min(0.45, titleLength * 0.015);
 }
 

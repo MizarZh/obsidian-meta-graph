@@ -38,35 +38,3 @@ export class ColorCommitScheduler {
 		this.scheduler.clearAll();
 	}
 }
-
-export function getDefaultLabelColor(document: Document): string {
-	return cssColorToHex(
-		document,
-		document.defaultView
-			?.getComputedStyle(document.body)
-			.getPropertyValue('--text-normal')
-			.trim() || '#000000',
-	);
-}
-
-export function cssColorToHex(document: Document, color: string): string {
-	const probe = document.createElement('span');
-	probe.style.color = color;
-	probe.hidden = true;
-	document.body.appendChild(probe);
-	const normalized =
-		document.defaultView?.getComputedStyle(probe).color ?? '';
-	probe.remove();
-	const channels = normalized.match(/\d+/gu);
-	if (!channels || channels.length < 3) {
-		return '#000000';
-	}
-	return `#${channels
-		.slice(0, 3)
-		.map((channel) =>
-			Math.max(0, Math.min(255, Number(channel)))
-				.toString(16)
-				.padStart(2, '0'),
-		)
-		.join('')}`;
-}

@@ -23,8 +23,6 @@ import type {
 import { normalizeTags } from './tags';
 
 export class MetadataIndexer {
-	readonly unresolvedLinks: UnresolvedLink[] = [];
-	readonly metadataSources: MetadataDebugEntry[] = [];
 	private readonly resolver: ObsidianLinkResolver;
 
 	constructor(
@@ -49,96 +47,6 @@ export class MetadataIndexer {
 
 	private readonly relationFields: string[];
 	private readonly relationSpecs: ConnectionFieldSpec[];
-
-	build(): KnowledgeIndex {
-		this.unresolvedLinks.length = 0;
-		this.metadataSources.length = 0;
-		const index = createKnowledgeIndex();
-		const files = this.app.vault.getMarkdownFiles();
-		const filePaths = new Set(
-			files.map((file) => normalizePath(file.path)),
-		);
-
-		for (const file of files) {
-			addNode(
-				index,
-				this.createNode(
-					file,
-					this.app.metadataCache.getFileCache(file),
-				),
-			);
-		}
-
-		const resolver = this.resolver;
-		for (const file of files) {
-			const cache = this.app.metadataCache.getFileCache(file);
-			const frontmatter = asFrontmatter(cache?.frontmatter);
-			const frontmatterLinks = (cache?.frontmatterLinks ?? []).map(
-				(link) => ({
-					key: link.key,
-					link: link.link,
-					original: link.original,
-				}),
-			);
-			const relationFrontmatterLinks = frontmatterLinks.filter((link) =>
-				isRelationField(
-					link.key.split(/[.[\]]/u)[0] ?? link.key,
-					this.relationFields,
-				),
-			);
-			const relationProperties = Object.fromEntries(
-				Object.entries(frontmatter ?? {}).filter(([field]) =>
-					isRelationField(field, this.relationFields),
-				),
-			);
-			if (
-				Object.keys(relationProperties).length > 0 ||
-				relationFrontmatterLinks.length > 0
-			) {
-				this.metadataSources.push({
-					path: file.path,
-					relationProperties,
-					frontmatterLinks: relationFrontmatterLinks,
-				});
-			}
-			const edges = parseRelations(
-				frontmatter,
-				file.path,
-				resolver,
-				(linkText, sourcePath) => {
-					this.unresolvedLinks.push({ linkText, sourcePath });
-					if (this.debug) {
-						console.debug(
-							`[Knowledge Workspace] Unresolved link "${linkText}" in ${sourcePath}`,
-						);
-					}
-				},
-				relationFrontmatterLinks,
-				this.relationFields,
-				this.relationSpecs,
-			);
-			for (const edge of edges) {
-				if (filePaths.has(edge.source) && filePaths.has(edge.target)) {
-					addEdge(index, edge);
-				}
-			}
-			const plainLinks = createPlainLinkEntries(file, cache, resolver);
-			for (const node of plainLinks.nodes) {
-				addNode(index, node);
-			}
-			for (const edge of plainLinks.edges) {
-				if (
-					filePaths.has(edge.source) &&
-					(filePaths.has(edge.target) ||
-						edge.kind === 'unresolved-link')
-				) {
-					addEdge(index, edge);
-				}
-			}
-		}
-
-		return index;
-	}
 
 	buildRecords(): Map<string, MetadataIndexRecord> {
 		const files = this.app.vault.getMarkdownFiles();

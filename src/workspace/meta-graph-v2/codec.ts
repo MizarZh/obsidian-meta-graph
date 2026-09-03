@@ -22,9 +22,7 @@ import {
 	DEFAULT_GRAPH_LINK_FORCE,
 	DEFAULT_GRAPH_REPEL_FORCE,
 	DEFAULT_GRAPH_RETURN_FORCE,
-	DEFAULT_LABEL_BACKGROUND_OPACITY,
 	DEFAULT_LABEL_BOLD,
-	DEFAULT_LABEL_COLOR,
 	DEFAULT_LABEL_DARK_BACKGROUND_COLOR,
 	DEFAULT_LABEL_DARK_BACKGROUND_OPACITY,
 	DEFAULT_LABEL_DARK_TEXT_COLOR,
@@ -815,10 +813,6 @@ function displayToV2(chart: MetaGraphChart): PersistedDisplayV2 {
 			display.labelOffset !== DEFAULT_LABEL_OFFSET
 				? display.labelOffset
 				: undefined,
-		color:
-			display.labelColor !== DEFAULT_LABEL_COLOR
-				? display.labelColor
-				: undefined,
 		lightTextColor:
 			display.labelLightTextColor !== DEFAULT_LABEL_LIGHT_TEXT_COLOR
 				? display.labelLightTextColor
@@ -846,10 +840,6 @@ function displayToV2(chart: MetaGraphChart): PersistedDisplayV2 {
 			display.labelDarkBackgroundOpacity !==
 			DEFAULT_LABEL_DARK_BACKGROUND_OPACITY
 				? display.labelDarkBackgroundOpacity
-				: undefined,
-		backgroundOpacity:
-			display.labelBackgroundOpacity !== DEFAULT_LABEL_BACKGROUND_OPACITY
-				? display.labelBackgroundOpacity
 				: undefined,
 		density:
 			display.labelDensity !== DEFAULT_LABEL_DENSITY
@@ -1209,14 +1199,12 @@ function v2ChartToLegacyRecord(
 			labelItalic: labels.italic,
 			labelPosition: labels.position,
 			labelOffset: labels.offset,
-			labelColor: labels.color,
 			labelLightTextColor: labels.lightTextColor,
 			labelLightBackgroundColor: labels.lightBackgroundColor,
 			labelLightBackgroundOpacity: labels.lightBackgroundOpacity,
 			labelDarkTextColor: labels.darkTextColor,
 			labelDarkBackgroundColor: labels.darkBackgroundColor,
 			labelDarkBackgroundOpacity: labels.darkBackgroundOpacity,
-			labelBackgroundOpacity: labels.backgroundOpacity,
 			labelDensity: labels.density,
 			forceLabels: labels.force,
 			cubeFaceOpacity: cube.faceOpacity,

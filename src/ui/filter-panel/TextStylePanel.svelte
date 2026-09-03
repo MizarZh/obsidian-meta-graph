@@ -50,14 +50,12 @@
 		labelItalic,
 		labelPosition,
 		labelOffset,
-		labelColor,
 		labelLightTextColor,
 		labelLightBackgroundColor,
 		labelLightBackgroundOpacity,
 		labelDarkTextColor,
 		labelDarkBackgroundColor,
 		labelDarkBackgroundOpacity,
-		labelBackgroundOpacity,
 		onLabelSize,
 		onScaleLabelsWithZoom,
 		onForceLabels,
@@ -67,15 +65,12 @@
 		onLabelItalic,
 		onLabelPosition,
 		onLabelOffset,
-		onLabelColor,
 		onLabelLightTextColor,
 		onLabelLightBackgroundColor,
 		onLabelLightBackgroundOpacity,
 		onLabelDarkTextColor,
 		onLabelDarkBackgroundColor,
 		onLabelDarkBackgroundOpacity,
-		onLabelBackgroundOpacity,
-		getDefaultLabelColor,
 	}: {
 		mode: ViewMode;
 		labelSize: number;
@@ -87,14 +82,12 @@
 		labelItalic: boolean;
 		labelPosition: LabelPosition;
 		labelOffset: number;
-		labelColor: string;
 		labelLightTextColor: string;
 		labelLightBackgroundColor: string;
 		labelLightBackgroundOpacity: number;
 		labelDarkTextColor: string;
 		labelDarkBackgroundColor: string;
 		labelDarkBackgroundOpacity: number;
-		labelBackgroundOpacity: number;
 		onLabelSize: (value: number) => void;
 		onScaleLabelsWithZoom: (value: boolean) => void;
 		onForceLabels: (value: boolean) => void;
@@ -104,18 +97,14 @@
 		onLabelItalic: (value: boolean) => void;
 		onLabelPosition: (position: LabelPosition) => void;
 		onLabelOffset: (value: number) => void;
-		onLabelColor: (color: string) => void;
 		onLabelLightTextColor: (color: string) => void;
 		onLabelLightBackgroundColor: (color: string) => void;
 		onLabelLightBackgroundOpacity: (value: number) => void;
 		onLabelDarkTextColor: (color: string) => void;
 		onLabelDarkBackgroundColor: (color: string) => void;
 		onLabelDarkBackgroundOpacity: (value: number) => void;
-		onLabelBackgroundOpacity: (value: number) => void;
-		getDefaultLabelColor: () => string;
 	} = $props();
 
-	const usesThemeProfiles = true;
 	let lightProfileOpen = $state(true);
 	let darkProfileOpen = $state(true);
 </script>
@@ -193,84 +182,64 @@
 			onChange={(value) => onArcLabelAngle(value as ArcLabelAngle)}
 		/>
 	{/if}
-	{#if usesThemeProfiles}
-		<SettingsSection title="Light profile" bind:open={lightProfileOpen}>
-			<SettingGrid density="compact">
-				<ColorSetting
-					label="Text"
-					layout="stacked"
-					value={labelLightTextColor}
-					commitKey="text:light-text"
-					ariaLabel="Light profile text color"
-					onChange={onLabelLightTextColor}
-				/>
-				<ColorSetting
-					label="Background"
-					layout="stacked"
-					value={labelLightBackgroundColor}
-					commitKey="text:light-background"
-					ariaLabel="Light profile background color"
-					onChange={onLabelLightBackgroundColor}
-				/>
-			</SettingGrid>
-			<SliderSetting
-				label="Background opacity"
-				value={labelLightBackgroundOpacity}
-				min={0}
-				max={1}
-				step={0.05}
-				format={(value) => `${Math.round(value * 100)}%`}
-				onChange={onLabelLightBackgroundOpacity}
-				onCommit={onLabelLightBackgroundOpacity}
+	<SettingsSection title="Light profile" bind:open={lightProfileOpen}>
+		<SettingGrid density="compact">
+			<ColorSetting
+				label="Text"
+				layout="stacked"
+				value={labelLightTextColor}
+				commitKey="text:light-text"
+				ariaLabel="Light profile text color"
+				onChange={onLabelLightTextColor}
 			/>
-		</SettingsSection>
-		<SettingsSection title="Dark profile" bind:open={darkProfileOpen}>
-			<SettingGrid density="compact">
-				<ColorSetting
-					label="Text"
-					layout="stacked"
-					value={labelDarkTextColor}
-					commitKey="text:dark-text"
-					ariaLabel="Dark profile text color"
-					onChange={onLabelDarkTextColor}
-				/>
-				<ColorSetting
-					label="Background"
-					layout="stacked"
-					value={labelDarkBackgroundColor}
-					commitKey="text:dark-background"
-					ariaLabel="Dark profile background color"
-					onChange={onLabelDarkBackgroundColor}
-				/>
-			</SettingGrid>
-			<SliderSetting
-				label="Background opacity"
-				value={labelDarkBackgroundOpacity}
-				min={0}
-				max={1}
-				step={0.05}
-				format={(value) => `${Math.round(value * 100)}%`}
-				onChange={onLabelDarkBackgroundOpacity}
-				onCommit={onLabelDarkBackgroundOpacity}
+			<ColorSetting
+				label="Background"
+				layout="stacked"
+				value={labelLightBackgroundColor}
+				commitKey="text:light-background"
+				ariaLabel="Light profile background color"
+				onChange={onLabelLightBackgroundColor}
 			/>
-		</SettingsSection>
-	{:else}
-		<ColorSetting
-			label="Font color"
-			value={labelColor || getDefaultLabelColor()}
-			commitKey="text:label-color"
-			ariaLabel="Font color"
-			onChange={onLabelColor}
-		/>
+		</SettingGrid>
 		<SliderSetting
-			label="Text background"
-			value={labelBackgroundOpacity}
+			label="Background opacity"
+			value={labelLightBackgroundOpacity}
 			min={0}
 			max={1}
 			step={0.05}
 			format={(value) => `${Math.round(value * 100)}%`}
-			onChange={onLabelBackgroundOpacity}
-			onCommit={onLabelBackgroundOpacity}
+			onChange={onLabelLightBackgroundOpacity}
+			onCommit={onLabelLightBackgroundOpacity}
 		/>
-	{/if}
+	</SettingsSection>
+	<SettingsSection title="Dark profile" bind:open={darkProfileOpen}>
+		<SettingGrid density="compact">
+			<ColorSetting
+				label="Text"
+				layout="stacked"
+				value={labelDarkTextColor}
+				commitKey="text:dark-text"
+				ariaLabel="Dark profile text color"
+				onChange={onLabelDarkTextColor}
+			/>
+			<ColorSetting
+				label="Background"
+				layout="stacked"
+				value={labelDarkBackgroundColor}
+				commitKey="text:dark-background"
+				ariaLabel="Dark profile background color"
+				onChange={onLabelDarkBackgroundColor}
+			/>
+		</SettingGrid>
+		<SliderSetting
+			label="Background opacity"
+			value={labelDarkBackgroundOpacity}
+			min={0}
+			max={1}
+			step={0.05}
+			format={(value) => `${Math.round(value * 100)}%`}
+			onChange={onLabelDarkBackgroundOpacity}
+			onCommit={onLabelDarkBackgroundOpacity}
+		/>
+	</SettingsSection>
 </section>

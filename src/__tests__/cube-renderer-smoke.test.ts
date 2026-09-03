@@ -180,12 +180,16 @@ class LineBasicMaterial extends Material {
 	}
 }
 
+const canvasTextures: CanvasTexture[] = [];
+
 class SpriteMaterial extends Material {
 	color: Color;
+	map: CanvasTexture | undefined;
 
-	constructor(options?: { color?: string }) {
+	constructor(options?: { color?: string; map?: CanvasTexture }) {
 		super();
 		this.color = new Color(options?.color ?? '#ffffff');
+		this.map = options?.map;
 	}
 }
 
@@ -224,9 +228,11 @@ class Sprite extends Object3D {
 
 class CanvasTexture {
 	needsUpdate = false;
+	readonly dispose = vi.fn();
 
-	constructor(_canvas: unknown) {}
-	dispose(): void {}
+	constructor(_canvas: unknown) {
+		canvasTextures.push(this);
+	}
 }
 
 class Plane {
@@ -437,6 +443,7 @@ function createGraph(nodeIds: string[]): RuntimeGraph {
 
 describe('Cube3DRenderer smoke', () => {
 	beforeEach(() => {
+		canvasTextures.length = 0;
 		vi.stubGlobal('window', {
 			devicePixelRatio: 1,
 			requestAnimationFrame: (callback: FrameRequestCallback) => {
@@ -466,8 +473,6 @@ describe('Cube3DRenderer smoke', () => {
 			false,
 			false,
 			'right',
-			'',
-			0.82,
 			0.8,
 			0.55,
 			180,
@@ -477,14 +482,25 @@ describe('Cube3DRenderer smoke', () => {
 		);
 
 		expect(renderer).toBeDefined();
+		const initialTextures = [...canvasTextures];
 		expect(() => {
 			renderer?.setThreeLabelResolution('ultra');
 			renderer?.setGraph(createGraph(['C.md']));
+			expect(
+				initialTextures.some(
+					(texture) => texture.dispose.mock.calls.length > 0,
+				),
+			).toBe(true);
 			renderer?.setManualLayout({
 				nodes: { 'C.md': { x: 0, y: 0, groupId: 'cube-front' } },
 				groups: [],
 			});
 			renderer?.kill();
+			expect(
+				canvasTextures.every(
+					(texture) => texture.dispose.mock.calls.length > 0,
+				),
+			).toBe(true);
 		}).not.toThrow();
 	});
 

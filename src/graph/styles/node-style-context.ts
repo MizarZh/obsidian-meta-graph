@@ -6,23 +6,28 @@ export function resolveNodeStyleContext(
 	node: KnowledgeNode,
 	grouping: ChartGroupingConfig,
 ): NodeStyleContext {
-	const groupIds = new Set<string>();
-	const groupNames = new Set<string>();
-	const ownerId = resolveChartGroupOwnership([node], grouping).byNode.get(
-		node.id,
-	)?.groupId;
-	if (ownerId) {
-		groupIds.add(ownerId);
-		const group = grouping.groups.find(
-			(candidate) => candidate.id === ownerId,
-		);
-		if (group?.name) {
-			groupNames.add(group.name);
-		}
-	}
+	return resolveNodeStyleContexts([node], grouping).get(node.id) ?? {};
+}
 
-	return {
-		groupIds: [...groupIds],
-		groupNames: [...groupNames],
-	};
+export function resolveNodeStyleContexts(
+	nodes: readonly KnowledgeNode[],
+	grouping: ChartGroupingConfig,
+): ReadonlyMap<string, NodeStyleContext> {
+	const ownership = resolveChartGroupOwnership(nodes, grouping);
+	const groupNamesById = new Map(
+		grouping.groups.map((group) => [group.id, group.name] as const),
+	);
+	return new Map(
+		nodes.map((node) => {
+			const ownerId = ownership.byNode.get(node.id)?.groupId;
+			const ownerName = ownerId ? groupNamesById.get(ownerId) : undefined;
+			return [
+				node.id,
+				{
+					groupIds: ownerId ? [ownerId] : [],
+					groupNames: ownerName ? [ownerName] : [],
+				},
+			];
+		}),
+	);
 }

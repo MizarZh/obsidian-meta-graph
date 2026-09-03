@@ -33,14 +33,12 @@ type ActiveChartStateFields = Pick<
 	| 'labelItalic'
 	| 'labelPosition'
 	| 'labelOffset'
-	| 'labelColor'
 	| 'labelLightTextColor'
 	| 'labelLightBackgroundColor'
 	| 'labelLightBackgroundOpacity'
 	| 'labelDarkTextColor'
 	| 'labelDarkBackgroundColor'
 	| 'labelDarkBackgroundOpacity'
-	| 'labelBackgroundOpacity'
 	| 'labelDensity'
 	| 'cubeFaceOpacity'
 	| 'cubeSize'
@@ -149,14 +147,12 @@ function createActiveChartStateFields(
 		labelItalic: chart.display.labelItalic,
 		labelPosition: chart.display.labelPosition,
 		labelOffset: chart.display.labelOffset,
-		labelColor: chart.display.labelColor,
 		labelLightTextColor: chart.display.labelLightTextColor,
 		labelLightBackgroundColor: chart.display.labelLightBackgroundColor,
 		labelLightBackgroundOpacity: chart.display.labelLightBackgroundOpacity,
 		labelDarkTextColor: chart.display.labelDarkTextColor,
 		labelDarkBackgroundColor: chart.display.labelDarkBackgroundColor,
 		labelDarkBackgroundOpacity: chart.display.labelDarkBackgroundOpacity,
-		labelBackgroundOpacity: chart.display.labelBackgroundOpacity,
 		labelDensity: chart.display.labelDensity,
 		cubeFaceOpacity: chart.display.cubeFaceOpacity,
 		cubeSize: chart.display.cubeSize,

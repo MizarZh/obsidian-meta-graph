@@ -6,7 +6,6 @@
 	import NodeStylePanel from './filter-panel/NodeStylePanel.svelte';
 	import StyleTransferControls from './filter-panel/StyleTransferControls.svelte';
 	import TextStylePanel from './filter-panel/TextStylePanel.svelte';
-	import { getDefaultLabelColor as resolveDefaultLabelColor } from './filter/color-commit';
 	import type {
 		ArcDirection,
 		ArcLabelAngle,
@@ -40,14 +39,12 @@
 		labelItalic,
 		labelPosition,
 		labelOffset,
-		labelColor,
 		labelLightTextColor,
 		labelLightBackgroundColor,
 		labelLightBackgroundOpacity,
 		labelDarkTextColor,
 		labelDarkBackgroundColor,
 		labelDarkBackgroundOpacity,
-		labelBackgroundOpacity,
 		labelDensity,
 		cubeFaceOpacity,
 		cubeSize,
@@ -110,14 +107,12 @@
 		onLabelItalic,
 		onLabelPosition,
 		onLabelOffset,
-		onLabelColor,
 		onLabelLightTextColor,
 		onLabelLightBackgroundColor,
 		onLabelLightBackgroundOpacity,
 		onLabelDarkTextColor,
 		onLabelDarkBackgroundColor,
 		onLabelDarkBackgroundOpacity,
-		onLabelBackgroundOpacity,
 		onLabelDensity,
 		onCubeFaceOpacity,
 		onCubeSize,
@@ -162,14 +157,12 @@
 		labelItalic: boolean;
 		labelPosition: LabelPosition;
 		labelOffset: number;
-		labelColor: string;
 		labelLightTextColor: string;
 		labelLightBackgroundColor: string;
 		labelLightBackgroundOpacity: number;
 		labelDarkTextColor: string;
 		labelDarkBackgroundColor: string;
 		labelDarkBackgroundOpacity: number;
-		labelBackgroundOpacity: number;
 		labelDensity: number;
 		cubeFaceOpacity: number;
 		cubeSize: number;
@@ -232,14 +225,12 @@
 		onLabelItalic: (value: boolean) => void;
 		onLabelPosition: (position: LabelPosition) => void;
 		onLabelOffset: (value: number) => void;
-		onLabelColor: (color: string) => void;
 		onLabelLightTextColor: (color: string) => void;
 		onLabelLightBackgroundColor: (color: string) => void;
 		onLabelLightBackgroundOpacity: (value: number) => void;
 		onLabelDarkTextColor: (color: string) => void;
 		onLabelDarkBackgroundColor: (color: string) => void;
 		onLabelDarkBackgroundOpacity: (value: number) => void;
-		onLabelBackgroundOpacity: (value: number) => void;
 		onLabelDensity: (value: number) => void;
 		onCubeFaceOpacity: (value: number) => void;
 		onCubeSize: (value: number) => void;
@@ -279,10 +270,6 @@
 		) => void;
 		onChartStyle: (style: ChartStyleConfig) => void;
 	} = $props();
-
-	function getDefaultLabelColor(): string {
-		return resolveDefaultLabelColor(document);
-	}
 
 	const chartStyle = $derived({
 		nodeOverrides: nodeStyleOverrides,
@@ -365,14 +352,12 @@
 			{labelItalic}
 			{labelPosition}
 			{labelOffset}
-			{labelColor}
 			{labelLightTextColor}
 			{labelLightBackgroundColor}
 			{labelLightBackgroundOpacity}
 			{labelDarkTextColor}
 			{labelDarkBackgroundColor}
 			{labelDarkBackgroundOpacity}
-			{labelBackgroundOpacity}
 			{onLabelSize}
 			{onScaleLabelsWithZoom}
 			{onForceLabels}
@@ -382,15 +367,12 @@
 			{onLabelItalic}
 			{onLabelPosition}
 			{onLabelOffset}
-			{onLabelColor}
 			{onLabelLightTextColor}
 			{onLabelLightBackgroundColor}
 			{onLabelLightBackgroundOpacity}
 			{onLabelDarkTextColor}
 			{onLabelDarkBackgroundColor}
 			{onLabelDarkBackgroundOpacity}
-			{onLabelBackgroundOpacity}
-			{getDefaultLabelColor}
 		/>
 	{:else if panel === 'filters'}
 		<FilterRulesPanel
