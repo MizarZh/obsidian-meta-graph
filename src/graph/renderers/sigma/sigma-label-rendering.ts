@@ -1,7 +1,4 @@
-import {
-	drawStraightEdgeLabel,
-	type NodeHoverDrawingFunction,
-} from 'sigma/rendering';
+import { type NodeHoverDrawingFunction } from 'sigma/rendering';
 import type {
 	EdgeLabelDrawingFunction,
 	NodeLabelDrawingFunction,
@@ -16,6 +13,7 @@ import {
 	getNodeLabelBox,
 	getRotatedNodeLabelBox,
 } from './sigma-label-geometry';
+import { CanvasTextWidthCache } from './canvas-text-metrics';
 
 export function createNodeLabelDrawer(
 	getRenderedLabelSize: (baseSize: number) => number,
@@ -25,6 +23,7 @@ export function createNodeLabelDrawer(
 	getLabelColor: () => string,
 	getLabelBackground: () => string,
 	getLabelStyle: () => 'normal' | 'italic',
+	textWidthCache: CanvasTextWidthCache,
 ): NodeLabelDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
 	return (context, data, settings) => {
 		if (!data.label) {
@@ -32,13 +31,19 @@ export function createNodeLabelDrawer(
 		}
 
 		const labelSize = getRenderedLabelSize(settings.labelSize);
-		const font = `${getLabelStyle()} ${settings.labelWeight} ${labelSize}px ${settings.labelFont}`;
+		const labelStyle = getLabelStyle();
+		const font = `${labelStyle} ${settings.labelWeight} ${labelSize}px ${settings.labelFont}`;
 		const paddingX = 5;
 		const paddingY = 3;
 		context.save();
 		context.font = font;
 		context.textBaseline = 'middle';
-		const textWidth = context.measureText(data.label).width;
+		const textWidth = textWidthCache.measure(context, data.label, {
+			family: settings.labelFont,
+			weight: settings.labelWeight,
+			style: labelStyle,
+			size: labelSize,
+		});
 		const width = textWidth + paddingX * 2;
 		const height = labelSize + paddingY * 2;
 		context.globalAlpha = getOpacity();
@@ -65,6 +70,7 @@ export function createNodeHoverDrawer(
 	getLabelColor: () => string,
 	getLabelBackground: () => string,
 	getLabelStyle: () => 'normal' | 'italic',
+	textWidthCache: CanvasTextWidthCache,
 ): NodeHoverDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
 	return (context, data, settings) => {
 		if (data.hidden) return;
@@ -72,7 +78,8 @@ export function createNodeHoverDrawer(
 
 		const { labelFont: font, labelWeight: weight } = settings;
 		const size = getRenderedLabelSize(settings.labelSize);
-		context.font = `${getLabelStyle()} ${weight} ${size}px ${font}`;
+		const labelStyle = getLabelStyle();
+		context.font = `${labelStyle} ${weight} ${size}px ${font}`;
 
 		context.save();
 		context.globalAlpha = getOpacity();
@@ -84,7 +91,12 @@ export function createNodeHoverDrawer(
 
 		const paddingX = 5;
 		const paddingY = 3;
-		const textWidth = context.measureText(data.label).width;
+		const textWidth = textWidthCache.measure(context, data.label, {
+			family: font,
+			weight,
+			style: labelStyle,
+			size,
+		});
 		const width = textWidth + paddingX * 2;
 		const height = size + paddingY * 2;
 		drawNodeLabel(
@@ -106,16 +118,97 @@ export function createNodeHoverDrawer(
 export function createEdgeLabelDrawer(
 	getRenderedLabelSize: (baseSize: number) => number,
 	getOpacity: () => number,
+	textWidthCache: CanvasTextWidthCache,
 ): EdgeLabelDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
 	return (context, edgeData, sourceData, targetData, settings) => {
+		const label = edgeData.label;
+		if (!label) return;
+		const size = getRenderedLabelSize(settings.edgeLabelSize);
+		const font = {
+			family: settings.edgeLabelFont,
+			weight: settings.edgeLabelWeight,
+			size,
+		};
+		const sourceRadius = sourceData.size;
+		const targetRadius = targetData.size;
+		let sourceX = sourceData.x;
+		let sourceY = sourceData.y;
+		let targetX = targetData.x;
+		let targetY = targetData.y;
+		let deltaX = targetX - sourceX;
+		let deltaY = targetY - sourceY;
+		let distance = Math.hypot(deltaX, deltaY);
+		if (distance < sourceRadius + targetRadius) return;
+		sourceX += (deltaX * sourceRadius) / distance;
+		sourceY += (deltaY * sourceRadius) / distance;
+		targetX -= (deltaX * targetRadius) / distance;
+		targetY -= (deltaY * targetRadius) / distance;
+		deltaX = targetX - sourceX;
+		deltaY = targetY - sourceY;
+		distance = Math.hypot(deltaX, deltaY);
+		const fitted = fitEdgeLabel(
+			label,
+			distance,
+			(text) => textWidthCache.measure(context, text, font),
+		);
+		if (!fitted) return;
+		const textWidth = textWidthCache.measure(context, fitted, font);
+		const midpoint = {
+			x: (sourceX + targetX) / 2,
+			y: (sourceY + targetY) / 2,
+		};
+		let angle: number;
+		if (deltaX > 0) {
+			angle =
+				deltaY > 0
+					? Math.acos(deltaX / distance)
+					: Math.asin(deltaY / distance);
+		} else {
+			angle =
+				deltaY > 0
+					? Math.acos(deltaX / distance) + Math.PI
+					: Math.asin(deltaX / distance) + Math.PI / 2;
+		}
+		const attribute = settings.edgeLabelColor.attribute;
+		const attributeColor = attribute
+			? (edgeData as unknown as Record<string, unknown>)[attribute]
+			: undefined;
+		const color =
+			(typeof attributeColor === 'string' ? attributeColor : undefined) ??
+			settings.edgeLabelColor.color ??
+			'#000';
+
 		context.save();
 		context.globalAlpha = getOpacity();
-		drawStraightEdgeLabel(context, edgeData, sourceData, targetData, {
-			...settings,
-			edgeLabelSize: getRenderedLabelSize(settings.edgeLabelSize),
-		});
+		context.translate(midpoint.x, midpoint.y);
+		context.rotate(angle);
+		context.font = `${settings.edgeLabelWeight} ${size}px ${settings.edgeLabelFont}`;
+		context.fillStyle = color;
+		context.fillText(fitted, -textWidth / 2, edgeData.size / 2 + size);
 		context.restore();
 	};
+}
+
+export function fitEdgeLabel(
+	label: string,
+	availableWidth: number,
+	measure: (text: string) => number,
+): string | undefined {
+	if (measure(label) <= availableWidth) return label;
+	let low = 0;
+	let high = label.length;
+	let fitted = '';
+	while (low <= high) {
+		const middle = Math.floor((low + high) / 2);
+		const candidate = `${label.slice(0, middle)}…`;
+		if (measure(candidate) <= availableWidth) {
+			fitted = candidate;
+			low = middle + 1;
+		} else {
+			high = middle - 1;
+		}
+	}
+	return fitted.length >= 4 ? fitted : undefined;
 }
 
 function drawNodeLabel(

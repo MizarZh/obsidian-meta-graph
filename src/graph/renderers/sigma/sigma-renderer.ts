@@ -31,6 +31,7 @@ import {
 	createNodeHoverDrawer,
 	createNodeLabelDrawer,
 } from './sigma-label-rendering';
+import { CanvasTextWidthCache } from './canvas-text-metrics';
 import { getZoomAwareLabelSize } from './sigma-label-geometry';
 import { reduceSigmaEdge, reduceSigmaNode } from './sigma-hover-policy';
 import {
@@ -95,6 +96,7 @@ export class SigmaRenderer {
 	private readonly parallelEdgeLayer: SigmaParallelEdgeLayer;
 	private hoverRefreshIndex: SigmaHoverRefreshIndex;
 	private readonly hoverRefreshCoordinator: SigmaHoverRefreshCoordinator;
+	private readonly textWidthCache = new CanvasTextWidthCache();
 	private readonly zoomLevelListeners = new Set<(level: number) => void>();
 	private readonly handleCameraUpdated = (): void => {
 		this.emitZoomLevel();
@@ -193,6 +195,7 @@ export class SigmaRenderer {
 					() => this.getLabelColor(),
 					() => this.getLabelBackground(),
 					() => this.getLabelStyle(),
+					this.textWidthCache,
 				),
 				defaultDrawNodeHover: createNodeHoverDrawer(
 					(baseSize) => this.getRenderedLabelSize(baseSize),
@@ -202,10 +205,12 @@ export class SigmaRenderer {
 					() => this.getLabelColor(),
 					() => this.getLabelBackground(),
 					() => this.getLabelStyle(),
+					this.textWidthCache,
 				),
 				defaultDrawEdgeLabel: createEdgeLabelDrawer(
 					(baseSize) => this.getRenderedLabelSize(baseSize),
 					() => this.getCurrentLabelOpacity(),
+					this.textWidthCache,
 				),
 				renderEdgeLabels: true,
 				labelColor: { color: palette.label },
@@ -239,12 +244,16 @@ export class SigmaRenderer {
 				mutedEdgeColor: this.palette.mutedEdge,
 			}),
 			() => this.getCurrentLabelOpacity(),
+			this.textWidthCache,
 		);
 		this.groupOverlayLayer = new GroupOverlayLayer(
 			this.instance,
 			() => this.graph,
 		);
-		this.layoutGroupLayer = new LayoutGroupLayer(this.instance);
+		this.layoutGroupLayer = new LayoutGroupLayer(
+			this.instance,
+			this.textWidthCache,
+		);
 		this.hoverRefreshIndex = createSigmaHoverRefreshIndex(this.graph);
 		this.hoverRefreshCoordinator = new SigmaHoverRefreshCoordinator(
 			container.ownerDocument.defaultView ?? window,
@@ -424,7 +433,7 @@ export class SigmaRenderer {
 		this.refresh();
 	}
 
-		togglePinnedHover(nodeId: string): void {
+	togglePinnedHover(nodeId: string): void {
 		this.pinnedNodeId = this.pinnedNodeId === nodeId ? undefined : nodeId;
 		this.updateHoveredNeighborhood();
 		this.scheduleHoverRefresh();

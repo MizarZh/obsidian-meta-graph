@@ -12,6 +12,7 @@ import type {
 } from '../../../layouts/group-geometry';
 import { scaleLayoutGroupPadding } from '../../../layouts/group-geometry';
 import { isGraphPointInLayoutGroup } from '../../../layouts/group-geometry';
+import { CanvasTextWidthCache } from './canvas-text-metrics';
 
 const LAYER_ID = 'layout-groups';
 const GROUP_MEMBER_HALO_GAP = 2.5;
@@ -27,6 +28,11 @@ interface GroupMemberViewportNode {
 	radius: number;
 }
 
+interface GroupLabelStyle {
+	fontFamily: string;
+	background: string;
+}
+
 export class LayoutGroupLayer {
 	private readonly canvas: HTMLCanvasElement;
 	private readonly context: CanvasRenderingContext2D;
@@ -36,6 +42,10 @@ export class LayoutGroupLayer {
 	private focusedNodeId: string | undefined;
 	private selectedGroupId: string | undefined;
 	private hoveredGroupId: string | undefined;
+	private labelStyle: GroupLabelStyle = {
+		fontFamily: 'sans-serif',
+		background: '#ffffff',
+	};
 	private readonly updateBound = () => this.update();
 
 	constructor(
@@ -43,6 +53,7 @@ export class LayoutGroupLayer {
 			RuntimeNodeAttributes,
 			RuntimeEdgeAttributes
 		>,
+		private readonly textWidthCache: CanvasTextWidthCache,
 	) {
 		sigma.createCanvasContext(LAYER_ID, {
 			style: { pointerEvents: 'none' },
@@ -110,6 +121,7 @@ export class LayoutGroupLayer {
 		if (this.canvas.hidden) {
 			return;
 		}
+		this.labelStyle = this.readLabelStyle();
 		for (const geometry of this.geometries) {
 			this.context.save();
 			if (this.isMutedByFocus(geometry)) {
@@ -461,13 +473,11 @@ export class LayoutGroupLayer {
 	}
 
 	private measureLabelWidth(text: string): number {
-		const style = getComputedStyle(this.sigma.getContainer());
-		const fontFamily = style.fontFamily || 'sans-serif';
-		this.context.save();
-		this.context.font = `600 11px ${fontFamily}`;
-		const width = this.context.measureText(text).width;
-		this.context.restore();
-		return width;
+		return this.textWidthCache.measure(this.context, text, {
+			family: this.labelStyle.fontFamily,
+			weight: 600,
+			size: 11,
+		});
 	}
 
 	private drawLabel(
@@ -477,23 +487,29 @@ export class LayoutGroupLayer {
 		color: string,
 	): void {
 		const normalizedRotation = keepTextUpright(rotation);
-		const style = getComputedStyle(this.sigma.getContainer());
-		const fontFamily = style.fontFamily || 'sans-serif';
 		this.context.save();
 		this.context.translate(position.x, position.y);
 		this.context.rotate(normalizedRotation);
-		this.context.font = `600 11px ${fontFamily}`;
+		this.context.font = `600 11px ${this.labelStyle.fontFamily}`;
 		this.context.textAlign = 'center';
 		this.context.textBaseline = 'middle';
-		const width = this.context.measureText(text).width + 10;
+		const width = this.measureLabelWidth(text) + 10;
 		this.context.globalAlpha = 0.88;
-		this.context.fillStyle =
-			style.getPropertyValue('--background-primary').trim() || '#ffffff';
+		this.context.fillStyle = this.labelStyle.background;
 		this.context.fillRect(-width / 2, -9, width, 18);
 		this.context.globalAlpha = 1;
 		this.context.fillStyle = color;
 		this.context.fillText(text, 0, 0);
 		this.context.restore();
+	}
+
+	private readLabelStyle(): GroupLabelStyle {
+		const style = getComputedStyle(this.sigma.getContainer());
+		return {
+			fontFamily: style.fontFamily || 'sans-serif',
+			background:
+				style.getPropertyValue('--background-primary').trim() || '#ffffff',
+		};
 	}
 
 	private syncCanvasSize(): void {

@@ -14,6 +14,7 @@ import {
 	type EdgeVisualMetricsOptions,
 } from './sigma-edge-visual-metrics';
 import { isCanvasParallelEdge } from './sigma-parallel-edge-policy';
+import { CanvasTextWidthCache } from './canvas-text-metrics';
 
 const LAYER_ID = 'parallel-edges';
 const HIT_CELL_SIZE = 64;
@@ -75,6 +76,13 @@ interface VisibleRoute {
 	metrics: EdgeVisualMetrics;
 }
 
+interface ParallelEdgeLabelStyle {
+	fontSize: number;
+	fontFamily: string;
+	fontWeight: string | number;
+	background: string;
+}
+
 export interface NativeEdgeSegmentDescriptor {
 	runtimeEdgeId: string;
 	source: string;
@@ -115,6 +123,7 @@ export class SigmaParallelEdgeLayer {
 		private readonly getGraph: () => RuntimeGraph,
 		private readonly getState: () => ParallelEdgeLayerState,
 		private readonly getLabelOpacity: () => number,
+		private readonly textWidthCache: CanvasTextWidthCache,
 	) {
 		sigma.createCanvasContext(LAYER_ID, {
 			style: { pointerEvents: 'none' },
@@ -182,9 +191,10 @@ export class SigmaParallelEdgeLayer {
 		const hoveredEdgeId = this.hoveredEdgeId ?? state.hoveredEdgeId;
 		const graph = this.getGraph();
 		const edgeIndex = this.getEdgeVisualIndex(graph);
+		const labelStyle = this.readLabelStyle();
 		const focusBackground =
 			state.activeHoverNodeId || state.selectedEdgeId || hoveredEdgeId
-				? readCanvasBackgroundColor(this.sigma.getContainer())
+				? labelStyle.background
 				: undefined;
 		const visuals = sortEdgeVisuals(
 			[
@@ -243,7 +253,7 @@ export class SigmaParallelEdgeLayer {
 			}
 		}
 		this.visibleRoutes = visibleRoutes;
-		this.drawVisibleRoutes(visibleRoutes, focusBackground);
+		this.drawVisibleRoutes(visibleRoutes, labelStyle, focusBackground);
 		this.canvas.hidden = this.visibleRoutes.length === 0;
 	}
 
@@ -641,6 +651,7 @@ export class SigmaParallelEdgeLayer {
 
 	private drawVisibleRoutes(
 		visibleRoutes: readonly VisibleRoute[],
+		labelStyle: ParallelEdgeLabelStyle,
 		focusBackground?: string,
 	): void {
 		const state = this.getState();
@@ -678,6 +689,7 @@ export class SigmaParallelEdgeLayer {
 				this.drawActualRoute(
 					visible,
 					visible.visual.kind === 'canvas',
+					labelStyle,
 					hoveredEdgeId,
 				);
 			}
@@ -687,6 +699,7 @@ export class SigmaParallelEdgeLayer {
 	private drawActualRoute(
 		visible: VisibleRoute,
 		drawLabel: boolean,
+		labelStyle: ParallelEdgeLabelStyle,
 		hoveredEdgeId?: string,
 	): void {
 		const { visual } = visible;
@@ -718,7 +731,7 @@ export class SigmaParallelEdgeLayer {
 			this.drawArrow(visible);
 		}
 		if (drawLabel && attributes.label) {
-			this.drawLabel(visible);
+			this.drawLabel(visible, labelStyle);
 		}
 		this.context.restore();
 	}
@@ -825,7 +838,10 @@ export class SigmaParallelEdgeLayer {
 		this.context.fill();
 	}
 
-	private drawLabel(visible: VisibleRoute): void {
+	private drawLabel(
+		visible: VisibleRoute,
+		labelStyle: ParallelEdgeLabelStyle,
+	): void {
 		const points = visible.route.points;
 		const labelSegment = findLongestSegment(points);
 		const start = labelSegment ? points[labelSegment] : points[0];
@@ -837,20 +853,19 @@ export class SigmaParallelEdgeLayer {
 		if (rotation > Math.PI / 2 || rotation < -Math.PI / 2) {
 			rotation += Math.PI;
 		}
-		const fontSize = this.sigma.getSetting('edgeLabelSize');
-		const fontFamily = this.sigma.getSetting('edgeLabelFont');
-		const fontWeight = this.sigma.getSetting('edgeLabelWeight');
-		const containerStyle = getComputedStyle(this.sigma.getContainer());
-		const background =
-			containerStyle.getPropertyValue('--background-primary').trim() ||
-			'#ffffff';
+		const { fontSize, fontFamily, fontWeight, background } = labelStyle;
 		this.context.save();
 		this.context.translate(position.x, position.y);
 		this.context.rotate(rotation);
 		this.context.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
 		this.context.textAlign = 'center';
 		this.context.textBaseline = 'middle';
-		const width = this.context.measureText(attributes.label).width + 8;
+		const width =
+			this.textWidthCache.measure(this.context, attributes.label, {
+				family: fontFamily,
+				weight: fontWeight,
+				size: fontSize,
+			}) + 8;
 		this.context.globalAlpha *= this.getLabelOpacity();
 		this.context.fillStyle = background;
 		this.context.fillRect(
@@ -862,6 +877,18 @@ export class SigmaParallelEdgeLayer {
 		this.context.fillStyle = attributes.color;
 		this.context.fillText(attributes.label, 0, 0);
 		this.context.restore();
+	}
+
+	private readLabelStyle(): ParallelEdgeLabelStyle {
+		const containerStyle = getComputedStyle(this.sigma.getContainer());
+		return {
+			fontSize: this.sigma.getSetting('edgeLabelSize'),
+			fontFamily: this.sigma.getSetting('edgeLabelFont'),
+			fontWeight: this.sigma.getSetting('edgeLabelWeight'),
+			background:
+				containerStyle.getPropertyValue('--background-primary').trim() ||
+				'#ffffff',
+		};
 	}
 
 	private indexRoute(route: VisibleRoute): void {
@@ -1951,14 +1978,6 @@ function sortEdgeVisuals(
 
 function isArrowEdgeType(type: string): boolean {
 	return type === 'arrow' || type.endsWith('-arrow');
-}
-
-function readCanvasBackgroundColor(container: HTMLElement): string {
-	return (
-		getComputedStyle(container)
-			.getPropertyValue('--background-primary')
-			.trim() || '#ffffff'
-	);
 }
 
 interface FlowRouteCandidate {
