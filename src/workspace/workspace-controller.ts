@@ -15,7 +15,6 @@ import type {
 	FlowEdgeStyle,
 	FlowRelationRule,
 	GraphQuery,
-	KnowledgeIndex,
 	KnowledgeEdge,
 	KnowledgeNode,
 	LabelPosition,
@@ -25,12 +24,10 @@ import type {
 	MetaGraphDocument,
 	DockConnectionDirection,
 	DockTemplateNode,
-	MetadataDebugEntry,
 	NodeId,
 	NodeStyleRule,
 	RendererDebugState,
 	ThreeLabelResolution,
-	UnresolvedLink,
 	ViewMode,
 	WorkspacePerformanceSample,
 	WorkspaceState,
@@ -97,16 +94,7 @@ import {
 	setActiveConnectionFieldInState,
 	updateConnectionFieldInState,
 } from './state/connection-fields';
-import { WorkspaceConnectionService } from './services/connection-service';
 import { createObsidianConnectionService } from './services/connection-adapter';
-import {
-	connectPreparedNodesInState,
-	prepareConnectDockNoteInState,
-	prepareConnectNodesInState,
-	undoLastConnectionInState,
-	redoLastConnectionInState,
-	type WorkspaceConnectionActionResult,
-} from './actions/connection-actions';
 import {
 	addCuratedFileInState,
 	addCuratedFilesActionInState,
@@ -142,20 +130,13 @@ import {
 	deleteGroupInState,
 	moveCuratedFilesToGroupInState,
 	moveGroupInState,
-	placeNodeInDefaultGroupInState,
 	reorderGroupInState,
 	resizeGroupInState,
 	setManualNodePositionInState,
 	setNodeGroupInState,
 	updateGroupInState,
 } from './state/manual-layout-state';
-import { WorkspaceProjectionService } from './services/query-service';
 import type { WorkspaceIndexService } from './services/workspace-index-service';
-import {
-	applyWorkspaceIndexSnapshotToState,
-	projectWorkspaceState,
-} from './runtime/refresh-state';
-import { createWorkspaceDebugSnapshot } from './runtime/debug-snapshot';
 import {
 	hoverNodeInState,
 	openWorkspaceNode,
@@ -180,42 +161,70 @@ import {
 	setActiveChartTypeInState,
 } from './state/chart-state';
 import { createTemplateNoteFile } from './services/template-service';
-import { createWorkspaceTemplateNote } from './actions/template-actions';
-import { resolveTemplateNoteRequest } from './actions/template-request';
 import { updateWorkspaceReferencesInState } from './state/reference-walker';
-
-type StateListener = (state: WorkspaceState) => void;
+import {
+	WorkspaceStore,
+	type WorkspaceStateListener,
+} from './controller/workspace-store';
+import { WorkspaceRefreshCoordinator } from './controller/workspace-refresh-coordinator';
+import { WorkspaceConnectionCoordinator } from './controller/workspace-connection-coordinator';
+import { WorkspaceTemplateCoordinator } from './controller/workspace-template-coordinator';
 
 export class WorkspaceController {
-	private state: WorkspaceState;
-	private index?: KnowledgeIndex;
-	private indexedNodes: KnowledgeNode[] = [];
-	private readonly projectionService = new WorkspaceProjectionService();
-	private readonly connectionService: WorkspaceConnectionService<TFile>;
-	private readonly listeners = new Set<StateListener>();
-	private unresolvedLinks: UnresolvedLink[] = [];
-	private metadataSources: MetadataDebugEntry[] = [];
+	private readonly store: WorkspaceStore;
+	private readonly refreshCoordinator: WorkspaceRefreshCoordinator;
+	private readonly connectionCoordinator: WorkspaceConnectionCoordinator<TFile>;
+	private readonly templateCoordinator: WorkspaceTemplateCoordinator;
 	private rendererDebugState: RendererDebugState = { status: 'idle' };
-	private readonly performanceSamples: WorkspacePerformanceSample[] = [];
-	private rebuildTimer?: number;
-	private initialRefreshFrame?: number;
-	private unsubscribeWorkspaceIndex?: () => void;
-	private refreshVersion = 0;
-	private pendingRefreshForceLayout = false;
-	private destroyed = false;
 
 	constructor(
 		private readonly app: App,
 		private readonly workspaceIndex: WorkspaceIndexService,
 		maxNodes: number,
-		private readonly debug: boolean,
-		private relayoutFlowAfterConnection: boolean,
+		debug: boolean,
+		relayoutFlowAfterConnection: boolean,
 		fadeDistance = 1.5,
 		document?: MetaGraphDocument,
-		private readonly readOnly = false,
+		readOnly = false,
 	) {
-		this.state = createWorkspaceState(maxNodes, fadeDistance, document);
-		this.connectionService = createObsidianConnectionService(this.app);
+		this.store = new WorkspaceStore(
+			createWorkspaceState(maxNodes, fadeDistance, document),
+		);
+		this.refreshCoordinator = new WorkspaceRefreshCoordinator(
+			this.workspaceIndex,
+			this.store,
+			debug,
+		);
+		this.connectionCoordinator = new WorkspaceConnectionCoordinator(
+			{
+				store: this.store,
+				service: createObsidianConnectionService(this.app),
+				readOnly,
+				commit: (state, runQuery) =>
+					this.setWorkspaceState(state, runQuery),
+				scheduleRefresh: (forceLayout) =>
+					this.refreshCoordinator.schedule(forceLayout),
+			},
+			relayoutFlowAfterConnection,
+		);
+		this.templateCoordinator = new WorkspaceTemplateCoordinator({
+			store: this.store,
+			readOnly,
+			createNoteFile: (template, title) =>
+				createTemplateNoteFile(this.app, template, title),
+			connectDockNote: (notePath, targetNodeId, direction, field) =>
+				this.connectionCoordinator.connectDockNote(
+					notePath,
+					targetNodeId,
+					direction,
+					field,
+				),
+			commit: (state) => this.setWorkspaceState(state),
+		});
+	}
+
+	private get state(): WorkspaceState {
+		return this.store.snapshot;
 	}
 
 	get snapshot(): WorkspaceState {
@@ -223,11 +232,11 @@ export class WorkspaceController {
 	}
 
 	getIndexedNodes(): KnowledgeNode[] {
-		return this.indexedNodes;
+		return this.refreshCoordinator.getIndexedNodes();
 	}
 
 	getIndexedEdges(): KnowledgeEdge[] {
-		return this.index ? [...this.index.edges.values()] : [];
+		return this.refreshCoordinator.getIndexedEdges();
 	}
 
 	isLargeVaultModeActive(): boolean {
@@ -239,37 +248,19 @@ export class WorkspaceController {
 		durationMs: number,
 		details?: WorkspacePerformanceSample['details'],
 	): void {
-		this.performanceSamples.push({
-			name,
-			durationMs: Math.round(durationMs * 100) / 100,
-			recordedAt: new Date().toISOString(),
-			...(details ? { details } : {}),
-		});
-		if (this.performanceSamples.length > 50) {
-			this.performanceSamples.splice(
-				0,
-				this.performanceSamples.length - 50,
-			);
-		}
+		this.refreshCoordinator.recordPerformance(name, durationMs, details);
 	}
 
 	getDebugSnapshot(state: WorkspaceState = this.state): DebugSnapshot {
-		return createWorkspaceDebugSnapshot({
+		return this.refreshCoordinator.getDebugSnapshot(
 			state,
-			index: this.index,
-			unresolvedLinks: this.unresolvedLinks,
-			metadataSources: this.metadataSources,
-			rendererDebugState: this.rendererDebugState,
-			performance: {
-				index: this.workspaceIndex.getPerformanceSnapshot(),
-				samples: [...this.performanceSamples],
-			},
-		});
+			this.rendererDebugState,
+		);
 	}
 
 	setRendererDebugState(rendererDebugState: RendererDebugState): void {
 		this.rendererDebugState = rendererDebugState;
-		this.emit();
+		this.store.emit();
 	}
 
 	setFlowRelationConflictCount(flowRelationConflictCount: number): void {
@@ -278,75 +269,28 @@ export class WorkspaceController {
 		) {
 			return;
 		}
-		this.state = { ...this.state, flowRelationConflictCount };
-		this.emit();
+		this.store.replace({ ...this.state, flowRelationConflictCount });
 	}
 
 	setRelayoutFlowAfterConnection(value: boolean): void {
-		this.relayoutFlowAfterConnection = value;
+		this.connectionCoordinator.setRelayoutFlowAfterConnection(value);
 	}
 
-	subscribe(listener: StateListener): () => void {
-		this.listeners.add(listener);
-		listener(this.state);
-		return () => this.listeners.delete(listener);
+	subscribe(listener: WorkspaceStateListener): () => void {
+		return this.store.subscribe(listener);
 	}
 
 	initialize(initialFile: TFile | null): void {
 		this.setCurrentFile(initialFile);
-		this.unsubscribeWorkspaceIndex ??= this.workspaceIndex.subscribe(() =>
-			this.scheduleRefresh(),
-		);
-		if (this.initialRefreshFrame !== undefined) {
-			window.cancelAnimationFrame(this.initialRefreshFrame);
-		}
-		this.initialRefreshFrame = window.requestAnimationFrame(() => {
-			this.initialRefreshFrame = undefined;
-			this.scheduleRefresh();
-		});
+		this.refreshCoordinator.initialize();
 	}
 
 	scheduleRefresh(forceLayout = false): void {
-		this.pendingRefreshForceLayout ||= forceLayout;
-		window.clearTimeout(this.rebuildTimer);
-		this.rebuildTimer = window.setTimeout(() => {
-			const shouldForceLayout = this.pendingRefreshForceLayout;
-			this.pendingRefreshForceLayout = false;
-			void this.refresh(shouldForceLayout);
-		}, 300);
+		this.refreshCoordinator.schedule(forceLayout);
 	}
 
 	async refresh(forceLayout = false): Promise<void> {
-		if (this.destroyed) {
-			return;
-		}
-		const refreshVersion = ++this.refreshVersion;
-		const indexStartedAt = performance.now();
-		const indexSnapshot = await this.workspaceIndex.read(
-			this.debug,
-			this.state.connectionFieldSpecs,
-		);
-		if (this.destroyed || refreshVersion !== this.refreshVersion) {
-			return;
-		}
-		this.recordPerformance(
-			'index.read',
-			performance.now() - indexStartedAt,
-			{
-				nodeCount: indexSnapshot.index.nodes.size,
-				edgeCount: indexSnapshot.index.edges.size,
-			},
-		);
-		this.index = indexSnapshot.index;
-		this.indexedNodes = [...indexSnapshot.index.nodes.values()];
-		this.unresolvedLinks = indexSnapshot.unresolvedLinks;
-		this.metadataSources = indexSnapshot.metadataSources;
-		this.state = applyWorkspaceIndexSnapshotToState(
-			this.state,
-			indexSnapshot,
-			forceLayout,
-		);
-		this.runQuery();
+		await this.refreshCoordinator.refresh(forceLayout);
 	}
 
 	setCurrentFile(file: TFile | null): void {
@@ -869,25 +813,11 @@ export class WorkspaceController {
 		direction: DockConnectionDirection = 'from-graph-to-dock',
 		field = this.state.activeConnectionField,
 	): Promise<void> {
-		this.assertWritable();
-		const action = prepareConnectDockNoteInState(
-			this.state,
+		await this.connectionCoordinator.connectDockNote(
 			notePath,
 			targetNodeId,
 			direction,
 			field,
-		);
-		if (!action) {
-			return;
-		}
-		this.setWorkspaceState(action.state, action.runQuery);
-		this.applyConnectionActionResult(
-			await connectPreparedNodesInState(
-				this.state,
-				this.connectionService,
-				action,
-				this.relayoutFlowAfterConnection,
-			),
 		);
 	}
 
@@ -898,48 +828,20 @@ export class WorkspaceController {
 		direction: DockConnectionDirection = 'from-dock-to-graph',
 		field = this.state.activeConnectionField,
 	): Promise<string> {
-		this.assertWritable();
-		return createWorkspaceTemplateNote({
-			templates: this.state.dock.templates,
+		return this.templateCoordinator.createNote(
 			templateId,
 			targetNodeId,
 			name,
 			direction,
 			field,
-			createNoteFile: (template, title) =>
-				createTemplateNoteFile(this.app, template, title),
-			connectDockNote: (
-				notePath,
-				target,
-				dockDirection,
-				connectionField,
-			) =>
-				this.connectDockNote(
-					notePath,
-					target,
-					dockDirection,
-					connectionField,
-				),
-			placeTemplateNoteInDefaultGroup: (path, groupId) => {
-				this.setWorkspaceState(
-					placeNodeInDefaultGroupInState(this.state, path, groupId),
-				);
-			},
-		});
+		);
 	}
 
 	async createStandaloneNoteFromTemplate(
 		templateId: string,
 		name: string,
 	): Promise<string> {
-		this.assertWritable();
-		const { template, title } = resolveTemplateNoteRequest(
-			this.state.dock.templates,
-			templateId,
-			name,
-		);
-		const file = await createTemplateNoteFile(this.app, template, title);
-		return file.path;
+		return this.templateCoordinator.createStandaloneNote(templateId, name);
 	}
 
 	updateQuery(patch: Partial<Omit<GraphQuery, 'roots'>>): void {
@@ -1157,81 +1059,24 @@ export class WorkspaceController {
 		targetNodeId: NodeId,
 		field = this.state.activeConnectionField,
 	): Promise<void> {
-		this.assertWritable();
-		const action = prepareConnectNodesInState(
-			this.state,
+		await this.connectionCoordinator.connectNodes(
 			sourceNodeId,
 			targetNodeId,
 			field,
 		);
-		if (!action) {
-			return;
-		}
-		this.setWorkspaceState(action.state, action.runQuery);
-		this.applyConnectionActionResult(
-			await connectPreparedNodesInState(
-				this.state,
-				this.connectionService,
-				action,
-				this.relayoutFlowAfterConnection,
-			),
-		);
 	}
 
 	async undoLastConnection(): Promise<void> {
-		this.assertWritable();
-		this.applyConnectionActionResult(
-			await undoLastConnectionInState(this.state, this.connectionService),
-		);
+		await this.connectionCoordinator.undoLastConnection();
 	}
 
 	async redoLastConnection(): Promise<void> {
-		this.assertWritable();
-		this.applyConnectionActionResult(
-			await redoLastConnectionInState(this.state, this.connectionService),
-		);
+		await this.connectionCoordinator.redoLastConnection();
 	}
 
 	dispose(): void {
-		this.destroyed = true;
-		this.refreshVersion += 1;
-		this.unsubscribeWorkspaceIndex?.();
-		this.unsubscribeWorkspaceIndex = undefined;
-		if (this.initialRefreshFrame !== undefined) {
-			window.cancelAnimationFrame(this.initialRefreshFrame);
-			this.initialRefreshFrame = undefined;
-		}
-		window.clearTimeout(this.rebuildTimer);
-		this.listeners.clear();
-	}
-
-	private runQuery(): void {
-		if (!this.index || this.destroyed) {
-			return;
-		}
-		const startedAt = performance.now();
-		this.state = projectWorkspaceState(
-			this.state,
-			this.index,
-			(index, state) => this.projectionService.project(index, state),
-		);
-		this.recordPerformance(
-			'query.projection',
-			performance.now() - startedAt,
-			{
-				nodeCount: this.state.projection?.nodes.length ?? 0,
-				edgeCount: this.state.projection?.edges.length ?? 0,
-			},
-		);
-		this.emit();
-	}
-
-	private assertWritable(): void {
-		if (this.readOnly) {
-			throw new Error(
-				'This Meta Graph uses a newer format and is read-only.',
-			);
-		}
+		this.refreshCoordinator.dispose();
+		this.store.dispose();
 	}
 
 	private setWorkspaceState(
@@ -1241,28 +1086,13 @@ export class WorkspaceController {
 		if (state === this.state) {
 			return false;
 		}
-		this.state = state;
 		if (runQuery) {
-			this.runQuery();
+			this.store.replace(state, false);
+			this.refreshCoordinator.runQuery();
 		} else {
-			this.emit();
+			this.store.replace(state);
 		}
 		return true;
-	}
-
-	private emit(): void {
-		for (const listener of this.listeners) {
-			listener(this.state);
-		}
-	}
-
-	private applyConnectionActionResult(
-		result: WorkspaceConnectionActionResult,
-	): void {
-		this.setWorkspaceState(result.state);
-		if (result.refresh) {
-			this.scheduleRefresh(result.forceLayout);
-		}
 	}
 
 	private applyCuratedActionResult(
