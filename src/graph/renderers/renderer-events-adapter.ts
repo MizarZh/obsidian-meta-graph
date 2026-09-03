@@ -7,14 +7,15 @@ import { bindGraphEvents } from './sigma/sigma-events';
 import {
 	isCube3DRenderer,
 	isForce3DRenderer,
+	isSigmaRenderer,
 	type GraphRenderer,
+	type PlanarRenderer,
 } from './renderer-adapter';
-import type { SigmaRenderer } from './sigma/sigma-renderer';
 
 export interface RendererEventBindings {
 	force3d(renderer: Force3DRenderer): GraphEventCallbacks;
 	cube3d(renderer: Cube3DRenderer): GraphEventCallbacks;
-	sigma(renderer: SigmaRenderer): GraphEventCallbacks;
+	planar(renderer: PlanarRenderer): GraphEventCallbacks;
 }
 
 export function bindRendererEvents(
@@ -29,5 +30,9 @@ export function bindRendererEvents(
 		return bindCube3DEvents(renderer, bindings.cube3d(renderer));
 	}
 
-	return bindGraphEvents(renderer, bindings.sigma(renderer));
+	if (isSigmaRenderer(renderer)) {
+		return bindGraphEvents(renderer, bindings.planar(renderer));
+	}
+
+	return () => undefined;
 }

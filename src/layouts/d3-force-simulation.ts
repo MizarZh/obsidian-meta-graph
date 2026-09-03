@@ -12,7 +12,7 @@ import {
 	type SimulationNodeDatum,
 } from 'd3-force';
 import type { RuntimeGraph } from '../graph/model/graphology-adapter';
-import type { SigmaRenderer } from '../graph/renderers/sigma/sigma-renderer';
+import type { ForceSimulationRenderer } from '../graph/renderers/renderer-contracts';
 import {
 	DEFAULT_GRAPH_FORCE_SETTINGS,
 	type GraphForceSettings,
@@ -58,7 +58,7 @@ export class D3ForceSimulation {
 
 	constructor(
 		private readonly graph: RuntimeGraph,
-		private readonly renderer: SigmaRenderer,
+		private readonly renderer: ForceSimulationRenderer,
 		private readonly spacing = 1,
 		private readonly forceSettings: GraphForceSettings = DEFAULT_GRAPH_FORCE_SETTINGS,
 		private readonly groupByNode: ReadonlyMap<string, string> = new Map(),
@@ -267,12 +267,12 @@ export class D3ForceSimulation {
 				'group',
 				createGraphGroupCohesionForce(this.groupByNode, distance),
 			)
-				.alphaDecay(0.045)
-				.velocityDecay(0.78)
-				.stop()
-				.alpha(0)
-				.on('tick', () => this.applyTick())
-				.on('end', () => this.finishSettling());
+			.alphaDecay(0.045)
+			.velocityDecay(0.78)
+			.stop()
+			.alpha(0)
+			.on('tick', () => this.applyTick())
+			.on('end', () => this.finishSettling());
 	}
 
 	private dragNeighbors(
@@ -358,7 +358,7 @@ export class D3ForceSimulation {
 			this.draggedNodeViewportTarget = undefined;
 			return;
 		}
-		const position = this.renderer.instance.viewportToGraph(target);
+		const position = this.renderer.viewportToGraphPosition(target);
 		node.fx = position.x;
 		node.fy = position.y;
 		node.x = position.x;

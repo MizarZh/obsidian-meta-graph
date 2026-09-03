@@ -18,7 +18,7 @@ import { createWorkspaceGraphRenderer } from '../ui/workspace/renderer-factory';
 vi.mock('../graph/renderers/renderer-adapter', () => ({
 	getModeCapabilities: vi.fn(() => ({
 		rendererKind: 'sigma',
-		usesSigmaForceSimulation: false,
+		usesExternal2DForceSimulation: false,
 		supportsFreeNodeDrag: false,
 		supportsGroups: false,
 		supportsManualGroups: false,
@@ -33,9 +33,12 @@ vi.mock('../graph/renderers/renderer-adapter', () => ({
 		supportsEdgePicking: true,
 		supportsNodeDragging: true,
 		supportsConnectionMoveScheduling: false,
+		supportsExternal2DForceSimulation: true,
 	})),
 	isCube3DRenderer: vi.fn(() => false),
 	isForce3DRenderer: vi.fn(() => false),
+	isForceSimulationRenderer: vi.fn(() => true),
+	isPlanarRenderer: vi.fn(() => true),
 	setRendererManualLayout: vi.fn(),
 	setRendererPalette: vi.fn(),
 }));
@@ -135,7 +138,7 @@ describe('WorkspaceRendererLifecycle', () => {
 		vi.clearAllMocks();
 		vi.mocked(getModeCapabilities).mockReturnValue({
 			rendererKind: 'sigma',
-			usesSigmaForceSimulation: false,
+			usesExternal2DForceSimulation: false,
 			supportsFreeNodeDrag: false,
 			supportsGroups: false,
 			supportsManualGroups: false,
@@ -292,7 +295,7 @@ describe('WorkspaceRendererLifecycle', () => {
 	it('does not start sigma force layout automatically after render', async () => {
 		vi.mocked(getModeCapabilities).mockReturnValue({
 			rendererKind: 'sigma',
-			usesSigmaForceSimulation: true,
+			usesExternal2DForceSimulation: true,
 			supportsFreeNodeDrag: false,
 			supportsGroups: false,
 			supportsManualGroups: false,

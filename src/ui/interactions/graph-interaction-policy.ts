@@ -1,22 +1,22 @@
 import type { ModeCapabilities } from '../../graph/renderers/renderer-adapter';
 
-export type SigmaDragAction =
+export type PlanarDragAction =
 	{ kind: 'manual-position' } | { kind: 'force-simulation' };
 
-export type SigmaDragEndAction =
+export type PlanarDragEndAction =
 	{ kind: 'commit-manual-position' } | { kind: 'release-force-simulation' };
 
-export function getSigmaDragAction(
+export function getPlanarDragAction(
 	capabilities: Pick<ModeCapabilities, 'supportsFreeNodeDrag'>,
-): SigmaDragAction {
+): PlanarDragAction {
 	return capabilities.supportsFreeNodeDrag
 		? { kind: 'manual-position' }
 		: { kind: 'force-simulation' };
 }
 
-export function getSigmaDragEndAction(
+export function getPlanarDragEndAction(
 	capabilities: Pick<ModeCapabilities, 'supportsFreeNodeDrag'>,
-): SigmaDragEndAction {
+): PlanarDragEndAction {
 	return capabilities.supportsFreeNodeDrag
 		? { kind: 'commit-manual-position' }
 		: { kind: 'release-force-simulation' };

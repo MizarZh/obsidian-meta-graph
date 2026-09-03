@@ -4,7 +4,7 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeNodeAttributes,
 } from '../graph/model/graphology-adapter';
-import type { SigmaRenderer } from '../graph/renderers/sigma/sigma-renderer';
+import type { ForceSimulationRenderer } from '../graph/renderers/renderer-contracts';
 import { D3ForceSimulation } from '../layouts/d3-force-simulation';
 import { DEFAULT_GRAPH_FORCE_SETTINGS } from '../layouts/force-layout';
 
@@ -33,7 +33,6 @@ describe('D3ForceSimulation', () => {
 		const simulation = new D3ForceSimulation(graph, renderer);
 		simulation.start();
 
-		expect(renderer.holdCurrentBounds).not.toHaveBeenCalled();
 		expect(renderer.clearHeldBounds).not.toHaveBeenCalled();
 
 		vi.advanceTimersByTime(4000);
@@ -104,7 +103,7 @@ describe('D3ForceSimulation', () => {
 		simulation.drag('A', { x: 0, y: 0 }, { x: 400, y: 300 });
 		applyTick(simulation);
 
-		expect(renderer.instance.viewportToGraph).toHaveBeenCalledWith(
+		expect(renderer.viewportToGraphPosition).toHaveBeenCalledWith(
 			expect.objectContaining({ x: 400, y: 300 }),
 		);
 		expect(graph.getNodeAttribute('A', 'x')).toBeCloseTo(3);
@@ -205,17 +204,14 @@ function createRenderer(
 		x: number;
 		y: number;
 	} = () => ({ x: 0, y: 0 }),
-): SigmaRenderer {
+): ForceSimulationRenderer {
 	return {
-		instance: {
-			refresh: vi.fn(),
-			viewportToGraph: vi.fn(viewportToGraph),
-		},
-		holdCurrentBounds: vi.fn(),
+		runtimeGraph: {} as never,
+		viewportToGraphPosition: vi.fn(viewportToGraph),
 		clearHeldBounds: vi.fn(),
 		beginForceMotion: vi.fn(),
 		endForceMotion: vi.fn(),
-	} as unknown as SigmaRenderer;
+	};
 }
 
 function readSimulationAlpha(simulation: D3ForceSimulation): number {

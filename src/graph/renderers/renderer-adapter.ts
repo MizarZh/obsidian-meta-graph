@@ -10,14 +10,27 @@ export {
 	getRendererKindForMode,
 	type GraphRenderer,
 	type ModeCapabilities,
+	type PlanarRendererKind,
 	type RendererCapabilities,
 	type RendererKind,
 } from './renderer-capabilities';
+export type {
+	ForceSimulationRenderer,
+	PlanarRenderer,
+} from './renderer-contracts';
+export type {
+	GroupGeometry,
+	GroupInteractionCallbacks,
+	GroupOverlayGroup,
+} from './renderer-groups';
 export {
 	getRendererCapabilities,
 	getRendererKind,
 	isCube3DRenderer,
 	isForce3DRenderer,
+	isForceSimulationRenderer,
+	isPlanarRenderer,
+	isSigmaRenderer,
 } from './renderer-instance';
 export type { GraphRendererOptions } from './renderer-options';
 export { createGraphRenderer } from './renderer-factory';

@@ -6,16 +6,18 @@ import type {
 import type { GraphPosition } from '../../graph/model/graphology-adapter';
 import {
 	getModeCapabilities,
+	isForceSimulationRenderer,
+	type ForceSimulationRenderer,
 	type GraphRenderer,
+	type PlanarRenderer,
 } from '../../graph/renderers/renderer-adapter';
 import { bindRendererEvents } from '../../graph/renderers/renderer-events-adapter';
-import type { SigmaRenderer } from '../../graph/renderers/sigma/sigma-renderer';
 import type { D3ForceSimulation } from '../../layouts/d3-force-simulation';
 import type { LayoutSnapshot } from '../../layouts/stable-layout';
 import {
 	getNextNodeOpenSuppressUntil,
-	getSigmaDragAction,
-	getSigmaDragEndAction,
+	getPlanarDragAction,
+	getPlanarDragEndAction,
 	shouldOpenNode,
 } from '../interactions/graph-interaction-policy';
 
@@ -26,7 +28,7 @@ export interface WorkspaceRendererEventOptions {
 	enableForceLayout: boolean;
 	getLayoutSnapshot(): LayoutSnapshot;
 	getOrCreateForceLayoutSimulation(
-		renderer: SigmaRenderer,
+		renderer: ForceSimulationRenderer,
 	): D3ForceSimulation;
 	getForceLayoutSimulation(): D3ForceSimulation | undefined;
 	getSuppressNodeOpenUntil(): number;
@@ -92,11 +94,12 @@ export function bindWorkspaceRendererEvents(
 				}
 			},
 		}),
-		sigma: (sigmaRenderer) => ({
+		planar: (planarRenderer) => ({
 			...baseCallbacks,
 			enableForceLayout:
-				capabilities.usesSigmaForceSimulation &&
-				options.enableForceLayout,
+				capabilities.usesExternal2DForceSimulation &&
+				options.enableForceLayout &&
+				isForceSimulationRenderer(planarRenderer),
 			enableNodeDragging:
 				!options.readOnly && capabilities.supportsFreeNodeDrag,
 			onOpen: (nodeId) => {
@@ -115,38 +118,35 @@ export function bindWorkspaceRendererEvents(
 				options.setSuppressNodeOpenUntil(
 					getNextNodeOpenSuppressUntil(Date.now()),
 				);
-				const dragAction = getSigmaDragAction(capabilities);
+				const dragAction = getPlanarDragAction(capabilities);
 				let refreshImmediately = true;
 				if (dragAction.kind === 'manual-position') {
-					sigmaRenderer.holdCurrentBounds();
-					sigmaRenderer.runtimeGraph.mergeNodeAttributes(nodeId, {
+					planarRenderer.holdCurrentBounds();
+					planarRenderer.runtimeGraph.mergeNodeAttributes(nodeId, {
 						x: position.x,
 						y: position.y,
 						fixed: true,
 					});
 				} else {
+					if (!isForceSimulationRenderer(planarRenderer)) return;
 					refreshImmediately = false;
 					options
-						.getOrCreateForceLayoutSimulation(sigmaRenderer)
+						.getOrCreateForceLayoutSimulation(planarRenderer)
 						.drag(nodeId, position, viewportPosition);
 				}
 				options.getLayoutSnapshot().positions.set(nodeId, position);
 				if (capabilities.supportsFreeNodeDrag) {
 					const viewportPosition =
-						sigmaRenderer.instance.graphToViewport(position);
+						planarRenderer.graphToViewportPosition(position);
 					const groupId =
-						sigmaRenderer.getGroupAtViewportPosition(
+						planarRenderer.getGroupAtViewportPosition(
 							viewportPosition,
 						);
 					options.setActiveNodeDropGroupId(groupId);
-					sigmaRenderer.setActiveDropGroup(groupId);
+					planarRenderer.setActiveDropGroup(groupId);
 				}
 				if (!refreshImmediately) return;
-				if (typeof sigmaRenderer.refresh === 'function') {
-					sigmaRenderer.refresh();
-				} else {
-					sigmaRenderer.instance.refresh();
-				}
+				planarRenderer.refresh();
 			},
 			onNodeDragEnd: (nodeId) => {
 				if (options.readOnly) return;
@@ -154,7 +154,7 @@ export function bindWorkspaceRendererEvents(
 					getNextNodeOpenSuppressUntil(Date.now()),
 				);
 				if (
-					getSigmaDragEndAction(capabilities).kind ===
+					getPlanarDragEndAction(capabilities).kind ===
 					'commit-manual-position'
 				) {
 					const position = options
@@ -167,7 +167,7 @@ export function bindWorkspaceRendererEvents(
 							options.getActiveNodeDropGroupId(),
 						);
 					}
-					sigmaRenderer.setActiveDropGroup(undefined);
+					planarRenderer.setActiveDropGroup(undefined);
 					options.setActiveNodeDropGroupId(undefined);
 					return;
 				}

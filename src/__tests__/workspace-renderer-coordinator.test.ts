@@ -18,7 +18,8 @@ describe('WorkspaceRenderCoordinator', () => {
 		const lifecycle = {
 			renderer: undefined,
 			handleForceLayoutToggle: () => calls.push('force-toggle'),
-			restartSigmaForceLayoutIfNeeded: () => calls.push('force-restart'),
+			restartExternal2DForceLayoutIfNeeded: () =>
+				calls.push('force-restart'),
 			rebuild: () => {
 				calls.push('rebuild');
 				return Promise.resolve();

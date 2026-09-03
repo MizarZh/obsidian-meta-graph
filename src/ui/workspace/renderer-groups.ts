@@ -8,11 +8,11 @@ import {
 	getRendererCapabilities,
 	getModeCapabilities,
 	isCube3DRenderer,
-	isForce3DRenderer,
+	isPlanarRenderer,
 	type GraphRenderer,
+	type GroupInteractionCallbacks,
+	type GroupOverlayGroup,
 } from '../../graph/renderers/renderer-adapter';
-import type { GroupInteractionCallbacks } from '../../graph/renderers/sigma/sigma-renderer';
-import type { GroupOverlayGroup } from '../../graph/renderers/sigma/sigma-group-overlay';
 import {
 	canMoveGroup,
 	normalizeGroupFrameForShape,
@@ -57,9 +57,7 @@ export function syncWorkspaceRendererGroups(
 	) {
 		return;
 	}
-	if (isForce3DRenderer(renderer) || isCube3DRenderer(renderer)) {
-		return;
-	}
+	if (!isPlanarRenderer(renderer)) return;
 	const getGroupNodeIdsForGroup = (groupId: string): string[] =>
 		getGroupNodeIds(groupByNode, groupId);
 	renderer.setLayoutGroupGeometries(
@@ -156,18 +154,12 @@ export function moveWorkspaceRuntimeGroupNodes(
 	if (!renderer || !getRendererCapabilities(renderer).supportsGroupOverlay) {
 		return;
 	}
-	if (isForce3DRenderer(renderer) || isCube3DRenderer(renderer)) {
-		return;
-	}
+	if (!isPlanarRenderer(renderer)) return;
 	moveRuntimeGroupNodes(
 		renderer.runtimeGraph,
 		layoutSnapshot.positions,
 		nodeIds,
 		delta,
 	);
-	if (typeof renderer.refresh === 'function') {
-		renderer.refresh();
-	} else {
-		renderer.instance.refresh();
-	}
+	renderer.refresh();
 }

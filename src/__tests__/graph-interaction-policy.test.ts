@@ -1,28 +1,30 @@
 import { describe, expect, it } from 'vitest';
 import {
 	getNextNodeOpenSuppressUntil,
-	getSigmaDragAction,
-	getSigmaDragEndAction,
+	getPlanarDragAction,
+	getPlanarDragEndAction,
 	shouldOpenNode,
 } from '../ui/interactions/graph-interaction-policy';
 
 describe('graph interaction policy', () => {
 	it('maps free drag capability to manual drag actions', () => {
-		expect(getSigmaDragAction({ supportsFreeNodeDrag: true })).toEqual({
+		expect(getPlanarDragAction({ supportsFreeNodeDrag: true })).toEqual({
 			kind: 'manual-position',
 		});
-		expect(getSigmaDragEndAction({ supportsFreeNodeDrag: true })).toEqual({
+		expect(getPlanarDragEndAction({ supportsFreeNodeDrag: true })).toEqual({
 			kind: 'commit-manual-position',
 		});
 	});
 
 	it('maps non-free drag to force simulation actions', () => {
-		expect(getSigmaDragAction({ supportsFreeNodeDrag: false })).toEqual({
+		expect(getPlanarDragAction({ supportsFreeNodeDrag: false })).toEqual({
 			kind: 'force-simulation',
 		});
-		expect(getSigmaDragEndAction({ supportsFreeNodeDrag: false })).toEqual({
-			kind: 'release-force-simulation',
-		});
+		expect(getPlanarDragEndAction({ supportsFreeNodeDrag: false })).toEqual(
+			{
+				kind: 'release-force-simulation',
+			},
+		);
 	});
 
 	it('handles node open suppression window', () => {

@@ -1,9 +1,10 @@
 import type { ViewMode } from '../../core/types';
 import type { Cube3DRenderer } from './cube-3d/cube-3d-renderer';
 import type { Force3DRenderer } from './force-3d/force-3d-renderer';
-import type { SigmaRenderer } from './sigma/sigma-renderer';
+import type { PlanarRenderer } from './renderer-contracts';
 
-export type RendererKind = 'sigma' | 'force-3d' | 'cube-3d';
+export type PlanarRendererKind = 'sigma';
+export type RendererKind = PlanarRendererKind | 'force-3d' | 'cube-3d';
 
 /** Capabilities describe implementation support, independent of active chart mode. */
 export interface RendererCapabilities {
@@ -14,13 +15,14 @@ export interface RendererCapabilities {
 	supportsEdgePicking: boolean;
 	supportsNodeDragging: boolean;
 	supportsConnectionMoveScheduling: boolean;
+	supportsExternal2DForceSimulation: boolean;
 }
 
-export type GraphRenderer = SigmaRenderer | Force3DRenderer | Cube3DRenderer;
+export type GraphRenderer = PlanarRenderer | Force3DRenderer | Cube3DRenderer;
 
 export interface ModeCapabilities {
 	rendererKind: RendererKind;
-	usesSigmaForceSimulation: boolean;
+	usesExternal2DForceSimulation: boolean;
 	supportsFreeNodeDrag: boolean;
 	supportsGroups: boolean;
 	supportsManualGroups: boolean;
@@ -29,49 +31,49 @@ export interface ModeCapabilities {
 const MODE_CAPABILITIES: Record<ViewMode, ModeCapabilities> = {
 	graph: {
 		rendererKind: 'sigma',
-		usesSigmaForceSimulation: true,
+		usesExternal2DForceSimulation: true,
 		supportsFreeNodeDrag: false,
 		supportsGroups: true,
 		supportsManualGroups: false,
 	},
 	'graph-3d': {
 		rendererKind: 'force-3d',
-		usesSigmaForceSimulation: false,
+		usesExternal2DForceSimulation: false,
 		supportsFreeNodeDrag: false,
 		supportsGroups: false,
 		supportsManualGroups: false,
 	},
 	cube: {
 		rendererKind: 'cube-3d',
-		usesSigmaForceSimulation: false,
+		usesExternal2DForceSimulation: false,
 		supportsFreeNodeDrag: false,
 		supportsGroups: true,
 		supportsManualGroups: false,
 	},
 	free: {
 		rendererKind: 'sigma',
-		usesSigmaForceSimulation: false,
+		usesExternal2DForceSimulation: false,
 		supportsFreeNodeDrag: true,
 		supportsGroups: true,
 		supportsManualGroups: true,
 	},
 	flow: {
 		rendererKind: 'sigma',
-		usesSigmaForceSimulation: false,
+		usesExternal2DForceSimulation: false,
 		supportsFreeNodeDrag: false,
 		supportsGroups: true,
 		supportsManualGroups: false,
 	},
 	arc: {
 		rendererKind: 'sigma',
-		usesSigmaForceSimulation: false,
+		usesExternal2DForceSimulation: false,
 		supportsFreeNodeDrag: false,
 		supportsGroups: true,
 		supportsManualGroups: false,
 	},
 	'hierarchical-edge-bundling': {
 		rendererKind: 'sigma',
-		usesSigmaForceSimulation: false,
+		usesExternal2DForceSimulation: false,
 		supportsFreeNodeDrag: false,
 		supportsGroups: true,
 		supportsManualGroups: false,

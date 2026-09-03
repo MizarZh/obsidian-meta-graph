@@ -3,6 +3,7 @@ import {
 	getRendererCapabilities,
 	isCube3DRenderer,
 	isForce3DRenderer,
+	isPlanarRenderer,
 } from './renderer-instance';
 import type { GraphRenderer } from './renderer-capabilities';
 import type { GraphPalette } from '../styles/graph-styles';
@@ -36,7 +37,9 @@ export function refreshRendererGraphStyles(renderer: GraphRenderer): void {
 		renderer.setGraph(renderer.runtimeGraph);
 		return;
 	}
-	renderer.refresh();
+	if (isPlanarRenderer(renderer)) {
+		renderer.refreshGraphStyles();
+	}
 }
 
 export function refreshRendererGraphVisibility(
@@ -51,12 +54,7 @@ export function refreshRendererGraphVisibility(
 		renderer.setGraph(renderer.runtimeGraph);
 		return;
 	}
-	renderer.instance.refresh({
-		partialGraph: {
-			nodes: [...changes.nodeIds],
-			edges: [...changes.edgeIds],
-		},
-		skipIndexation: true,
-		schedule: true,
-	});
+	if (isPlanarRenderer(renderer)) {
+		renderer.refreshGraphVisibility(changes);
+	}
 }

@@ -5,6 +5,11 @@ import {
 	type RendererCapabilities,
 	type RendererKind,
 } from './renderer-capabilities';
+import type {
+	ForceSimulationRenderer,
+	PlanarRenderer,
+} from './renderer-contracts';
+import { SigmaRenderer } from './sigma/sigma-renderer';
 
 const FORCE_3D_CAPABILITIES: RendererCapabilities = {
 	kind: 'force-3d',
@@ -14,6 +19,7 @@ const FORCE_3D_CAPABILITIES: RendererCapabilities = {
 	supportsEdgePicking: true,
 	supportsNodeDragging: true,
 	supportsConnectionMoveScheduling: true,
+	supportsExternal2DForceSimulation: false,
 };
 
 const CUBE_3D_CAPABILITIES: RendererCapabilities = {
@@ -24,6 +30,7 @@ const CUBE_3D_CAPABILITIES: RendererCapabilities = {
 	supportsEdgePicking: false,
 	supportsNodeDragging: true,
 	supportsConnectionMoveScheduling: true,
+	supportsExternal2DForceSimulation: false,
 };
 
 const SIGMA_CAPABILITIES: RendererCapabilities = {
@@ -34,6 +41,7 @@ const SIGMA_CAPABILITIES: RendererCapabilities = {
 	supportsEdgePicking: true,
 	supportsNodeDragging: true,
 	supportsConnectionMoveScheduling: false,
+	supportsExternal2DForceSimulation: true,
 };
 
 export function getRendererCapabilities(
@@ -66,4 +74,25 @@ export function isCube3DRenderer(
 	renderer: GraphRenderer,
 ): renderer is Cube3DRenderer {
 	return renderer instanceof Cube3DRenderer;
+}
+
+export function isPlanarRenderer(
+	renderer: GraphRenderer,
+): renderer is PlanarRenderer {
+	return getRendererCapabilities(renderer).kind === 'sigma';
+}
+
+export function isForceSimulationRenderer(
+	renderer: GraphRenderer,
+): renderer is PlanarRenderer & ForceSimulationRenderer {
+	return (
+		isPlanarRenderer(renderer) &&
+		getRendererCapabilities(renderer).supportsExternal2DForceSimulation
+	);
+}
+
+export function isSigmaRenderer(
+	renderer: GraphRenderer,
+): renderer is SigmaRenderer {
+	return renderer instanceof SigmaRenderer;
 }

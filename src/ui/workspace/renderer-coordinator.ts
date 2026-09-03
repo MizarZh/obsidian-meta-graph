@@ -107,7 +107,7 @@ export class WorkspaceRenderCoordinator {
 			this.options.syncRendererGroups();
 		}
 		if (plan.restartForceLayout) {
-			this.options.rendererLifecycle.restartSigmaForceLayoutIfNeeded();
+			this.options.rendererLifecycle.restartExternal2DForceLayoutIfNeeded();
 		}
 
 		if (plan.rebuild) {

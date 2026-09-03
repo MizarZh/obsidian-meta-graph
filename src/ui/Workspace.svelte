@@ -890,7 +890,7 @@
 				},
 				onMoveEnd: () => {
 					if (workspaceState.mode === 'graph') {
-						rendererLifecycle.restartSigmaForceLayoutIfNeeded();
+						rendererLifecycle.restartExternal2DForceLayoutIfNeeded();
 					}
 				},
 				onResizeCommit: (groupId, geometry) =>

@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { GraphEventCallbacks } from '../graph/renderers/renderer-events';
 import type { GraphRenderer } from '../graph/renderers/renderer-adapter';
-import type { SigmaRenderer } from '../graph/renderers/sigma/sigma-renderer';
+import type { PlanarRenderer } from '../graph/renderers/renderer-adapter';
+import type { RendererEventBindings } from '../graph/renderers/renderer-events-adapter';
 import type { D3ForceSimulation } from '../layouts/d3-force-simulation';
 import { bindWorkspaceRendererEvents } from '../ui/workspace/renderer-events';
 
@@ -10,25 +11,30 @@ const rendererEventMock = vi.hoisted(() => ({
 }));
 
 vi.mock('../graph/renderers/renderer-events-adapter', () => ({
-	bindRendererEvents: vi.fn((renderer: GraphRenderer, bindings) => {
-		rendererEventMock.callbacks = bindings.sigma(renderer as SigmaRenderer);
-		return vi.fn();
-	}),
+	bindRendererEvents: vi.fn(
+		(renderer: GraphRenderer, bindings: RendererEventBindings) => {
+			rendererEventMock.callbacks = bindings.planar(
+				renderer as PlanarRenderer,
+			);
+			return vi.fn();
+		},
+	),
 }));
 
 vi.mock('../graph/renderers/renderer-adapter', () => ({
 	getModeCapabilities: vi.fn((mode: string) => ({
 		rendererKind: 'sigma',
-		usesSigmaForceSimulation: mode === 'graph',
+		usesExternal2DForceSimulation: mode === 'graph',
 		supportsFreeNodeDrag: mode === 'free',
 		supportsGroups: mode === 'free',
 		supportsManualGroups: mode === 'free',
 	})),
+	isForceSimulationRenderer: vi.fn(() => true),
 }));
 
 describe('bindWorkspaceRendererEvents', () => {
 	it('does not hold sigma bounds for graph force dragging', () => {
-		const renderer = createSigmaRenderer();
+		const renderer = createPlanarRenderer();
 		const simulation = {
 			drag: vi.fn(),
 		} as unknown as D3ForceSimulation;
@@ -52,11 +58,11 @@ describe('bindWorkspaceRendererEvents', () => {
 			{ x: 1, y: 2 },
 			{ x: 10, y: 20 },
 		);
-		expect(renderer.instance.refresh).not.toHaveBeenCalled();
+		expect(renderer.refresh).not.toHaveBeenCalled();
 	});
 
 	it('keeps held bounds for manual free dragging', () => {
-		const renderer = createSigmaRenderer();
+		const renderer = createPlanarRenderer();
 
 		bindWorkspaceRendererEvents({
 			...createOptions(renderer),
@@ -71,11 +77,11 @@ describe('bindWorkspaceRendererEvents', () => {
 			'A',
 			{ x: 1, y: 2, fixed: true },
 		);
-		expect(renderer.instance.refresh).toHaveBeenCalledOnce();
+		expect(renderer.refresh).toHaveBeenCalledOnce();
 	});
 
 	it('keeps navigation callbacks but disables write gestures when read-only', () => {
-		const renderer = createSigmaRenderer();
+		const renderer = createPlanarRenderer();
 		const onConnect = vi.fn();
 		const onSelect = vi.fn();
 		const onSelectEdge = vi.fn();
@@ -111,7 +117,7 @@ describe('bindWorkspaceRendererEvents', () => {
 });
 
 function createOptions(
-	renderer: SigmaRenderer,
+	renderer: PlanarRenderer,
 ): Parameters<typeof bindWorkspaceRendererEvents>[0] {
 	return {
 		renderer,
@@ -141,17 +147,15 @@ function createOptions(
 	};
 }
 
-function createSigmaRenderer(): SigmaRenderer {
+function createPlanarRenderer(): PlanarRenderer {
 	return {
 		runtimeGraph: {
 			mergeNodeAttributes: vi.fn(),
 		},
-		instance: {
-			refresh: vi.fn(),
-			graphToViewport: vi.fn(() => ({ x: 10, y: 20 })),
-		},
+		graphToViewportPosition: vi.fn(() => ({ x: 10, y: 20 })),
+		refresh: vi.fn(),
 		holdCurrentBounds: vi.fn(),
 		getGroupAtViewportPosition: vi.fn(),
 		setActiveDropGroup: vi.fn(),
-	} as unknown as SigmaRenderer;
+	} as unknown as PlanarRenderer;
 }

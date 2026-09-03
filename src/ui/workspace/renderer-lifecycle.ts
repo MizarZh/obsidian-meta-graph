@@ -8,11 +8,13 @@ import {
 	getRendererKindForMode,
 	isCube3DRenderer,
 	isForce3DRenderer,
+	isForceSimulationRenderer,
+	isPlanarRenderer,
 	setRendererManualLayout,
 	setRendererPalette,
 	type GraphRenderer,
+	type ForceSimulationRenderer,
 } from '../../graph/renderers/renderer-adapter';
-import type { SigmaRenderer } from '../../graph/renderers/sigma/sigma-renderer';
 import { D3ForceSimulation } from '../../layouts/d3-force-simulation';
 import {
 	applyStableLayout as applyStableRuntimeLayout,
@@ -109,9 +111,7 @@ export class WorkspaceRendererLifecycle {
 			renderer.setSelectedGroup(groupId);
 			return;
 		}
-		if (isForce3DRenderer(renderer) || isCube3DRenderer(renderer)) {
-			return;
-		}
+		if (!isPlanarRenderer(renderer)) return;
 		renderer.setSelectedEdge(edgeId);
 		renderer.setSelectedGroup(groupId);
 	}
@@ -164,14 +164,13 @@ export class WorkspaceRendererLifecycle {
 		this.stopForceLayoutSimulation();
 	}
 
-	restartSigmaForceLayoutIfNeeded(): void {
+	restartExternal2DForceLayoutIfNeeded(): void {
 		const state = this.options.readState();
 		if (
-			getModeCapabilities(state.mode).usesSigmaForceSimulation &&
+			getModeCapabilities(state.mode).usesExternal2DForceSimulation &&
 			state.enableForceLayout &&
 			this.currentRenderer &&
-			!isForce3DRenderer(this.currentRenderer) &&
-			!isCube3DRenderer(this.currentRenderer)
+			isForceSimulationRenderer(this.currentRenderer)
 		) {
 			this.stopForceLayoutSimulation();
 			this.getOrCreateForceLayoutSimulation(this.currentRenderer).start();
@@ -179,7 +178,7 @@ export class WorkspaceRendererLifecycle {
 	}
 
 	getOrCreateForceLayoutSimulation(
-		targetRenderer: SigmaRenderer,
+		targetRenderer: ForceSimulationRenderer,
 	): D3ForceSimulation {
 		if (!this.forceLayoutSimulation) {
 			const state = this.options.readState();
@@ -249,7 +248,7 @@ export class WorkspaceRendererLifecycle {
 		if (!hasSize || version !== this.renderVersion) {
 			if (!hasSize) {
 				throw new Error(
-					'The Sigma container has zero width or height after waiting for layout.',
+					'The renderer container has zero width or height after waiting for layout.',
 				);
 			}
 			return;

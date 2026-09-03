@@ -73,6 +73,7 @@ export class Force3DRenderer {
 		supportsEdgePicking: true,
 		supportsNodeDragging: true,
 		supportsConnectionMoveScheduling: true,
+		supportsExternal2DForceSimulation: false,
 	};
 	private selectedNodeId?: string;
 	private hoveredNodeId?: string;

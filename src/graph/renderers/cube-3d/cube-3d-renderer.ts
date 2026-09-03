@@ -80,6 +80,7 @@ export class Cube3DRenderer {
 		supportsEdgePicking: false,
 		supportsNodeDragging: true,
 		supportsConnectionMoveScheduling: true,
+		supportsExternal2DForceSimulation: false,
 	};
 	private readonly scene: Three.Scene;
 	private readonly camera: Three.PerspectiveCamera;

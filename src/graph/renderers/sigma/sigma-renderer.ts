@@ -75,6 +75,7 @@ export class SigmaRenderer {
 		supportsEdgePicking: true,
 		supportsNodeDragging: true,
 		supportsConnectionMoveScheduling: false,
+		supportsExternal2DForceSimulation: true,
 	};
 	private selectedNodeId?: string;
 	private selectedEdgeId?: string;
@@ -301,6 +302,24 @@ export class SigmaRenderer {
 		this.instance.refresh();
 	}
 
+	refreshGraphStyles(): void {
+		this.refresh();
+	}
+
+	refreshGraphVisibility(changes: {
+		nodeIds: readonly string[];
+		edgeIds: readonly string[];
+	}): void {
+		this.instance.refresh({
+			partialGraph: {
+				nodes: [...changes.nodeIds],
+				edges: [...changes.edgeIds],
+			},
+			skipIndexation: true,
+			schedule: true,
+		});
+	}
+
 	beginForceMotion(): void {
 		if (this.forceMotionActive) return;
 		this.forceMotionActive = true;
@@ -351,6 +370,13 @@ export class SigmaRenderer {
 		y: number;
 	} {
 		return this.instance.viewportToGraph(position);
+	}
+
+	graphToViewportPosition(position: { x: number; y: number }): {
+		x: number;
+		y: number;
+	} {
+		return this.instance.graphToViewport(position);
 	}
 
 	setActiveDropGroup(groupId?: string): void {
