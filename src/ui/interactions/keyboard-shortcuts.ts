@@ -125,6 +125,12 @@ export interface WorkspaceShortcutInput {
 	hoveredNodeId?: string;
 }
 
+export function resolvePinnedFocusNodeId(
+	input: Pick<WorkspaceShortcutInput, 'selectedNodeId' | 'hoveredNodeId'>,
+): string | undefined {
+	return input.hoveredNodeId ?? input.selectedNodeId;
+}
+
 export interface ConnectionUndoShortcutInput extends WorkspaceShortcutInput {}
 
 export type FindNoteShortcutInput = Pick<

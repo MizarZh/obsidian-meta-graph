@@ -46,6 +46,7 @@
 	} from './interactions/graph-connection-drop';
 	import {
 		WORKSPACE_ACTION_DEFINITIONS,
+		resolvePinnedFocusNodeId,
 		resolveWorkspaceShortcut,
 		type WorkspaceActionId,
 	} from './interactions/keyboard-shortcuts';
@@ -1284,10 +1285,16 @@
 				void openNote(workspaceState.selectedNodeId!);
 				return true;
 			case 'toggle-pinned-focus':
-				if (hoveredNodeId) {
-					rendererLifecycle.togglePinnedHover(hoveredNodeId);
-				} else {
-					rendererLifecycle.clearPinnedHover();
+				{
+					const nodeId = resolvePinnedFocusNodeId({
+						selectedNodeId: workspaceState.selectedNodeId,
+						hoveredNodeId,
+					});
+					if (nodeId) {
+						rendererLifecycle.togglePinnedHover(nodeId);
+					} else {
+						rendererLifecycle.clearPinnedHover();
+					}
 				}
 				return true;
 			case 'fit-graph':

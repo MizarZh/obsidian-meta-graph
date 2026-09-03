@@ -24,6 +24,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Made `Space` show the selected node's local neighborhood when no node is hovered.
 - Kept pin/hover neighborhood links above unrelated Sigma and Canvas edges, including routed Flow, Arc, and HEB segments; continuous logical strokes and crossing masks prevent visual artifacts and seams at bends.
 - Suppressed hover emphasis for unrelated Sigma edges while a node neighborhood is pinned; pinned-neighborhood links remain hoverable.
 - Moved HEB group labels inside the outer radial boundary, preventing outside note labels from obscuring them.
@@ -34,7 +35,7 @@ All notable changes to Meta Graph are documented here.
 - Prevented Sigma's synchronous constructor render from reading the renderer instance before assignment when **Scale text with zoom** is enabled, including transitions back from 3D views.
 - Unified Sigma parallel-edge Canvas line widths and arrow bounds with native Sigma's pixel geometry and visible ink coverage. Canvas now uses Sigma's zoom scaling, minimum edge thickness, inward feather compensation, and full device pixel ratio; native solid and patterned arrow lines share the same antialiasing feather. Arrow geometry, dash spacing, compact lane spacing, deterministic Chevron fills, and independent hit widths remain consistent.
 - Replaced the keyboard shortcut overlay with a grouped side-by-side reference panel that keeps the graph interactive while open.
-- Made `Space` pin or unpin the hovered node's neighborhood; with no hovered node it clears the current pinned focus.
+- Made `Space` pin or unpin the hovered node's neighborhood; with no hovered or selected node it clears the current pinned focus.
 - Kept Flow arrows on the final flow-axis corridor segment when parallel lanes use endpoint branches, preventing RL/LR arrows from pointing vertically into nodes.
 - Kept direct Graph parallel lanes compact while remaining distinguishable.
 - Kept parallel Flow Orthogonal routes axis-aligned at node ports and through the Canvas overlay; arrows, labels, and hit testing follow the same geometry.

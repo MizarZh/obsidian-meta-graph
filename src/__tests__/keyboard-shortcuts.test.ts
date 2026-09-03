@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	resolvePinnedFocusNodeId,
 	resolveWorkspaceShortcut,
 	shouldHandleConnectionUndoShortcut,
 	shouldHandleFindNoteShortcut,
@@ -66,6 +67,19 @@ describe('connection undo shortcut', () => {
 });
 
 describe('workspace shortcuts', () => {
+	it('uses the hovered node before the selected node for pinned focus', () => {
+		expect(
+			resolvePinnedFocusNodeId({
+				selectedNodeId: 'selected.md',
+				hoveredNodeId: 'hovered.md',
+			}),
+		).toBe('hovered.md');
+		expect(
+			resolvePinnedFocusNodeId({ selectedNodeId: 'selected.md' }),
+		).toBe('selected.md');
+		expect(resolvePinnedFocusNodeId({})).toBeUndefined();
+	});
+
 	it('maps selection, viewport, refresh, and help keys', () => {
 		expect(
 			resolveWorkspaceShortcut(
