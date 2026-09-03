@@ -112,6 +112,7 @@
 		getChartSourceSwitchWarning,
 		getChartTypeSwitchWarning,
 	} from '../workspace/state/switch-warnings';
+	import { resolveGroupCapabilities } from '../workspace/groups/group-policy';
 
 	import { ConfirmDeleteViewModal } from './ConfirmDeleteWorkspaceModal';
 	import { SwitchModeWarningModal } from './SwitchModeWarningModal';
@@ -826,12 +827,10 @@
 				.onClick(showSelectionDetails),
 		);
 
-		const groups =
-			workspaceState.mode === 'cube'
-				? workspaceState.manualLayout.groups
-				: workspaceState.mode === 'graph' || workspaceState.mode === 'free'
-					? workspaceState.grouping.groups
-					: [];
+		const capabilities = resolveGroupCapabilities(workspaceState.mode);
+		const groups = capabilities.canAssignManually
+			? workspaceState.grouping.groups
+			: [];
 		if (groups.length > 0) {
 			menu.addSeparator();
 			const currentGroupId =
@@ -843,7 +842,9 @@
 						.setIcon('folder-input')
 						.setChecked(currentGroupId === group.id)
 						.setDisabled(readOnly || currentGroupId === group.id)
-						.onClick(() => controller.setNodeGroup(nodeId, group.id)),
+						.onClick(() =>
+							controller.setNodeGroup(nodeId, group.id),
+						),
 				);
 			}
 			if (workspaceState.mode !== 'cube' && currentGroupId) {
@@ -873,8 +874,11 @@
 			item
 				.setTitle('Copy wiki link')
 				.setIcon('copy')
-				.onClick(() =>
-					void copyContextText(`[[${nodeId.replace(/\.md$/i, '')}]]`),
+				.onClick(
+					() =>
+						void copyContextText(
+							`[[${nodeId.replace(/\.md$/i, '')}]]`,
+						),
 				),
 		);
 	}
@@ -909,32 +913,36 @@
 			item
 				.setTitle(`Focus source: ${sourceTitle}`)
 				.setIcon('pin')
-				.onClick(() => rendererLifecycle.togglePinnedHover(edge.source)),
+				.onClick(() =>
+					rendererLifecycle.togglePinnedHover(edge.source),
+				),
 		);
 		menu.addItem((item) =>
 			item
 				.setTitle(`Focus target: ${targetTitle}`)
 				.setIcon('pin')
-				.onClick(() => rendererLifecycle.togglePinnedHover(edge.target)),
+				.onClick(() =>
+					rendererLifecycle.togglePinnedHover(edge.target),
+				),
 		);
 		menu.addSeparator();
 		menu.addItem((item) =>
 			item
 				.setTitle('Copy relationship')
 				.setIcon('copy')
-				.onClick(() =>
-					void copyContextText(
-						`${sourceTitle} ${edge.directed ? `—[${edge.relation}]→` : `—[${edge.relation}]—`} ${targetTitle}`,
-					),
+				.onClick(
+					() =>
+						void copyContextText(
+							`${sourceTitle} ${edge.directed ? `—[${edge.relation}]→` : `—[${edge.relation}]—`} ${targetTitle}`,
+						),
 				),
 		);
 	}
 
 	function addGroupContextMenuItems(menu: Menu, groupId: string): void {
-		const group = [
-			...workspaceState.grouping.groups,
-			...workspaceState.manualLayout.groups,
-		].find((item) => item.id === groupId);
+		const group = workspaceState.grouping.groups.find(
+			(item) => item.id === groupId,
+		);
 		menu.addItem((item) =>
 			item
 				.setTitle(group?.name ?? 'Group')
@@ -947,6 +955,20 @@
 				.setIcon('panel-right')
 				.onClick(showSelectionDetails),
 		);
+		const capabilities = resolveGroupCapabilities(
+			workspaceState.mode,
+			group,
+		);
+		if (capabilities.canDelete) {
+			menu.addSeparator();
+			menu.addItem((item) =>
+				item
+					.setTitle('Delete group')
+					.setIcon('trash-2')
+					.setDisabled(readOnly)
+					.onClick(() => controller.deleteGroup(groupId)),
+			);
+		}
 	}
 
 	function addStageContextMenuItems(menu: Menu): void {
@@ -978,7 +1000,7 @@
 					controller.selectNode(undefined);
 				}),
 		);
-		if (workspaceState.mode === 'graph' || workspaceState.mode === 'free') {
+		if (resolveGroupCapabilities(workspaceState.mode).canCreate) {
 			menu.addItem((item) =>
 				item
 					.setTitle('Add group')
@@ -1648,6 +1670,7 @@
 				{app}
 				{controller}
 				{workspaceState}
+				{readOnly}
 				{settingsPanel}
 				{settingsPopoverLeft}
 				{metadataFieldSuggestions}

@@ -9,6 +9,7 @@
 	} from '../core/types';
 	import { normalizeTags } from '../core/tags';
 	import { resolveChartGroupOwnership } from '../query/group-ownership';
+	import { resolveGroupCapabilities } from '../workspace/groups/group-policy';
 	import {
 		getConnectionDirectionIcon,
 		getConnectionDirectionLabel,
@@ -79,17 +80,10 @@
 	}
 
 	const canAssignGroup = $derived(
-		mode === 'graph' ||
-			mode === 'free' ||
-			mode === 'cube' ||
-			mode === 'flow' ||
-			mode === 'arc' ||
-			mode === 'hierarchical-edge-bundling',
+		resolveGroupCapabilities(mode).canAssignManually,
 	);
 	const groupRequired = $derived(mode === 'cube');
-	const assignmentGroups = $derived(
-		groupRequired ? manualLayout.groups : grouping.groups,
-	);
+	const assignmentGroups = $derived(grouping.groups);
 	const automaticOwner = $derived.by(() => {
 		if (!node || groupRequired) {
 			return undefined;
@@ -120,7 +114,7 @@
 			return AUTOMATIC_GROUP;
 		}
 		if (groupRequired) {
-			return manualLayout.nodes[node.path]?.groupId ?? '';
+			return grouping.overrides[node.path] ?? '';
 		}
 		if (
 			!Object.prototype.hasOwnProperty.call(grouping.overrides, node.path)

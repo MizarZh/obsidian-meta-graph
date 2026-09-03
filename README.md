@@ -74,13 +74,14 @@ settings to report them in the developer console.
    dedicated Canvas layer. Short endpoint stubs and lanes only a few pixels
    apart keep paths, arrows, and labels distinct without widening the layout.
 10. Use **Group** settings to add chart-local groups, set priority, colors,
-    padding, and Manual or Rule membership. Each note belongs to at most one
+    padding, and Manual assignment or Rule-based membership. Each note belongs to at most one
     group; an explicit assignment or Ungrouped override takes priority over
     rules. Graph, Arc, Hierarchical edge bundling, Flow, Free, and Cube render
-    groups according to their layout. Graph and Free share the same group frame,
-    label, and colored member rings without creating metadata links. Graph
-    frames follow their members automatically; Free frames keep editable size
-    and position. Use **Shape** on each group to choose Auto, Circle, or Rectangle;
+    groups according to their layout. Every non-Cube layout uses the same colored
+    member halo, faint region, horizontal title pill, and interaction states.
+    Graph regions follow their members automatically; Free frames keep editable
+    size and position; Flow, Arc, and HEB retain layout-specific region shapes.
+    Use **Shape** on Graph or Free groups to choose Auto, Circle, or Rectangle;
     Auto uses circles in Graph and rectangles in Free. Free circles keep a square
     diameter while resizing. Groups are saved in the workspace file, not note
     frontmatter.
@@ -121,7 +122,9 @@ settings to report them in the developer console.
 17. In Free, drag a node into any group frame to create an explicit assignment.
     Drag it out over empty space to set an explicit **Ungrouped** override. Use
     **Automatic** in Details to return the note to rule-based ownership.
-18. In Cube views, each cube face is a group. Drag the background to
+18. In Cube views, each cube face is a locked System group. Cube keeps its
+    face-based colors instead of adding member halos. Select or right-click a face
+    for Group details; drag the background to
     rotate the cube, drag nodes within their face to save their placement, use
     `Shift`-click for local relationship focus, right-click for a contextual menu,
     and `Ctrl`/`Cmd`-drag between nodes to add links. Use **Face opacity** in

@@ -288,6 +288,16 @@ export function bindGraphEvents(
 			return;
 		}
 		if (!connectionDrag) {
+			const position = { x: event.x, y: event.y };
+			const hasHigherPriorityTarget = Boolean(
+				renderer.getNodeAtViewportPosition(position) ??
+				renderer.getEdgeAtViewportPosition(position),
+			);
+			renderer.setHoveredGroup(
+				hasHigherPriorityTarget
+					? undefined
+					: renderer.getGroupAtViewportPosition(position),
+			);
 			return;
 		}
 		event.preventSigmaDefault();

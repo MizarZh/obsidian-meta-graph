@@ -7,14 +7,14 @@ import type {
 	ArcGroupGeometry,
 	FlowGroupGeometry,
 	GraphGroupGeometry,
-	GroupMemberHaloGeometry,
 	LayoutGroupGeometry,
 	RadialGroupGeometry,
 } from '../../../layouts/group-geometry';
 import { scaleLayoutGroupPadding } from '../../../layouts/group-geometry';
+import { isGraphPointInLayoutGroup } from '../../../layouts/group-geometry';
 
 const LAYER_ID = 'layout-groups';
-const GROUP_MEMBER_HALO_GAP = 3;
+const GROUP_MEMBER_HALO_GAP = 2.5;
 const RADIAL_GROUP_LABEL_INSET = 15;
 
 interface Point {
@@ -32,9 +32,10 @@ export class LayoutGroupLayer {
 	private readonly context: CanvasRenderingContext2D;
 	private geometries: LayoutGroupGeometry[] = [];
 	private getGroupNodeIds:
-		| ((groupId: string) => Iterable<string>)
-		| undefined;
+		((groupId: string) => Iterable<string>) | undefined;
 	private focusedNodeId: string | undefined;
+	private selectedGroupId: string | undefined;
+	private hoveredGroupId: string | undefined;
 	private readonly updateBound = () => this.update();
 
 	constructor(
@@ -82,6 +83,26 @@ export class LayoutGroupLayer {
 		this.update();
 	}
 
+	setSelectedGroup(groupId?: string): void {
+		if (this.selectedGroupId === groupId) return;
+		this.selectedGroupId = groupId;
+		this.update();
+	}
+
+	setHoveredGroup(groupId?: string): void {
+		if (this.hoveredGroupId === groupId) return;
+		this.hoveredGroupId = groupId;
+		this.update();
+	}
+
+	getGroupAtViewportPosition(position: Point): string | undefined {
+		const graphPoint = this.sigma.viewportToGraph(position);
+		return [...this.geometries]
+			.reverse()
+			.find((geometry) => isGraphPointInLayoutGroup(geometry, graphPoint))
+			?.groupId;
+	}
+
 	update(): void {
 		const { width, height } = this.sigma.getDimensions();
 		this.context.clearRect(0, 0, width, height);
@@ -105,6 +126,9 @@ export class LayoutGroupLayer {
 				} else if (geometry.kind === 'graph-container') {
 					this.drawGraphContainer(geometry);
 				} else {
+					this.drawGroupMemberHalos(geometry);
+				}
+				if (geometry.kind !== 'member-halos') {
 					this.drawGroupMemberHalos(geometry);
 				}
 			} finally {
@@ -154,13 +178,12 @@ export class LayoutGroupLayer {
 			this.sigma.graphToViewport(add(startGraph, scale(cross, -1))),
 		];
 		const first = corners[0];
-		const second = corners[1];
-		if (!first || !second) {
+		if (!first) {
 			return;
 		}
 
 		this.context.save();
-		this.context.globalAlpha = 0.09;
+		this.context.globalAlpha = this.regionFillOpacity(geometry);
 		this.context.fillStyle = geometry.color;
 		this.context.beginPath();
 		this.context.moveTo(first.x, first.y);
@@ -169,9 +192,9 @@ export class LayoutGroupLayer {
 		}
 		this.context.closePath();
 		this.context.fill();
-		this.context.globalAlpha = 0.62;
+		this.context.globalAlpha = this.regionStrokeOpacity(geometry);
 		this.context.strokeStyle = geometry.color;
-		this.context.lineWidth = 1.5;
+		this.context.lineWidth = this.regionLineWidth(geometry);
 		this.context.lineJoin = 'round';
 		this.context.stroke();
 		this.context.restore();
@@ -179,7 +202,7 @@ export class LayoutGroupLayer {
 		this.drawLabel(
 			geometry.name,
 			add(opposite, scale(normal, 12)),
-			Math.atan2(second.y - first.y, second.x - first.x),
+			0,
 			geometry.color,
 		);
 	}
@@ -206,7 +229,7 @@ export class LayoutGroupLayer {
 		}
 
 		this.context.save();
-		this.context.globalAlpha = 0.1;
+		this.context.globalAlpha = this.regionFillOpacity(geometry);
 		this.context.fillStyle = geometry.color;
 		this.context.beginPath();
 		this.context.moveTo(first.x, first.y);
@@ -215,9 +238,9 @@ export class LayoutGroupLayer {
 		}
 		this.context.closePath();
 		this.context.fill();
-		this.context.globalAlpha = 0.58;
+		this.context.globalAlpha = this.regionStrokeOpacity(geometry);
 		this.context.strokeStyle = geometry.color;
-		this.context.lineWidth = 2;
+		this.context.lineWidth = this.regionLineWidth(geometry);
 		this.context.beginPath();
 		this.context.moveTo(first.x, first.y);
 		for (const point of outer.slice(1)) {
@@ -234,21 +257,7 @@ export class LayoutGroupLayer {
 		const labelBase = this.sigma.graphToViewport(
 			radialPoint(middleAngle, labelRadius),
 		);
-		const tangentStart = this.sigma.graphToViewport(
-			radialPoint(middleAngle - 0.01, labelRadius),
-		);
-		const tangentEnd = this.sigma.graphToViewport(
-			radialPoint(middleAngle + 0.01, labelRadius),
-		);
-		this.drawLabel(
-			geometry.name,
-			labelBase,
-			Math.atan2(
-				tangentEnd.y - tangentStart.y,
-				tangentEnd.x - tangentStart.x,
-			),
-			geometry.color,
-		);
+		this.drawLabel(geometry.name, labelBase, 0, geometry.color);
 	}
 
 	private drawFlowContainer(geometry: FlowGroupGeometry): void {
@@ -274,7 +283,7 @@ export class LayoutGroupLayer {
 		}
 
 		this.context.save();
-		this.context.globalAlpha = 0.07;
+		this.context.globalAlpha = this.regionFillOpacity(geometry);
 		this.context.fillStyle = geometry.color;
 		this.context.beginPath();
 		this.context.moveTo(first.x, first.y);
@@ -283,9 +292,9 @@ export class LayoutGroupLayer {
 		}
 		this.context.closePath();
 		this.context.fill();
-		this.context.globalAlpha = 0.58;
+		this.context.globalAlpha = this.regionStrokeOpacity(geometry);
 		this.context.strokeStyle = geometry.color;
-		this.context.lineWidth = 1.5;
+		this.context.lineWidth = this.regionLineWidth(geometry);
 		this.context.lineJoin = 'round';
 		this.context.stroke();
 		this.context.restore();
@@ -305,7 +314,7 @@ export class LayoutGroupLayer {
 		this.drawLabel(
 			geometry.name,
 			add(edgeCenter, scale(inward, 13)),
-			Math.atan2(second.y - first.y, second.x - first.x),
+			0,
 			geometry.color,
 		);
 	}
@@ -343,16 +352,14 @@ export class LayoutGroupLayer {
 		this.context.save();
 		this.context.beginPath();
 		this.context.roundRect(left, top, right - left, bottom - top, 6);
-		this.context.globalAlpha = 0.07;
+		this.context.globalAlpha = this.regionFillOpacity(geometry);
 		this.context.fillStyle = geometry.color;
 		this.context.fill();
-		this.context.globalAlpha = 0.58;
+		this.context.globalAlpha = this.regionStrokeOpacity(geometry);
 		this.context.strokeStyle = geometry.color;
-		this.context.lineWidth = 1.5;
+		this.context.lineWidth = this.regionLineWidth(geometry);
 		this.context.stroke();
 		this.context.restore();
-		this.drawMemberHalos(nodes, geometry.color);
-
 		this.drawLabel(
 			geometry.name,
 			{ x: (left + right) / 2, y: top + 11 },
@@ -361,10 +368,12 @@ export class LayoutGroupLayer {
 		);
 	}
 
-	private drawGroupMemberHalos(geometry: GroupMemberHaloGeometry): void {
+	private drawGroupMemberHalos(geometry: LayoutGroupGeometry): void {
 		this.drawMemberHalos(
 			this.readGroupMemberNodes(geometry.nodeIds),
 			geometry.color,
+			this.isSelected(geometry),
+			this.isHovered(geometry),
 		);
 	}
 
@@ -398,11 +407,13 @@ export class LayoutGroupLayer {
 	private drawMemberHalos(
 		nodes: readonly GroupMemberViewportNode[],
 		color: string,
+		selected = false,
+		hovered = false,
 	): void {
 		this.context.save();
-		this.context.globalAlpha = 0.72;
+		this.context.globalAlpha = selected ? 1 : hovered ? 0.85 : 0.65;
 		this.context.strokeStyle = color;
-		this.context.lineWidth = 2;
+		this.context.lineWidth = selected ? 2.5 : hovered ? 2 : 1.5;
 		for (const node of nodes) {
 			this.context.beginPath();
 			this.context.arc(
@@ -415,6 +426,38 @@ export class LayoutGroupLayer {
 			this.context.stroke();
 		}
 		this.context.restore();
+	}
+
+	private isSelected(geometry: LayoutGroupGeometry): boolean {
+		return geometry.groupId === this.selectedGroupId;
+	}
+
+	private isHovered(geometry: LayoutGroupGeometry): boolean {
+		return geometry.groupId === this.hoveredGroupId;
+	}
+
+	private regionFillOpacity(geometry: LayoutGroupGeometry): number {
+		return this.isSelected(geometry)
+			? 0.12
+			: this.isHovered(geometry)
+				? 0.08
+				: 0.06;
+	}
+
+	private regionStrokeOpacity(geometry: LayoutGroupGeometry): number {
+		return this.isSelected(geometry)
+			? 0.9
+			: this.isHovered(geometry)
+				? 0.8
+				: 0.55;
+	}
+
+	private regionLineWidth(geometry: LayoutGroupGeometry): number {
+		return this.isSelected(geometry)
+			? 2
+			: this.isHovered(geometry)
+				? 1.75
+				: 1.5;
 	}
 
 	private measureLabelWidth(text: string): number {

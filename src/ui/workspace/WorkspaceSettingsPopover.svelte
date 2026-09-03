@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
 	import type { SettingsPanelMode, WorkspaceState } from '../../core/types';
-	import { getModeCapabilities } from '../../graph/renderers/renderer-adapter';
 	import type { WorkspaceController } from '../../workspace/workspace-controller';
 	import FilterPanel from '../FilterPanel.svelte';
 	import GroupPanel from '../GroupPanel.svelte';
@@ -10,6 +9,7 @@
 		app,
 		controller,
 		workspaceState,
+		readOnly = false,
 		settingsPanel,
 		settingsPopoverLeft,
 		metadataFieldSuggestions,
@@ -21,6 +21,7 @@
 		app: App;
 		controller: WorkspaceController;
 		workspaceState: WorkspaceState;
+		readOnly?: boolean;
 		settingsPanel: SettingsPanelMode;
 		settingsPopoverLeft: number;
 		metadataFieldSuggestions: string[];
@@ -30,10 +31,6 @@
 		onClose: () => void;
 	} = $props();
 
-	const groupsDisabled = $derived(
-		workspaceState.mode !== 'cube' &&
-			!getModeCapabilities(workspaceState.mode).supportsGroups,
-	);
 	const flowRelationFieldSuggestions = $derived([
 		...new Set(workspaceState.connectionFields),
 	]);
@@ -59,14 +56,9 @@
 			manualLayout={workspaceState.manualLayout}
 			nodes={workspaceState.projection?.nodes ?? []}
 			folders={workspaceState.availableFolders}
-			locked={workspaceState.mode === 'cube'}
-			disabled={groupsDisabled}
-			manualModeAllowed={workspaceState.mode === 'graph' ||
-				workspaceState.mode === 'free'}
-			modeEditable={workspaceState.mode !== 'cube'}
-			geometryEditable={workspaceState.mode === 'free'}
-			shapeEditable={workspaceState.mode === 'graph' ||
-				workspaceState.mode === 'free'}
+			mode={workspaceState.mode}
+			{readOnly}
+			forceLayoutEnabled={workspaceState.enableForceLayout}
 			onAddGroup={() => controller.addGroup()}
 			onUpdateGroup={(groupId, patch) =>
 				controller.updateGroup(groupId, patch)}
@@ -129,9 +121,7 @@
 			{metadataFieldTypes}
 			{metadataFieldValueSuggestions}
 			{filePathSuggestions}
-			groups={workspaceState.mode === 'cube'
-				? workspaceState.manualLayout.groups
-				: workspaceState.grouping.groups}
+			groups={workspaceState.grouping.groups}
 			defaultNodeStyle={workspaceState.defaultNodeStyle}
 			defaultLinkStyle={workspaceState.defaultLinkStyle}
 			globalNodeStyleRules={workspaceState.globalNodeStyleRules}

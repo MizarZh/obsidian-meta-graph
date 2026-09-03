@@ -117,7 +117,7 @@ export function getWorkspaceNodeColor(
 		node,
 		rules,
 		defaultNodeStyle,
-		resolveNodeStyleContext(node, state.grouping, state.manualLayout),
+		resolveNodeStyleContext(node, state.grouping),
 	).color;
 }
 

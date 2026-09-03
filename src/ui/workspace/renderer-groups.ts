@@ -22,6 +22,7 @@ import {
 	getGroupNodeIds,
 	moveRuntimeGroupNodes,
 } from '../interactions/manual-layout-groups';
+import { createCubeRendererManualLayout } from '../../workspace/state/manual-layout/cube-layout';
 
 export function syncWorkspaceRendererGroups(
 	renderer: GraphRenderer | undefined,
@@ -37,7 +38,12 @@ export function syncWorkspaceRendererGroups(
 		return;
 	}
 	if (isCube3DRenderer(renderer)) {
-		renderer.setManualLayout(manualLayout);
+		renderer.setManualLayout(
+			createCubeRendererManualLayout(
+				{ engine: 'cube-3d', spacing: 1, manual: manualLayout },
+				grouping,
+			),
+		);
 		return;
 	}
 	const getGroupNodeIdsForGroup = (groupId: string): string[] =>
@@ -111,9 +117,7 @@ function createOverlayGroups(
 		return [];
 	}
 	return grouping.groups.flatMap((group) => {
-		const frame =
-			manualLayout.groupFrames?.[group.id] ??
-			manualLayout.groups.find((legacy) => legacy.id === group.id);
+		const frame = manualLayout.groupFrames?.[group.id];
 		const shape = resolveGroupShape(mode, group.shape);
 		return frame
 			? [

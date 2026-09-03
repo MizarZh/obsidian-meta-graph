@@ -6,6 +6,7 @@ import {
 	getRendererKindForMode,
 	type GraphRenderer,
 } from '../../graph/renderers/renderer-adapter';
+import { createCubeRendererManualLayout } from '../../workspace/state/manual-layout/cube-layout';
 
 export interface WorkspaceGraphRendererOptions {
 	graph: RuntimeGraph;
@@ -24,7 +25,19 @@ export function createWorkspaceGraphRenderer(
 		container,
 		palette,
 		kind: getRendererKindForMode(state.mode),
-		manualLayout: state.manualLayout,
+		manualLayout:
+			state.mode === 'cube'
+				? createCubeRendererManualLayout(
+						state.charts.find(
+							(chart) => chart.id === state.activeChartId,
+						)?.layout ?? {
+							engine: 'cube-3d',
+							spacing: 1,
+							manual: state.manualLayout,
+						},
+						state.grouping,
+					)
+				: state.manualLayout,
 		fadeDistance: state.fadeDistance,
 		labelSize: state.labelSize,
 		scaleLabelsWithZoom: state.scaleLabelsWithZoom,

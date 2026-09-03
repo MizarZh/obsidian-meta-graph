@@ -173,7 +173,8 @@ export function createDefaultLayout(type: ViewMode): ChartLayoutConfig {
 				linkDistance: DEFAULT_GRAPH_LINK_DISTANCE,
 				manual: {
 					nodes: {},
-					groups: createDefaultCubeGroups(),
+					groups: [],
+					groupFrames: {},
 				},
 			};
 		case 'free':
@@ -442,77 +443,6 @@ function normalizeChartGroup(
 function normalizeGroupSize(value: unknown, fallback: number): number {
 	const size = readFiniteNumber(value, fallback);
 	return size > 20 ? size / 100 : size;
-}
-
-function createDefaultCubeGroups(): ManualLayoutConfig['groups'] {
-	return [
-		{
-			id: 'cube-front',
-			name: 'Front',
-			x: -1,
-			y: -1,
-			width: 2,
-			height: 2,
-			color: '#009b48',
-			mode: 'manual',
-			padding: 0.22,
-		},
-		{
-			id: 'cube-back',
-			name: 'Back',
-			x: -1,
-			y: -1,
-			width: 2,
-			height: 2,
-			color: '#0046ad',
-			mode: 'manual',
-			padding: 0.22,
-		},
-		{
-			id: 'cube-left',
-			name: 'Left',
-			x: -1,
-			y: -1,
-			width: 2,
-			height: 2,
-			color: '#ff5800',
-			mode: 'manual',
-			padding: 0.22,
-		},
-		{
-			id: 'cube-right',
-			name: 'Right',
-			x: -1,
-			y: -1,
-			width: 2,
-			height: 2,
-			color: '#b71234',
-			mode: 'manual',
-			padding: 0.22,
-		},
-		{
-			id: 'cube-top',
-			name: 'Top',
-			x: -1,
-			y: -1,
-			width: 2,
-			height: 2,
-			color: '#ffffff',
-			mode: 'manual',
-			padding: 0.22,
-		},
-		{
-			id: 'cube-bottom',
-			name: 'Bottom',
-			x: -1,
-			y: -1,
-			width: 2,
-			height: 2,
-			color: '#ffd500',
-			mode: 'manual',
-			padding: 0.22,
-		},
-	];
 }
 
 function readLayoutEngine(type: ViewMode): ChartLayoutConfig['engine'] {

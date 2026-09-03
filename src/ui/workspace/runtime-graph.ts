@@ -3,7 +3,6 @@ import type {
 	ChartGroupingConfig,
 	KnowledgeEdge,
 	KnowledgeNode,
-	ManualLayoutConfig,
 	WorkspaceState,
 } from '../../core/types';
 import {
@@ -74,7 +73,7 @@ export function createWorkspaceRuntimeGraph(
 		},
 		getActiveNodeStyleRules(state),
 		getActiveLinkStyleRules(state),
-		createNodeStyleContexts(projection, state.grouping, state.manualLayout),
+		createNodeStyleContexts(projection, state.grouping),
 		{
 			...getActivePlainLinkStyle(state, palette.mutedEdge),
 			arrowStyle: getActivePlainLinkArrowStyle(state),
@@ -125,7 +124,6 @@ export function syncWorkspaceRuntimeGraphStyles(
 	const nodeStyleContexts = createNodeStyleContexts(
 		projection,
 		state.grouping,
-		state.manualLayout,
 	);
 
 	for (const node of projection.nodes) {
@@ -345,12 +343,11 @@ function resolveRuntimeNodeStyle(
 function createNodeStyleContexts(
 	projection: GraphProjection,
 	grouping: ChartGroupingConfig,
-	manualLayout: ManualLayoutConfig,
 ): ReadonlyMap<string, NodeStyleContext> {
 	return new Map(
 		projection.nodes.map((node) => [
 			node.id,
-			resolveNodeStyleContext(node, grouping, manualLayout),
+			resolveNodeStyleContext(node, grouping),
 		]),
 	);
 }

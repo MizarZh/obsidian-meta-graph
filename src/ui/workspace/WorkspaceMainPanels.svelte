@@ -208,11 +208,7 @@
 			connectionDrag.targetNodeId,
 		).arrowSize;
 	});
-	const chartGroups = $derived(
-		workspaceState.mode === 'cube'
-			? workspaceState.manualLayout.groups
-			: workspaceState.grouping.groups,
-	);
+	const chartGroups = $derived(workspaceState.grouping.groups);
 	const activeConnectionMode = $derived(
 		workspaceState.connectionFieldSpecs.find(
 			(field) => field.id === workspaceState.activeConnectionFieldSpecId,

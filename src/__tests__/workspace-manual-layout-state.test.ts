@@ -120,7 +120,7 @@ describe('workspace manual layout state', () => {
 		expect(moveCuratedFilesToGroupInState(state, [])).toBe(state);
 	});
 
-	it('creates rule-only Arc groups and rejects manual node assignment', () => {
+	it('creates rule-only Arc groups and allows explicit node assignment', () => {
 		let state = setActiveChartTypeInState(
 			createWorkspaceState(100),
 			'arc',
@@ -134,8 +134,7 @@ describe('workspace manual layout state', () => {
 		expect(group.rule).toBeDefined();
 
 		const nextState = setNodeGroupInState(state, 'A.md', group.id);
-		expect(nextState).toBe(state);
-		expect(nextState.grouping.overrides).not.toHaveProperty('A.md');
+		expect(nextState.grouping.overrides['A.md']).toBe(group.id);
 	});
 
 	it('updates Arc padding only in canonical grouping', () => {
@@ -191,7 +190,7 @@ describe('workspace manual layout state', () => {
 		]);
 	});
 
-	it('creates rule-only Flow groups and rejects manual node assignment', () => {
+	it('creates rule-only Flow groups and allows explicit node assignment', () => {
 		let state = setActiveChartTypeInState(
 			createWorkspaceState(100),
 			'flow',
@@ -205,8 +204,7 @@ describe('workspace manual layout state', () => {
 		expect(group.rule).toBeDefined();
 
 		const nextState = setNodeGroupInState(state, 'A.md', group.id);
-		expect(nextState).toBe(state);
-		expect(nextState.grouping.overrides).not.toHaveProperty('A.md');
+		expect(nextState.grouping.overrides['A.md']).toBe(group.id);
 	});
 
 	it('reorders chart groups as their conflict priority', () => {

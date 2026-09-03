@@ -4,7 +4,7 @@ import type {
 	MetaGraphChart,
 	WorkspaceState,
 } from '../../core/types';
-import { normalizeCubeLayout } from '../state/manual-layout';
+import { normalizeCubeChartState } from '../state/manual-layout/cube-layout';
 import { cloneSerializable } from '../state/persistence';
 import { pruneMissingCuratedFiles } from '../state/curated-state';
 import type { WorkspaceIndexSnapshot } from '../services/query-service';
@@ -67,21 +67,39 @@ function withCubeLayout(
 	if (!activeChart || activeChart.type !== 'cube') {
 		return state;
 	}
-	const layout = normalizeCubeLayout(
+	const normalized = normalizeCubeChartState(
 		activeChart.layout,
+		activeChart.grouping,
 		projection.nodes.map((node) => node.id),
 	);
-	if (layout === activeChart.layout) {
+	const nextChart = {
+		...activeChart,
+		layout: normalized.layout,
+		grouping: normalized.grouping,
+	};
+	if (cubeChartStateEqual(activeChart, nextChart)) {
 		return state;
 	}
 	return {
 		...state,
-		charts: updateChart(state.charts, { ...activeChart, layout }),
+		charts: updateChart(state.charts, nextChart),
+		grouping: cloneSerializable(normalized.grouping),
 		manualLayout: cloneSerializable(
-			layout.manual ?? { nodes: {}, groups: [] },
+			normalized.layout.manual ?? { nodes: {}, groups: [] },
 		),
 		layoutRevision: state.layoutRevision + 1,
 	};
+}
+
+function cubeChartStateEqual(
+	current: MetaGraphChart,
+	next: MetaGraphChart,
+): boolean {
+	return (
+		JSON.stringify(current.grouping) === JSON.stringify(next.grouping) &&
+		JSON.stringify(current.layout.manual) ===
+			JSON.stringify(next.layout.manual)
+	);
 }
 
 function updateChart(

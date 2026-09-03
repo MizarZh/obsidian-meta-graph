@@ -103,7 +103,7 @@ export interface ChartLayoutConfig {
 	manual?: ManualLayoutConfig;
 }
 
-export type ChartGroupMode = 'manual' | 'rule';
+export type ChartGroupMode = 'manual' | 'rule' | 'system';
 export type ChartGroupShape = 'auto' | 'circle' | 'rectangle';
 
 export interface ChartGroupDefinition {

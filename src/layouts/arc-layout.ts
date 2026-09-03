@@ -289,22 +289,26 @@ function createArcGroupGeometries(
 	groups: readonly ChartGroupDefinition[],
 	groupByNode: ReadonlyMap<string, string>,
 ): ArcGroupGeometry[] {
-	const positionsByGroup = new Map<string, number[]>();
+	const membersByGroup = new Map<
+		string,
+		Array<{ nodeId: string; position: number }>
+	>();
 	for (const nodeId of nodeIds) {
 		const groupId = groupByNode.get(nodeId);
 		const position = axis(nodeId);
 		if (!groupId || position === undefined) {
 			continue;
 		}
-		const positions = positionsByGroup.get(groupId) ?? [];
-		positions.push(position);
-		positionsByGroup.set(groupId, positions);
+		const members = membersByGroup.get(groupId) ?? [];
+		members.push({ nodeId, position });
+		membersByGroup.set(groupId, members);
 	}
 	return groups.flatMap((group) => {
-		const positions = positionsByGroup.get(group.id);
-		if (!positions?.length) {
+		const members = membersByGroup.get(group.id);
+		if (!members?.length) {
 			return [];
 		}
+		const positions = members.map((member) => member.position);
 		const padding = scaleLayoutGroupPadding(group.padding);
 		const axisPadding = step * (0.08 + padding * 0.75);
 		return [
@@ -313,6 +317,7 @@ function createArcGroupGeometries(
 				groupId: group.id,
 				name: group.name,
 				color: group.color,
+				nodeIds: members.map((member) => member.nodeId),
 				direction,
 				start: Math.min(...positions) - axisPadding,
 				end: Math.max(...positions) + axisPadding,

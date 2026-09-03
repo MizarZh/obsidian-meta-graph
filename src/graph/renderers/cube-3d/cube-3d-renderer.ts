@@ -81,6 +81,8 @@ export class Cube3DRenderer {
 	private cubeSize: number;
 	private cubeFreeCamera: boolean;
 	private selectedNodeId?: string;
+	private selectedGroupId?: string;
+	private hoveredGroupId?: string;
 	private hoveredNodeId?: string;
 	private pinnedNodeId?: string;
 	private hoveredNeighborhood = new Set<string>();
@@ -299,6 +301,24 @@ export class Cube3DRenderer {
 	setSelected(nodeId?: string): void {
 		this.selectedNodeId = nodeId;
 		this.refreshNodeColors();
+		this.scheduleRender();
+	}
+
+	setSelectedGroup(groupId?: string): void {
+		const nextGroupId =
+			groupId && isCubeFaceId(groupId) ? groupId : undefined;
+		if (this.selectedGroupId === nextGroupId) return;
+		this.selectedGroupId = nextGroupId;
+		this.buildFaces();
+		this.scheduleRender();
+	}
+
+	setHoveredGroup(groupId?: string): void {
+		const nextGroupId =
+			groupId && isCubeFaceId(groupId) ? groupId : undefined;
+		if (this.hoveredGroupId === nextGroupId) return;
+		this.hoveredGroupId = nextGroupId;
+		this.buildFaces();
 		this.scheduleRender();
 	}
 
@@ -735,10 +755,17 @@ export class Cube3DRenderer {
 				this.cubeSize * 2,
 				this.cubeSize * 2,
 			);
+			const selected = face.id === this.selectedGroupId;
+			const hovered = face.id === this.hoveredGroupId;
+			const faceOpacity = selected
+				? Math.min(1, this.cubeFaceOpacity + 0.12)
+				: hovered
+					? Math.min(1, this.cubeFaceOpacity + 0.06)
+					: this.cubeFaceOpacity;
 			const material = new this.three.MeshBasicMaterial({
 				color: group?.color ?? RUBIK_FACE_COLORS[face.id],
-				opacity: this.cubeFaceOpacity,
-				transparent: this.cubeFaceOpacity < 1,
+				opacity: faceOpacity,
+				transparent: faceOpacity < 1,
 				depthWrite: false,
 				depthTest: true,
 			});
@@ -754,9 +781,10 @@ export class Cube3DRenderer {
 			const edge = new this.three.Line(
 				this.createFaceBorderGeometry(),
 				new this.three.LineBasicMaterial({
-					color: '#000000',
+					color:
+						selected || hovered ? this.palette.selected : '#000000',
 					transparent: true,
-					opacity: 0.9,
+					opacity: selected ? 1 : hovered ? 0.95 : 0.9,
 					linewidth: 3,
 				}),
 			);

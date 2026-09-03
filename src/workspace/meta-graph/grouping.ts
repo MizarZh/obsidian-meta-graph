@@ -78,7 +78,10 @@ function normalizeGroupDefinition(
 			typeof record.color === 'string' && record.color.trim()
 				? record.color.trim()
 				: '#7c6ff0',
-		mode: record.mode === 'rule' ? 'rule' : 'manual',
+		mode:
+			record.mode === 'rule' || record.mode === 'system'
+				? record.mode
+				: 'manual',
 		shape:
 			record.shape === 'circle' || record.shape === 'rectangle'
 				? record.shape

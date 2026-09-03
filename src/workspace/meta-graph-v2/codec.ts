@@ -10,6 +10,7 @@ import type {
 	WorkspaceState,
 } from '../../core/types';
 import { cloneSerializable } from '../state/persistence';
+import { normalizeCubeGroupDefinitions } from '../state/manual-layout/cube-layout';
 import {
 	DEFAULT_CUBE_FACE_OPACITY,
 	DEFAULT_CUBE_FREE_CAMERA,
@@ -577,12 +578,7 @@ function nodesToV2(
 			draft.x = roundCoordinate(file.x);
 			draft.y = roundCoordinate(file.y);
 		}
-		if (
-			(chart.type === 'graph' ||
-				chart.type === 'free' ||
-				chart.type === 'cube') &&
-			file.groupId
-		) {
+		if (chart.type !== 'graph-3d' && file.groupId) {
 			draft.group = file.groupId;
 			draft.hasGroup = true;
 		}
@@ -594,13 +590,20 @@ function nodesToV2(
 		const draft = readDraft(path);
 		draft.x = roundCoordinate(placement.x);
 		draft.y = roundCoordinate(placement.y);
-		if (chart.type === 'cube' && placement.groupId) {
+		if (
+			chart.type === 'cube' &&
+			placement.groupId &&
+			!Object.prototype.hasOwnProperty.call(
+				chart.grouping.overrides,
+				path,
+			)
+		) {
 			draft.group = placement.groupId;
 			draft.hasGroup = true;
 		}
 	}
 
-	if (chart.type === 'graph' || chart.type === 'free') {
+	if (chart.type !== 'graph-3d') {
 		for (const [path, groupId] of Object.entries(
 			chart.grouping.overrides,
 		)) {
@@ -731,22 +734,20 @@ function layoutToV2(
 
 function readPersistedGroups(chart: MetaGraphChart): PersistedGroupV2[] {
 	const manual = chart.layout.manual;
-	if (chart.type === 'cube' && manual?.groups.length) {
-		return manual.groups.map((group) =>
-			groupToV2(
-				chart.grouping.groups.find(
-					(definition) => definition.id === group.id,
-				) ?? group,
-				group,
-				chart.type,
-			),
-		);
-	}
-	return chart.grouping.groups
+	const groups =
+		chart.type === 'cube'
+			? normalizeCubeGroupDefinitions(
+					chart.grouping.groups.length > 0
+						? chart.grouping.groups
+						: (manual?.groups ?? []),
+				)
+			: chart.grouping.groups;
+	return groups
 		.filter(
 			(group) =>
 				chart.type === 'graph' ||
 				chart.type === 'free' ||
+				chart.type === 'cube' ||
 				((chart.type === 'flow' ||
 					chart.type === 'arc' ||
 					chart.type === 'hierarchical-edge-bundling') &&
@@ -1111,26 +1112,12 @@ function v2ChartToLegacyRecord(
 							{
 								x: node.x,
 								y: node.y,
-								...(type === 'cube' &&
-								typeof node.group === 'string'
-									? { groupId: node.group }
-									: {}),
 							},
 						],
 					] as const)
 				: [],
 		),
 	);
-	const manualGroups =
-		type === 'cube'
-			? groups.map((group) => ({
-					...group,
-					x: group.frame?.x ?? 0,
-					y: group.frame?.y ?? 0,
-					width: group.frame?.width ?? 2,
-					height: group.frame?.height ?? 2,
-				}))
-			: [];
 	const legacyQuery = {
 		...createV2DefaultQuery(),
 		...(Array.isArray(query.roots)
@@ -1180,19 +1167,13 @@ function v2ChartToLegacyRecord(
 		},
 		grouping: {
 			groups: groups.map(({ frame: _frame, ...group }) => group),
-			overrides:
-				type === 'cube'
-					? {}
-					: Object.fromEntries(
-							Object.entries(nodes).flatMap(([path, node]) =>
-								Object.prototype.hasOwnProperty.call(
-									node,
-									'group',
-								)
-									? [[path, node.group ?? null]]
-									: [],
-							),
-						),
+			overrides: Object.fromEntries(
+				Object.entries(nodes).flatMap(([path, node]) =>
+					Object.prototype.hasOwnProperty.call(node, 'group')
+						? [[path, node.group ?? null]]
+						: [],
+				),
+			),
 		},
 		layout: {
 			engine: layoutEngineForType(type),
@@ -1215,7 +1196,7 @@ function v2ChartToLegacyRecord(
 			nodeSortDirection: layout.nodeSortDirection,
 			manual: {
 				nodes: positions,
-				groups: manualGroups,
+				groups: [],
 				groupFrames,
 			},
 		},

@@ -346,6 +346,12 @@ function createRadialGroupGeometries(
 				groupId: group.id,
 				name: group.name,
 				color: group.color,
+				nodeIds:
+					point
+						?.leaves()
+						.flatMap((leaf) =>
+							leaf.data.id ? [leaf.data.id] : [],
+						) ?? [],
 				startAngle: (angles[0] ?? 0) - angularPadding,
 				endAngle: (angles.at(-1) ?? 0) + angularPadding,
 				innerRadius: radius * (0.92 - padding * 0.18),

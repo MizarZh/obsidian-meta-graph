@@ -77,7 +77,10 @@ export function normalizeGroupPatch(
 			typeof patch.padding === 'number' && Number.isFinite(patch.padding)
 				? Math.max(0, patch.padding)
 				: group.padding,
-		mode: patch.mode === 'rule' ? 'rule' : (patch.mode ?? group.mode),
+		mode:
+			patch.mode === 'rule' || patch.mode === 'system'
+				? patch.mode
+				: (patch.mode ?? group.mode),
 	};
 }
 

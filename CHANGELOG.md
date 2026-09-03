@@ -7,6 +7,13 @@ All notable changes to Meta Graph are documented here.
 ### Added
 
 - Added context-aware graph menus for nodes, logical edges, groups, and blank canvas areas across Sigma, 3D, and Cube views. Menus expose safe navigation, focus, details, grouping, visibility, clipboard, and viewport actions while preserving right-click target selection.
+- Added one Group capability model across Graph, Free, Flow, Arc, HEB, Cube, and Graph 3D, separating membership policy from spatial behavior. Cube faces are now fixed System groups in the canonical group definitions, and every supported 2D layout shares group selection, hover, context-menu hit testing, and explicit node assignment.
+
+### Changed
+
+- Unified non-Cube Group visuals around persistent member halos, faint layout-specific regions, horizontal pill titles, and group-colored hover/selection states. Cube keeps its face-based visual language and emphasizes the whole face on hover or selection.
+- Renamed Group **Mode** to **Membership** and clarified its values as **Manual assignment**, **Rule-based**, and **System**.
+- Moved Cube face membership out of manual node placements into canonical group overrides. Legacy Cube placements are migrated on load and materialized only at the renderer compatibility boundary.
 
 ### Fixed
 

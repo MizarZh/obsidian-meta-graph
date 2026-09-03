@@ -1,4 +1,10 @@
-import type { ChartGroup, ChartLayoutConfig } from '../../../core/types';
+import type {
+	ChartGroup,
+	ChartGroupDefinition,
+	ChartGroupingConfig,
+	ChartLayoutConfig,
+	ManualLayoutConfig,
+} from '../../../core/types';
 import { CUBE_FACE_PADDING } from '../../../graph/renderers/cube-3d/cube-constants';
 import { spreadOverlappingCubeNodes } from './collision';
 import {
@@ -82,6 +88,161 @@ export const CUBE_FACE_GROUPS_BY_ID = new Map(
 	CUBE_FACE_GROUPS.map((group) => [group.id, group]),
 );
 
+export const CUBE_FACE_GROUP_DEFINITIONS: ChartGroupDefinition[] =
+	CUBE_FACE_GROUPS.map(
+		({ x: _x, y: _y, width: _width, height: _height, ...group }) => ({
+			...group,
+			mode: 'system',
+			shape: 'auto',
+		}),
+	);
+
+export function normalizeCubeGroupDefinitions(
+	groups: readonly ChartGroupDefinition[],
+): ChartGroupDefinition[] {
+	const existing = new Map(groups.map((group) => [group.id, group] as const));
+	return CUBE_FACE_GROUP_DEFINITIONS.map((fallback) => {
+		const group = existing.get(fallback.id);
+		return {
+			...fallback,
+			...(group
+				? {
+						name: group.name,
+						padding: group.padding,
+					}
+				: {}),
+			id: fallback.id,
+			color: fallback.color,
+			mode: 'system',
+			shape: 'auto',
+		};
+	});
+}
+
+export function createCubeRendererManualLayout(
+	layout: ChartLayoutConfig,
+	grouping: ChartGroupingConfig,
+): ManualLayoutConfig {
+	const manual = layout.manual ?? { nodes: {}, groups: [] };
+	const definitions = normalizeCubeGroupDefinitions(grouping.groups);
+	const groups = CUBE_FACE_GROUPS.map((frame) => ({
+		...frame,
+		...(definitions.find((group) => group.id === frame.id) ?? {}),
+		...pickGroupFrame(frame),
+		mode: 'system' as const,
+	}));
+	return {
+		...manual,
+		groups,
+		nodes: Object.fromEntries(
+			Object.entries(manual.nodes).map(([nodeId, position]) => [
+				nodeId,
+				{
+					x: position.x,
+					y: position.y,
+					groupId: resolveCubeGroupId(grouping, nodeId),
+				},
+			]),
+		),
+	};
+}
+
+export function normalizeCubeChartState(
+	layout: ChartLayoutConfig,
+	grouping: ChartGroupingConfig,
+	visibleNodeIds: string[],
+): { layout: ChartLayoutConfig; grouping: ChartGroupingConfig } {
+	const legacyMembership = Object.fromEntries(
+		Object.entries(layout.manual?.nodes ?? {}).flatMap(
+			([nodeId, placement]) =>
+				placement.groupId && CUBE_FACE_IDS.has(placement.groupId)
+					? [[nodeId, placement.groupId]]
+					: [],
+		),
+	);
+	const definitions = normalizeCubeGroupDefinitions(
+		grouping.groups.length > 0
+			? grouping.groups
+			: (layout.manual?.groups ?? []),
+	);
+	const overrides: ChartGroupingConfig['overrides'] = {
+		...legacyMembership,
+		...grouping.overrides,
+	};
+	for (const nodeId of visibleNodeIds) {
+		if (
+			typeof overrides[nodeId] !== 'string' ||
+			!CUBE_FACE_IDS.has(overrides[nodeId] as string)
+		) {
+			overrides[nodeId] = getCubeFaceIdForNode(nodeId);
+		}
+	}
+	const nextGrouping: ChartGroupingConfig = {
+		groups: definitions,
+		overrides,
+	};
+	const materialized = createCubeRendererManualLayout(layout, nextGrouping);
+	for (const nodeId of visibleNodeIds) {
+		materialized.nodes[nodeId] ??= {
+			x: 0,
+			y: 0,
+			groupId: resolveCubeGroupId(nextGrouping, nodeId),
+		};
+	}
+	const normalized = normalizeCubeLayout(
+		{ ...layout, manual: materialized },
+		visibleNodeIds,
+	);
+	const normalizedNodes = normalized.manual?.nodes ?? {};
+	const canonicalNodes = Object.fromEntries(
+		Object.entries(normalizedNodes).map(([nodeId, placement]) => [
+			nodeId,
+			{ x: placement.x, y: placement.y },
+		]),
+	);
+	const canonicalOverrides = {
+		...overrides,
+		...Object.fromEntries(
+			Object.entries(normalizedNodes).flatMap(([nodeId, placement]) =>
+				placement.groupId ? [[nodeId, placement.groupId]] : [],
+			),
+		),
+	};
+	return {
+		layout: {
+			...layout,
+			manual: {
+				...(layout.manual ?? {}),
+				nodes: canonicalNodes,
+				groups: [],
+				groupFrames: {},
+			},
+		},
+		grouping: { groups: definitions, overrides: canonicalOverrides },
+	};
+}
+
+function resolveCubeGroupId(
+	grouping: ChartGroupingConfig,
+	nodeId: string,
+): string {
+	const assigned = grouping.overrides[nodeId];
+	return typeof assigned === 'string' && CUBE_FACE_IDS.has(assigned)
+		? assigned
+		: getCubeFaceIdForNode(nodeId);
+}
+
+function pickGroupFrame(
+	group: ChartGroup,
+): Pick<ChartGroup, 'x' | 'y' | 'width' | 'height'> {
+	return {
+		x: group.x,
+		y: group.y,
+		width: group.width,
+		height: group.height,
+	};
+}
+
 export function normalizeCubeLayout(
 	layout: ChartLayoutConfig,
 	visibleNodeIds: string[],
@@ -105,26 +266,26 @@ export function normalizeCubeLayout(
 				manual.groups[index]?.color !== group.color,
 		);
 
-		for (const [nodeId, placement] of Object.entries(nodes)) {
-			const currentGroup =
-				placement.groupId && CUBE_FACE_IDS.has(placement.groupId)
-					? (CUBE_FACE_GROUPS_BY_ID.get(placement.groupId) ??
-						groups.find((item) => item.id === placement.groupId))
-					: undefined;
-			if (currentGroup) {
-				const bounds = readGroupPlacementBounds(currentGroup);
-				if (isPlacementInBounds(placement, bounds)) {
-					continue;
-				}
-				nodes[nodeId] = {
-					...clampPlacementToBounds(placement, bounds),
-					groupId: currentGroup.id,
-				};
-				changed = true;
+	for (const [nodeId, placement] of Object.entries(nodes)) {
+		const currentGroup =
+			placement.groupId && CUBE_FACE_IDS.has(placement.groupId)
+				? (CUBE_FACE_GROUPS_BY_ID.get(placement.groupId) ??
+					groups.find((item) => item.id === placement.groupId))
+				: undefined;
+		if (currentGroup) {
+			const bounds = readGroupPlacementBounds(currentGroup);
+			if (isPlacementInBounds(placement, bounds)) {
 				continue;
 			}
-			const groupId =
-				placement.groupId && CUBE_FACE_IDS.has(placement.groupId)
+			nodes[nodeId] = {
+				...clampPlacementToBounds(placement, bounds),
+				groupId: currentGroup.id,
+			};
+			changed = true;
+			continue;
+		}
+		const groupId =
+			placement.groupId && CUBE_FACE_IDS.has(placement.groupId)
 				? placement.groupId
 				: getCubeFaceIdForNode(nodeId);
 		const group =

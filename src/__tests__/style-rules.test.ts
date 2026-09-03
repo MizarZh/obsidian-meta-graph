@@ -37,7 +37,7 @@ const edge: KnowledgeEdge = {
 	sourceField: 'leads-to',
 };
 
-			describe('style rules', () => {
+describe('style rules', () => {
 	it('starts charts with workspace defaults and empty chart overrides', () => {
 		const state = createWorkspaceState(200);
 		expect(state.defaultNodeStyle).toEqual({
@@ -384,48 +384,39 @@ const edge: KnowledgeEdge = {
 
 	it('resolves node style context from canonical group ownership', () => {
 		expect(
-			resolveNodeStyleContext(
-				node,
-				{
-					groups: [
-						{
-							id: 'manual-group',
-							name: 'Manual group',
-							color: '#111111',
-							mode: 'manual',
-							padding: 0.1,
-						},
-						{
-							id: 'rule-group',
-							name: 'Rule group',
-							color: '#222222',
-							mode: 'rule',
-							padding: 0.1,
-							rule: {
-								id: 'root',
-								kind: 'group',
-								mode: 'all',
-								children: [
-									{
-										id: 'tag',
-										kind: 'condition',
-										field: 'tag',
-										operator: 'is',
-										value: 'important',
-									},
-								],
-							},
-						},
-					],
-					overrides: { [node.id]: 'manual-group' },
-				},
-				{
-					nodes: {
-						[node.id]: { x: 0, y: 0 },
+			resolveNodeStyleContext(node, {
+				groups: [
+					{
+						id: 'manual-group',
+						name: 'Manual group',
+						color: '#111111',
+						mode: 'manual',
+						padding: 0.1,
 					},
-					groups: [],
-				},
-			),
+					{
+						id: 'rule-group',
+						name: 'Rule group',
+						color: '#222222',
+						mode: 'rule',
+						padding: 0.1,
+						rule: {
+							id: 'root',
+							kind: 'group',
+							mode: 'all',
+							children: [
+								{
+									id: 'tag',
+									kind: 'condition',
+									field: 'tag',
+									operator: 'is',
+									value: 'important',
+								},
+							],
+						},
+					},
+				],
+				overrides: { [node.id]: 'manual-group' },
+			}),
 		).toEqual({
 			groupIds: ['manual-group'],
 			groupNames: ['Manual group'],

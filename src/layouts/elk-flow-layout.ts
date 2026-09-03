@@ -99,6 +99,7 @@ export class ElkFlowLayout implements LayoutEngine {
 		}
 		this.groupGeometries = createFlowGroupGeometriesFromElk(
 			this.groups,
+			this.groupByNode,
 			hierarchy.groupElkIdByGroupId,
 			boundsById,
 		);
@@ -274,6 +275,7 @@ function collectElkNodeBounds(root: ElkNode): Map<string, ElkNodeBounds> {
 
 function createFlowGroupGeometriesFromElk(
 	groups: readonly ChartGroupDefinition[],
+	groupByNode: ReadonlyMap<string, string>,
 	groupElkIdByGroupId: ReadonlyMap<string, string>,
 	boundsById: ReadonlyMap<string, ElkNodeBounds>,
 ): FlowGroupGeometry[] {
@@ -289,6 +291,9 @@ function createFlowGroupGeometriesFromElk(
 				groupId: group.id,
 				name: group.name,
 				color: group.color,
+				nodeIds: [...groupByNode]
+					.filter(([, groupId]) => groupId === group.id)
+					.map(([nodeId]) => nodeId),
 				...bounds,
 			},
 		];
@@ -300,7 +305,10 @@ export function createFlowGroupGeometriesFromGraph(
 	groups: readonly ChartGroupDefinition[],
 	groupByNode: ReadonlyMap<string, string>,
 ): FlowGroupGeometry[] {
-	const positionsByGroup = new Map<string, ElkPoint[]>();
+	const membersByGroup = new Map<
+		string,
+		Array<{ nodeId: string; position: ElkPoint }>
+	>();
 	for (const nodeId of graph.nodes()) {
 		if (graph.getNodeAttribute(nodeId, 'isBend')) {
 			continue;
@@ -309,16 +317,20 @@ export function createFlowGroupGeometriesFromGraph(
 		if (!groupId) {
 			continue;
 		}
-		const positions = positionsByGroup.get(groupId) ?? [];
+		const members = membersByGroup.get(groupId) ?? [];
 		const attributes = graph.getNodeAttributes(nodeId);
-		positions.push({ x: attributes.x, y: attributes.y });
-		positionsByGroup.set(groupId, positions);
+		members.push({
+			nodeId,
+			position: { x: attributes.x, y: attributes.y },
+		});
+		membersByGroup.set(groupId, members);
 	}
 	return groups.flatMap((group) => {
-		const positions = positionsByGroup.get(group.id);
-		if (!positions?.length) {
+		const members = membersByGroup.get(group.id);
+		if (!members?.length) {
 			return [];
 		}
+		const positions = members.map((member) => member.position);
 		const padding =
 			FLOW_GROUP_BASE_PADDING +
 			scaleLayoutGroupPadding(group.padding) * FLOW_GROUP_EXTRA_PADDING;
@@ -340,6 +352,7 @@ export function createFlowGroupGeometriesFromGraph(
 				groupId: group.id,
 				name: group.name,
 				color: group.color,
+				nodeIds: members.map((member) => member.nodeId),
 				x: left - padding,
 				y: top - padding,
 				width: right - left + padding * 2,
@@ -796,7 +809,7 @@ function applyRoutedFlowEdges(
 							)
 						: canvasBasePoints),
 					targetPoint,
-			  ])
+				])
 			: undefined;
 		const routedPoints = transformRoute(
 			offsetParallelFlowRoute(
@@ -814,9 +827,10 @@ function applyRoutedFlowEdges(
 				? [sourcePoint, ...routedPoints, targetPoint]
 				: [sourcePoint, targetPoint],
 		);
-		const points = flowRouteKind === 'orthogonal' || storeOrthogonalRoute
-			? normalizeOrthogonalRoute(rawPoints, direction)
-			: rawPoints;
+		const points =
+			flowRouteKind === 'orthogonal' || storeOrthogonalRoute
+				? normalizeOrthogonalRoute(rawPoints, direction)
+				: rawPoints;
 		if (points.length < 2) {
 			continue;
 		}

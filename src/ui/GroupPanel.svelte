@@ -9,6 +9,7 @@
 		KnowledgeNode,
 		ManualLayoutConfig,
 		NodeFilterGroup,
+		ViewMode,
 	} from '../core/types';
 	import { resolveChartGroupOwnership } from '../query/group-ownership';
 	import { ThrottledCommitScheduler } from './filter/deferred-commit';
@@ -21,6 +22,7 @@
 	import SegmentedSetting from './settings/fields/SegmentedSetting.svelte';
 	import SliderSetting from './settings/fields/SliderSetting.svelte';
 	import TextSetting from './settings/fields/TextSetting.svelte';
+	import { resolveGroupCapabilities } from '../workspace/groups/group-policy';
 
 	let {
 		app,
@@ -28,12 +30,9 @@
 		manualLayout,
 		nodes,
 		folders,
-		locked = false,
-		disabled = false,
-		manualModeAllowed = true,
-		modeEditable = true,
-		geometryEditable = false,
-		shapeEditable = false,
+		mode,
+		readOnly = false,
+		forceLayoutEnabled = false,
 		onAddGroup,
 		onUpdateGroup,
 		onDeleteGroup,
@@ -44,12 +43,9 @@
 		manualLayout: ManualLayoutConfig;
 		nodes: KnowledgeNode[];
 		folders: string[];
-		locked?: boolean;
-		disabled?: boolean;
-		manualModeAllowed?: boolean;
-		modeEditable?: boolean;
-		geometryEditable?: boolean;
-		shapeEditable?: boolean;
+		mode: ViewMode;
+		readOnly?: boolean;
+		forceLayoutEnabled?: boolean;
 		onAddGroup: () => void;
 		onUpdateGroup: (groupId: string, patch: Partial<ChartGroup>) => void;
 		onDeleteGroup: (groupId: string) => void;
@@ -57,12 +53,32 @@
 	} = $props();
 
 	const MODE_OPTIONS = [
-		{ value: 'manual', label: 'Manual' },
-		{ value: 'rule', label: 'Rule' },
+		{ value: 'manual', label: 'Manual assignment' },
+		{ value: 'rule', label: 'Rule-based' },
 	];
-	const RULE_MODE_OPTIONS = [{ value: 'rule', label: 'Rule' }];
+	const RULE_MODE_OPTIONS = [{ value: 'rule', label: 'Rule-based' }];
+	const SYSTEM_MODE_OPTIONS = [{ value: 'system', label: 'System' }];
+	const chartCapabilities = $derived(
+		resolveGroupCapabilities(mode, undefined, { forceLayoutEnabled }),
+	);
+	const locked = $derived(mode === 'cube');
+	const disabled = $derived(readOnly || !chartCapabilities.available);
+	const manualModeAllowed = $derived(mode === 'graph' || mode === 'free');
+	const modeEditable = $derived(mode !== 'cube');
+	const identityDisabled = $derived(
+		disabled || !chartCapabilities.canEditIdentity,
+	);
+	const appearanceDisabled = $derived(
+		disabled || !chartCapabilities.canEditAppearance,
+	);
+	const geometryEditable = $derived(chartCapabilities.canEditGeometry);
+	const shapeEditable = $derived(mode === 'graph' || mode === 'free');
 	const modeOptions = $derived(
-		manualModeAllowed ? MODE_OPTIONS : RULE_MODE_OPTIONS,
+		mode === 'cube'
+			? SYSTEM_MODE_OPTIONS
+			: manualModeAllowed
+				? MODE_OPTIONS
+				: RULE_MODE_OPTIONS,
 	);
 	const SHAPE_OPTIONS: Array<{
 		value: ChartGroupShape;
@@ -84,47 +100,19 @@
 		return () => paddingCommitScheduler?.clearAll();
 	});
 
-	const groups = $derived<ChartGroupDefinition[]>(
-		locked ? manualLayout.groups : grouping.groups,
-	);
+	const groups = $derived<ChartGroupDefinition[]>(grouping.groups);
 	const groupFramesById = $derived(
-		new Map([
-			...manualLayout.groups.map(
-				(group) =>
-					[
-						group.id,
-						{
-							x: group.x,
-							y: group.y,
-							width: group.width,
-							height: group.height,
-						},
-					] as const,
-			),
-			...Object.entries(manualLayout.groupFrames ?? {}),
-		]),
+		new Map(Object.entries(manualLayout.groupFrames ?? {})),
 	);
 	const ownership = $derived(resolveChartGroupOwnership(nodes, grouping));
-	const memberCounts = $derived.by(() => {
-		if (!locked) {
-			return new Map(
-				[...ownership.membersByGroup].map(([groupId, members]) => [
-					groupId,
-					members.length,
-				]),
-			);
-		}
-		const counts = new Map<string, number>();
-		for (const placement of Object.values(manualLayout.nodes)) {
-			if (placement.groupId) {
-				counts.set(
-					placement.groupId,
-					(counts.get(placement.groupId) ?? 0) + 1,
-				);
-			}
-		}
-		return counts;
-	});
+	const memberCounts = $derived(
+		new Map(
+			[...ownership.membersByGroup].map(([groupId, members]) => [
+				groupId,
+				members.length,
+			]),
+		),
+	);
 	const conflictCounts = $derived.by(() => {
 		const counts = new Map<string, number>();
 		for (const conflict of ownership.conflicts) {
@@ -254,7 +242,7 @@
 					<p>Six fixed face groups.</p>
 				{/if}
 			</div>
-			{#if !locked && !disabled}
+			{#if chartCapabilities.canCreate && !disabled}
 				<ObsidianButton
 					icon="plus"
 					text="Add group"
@@ -280,41 +268,46 @@
 								<ObsidianTextInput
 									value={group.name}
 									ariaLabel="Group name"
-									{disabled}
+									disabled={identityDisabled}
 									onChange={(value) =>
 										onUpdateGroup(group.id, {
 											name: value,
 										})}
 								/>
 							</label>
-							{#if !locked}
+							{#if chartCapabilities.canReorder || chartCapabilities.canDelete}
 								<div class="knowledge-workspace-group-actions">
-									<ObsidianButton
-										icon="arrow-up"
-										ariaLabel={`Move ${group.name} up`}
-										tooltip="Move up"
-										disabled={disabled || index === 0}
-										onClick={() =>
-											onReorderGroup(group.id, -1)}
-									/>
-									<ObsidianButton
-										icon="arrow-down"
-										ariaLabel={`Move ${group.name} down`}
-										tooltip="Move down"
-										disabled={disabled ||
-											index === groups.length - 1}
-										onClick={() =>
-											onReorderGroup(group.id, 1)}
-									/>
-									<ObsidianButton
-										icon="trash-2"
-										class="knowledge-workspace-group-delete"
-										ariaLabel={`Delete ${group.name}`}
-										tooltip="Delete group"
-										{disabled}
-										destructive={true}
-										onClick={() => onDeleteGroup(group.id)}
-									/>
+									{#if chartCapabilities.canReorder}
+										<ObsidianButton
+											icon="arrow-up"
+											ariaLabel={`Move ${group.name} up`}
+											tooltip="Move up"
+											disabled={disabled || index === 0}
+											onClick={() =>
+												onReorderGroup(group.id, -1)}
+										/>
+										<ObsidianButton
+											icon="arrow-down"
+											ariaLabel={`Move ${group.name} down`}
+											tooltip="Move down"
+											disabled={disabled ||
+												index === groups.length - 1}
+											onClick={() =>
+												onReorderGroup(group.id, 1)}
+										/>
+									{/if}
+									{#if chartCapabilities.canDelete}
+										<ObsidianButton
+											icon="trash-2"
+											class="knowledge-workspace-group-delete"
+											ariaLabel={`Delete ${group.name}`}
+											tooltip="Delete group"
+											{disabled}
+											destructive={true}
+											onClick={() =>
+												onDeleteGroup(group.id)}
+										/>
+									{/if}
 								</div>
 							{/if}
 						</header>
@@ -323,8 +316,10 @@
 							<span>{memberCounts.get(group.id) ?? 0} nodes</span>
 							<span
 								>{group.mode === 'rule'
-									? 'Rule'
-									: 'Manual'}</span
+									? 'Rule-based'
+									: group.mode === 'system'
+										? 'System'
+										: 'Manual assignment'}</span
 							>
 							{#if (conflictCounts.get(group.id) ?? 0) > 0}
 								<span
@@ -347,13 +342,13 @@
 									value={group.color}
 									commitKey={`group:${group.id}:color`}
 									ariaLabel={`${group.name} color`}
-									{disabled}
+									disabled={appearanceDisabled}
 									onChange={(color) =>
 										onUpdateGroup(group.id, { color })}
 								/>
 								{#if modeEditable}
 									<DropdownSetting
-										label="Mode"
+										label="Membership"
 										layout="stacked"
 										value={manualModeAllowed
 											? group.mode
@@ -369,7 +364,7 @@
 										label="Shape"
 										value={group.shape ?? 'auto'}
 										options={SHAPE_OPTIONS}
-										{disabled}
+										disabled={appearanceDisabled}
 										onChange={(shape) =>
 											updateShape(group, shape)}
 									/>
@@ -382,7 +377,7 @@
 								max={5}
 								step={0.05}
 								format={formatPadding}
-								{disabled}
+								disabled={appearanceDisabled}
 								onChange={(value) =>
 									schedulePadding(group, value)}
 								onCommit={(value) =>

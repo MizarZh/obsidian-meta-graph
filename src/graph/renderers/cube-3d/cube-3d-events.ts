@@ -123,7 +123,13 @@ export function bindCube3DEvents(
 			panned = true;
 			return;
 		}
-		callbacks.onHover(renderer.getNodeAtViewportPosition(point));
+		const hoveredNodeId = renderer.getNodeAtViewportPosition(point);
+		callbacks.onHover(hoveredNodeId);
+		renderer.setHoveredGroup(
+			hoveredNodeId
+				? undefined
+				: renderer.getGroupAtViewportPosition(point),
+		);
 	};
 
 	const pointerUp = (event: PointerEvent) => {
@@ -163,7 +169,12 @@ export function bindCube3DEvents(
 			endPointerState();
 			if (!moved) {
 				renderer.clearPinnedHover();
-				callbacks.onSelect(undefined);
+				const groupId = renderer.getGroupAtViewportPosition(point);
+				if (groupId) {
+					callbacks.onSelectGroup?.(groupId);
+				} else {
+					callbacks.onSelect(undefined);
+				}
 			}
 			return;
 		}
@@ -199,8 +210,16 @@ export function bindCube3DEvents(
 		);
 		event.preventDefault();
 		if (!nodeId) {
-			callbacks.onSelect(undefined);
-			callbacks.onContextMenu?.({ kind: 'stage' }, event);
+			const groupId = renderer.getGroupAtViewportPosition(
+				renderer.getViewportPosition(event),
+			);
+			if (groupId) {
+				callbacks.onSelectGroup?.(groupId);
+				callbacks.onContextMenu?.({ kind: 'group', groupId }, event);
+			} else {
+				callbacks.onSelect(undefined);
+				callbacks.onContextMenu?.({ kind: 'stage' }, event);
+			}
 			return;
 		}
 		callbacks.onSelect(nodeId);

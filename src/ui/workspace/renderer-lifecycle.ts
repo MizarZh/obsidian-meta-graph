@@ -25,6 +25,7 @@ import {
 	createWorkspaceRuntimeGraph,
 	prepareWorkspaceRuntimeGraphVisibilityIndex,
 } from './runtime-graph';
+import { createCubeRendererManualLayout } from '../../workspace/state/manual-layout/cube-layout';
 
 export interface WorkspaceRendererLifecycleOptions {
 	readState(): WorkspaceState;
@@ -95,15 +96,15 @@ export class WorkspaceRendererLifecycle {
 		this.currentRenderer?.setSelected(nodeId);
 	}
 
-	setSelection(
-		nodeId?: string,
-		edgeId?: string,
-		groupId?: string,
-	): void {
+	setSelection(nodeId?: string, edgeId?: string, groupId?: string): void {
 		const renderer = this.currentRenderer;
 		if (!renderer) return;
 		renderer.setSelected(nodeId);
-		if (isForce3DRenderer(renderer) || isCube3DRenderer(renderer)) return;
+		if (isForce3DRenderer(renderer)) return;
+		if (isCube3DRenderer(renderer)) {
+			renderer.setSelectedGroup(groupId);
+			return;
+		}
 		renderer.setSelectedEdge(edgeId);
 		renderer.setSelectedGroup(groupId);
 	}
@@ -286,11 +287,11 @@ export class WorkspaceRendererLifecycle {
 				this.currentRenderer = progressiveRenderer;
 				this.unbindEvents =
 					this.options.bindEvents(progressiveRenderer);
-					this.setSelection(
-						state.selectedNodeId,
-						state.selectedEdgeId,
-						state.selectedGroupId,
-					);
+				this.setSelection(
+					state.selectedNodeId,
+					state.selectedEdgeId,
+					state.selectedGroupId,
+				);
 				progressiveRenderer.setHovered(this.readHoveredNodeId(state));
 				progressiveRenderer.fit();
 				progressiveFirstRender = true;
@@ -354,7 +355,21 @@ export class WorkspaceRendererLifecycle {
 			this.unbindEvents?.();
 			this.stopForceLayoutSimulation();
 			setRendererPalette(this.currentRenderer, palette);
-			setRendererManualLayout(this.currentRenderer, state.manualLayout);
+			setRendererManualLayout(
+				this.currentRenderer,
+				state.mode === 'cube'
+					? createCubeRendererManualLayout(
+							state.charts.find(
+								(chart) => chart.id === state.activeChartId,
+							)?.layout ?? {
+								engine: 'cube-3d',
+								spacing: 1,
+								manual: state.manualLayout,
+							},
+							state.grouping,
+						)
+					: state.manualLayout,
+			);
 			this.currentRenderer.setGraph(graph);
 			this.unbindEvents = this.options.bindEvents(this.currentRenderer);
 		} else {

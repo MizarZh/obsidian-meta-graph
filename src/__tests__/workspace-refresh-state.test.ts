@@ -76,7 +76,12 @@ describe('workspace refresh state', () => {
 			createProjection(['A.md']),
 		);
 
-		expect(nextState.manualLayout.nodes['A.md']?.groupId).toBeTruthy();
+		expect(nextState.manualLayout.nodes['A.md']).toEqual({
+			x: expect.any(Number),
+			y: expect.any(Number),
+		});
+		expect(nextState.grouping.overrides['A.md']).toMatch(/^cube-/u);
+		expect(nextState.grouping.groups).toHaveLength(6);
 		expect(nextState.layoutRevision).toBe(cubeState.layoutRevision + 1);
 	});
 });

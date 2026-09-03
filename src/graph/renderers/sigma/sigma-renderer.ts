@@ -282,7 +282,10 @@ export class SigmaRenderer {
 		x: number;
 		y: number;
 	}): string | undefined {
-		return this.groupOverlayLayer.getGroupAtViewportPosition(position);
+		return (
+			this.groupOverlayLayer.getGroupAtViewportPosition(position) ??
+			this.layoutGroupLayer.getGroupAtViewportPosition(position)
+		);
 	}
 
 	viewportToGraphPosition(position: { x: number; y: number }): {
@@ -314,6 +317,11 @@ export class SigmaRenderer {
 		if (this.selectedGroupId === groupId) return;
 		this.selectedGroupId = groupId;
 		this.groupOverlayLayer.setSelectedGroup(groupId);
+		this.layoutGroupLayer.setSelectedGroup(groupId);
+	}
+
+	setHoveredGroup(groupId?: string): void {
+		this.layoutGroupLayer.setHoveredGroup(groupId);
 	}
 
 	setHoveredEdge(edgeId?: string): void {

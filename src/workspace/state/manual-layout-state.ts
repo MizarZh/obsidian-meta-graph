@@ -29,28 +29,28 @@ export function setManualNodePositionInState(
 	const activeChart = getActiveChart(state);
 	const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
 	const previous = manual.nodes[nodeId];
-	const nextPlacement =
-		activeChart.type === 'cube' && groupId
-			? { x: position.x, y: position.y, groupId }
-			: { x: position.x, y: position.y };
+	const nextPlacement = { x: position.x, y: position.y };
 	const grouping =
+		activeChart.type === 'graph' ||
+		activeChart.type === 'free' ||
 		activeChart.type === 'cube'
-			? activeChart.grouping
-			: assignGroupingOverrides(
+			? assignGroupingOverrides(
 					activeChart.grouping,
 					[nodeId],
-					groupId ?? null,
-				);
+					activeChart.type === 'cube'
+						? (groupId ?? activeChart.grouping.overrides[nodeId])
+						: (groupId ?? null),
+				)
+			: activeChart.grouping;
 	if (
 		previous?.x === nextPlacement.x &&
 		previous?.y === nextPlacement.y &&
-		previous?.groupId === nextPlacement.groupId &&
 		grouping === activeChart.grouping
 	) {
 		return state;
 	}
 	return updateActiveChartState(state, {
-		...(activeChart.type === 'cube' ? {} : { grouping }),
+		...(grouping === activeChart.grouping ? {} : { grouping }),
 		layout: {
 			...activeChart.layout,
 			manual: {
@@ -70,17 +70,23 @@ export function setNodeGroupInState(
 	groupId?: string | null,
 ): WorkspaceState {
 	const activeChart = getActiveChart(state);
-	if (
-		activeChart.type !== 'graph' &&
-		activeChart.type !== 'free' &&
-		activeChart.type !== 'cube'
-	) {
+	if (activeChart.type === 'graph-3d') {
 		return state;
 	}
 	if (activeChart.type === 'cube' && !groupId) {
 		return state;
 	}
-	if (activeChart.type !== 'free' && activeChart.type !== 'cube') {
+	if (activeChart.type === 'cube') {
+		const grouping = assignGroupingOverrides(
+			activeChart.grouping,
+			[nodeId],
+			groupId,
+		);
+		return grouping === activeChart.grouping
+			? state
+			: updateActiveChartState(state, { grouping });
+	}
+	if (activeChart.type !== 'free') {
 		const grouping = assignGroupingOverrides(
 			activeChart.grouping,
 			[nodeId],
@@ -95,7 +101,7 @@ export function setNodeGroupInState(
 			? activeChart.grouping.groups.find((group) => group.id === groupId)
 			: undefined;
 	const layout =
-		activeChart.type === 'cube' || groupId !== undefined
+		groupId !== undefined
 			? moveManualNodesToGroup(
 					activeChart.layout,
 					[nodeId],
@@ -103,15 +109,16 @@ export function setNodeGroupInState(
 					definition,
 				)
 			: activeChart.layout;
-	const grouping =
-		activeChart.type === 'cube'
-			? activeChart.grouping
-			: assignGroupingOverrides(activeChart.grouping, [nodeId], groupId);
+	const grouping = assignGroupingOverrides(
+		activeChart.grouping,
+		[nodeId],
+		groupId,
+	);
 	return layout === activeChart.layout && grouping === activeChart.grouping
 		? state
 		: updateActiveChartState(state, {
 				layout,
-				...(activeChart.type === 'cube' ? {} : { grouping }),
+				grouping,
 			});
 }
 
@@ -289,11 +296,7 @@ export function moveCuratedFilesToGroupInState(
 		return state;
 	}
 	const activeChart = getActiveChart(state);
-	if (
-		activeChart.type !== 'graph' &&
-		activeChart.type !== 'free' &&
-		activeChart.type !== 'cube'
-	) {
+	if (activeChart.type === 'graph-3d') {
 		return state;
 	}
 	if (activeChart.type !== 'free' && activeChart.type !== 'cube') {
@@ -306,6 +309,17 @@ export function moveCuratedFilesToGroupInState(
 			? state
 			: updateActiveChartState(state, { grouping });
 	}
+	if (activeChart.type === 'cube') {
+		if (!groupId) return state;
+		const grouping = assignGroupingOverrides(
+			activeChart.grouping,
+			paths,
+			groupId,
+		);
+		return grouping === activeChart.grouping
+			? state
+			: updateActiveChartState(state, { grouping }, true);
+	}
 	const definition = groupId
 		? activeChart.grouping.groups.find((group) => group.id === groupId)
 		: undefined;
@@ -315,21 +329,18 @@ export function moveCuratedFilesToGroupInState(
 		groupId,
 		definition,
 	);
-	const grouping =
-		activeChart.type === 'cube'
-			? activeChart.grouping
-			: assignGroupingOverrides(
-					activeChart.grouping,
-					paths,
-					groupId ?? null,
-				);
+	const grouping = assignGroupingOverrides(
+		activeChart.grouping,
+		paths,
+		groupId ?? null,
+	);
 	return layout === activeChart.layout && grouping === activeChart.grouping
 		? state
 		: updateActiveChartState(
 				state,
 				{
 					layout,
-					...(activeChart.type === 'cube' ? {} : { grouping }),
+					grouping,
 				},
 				true,
 			);

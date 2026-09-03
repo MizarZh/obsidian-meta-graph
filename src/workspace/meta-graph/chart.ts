@@ -35,6 +35,10 @@ import {
 } from './curated';
 import { hydrateCuratedManualLayout } from './curated-layout';
 import { createDefaultChartGrouping, normalizeChartGrouping } from './grouping';
+import {
+	CUBE_FACE_GROUP_DEFINITIONS,
+	normalizeCubeGroupDefinitions,
+} from '../state/manual-layout/cube-layout';
 import { createDefaultLayout, normalizeLayout } from './layout';
 import { createDefaultQuery, normalizeQuery } from './query';
 import {
@@ -73,7 +77,15 @@ export function createDefaultChart(
 		source: 'query',
 		query: createDefaultQuery(maxNodes),
 		curated: createDefaultCuratedWorkspace(),
-		grouping: createDefaultChartGrouping(),
+		grouping:
+			type === 'cube'
+				? {
+						groups: CUBE_FACE_GROUP_DEFINITIONS.map((group) => ({
+							...group,
+						})),
+						overrides: {},
+					}
+				: createDefaultChartGrouping(),
 		layout: createDefaultLayout(type),
 		display: {
 			fadeDistance,
@@ -173,7 +185,7 @@ export function normalizeChart(
 		type,
 		normalizeChartGrouping(
 			record.grouping,
-			type === 'cube' ? undefined : hydrated.layout.manual,
+			hydrated.layout.manual,
 			fallback.grouping,
 		),
 	);
@@ -375,8 +387,26 @@ function canonicalizeManualGrouping(
 	type: ViewMode,
 	grouping: MetaGraphChart['grouping'],
 ): MetaGraphChart['layout'] {
-	if (type === 'cube' || !layout.manual) {
+	if (!layout.manual) {
 		return layout;
+	}
+	if (type === 'cube') {
+		return {
+			...layout,
+			manual: {
+				...layout.manual,
+				nodes: Object.fromEntries(
+					Object.entries(layout.manual.nodes).map(
+						([nodeId, placement]) => [
+							nodeId,
+							{ x: placement.x, y: placement.y },
+						],
+					),
+				),
+				groups: [],
+				groupFrames: {},
+			},
+		};
 	}
 	const groupFrames = { ...(layout.manual.groupFrames ?? {}) };
 	for (const [index, group] of grouping.groups.entries()) {
@@ -411,12 +441,24 @@ function normalizeGroupingModesForType(
 	type: ViewMode,
 	grouping: MetaGraphChart['grouping'],
 ): MetaGraphChart['grouping'] {
+	if (type === 'cube') {
+		return {
+			groups: normalizeCubeGroupDefinitions(grouping.groups),
+			overrides: grouping.overrides,
+		};
+	}
 	if (
 		type !== 'flow' &&
 		type !== 'arc' &&
 		type !== 'hierarchical-edge-bundling'
 	) {
-		return grouping;
+		let changed = false;
+		const groups = grouping.groups.map((group) => {
+			if (group.mode !== 'system') return group;
+			changed = true;
+			return { ...group, mode: 'manual' as const };
+		});
+		return changed ? { ...grouping, groups } : grouping;
 	}
 	let changed = false;
 	const groups = grouping.groups.map((group) => {

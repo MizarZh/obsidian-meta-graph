@@ -483,7 +483,16 @@ describe('Meta Graph v2 persistence', () => {
 		const parsed = parsePersistedMetaGraphDocumentV2(saved, 200, 1.5);
 		expect(
 			parsed.document.charts[0]?.layout.manual?.nodes['Query/Cube.md'],
-		).toEqual({ x: 1.25, y: -0.5, groupId: 'cube-front' });
+		).toEqual({ x: 1.25, y: -0.5 });
+		expect(
+			parsed.document.charts[0]?.grouping.overrides['Query/Cube.md'],
+		).toBe('cube-front');
+		expect(parsed.document.charts[0]?.grouping.groups).toHaveLength(6);
+		expect(
+			parsed.document.charts[0]?.grouping.groups.every(
+				(group) => group.mode === 'system',
+			),
+		).toBe(true);
 		expect(
 			serializeRuntimeDocumentV2(parsed.document, parsed.persistence),
 		).toEqual(saved);

@@ -169,13 +169,13 @@
 		color-mix(
 			in srgb,
 			var(--knowledge-workspace-group-color, var(--interactive-accent))
-				58%,
+				55%,
 			transparent
 		);
-	border-radius: 6px;
+	border-radius: 8px;
 	background: color-mix(
 		in srgb,
-		var(--knowledge-workspace-group-color, var(--interactive-accent)) 7%,
+		var(--knowledge-workspace-group-color, var(--interactive-accent)) 6%,
 		transparent
 	);
 	pointer-events: none;
@@ -183,6 +183,14 @@
 
 .knowledge-workspace-group-region.shape-circle {
 	border-radius: 50%;
+}
+
+.knowledge-workspace-group-region:hover {
+	border-color: color-mix(
+		in srgb,
+		var(--knowledge-workspace-group-color, var(--interactive-accent)) 80%,
+		transparent
+	);
 }
 
 .knowledge-workspace-group-region.muted-by-focus {
@@ -204,9 +212,17 @@
 }
 
 .knowledge-workspace-group-region.selected {
-	border-color: var(--interactive-accent);
-	box-shadow: 0 0 0 2px
-		color-mix(in srgb, var(--interactive-accent) 24%, transparent);
+	border-width: 2px;
+	border-color: color-mix(
+		in srgb,
+		var(--knowledge-workspace-group-color, var(--interactive-accent)) 90%,
+		transparent
+	);
+	background: color-mix(
+		in srgb,
+		var(--knowledge-workspace-group-color, var(--interactive-accent)) 12%,
+		transparent
+	);
 }
 
 .knowledge-workspace-group-title {
@@ -216,10 +232,20 @@
 	max-width: min(220px, 100%);
 	transform: translateX(-50%);
 	overflow: hidden;
-	padding: 0 5px;
-	border: 0;
-	border-radius: 0;
-	background: var(--background-primary);
+	padding: 0 7px;
+	border: 1px solid
+		color-mix(
+			in srgb,
+			var(--knowledge-workspace-group-color, var(--interactive-accent))
+				22%,
+			transparent
+		);
+	border-radius: 999px;
+	background: color-mix(
+		in srgb,
+		var(--background-primary) 94%,
+		var(--knowledge-workspace-group-color, var(--interactive-accent))
+	);
 	color: var(--knowledge-workspace-group-color, var(--interactive-accent));
 	font-size: 11px;
 	font-weight: 600;
@@ -253,11 +279,12 @@
 	background: var(--background-primary);
 	box-shadow: var(--shadow-s);
 	pointer-events: auto;
+	display: none;
 }
 
-.knowledge-workspace-group-region:not(.resizable)
+.knowledge-workspace-group-region.selected.resizable
 	.knowledge-workspace-group-resize {
-	display: none;
+	display: block;
 }
 
 .knowledge-workspace-group-resize.resize-left {
