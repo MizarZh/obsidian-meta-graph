@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- Added typed G6 data and style adapters for RuntimeGraph nodes, logical edges, visibility, labels, shapes, line patterns, arrows, parallel-edge metadata, and incremental style patches.
+
 ### Changed
 
 - Added renderer-neutral planar, Group overlay, and external 2D force-simulation contracts so future 2D renderers can share interaction, refresh, layout-motion, and Group orchestration without inheriting Sigma internals.
