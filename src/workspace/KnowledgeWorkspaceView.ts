@@ -28,8 +28,9 @@ export class KnowledgeWorkspaceView extends TextFileView {
 	private component?: MountedWorkspace;
 	private metaGraphDocumentModule?: Promise<MetaGraphDocumentModule>;
 	private rightSplitLeaf?: WorkspaceLeaf;
-	private persistence?: WorkspacePersistenceContext;
 	private sessionKey?: string;
+	private renderRevision = 0;
+	private unmountPromise?: Promise<void>;
 	private workspaceActions?: {
 		canExecute(action: WorkspaceActionId): boolean;
 		execute(action: WorkspaceActionId): boolean;
@@ -67,10 +68,12 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		if (clear) {
 			void this.unmountWorkspace();
 		}
-		void this.renderMetaGraphData(data);
+		const revision = ++this.renderRevision;
+		void this.renderMetaGraphData(data, revision);
 	}
 
 	clear(): void {
+		this.renderRevision += 1;
 		void this.unmountWorkspace();
 	}
 
@@ -100,11 +103,13 @@ export class KnowledgeWorkspaceView extends TextFileView {
 			),
 		);
 		if (this.data) {
-			await this.renderMetaGraphData(this.data);
+			const revision = ++this.renderRevision;
+			await this.renderMetaGraphData(this.data, revision);
 		}
 	}
 
 	async onClose(): Promise<void> {
+		this.renderRevision += 1;
 		this.rightSplitLeaf = undefined;
 		await this.unmountWorkspace();
 		this.contentEl.empty();
@@ -125,24 +130,32 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		return this.workspaceActions?.execute(action) ?? false;
 	}
 
-	private async renderMetaGraphData(data: string): Promise<void> {
+	private async renderMetaGraphData(
+		data: string,
+		revision: number,
+	): Promise<void> {
 		const metaGraphDocument = await this.loadMetaGraphDocumentModule();
-		if (this.data !== data) {
+		if (this.data !== data || this.renderRevision !== revision) {
 			return;
 		}
 		if (!metaGraphDocument.isMetaGraphMarkdown(data)) {
 			void this.plugin.setMarkdownView(this.leaf, false);
 			return;
 		}
-		await this.renderWorkspace(data);
+		await this.renderWorkspace(data, revision);
 	}
 
-	private async renderWorkspace(data: string): Promise<void> {
+	private async renderWorkspace(data: string, revision: number): Promise<void> {
 		await this.unmountWorkspace();
+		if (this.data !== data || this.renderRevision !== revision) {
+			return;
+		}
 		this.contentEl.empty();
 		this.contentEl.addClass('knowledge-workspace-view');
 		const metaGraphDocument = await this.loadMetaGraphDocumentModule();
 		let document: MetaGraphDocument;
+		let persistence: WorkspacePersistenceContext;
+		let sessionKey: string | undefined;
 		let session: WorkspaceSessionState | undefined;
 		try {
 			const parsed = metaGraphDocument.parseMetaGraphWorkspace(
@@ -150,11 +163,11 @@ export class KnowledgeWorkspaceView extends TextFileView {
 				DEFAULT_GRAPH_QUERY.maxNodes,
 				this.plugin.settings.fadeDistance,
 			);
-			this.persistence = parsed.persistence;
-			this.sessionKey = this.file?.path
+			persistence = parsed.persistence;
+			sessionKey = this.file?.path
 				? `path:${this.file.path}`
 				: undefined;
-			session = this.plugin.getWorkspaceSession(this.sessionKey);
+			session = this.plugin.getWorkspaceSession(sessionKey);
 			document = applyWorkspaceSession(
 				parsed.document,
 				parsed.persistence,
@@ -173,6 +186,10 @@ export class KnowledgeWorkspaceView extends TextFileView {
 				import('../ui/Workspace.svelte'),
 				import('./workspace-controller'),
 			]);
+		if (this.data !== data || this.renderRevision !== revision) {
+			return;
+		}
+		this.sessionKey = sessionKey;
 		this.controller = new WorkspaceController(
 			this.app,
 			this.plugin.workspaceIndex,
@@ -181,7 +198,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 			this.plugin.settings.relayoutFlowAfterConnection,
 			this.plugin.settings.fadeDistance,
 			document,
-			this.persistence.readOnly,
+			persistence.readOnly,
 		);
 		this.component = mount(Workspace, {
 			target: this.contentEl,
@@ -199,15 +216,15 @@ export class KnowledgeWorkspaceView extends TextFileView {
 				onOpenNodeInRightSplit: (nodeId: string) =>
 					this.openNodeInRightSplit(nodeId),
 				getNodeOpenMode: () => this.plugin.settings.nodeOpenMode,
-				readOnly: this.persistence.readOnly,
-				sourceVersion: this.persistence.sourceVersion,
+				readOnly: persistence.readOnly,
+				sourceVersion: persistence.sourceVersion,
 				serializeDocument: (state: WorkspaceState) =>
-					serializeWorkspaceStateV2(state, this.requirePersistence()),
+					serializeWorkspaceStateV2(state, persistence),
 				initialSession: session,
 				onSessionStateChange: (nextSession: WorkspaceSessionState) =>
 					this.persistSession(nextSession),
 				onAutoSave: (nextDocument: PersistedMetaGraphDocumentV2) =>
-					this.persistDocument(nextDocument),
+					this.persistDocument(nextDocument, persistence),
 				onWorkspaceActionsChange: (
 					host:
 						| {
@@ -247,8 +264,8 @@ export class KnowledgeWorkspaceView extends TextFileView {
 
 	private async persistDocument(
 		document: PersistedMetaGraphDocumentV2,
+		persistence: WorkspacePersistenceContext,
 	): Promise<void> {
-		const persistence = this.requirePersistence();
 		if (persistence.readOnly) {
 			return;
 		}
@@ -262,30 +279,46 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		this.plugin.setWorkspaceSession(this.sessionKey, session);
 	}
 
-	private requirePersistence(): WorkspacePersistenceContext {
-		if (!this.persistence) {
-			throw new Error(
-				'Workspace persistence context is not initialized.',
-			);
-		}
-		return this.persistence;
-	}
-
 	private loadMetaGraphDocumentModule(): Promise<MetaGraphDocumentModule> {
 		this.metaGraphDocumentModule ??= import('./meta-graph-document');
 		return this.metaGraphDocumentModule;
 	}
 
 	private async unmountWorkspace(): Promise<void> {
+		if (this.unmountPromise) {
+			await this.unmountPromise;
+			return;
+		}
+		const unmountPromise = this.performUnmountWorkspace();
+		this.unmountPromise = unmountPromise;
+		try {
+			await unmountPromise;
+		} finally {
+			if (this.unmountPromise === unmountPromise) {
+				this.unmountPromise = undefined;
+			}
+		}
+	}
+
+	private async performUnmountWorkspace(): Promise<void> {
 		this.workspaceActions = undefined;
-		this.controller?.dispose();
-		this.controller = undefined;
-		this.persistence = undefined;
-		this.sessionKey = undefined;
-		if (this.component) {
-			const { unmount } = await import('svelte');
-			await unmount(this.component);
-			this.component = undefined;
+		const component = this.component;
+		const controller = this.controller;
+		const sessionKey = this.sessionKey;
+		this.component = undefined;
+		try {
+			if (component) {
+				const { unmount } = await import('svelte');
+				await unmount(component);
+			}
+		} finally {
+			if (this.controller === controller) {
+				controller?.dispose();
+				this.controller = undefined;
+			}
+			if (this.sessionKey === sessionKey) {
+				this.sessionKey = undefined;
+			}
 		}
 	}
 }

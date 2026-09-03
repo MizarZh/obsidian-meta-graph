@@ -24,6 +24,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Kept each mounted workspace bound to its own persistence context through autosave cleanup, and serialized overlapping render/unmount operations to prevent startup persistence errors.
 - Kept theme-aware black/white label profiles when reading obsolete label color fields, and stopped writing those obsolete fields.
 - Released Cube node and label Canvas textures during graph rebuilds and renderer teardown.
 - Kept focused and pinned Sigma arrows at their base size while applying emphasis to line width.
