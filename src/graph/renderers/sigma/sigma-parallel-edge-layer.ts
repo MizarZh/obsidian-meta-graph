@@ -139,6 +139,7 @@ export class SigmaParallelEdgeLayer {
 		const container = sigma.getContainer();
 		container.addEventListener('pointermove', this.handlePointerMove);
 		container.addEventListener('pointerleave', this.handlePointerLeave);
+		this.scheduleUpdate();
 	}
 
 	invalidate(): void {

@@ -269,7 +269,6 @@ export class SigmaRenderer {
 
 	refresh(): void {
 		this.instance.refresh();
-		this.parallelEdgeLayer.update();
 	}
 
 	setGroups(
