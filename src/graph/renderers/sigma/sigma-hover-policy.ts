@@ -17,6 +17,10 @@ export interface SigmaHoverState {
 	forceLabels: boolean;
 }
 
+export interface SigmaEdgeDisplayData extends Partial<EdgeDisplayData> {
+	arrowBaseSize?: number;
+}
+
 export function reduceSigmaNode(
 	node: string,
 	data: RuntimeNodeAttributes,
@@ -94,7 +98,7 @@ export function reduceSigmaEdge(
 	palette: GraphPalette,
 	extremities: readonly [string, string],
 	runtimeEdgeId?: string,
-): Partial<EdgeDisplayData> {
+): SigmaEdgeDisplayData {
 	if (isCanvasParallelEdge(data, extremities)) {
 		return {
 			...data,
@@ -116,6 +120,7 @@ export function reduceSigmaEdge(
 					? palette.selected
 					: withAlpha(palette.selected, opacity),
 			size: data.size + 2,
+			arrowBaseSize: data.size,
 			zIndex: 3,
 		};
 	}
@@ -129,6 +134,7 @@ export function reduceSigmaEdge(
 			...data,
 			...(opacity === 1 ? {} : { color }),
 			size: data.size + 2,
+			arrowBaseSize: data.size,
 			zIndex: 2,
 		};
 	}
@@ -147,6 +153,7 @@ export function reduceSigmaEdge(
 				...data,
 				...(opacity === 1 ? {} : { color }),
 				size: data.size + 1,
+				arrowBaseSize: data.size,
 				zIndex: 2,
 			}
 		: {
@@ -169,8 +176,8 @@ function isEdgeConnectedToNode(
 	const [source, target] = extremities;
 	return Boolean(
 		source === nodeId ||
-			target === nodeId ||
-			data.logicalSource === nodeId ||
-			data.logicalTarget === nodeId,
+		target === nodeId ||
+		data.logicalSource === nodeId ||
+		data.logicalTarget === nodeId,
 	);
 }

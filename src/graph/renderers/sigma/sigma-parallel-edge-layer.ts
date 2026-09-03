@@ -218,6 +218,7 @@ export class SigmaParallelEdgeLayer {
 			const metrics = resolveEdgeVisualMetrics({
 				...metricOptions,
 				edgeSize: visual.attributes.size + emphasis,
+				arrowEdgeSize: visual.attributes.size,
 			});
 			const cached =
 				visual.kind === 'canvas'
@@ -1906,8 +1907,8 @@ function isEdgeHoverActive(
 ): boolean {
 	return Boolean(
 		edgeMatchesId(visual, hoveredEdgeId) &&
-			(!state.pinnedNodeId ||
-				isEdgeConnectedToNode(visual, state.pinnedNodeId)),
+		(!state.pinnedNodeId ||
+			isEdgeConnectedToNode(visual, state.pinnedNodeId)),
 	);
 }
 

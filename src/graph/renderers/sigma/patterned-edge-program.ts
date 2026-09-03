@@ -333,6 +333,7 @@ const ARROW_HEAD_VERTEX_SHADER_SOURCE = /* glsl */ `
 attribute vec2 a_position;
 attribute vec2 a_normal;
 attribute float a_radius;
+attribute float a_arrowBaseSize;
 attribute float a_arrowSize;
 attribute float a_parallelLane;
 attribute vec3 a_barycentric;
@@ -362,14 +363,14 @@ void main() {
 	vec2 unitNormal = normalLength > 0.0
 		? a_normal / normalLength
 		: vec2(0.0, -1.0);
-	float pixelsThickness = max(normalLength / u_sizeRatio, minThickness);
-	float webGLThickness = pixelsThickness * u_correctionRatio;
 	float webGLNodeRadius = a_radius * 2.0 * u_correctionRatio / u_sizeRatio;
+	float arrowPixelsThickness = max(a_arrowBaseSize / u_sizeRatio, minThickness);
+	float webGLArrowThickness = arrowPixelsThickness * u_correctionRatio;
 	float arrowScale = max(a_arrowSize, 0.25);
 	float webGLArrowHeadLength =
-		webGLThickness * u_lengthToThicknessRatio * 2.0 * arrowScale;
+		webGLArrowThickness * u_lengthToThicknessRatio * 2.0 * arrowScale;
 	float webGLArrowHeadThickness =
-		webGLThickness * u_widenessToThicknessRatio * arrowScale;
+		webGLArrowThickness * u_widenessToThicknessRatio * arrowScale;
 
 	float da = a_barycentric.x;
 	float db = a_barycentric.y;
@@ -494,6 +495,11 @@ function createArrowHeadProgram(
 						type: WebGLRenderingContext.FLOAT,
 					},
 					{
+						name: 'a_arrowBaseSize',
+						size: 1,
+						type: WebGLRenderingContext.FLOAT,
+					},
+					{
 						name: 'a_arrowSize',
 						size: 1,
 						type: WebGLRenderingContext.FLOAT,
@@ -550,6 +556,13 @@ function createArrowHeadProgram(
 			).arrowSize;
 			const arrowSize =
 				typeof arrowSizeValue === 'number' ? arrowSizeValue : 1;
+			const arrowBaseSizeValue = (
+				data as EdgeDisplayData & { arrowBaseSize?: number }
+			).arrowBaseSize;
+			const arrowBaseSize =
+				typeof arrowBaseSizeValue === 'number'
+					? arrowBaseSizeValue
+					: thickness;
 			let dx = x2 - x1;
 			let dy = y2 - y1;
 			let length = dx * dx + dy * dy;
@@ -565,6 +578,7 @@ function createArrowHeadProgram(
 			this.array[startIndex++] = -normalX;
 			this.array[startIndex++] = -normalY;
 			this.array[startIndex++] = radius;
+			this.array[startIndex++] = arrowBaseSize;
 			this.array[startIndex++] = arrowSize;
 			this.array[startIndex++] = getCanonicalParallelLane(
 				data as unknown as RuntimeEdgeAttributes,

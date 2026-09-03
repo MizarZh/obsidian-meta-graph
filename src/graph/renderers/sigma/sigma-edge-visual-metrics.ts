@@ -32,6 +32,8 @@ export interface EdgeVisualMetrics {
 
 export interface EdgeVisualMetricsOptions {
 	edgeSize?: number;
+	/** Optional un-emphasized size used for arrow geometry. */
+	arrowEdgeSize?: number;
 	arrowSize?: number;
 	arrowStyle?: RuntimeEdgeAttributes['arrowStyle'];
 	lineStyle?: RuntimeEdgeAttributes['lineStyle'];
@@ -53,10 +55,19 @@ export function resolveEdgeVisualMetrics(
 		options.scaleSize(edgeSize),
 		edgeSize,
 	);
+	const arrowEdgeSize = positiveFinite(options.arrowEdgeSize, edgeSize);
+	const scaledArrowEdgeSize = positiveFinite(
+		options.scaleSize(arrowEdgeSize),
+		arrowEdgeSize,
+	);
 	const minEdgeThickness = positiveFinite(options.minEdgeThickness, 1);
 	// Sigma's correction ratio maps this value to the complete CSS-pixel width,
 	// even though its shader expands geometry on both sides of the center line.
 	const nominalLineWidth = Math.max(scaledEdgeSize, minEdgeThickness);
+	const arrowNominalLineWidth = Math.max(
+		scaledArrowEdgeSize,
+		minEdgeThickness,
+	);
 	const pixelRatio = positiveFinite(options.pixelRatio, 1);
 	const antiAliasingFeather = nonNegativeFinite(
 		options.antiAliasingFeather,
@@ -80,11 +91,11 @@ export function resolveEdgeVisualMetrics(
 		nominalLineWidth,
 		lineWidth,
 		arrowLength:
-			nominalLineWidth *
+			arrowNominalLineWidth *
 			arrowRatios.lengthToThicknessRatio *
 			arrowScale,
 		arrowHalfWidth:
-			(nominalLineWidth *
+			(arrowNominalLineWidth *
 				arrowRatios.widenessToThicknessRatio *
 				arrowScale) /
 			2,

@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- Kept focused and pinned Sigma arrows at their base size while applying emphasis to line width.
+
 ## [1.6.0] - 2026-09-03
 
 ### Added

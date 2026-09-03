@@ -291,6 +291,22 @@ describe('parallel edge visual metrics', () => {
 		expect(metrics.hitWidth).toBe(6);
 	});
 
+	it('keeps focused arrow geometry at its base edge size', () => {
+		const metrics = resolveEdgeVisualMetrics({
+			edgeSize: 3,
+			arrowEdgeSize: 1,
+			arrowSize: 1,
+			arrowStyle: 'filled',
+			lineStyle: 'solid',
+			scaleSize: (size) => size,
+			minEdgeThickness: 1.7,
+		});
+
+		expect(metrics.lineWidth).toBe(3);
+		expect(metrics.arrowLength).toBe(4.25);
+		expect(metrics.arrowHalfWidth).toBe(1.7);
+	});
+
 	it('clamps lane growth while keeping hit width independent', () => {
 		const metrics = resolveEdgeVisualMetrics({
 			edgeSize: 8,
@@ -505,9 +521,9 @@ describe('parallel route geometry', () => {
 		expect(getEdgeFocusPriority(hovered, state, 'hovered')).toBe(2);
 		expect(getEdgeFocusPriority(selected, state)).toBe(3);
 		expect(getEdgeFocusPriority(hovered, pinnedState, 'hovered')).toBe(0);
-		expect(
-			getEdgeFocusPriority(connected, pinnedState, 'connected'),
-		).toBe(2);
+		expect(getEdgeFocusPriority(connected, pinnedState, 'connected')).toBe(
+			2,
+		);
 	});
 
 	it('orders routed native segments into one continuous logical path', () => {

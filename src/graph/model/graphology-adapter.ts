@@ -71,6 +71,8 @@ export interface RuntimeEdgeAttributes {
 	lineStyle: LinkLineStyle;
 	arrowStyle?: LinkArrowStyle;
 	arrowSize?: number;
+	/** Original edge size used for arrow geometry while Sigma emphasizes a line. */
+	arrowBaseSize?: number;
 	kind?: KnowledgeEdgeKind;
 	semantic?: boolean;
 	logicalEdgeId?: string;

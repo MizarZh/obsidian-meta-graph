@@ -345,24 +345,28 @@ describe('graph renderer helpers', () => {
 				'A.md',
 				'B.md',
 			]),
-		).toMatchObject({ size: edge.size + 1, zIndex: 2 });
+		).toMatchObject({
+			size: edge.size + 1,
+			arrowBaseSize: edge.size,
+			zIndex: 2,
+		});
 		expect(
 			reduceSigmaEdge(edge, { activeHoverNodeId: 'C.md' }, palette, [
 				'A.md',
 				'B.md',
 			]),
 		).toMatchObject({ color: palette.mutedEdge, size: 0.4, zIndex: 0 });
-		expect(
-			reduceSigmaEdge(
-				{ ...edge, logicalEdgeId: 'logical-edge' },
-				{ selectedEdgeId: 'logical-edge' },
-				palette,
-				['A.md', 'B.md'],
-				'segment-2',
-			),
-		).toMatchObject({
+		const selectedEdge = reduceSigmaEdge(
+			{ ...edge, logicalEdgeId: 'logical-edge' },
+			{ selectedEdgeId: 'logical-edge' },
+			palette,
+			['A.md', 'B.md'],
+			'segment-2',
+		);
+		expect(selectedEdge).toMatchObject({
 			color: palette.selected,
 			size: edge.size + 2,
+			arrowBaseSize: edge.size,
 			zIndex: 3,
 		});
 		expect(
@@ -373,7 +377,11 @@ describe('graph renderer helpers', () => {
 				['A.md', 'B.md'],
 				'segment-1',
 			),
-		).toMatchObject({ size: edge.size + 2, zIndex: 2 });
+		).toMatchObject({
+			size: edge.size + 2,
+			arrowBaseSize: edge.size,
+			zIndex: 2,
+		});
 		expect(
 			reduceSigmaEdge(
 				{ ...edge, logicalEdgeId: 'other-edge' },
