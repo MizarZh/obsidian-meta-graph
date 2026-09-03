@@ -1198,7 +1198,13 @@
 		panel: SettingsPanelMode,
 		event: MouseEvent,
 	): void {
-		const target = event.currentTarget;
+		const toolbarTarget =
+			panel === 'groups'
+				? workspaceRoot?.querySelector<HTMLElement>(
+						'.knowledge-workspace-settings-tab-groups',
+					)
+				: undefined;
+		const target = toolbarTarget ?? event.currentTarget;
 		if (target instanceof HTMLElement && workspaceRoot) {
 			const targetRect = target.getBoundingClientRect();
 			const rootRect = workspaceRoot.getBoundingClientRect();
@@ -1716,6 +1722,7 @@
 					{dockNoteEntries}
 					{selectedNode}
 					{selectedNodeColor}
+					{readOnly}
 					{atNodeLimit}
 					{metadataFieldSuggestions}
 					{connectionDrag}
@@ -1751,6 +1758,7 @@
 					onOpenNote={(nodeId) => void openNote(nodeId)}
 					onOpenMetadataLink={(linkText, sourcePath) =>
 						void openMetadataLink(linkText, sourcePath)}
+					onEditGroup={(event) => openSettingsPanel('groups', event)}
 					onCuratedSelectionChange={(paths) => {
 						curatedSelection = paths;
 					}}

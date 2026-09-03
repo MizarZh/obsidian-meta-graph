@@ -8,6 +8,7 @@ All notable changes to Meta Graph are documented here.
 
 - Added context-aware graph menus for nodes, logical edges, groups, and blank canvas areas across Sigma, 3D, and Cube views. Menus expose safe navigation, focus, details, grouping, visibility, clipboard, and viewport actions while preserving right-click target selection.
 - Added one Group capability model across Graph, Free, Flow, Arc, HEB, Cube, and Graph 3D, separating membership policy from spatial behavior. Cube faces are now fixed System groups in the canonical group definitions, and every supported 2D layout shares group selection, hover, context-menu hit testing, and explicit node assignment.
+- Added dedicated relationship and Group views to the right-side Details panel. Relationship details keep the selected metadata relationship prominent and list the other indexed links between the same notes separately; Group details show capabilities, rule summaries, visible members, assignment sources, geometry, and conflicts.
 
 ### Changed
 
@@ -18,6 +19,12 @@ All notable changes to Meta Graph are documented here.
 ### Fixed
 
 - Kept focused and pinned Sigma arrows at their base size while applying emphasis to line width.
+- Fixed Group and relationship details cards inheriting dock flex sizing, which could create large blank areas, overlap member/conflict rows, and stretch the delete action across the panel.
+- Simplified relationship summary rows to show only direction and property, keeping hidden plain body links out of the list.
+- Added bounded filename labels with ellipsis and full-name hover tooltips throughout the details inspectors.
+- Switched details filename tooltips to Obsidian's native tooltip surface and constrained long relationship directions.
+- Kept visible Other links rows on one compact line, reserving a second line only for hidden-state badges.
+- Kept Group deletion in Group settings and context menus, and anchored the Details edit button to the toolbar Group settings position.
 
 ## [1.6.0] - 2026-09-03
 

@@ -17,6 +17,7 @@
 	import InternalNotePreview from './workspace/InternalNotePreview.svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
+	import { obsidianTooltip } from './obsidian/obsidian-tooltip';
 	import ObsidianSuggestInput, {
 		type SuggestionOption,
 	} from './obsidian/ObsidianSuggestInput.svelte';
@@ -221,7 +222,7 @@
 		style:--knowledge-workspace-node-color={nodeColor}
 	>
 		<div class="knowledge-workspace-inspector-header">
-			<strong>{node.title}</strong>
+			<strong use:obsidianTooltip={node.title}>{node.title}</strong>
 			<div class="knowledge-workspace-inspector-header-actions">
 				<ObsidianButton
 					class="knowledge-workspace-inspector-content-toggle"
@@ -241,8 +242,9 @@
 			</div>
 		</div>
 		<div class="knowledge-workspace-inspector-body">
-			<span class="knowledge-workspace-inspector-summary"
-				>{node.path}</span
+			<span
+				class="knowledge-workspace-inspector-summary"
+				use:obsidianTooltip={node.path}>{node.path}</span
 			>
 			{#if node.noteType}
 				<span class="knowledge-workspace-inspector-summary"
@@ -290,7 +292,7 @@
 					/>
 					<span
 						class="knowledge-workspace-inspector-link-field"
-						title={`${activeConnectionField}: ${getConnectionDirectionLabel(activeConnectionMode)}`}
+						use:obsidianTooltip={`${activeConnectionField}: ${getConnectionDirectionLabel(activeConnectionMode)}`}
 					>
 						<span
 							class="knowledge-workspace-connection-direction-icon"
@@ -321,7 +323,7 @@
 									<button
 										type="button"
 										class="knowledge-workspace-inspector-metadata-link"
-										title={segment.linkText}
+										use:obsidianTooltip={segment.linkText}
 										onclick={() =>
 											onOpenMetadataLink(
 												segment.linkText,

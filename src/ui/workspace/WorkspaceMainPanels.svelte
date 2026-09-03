@@ -29,6 +29,7 @@
 		dockNoteEntries,
 		selectedNode,
 		selectedNodeColor,
+		readOnly = false,
 		atNodeLimit,
 		metadataFieldSuggestions,
 		connectionDrag,
@@ -60,6 +61,7 @@
 		onFocusNode,
 		onOpenNote,
 		onOpenMetadataLink,
+		onEditGroup,
 		onCuratedSelectionChange,
 		onCuratedConditionDraftChange,
 		formatError,
@@ -73,6 +75,7 @@
 		dockNoteEntries: DockNoteEntry[];
 		selectedNode?: KnowledgeNode;
 		selectedNodeColor?: string;
+		readOnly?: boolean;
 		atNodeLimit: boolean;
 		metadataFieldSuggestions: string[];
 		connectionDrag?: ConnectionDragState;
@@ -110,6 +113,7 @@
 		onFocusNode: (nodeId: string) => void;
 		onOpenNote: (nodeId: string) => void;
 		onOpenMetadataLink: (linkText: string, sourcePath: string) => void;
+		onEditGroup: (event: MouseEvent) => void;
 		onCuratedSelectionChange: (paths: Set<string>) => void;
 		onCuratedConditionDraftChange: (draft: CuratedConditionDraft) => void;
 		formatError: (error: unknown) => string;
@@ -209,6 +213,24 @@
 		).arrowSize;
 	});
 	const chartGroups = $derived(workspaceState.grouping.groups);
+	const visibleNodes = $derived(workspaceState.projection?.nodes ?? []);
+	const indexedEdges = $derived.by(() => {
+		void workspaceState.projection;
+		return controller.getIndexedEdges();
+	});
+	const visibleEdgeIds = $derived(
+		new Set(workspaceState.projection?.edges.map((edge) => edge.id) ?? []),
+	);
+	const selectedEdge = $derived(
+		workspaceState.projection?.edges.find(
+			(edge) => edge.id === workspaceState.selectedEdgeId,
+		),
+	);
+	const selectedGroup = $derived(
+		workspaceState.grouping.groups.find(
+			(group) => group.id === workspaceState.selectedGroupId,
+		),
+	);
 	const activeConnectionMode = $derived(
 		workspaceState.connectionFieldSpecs.find(
 			(field) => field.id === workspaceState.activeConnectionFieldSpecId,
@@ -348,6 +370,7 @@
 	templates={workspaceState.dock.templates}
 	notes={dockNoteEntries}
 	nodes={indexedNodes}
+	{visibleNodes}
 	groups={chartGroups}
 	folders={workspaceState.availableFolders}
 	{workspaceFilePath}
@@ -371,6 +394,11 @@
 	graphTargetTemplateId={graphConnectionTargetTemplateId}
 	{selectedNode}
 	{selectedNodeColor}
+	{selectedEdge}
+	{selectedGroup}
+	{indexedEdges}
+	{visibleEdgeIds}
+	{readOnly}
 	{initialDetailsNoteContentExpanded}
 	{onDetailsNoteContentExpandedChange}
 	mode={workspaceState.mode}
@@ -397,6 +425,9 @@
 			.catch(reportError);
 	}}
 	onSelectNote={selectAndMaybeFocusNode}
+	onSelectEdge={(edgeId) => controller.selectEdge(edgeId)}
+	{onFocusNode}
+	{onEditGroup}
 	focusOnSelect={workspaceState.dock.focusOnSelect}
 	onToggleFocusOnSelect={() =>
 		controller.setDockFocusOnSelect(!workspaceState.dock.focusOnSelect)}

@@ -5,6 +5,7 @@
 		ChartGroupingConfig,
 		ConnectionFieldMode,
 		DockTemplateNode,
+		KnowledgeEdge,
 		KnowledgeNode,
 		ManualLayoutConfig,
 		ViewMode,
@@ -26,12 +27,15 @@
 	import Inspector from './Inspector.svelte';
 	import AddNotesModal from './notes/AddNotesModal.svelte';
 	import ObsidianButton from './obsidian/ObsidianButton.svelte';
+	import RelationshipInspector from './details/RelationshipInspector.svelte';
+	import GroupInspector from './details/GroupInspector.svelte';
 
 	let {
 		app,
 		templates,
 		notes,
 		nodes,
+		visibleNodes,
 		groups,
 		folders,
 		workspaceFilePath,
@@ -51,6 +55,11 @@
 		graphTargetTemplateId,
 		selectedNode,
 		selectedNodeColor,
+		selectedEdge,
+		selectedGroup,
+		indexedEdges,
+		visibleEdgeIds,
+		readOnly = false,
 		initialDetailsNoteContentExpanded,
 		onDetailsNoteContentExpandedChange,
 		mode,
@@ -71,6 +80,9 @@
 		onSetNodeGroup,
 		onConnectNode,
 		onSelectNote,
+		onSelectEdge,
+		onFocusNode,
+		onEditGroup,
 		focusOnSelect,
 		onToggleFocusOnSelect,
 	}: {
@@ -78,6 +90,7 @@
 		templates: DockTemplateNode[];
 		notes: DockNoteEntry[];
 		nodes: KnowledgeNode[];
+		visibleNodes: KnowledgeNode[];
 		groups: ChartGroupDefinition[];
 		folders: string[];
 		workspaceFilePath?: string;
@@ -97,6 +110,11 @@
 		graphTargetTemplateId?: string;
 		selectedNode?: KnowledgeNode;
 		selectedNodeColor?: string;
+		selectedEdge?: KnowledgeEdge;
+		selectedGroup?: ChartGroupDefinition;
+		indexedEdges: KnowledgeEdge[];
+		visibleEdgeIds: ReadonlySet<string>;
+		readOnly?: boolean;
 		initialDetailsNoteContentExpanded: boolean;
 		onDetailsNoteContentExpandedChange: (expanded: boolean) => void;
 		mode: ViewMode;
@@ -130,6 +148,9 @@
 			field: string,
 		) => void;
 		onSelectNote: (nodeId: string) => void;
+		onSelectEdge: (edgeId: string) => void;
+		onFocusNode: (nodeId: string) => void;
+		onEditGroup: (event: MouseEvent) => void;
 		focusOnSelect: boolean;
 		onToggleFocusOnSelect: () => void;
 	} = $props();
@@ -255,9 +276,33 @@
 						{onConnectNode}
 						onContentVisibleChange={setDetailsContentVisible}
 					/>
+				{:else if selectedEdge}
+					<RelationshipInspector
+						edge={selectedEdge}
+						edges={indexedEdges}
+						{visibleEdgeIds}
+						{nodes}
+						{onOpenNote}
+						{onFocusNode}
+						{onSelectEdge}
+					/>
+				{:else if selectedGroup}
+					<GroupInspector
+						group={selectedGroup}
+						{grouping}
+						{manualLayout}
+						nodes={visibleNodes}
+						{mode}
+						{readOnly}
+						onSelectNode={onSelectNote}
+						{onOpenNote}
+						{onFocusNode}
+						{onSetNodeGroup}
+						{onEditGroup}
+					/>
 				{:else}
 					<div class="knowledge-workspace-dock-empty">
-						Select a node
+						Select a node, link, or group
 					</div>
 				{/if}
 			</div>

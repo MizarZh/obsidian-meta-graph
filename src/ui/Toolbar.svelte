@@ -593,6 +593,7 @@
 	<div class="knowledge-workspace-settings-tabs">
 		{#each SETTINGS_TABS as tab}
 			<ObsidianButton
+				class={`knowledge-workspace-settings-tab knowledge-workspace-settings-tab-${tab.mode}`}
 				active={settingsPanel === tab.mode}
 				disabled={readOnly}
 				icon={tab.icon}

@@ -133,6 +133,9 @@ settings to report them in the developer console.
     one tab is shown at a time. Pinned notes use the same searchable, filterable
     **Add notes** picker as Workspace files. Template editing opens in a modal;
     drag a row to the graph or use its explicit **Create** and link buttons.
+    Selecting a relationship keeps that metadata link prominent and lists other
+    indexed links between the same notes separately. Selecting a Group shows its
+    membership policy, spatial behavior, visible members, rules, and conflicts.
 20. Click a graph node to select it; double-click or press `Enter` to open it.
     Press `Space` while hovering a node to pin or unpin its relationship focus.
     With no hovered node, `Space` clears the current pinned focus. `Esc` closes

@@ -16,6 +16,7 @@ import type {
 	FlowRelationRule,
 	GraphQuery,
 	KnowledgeIndex,
+	KnowledgeEdge,
 	KnowledgeNode,
 	LabelPosition,
 	LayoutNodeSort,
@@ -224,6 +225,10 @@ export class WorkspaceController {
 
 	getIndexedNodes(): KnowledgeNode[] {
 		return this.indexedNodes;
+	}
+
+	getIndexedEdges(): KnowledgeEdge[] {
+		return this.index ? [...this.index.edges.values()] : [];
 	}
 
 	isLargeVaultModeActive(): boolean {
