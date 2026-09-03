@@ -41,6 +41,9 @@ describe('SigmaRenderer refresh', () => {
 		Object.assign(renderer, {
 			instance: { refresh },
 			parallelEdgeLayer: { update },
+			hoverRefreshCoordinator: { synchronize: vi.fn() },
+			groupOverlayLayer: { setFocusedNode: vi.fn() },
+			layoutGroupLayer: { setFocusedNode: vi.fn() },
 		});
 
 		renderer.refresh();

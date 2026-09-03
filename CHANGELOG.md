@@ -14,6 +14,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Coalesced Sigma node, pinned-neighborhood, and native-edge hover changes to one animation-frame update and refreshes only changed neighborhood nodes and logical-edge segments without rebuilding render indices.
 - Reused Sigma's node and native-edge hover events when resolving pointer target priority, removing the extra GPU node pick and all-node nearest-target scan from passive mouse movement.
 - Removed the duplicate Sigma parallel-edge Canvas redraw after renderer refreshes; `afterRender` now owns normal Canvas synchronization, with one scheduled initial paint retained for new layers.
 - Split workspace state subscriptions, index/query refresh, connection writes, and template-note orchestration out of `WorkspaceController` into focused collaborators while preserving its public API.

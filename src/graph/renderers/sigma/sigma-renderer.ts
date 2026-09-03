@@ -50,6 +50,13 @@ import {
 } from './node-shape-programs';
 import type { RendererCapabilities } from '../renderer-capabilities';
 import type { SigmaRendererOptions } from '../renderer-options';
+import {
+	createSigmaHoverRefreshIndex,
+	createSigmaHoverRefreshPlan,
+	SigmaHoverRefreshCoordinator,
+	type SigmaHoverRefreshIndex,
+	type SigmaHoverRefreshState,
+} from './sigma-hover-refresh';
 export type {
 	GroupGeometry,
 	GroupInteractionCallbacks,
@@ -86,6 +93,8 @@ export class SigmaRenderer {
 	private readonly groupOverlayLayer: GroupOverlayLayer;
 	private readonly layoutGroupLayer: LayoutGroupLayer;
 	private readonly parallelEdgeLayer: SigmaParallelEdgeLayer;
+	private hoverRefreshIndex: SigmaHoverRefreshIndex;
+	private readonly hoverRefreshCoordinator: SigmaHoverRefreshCoordinator;
 	private readonly zoomLevelListeners = new Set<(level: number) => void>();
 	private readonly handleCameraUpdated = (): void => {
 		this.emitZoomLevel();
@@ -236,6 +245,12 @@ export class SigmaRenderer {
 			() => this.graph,
 		);
 		this.layoutGroupLayer = new LayoutGroupLayer(this.instance);
+		this.hoverRefreshIndex = createSigmaHoverRefreshIndex(this.graph);
+		this.hoverRefreshCoordinator = new SigmaHoverRefreshCoordinator(
+			container.ownerDocument.defaultView ?? window,
+			this.readHoverRefreshState(),
+			(previous, next) => this.applyHoverRefresh(previous, next),
+		);
 		this.raiseHoverLabelLayer();
 		this.instance.getCamera().on('updated', this.handleCameraUpdated);
 		if (this.scaleLabelsWithZoom) {
@@ -251,10 +266,12 @@ export class SigmaRenderer {
 
 	setGraph(graph: RuntimeGraph): void {
 		this.graph = graph;
+		this.hoverRefreshIndex = createSigmaHoverRefreshIndex(graph);
 		if (this.pinnedNodeId && !graph.hasNode(this.pinnedNodeId)) {
 			this.pinnedNodeId = undefined;
 		}
 		this.updateHoveredNeighborhood();
+		this.hoverRefreshCoordinator.synchronize(this.readHoverRefreshState());
 		this.instance.setGraph(graph);
 		this.parallelEdgeLayer.invalidate();
 		this.syncGroupFocus();
@@ -268,6 +285,8 @@ export class SigmaRenderer {
 	}
 
 	refresh(): void {
+		this.hoverRefreshCoordinator.synchronize(this.readHoverRefreshState());
+		this.syncGroupFocus();
 		this.instance.refresh();
 	}
 
@@ -336,13 +355,13 @@ export class SigmaRenderer {
 	setHoveredEdge(edgeId?: string): void {
 		if (this.hoveredEdgeId === edgeId) return;
 		this.hoveredEdgeId = edgeId;
-		this.refresh();
+		this.scheduleHoverRefresh();
 	}
 
 	clearHoveredEdge(edgeId: string): void {
 		if (this.hoveredEdgeId !== edgeId) return;
 		this.hoveredEdgeId = undefined;
-		this.refresh();
+		this.scheduleHoverRefresh();
 	}
 
 	setHovered(nodeId?: string): void {
@@ -351,8 +370,7 @@ export class SigmaRenderer {
 		}
 		this.hoveredNodeId = nodeId;
 		this.updateHoveredNeighborhood();
-		this.syncGroupFocus();
-		this.refresh();
+		this.scheduleHoverRefresh();
 	}
 
 	setFadeDistance(fadeDistance: number): void {
@@ -406,11 +424,10 @@ export class SigmaRenderer {
 		this.refresh();
 	}
 
-	togglePinnedHover(nodeId: string): void {
+		togglePinnedHover(nodeId: string): void {
 		this.pinnedNodeId = this.pinnedNodeId === nodeId ? undefined : nodeId;
 		this.updateHoveredNeighborhood();
-		this.syncGroupFocus();
-		this.refresh();
+		this.scheduleHoverRefresh();
 	}
 
 	clearPinnedHover(): void {
@@ -419,8 +436,7 @@ export class SigmaRenderer {
 		}
 		this.pinnedNodeId = undefined;
 		this.updateHoveredNeighborhood();
-		this.syncGroupFocus();
-		this.refresh();
+		this.scheduleHoverRefresh();
 	}
 
 	focusNode(nodeId: string): void {
@@ -545,6 +561,7 @@ export class SigmaRenderer {
 	}
 
 	kill(): void {
+		this.hoverRefreshCoordinator.dispose();
 		this.instance.getCamera().off('updated', this.handleCameraUpdated);
 		this.zoomLevelListeners.clear();
 		this.parallelEdgeLayer.kill();
@@ -597,6 +614,38 @@ export class SigmaRenderer {
 			nodeId && this.graph.hasNode(nodeId)
 				? immediateNeighborhood(this.graph, nodeId)
 				: new Set();
+	}
+
+	private scheduleHoverRefresh(): void {
+		this.hoverRefreshCoordinator.schedule(this.readHoverRefreshState());
+	}
+
+	private applyHoverRefresh(
+		previous: SigmaHoverRefreshState,
+		next: SigmaHoverRefreshState,
+	): void {
+		this.syncGroupFocus();
+		const { nodeIds, edgeIds } = createSigmaHoverRefreshPlan(
+			this.graph,
+			this.hoverRefreshIndex,
+			previous,
+			next,
+		);
+		if (nodeIds.length === 0 && edgeIds.length === 0) return;
+		this.instance.refresh({
+			partialGraph: { nodes: nodeIds, edges: edgeIds },
+			skipIndexation: true,
+			schedule: true,
+		});
+	}
+
+	private readHoverRefreshState(): SigmaHoverRefreshState {
+		return {
+			activeNodeId: this.getActiveHoverNodeId(),
+			pinnedNodeId: this.pinnedNodeId,
+			neighborhood: this.hoveredNeighborhood,
+			edgeId: this.hoveredEdgeId,
+		};
 	}
 
 	private getCurrentLabelOpacity(): number {
