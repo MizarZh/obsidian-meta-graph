@@ -1,0 +1,333 @@
+import Graph from 'graphology';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type {
+	RuntimeEdgeAttributes,
+	RuntimeNodeAttributes,
+} from '../../graph/model/graphology-adapter';
+import type { ForceSimulationRenderer } from '../../graph/renderers/renderer-contracts';
+import { D3ForceSimulation } from '../../layouts/d3-force-simulation';
+import { DEFAULT_GRAPH_FORCE_SETTINGS } from '../../layouts/force-layout';
+
+describe('D3ForceSimulation', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.unstubAllGlobals();
+	});
+
+	it('does not hold renderer bounds while the force layout settles', () => {
+		vi.useFakeTimers();
+		vi.stubGlobal('window', {
+			clearTimeout: globalThis.clearTimeout,
+			setTimeout: globalThis.setTimeout,
+		});
+		const graph = new Graph<
+			RuntimeNodeAttributes,
+			RuntimeEdgeAttributes,
+			Record<string, never>
+		>({ multi: true, type: 'mixed' });
+		graph.addNode('A', node(0, 0));
+		graph.addNode('B', node(1, 0));
+		graph.addEdgeWithKey('A-B', 'A', 'B', edge());
+		const renderer = createRenderer();
+
+		const simulation = new D3ForceSimulation(graph, renderer);
+		simulation.start();
+
+		expect(renderer.clearHeldBounds).not.toHaveBeenCalled();
+
+		vi.advanceTimersByTime(4000);
+
+		expect(renderer.clearHeldBounds).toHaveBeenCalledTimes(1);
+		expect(renderer.endForceMotion).toHaveBeenCalledTimes(1);
+	});
+
+	it('starts rebuilt simulations at interaction heat instead of full heat', () => {
+		vi.useFakeTimers();
+		vi.stubGlobal('window', {
+			clearTimeout: globalThis.clearTimeout,
+			setTimeout: globalThis.setTimeout,
+		});
+		const graph = new Graph<
+			RuntimeNodeAttributes,
+			RuntimeEdgeAttributes,
+			Record<string, never>
+		>({ multi: true, type: 'mixed' });
+		graph.addNode('A', node(0, 0));
+		graph.addNode('B', node(1, 0));
+		graph.addEdgeWithKey('A-B', 'A', 'B', edge());
+		const renderer = createRenderer();
+
+		const simulation = new D3ForceSimulation(graph, renderer);
+		simulation.start();
+
+		expect(readSimulationAlpha(simulation)).toBeCloseTo(0.12);
+		expect(renderer.beginForceMotion).toHaveBeenCalledOnce();
+	});
+
+	it('scales dynamic repulsion to graph coordinates', () => {
+		const graph = new Graph<
+			RuntimeNodeAttributes,
+			RuntimeEdgeAttributes,
+			Record<string, never>
+		>({ multi: true, type: 'mixed' });
+		graph.addNode('A', node(0, 0));
+		graph.addNode('B', node(2.5, 0));
+		graph.addEdgeWithKey('A-B', 'A', 'B', edge());
+		const renderer = createRenderer();
+
+		const simulation = new D3ForceSimulation(graph, renderer);
+		const charge = readChargeForce(simulation);
+
+		expect(charge.strength()({ id: 'A' })).toBeCloseTo(-10);
+		expect(charge.distanceMin()).toBeCloseTo(0.625);
+		expect(charge.distanceMax()).toBeCloseTo(20);
+	});
+
+	it('reprojects dragged nodes from viewport targets on ticks', () => {
+		vi.useFakeTimers();
+		vi.stubGlobal('window', {
+			clearTimeout: globalThis.clearTimeout,
+			setTimeout: globalThis.setTimeout,
+		});
+		const graph = new Graph<
+			RuntimeNodeAttributes,
+			RuntimeEdgeAttributes,
+			Record<string, never>
+		>({ multi: true, type: 'mixed' });
+		graph.addNode('A', node(0, 0));
+		graph.addNode('B', node(10, 0));
+		graph.addEdgeWithKey('A-B', 'A', 'B', edge());
+		const renderer = createRenderer(() => ({ x: 3, y: 4 }));
+
+		const simulation = new D3ForceSimulation(graph, renderer);
+		simulation.drag('A', { x: 0, y: 0 }, { x: 400, y: 300 });
+		applyTick(simulation);
+
+		expect(renderer.viewportToGraphPosition).toHaveBeenCalledWith(
+			expect.objectContaining({ x: 400, y: 300 }),
+		);
+		expect(graph.getNodeAttribute('A', 'x')).toBeCloseTo(3);
+		expect(graph.getNodeAttribute('A', 'y')).toBeCloseTo(4);
+	});
+
+	it('adds group constraints without treating them as graph neighbors', () => {
+		const graph = new Graph<
+			RuntimeNodeAttributes,
+			RuntimeEdgeAttributes,
+			Record<string, never>
+		>({ multi: true, type: 'mixed' });
+		graph.addNode('A', node(0, 0));
+		graph.addNode('B', node(10, 0));
+		graph.addNode('C', node(20, 0));
+		graph.addEdgeWithKey('A-B', 'A', 'B', edge());
+		const renderer = createRenderer();
+
+		const simulation = new D3ForceSimulation(
+			graph,
+			renderer,
+			1,
+			DEFAULT_GRAPH_FORCE_SETTINGS,
+			new Map([
+				['A', 'research'],
+				['B', 'research'],
+				['C', 'research'],
+			]),
+		);
+		const groupLinks = readLinkForce(simulation)
+			.links()
+			.filter((link) => link.isGroup);
+
+		expect(groupLinks).toHaveLength(3);
+		expect(
+			groupLinks.map((link) => [
+				readNodeId(link.source),
+				readNodeId(link.target),
+			]),
+		).toEqual([
+			['A', 'B'],
+			['B', 'C'],
+			['C', 'A'],
+		]);
+		expect(readNeighbors(simulation, 'A')).toEqual(new Set(['B']));
+		applyGroupForce(simulation, 0.12);
+		const forceNodes = readForceNodes(simulation);
+		expect(forceNodes.get('A')?.vx).toBeGreaterThan(0);
+		expect(forceNodes.get('C')?.vx).toBeLessThan(0);
+	});
+
+	it('publishes all tick positions through one graph batch event', () => {
+		const graph = new Graph<
+			RuntimeNodeAttributes,
+			RuntimeEdgeAttributes,
+			Record<string, never>
+		>({ multi: true, type: 'mixed' });
+		graph.addNode('A', node(0, 0));
+		graph.addNode('B', node(10, 0));
+		const renderer = createRenderer();
+		const batchUpdate = vi.fn();
+		const nodeUpdate = vi.fn();
+		graph.on('eachNodeAttributesUpdated', batchUpdate);
+		graph.on('nodeAttributesUpdated', nodeUpdate);
+		const simulation = new D3ForceSimulation(graph, renderer);
+
+		applyTick(simulation);
+
+		expect(batchUpdate).toHaveBeenCalledOnce();
+		expect(nodeUpdate).not.toHaveBeenCalled();
+	});
+
+	it('restores the full-quality frame after consecutive stable ticks', () => {
+		vi.useFakeTimers();
+		vi.stubGlobal('window', {
+			clearTimeout: globalThis.clearTimeout,
+			setTimeout: globalThis.setTimeout,
+		});
+		const graph = new Graph<
+			RuntimeNodeAttributes,
+			RuntimeEdgeAttributes,
+			Record<string, never>
+		>({ multi: true, type: 'mixed' });
+		graph.addNode('A', node(0, 0));
+		const renderer = createRenderer();
+		const simulation = new D3ForceSimulation(graph, renderer);
+		simulation.start();
+
+		for (let frame = 0; frame < 8; frame += 1) applyTick(simulation);
+
+		expect(renderer.endForceMotion).toHaveBeenCalledOnce();
+		expect(renderer.clearHeldBounds).toHaveBeenCalledOnce();
+	});
+});
+
+function createRenderer(
+	viewportToGraph: (position: { x: number; y: number }) => {
+		x: number;
+		y: number;
+	} = () => ({ x: 0, y: 0 }),
+): ForceSimulationRenderer {
+	return {
+		runtimeGraph: {} as never,
+		viewportToGraphPosition: vi.fn(viewportToGraph),
+		clearHeldBounds: vi.fn(),
+		beginForceMotion: vi.fn(),
+		endForceMotion: vi.fn(),
+	};
+}
+
+function readSimulationAlpha(simulation: D3ForceSimulation): number {
+	return (
+		simulation as unknown as {
+			simulation: { alpha(): number };
+		}
+	).simulation.alpha();
+}
+
+function applyTick(simulation: D3ForceSimulation): void {
+	(
+		simulation as unknown as {
+			applyTick(): void;
+		}
+	).applyTick();
+}
+
+function readChargeForce(simulation: D3ForceSimulation): {
+	strength(): (node: { id: string }) => number;
+	distanceMin(): number;
+	distanceMax(): number;
+} {
+	return (
+		simulation as unknown as {
+			simulation: {
+				force(name: 'charge'): {
+					strength(): (node: { id: string }) => number;
+					distanceMin(): number;
+					distanceMax(): number;
+				};
+			};
+		}
+	).simulation.force('charge');
+}
+
+interface ReadableForceLink {
+	source: string | { id: string };
+	target: string | { id: string };
+	isGroup?: boolean;
+}
+
+function readLinkForce(simulation: D3ForceSimulation): {
+	links(): ReadableForceLink[];
+} {
+	return (
+		simulation as unknown as {
+			simulation: {
+				force(name: 'link'): {
+					links(): ReadableForceLink[];
+				};
+			};
+		}
+	).simulation.force('link');
+}
+
+function readNodeId(node: string | { id: string }): string {
+	return typeof node === 'string' ? node : node.id;
+}
+
+function readNeighbors(
+	simulation: D3ForceSimulation,
+	nodeId: string,
+): Set<string> | undefined {
+	return (
+		simulation as unknown as {
+			neighborsById: Map<string, Set<string>>;
+		}
+	).neighborsById.get(nodeId);
+}
+
+function applyGroupForce(simulation: D3ForceSimulation, alpha: number): void {
+	(
+		simulation as unknown as {
+			simulation: {
+				force(name: 'group'): (alpha: number) => void;
+			};
+		}
+	).simulation.force('group')(alpha);
+}
+
+function readForceNodes(
+	simulation: D3ForceSimulation,
+): Map<string, { vx?: number }> {
+	return new Map(
+		(
+			simulation as unknown as {
+				nodes: Array<{ id: string; vx?: number }>;
+			}
+		).nodes.map((node) => [node.id, node]),
+	);
+}
+
+function node(x: number, y: number): RuntimeNodeAttributes {
+	return {
+		label: '',
+		x,
+		y,
+		size: 7,
+		color: '#777777',
+		path: '',
+		folder: '',
+		domains: [],
+		tags: [],
+	};
+}
+
+function edge(): RuntimeEdgeAttributes {
+	return {
+		relation: 'related',
+		type: 'line',
+		size: 1,
+		color: '#888888',
+		hidden: false,
+		label: '',
+		forceLabel: false,
+		lineStyle: 'solid',
+	};
+}

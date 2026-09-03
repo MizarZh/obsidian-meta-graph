@@ -11,6 +11,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Reorganized the test suite into source-aligned core, graph, layout, interaction, settings, UI, and workspace domain directories, with documented category-level test commands.
 - Added renderer-neutral planar, Group overlay, and external 2D force-simulation contracts so future 2D renderers can share interaction, refresh, layout-motion, and Group orchestration without inheriting Sigma internals.
 
 ## [1.7.0] - 2026-09-04

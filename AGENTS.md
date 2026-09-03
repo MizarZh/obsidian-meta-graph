@@ -34,7 +34,7 @@ For focused checks during development, prefer:
 ```bash
 pnpm exec tsc --noEmit
 pnpm exec svelte-check --tsconfig ./tsconfig.json
-pnpm exec vitest run src/__tests__/core.test.ts src/__tests__/workspace-persistence.test.ts
+pnpm exec vitest run src/__tests__/core/core.test.ts src/__tests__/workspace/persistence/workspace-persistence.test.ts
 ```
 
 - Never run `git diff`.
