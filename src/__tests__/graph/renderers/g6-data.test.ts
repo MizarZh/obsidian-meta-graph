@@ -216,6 +216,15 @@ describe('G6 data adapter', () => {
 			styles.edge.state?.[G6_INTERACTION_STATE.hovered],
 			{ style: { lineWidth: 3, stroke: '#445566' } },
 		);
+		const dimmedNode = styles.node.state?.[
+			G6_INTERACTION_STATE.dimmed
+		] as Record<string, unknown>;
+		const dimmedEdge = styles.edge.state?.[
+			G6_INTERACTION_STATE.dimmed
+		] as Record<string, unknown>;
+		const focusHiddenEdge = styles.edge.state?.[
+			G6_INTERACTION_STATE.focusHidden
+		] as Record<string, unknown>;
 
 		expect(selectedNode).toMatchObject({
 			size: 21.5,
@@ -226,6 +235,24 @@ describe('G6 data adapter', () => {
 		expect(hoveredEdge).toMatchObject({
 			lineWidth: 3.5,
 			halo: false,
+		});
+		expect(dimmedNode).toMatchObject({
+			fill: TEST_PALETTE.mutedNode,
+			label: false,
+		});
+		expect(dimmedNode).not.toHaveProperty('opacity');
+		expect(dimmedEdge).toMatchObject({
+			stroke: TEST_PALETTE.mutedEdge,
+			endArrowFill: TEST_PALETTE.mutedEdge,
+			endArrowStroke: TEST_PALETTE.mutedEdge,
+			endArrowFillOpacity: 0.12,
+			endArrowStrokeOpacity: 0.12,
+		});
+		expect(focusHiddenEdge).toMatchObject({
+			opacity: 0,
+			endArrowFillOpacity: 0,
+			endArrowStrokeOpacity: 0,
+			label: false,
 		});
 		expect(styles.node.state).not.toHaveProperty('selected');
 		expect(styles.edge.state).not.toHaveProperty('selected');

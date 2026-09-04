@@ -365,6 +365,17 @@ describe('G6 renderer', () => {
 			G6_INTERACTION_STATE.dimmed,
 		]);
 
+		renderer.togglePinnedHover('A.md');
+		const focusPatch = readLastDataPatch(fake.updateData);
+		expect(findStates(focusPatch.edges, 'A-B')).toEqual([
+			G6_INTERACTION_STATE.connected,
+		]);
+		expect(findStates(focusPatch.edges, 'B-C')).toEqual([
+			G6_INTERACTION_STATE.dimmed,
+			G6_INTERACTION_STATE.focusHidden,
+		]);
+		renderer.togglePinnedHover('A.md');
+
 		renderer.setSelectedEdge('logical-A-B');
 		const edgeSelectionPatch = readLastDataPatch(fake.updateData);
 		expect(findStates(edgeSelectionPatch.edges, 'A-B')).toEqual([

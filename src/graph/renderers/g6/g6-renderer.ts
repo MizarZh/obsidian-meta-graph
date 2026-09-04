@@ -62,6 +62,7 @@ const WHEEL_ZOOM_ANIMATION = {
 
 interface G6InteractionSnapshot {
 	activeNodeId?: string;
+	pinnedNodeId?: string;
 	hoveredEdgeId?: string;
 	selectedNodeId?: string;
 	selectedEdgeId?: string;
@@ -919,6 +920,7 @@ export class G6Renderer implements PlanarRenderer {
 		const activeNodeId = this.pinnedNodeId ?? this.hoveredNodeId;
 		const nextInteraction: G6InteractionSnapshot = {
 			activeNodeId,
+			pinnedNodeId: this.pinnedNodeId,
 			hoveredEdgeId: this.hoveredEdgeId,
 			selectedNodeId: this.selectedNodeId,
 			selectedEdgeId: this.selectedEdgeId,
@@ -965,6 +967,8 @@ export class G6Renderer implements PlanarRenderer {
 			}
 			if (logicalEdgeId === this.selectedEdgeId)
 				states.push(G6_INTERACTION_STATE.selected);
+			if (this.pinnedNodeId && !connected)
+				states.push(G6_INTERACTION_STATE.focusHidden);
 			if (this.updateStateKey(this.edgeStateKeys, edgeId, states)) {
 				edges.push({ id: edgeId, states });
 			}
@@ -1014,6 +1018,9 @@ export class G6Renderer implements PlanarRenderer {
 		if (forceAll) return new Set(this.graph.edges());
 		const affected = new Set<string>();
 		const previous = this.appliedInteraction;
+		if (previous.pinnedNodeId !== next.pinnedNodeId) {
+			this.graph.forEachEdge((edgeId) => affected.add(edgeId));
+		}
 		if (previous.activeNodeId !== next.activeNodeId) {
 			if (!previous.activeNodeId || !next.activeNodeId) {
 				this.graph.forEachEdge((edgeId) => affected.add(edgeId));

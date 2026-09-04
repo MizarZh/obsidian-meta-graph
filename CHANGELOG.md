@@ -19,6 +19,7 @@ All notable changes to Meta Graph are documented here.
 - Replaced G6 rendered-bounds fitting with Sigma-compatible coordinate fitting, so both renderers fill the same 30px-padded frame at logical 100% regardless of labels, arrows, node sizes, Groups, or parallel edges. G6 rebases the frame across resize and graph-extent changes and keeps the shared 25%-400% range.
 - Moved live G6 label appearance edits onto lightweight label-subshape updates, bypassing graph data updates and full node/edge draw lifecycles; density changes still use data patches for correct visibility.
 - Prevented display-only chart edits from cloning unrelated grouping, manual-layout, and style state, which had caused false graph rebuilds. Reused renderers now retain a live lifetime token across legitimate same-kind rebuilds instead of becoming permanently stale.
+- Aligned G6 pinned focus visuals with Sigma: non-neighbor nodes remain visible in the muted color, connected edges and arrowheads remain visible, and unrelated connections are fully hidden.
 
 ### Changed
 

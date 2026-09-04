@@ -28,6 +28,7 @@ const MIN_EDGE_THICKNESS = 1.7;
 export const G6_INTERACTION_STATE = {
 	dimmed: 'meta-graph-dimmed',
 	connected: 'meta-graph-connected',
+	focusHidden: 'meta-graph-focus-hidden',
 	hovered: 'meta-graph-hovered',
 	selected: 'meta-graph-selected',
 } as const;
@@ -129,7 +130,6 @@ export function createG6InteractionStyles(
 			state: {
 				[G6_INTERACTION_STATE.dimmed]: {
 					fill: palette.mutedNode,
-					opacity: 0.18,
 					label: false,
 				},
 				[G6_INTERACTION_STATE.hovered]: (data) => ({
@@ -163,6 +163,10 @@ export function createG6InteractionStyles(
 					stroke: palette.mutedEdge,
 					lineWidth: 0.4 * visualScale.geometry,
 					opacity: 0.12,
+					endArrowFill: palette.mutedEdge,
+					endArrowStroke: palette.mutedEdge,
+					endArrowFillOpacity: 0.12,
+					endArrowStrokeOpacity: 0.12,
 					label: false,
 				},
 				[G6_INTERACTION_STATE.connected]: (data) => ({
@@ -188,6 +192,12 @@ export function createG6InteractionStyles(
 					halo: false,
 					zIndex: 4,
 				}),
+				[G6_INTERACTION_STATE.focusHidden]: {
+					opacity: 0,
+					endArrowFillOpacity: 0,
+					endArrowStrokeOpacity: 0,
+					label: false,
+				},
 			},
 		},
 	};
