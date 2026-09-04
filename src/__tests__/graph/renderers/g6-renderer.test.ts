@@ -93,7 +93,7 @@ describe('G6 renderer', () => {
 		await expect(
 			G6Renderer.create(createOptions(graph), () => instance),
 		).resolves.toBeDefined();
-		expect(draw).toHaveBeenCalledTimes(2);
+		expect(draw).toHaveBeenCalledOnce();
 		expect(on).toHaveBeenCalledOnce();
 		expect(getZoom).toHaveBeenCalledTimes(2);
 	});
@@ -243,6 +243,56 @@ describe('G6 renderer', () => {
 		expect(renderer.getZoomLevel()).toBe(100);
 	});
 
+	it('does not rebuild graph visuals for pan-only viewport transforms', async () => {
+		const graph = createRuntimeGraph();
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(graph),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+		const zoomListener = vi.fn();
+		renderer.onZoomLevelChange(zoomListener);
+		const drawCount = fake.draw.mock.calls.length;
+		const updateCount = fake.updateData.mock.calls.length;
+
+		fake.emitTransform();
+		await Promise.resolve();
+
+		expect(fake.draw).toHaveBeenCalledTimes(drawCount);
+		expect(fake.updateData).toHaveBeenCalledTimes(updateCount);
+		expect(fake.setOptions).not.toHaveBeenCalled();
+		expect(zoomListener).not.toHaveBeenCalled();
+	});
+
+	it('coalesces repeated draw requests while a draw is running', async () => {
+		const graph = createRuntimeGraph();
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(graph),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+		let releaseDraw: (() => void) | undefined;
+		fake.draw.mockImplementationOnce(
+			() =>
+				new Promise<void>((resolve) => {
+					releaseDraw = resolve;
+				}),
+		);
+
+		renderer.refresh();
+		await vi.waitFor(() => expect(releaseDraw).toBeDefined());
+		renderer.refresh();
+		renderer.refresh();
+		renderer.refresh();
+		releaseDraw?.();
+
+		await vi.waitFor(() => expect(fake.draw).toHaveBeenCalledTimes(3));
+		await Promise.resolve();
+		expect(fake.draw).toHaveBeenCalledTimes(3);
+	});
+
 	it('maps selection and hover semantics to incremental G6 states', async () => {
 		const graph = createInteractiveGraph();
 		const fake = createFakeG6();
@@ -287,7 +337,7 @@ describe('G6 renderer', () => {
 		renderer.setLabelSize(9);
 		renderer.setLabelBold(true);
 		renderer.setLabelDensity(0.5);
-		await vi.waitFor(() => expect(fake.draw).toHaveBeenCalledTimes(4));
+		await vi.waitFor(() => expect(fake.draw).toHaveBeenCalledTimes(2));
 
 		const latestOptions = fake.setOptions.mock.calls.at(-1)?.[0];
 		expect(latestOptions?.node).toMatchObject({

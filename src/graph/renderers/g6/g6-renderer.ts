@@ -36,6 +36,7 @@ import {
 const INITIAL_NATIVE_ZOOM_RANGE: [number, number] = [0.001, 1000];
 const FOCUS_DURATION = 350;
 const ZOOM_DURATION = 180;
+const ZOOM_CHANGE_EPSILON = 1e-6;
 
 export type G6GraphInstance = Pick<
 	Graph,
@@ -82,6 +83,8 @@ export class G6Renderer implements PlanarRenderer {
 	private readonly isStale: () => boolean;
 	private readonly zoomLevelListeners = new Set<(level: number) => void>();
 	private drawQueue: Promise<void> = Promise.resolve();
+	private drawScheduled = false;
+	private drawDirty = false;
 	private killed = false;
 	private fitting = false;
 	private fitZoom = 1;
@@ -89,6 +92,7 @@ export class G6Renderer implements PlanarRenderer {
 	private viewportFrameVersion = 0;
 	private viewportVisualSyncPending = false;
 	private viewportChangeBound = false;
+	private lastObservedNativeZoom = 1;
 	private selectedNodeId?: string;
 	private selectedEdgeId?: string;
 	private hoveredNodeId?: string;
@@ -100,6 +104,15 @@ export class G6Renderer implements PlanarRenderer {
 	private readonly handleViewportChange = (): void => {
 		if (this.killed || this.fitting) return;
 		this.viewportFrameVersion += 1;
+		const nativeZoom = normalizePlanarFitZoom(this.instance.getZoom());
+		if (
+			Math.abs(nativeZoom - this.lastObservedNativeZoom) <=
+			ZOOM_CHANGE_EPSILON *
+				Math.max(nativeZoom, this.lastObservedNativeZoom)
+		) {
+			return;
+		}
+		this.lastObservedNativeZoom = nativeZoom;
 		this.emitZoomLevel();
 		this.scheduleViewportVisualSync();
 	};
@@ -406,12 +419,21 @@ export class G6Renderer implements PlanarRenderer {
 
 	private scheduleDraw(): void {
 		if (this.killed || this.isStale()) return;
+		this.drawDirty = true;
+		if (this.drawScheduled) return;
+		this.drawScheduled = true;
 		this.drawQueue = this.drawQueue
 			.then(async () => {
-				if (this.killed || this.isStale()) return;
-				await this.instance.draw();
+				while (this.drawDirty && !this.killed && !this.isStale()) {
+					this.drawDirty = false;
+					await this.instance.draw();
+				}
 			})
-			.catch(() => undefined);
+			.catch(() => undefined)
+			.finally(() => {
+				this.drawScheduled = false;
+				if (this.drawDirty) this.scheduleDraw();
+			});
 	}
 
 	private captureViewportState(): PlanarViewportState | undefined {
@@ -466,6 +488,9 @@ export class G6Renderer implements PlanarRenderer {
 			await this.instance.zoomTo(
 				planarLevelToNativeZoom(viewportState.zoomLevel, this.fitZoom),
 				false,
+			);
+			this.lastObservedNativeZoom = normalizePlanarFitZoom(
+				this.instance.getZoom(),
 			);
 			if (
 				this.killed ||
@@ -524,6 +549,9 @@ export class G6Renderer implements PlanarRenderer {
 
 	private bindViewportChange(): void {
 		if (this.killed || this.viewportChangeBound) return;
+		this.lastObservedNativeZoom = normalizePlanarFitZoom(
+			this.instance.getZoom(),
+		);
 		this.instance.on(GraphEvent.AFTER_TRANSFORM, this.handleViewportChange);
 		this.viewportChangeBound = true;
 	}
@@ -685,11 +713,15 @@ export class G6Renderer implements PlanarRenderer {
 
 	private runViewportAction(action: () => Promise<void>): void {
 		if (this.killed || this.isStale()) return;
+		const viewportFrameVersion = this.viewportFrameVersion;
 		void action()
 			.then(() => {
-				if (!this.killed && !this.isStale()) {
-					this.emitZoomLevel();
-					this.scheduleViewportVisualSync();
+				if (
+					!this.killed &&
+					!this.isStale() &&
+					viewportFrameVersion === this.viewportFrameVersion
+				) {
+					this.handleViewportChange();
 				}
 			})
 			.catch(() => undefined);
