@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	getModeCapabilities,
+	getRendererKindForMode,
 	type RendererCapabilities,
 } from '../../../graph/renderers/renderer-capabilities';
 
@@ -40,5 +41,12 @@ describe('renderer capabilities', () => {
 			supportsManualLayout: true,
 			supportsConnectionMoveScheduling: true,
 		});
+	});
+
+	it('uses the chart renderer choice only for Graph mode', () => {
+		expect(getRendererKindForMode('graph')).toBe('sigma');
+		expect(getRendererKindForMode('graph', 'g6')).toBe('g6');
+		expect(getRendererKindForMode('flow', 'g6')).toBe('sigma');
+		expect(getRendererKindForMode('graph-3d', 'g6')).toBe('force-3d');
 	});
 });

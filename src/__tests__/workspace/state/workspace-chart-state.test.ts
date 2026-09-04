@@ -7,6 +7,7 @@ import {
 	duplicateActiveChartAndSetTypeInState,
 	setActiveChartInState,
 	setActiveChartNameInState,
+	setActiveChartRendererInState,
 	setActiveChartSourceInState,
 	setActiveChartTypeInState,
 } from '../../../workspace/state/chart-state';
@@ -63,6 +64,26 @@ describe('workspace chart state', () => {
 			source: 'curated',
 		});
 		expect(result.state.layoutRevision).toBe(state.layoutRevision + 1);
+	});
+
+	it('creates and switches Graph renderers without running the query', () => {
+		const created = addChartInState(createWorkspaceState(100), {
+			type: 'graph',
+			renderer: 'g6',
+			source: 'query',
+			name: 'G6 graph',
+		});
+
+		expect(created.state.renderer).toBe('g6');
+		expect(created.state.charts.at(-1)?.renderer).toBe('g6');
+
+		const switched = setActiveChartRendererInState(created.state, 'sigma');
+		expect(switched.runQuery).toBe(false);
+		expect(switched.state.renderer).toBe('sigma');
+		expect(switched.state.charts.at(-1)?.renderer).toBe('sigma');
+		expect(switched.state.layoutRevision).toBe(
+			created.state.layoutRevision,
+		);
 	});
 
 	it('renames the active chart without running the query', () => {

@@ -70,8 +70,9 @@ export function createDefaultChart(
 	const name = createUniqueChartName(getChartTypeName(type), existingCharts);
 	return {
 		id,
-		name,
-		type,
+			name,
+			type,
+			renderer: 'sigma',
 		source: 'query',
 		query: createDefaultQuery(maxNodes),
 		curated: createDefaultCuratedWorkspace(),
@@ -193,6 +194,7 @@ export function normalizeChart(
 				? record.name.trim()
 				: fallback.name,
 		type,
+		renderer: type === 'graph' ? readPlanarRenderer(record.renderer) : 'sigma',
 		source,
 		query: normalizeQuery(record.query, fallback.query, maxNodes),
 		curated: hydrated.curated,
@@ -346,6 +348,10 @@ export function normalizeChart(
 			linkRules: normalizeLinkStyleRules(styleRecord.linkRules),
 		},
 	};
+}
+
+function readPlanarRenderer(value: unknown): MetaGraphChart['renderer'] {
+	return value === 'g6' ? 'g6' : 'sigma';
 }
 
 function normalizeTemplateOverrides(

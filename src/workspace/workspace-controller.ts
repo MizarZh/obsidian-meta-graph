@@ -26,6 +26,7 @@ import type {
 	DockTemplateNode,
 	NodeId,
 	NodeStyleRule,
+	PlanarRendererKind,
 	RendererDebugState,
 	ThreeLabelResolution,
 	ViewMode,
@@ -157,6 +158,7 @@ import {
 	duplicateActiveChartAndSetTypeInState,
 	setActiveChartInState,
 	setActiveChartNameInState,
+	setActiveChartRendererInState,
 	setActiveChartSourceInState,
 	setActiveChartTypeInState,
 } from './state/chart-state';
@@ -319,6 +321,11 @@ export class WorkspaceController {
 
 	setActiveChartType(type: ViewMode): void {
 		const result = setActiveChartTypeInState(this.state, type);
+		this.setWorkspaceState(result.state, result.runQuery);
+	}
+
+	setActiveChartRenderer(renderer: PlanarRendererKind): void {
+		const result = setActiveChartRendererInState(this.state, renderer);
 		this.setWorkspaceState(result.state, result.runQuery);
 	}
 

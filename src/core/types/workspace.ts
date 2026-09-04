@@ -23,10 +23,12 @@ export type ViewMode =
 	| 'arc'
 	| 'hierarchical-edge-bundling';
 export type ChartSource = 'query' | 'curated';
+export type PlanarRendererKind = 'sigma' | 'g6';
 export interface CreateChartInput {
 	type: ViewMode;
 	source: ChartSource;
 	name: string;
+	renderer?: PlanarRendererKind;
 }
 export type ThreeLabelResolution = 'standard' | 'high' | 'ultra';
 export type SettingsPanelMode =
@@ -206,6 +208,8 @@ export interface MetaGraphChart {
 	id: string;
 	name: string;
 	type: ChartType;
+	/** Planar renderer preference. Only Graph currently consumes this field. */
+	renderer?: PlanarRendererKind;
 	source: ChartSource;
 	query: GraphQuery;
 	curated: CuratedWorkspaceConfig;
@@ -234,6 +238,7 @@ export interface WorkspaceState {
 	charts: MetaGraphChart[];
 	activeChartId: string;
 	mode: ViewMode;
+	renderer: PlanarRendererKind;
 	chartSource: ChartSource;
 	flowEdgeStyle: FlowEdgeStyle;
 	flowDirection: FlowDirection;

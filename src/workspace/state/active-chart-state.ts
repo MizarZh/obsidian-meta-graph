@@ -17,6 +17,7 @@ import { cloneSerializable } from './persistence';
 type ActiveChartStateFields = Pick<
 	WorkspaceState,
 	| 'mode'
+	| 'renderer'
 	| 'chartSource'
 	| 'flowEdgeStyle'
 	| 'flowDirection'
@@ -129,6 +130,7 @@ function createActiveChartStateFields(
 
 	return {
 		mode: chart.type,
+		renderer: chart.renderer ?? 'sigma',
 		chartSource: chart.source,
 		flowEdgeStyle: chart.layout.edgeStyle ?? 'orthogonal',
 		flowDirection: chart.layout.direction ?? 'LR',

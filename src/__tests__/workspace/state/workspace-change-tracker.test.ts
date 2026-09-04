@@ -33,6 +33,21 @@ describe('workspace change tracker', () => {
 		expect(changes.shouldRebuild).toBe(false);
 	});
 
+	it('rebuilds and refits when the planar renderer changes', () => {
+		const state = createWorkspaceState(200);
+		const nextState = { ...state, renderer: 'g6' as const };
+
+		const changes = analyzeWorkspaceStateChanges(
+			nextState,
+			state,
+			createWorkspaceRenderBaseline(state),
+		);
+
+		expect(changes.shouldRebuild).toBe(true);
+		expect(changes.fitAfterRender).toBe(true);
+		expect(changes.forceLayout).toBe(false);
+	});
+
 	it('rebuilds grouped Graph, Free, Flow, Arc, and HEB layouts without refitting', () => {
 		for (const mode of [
 			'graph',

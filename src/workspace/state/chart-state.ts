@@ -97,6 +97,8 @@ export function addChartInState(
 		...defaultChart,
 		name: input.name.trim() || defaultChart.name,
 		source: input.source,
+		renderer:
+			input.type === 'graph' ? (input.renderer ?? 'sigma') : 'sigma',
 		layout:
 			input.type === 'cube'
 				? normalizeCubeLayout(
@@ -112,6 +114,19 @@ export function addChartInState(
 		},
 		chart.id,
 	);
+}
+
+export function setActiveChartRendererInState(
+	state: WorkspaceState,
+	renderer: MetaGraphChart['renderer'],
+): WorkspaceChartStateResult {
+	if (state.mode !== 'graph' || state.renderer === renderer || !renderer) {
+		return { state, runQuery: false };
+	}
+	return {
+		state: updateActiveChartState(state, { renderer }),
+		runQuery: false,
+	};
 }
 
 export function duplicateActiveChartAndSetTypeInState(
@@ -183,9 +198,11 @@ export function setActiveChartTypeInState(
 	return {
 		state: updateActiveChartState(
 			state,
-			{
-				type,
-				layout,
+				{
+					type,
+					renderer:
+						type === 'graph' ? (activeChart.renderer ?? 'sigma') : 'sigma',
+					layout,
 			},
 			true,
 		),

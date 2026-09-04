@@ -36,6 +36,7 @@
 		<GraphSettingsPanel
 			{app}
 			mode={view.graph.mode}
+			renderer={view.graph.renderer}
 			fadeDistance={view.graph.fadeDistance}
 			labelDensity={view.graph.labelDensity}
 			cubeFaceOpacity={view.graph.cubeFaceOpacity}
@@ -62,6 +63,7 @@
 			arcSpacing={view.graph.arcSpacing}
 			query={view.graph.query}
 			onFlowEdgeStyle={actions.graph.setFlowEdgeStyle}
+			onRenderer={actions.graph.setRenderer}
 			onFlowDirection={actions.graph.setFlowDirection}
 			onFlowCornerRadius={actions.graph.setFlowCornerRadius}
 			onFlowRelationRules={actions.graph.setFlowRelationRules}

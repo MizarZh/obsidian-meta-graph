@@ -71,6 +71,7 @@ const LEGACY_FILTER_GROUP_IDS = {
 } as const;
 
 const V2_DEFAULT_MAX_NODES = 500;
+const META_GRAPH_EXTENSION_KEY = 'meta-graph';
 
 const V2_CUBE_GROUP_IDS = new Set([
 	'cube-front',
@@ -473,6 +474,7 @@ function chartToV2(
 		),
 	);
 	const style = chartStyleToV2(chart);
+	const extensions = chartExtensionsToV2(chart, context);
 	return {
 		id: chart.id,
 		name: chart.name,
@@ -489,14 +491,30 @@ function chartToV2(
 			? { templateOverrides }
 			: {}),
 		...(Object.keys(style).length > 0 ? { style } : {}),
-		...(context.chartExtensions?.[chart.id]
-			? {
-					extensions: cloneSerializable(
-						context.chartExtensions[chart.id],
-					),
-				}
-			: {}),
+		...(extensions ? { extensions } : {}),
 	};
+}
+
+function chartExtensionsToV2(
+	chart: MetaGraphChart,
+	context: WorkspacePersistenceContext,
+): Record<string, unknown> | undefined {
+	const extensions = cloneSerializable(
+		context.chartExtensions?.[chart.id] ?? {},
+	);
+	const namespace = isRecord(extensions[META_GRAPH_EXTENSION_KEY])
+		? cloneSerializable(extensions[META_GRAPH_EXTENSION_KEY])
+		: {};
+	delete namespace.renderer;
+	if (chart.type === 'graph' && chart.renderer === 'g6') {
+		namespace.renderer = 'g6';
+	}
+	if (Object.keys(namespace).length > 0) {
+		extensions[META_GRAPH_EXTENSION_KEY] = namespace;
+	} else {
+		delete extensions[META_GRAPH_EXTENSION_KEY];
+	}
+	return Object.keys(extensions).length > 0 ? extensions : undefined;
 }
 
 function contentToV2(chart: MetaGraphChart): PersistedChartContentV2 {
@@ -1140,6 +1158,7 @@ function v2ChartToLegacyRecord(
 		id,
 		name,
 		type,
+		renderer: readChartRenderer(value.extensions),
 		source: content.source,
 		query: legacyQuery,
 		curated: {
@@ -1237,6 +1256,12 @@ function v2ChartToLegacyRecord(
 			linkRules: style.linkRules,
 		},
 	};
+}
+
+function readChartRenderer(extensions: unknown): MetaGraphChart['renderer'] {
+	if (!isRecord(extensions)) return 'sigma';
+	const namespace = extensions[META_GRAPH_EXTENSION_KEY];
+	return isRecord(namespace) && namespace.renderer === 'g6' ? 'g6' : 'sigma';
 }
 
 function normalizeConnections(

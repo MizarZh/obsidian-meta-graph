@@ -14,6 +14,7 @@
 		CreateChartInput,
 		KnowledgeNode,
 		MetaGraphChart,
+		PlanarRendererKind,
 		SettingsPanelMode,
 		ViewMode,
 	} from '../core/types';
@@ -21,6 +22,7 @@
 	let {
 		app,
 		mode,
+		renderer,
 		chartSource,
 		charts,
 		activeChartId,
@@ -31,6 +33,7 @@
 		onDuplicateChart,
 		onRenameChart,
 		onChartType,
+		onRenderer,
 		onChartSource,
 		onDeleteChart,
 		onFocusNode,
@@ -55,6 +58,7 @@
 	}: {
 		app: App;
 		mode: ViewMode;
+		renderer: PlanarRendererKind;
 		chartSource: ChartSource;
 		charts: MetaGraphChart[];
 		activeChartId: string;
@@ -65,6 +69,7 @@
 		onDuplicateChart: () => void;
 		onRenameChart: (name: string) => void;
 		onChartType: (mode: ViewMode) => void;
+		onRenderer: (renderer: PlanarRendererKind) => void;
 		onChartSource: (source: ChartSource) => void;
 		onDeleteChart: () => void;
 		onFocusNode: (id: string) => void;
@@ -96,6 +101,7 @@
 	let draftName = $state('');
 	let createType = $state<ViewMode | undefined>(undefined);
 	let createSource = $state<ChartSource>('query');
+	let createRenderer = $state<PlanarRendererKind>('sigma');
 	let createName = $state('');
 	let createNameEdited = $state(false);
 	let zoomInput = $state('100');
@@ -144,6 +150,13 @@
 	const SOURCE_OPTIONS: Array<{ value: ChartSource; label: string }> = [
 		{ value: 'query', label: 'Query' },
 		{ value: 'curated', label: 'Curated' },
+	];
+	const RENDERER_OPTIONS: Array<{
+		value: PlanarRendererKind;
+		label: string;
+	}> = [
+		{ value: 'sigma', label: 'Sigma' },
+		{ value: 'g6', label: 'G6' },
 	];
 	const SETTINGS_TABS = $derived<
 		Array<{
@@ -226,6 +239,7 @@
 		if (readOnly) return;
 		createType = undefined;
 		createSource = 'query';
+		createRenderer = 'sigma';
 		createName = '';
 		createNameEdited = false;
 		createOpen = true;
@@ -262,7 +276,12 @@
 		if (!createType || !name) {
 			return;
 		}
-		onCreateChart({ type: createType, source: createSource, name });
+		onCreateChart({
+			type: createType,
+			source: createSource,
+			name,
+			...(createType === 'graph' ? { renderer: createRenderer } : {}),
+		});
 		closeCreate();
 	}
 
@@ -348,6 +367,24 @@
 					></span>
 					<span>{option.label}</span>
 				</button>
+			{/each}
+		</div>
+	</div>
+{/snippet}
+
+{#snippet rendererSelector(
+	selectedRenderer: PlanarRendererKind,
+	onSelect: (renderer: PlanarRendererKind) => void,
+)}
+	<div class="knowledge-workspace-create-field">
+		<span class="knowledge-workspace-create-label">Renderer</span>
+		<div class="knowledge-workspace-segmented">
+			{#each RENDERER_OPTIONS as option}
+				<ObsidianButton
+					active={selectedRenderer === option.value}
+					text={option.label}
+					onClick={() => onSelect(option.value)}
+				/>
 			{/each}
 		</div>
 	</div>
@@ -501,6 +538,12 @@
 					/>
 				</header>
 				{@render layoutSelector(createType, selectCreateType)}
+				{#if createType === 'graph'}
+					{@render rendererSelector(
+						createRenderer,
+						(value) => (createRenderer = value),
+					)}
+				{/if}
 				<label class="knowledge-workspace-create-field">
 					<span>Name</span>
 					<ObsidianTextInput
@@ -566,6 +609,9 @@
 					/>
 				</header>
 				{@render layoutSelector(mode, onChartType)}
+				{#if mode === 'graph'}
+					{@render rendererSelector(renderer, onRenderer)}
+				{/if}
 				<label class="knowledge-workspace-create-field">
 					<span>Name</span>
 					<ObsidianTextInput

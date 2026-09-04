@@ -21,6 +21,7 @@ describe('workspace settings ports', () => {
 		});
 
 		expect(view.graph.mode).toBe(state.mode);
+		expect(view.graph.renderer).toBe(state.renderer);
 		expect(view.labels.labelSize).toBe(state.labelSize);
 		expect(view.query.currentQuery).toBe(state.query);
 		expect(view.query.globalQuery).toBe(state.globalQuery);
@@ -34,12 +35,14 @@ describe('workspace settings ports', () => {
 
 	it('routes domain actions to the controller facade', () => {
 		const setFlowDirection = vi.fn();
+		const setActiveChartRenderer = vi.fn();
 		const setLabelSize = vi.fn();
 		const updateGlobalQuery = vi.fn();
 		const setNodeStyleRules = vi.fn();
 		const updateGroup = vi.fn();
 		const controller = {
 			setFlowDirection,
+			setActiveChartRenderer,
 			setLabelSize,
 			updateGlobalQuery,
 			setNodeStyleRules,
@@ -48,12 +51,14 @@ describe('workspace settings ports', () => {
 		const actions = createWorkspaceSettingsActions(controller);
 
 		actions.graph.setFlowDirection('RL');
+		actions.graph.setRenderer('g6');
 		actions.labels.setLabelSize(12);
 		actions.query.updateGlobal({ maxNodes: 100 });
 		actions.styles.setNodeRules([]);
 		actions.groups.update('research', { name: 'Research' });
 
 		expect(setFlowDirection).toHaveBeenCalledWith('RL');
+		expect(setActiveChartRenderer).toHaveBeenCalledWith('g6');
 		expect(setLabelSize).toHaveBeenCalledWith(12);
 		expect(updateGlobalQuery).toHaveBeenCalledWith({ maxNodes: 100 });
 		expect(setNodeStyleRules).toHaveBeenCalledWith([]);

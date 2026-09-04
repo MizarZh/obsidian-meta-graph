@@ -1,9 +1,9 @@
-import type { ViewMode } from '../../core/types';
+import type { PlanarRendererKind, ViewMode } from '../../core/types';
 import type { Cube3DRenderer } from './cube-3d/cube-3d-renderer';
 import type { Force3DRenderer } from './force-3d/force-3d-renderer';
 import type { PlanarRenderer } from './renderer-contracts';
 
-export type PlanarRendererKind = 'sigma' | 'g6';
+export type { PlanarRendererKind } from '../../core/types';
 export type RendererKind = PlanarRendererKind | 'force-3d' | 'cube-3d';
 
 /** Capabilities describe implementation support, independent of active chart mode. */
@@ -84,6 +84,11 @@ export function getModeCapabilities(mode: ViewMode): ModeCapabilities {
 	return MODE_CAPABILITIES[mode];
 }
 
-export function getRendererKindForMode(mode: ViewMode): RendererKind {
-	return getModeCapabilities(mode).rendererKind;
+export function getRendererKindForMode(
+	mode: ViewMode,
+	graphRenderer: PlanarRendererKind = 'sigma',
+): RendererKind {
+	return mode === 'graph'
+		? graphRenderer
+		: getModeCapabilities(mode).rendererKind;
 }

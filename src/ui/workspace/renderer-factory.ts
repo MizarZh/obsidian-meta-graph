@@ -24,7 +24,7 @@ export function createWorkspaceGraphRenderer(
 		graph,
 		container,
 		palette,
-		kind: getRendererKindForMode(state.mode),
+		kind: getRendererKindForMode(state.mode, state.renderer),
 		manualLayout:
 			state.mode === 'cube'
 				? createCubeRendererManualLayout(

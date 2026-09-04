@@ -1497,6 +1497,7 @@
 	<Toolbar
 		{app}
 		mode={workspaceState.mode}
+		renderer={workspaceState.renderer}
 		chartSource={workspaceState.chartSource}
 		charts={workspaceState.charts}
 		activeChartId={workspaceState.activeChartId}
@@ -1507,6 +1508,7 @@
 		onDuplicateChart={() => controller.duplicateActiveChart()}
 		onRenameChart={(name) => controller.setActiveChartName(name)}
 		onChartType={requestChartTypeChange}
+		onRenderer={(renderer) => controller.setActiveChartRenderer(renderer)}
 		onChartSource={requestChartSourceChange}
 		onDeleteChart={confirmDeleteActiveChart}
 		onFocusNode={focusNodeFromSearch}

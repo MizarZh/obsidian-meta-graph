@@ -364,7 +364,7 @@ export class WorkspaceRendererLifecycle {
 				: 0,
 		);
 
-		const rendererKind = getRendererKindForMode(state.mode);
+		const rendererKind = getRendererKindForMode(state.mode, state.renderer);
 		if (
 			this.currentRenderer &&
 			getRendererKind(this.currentRenderer) !== rendererKind

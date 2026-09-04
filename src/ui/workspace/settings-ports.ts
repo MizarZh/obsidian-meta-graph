@@ -17,6 +17,7 @@ import type {
 	LinkStyleRule,
 	ManualLayoutConfig,
 	NodeStyleRule,
+	PlanarRendererKind,
 	ThreeLabelResolution,
 	ViewMode,
 	WorkspaceState,
@@ -36,6 +37,7 @@ export interface WorkspaceSettingsSuggestions {
 
 export interface WorkspaceGraphSettingsView {
 	mode: ViewMode;
+	renderer: PlanarRendererKind;
 	fadeDistance: number;
 	labelDensity: number;
 	cubeFaceOpacity: number;
@@ -123,6 +125,7 @@ type QueryPatch = Partial<Omit<GraphQuery, 'roots'>>;
 type StyleRuleScope = 'global' | 'current';
 
 export interface WorkspaceGraphSettingsActions {
+	setRenderer(value: PlanarRendererKind): void;
 	setFlowEdgeStyle(value: FlowEdgeStyle): void;
 	setFlowDirection(value: FlowDirection): void;
 	setFlowCornerRadius(value: number): void;
@@ -217,6 +220,7 @@ export function createWorkspaceSettingsView(
 	return {
 		graph: {
 			mode: state.mode,
+			renderer: state.renderer,
 			fadeDistance: state.fadeDistance,
 			labelDensity: state.labelDensity,
 			cubeFaceOpacity: state.cubeFaceOpacity,
@@ -312,6 +316,7 @@ export function createWorkspaceSettingsActions(
 ): WorkspaceSettingsActions {
 	return {
 		graph: {
+			setRenderer: (value) => controller.setActiveChartRenderer(value),
 			setFlowEdgeStyle: (value) => controller.setFlowEdgeStyle(value),
 			setFlowDirection: (value) => controller.setFlowDirection(value),
 			setFlowCornerRadius: (value) =>

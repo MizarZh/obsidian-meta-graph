@@ -16,12 +16,14 @@
 		GraphQuery,
 		LayoutNodeSort,
 		LayoutSortDirection,
+		PlanarRendererKind,
 		ViewMode,
 	} from '../../core/types';
 
 	let {
 		app,
 		mode,
+		renderer,
 		fadeDistance,
 		labelDensity,
 		cubeFaceOpacity,
@@ -48,6 +50,7 @@
 		arcSpacing,
 		query,
 		onFlowEdgeStyle,
+		onRenderer,
 		onFlowDirection,
 		onFlowCornerRadius,
 		onFlowRelationRules,
@@ -73,6 +76,7 @@
 	}: {
 		app: App;
 		mode: ViewMode;
+		renderer: PlanarRendererKind;
 		fadeDistance: number;
 		labelDensity: number;
 		cubeFaceOpacity: number;
@@ -99,6 +103,7 @@
 		arcSpacing: number;
 		query: GraphQuery;
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
+		onRenderer: (renderer: PlanarRendererKind) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
 		onFlowCornerRadius: (radius: number) => void;
 		onFlowRelationRules: (rules: FlowRelationRule[]) => void;
@@ -122,6 +127,14 @@
 		onArcSpacing: (spacing: number) => void;
 		onChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
 	} = $props();
+
+	const RENDERER_OPTIONS: Array<{
+		value: PlanarRendererKind;
+		label: string;
+	}> = [
+		{ value: 'sigma', label: 'Sigma' },
+		{ value: 'g6', label: 'G6' },
+	];
 
 	let queryOpen = $state(true);
 	let layoutOpen = $state(true);
@@ -277,6 +290,16 @@
 
 <section>
 	<header><h3>Graph settings</h3></header>
+	{#if mode === 'graph'}
+		<SettingsSection title="Renderer">
+			<SegmentedSetting
+				label="Renderer"
+				value={renderer}
+				options={RENDERER_OPTIONS}
+				onChange={onRenderer}
+			/>
+		</SettingsSection>
+	{/if}
 	<SettingsSection title="Query" bind:open={queryOpen}>
 		<TextSetting
 			label="Max nodes"

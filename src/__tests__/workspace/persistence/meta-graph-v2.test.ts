@@ -16,6 +16,44 @@ import {
 } from '../../../workspace/workspace-session';
 
 describe('Meta Graph v2 persistence', () => {
+	it('round-trips G6 through the namespaced chart extension', () => {
+		const document = createDefaultMetaGraphDocument(200, 1.5);
+		const chart = document.charts[0];
+		if (!chart) throw new Error('Expected default chart.');
+		chart.renderer = 'g6';
+		const context = createPersistenceContextFromV1(document);
+		context.chartExtensions = {
+			[chart.id]: {
+				'meta-graph': { retained: true },
+				vendor: { enabled: true },
+			},
+		};
+		const state = createWorkspaceState(200, 1.5, document);
+
+		const saved = serializeWorkspaceStateV2(state, context);
+		expect(saved.charts[0]?.extensions).toEqual({
+			'meta-graph': { retained: true, renderer: 'g6' },
+			vendor: { enabled: true },
+		});
+
+		const parsed = parsePersistedMetaGraphDocumentV2(saved, 200, 1.5);
+		expect(parsed.document.charts[0]?.renderer).toBe('g6');
+		expect(createWorkspaceState(200, 1.5, parsed.document).renderer).toBe('g6');
+
+		const sigmaState = createWorkspaceState(200, 1.5, parsed.document);
+		const sigmaChart = sigmaState.charts[0];
+		if (!sigmaChart) throw new Error('Expected parsed chart.');
+		sigmaChart.renderer = 'sigma';
+		const resaved = serializeWorkspaceStateV2(
+			{ ...sigmaState, renderer: 'sigma' },
+			parsed.persistence,
+		);
+		expect(resaved.charts[0]?.extensions).toEqual({
+			'meta-graph': { retained: true },
+			vendor: { enabled: true },
+		});
+	});
+
 	it('round-trips label zoom scaling', () => {
 		const document = createDefaultMetaGraphDocument(200, 1.5);
 		const chart = document.charts[0];

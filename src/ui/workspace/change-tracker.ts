@@ -9,6 +9,7 @@ export interface WorkspaceRenderBaseline {
 	projectionSignature?: string;
 	activeChartId?: string;
 	mode?: WorkspaceState['mode'];
+	renderer?: WorkspaceState['renderer'];
 	chartSource?: WorkspaceState['chartSource'];
 	flowEdgeStyle?: WorkspaceState['flowEdgeStyle'];
 	flowDirection?: WorkspaceState['flowDirection'];
@@ -93,6 +94,7 @@ const STYLE_RULE_KEYS = [
 const REBUILD_BASELINE_KEYS = [
 	'activeChartId',
 	'mode',
+	'renderer',
 	'chartSource',
 	'flowEdgeStyle',
 	'flowDirection',
@@ -115,6 +117,11 @@ export function analyzeWorkspaceStateChanges(
 		'activeChartId',
 	);
 	const modeChanged = baselineValueChanged(nextState, baseline, 'mode');
+	const rendererChanged = baselineValueChanged(
+		nextState,
+		baseline,
+		'renderer',
+	);
 	const chartSourceChanged = baselineValueChanged(
 		nextState,
 		baseline,
@@ -283,9 +290,10 @@ export function analyzeWorkspaceStateChanges(
 				baseline,
 				REBUILD_BASELINE_KEYS,
 			),
-		fitAfterRender:
-			activeChartChanged ||
-			modeChanged ||
+			fitAfterRender:
+				activeChartChanged ||
+				modeChanged ||
+				rendererChanged ||
 			chartSourceChanged ||
 			(projectionChanged && nextState.mode !== 'cube') ||
 			flowStyleChanged ||
@@ -410,6 +418,7 @@ export function createWorkspaceRenderBaseline(
 		projectionSignature: readProjectionSignature(state.projection),
 		activeChartId: state.activeChartId,
 		mode: state.mode,
+		renderer: state.renderer,
 		chartSource: state.chartSource,
 		flowEdgeStyle: state.flowEdgeStyle,
 		flowDirection: state.flowDirection,
