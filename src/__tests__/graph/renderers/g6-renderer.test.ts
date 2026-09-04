@@ -37,7 +37,6 @@ describe('G6 renderer', () => {
 			padding: 30,
 			zoomRange: [0.001, 1000],
 			behaviors: [
-				'drag-canvas',
 				{
 					type: 'zoom-canvas',
 					trigger: ['pinch'],
@@ -73,6 +72,27 @@ describe('G6 renderer', () => {
 				labelOffsetX: 4,
 			},
 		});
+	});
+
+	it('coalesces viewport pan in CSS-pixel deltas at every zoom level', async () => {
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(createRuntimeGraph()),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		for (const zoomLevel of [25, 100, 400]) {
+			renderer.setZoomLevel(zoomLevel);
+			renderer.panViewportBy({ x: 40, y: -15 });
+			renderer.panViewportBy({ x: 60, y: 5 });
+			await Promise.resolve();
+		}
+
+		expect(fake.translateBy).toHaveBeenCalledTimes(3);
+		expect(fake.translateBy).toHaveBeenNthCalledWith(1, [100, -10], false);
+		expect(fake.translateBy).toHaveBeenNthCalledWith(2, [100, -10], false);
+		expect(fake.translateBy).toHaveBeenNthCalledWith(3, [100, -10], false);
 	});
 
 	it('matches Sigma wheel zoom ratio, timing, origin, and throttling', async () => {

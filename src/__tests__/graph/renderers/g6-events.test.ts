@@ -3,6 +3,7 @@ import {
 	CommonEvent,
 	EdgeEvent,
 	NodeEvent,
+	type IDragEvent,
 	type IElementEvent,
 	type IPointerEvent,
 } from '@antv/g6';
@@ -169,10 +170,19 @@ describe('G6 events', () => {
 		bindG6Events(renderer, callbackHarness.callbacks);
 
 		emitter.emit(CommonEvent.DRAG_START, pointerEvent('canvas'));
+		emitter.emit(
+			CommonEvent.DRAG,
+			Object.assign(pointerEvent('canvas'), {
+				dx: 25,
+				dy: -10,
+				movement: { x: 250, y: -100 },
+			}) as IDragEvent,
+		);
 		emitter.emit(NodeEvent.POINTER_ENTER, elementEvent('A'));
 		emitter.emit(CommonEvent.POINTER_MOVE, pointerEvent('canvas'));
 		expect(callbackHarness.onHover).not.toHaveBeenCalled();
 		expect(setHoveredGroup).not.toHaveBeenCalled();
+		expect(renderer.panViewportBy).toHaveBeenCalledWith({ x: 25, y: -10 });
 
 		emitter.emit(CommonEvent.DRAG_END, pointerEvent('canvas'));
 		expect(callbackHarness.onHover).toHaveBeenCalledOnce();
@@ -233,6 +243,7 @@ function createRenderer(
 		clearPinnedHover: vi.fn(),
 		setHoveredEdge: vi.fn(),
 		setHoveredGroup: vi.fn(),
+		panViewportBy: vi.fn(),
 		getGroupAtViewportPosition: vi.fn(() => undefined),
 	} as unknown as G6Renderer;
 }

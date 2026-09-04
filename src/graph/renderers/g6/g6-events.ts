@@ -3,6 +3,7 @@ import {
 	CommonEvent,
 	EdgeEvent,
 	NodeEvent,
+	type IDragEvent,
 	type IElementEvent,
 	type IPointerEvent,
 } from '@antv/g6';
@@ -177,6 +178,10 @@ export function bindG6Events(
 		if (event.targetType !== 'canvas') return;
 		viewportDragging = true;
 	};
+	const dragCanvas = (event: IDragEvent): void => {
+		if (!viewportDragging) return;
+		renderer.panViewportBy({ x: event.dx, y: event.dy });
+	};
 	const dragEnd = (event: IPointerEvent): void => {
 		if (!viewportDragging) return;
 		viewportDragging = false;
@@ -233,6 +238,7 @@ export function bindG6Events(
 	graph.on(CommonEvent.POINTER_MOVE, pointerMove);
 	graph.on(CommonEvent.POINTER_UP, pointerUp);
 	graph.on(CommonEvent.DRAG_START, dragStart);
+	graph.on(CommonEvent.DRAG, dragCanvas);
 	graph.on(CommonEvent.DRAG_END, dragEnd);
 	const ownerWindow = renderer.container.ownerDocument?.defaultView;
 	ownerWindow?.addEventListener('pointerup', pointerUpWindow);
@@ -256,6 +262,7 @@ export function bindG6Events(
 		graph.off(CommonEvent.POINTER_MOVE, pointerMove);
 		graph.off(CommonEvent.POINTER_UP, pointerUp);
 		graph.off(CommonEvent.DRAG_START, dragStart);
+		graph.off(CommonEvent.DRAG, dragCanvas);
 		graph.off(CommonEvent.DRAG_END, dragEnd);
 		ownerWindow?.removeEventListener('pointerup', pointerUpWindow);
 	};

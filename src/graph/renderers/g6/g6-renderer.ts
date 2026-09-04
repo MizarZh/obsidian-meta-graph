@@ -108,6 +108,10 @@ export class G6Renderer implements PlanarRenderer {
 	private viewportVisualSyncTimer?: number;
 	private viewportVisualSyncQueued = false;
 	private viewportChangeBound = false;
+	private viewportPanFrame?: number;
+	private viewportPanQueued = false;
+	private pendingViewportPanX = 0;
+	private pendingViewportPanY = 0;
 	private lastObservedNativeZoom = 1;
 	private interactionSyncFrame?: number;
 	private interactionSyncQueued = false;
@@ -314,6 +318,34 @@ export class G6Renderer implements PlanarRenderer {
 		);
 	}
 
+	panViewportBy(delta: { x: number; y: number }): void {
+		if (
+			this.killed ||
+			this.isStale() ||
+			!Number.isFinite(delta.x) ||
+			!Number.isFinite(delta.y)
+		) {
+			return;
+		}
+		this.pendingViewportPanX += delta.x;
+		this.pendingViewportPanY += delta.y;
+		const window = this.container.ownerDocument?.defaultView;
+		if (!window) {
+			if (this.viewportPanQueued) return;
+			this.viewportPanQueued = true;
+			queueMicrotask(() => {
+				this.viewportPanQueued = false;
+				this.flushViewportPan();
+			});
+			return;
+		}
+		if (this.viewportPanFrame !== undefined) return;
+		this.viewportPanFrame = window.requestAnimationFrame(() => {
+			this.viewportPanFrame = undefined;
+			this.flushViewportPan();
+		});
+	}
+
 	getZoomLevel(): number {
 		return nativeZoomToPlanarLevel(this.instance.getZoom(), this.fitZoom);
 	}
@@ -354,6 +386,12 @@ export class G6Renderer implements PlanarRenderer {
 			window?.cancelAnimationFrame(this.interactionSyncFrame);
 			this.interactionSyncFrame = undefined;
 		}
+		if (this.viewportPanFrame !== undefined) {
+			window?.cancelAnimationFrame(this.viewportPanFrame);
+			this.viewportPanFrame = undefined;
+		}
+		this.pendingViewportPanX = 0;
+		this.pendingViewportPanY = 0;
 		if (this.viewportVisualSyncTimer !== undefined) {
 			window?.clearTimeout(this.viewportVisualSyncTimer);
 			this.viewportVisualSyncTimer = undefined;
@@ -946,6 +984,20 @@ export class G6Renderer implements PlanarRenderer {
 			.catch(() => undefined);
 	}
 
+	private flushViewportPan(): void {
+		if (this.killed || this.isStale()) {
+			this.pendingViewportPanX = 0;
+			this.pendingViewportPanY = 0;
+			return;
+		}
+		const x = this.pendingViewportPanX;
+		const y = this.pendingViewportPanY;
+		this.pendingViewportPanX = 0;
+		this.pendingViewportPanY = 0;
+		if (x === 0 && y === 0) return;
+		void this.instance.translateBy([x, y], false).catch(() => undefined);
+	}
+
 	private emitZoomLevel(): void {
 		const level = this.getZoomLevel();
 		this.zoomLevelListeners.forEach((listener) => listener(level));
@@ -977,7 +1029,6 @@ export function createG6Behaviors(options: {
 }): NonNullable<GraphOptions['behaviors']> {
 	const density = Math.min(1, Math.max(0, options.labelDensity));
 	return [
-		'drag-canvas',
 		{
 			type: 'zoom-canvas',
 			trigger: ['pinch'],
