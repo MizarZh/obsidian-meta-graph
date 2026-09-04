@@ -57,12 +57,18 @@ export interface WorkspaceRendererLifecycleOptions {
 	): void;
 }
 
+interface RendererLifetimeToken {
+	adopted: boolean;
+	invalidated: boolean;
+}
+
 export class WorkspaceRendererLifecycle {
 	private currentRenderer: GraphRenderer | undefined;
 	private rendererHost: HTMLDivElement | undefined;
 	private unbindEvents: (() => void) | undefined;
 	private unbindZoomLevel: (() => void) | undefined;
 	private renderVersion = 0;
+	private rendererLifetime?: RendererLifetimeToken;
 	private forceLayoutSimulation: D3ForceSimulation | undefined;
 
 	constructor(private readonly options: WorkspaceRendererLifecycleOptions) {}
@@ -408,8 +414,8 @@ export class WorkspaceRendererLifecycle {
 			this.currentRenderer.setGraph(graph);
 			this.unbindEvents = this.options.bindEvents(this.currentRenderer);
 		} else {
-				const nextRenderer = await this.createRendererInHost({
-					graph,
+			const nextRenderer = await this.createRendererInHost({
+				graph,
 				container: canvas,
 				palette,
 				state,
@@ -459,6 +465,10 @@ export class WorkspaceRendererLifecycle {
 	}
 
 	private clearRenderer(): void {
+		if (this.rendererLifetime) {
+			this.rendererLifetime.invalidated = true;
+			this.rendererLifetime = undefined;
+		}
 		this.unbindZoomLevel?.();
 		this.unbindZoomLevel = undefined;
 		this.unbindEvents?.();
@@ -480,6 +490,11 @@ export class WorkspaceRendererLifecycle {
 		state: WorkspaceState;
 		isStale: () => boolean;
 	}): Promise<GraphRenderer | undefined> {
+		const requestIsStale = options.isStale;
+		const lifetime: RendererLifetimeToken = {
+			adopted: false,
+			invalidated: false,
+		};
 		const host = options.container.ownerDocument.createElement('div');
 		host.className = 'knowledge-workspace-renderer-host';
 		Object.assign(host.style, {
@@ -494,16 +509,23 @@ export class WorkspaceRendererLifecycle {
 			renderer = await createWorkspaceGraphRenderer({
 				...options,
 				container: host,
+				isStale: () =>
+					lifetime.invalidated ||
+					(!lifetime.adopted && requestIsStale()),
 			});
 		} catch (error) {
+			lifetime.invalidated = true;
 			host.remove();
 			throw error;
 		}
-		if (!renderer || options.isStale()) {
+		if (!renderer || requestIsStale()) {
+			lifetime.invalidated = true;
 			renderer?.kill();
 			host.remove();
 			return undefined;
 		}
+		lifetime.adopted = true;
+		this.rendererLifetime = lifetime;
 		this.rendererHost = host;
 		return renderer;
 	}

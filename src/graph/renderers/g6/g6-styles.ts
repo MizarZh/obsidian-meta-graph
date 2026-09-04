@@ -50,6 +50,11 @@ export interface G6VisualScale {
 	screen: number;
 }
 
+export interface G6LabelStyles {
+	node: G6NodeStyle;
+	edge: G6EdgeStyle;
+}
+
 const DEFAULT_VISUAL_SCALE: G6VisualScale = {
 	geometry: 1,
 	label: 1,
@@ -58,20 +63,26 @@ const DEFAULT_VISUAL_SCALE: G6VisualScale = {
 
 export function createG6ElementStyles(
 	palette: GraphPalette,
-	options: G6DisplayStyleOptions,
 	visualScale: G6VisualScale = DEFAULT_VISUAL_SCALE,
 ): {
-	node: Pick<NodeOptions, 'style' | 'state'>;
-	edge: Pick<EdgeOptions, 'style' | 'state'>;
+	node: Pick<NodeOptions, 'state'>;
+	edge: Pick<EdgeOptions, 'state'>;
 } {
-	const interactions = createG6InteractionStyles(palette, visualScale);
+	return createG6InteractionStyles(palette, visualScale);
+}
+
+export function createG6LabelStyles(
+	palette: GraphPalette,
+	options: G6DisplayStyleOptions,
+	visualScale: G6VisualScale = DEFAULT_VISUAL_SCALE,
+): G6LabelStyles {
 	const label = resolveThreeLabelStyle(palette, options.labelTheme);
 	const labelFontSize =
 		resolveG6LabelFontSize(options.labelSize) * visualScale.label;
 	const labelPlacement = resolveG6LabelPlacement(options.labelPosition);
 	const labelOffset = resolveG6LabelOffset(
 		options.labelPosition,
-		options.labelOffset * visualScale.label,
+		labelFontSize * options.labelOffset * 0.5,
 	);
 	const sharedLabelStyle = {
 		labelFontSize,
@@ -85,6 +96,7 @@ export function createG6ElementStyles(
 		labelBackground: label.backgroundColor !== 'transparent',
 		labelBackgroundFill: label.backgroundColor,
 		labelBackgroundOpacity: 1,
+		labelPointerEvents: 'none' as const,
 		labelPadding: [2 * visualScale.label, 4 * visualScale.label] as [
 			number,
 			number,
@@ -92,18 +104,12 @@ export function createG6ElementStyles(
 	};
 	return {
 		node: {
-			style: {
-				...sharedLabelStyle,
-				labelLineHeight: labelFontSize * 1.2,
-				labelPlacement,
-				...labelOffset,
-			},
-			state: interactions.node.state,
+			...sharedLabelStyle,
+			labelLineHeight: labelFontSize * 1.2,
+			labelPlacement,
+			...labelOffset,
 		},
-		edge: {
-			style: sharedLabelStyle,
-			state: interactions.edge.state,
-		},
+		edge: sharedLabelStyle,
 	};
 }
 
@@ -219,6 +225,8 @@ export function resolveG6LabelOffset(
 export function createG6NodeStyle(
 	attributes: RuntimeNodeAttributes,
 	visualScale: G6VisualScale = DEFAULT_VISUAL_SCALE,
+	labelVisible?: boolean,
+	labelStyle?: G6NodeStyle,
 ): G6NodeStyle {
 	const hidden = Boolean(attributes.hidden || attributes.isBend);
 	return {
@@ -233,10 +241,14 @@ export function createG6NodeStyle(
 		fill: attributes.color,
 		opacity: normalizeOpacity(attributes.opacity),
 		visibility: hidden ? 'hidden' : 'visible',
-		label: !hidden && Boolean(attributes.label),
+		label:
+			!hidden &&
+			Boolean(attributes.label) &&
+			(labelVisible === undefined || labelVisible),
 		labelText: attributes.label,
 		cursor: attributes.isBend ? 'default' : 'pointer',
 		zIndex: attributes.isBend ? 0 : 2,
+		...labelStyle,
 	};
 }
 
@@ -244,6 +256,8 @@ export function createG6EdgeStyle(
 	attributes: RuntimeEdgeAttributes,
 	directed: boolean,
 	visualScale: G6VisualScale = DEFAULT_VISUAL_SCALE,
+	labelVisible?: boolean,
+	labelStyle?: G6EdgeStyle,
 ): G6EdgeStyle {
 	const hidden = Boolean(attributes.hidden);
 	const rawLineWidth =
@@ -258,15 +272,17 @@ export function createG6EdgeStyle(
 	});
 	const lineWidth = metrics.nominalLineWidth;
 	const opacity = normalizeOpacity(attributes.opacity);
-	const labelVisible =
-		!hidden && attributes.forceLabel && Boolean(attributes.label);
+	const showLabel =
+		!hidden &&
+		Boolean(attributes.label) &&
+		(labelVisible ?? attributes.forceLabel);
 	return {
 		stroke: attributes.color,
 		lineWidth,
 		lineDash: resolveG6LineDash(attributes.lineStyle, visualScale.geometry),
 		opacity,
 		visibility: hidden ? 'hidden' : 'visible',
-		label: labelVisible,
+		label: showLabel,
 		labelText: attributes.label,
 		labelOpacity: opacity,
 		endArrow: directed,
@@ -282,6 +298,7 @@ export function createG6EdgeStyle(
 		),
 		cursor: hidden ? 'default' : 'pointer',
 		zIndex: 1,
+		...labelStyle,
 	};
 }
 

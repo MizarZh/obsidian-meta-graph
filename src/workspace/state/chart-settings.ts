@@ -316,9 +316,18 @@ function setDisplayValue<Key extends ChartDisplayKey>(
 	value: MetaGraphChart['display'][Key],
 ): WorkspaceState {
 	const chart = getActiveChart(state);
-	return chart.display[key] === value
-		? state
-		: updateActiveChartDisplay(state, { [key]: value });
+	if (chart.display[key] === value) return state;
+	const nextChart = {
+		...chart,
+		display: { ...chart.display, [key]: value },
+	};
+	return {
+		...state,
+		charts: state.charts.map((item) =>
+			item.id === nextChart.id ? nextChart : item,
+		),
+		[key]: value,
+	};
 }
 
 function setLayoutSpacingInState(
@@ -361,19 +370,6 @@ function updateActiveChartLayout(
 		},
 		forceLayout,
 	);
-}
-
-function updateActiveChartDisplay(
-	state: WorkspaceState,
-	patch: Partial<MetaGraphChart['display']>,
-): WorkspaceState {
-	const chart = getActiveChart(state);
-	return updateActiveChartState(state, {
-		display: {
-			...chart.display,
-			...patch,
-		},
-	});
 }
 
 function getActiveChart(state: WorkspaceState): MetaGraphChart {

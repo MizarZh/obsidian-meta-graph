@@ -27,10 +27,22 @@ import type {
 	GroupOverlayGroup,
 } from '../renderer-groups';
 import type { G6RendererOptions } from '../renderer-options';
-import { createG6StylePatch, toG6Data } from './g6-data';
+import {
+	createG6LabelStylePatch,
+	createG6StylePatch,
+	resolveG6LabelVisibility,
+	toG6Data,
+	type G6LabelVisibility,
+} from './g6-data';
 import { G6GroupLayer } from './g6-groups';
 import {
+	G6_LABEL_CONTROLLER_KEY,
+	type G6LabelController,
+	type G6LabelControllerSnapshot,
+} from './g6-label-controller';
+import {
 	createG6ElementStyles,
+	createG6LabelStyles,
 	G6_INTERACTION_STATE,
 	type G6DisplayStyleOptions,
 	type G6VisualScale,
@@ -62,6 +74,7 @@ export type G6GraphInstance = Pick<
 	| 'focusElement'
 	| 'getCanvasCenter'
 	| 'getCanvasByViewport'
+	| 'getPluginInstance'
 	| 'getViewportByCanvas'
 	| 'getZoom'
 	| 'off'
@@ -97,11 +110,14 @@ export class G6Renderer implements PlanarRenderer {
 	private scaleLabelsWithZoom: boolean;
 	private labelDensity: number;
 	private forceLabels: boolean;
+	private labelVisibility?: G6LabelVisibility;
 	private readonly isStale: () => boolean;
 	private readonly zoomLevelListeners = new Set<(level: number) => void>();
 	private drawQueue: Promise<void> = Promise.resolve();
 	private drawScheduled = false;
 	private drawDirty = false;
+	private labelSyncScheduled = false;
+	private labelSyncFrame?: number;
 	private killed = false;
 	private fitting = false;
 	private fitZoom = 1;
@@ -231,12 +247,21 @@ export class G6Renderer implements PlanarRenderer {
 	setGraph(graph: RuntimeGraph): void {
 		const viewportState = this.captureViewportState();
 		this.graph = graph;
+		this.labelVisibility = undefined;
 		this.dropMissingInteractionTargets();
 		this.nodeStateKeys.clear();
 		this.edgeStateKeys.clear();
 		this.appliedInteraction = {};
 		this.rebuildInteractionIndexes();
-		this.instance.setData(toG6Data(graph, this.readVisualScale()));
+		this.instance.setData(
+			toG6Data(
+				graph,
+				this.readVisualScale(),
+				this.readLabelVisibility(),
+				this.readLabelStyles(),
+			),
+		);
+		this.replaceLabelControllerSnapshot();
 		this.syncInteractionStates(false, true);
 		this.scheduleDraw();
 		if (viewportState) this.scheduleCoordinateFrame(viewportState);
@@ -244,7 +269,7 @@ export class G6Renderer implements PlanarRenderer {
 
 	setPalette(palette: GraphPalette): void {
 		this.palette = palette;
-		this.syncVisualOptions();
+		this.syncPaletteOptions();
 	}
 
 	refresh(): void {
@@ -252,6 +277,7 @@ export class G6Renderer implements PlanarRenderer {
 	}
 
 	refreshGraphStyles(): void {
+		this.labelVisibility = undefined;
 		this.instance.updateData(
 			createG6StylePatch(
 				this.graph,
@@ -260,8 +286,11 @@ export class G6Renderer implements PlanarRenderer {
 					edgeIds: this.graph.edges(),
 				},
 				this.readVisualScale(),
+				this.readLabelVisibility(),
+				this.readLabelStyles(),
 			),
 		);
+		this.replaceLabelControllerSnapshot();
 		this.scheduleDraw();
 	}
 
@@ -269,9 +298,24 @@ export class G6Renderer implements PlanarRenderer {
 		nodeIds: readonly string[];
 		edgeIds: readonly string[];
 	}): void {
+		this.labelVisibility = undefined;
+		const labelVisibility = this.readLabelVisibility();
 		this.instance.updateData(
-			createG6StylePatch(this.graph, changes, this.readVisualScale()),
+			createG6StylePatch(
+				this.graph,
+				{
+					nodeIds:
+						changes.nodeIds.length > 0
+							? this.graph.nodes()
+							: changes.nodeIds,
+					edgeIds: changes.edgeIds,
+				},
+				this.readVisualScale(),
+				labelVisibility,
+				this.readLabelStyles(),
+			),
 		);
+		this.replaceLabelControllerSnapshot();
 		this.scheduleDraw();
 	}
 
@@ -388,6 +432,11 @@ export class G6Renderer implements PlanarRenderer {
 			window?.cancelAnimationFrame(this.interactionSyncFrame);
 			this.interactionSyncFrame = undefined;
 		}
+		if (this.labelSyncFrame !== undefined) {
+			window?.cancelAnimationFrame(this.labelSyncFrame);
+			this.labelSyncFrame = undefined;
+		}
+		this.labelSyncScheduled = false;
 		if (this.viewportPanFrame !== undefined) {
 			window?.cancelAnimationFrame(this.viewportPanFrame);
 			this.viewportPanFrame = undefined;
@@ -486,39 +535,41 @@ export class G6Renderer implements PlanarRenderer {
 	setFadeDistance(_fadeDistance: number): void {}
 	setLabelSize(labelSize: number): void {
 		this.displayStyle.labelSize = labelSize;
-		this.syncVisualOptions();
+		this.scheduleLabelSync();
 	}
 	setScaleLabelsWithZoom(scaleLabelsWithZoom: boolean): void {
 		this.scaleLabelsWithZoom = scaleLabelsWithZoom;
-		this.syncVisualOptions();
+		this.scheduleLabelSync();
 	}
 	setLabelBold(labelBold: boolean): void {
 		this.displayStyle.labelBold = labelBold;
-		this.syncVisualOptions();
+		this.scheduleLabelSync();
 	}
 	setLabelItalic(labelItalic: boolean): void {
 		this.displayStyle.labelItalic = labelItalic;
-		this.syncVisualOptions();
+		this.scheduleLabelSync();
 	}
 	setLabelPosition(labelPosition: LabelPosition): void {
 		this.displayStyle.labelPosition = labelPosition;
-		this.syncVisualOptions();
+		this.scheduleLabelSync();
 	}
 	setLabelOffset(labelOffset: number): void {
 		this.displayStyle.labelOffset = labelOffset;
-		this.syncVisualOptions();
+		this.scheduleLabelSync();
 	}
 	setLabelTheme(labelTheme: LabelThemeConfig): void {
 		this.displayStyle.labelTheme = { ...labelTheme };
-		this.syncVisualOptions();
+		this.scheduleLabelSync();
 	}
 	setLabelDensity(labelDensity: number): void {
 		this.labelDensity = labelDensity;
-		this.syncVisualOptions();
+		this.labelVisibility = undefined;
+		this.syncLabelVisibility();
 	}
 	setForceLabels(forceLabels: boolean): void {
 		this.forceLabels = forceLabels;
-		this.syncVisualOptions();
+		this.labelVisibility = undefined;
+		this.syncLabelVisibility();
 	}
 	togglePinnedHover(nodeId: string): void {
 		this.pinnedNodeId = this.pinnedNodeId === nodeId ? undefined : nodeId;
@@ -548,7 +599,9 @@ export class G6Renderer implements PlanarRenderer {
 					await this.instance.draw();
 				}
 			})
-			.catch(() => undefined)
+			.catch((error) => {
+				console.error('[Meta Graph] G6 draw failed', error);
+			})
 			.finally(() => {
 				this.drawScheduled = false;
 				if (this.drawDirty) this.scheduleDraw();
@@ -648,22 +701,64 @@ export class G6Renderer implements PlanarRenderer {
 		}
 	}
 
-	private syncVisualOptions(): void {
+	private syncPaletteOptions(): void {
 		if (this.killed || this.isStale()) return;
+		const visualScale = this.readVisualScale();
 		this.instance.setOptions({
 			background: this.palette.background,
-			behaviors: createG6Behaviors({
-				scaleLabelsWithZoom: this.scaleLabelsWithZoom,
-				labelDensity: this.labelDensity,
-				forceLabels: this.forceLabels,
-			}),
-			...createG6ElementStyles(
-				this.palette,
-				this.displayStyle,
-				this.readVisualScale(),
-			),
+			...createG6ElementStyles(this.palette, visualScale),
 		});
+		this.scheduleLabelSync();
 		this.scheduleDraw();
+	}
+
+	private syncLabelVisibility(): void {
+		if (this.killed || this.isStale()) return;
+		const visualScale = this.readVisualScale();
+		const visibility = this.readLabelVisibility();
+		this.instance.updateData(
+			createG6LabelStylePatch(
+				this.graph,
+				visualScale,
+				visibility,
+				this.readLabelStyles(visualScale),
+			),
+		);
+		this.replaceLabelControllerSnapshot(visualScale);
+		this.scheduleDraw();
+	}
+
+	private scheduleLabelSync(): void {
+		if (this.killed || this.isStale()) return;
+		if (this.labelSyncScheduled) return;
+		this.labelSyncScheduled = true;
+		const window = this.container.ownerDocument?.defaultView;
+		const enqueue = () => {
+			this.labelSyncFrame = undefined;
+			this.enqueueLabelSync();
+		};
+		if (window) {
+			this.labelSyncFrame = window.requestAnimationFrame(enqueue);
+		} else {
+			queueMicrotask(enqueue);
+		}
+	}
+
+	private enqueueLabelSync(): void {
+		this.drawQueue = this.drawQueue
+			.then(() => {
+				if (this.killed || this.isStale()) return;
+				const visualScale = this.readVisualScale();
+				const snapshot =
+					this.createLabelControllerSnapshot(visualScale);
+				this.readLabelController()?.updateLabels(snapshot);
+			})
+			.catch((error) => {
+				console.error('[Meta Graph] G6 label update failed', error);
+			})
+			.finally(() => {
+				this.labelSyncScheduled = false;
+			});
 	}
 
 	private bindViewportChange(): void {
@@ -707,17 +802,38 @@ export class G6Renderer implements PlanarRenderer {
 					edgeIds: this.graph.edges(),
 				},
 				visualScale,
+				this.readLabelVisibility(),
+				this.readLabelStyles(visualScale),
 			),
 		);
 		this.instance.setOptions({
-			...createG6ElementStyles(
-				this.palette,
-				this.displayStyle,
-				visualScale,
-			),
-			transforms: createG6Transforms(visualScale.geometry),
+			...createG6ElementStyles(this.palette, visualScale),
 		});
+		this.replaceLabelControllerSnapshot(visualScale);
 		this.scheduleDraw();
+	}
+
+	private readLabelController(): G6LabelController | undefined {
+		return this.instance.getPluginInstance<G6LabelController>(
+			G6_LABEL_CONTROLLER_KEY,
+		);
+	}
+
+	private replaceLabelControllerSnapshot(
+		visualScale: G6VisualScale = this.readVisualScale(),
+	): void {
+		this.readLabelController()?.replaceSnapshot(
+			this.createLabelControllerSnapshot(visualScale),
+		);
+	}
+
+	private createLabelControllerSnapshot(
+		visualScale: G6VisualScale = this.readVisualScale(),
+	): G6LabelControllerSnapshot {
+		return createG6LabelControllerSnapshot(
+			this.graph,
+			this.readLabelStyles(visualScale),
+		);
 	}
 
 	private readVisualScale(): G6VisualScale {
@@ -734,6 +850,24 @@ export class G6Renderer implements PlanarRenderer {
 
 	private readNodeVisualScale(): number {
 		return getPlanarVisualScale(this.getZoomLevel());
+	}
+
+	private readLabelStyles(
+		visualScale: G6VisualScale = this.readVisualScale(),
+	) {
+		return createG6LabelStyles(
+			this.palette,
+			this.displayStyle,
+			visualScale,
+		);
+	}
+
+	private readLabelVisibility(): G6LabelVisibility {
+		this.labelVisibility ??= resolveG6LabelVisibility(this.graph, {
+			labelDensity: this.labelDensity,
+			forceLabels: this.forceLabels,
+		});
+		return this.labelVisibility;
 	}
 
 	setHoveredGroup(groupId?: string): void {
@@ -836,7 +970,6 @@ export class G6Renderer implements PlanarRenderer {
 			}
 		}
 		this.appliedInteraction = nextInteraction;
-
 		if (nodes.length === 0 && edges.length === 0) return;
 		this.instance.updateData({ nodes, edges });
 		if (scheduleDraw) this.scheduleDraw();
@@ -1012,54 +1145,62 @@ export class G6Renderer implements PlanarRenderer {
 }
 
 export function createG6GraphOptions(options: G6RendererOptions): GraphOptions {
+	const labelVisibility = resolveG6LabelVisibility(options.graph, options);
+	const displayStyle = createG6DisplayStyleOptions(options);
+	const labelStyles = createG6LabelStyles(options.palette, displayStyle);
 	return {
 		container: options.container,
-		data: toG6Data(options.graph),
+		data: toG6Data(options.graph, undefined, labelVisibility, labelStyles),
 		animation: false,
 		autoResize: false,
 		background: options.palette.background,
 		padding: PLANAR_STAGE_PADDING,
 		zoomRange: INITIAL_NATIVE_ZOOM_RANGE,
-		behaviors: createG6Behaviors(options),
-		transforms: createG6Transforms(),
-		...createG6ElementStyles(
-			options.palette,
-			createG6DisplayStyleOptions(options),
-		),
+		behaviors: createG6Behaviors(),
+		plugins: [
+			{
+				type: G6_LABEL_CONTROLLER_KEY,
+				key: G6_LABEL_CONTROLLER_KEY,
+				snapshot: createG6LabelControllerSnapshot(
+					options.graph,
+					labelStyles,
+				),
+			},
+		],
+		...createG6ElementStyles(options.palette),
 	};
 }
 
-export function createG6Behaviors(options: {
-	scaleLabelsWithZoom: boolean;
-	labelDensity: number;
-	forceLabels: boolean;
-}): NonNullable<GraphOptions['behaviors']> {
-	const density = Math.min(1, Math.max(0, options.labelDensity));
+function createG6LabelControllerSnapshot(
+	graph: RuntimeGraph,
+	styles: ReturnType<typeof createG6LabelStyles>,
+): G6LabelControllerSnapshot {
+	return {
+		nodeIds: new Set(
+			graph
+				.nodes()
+				.filter((nodeId) =>
+					Boolean(graph.getNodeAttribute(nodeId, 'label')),
+				),
+		),
+		edgeIds: new Set(
+			graph
+				.edges()
+				.filter((edgeId) =>
+					Boolean(graph.getEdgeAttribute(edgeId, 'label')),
+				),
+		),
+		nodeStyle: styles.node,
+		edgeStyle: styles.edge,
+	};
+}
+
+export function createG6Behaviors(): NonNullable<GraphOptions['behaviors']> {
 	return [
 		{
 			type: 'zoom-canvas',
 			trigger: ['pinch'],
 			animation: false,
-		},
-		{
-			type: 'auto-adapt-label',
-			enable: !options.forceLabels,
-			padding: Math.round(4 + (1 - density) * 24),
-			throttle: 32,
-		},
-	];
-}
-
-export function createG6Transforms(
-	geometryScale = 1,
-): NonNullable<GraphOptions['transforms']> {
-	return [
-		{
-			type: 'process-parallel-edges',
-			mode: 'bundle',
-			distance: 15 * geometryScale,
-			loopMode: 'nested',
-			loopDistance: 15 * geometryScale,
 		},
 	];
 }

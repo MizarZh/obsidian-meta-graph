@@ -136,7 +136,9 @@ function createLayoutSnapshot(): LayoutSnapshot {
 }
 
 function createTestCanvas(): HTMLDivElement {
-	const children: Array<HTMLDivElement & { remove: ReturnType<typeof vi.fn> }> = [];
+	const children: Array<
+		HTMLDivElement & { remove: ReturnType<typeof vi.fn> }
+	> = [];
 	const container = {
 		children,
 		style: { position: '' },
@@ -236,6 +238,38 @@ describe('WorkspaceRendererLifecycle', () => {
 			expect.objectContaining({ status: 'rendered' }),
 		);
 		expect(setRenderPending.mock.calls).toEqual([[true], [false]]);
+	});
+
+	it('keeps a reused renderer live across same-kind rebuilds', async () => {
+		const renderer = createRenderer();
+		let rendererIsStale: (() => boolean) | undefined;
+		vi.mocked(createWorkspaceGraphRenderer).mockImplementation(
+			async (options) => {
+				rendererIsStale = options.isStale;
+				return renderer;
+			},
+		);
+		const lifecycle = new WorkspaceRendererLifecycle({
+			readState: createState,
+			readCanvas: () => createTestCanvas(),
+			readLayoutSnapshot: createLayoutSnapshot,
+			readContainerSize: () => ({ width: 800, height: 600 }),
+			waitForCanvasSize: async () => true,
+			bindEvents: () => vi.fn(),
+			syncRendererGroups: vi.fn(),
+			setRendererDebugState: vi.fn(),
+		});
+
+		await lifecycle.rebuild();
+		expect(rendererIsStale?.()).toBe(false);
+
+		await lifecycle.rebuild();
+		expect(createWorkspaceGraphRenderer).toHaveBeenCalledOnce();
+		expect(renderer.setGraph).toHaveBeenCalledOnce();
+		expect(rendererIsStale?.()).toBe(false);
+
+		lifecycle.dispose();
+		expect(rendererIsStale?.()).toBe(true);
 	});
 
 	it('skips runtime diagnostics until explicitly requested', async () => {
@@ -468,7 +502,9 @@ describe('WorkspaceRendererLifecycle', () => {
 				return g6Renderer;
 			})
 			.mockResolvedValueOnce(sigmaRenderer);
-		vi.mocked(g6Renderer.kill).mockImplementation(() => events.push('kill-g6'));
+		vi.mocked(g6Renderer.kill).mockImplementation(() =>
+			events.push('kill-g6'),
+		);
 		const waitForCanvasSize = vi.fn(async () => {
 			events.push('measure');
 			return true;
@@ -485,8 +521,8 @@ describe('WorkspaceRendererLifecycle', () => {
 		});
 
 		await lifecycle.rebuild();
-		const firstHost = vi.mocked(createWorkspaceGraphRenderer).mock.calls[0]?.[0]
-			.container;
+		const firstHost = vi.mocked(createWorkspaceGraphRenderer).mock
+			.calls[0]?.[0].container;
 		expect(firstHost).not.toBe(canvas);
 		expect(firstHost?.className).toBe('knowledge-workspace-renderer-host');
 		expect(firstHost?.style.position).toBe('absolute');
@@ -498,8 +534,8 @@ describe('WorkspaceRendererLifecycle', () => {
 
 		expect(events).toEqual(['kill-g6', 'measure']);
 		expect(firstHost?.isConnected).toBe(false);
-		const secondHost = vi.mocked(createWorkspaceGraphRenderer).mock.calls[1]?.[0]
-			.container;
+		const secondHost = vi.mocked(createWorkspaceGraphRenderer).mock
+			.calls[1]?.[0].container;
 		expect(secondHost).not.toBe(firstHost);
 		expect(secondHost).not.toBe(canvas);
 		expect(sigmaRenderer.resize).toHaveBeenCalledOnce();

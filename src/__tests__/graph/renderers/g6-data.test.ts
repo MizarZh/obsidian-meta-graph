@@ -8,6 +8,8 @@ import type {
 import type { GraphPalette } from '../../../graph/styles/graph-styles';
 import {
 	createG6StylePatch,
+	createG6LabelStylePatch,
+	resolveG6LabelVisibility,
 	toG6Data,
 } from '../../../graph/renderers/g6/g6-data';
 import {
@@ -53,7 +55,7 @@ describe('G6 data adapter', () => {
 			id: 'A-to-B',
 			source: 'A.md',
 			target: 'B.md',
-			type: 'line',
+			type: 'quadratic',
 			data: {
 				relation: 'leads-to',
 				directed: true,
@@ -76,6 +78,7 @@ describe('G6 data adapter', () => {
 				endArrowSize: [10.125, 12.375],
 				label: true,
 				labelText: 'Leads to',
+				curveOffset: -15,
 			},
 		});
 		expect(data.edges[1]).toMatchObject({
@@ -118,13 +121,68 @@ describe('G6 data adapter', () => {
 		expect(patch.edges).toHaveLength(1);
 		expect(patch.edges[0]).toMatchObject({
 			id: 'A-to-B',
-			type: 'line',
+			type: 'quadratic',
 			style: {
 				stroke: '#fedcba',
 				lineDash: [8, 4, 2, 4],
 				visibility: 'hidden',
 			},
 		});
+	});
+
+	it('creates label-only patches without touching unlabeled edges', () => {
+		const graph = createRuntimeGraph();
+		const patch = createG6LabelStylePatch(
+			graph,
+			{ geometry: 1, label: 1, screen: 1 },
+			resolveG6LabelVisibility(graph, {
+				labelDensity: 1,
+				forceLabels: false,
+			}),
+			{
+				node: { labelFontSize: 9 },
+				edge: { labelFontSize: 9 },
+			},
+		);
+
+		expect(patch.nodes).toHaveLength(2);
+		expect(patch.edges).toHaveLength(1);
+		expect(patch.edges[0]).toMatchObject({
+			id: 'A-to-B',
+			style: { labelFontSize: 9, labelText: 'Leads to' },
+		});
+		expect(patch.edges[0]).not.toHaveProperty('type');
+		expect(patch.edges[0]?.style).not.toHaveProperty('curveOffset');
+	});
+
+	it('uses a stable monotonic node-label budget and explicit force policy', () => {
+		const graph = createRuntimeGraph();
+		graph.setNodeAttribute('B.md', 'hidden', false);
+		graph.setEdgeAttribute('B-related-A', 'label', 'Related');
+
+		const none = resolveG6LabelVisibility(graph, {
+			labelDensity: 0,
+			forceLabels: false,
+		});
+		const half = resolveG6LabelVisibility(graph, {
+			labelDensity: 0.5,
+			forceLabels: false,
+		});
+		const all = resolveG6LabelVisibility(graph, {
+			labelDensity: 1,
+			forceLabels: false,
+		});
+		const forced = resolveG6LabelVisibility(graph, {
+			labelDensity: 0,
+			forceLabels: true,
+		});
+
+		expect(none.nodeIds.size).toBe(0);
+		expect(half.nodeIds.size).toBe(1);
+		expect(all.nodeIds.size).toBe(2);
+		expect(forced.nodeIds.size).toBe(2);
+		expect(all.edgeIds).toEqual(new Set(['A-to-B']));
+		expect(forced.edgeIds).toEqual(new Set(['A-to-B', 'B-related-A']));
 	});
 
 	it('maps every supported shape and line pattern', () => {

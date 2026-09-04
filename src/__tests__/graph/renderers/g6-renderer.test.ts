@@ -10,6 +10,7 @@ import {
 	type G6GraphInstance,
 } from '../../../graph/renderers/g6/g6-renderer';
 import type { G6GraphData } from '../../../graph/renderers/g6/g6-data';
+import type { G6LabelControllerSnapshot } from '../../../graph/renderers/g6/g6-label-controller';
 import { G6_INTERACTION_STATE } from '../../../graph/renderers/g6/g6-styles';
 import type { G6RendererOptions } from '../../../graph/renderers/renderer-options';
 
@@ -43,36 +44,23 @@ describe('G6 renderer', () => {
 					trigger: ['pinch'],
 					animation: false,
 				},
-				{
-					type: 'auto-adapt-label',
-					enable: true,
-					padding: 4,
-				},
-			],
-			transforms: [
-				{
-					type: 'process-parallel-edges',
-					mode: 'bundle',
-					distance: 15,
-					loopMode: 'nested',
-					loopDistance: 15,
-				},
 			],
 		});
 		expect(graphOptions).not.toHaveProperty('layout');
+		expect(graphOptions).not.toHaveProperty('transforms');
 		expect(graphOptions?.data?.nodes?.[0]).toMatchObject({
 			id: 'A.md',
-			style: { x: 10, y: 20 },
-		});
-		expect(graphOptions?.node).toMatchObject({
 			style: {
+				x: 10,
+				y: 20,
 				labelFontSize: 12,
 				labelFontWeight: 'normal',
 				labelFontStyle: 'normal',
 				labelPlacement: 'right',
-				labelOffsetX: 4,
+				labelOffsetX: 24,
 			},
 		});
+		expect(graphOptions?.node).not.toHaveProperty('style');
 	});
 
 	it('coalesces viewport pan in CSS-pixel deltas at every zoom level', async () => {
@@ -401,7 +389,7 @@ describe('G6 renderer', () => {
 		expect(findStates(directTransitionPatch.nodes, 'D.md')).toBeUndefined();
 	});
 
-	it('updates label styling and density without rebuilding the graph', async () => {
+	it('coalesces label appearance updates without updating graph data', async () => {
 		const graph = createRuntimeGraph();
 		const fake = createFakeG6();
 		const renderer = await G6Renderer.create(
@@ -412,22 +400,72 @@ describe('G6 renderer', () => {
 
 		renderer.setLabelSize(9);
 		renderer.setLabelBold(true);
+		renderer.setLabelItalic(true);
+		renderer.setLabelPosition('top');
+		renderer.setLabelOffset(2);
+		renderer.setLabelTheme({
+			labelLightTextColor: '#123456',
+			labelLightBackgroundColor: '#abcdef',
+			labelLightBackgroundOpacity: 0.5,
+			labelDarkTextColor: '#fedcba',
+			labelDarkBackgroundColor: '#654321',
+			labelDarkBackgroundOpacity: 0.5,
+		});
+		await vi.waitFor(() =>
+			expect(fake.updateLabels).toHaveBeenCalledOnce(),
+		);
+
+		expect(fake.setOptions).not.toHaveBeenCalled();
+		expect(fake.updateData).not.toHaveBeenCalled();
+		expect(fake.draw).toHaveBeenCalledOnce();
+		const snapshot = fake.updateLabels.mock.calls[0]?.[0];
+		expect(snapshot?.nodeStyle).toMatchObject({
+			labelFontSize: 9,
+			labelFontWeight: 'bold',
+			labelFontStyle: 'italic',
+			labelFill: '#fedcba',
+			labelPlacement: 'top',
+			labelOffsetX: 0,
+			labelOffsetY: -9,
+		});
+		expect(fake.setData).not.toHaveBeenCalled();
+	});
+
+	it('updates label density through a visibility data patch', async () => {
+		const graph = createRuntimeGraph();
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(graph),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
 		renderer.setLabelDensity(0.5);
 		await vi.waitFor(() => expect(fake.draw).toHaveBeenCalledTimes(2));
 
-		const latestOptions = fake.setOptions.mock.calls.at(-1)?.[0];
-		expect(latestOptions?.node).toMatchObject({
-			style: { labelFontSize: 9, labelFontWeight: 'bold' },
-		});
-		expect(latestOptions?.behaviors).toEqual(
-			expect.arrayContaining([
-				expect.objectContaining({
-					type: 'auto-adapt-label',
-					padding: 16,
-				}),
-			]),
+		expect(fake.updateData).toHaveBeenCalledOnce();
+		const labelPatch = readLastDataPatch(fake.updateData);
+		expect(
+			labelPatch.nodes?.filter((node) => node.style?.label).length,
+		).toBe(1);
+		expect(fake.replaceSnapshot).toHaveBeenCalledOnce();
+	});
+
+	it('does not reconfigure behaviors while an interaction label is active', async () => {
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(createRuntimeGraph()),
+			() => fake.instance,
 		);
-		expect(fake.setData).not.toHaveBeenCalled();
+		if (!renderer) throw new Error('Expected renderer');
+
+		renderer.setHovered('A.md');
+		await Promise.resolve();
+		expect(fake.setOptions).not.toHaveBeenCalled();
+
+		renderer.setHovered(undefined);
+		await Promise.resolve();
+		expect(fake.setOptions).not.toHaveBeenCalled();
 	});
 });
 
@@ -575,6 +613,10 @@ function createFakeG6(afterDraw?: () => void) {
 	const destroy = vi.fn();
 	const setData = vi.fn<(data: G6GraphData) => void>();
 	const updateData = vi.fn();
+	const updateLabels = vi.fn<(snapshot: G6LabelControllerSnapshot) => void>();
+	const replaceSnapshot =
+		vi.fn<(snapshot: G6LabelControllerSnapshot) => void>();
+	const labelController = { updateLabels, replaceSnapshot };
 	const focusElement = vi.fn(async () => undefined);
 	const zoomBy = vi.fn(async (factor: number) => {
 		zoom *= factor;
@@ -599,6 +641,7 @@ function createFakeG6(afterDraw?: () => void) {
 		focusElement,
 		getCanvasCenter: () => canvasCenter,
 		getCanvasByViewport: ([x, y]: [number, number]) => [x + 10, y + 20],
+		getPluginInstance: () => labelController,
 		getViewportByCanvas: ([x, y]: [number, number]) => [x - 10, y - 20],
 		getZoom: () => zoom,
 		off: vi.fn(),
@@ -624,6 +667,8 @@ function createFakeG6(afterDraw?: () => void) {
 		setZoomRange,
 		translateBy,
 		updateData,
+		updateLabels,
+		replaceSnapshot,
 		zoomBy,
 		zoomTo,
 		resizeCanvasTo: (center: [number, number]) => {

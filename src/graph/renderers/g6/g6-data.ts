@@ -10,11 +10,13 @@ import type {
 	RuntimeGraph,
 	RuntimeNodeAttributes,
 } from '../../model/graphology-adapter';
+import { getCanonicalParallelLane } from '../../model/parallel-edges';
 import {
 	createG6EdgeStyle,
 	createG6NodeStyle,
 	resolveG6NodeType,
 	type G6EdgeStyle,
+	type G6LabelStyles,
 	type G6NodeStyle,
 	type G6NodeType,
 	type G6VisualScale,
@@ -58,10 +60,12 @@ export interface G6NodeData extends NodeData {
 
 export interface G6EdgeData extends EdgeData {
 	id: string;
-	type: 'line';
+	type: G6EdgeType;
 	data: G6EdgeMetadata;
 	style: G6EdgeStyle;
 }
+
+export type G6EdgeType = 'line' | 'quadratic';
 
 export interface G6GraphData extends GraphData {
 	nodes: G6NodeData[];
@@ -69,17 +73,39 @@ export interface G6GraphData extends GraphData {
 }
 
 export interface G6StylePatch {
-	nodes: Array<Pick<G6NodeData, 'id' | 'type' | 'style'>>;
-	edges: Array<Pick<G6EdgeData, 'id' | 'type' | 'style'>>;
+	nodes: Array<
+		Pick<G6NodeData, 'id' | 'style'> & Partial<Pick<G6NodeData, 'type'>>
+	>;
+	edges: Array<
+		Pick<G6EdgeData, 'id' | 'style'> & Partial<Pick<G6EdgeData, 'type'>>
+	>;
+}
+
+export interface G6LabelVisibilityOptions {
+	labelDensity: number;
+	forceLabels: boolean;
+}
+
+export interface G6LabelVisibility {
+	nodeIds: ReadonlySet<string>;
+	edgeIds: ReadonlySet<string>;
 }
 
 export function toG6Data(
 	graph: RuntimeGraph,
 	visualScale?: G6VisualScale,
+	labelVisibility?: G6LabelVisibility,
+	labelStyles?: G6LabelStyles,
 ): G6GraphData {
 	return {
 		nodes: graph.mapNodes((nodeId, attributes) =>
-			toG6NodeData(nodeId, attributes, visualScale),
+			toG6NodeData(
+				nodeId,
+				attributes,
+				visualScale,
+				labelVisibility?.nodeIds.has(nodeId),
+				labelStyles?.node,
+			),
 		),
 		edges: graph.mapEdges((edgeId, attributes, source, target) =>
 			toG6EdgeData(
@@ -89,6 +115,8 @@ export function toG6Data(
 				attributes,
 				graph.isDirected(edgeId),
 				visualScale,
+				labelVisibility?.edgeIds.has(edgeId),
+				labelStyles?.edge,
 			),
 		),
 	};
@@ -98,6 +126,8 @@ export function createG6StylePatch(
 	graph: RuntimeGraph,
 	changes: { nodeIds: readonly string[]; edgeIds: readonly string[] },
 	visualScale?: G6VisualScale,
+	labelVisibility?: G6LabelVisibility,
+	labelStyles?: G6LabelStyles,
 ): G6StylePatch {
 	return {
 		nodes: changes.nodeIds.flatMap((nodeId) => {
@@ -107,32 +137,175 @@ export function createG6StylePatch(
 				{
 					id: nodeId,
 					type: resolveG6NodeType(attributes.type),
-					style: createG6NodeStyle(attributes, visualScale),
+					style: createG6NodeStyle(
+						attributes,
+						visualScale,
+						labelVisibility?.nodeIds.has(nodeId),
+						labelStyles?.node,
+					),
 				},
 			];
 		}),
 		edges: changes.edgeIds.flatMap((edgeId) => {
 			if (!graph.hasEdge(edgeId)) return [];
 			const attributes = graph.getEdgeAttributes(edgeId);
+			const source = graph.source(edgeId);
+			const target = graph.target(edgeId);
 			return [
 				{
 					id: edgeId,
-					type: 'line' as const,
-					style: createG6EdgeStyle(
-						attributes,
-						graph.isDirected(edgeId),
-						visualScale,
-					),
+					type: resolveG6EdgeType(attributes, source, target),
+					style: {
+						...createG6EdgeStyle(
+							attributes,
+							graph.isDirected(edgeId),
+							visualScale,
+							labelVisibility?.edgeIds.has(edgeId),
+							labelStyles?.edge,
+						),
+						...resolveG6ParallelEdgeStyle(
+							attributes,
+							source,
+							target,
+							visualScale,
+						),
+					},
 				},
 			];
 		}),
 	};
 }
 
+export function createG6LabelStylePatch(
+	graph: RuntimeGraph,
+	visualScale: G6VisualScale,
+	labelVisibility: G6LabelVisibility,
+	labelStyles: G6LabelStyles,
+): G6StylePatch {
+	return {
+		nodes: graph.nodes().flatMap((nodeId) => {
+			const attributes = graph.getNodeAttributes(nodeId);
+			if (!attributes.label) return [];
+			const hidden = Boolean(attributes.hidden || attributes.isBend);
+			return [
+				{
+					id: nodeId,
+					style: {
+						...labelStyles.node,
+						label: !hidden && labelVisibility.nodeIds.has(nodeId),
+						labelText: attributes.label,
+					},
+				},
+			];
+		}),
+		edges: graph.edges().flatMap((edgeId) => {
+			const attributes = graph.getEdgeAttributes(edgeId);
+			if (!attributes.label) return [];
+			return [
+				{
+					id: edgeId,
+					style: {
+						...labelStyles.edge,
+						label:
+							!attributes.hidden &&
+							labelVisibility.edgeIds.has(edgeId),
+						labelText: attributes.label,
+						labelOpacity: normalizeOpacity(attributes.opacity),
+					},
+				},
+			];
+		}),
+	};
+}
+
+export function resolveG6EdgeType(
+	attributes: RuntimeEdgeAttributes,
+	source: string,
+	target: string,
+): G6EdgeType {
+	return source === target || (attributes.parallelCount ?? 1) > 1
+		? 'quadratic'
+		: 'line';
+}
+
+export function resolveG6ParallelEdgeStyle(
+	attributes: RuntimeEdgeAttributes,
+	source: string,
+	target: string,
+	visualScale?: G6VisualScale,
+): G6EdgeStyle {
+	const geometryScale = visualScale?.geometry ?? 1;
+	if (source === target) {
+		const count = Math.max(1, attributes.parallelCount ?? 1);
+		const lane = attributes.parallelLane ?? 0;
+		const index = Math.max(0, Math.min(count - 1, lane + (count - 1) / 2));
+		return {
+			loopPlacement: 'top',
+			loopDist: (35 + index * 15) * geometryScale,
+		};
+	}
+	if ((attributes.parallelCount ?? 1) <= 1) return {};
+	return {
+		curveOffset: getCanonicalParallelLane(attributes) * 30 * geometryScale,
+	};
+}
+
+/** Chooses a stable, monotonic label budget without a collision pass. */
+export function resolveG6LabelVisibility(
+	graph: RuntimeGraph,
+	options: G6LabelVisibilityOptions,
+): G6LabelVisibility {
+	const density = Math.min(1, Math.max(0, finiteOr(options.labelDensity, 1)));
+	const candidates = graph
+		.mapNodes((nodeId, attributes) => ({
+			id: nodeId,
+			attributes,
+			degree: graph.degree(nodeId),
+		}))
+		.filter(
+			({ attributes }) =>
+				!attributes.hidden &&
+				!attributes.isBend &&
+				Boolean(attributes.label),
+		)
+		.sort((left, right) => {
+			if (
+				Boolean(left.attributes.isPrimary) !==
+				Boolean(right.attributes.isPrimary)
+			) {
+				return left.attributes.isPrimary ? -1 : 1;
+			}
+			if (left.attributes.size !== right.attributes.size) {
+				return right.attributes.size - left.attributes.size;
+			}
+			if (left.degree !== right.degree) return right.degree - left.degree;
+			return left.id.localeCompare(right.id);
+		});
+	const nodeBudget = options.forceLabels
+		? candidates.length
+		: Math.ceil(candidates.length * density);
+	const nodeIds = new Set(
+		candidates.slice(0, nodeBudget).map(({ id }) => id),
+	);
+	const edgeIds = new Set<string>();
+	graph.forEachEdge((edgeId, attributes) => {
+		if (
+			!attributes.hidden &&
+			Boolean(attributes.label) &&
+			(options.forceLabels || attributes.forceLabel)
+		) {
+			edgeIds.add(edgeId);
+		}
+	});
+	return { nodeIds, edgeIds };
+}
+
 function toG6NodeData(
 	nodeId: string,
 	attributes: RuntimeNodeAttributes,
 	visualScale?: G6VisualScale,
+	labelVisible?: boolean,
+	labelStyle?: G6NodeStyle,
 ): G6NodeData {
 	return {
 		id: nodeId,
@@ -149,7 +322,12 @@ function toG6NodeData(
 			fixed: Boolean(attributes.fixed),
 			isBend: Boolean(attributes.isBend),
 		},
-		style: createG6NodeStyle(attributes, visualScale),
+		style: createG6NodeStyle(
+			attributes,
+			visualScale,
+			labelVisible,
+			labelStyle,
+		),
 	};
 }
 
@@ -160,12 +338,14 @@ function toG6EdgeData(
 	attributes: RuntimeEdgeAttributes,
 	directed: boolean,
 	visualScale?: G6VisualScale,
+	labelVisible?: boolean,
+	labelStyle?: G6EdgeStyle,
 ): G6EdgeData {
 	return {
 		id: edgeId,
 		source,
 		target,
-		type: 'line',
+		type: resolveG6EdgeType(attributes, source, target),
 		data: {
 			relation: attributes.relation,
 			sourcePath: attributes.sourcePath,
@@ -182,6 +362,32 @@ function toG6EdgeData(
 			parallelCount: attributes.parallelCount ?? 1,
 			parallelDirection: attributes.parallelDirection ?? 1,
 		},
-		style: createG6EdgeStyle(attributes, directed, visualScale),
+		style: {
+			...createG6EdgeStyle(
+				attributes,
+				directed,
+				visualScale,
+				labelVisible,
+				labelStyle,
+			),
+			...resolveG6ParallelEdgeStyle(
+				attributes,
+				source,
+				target,
+				visualScale,
+			),
+		},
 	};
+}
+
+function normalizeOpacity(value: number | undefined): number {
+	const opacity =
+		typeof value === 'number' && Number.isFinite(value) ? value : 1;
+	return Math.min(1, Math.max(0, opacity));
+}
+
+function finiteOr(value: number | undefined, fallback: number): number {
+	return typeof value === 'number' && Number.isFinite(value)
+		? value
+		: fallback;
 }

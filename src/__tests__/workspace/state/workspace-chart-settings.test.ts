@@ -12,6 +12,7 @@ import {
 	setFlowRelationRulesInState,
 	setFlowSpacingInState,
 	setLabelDensityInState,
+	setLabelSizeInState,
 	setThreeLabelResolutionInState,
 } from '../../../workspace/state/chart-settings';
 import { createWorkspaceState } from '../../../workspace/state/workspace-state';
@@ -30,6 +31,24 @@ describe('workspace chart settings', () => {
 		const state = createWorkspaceState(100, 1.5);
 
 		expect(setLabelDensityInState(state, state.labelDensity)).toBe(state);
+	});
+
+	it('changes one display value without replacing layout or style state', () => {
+		const state = createWorkspaceState(100, 1.5);
+		const activeChart = getActiveChart(state);
+
+		const nextState = setLabelSizeInState(state, state.labelSize + 1);
+		const nextChart = getActiveChart(nextState);
+
+		expect(nextState.labelSize).toBe(state.labelSize + 1);
+		expect(nextChart.display.labelSize).toBe(state.labelSize + 1);
+		expect(nextState.grouping).toBe(state.grouping);
+		expect(nextState.manualLayout).toBe(state.manualLayout);
+		expect(nextState.nodeStyleRules).toBe(state.nodeStyleRules);
+		expect(nextState.linkStyleRules).toBe(state.linkStyleRules);
+		expect(nextChart.layout).toBe(activeChart.layout);
+		expect(nextChart.style).toBe(activeChart.style);
+		expect(nextState.layoutRevision).toBe(state.layoutRevision);
 	});
 
 	it('stores 3D text resolution on the active chart', () => {

@@ -17,6 +17,8 @@ All notable changes to Meta Graph are documented here.
 - Delayed G6 viewport event binding until its initial draw completes, preventing initialization-time `getZoom()` failures.
 - Isolated every renderer in an owned DOM host and tears down renderer changes before measuring the next view, preventing G6 Canvas container styles from collapsing Sigma into an off-screen one-pixel viewport after switching back.
 - Replaced G6 rendered-bounds fitting with Sigma-compatible coordinate fitting, so both renderers fill the same 30px-padded frame at logical 100% regardless of labels, arrows, node sizes, Groups, or parallel edges. G6 rebases the frame across resize and graph-extent changes and keeps the shared 25%-400% range.
+- Moved live G6 label appearance edits onto lightweight label-subshape updates, bypassing graph data updates and full node/edge draw lifecycles; density changes still use data patches for correct visibility.
+- Prevented display-only chart edits from cloning unrelated grouping, manual-layout, and style state, which had caused false graph rebuilds. Reused renderers now retain a live lifetime token across legitimate same-kind rebuilds instead of becoming permanently stale.
 
 ### Changed
 
@@ -28,6 +30,8 @@ All notable changes to Meta Graph are documented here.
 - Replaced G6's built-in canvas drag delta with frame-coalesced CSS-pixel `dx`/`dy`, keeping viewport movement 1:1 with the pointer across zoom and display scaling.
 - Changed Sigma and G6 node, edge, arrow, and Group base geometry to shared linear physical scaling: 25% renders at 0.25x, 100% at 1x, and 400% at 4x. Hover/selection emphasis remains fixed in screen pixels, while optional label scaling uses a gentler square-root curve.
 - Namespaced G6 interaction states to prevent built-in theme selection styles from overriding Meta Graph label sizes and borders. Edge emphasis now matches Sigma without a wide halo, and node hover/selection halos use compact fixed-pixel widths.
+- Aligned G6 label controls with their workspace semantics: offset now scales from rendered font size, density uses a stable monotonic label budget without G6's quadratic collision scan, and **Always show labels** includes labeled edges.
+- Moved G6 parallel-edge routing from the runtime transform into deterministic data-adapter geometry, preserving stable lanes without rerouting every edge after unrelated style changes.
 
 ## [1.7.0] - 2026-09-04
 
