@@ -16,19 +16,35 @@ describe('G6 renderer', () => {
 	it('draws existing coordinates without invoking a G6 layout', async () => {
 		const graph = createRuntimeGraph();
 		const fake = createFakeG6();
-		let graphOptions: Parameters<NonNullable<Parameters<typeof G6Renderer.create>[1]>>[0] | undefined;
+		let graphOptions:
+			| Parameters<
+					NonNullable<Parameters<typeof G6Renderer.create>[1]>
+			  >[0]
+			| undefined;
 
-		const renderer = await G6Renderer.create(createOptions(graph), (options) => {
-			graphOptions = options;
-			return fake.instance;
-		});
+		const renderer = await G6Renderer.create(
+			createOptions(graph),
+			(options) => {
+				graphOptions = options;
+				return fake.instance;
+			},
+		);
 
 		expect(renderer).toBeDefined();
 		expect(fake.draw).toHaveBeenCalledOnce();
 		expect(graphOptions).toMatchObject({
 			animation: false,
-			zoomRange: [0.25, 4],
-			behaviors: ['drag-canvas', 'zoom-canvas'],
+			padding: 30,
+			zoomRange: [0.001, 1000],
+			behaviors: [
+				'drag-canvas',
+				'zoom-canvas',
+				{
+					type: 'auto-adapt-label',
+					enable: true,
+					padding: 4,
+				},
+			],
 			transforms: [
 				{
 					type: 'process-parallel-edges',
@@ -43,6 +59,15 @@ describe('G6 renderer', () => {
 		expect(graphOptions?.data?.nodes?.[0]).toMatchObject({
 			id: 'A.md',
 			style: { x: 10, y: 20 },
+		});
+		expect(graphOptions?.node).toMatchObject({
+			style: {
+				labelFontSize: 12,
+				labelFontWeight: 'normal',
+				labelFontStyle: 'normal',
+				labelPlacement: 'right',
+				labelOffsetX: 4,
+			},
 		});
 	});
 
@@ -68,9 +93,9 @@ describe('G6 renderer', () => {
 		await expect(
 			G6Renderer.create(createOptions(graph), () => instance),
 		).resolves.toBeDefined();
-		expect(draw).toHaveBeenCalledOnce();
+		expect(draw).toHaveBeenCalledTimes(2);
 		expect(on).toHaveBeenCalledOnce();
-		expect(getZoom).toHaveBeenCalledOnce();
+		expect(getZoom).toHaveBeenCalledTimes(2);
 	});
 
 	it('resolves visible node hits for dock-to-graph dragging', async () => {
@@ -83,12 +108,18 @@ describe('G6 renderer', () => {
 		if (!renderer) throw new Error('Expected renderer');
 
 		expect(renderer.getNodeAtViewportPosition({ x: 1, y: 1 })).toBe('A.md');
-		expect(renderer.getNodeAtViewportPosition({ x: 400, y: 400 })).toBeUndefined();
+		expect(
+			renderer.getNodeAtViewportPosition({ x: 400, y: 400 }),
+		).toBeUndefined();
 
 		graph.setNodeAttribute('A.md', 'hidden', true);
 		graph.setNodeAttribute('B.md', 'isBend', true);
-		expect(renderer.getNodeAtViewportPosition({ x: 1, y: 1 })).toBeUndefined();
-		expect(renderer.getNodeAtViewportPosition({ x: 21, y: 1 })).toBeUndefined();
+		expect(
+			renderer.getNodeAtViewportPosition({ x: 1, y: 1 }),
+		).toBeUndefined();
+		expect(
+			renderer.getNodeAtViewportPosition({ x: 21, y: 1 }),
+		).toBeUndefined();
 	});
 
 	it('supports zoom, fit, focus, coordinates, and zoom listeners', async () => {
@@ -109,10 +140,6 @@ describe('G6 renderer', () => {
 
 		expect(fake.zoomBy).toHaveBeenCalledWith(1.1, { duration: 180 });
 		expect(fake.zoomTo).toHaveBeenCalledWith(4, false);
-		expect(fake.fitView).toHaveBeenCalledWith(
-			{ when: 'always', direction: 'both' },
-			{ duration: 350 },
-		);
 		expect(fake.focusElement).toHaveBeenCalledWith('A.md', {
 			duration: 350,
 		});
@@ -125,8 +152,14 @@ describe('G6 renderer', () => {
 			y: 3,
 		});
 
+		await vi.waitFor(() => {
+			expect(fake.setZoomRange).toHaveBeenCalledWith([135, 2160]);
+			expect(fake.zoomTo).toHaveBeenLastCalledWith(540, false);
+			expect(fake.translateBy).toHaveBeenCalledWith([400, 300], false);
+			expect(zoomListener).toHaveBeenCalledWith(100);
+		});
 		fake.emitTransform();
-		expect(zoomListener).toHaveBeenCalledWith(400);
+		expect(zoomListener).toHaveBeenLastCalledWith(100);
 	});
 
 	it('updates data with draw and destroys stale initial renders', async () => {
@@ -152,6 +185,62 @@ describe('G6 renderer', () => {
 		);
 		expect(staleRenderer).toBeUndefined();
 		expect(staleFake.destroy).toHaveBeenCalledOnce();
+	});
+
+	it('rebases the Sigma-compatible frame when graph extents change', async () => {
+		const graph = createRuntimeGraph();
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(graph),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		renderer.fit();
+		await vi.waitFor(() =>
+			expect(fake.zoomTo).toHaveBeenLastCalledWith(540, false),
+		);
+
+		const expandedGraph = createRuntimeGraph();
+		expandedGraph.addNode('B.md', {
+			label: 'A very long label that must not affect coordinate fitting',
+			x: 110,
+			y: 120,
+			size: 80,
+			color: '#234567',
+			path: 'B.md',
+			folder: '',
+			domains: [],
+			tags: [],
+		});
+		renderer.setGraph(expandedGraph);
+
+		await vi.waitFor(() =>
+			expect(fake.zoomTo).toHaveBeenLastCalledWith(5.4, false),
+		);
+		expect(renderer.getZoomLevel()).toBe(100);
+	});
+
+	it('rebases native zoom on resize without changing logical zoom', async () => {
+		const graph = createRuntimeGraph();
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(graph),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		renderer.fit();
+		await vi.waitFor(() =>
+			expect(fake.zoomTo).toHaveBeenLastCalledWith(540, false),
+		);
+		fake.resizeCanvasTo([400, 500]);
+		renderer.resize();
+
+		await vi.waitFor(() =>
+			expect(fake.zoomTo).toHaveBeenLastCalledWith(740, false),
+		);
+		expect(renderer.getZoomLevel()).toBe(100);
 	});
 
 	it('maps selection and hover semantics to incremental G6 states', async () => {
@@ -184,6 +273,35 @@ describe('G6 renderer', () => {
 			'dimmed',
 			'selected',
 		]);
+	});
+
+	it('updates label styling and density without rebuilding the graph', async () => {
+		const graph = createRuntimeGraph();
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(graph),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		renderer.setLabelSize(9);
+		renderer.setLabelBold(true);
+		renderer.setLabelDensity(0.5);
+		await vi.waitFor(() => expect(fake.draw).toHaveBeenCalledTimes(4));
+
+		const latestOptions = fake.setOptions.mock.calls.at(-1)?.[0];
+		expect(latestOptions?.node).toMatchObject({
+			style: { labelFontSize: 9, labelFontWeight: 'bold' },
+		});
+		expect(latestOptions?.behaviors).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					type: 'auto-adapt-label',
+					padding: 16,
+				}),
+			]),
+		);
+		expect(fake.setData).not.toHaveBeenCalled();
 	});
 });
 
@@ -292,6 +410,8 @@ function createOptions(graph: RuntimeGraph): G6RendererOptions {
 
 function createFakeG6(afterDraw?: () => void) {
 	let zoom = 1;
+	let canvasCenter: [number, number] = [400, 300];
+	let nextCanvasCenter: [number, number] | undefined;
 	let transformListener: (() => void) | undefined;
 	const draw = vi.fn(async () => {
 		afterDraw?.();
@@ -299,7 +419,6 @@ function createFakeG6(afterDraw?: () => void) {
 	const destroy = vi.fn();
 	const setData = vi.fn<(data: G6GraphData) => void>();
 	const updateData = vi.fn();
-	const fitView = vi.fn(async () => undefined);
 	const focusElement = vi.fn(async () => undefined);
 	const zoomBy = vi.fn(async (factor: number) => {
 		zoom *= factor;
@@ -307,11 +426,22 @@ function createFakeG6(afterDraw?: () => void) {
 	const zoomTo = vi.fn(async (value: number) => {
 		zoom = value;
 	});
+	const setOptions =
+		vi.fn<
+			(options: Parameters<G6GraphInstance['setOptions']>[0]) => void
+		>();
+	const setZoomRange = vi.fn();
+	const translateBy = vi.fn(async () => undefined);
+	const resize = vi.fn(() => {
+		if (!nextCanvasCenter) return;
+		canvasCenter = nextCanvasCenter;
+		nextCanvasCenter = undefined;
+	});
 	const instance = {
 		destroy,
 		draw,
-		fitView,
 		focusElement,
+		getCanvasCenter: () => canvasCenter,
 		getCanvasByViewport: ([x, y]: [number, number]) => [x + 10, y + 20],
 		getViewportByCanvas: ([x, y]: [number, number]) => [x - 10, y - 20],
 		getZoom: () => zoom,
@@ -319,9 +449,11 @@ function createFakeG6(afterDraw?: () => void) {
 		on: vi.fn((_event: string, listener: () => void) => {
 			transformListener = listener;
 		}),
-		resize: vi.fn(),
+		resize,
 		setData,
-		setOptions: vi.fn(),
+		setOptions,
+		setZoomRange,
+		translateBy,
 		updateData,
 		zoomBy,
 		zoomTo,
@@ -330,12 +462,17 @@ function createFakeG6(afterDraw?: () => void) {
 		instance,
 		destroy,
 		draw,
-		fitView,
 		focusElement,
 		setData,
+		setOptions,
+		setZoomRange,
+		translateBy,
 		updateData,
 		zoomBy,
 		zoomTo,
+		resizeCanvasTo: (center: [number, number]) => {
+			nextCanvasCenter = center;
+		},
 		emitTransform: () => transformListener?.(),
 	};
 }

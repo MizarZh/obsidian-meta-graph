@@ -5,7 +5,10 @@ import type {
 	RuntimeGraph,
 	RuntimeNodeAttributes,
 } from '../../../graph/model/graphology-adapter';
-import { createG6StylePatch, toG6Data } from '../../../graph/renderers/g6/g6-data';
+import {
+	createG6StylePatch,
+	toG6Data,
+} from '../../../graph/renderers/g6/g6-data';
 import {
 	resolveG6LineDash,
 	resolveG6NodeType,
@@ -67,7 +70,7 @@ describe('G6 data adapter', () => {
 				opacity: 0.75,
 				endArrow: true,
 				endArrowType: 'vee',
-				endArrowSize: 12,
+				endArrowSize: [10.125, 12.375],
 				label: true,
 				labelText: 'Leads to',
 			},

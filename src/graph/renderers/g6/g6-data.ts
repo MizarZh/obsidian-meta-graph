@@ -17,6 +17,7 @@ import {
 	type G6EdgeStyle,
 	type G6NodeStyle,
 	type G6NodeType,
+	type G6VisualScale,
 } from './g6-styles';
 
 export interface G6NodeMetadata extends Record<string, unknown> {
@@ -72,10 +73,13 @@ export interface G6StylePatch {
 	edges: Array<Pick<G6EdgeData, 'id' | 'type' | 'style'>>;
 }
 
-export function toG6Data(graph: RuntimeGraph): G6GraphData {
+export function toG6Data(
+	graph: RuntimeGraph,
+	visualScale?: G6VisualScale,
+): G6GraphData {
 	return {
 		nodes: graph.mapNodes((nodeId, attributes) =>
-			toG6NodeData(nodeId, attributes),
+			toG6NodeData(nodeId, attributes, visualScale),
 		),
 		edges: graph.mapEdges((edgeId, attributes, source, target) =>
 			toG6EdgeData(
@@ -84,6 +88,7 @@ export function toG6Data(graph: RuntimeGraph): G6GraphData {
 				target,
 				attributes,
 				graph.isDirected(edgeId),
+				visualScale,
 			),
 		),
 	};
@@ -92,6 +97,7 @@ export function toG6Data(graph: RuntimeGraph): G6GraphData {
 export function createG6StylePatch(
 	graph: RuntimeGraph,
 	changes: { nodeIds: readonly string[]; edgeIds: readonly string[] },
+	visualScale?: G6VisualScale,
 ): G6StylePatch {
 	return {
 		nodes: changes.nodeIds.flatMap((nodeId) => {
@@ -101,7 +107,7 @@ export function createG6StylePatch(
 				{
 					id: nodeId,
 					type: resolveG6NodeType(attributes.type),
-					style: createG6NodeStyle(attributes),
+					style: createG6NodeStyle(attributes, visualScale),
 				},
 			];
 		}),
@@ -115,6 +121,7 @@ export function createG6StylePatch(
 					style: createG6EdgeStyle(
 						attributes,
 						graph.isDirected(edgeId),
+						visualScale,
 					),
 				},
 			];
@@ -125,6 +132,7 @@ export function createG6StylePatch(
 function toG6NodeData(
 	nodeId: string,
 	attributes: RuntimeNodeAttributes,
+	visualScale?: G6VisualScale,
 ): G6NodeData {
 	return {
 		id: nodeId,
@@ -141,7 +149,7 @@ function toG6NodeData(
 			fixed: Boolean(attributes.fixed),
 			isBend: Boolean(attributes.isBend),
 		},
-		style: createG6NodeStyle(attributes),
+		style: createG6NodeStyle(attributes, visualScale),
 	};
 }
 
@@ -151,6 +159,7 @@ function toG6EdgeData(
 	target: string,
 	attributes: RuntimeEdgeAttributes,
 	directed: boolean,
+	visualScale?: G6VisualScale,
 ): G6EdgeData {
 	return {
 		id: edgeId,
@@ -173,6 +182,6 @@ function toG6EdgeData(
 			parallelCount: attributes.parallelCount ?? 1,
 			parallelDirection: attributes.parallelDirection ?? 1,
 		},
-		style: createG6EdgeStyle(attributes, directed),
+		style: createG6EdgeStyle(attributes, directed, visualScale),
 	};
 }

@@ -20,7 +20,6 @@ import type {
 interface G6GroupViewport {
 	on(event: GraphEvent, listener: () => void): unknown;
 	off(event: GraphEvent, listener: () => void): unknown;
-	getZoom(): number;
 }
 
 interface GroupMove {
@@ -86,6 +85,7 @@ export class G6GroupLayer {
 			x: number;
 			y: number;
 		}) => { x: number; y: number },
+		private readonly getNodeVisualScale: () => number = () => 1,
 	) {
 		this.activeDocument = container.ownerDocument;
 		this.layer = this.activeDocument.createElement('div');
@@ -173,20 +173,30 @@ export class G6GroupLayer {
 	}
 
 	update(): void {
-		this.layer.hidden = this.groups.length === 0 && this.geometries.length === 0;
+		this.layer.hidden =
+			this.groups.length === 0 && this.geometries.length === 0;
 		for (const group of this.groups) {
 			const element = this.getOrCreateGroupElement(group);
 			const rect = this.readGroupViewportRect(group);
 			element.classList.toggle('movable', group.movable !== false);
 			element.classList.toggle('shape-circle', group.shape === 'circle');
-			element.classList.toggle('selected', group.id === this.selectedGroupId);
-			element.classList.toggle('hovered', group.id === this.hoveredGroupId);
+			element.classList.toggle(
+				'selected',
+				group.id === this.selectedGroupId,
+			);
+			element.classList.toggle(
+				'hovered',
+				group.id === this.hoveredGroupId,
+			);
 			element.classList.toggle('muted-by-focus', this.isMuted(group.id));
 			element.style.left = `${rect.left}px`;
 			element.style.top = `${rect.top}px`;
 			element.style.width = `${rect.width}px`;
 			element.style.height = `${rect.height}px`;
-			element.style.setProperty('--knowledge-workspace-group-color', group.color);
+			element.style.setProperty(
+				'--knowledge-workspace-group-color',
+				group.color,
+			);
 			const title = element.querySelector<HTMLElement>(
 				'.knowledge-workspace-group-title',
 			);
@@ -243,10 +253,17 @@ export class G6GroupLayer {
 			startGraph: this.viewportToGraph(this.readViewportPoint(event)),
 			lastDelta: { x: 0, y: 0 },
 		};
-		this.activeDocument.addEventListener('pointermove', this.handlePointerMove);
-		this.activeDocument.addEventListener('pointerup', this.handlePointerUp, {
-			once: true,
-		});
+		this.activeDocument.addEventListener(
+			'pointermove',
+			this.handlePointerMove,
+		);
+		this.activeDocument.addEventListener(
+			'pointerup',
+			this.handlePointerUp,
+			{
+				once: true,
+			},
+		);
 	}
 
 	private endMove(): void {
@@ -255,7 +272,10 @@ export class G6GroupLayer {
 			'pointermove',
 			this.handlePointerMove,
 		);
-		this.activeDocument.removeEventListener('pointerup', this.handlePointerUp);
+		this.activeDocument.removeEventListener(
+			'pointerup',
+			this.handlePointerUp,
+		);
 	}
 
 	private readMoveDelta(event: PointerEvent): { x: number; y: number } {
@@ -282,7 +302,10 @@ export class G6GroupLayer {
 		group: GroupOverlayGroup,
 	): ViewportGroupRect {
 		const normalized = normalizeGroupFrameForShape(group, group.shape);
-		const first = this.graphToViewport({ x: normalized.x, y: normalized.y });
+		const first = this.graphToViewport({
+			x: normalized.x,
+			y: normalized.y,
+		});
 		const second = this.graphToViewport({
 			x: normalized.x + normalized.width,
 			y: normalized.y + normalized.height,
@@ -299,20 +322,22 @@ export class G6GroupLayer {
 		group: GroupOverlayGroup,
 	): ViewportGroupRect {
 		const graph = this.getGraph();
-		const zoom = Math.max(0, this.viewport.getZoom());
-		const nodes: ViewportCircleMember[] = (group.dynamicNodeIds ?? []).flatMap(
-			(nodeId) => {
-				if (!graph.hasNode(nodeId)) return [];
-				const attributes = graph.getNodeAttributes(nodeId);
-				if (attributes.hidden || attributes.isBend) return [];
-				return [
-					{
-						...this.graphToViewport(attributes),
-						radius: Math.max(0, attributes.size * zoom),
-					},
-				];
-			},
-		);
+		const nodes: ViewportCircleMember[] = (
+			group.dynamicNodeIds ?? []
+		).flatMap((nodeId) => {
+			if (!graph.hasNode(nodeId)) return [];
+			const attributes = graph.getNodeAttributes(nodeId);
+			if (attributes.hidden || attributes.isBend) return [];
+			return [
+				{
+					...this.graphToViewport(attributes),
+					radius: Math.max(
+						0,
+						attributes.size * this.getNodeVisualScale(),
+					),
+				},
+			];
+		});
 		if (nodes.length === 0) return emptyRect();
 		const scaledPadding = scaleLayoutGroupPadding(group.padding) * 40;
 		if (group.shape === 'circle') {
@@ -344,7 +369,6 @@ export class G6GroupLayer {
 	private updateMemberHalos(): void {
 		const activeKeys = new Set<string>();
 		const graph = this.getGraph();
-		const zoom = Math.max(0, this.viewport.getZoom());
 		for (const geometry of this.geometries) {
 			for (const nodeId of geometry.nodeIds) {
 				if (!graph.hasNode(nodeId)) continue;
@@ -354,7 +378,10 @@ export class G6GroupLayer {
 				activeKeys.add(key);
 				const halo = this.getOrCreateHalo(key);
 				const center = this.graphToViewport(attributes);
-				const radius = Math.max(4, attributes.size * zoom + 3);
+				const radius = Math.max(
+					4,
+					attributes.size * this.getNodeVisualScale() + 3,
+				);
 				halo.style.left = `${center.x - radius}px`;
 				halo.style.top = `${center.y - radius}px`;
 				halo.style.width = `${radius * 2}px`;
@@ -391,7 +418,8 @@ export class G6GroupLayer {
 	}
 
 	private isMuted(groupId: string): boolean {
-		if (!this.focusedNodeId || !this.callbacks.getGroupNodeIds) return false;
+		if (!this.focusedNodeId || !this.callbacks.getGroupNodeIds)
+			return false;
 		for (const nodeId of this.callbacks.getGroupNodeIds(groupId)) {
 			if (nodeId === this.focusedNodeId) return false;
 		}
