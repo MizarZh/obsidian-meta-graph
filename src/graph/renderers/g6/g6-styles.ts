@@ -1,9 +1,10 @@
-import type { EdgeData, NodeData } from '@antv/g6';
+import type { EdgeData, EdgeOptions, NodeData, NodeOptions } from '@antv/g6';
 import type { LinkLineStyle, NodeShape } from '../../../core/types';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeNodeAttributes,
 } from '../../model/graphology-adapter';
+import type { GraphPalette } from '../../styles/graph-styles';
 
 export type G6NodeStyle = NonNullable<NodeData['style']>;
 export type G6EdgeStyle = NonNullable<EdgeData['style']>;
@@ -13,6 +14,73 @@ export type G6NodeType =
 
 const NODE_DIAMETER_SCALE = 2;
 const DEFAULT_ARROW_SIZE = 8;
+
+export function createG6InteractionStyles(palette: GraphPalette): {
+	node: Pick<NodeOptions, 'state'>;
+	edge: Pick<EdgeOptions, 'state'>;
+} {
+	return {
+		node: {
+			state: {
+				dimmed: {
+					fill: palette.mutedNode,
+					opacity: 0.18,
+					label: false,
+				},
+				hovered: (data) => ({
+					size: readNumericSize(data.style?.size) + 4,
+					halo: true,
+					haloLineWidth: 12,
+					haloStroke: data.style?.fill,
+					haloStrokeOpacity: 0.35,
+					label: true,
+					zIndex: 3,
+				}),
+				selected: (data) => ({
+					size: readNumericSize(data.style?.size) + 6,
+					fill: palette.selected,
+					halo: true,
+					haloLineWidth: 16,
+					haloStroke: palette.selected,
+					haloStrokeOpacity: 0.4,
+					label: true,
+					zIndex: 4,
+				}),
+			},
+		},
+		edge: {
+			state: {
+				dimmed: {
+					stroke: palette.mutedEdge,
+					lineWidth: 0.4,
+					opacity: 0.12,
+					label: false,
+				},
+				connected: (data) => ({
+					lineWidth: readNumericSize(data.style?.lineWidth) + 1,
+					zIndex: 2,
+				}),
+				hovered: (data) => ({
+					lineWidth: readNumericSize(data.style?.lineWidth) + 2,
+					halo: true,
+					haloStroke: data.style?.stroke,
+					haloStrokeOpacity: 0.2,
+					zIndex: 3,
+				}),
+				selected: (data) => ({
+					stroke: palette.selected,
+					lineWidth: readNumericSize(data.style?.lineWidth) + 2,
+					endArrowFill: palette.selected,
+					endArrowStroke: palette.selected,
+					halo: true,
+					haloStroke: palette.selected,
+					haloStrokeOpacity: 0.25,
+					zIndex: 4,
+				}),
+			},
+		},
+	};
+}
 
 export function resolveG6NodeType(shape: NodeShape = 'circle'): G6NodeType {
 	return shape === 'square' ? 'rect' : shape;
@@ -96,4 +164,8 @@ function finiteOr(value: number | undefined, fallback: number): number {
 	return typeof value === 'number' && Number.isFinite(value)
 		? value
 		: fallback;
+}
+
+function readNumericSize(value: unknown): number {
+	return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }

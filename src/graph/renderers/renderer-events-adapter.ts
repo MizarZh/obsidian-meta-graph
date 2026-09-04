@@ -2,11 +2,13 @@ import { bindCube3DEvents } from './cube-3d/cube-3d-events';
 import type { Cube3DRenderer } from './cube-3d/cube-3d-renderer';
 import { bindForce3DEvents } from './force-3d/force-3d-events';
 import type { Force3DRenderer } from './force-3d/force-3d-renderer';
+import { bindG6Events } from './g6/g6-events';
 import type { GraphEventCallbacks } from './renderer-events';
 import { bindGraphEvents } from './sigma/sigma-events';
 import {
 	isCube3DRenderer,
 	isForce3DRenderer,
+	isG6Renderer,
 	isSigmaRenderer,
 	type GraphRenderer,
 	type PlanarRenderer,
@@ -32,6 +34,10 @@ export function bindRendererEvents(
 
 	if (isSigmaRenderer(renderer)) {
 		return bindGraphEvents(renderer, bindings.planar(renderer));
+	}
+
+	if (isG6Renderer(renderer)) {
+		return bindG6Events(renderer, bindings.planar(renderer));
 	}
 
 	return () => undefined;

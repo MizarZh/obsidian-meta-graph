@@ -99,6 +99,38 @@ describe('G6 renderer', () => {
 		expect(staleRenderer).toBeUndefined();
 		expect(staleFake.destroy).toHaveBeenCalledOnce();
 	});
+
+	it('maps selection and hover semantics to incremental G6 states', async () => {
+		const graph = createInteractiveGraph();
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(graph),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		renderer.setHovered('A.md');
+		const hoverPatch = readLastDataPatch(fake.updateData);
+		expect(findStates(hoverPatch.nodes, 'A.md')).toEqual(['hovered']);
+		expect(findStates(hoverPatch.nodes, 'B.md')).toBeUndefined();
+		expect(findStates(hoverPatch.nodes, 'C.md')).toEqual(['dimmed']);
+		expect(findStates(hoverPatch.edges, 'A-B')).toEqual(['connected']);
+		expect(findStates(hoverPatch.edges, 'B-C')).toEqual(['dimmed']);
+
+		renderer.setSelectedEdge('logical-A-B');
+		const edgeSelectionPatch = readLastDataPatch(fake.updateData);
+		expect(findStates(edgeSelectionPatch.edges, 'A-B')).toEqual([
+			'connected',
+			'selected',
+		]);
+
+		renderer.setSelected('C.md');
+		const nodeSelectionPatch = readLastDataPatch(fake.updateData);
+		expect(findStates(nodeSelectionPatch.nodes, 'C.md')).toEqual([
+			'dimmed',
+			'selected',
+		]);
+	});
 });
 
 function createRuntimeGraph(): RuntimeGraph {
@@ -117,6 +149,55 @@ function createRuntimeGraph(): RuntimeGraph {
 		folder: '',
 		domains: [],
 		tags: [],
+	});
+	return graph;
+}
+
+function createInteractiveGraph(): RuntimeGraph {
+	const graph = createRuntimeGraph();
+	graph.addNode('B.md', {
+		label: 'B',
+		x: 30,
+		y: 20,
+		size: 8,
+		color: '#234567',
+		path: 'B.md',
+		folder: '',
+		domains: [],
+		tags: [],
+	});
+	graph.addNode('C.md', {
+		label: 'C',
+		x: 50,
+		y: 20,
+		size: 8,
+		color: '#345678',
+		path: 'C.md',
+		folder: '',
+		domains: [],
+		tags: [],
+	});
+	graph.addDirectedEdgeWithKey('A-B', 'A.md', 'B.md', {
+		relation: 'leads-to',
+		type: 'arrow',
+		size: 1,
+		color: '#456789',
+		hidden: false,
+		label: '',
+		forceLabel: false,
+		lineStyle: 'solid',
+		logicalEdgeId: 'logical-A-B',
+	});
+	graph.addDirectedEdgeWithKey('B-C', 'B.md', 'C.md', {
+		relation: 'leads-to',
+		type: 'arrow',
+		size: 1,
+		color: '#56789a',
+		hidden: false,
+		label: '',
+		forceLabel: false,
+		lineStyle: 'solid',
+		logicalEdgeId: 'logical-B-C',
 	});
 	return graph;
 }
@@ -203,4 +284,24 @@ function createFakeG6(afterDraw?: () => void) {
 		zoomTo,
 		emitTransform: () => transformListener?.(),
 	};
+}
+
+type G6DataPatch = Exclude<
+	Parameters<G6GraphInstance['updateData']>[0],
+	(previous: G6GraphData) => unknown
+>;
+
+function readLastDataPatch(
+	updateData: ReturnType<typeof createFakeG6>['updateData'],
+): G6DataPatch {
+	const patch = updateData.mock.calls.at(-1)?.[0] as G6DataPatch | undefined;
+	if (!patch) throw new Error('Expected G6 data patch');
+	return patch;
+}
+
+function findStates(
+	items: readonly { id?: string; states?: readonly string[] }[] | undefined,
+	id: string,
+): readonly string[] | undefined {
+	return items?.find((item) => item.id === id)?.states;
 }
