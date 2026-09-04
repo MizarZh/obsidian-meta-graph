@@ -1,6 +1,10 @@
 import type { RendererDebugState, WorkspaceState } from '../../core/types';
+import type { RuntimeGraph } from '../../graph/model/graphology-adapter';
 import { serializeRuntimeGraph } from '../../graph/model/runtime-graph-debug';
-import { readGraphPalette } from '../../graph/styles/graph-styles';
+import {
+	readGraphPalette,
+	type GraphPalette,
+} from '../../graph/styles/graph-styles';
 import {
 	getModeCapabilities,
 	getRendererCapabilities,
@@ -55,6 +59,7 @@ export interface WorkspaceRendererLifecycleOptions {
 
 export class WorkspaceRendererLifecycle {
 	private currentRenderer: GraphRenderer | undefined;
+	private rendererHost: HTMLDivElement | undefined;
 	private unbindEvents: (() => void) | undefined;
 	private unbindZoomLevel: (() => void) | undefined;
 	private renderVersion = 0;
@@ -238,6 +243,16 @@ export class WorkspaceRendererLifecycle {
 			this.setDebugState(() => ({ status: 'idle' }));
 			return;
 		}
+		const initialRendererKind = getRendererKindForMode(
+			initialState.mode,
+			initialState.renderer,
+		);
+		if (
+			this.currentRenderer &&
+			getRendererKind(this.currentRenderer) !== initialRendererKind
+		) {
+			this.clearRenderer();
+		}
 
 		this.setDebugState(() => ({
 			status: 'waiting-for-size',
@@ -299,7 +314,7 @@ export class WorkspaceRendererLifecycle {
 			(this.options.isLargeVaultModeActive?.() ?? false) &&
 			graph.order >= 200
 		) {
-			const progressiveRenderer = await createWorkspaceGraphRenderer({
+			const progressiveRenderer = await this.createRendererInHost({
 				graph,
 				container: canvas,
 				palette,
@@ -318,9 +333,6 @@ export class WorkspaceRendererLifecycle {
 				progressiveRenderer.setHovered(this.readHoveredNodeId(state));
 				progressiveRenderer.fit();
 				progressiveFirstRender = true;
-			} else if (progressiveRenderer) {
-				progressiveRenderer.kill();
-				return;
 			}
 		}
 		await this.options.yieldToMainThread?.();
@@ -396,18 +408,14 @@ export class WorkspaceRendererLifecycle {
 			this.currentRenderer.setGraph(graph);
 			this.unbindEvents = this.options.bindEvents(this.currentRenderer);
 		} else {
-			const nextRenderer = await createWorkspaceGraphRenderer({
-				graph,
+				const nextRenderer = await this.createRendererInHost({
+					graph,
 				container: canvas,
 				palette,
 				state,
 				isStale: () => version !== this.renderVersion,
 			});
 			if (!nextRenderer) {
-				return;
-			}
-			if (version !== this.renderVersion) {
-				nextRenderer.kill();
 				return;
 			}
 			this.currentRenderer = nextRenderer;
@@ -419,6 +427,7 @@ export class WorkspaceRendererLifecycle {
 			{ renderer: rendererKind, firstRender },
 		);
 
+		if (firstRender) this.currentRenderer.resize();
 		this.options.syncRendererGroups();
 		this.bindZoomLevel(this.currentRenderer);
 		this.setSelection(
@@ -455,8 +464,48 @@ export class WorkspaceRendererLifecycle {
 		this.unbindEvents?.();
 		this.unbindEvents = undefined;
 		this.stopForceLayoutSimulation();
-		this.currentRenderer?.kill();
-		this.currentRenderer = undefined;
+		try {
+			this.currentRenderer?.kill();
+		} finally {
+			this.currentRenderer = undefined;
+			this.rendererHost?.remove();
+			this.rendererHost = undefined;
+		}
+	}
+
+	private async createRendererInHost(options: {
+		graph: RuntimeGraph;
+		container: HTMLDivElement;
+		palette: GraphPalette;
+		state: WorkspaceState;
+		isStale: () => boolean;
+	}): Promise<GraphRenderer | undefined> {
+		const host = options.container.ownerDocument.createElement('div');
+		host.className = 'knowledge-workspace-renderer-host';
+		Object.assign(host.style, {
+			position: 'absolute',
+			inset: '0',
+			overflow: 'hidden',
+		});
+		options.container.appendChild(host);
+
+		let renderer: GraphRenderer | undefined;
+		try {
+			renderer = await createWorkspaceGraphRenderer({
+				...options,
+				container: host,
+			});
+		} catch (error) {
+			host.remove();
+			throw error;
+		}
+		if (!renderer || options.isStale()) {
+			renderer?.kill();
+			host.remove();
+			return undefined;
+		}
+		this.rendererHost = host;
+		return renderer;
 	}
 
 	private bindZoomLevel(renderer: GraphRenderer): void {

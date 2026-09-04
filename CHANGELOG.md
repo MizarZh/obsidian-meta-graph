@@ -15,6 +15,7 @@ All notable changes to Meta Graph are documented here.
 ### Fixed
 
 - Delayed G6 viewport event binding until its initial draw completes, preventing initialization-time `getZoom()` failures.
+- Isolated every renderer in an owned DOM host and tears down renderer changes before measuring the next view, preventing G6 Canvas container styles from collapsing Sigma into an off-screen one-pixel viewport after switching back.
 
 ### Changed
 

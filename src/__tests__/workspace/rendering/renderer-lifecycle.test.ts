@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WorkspaceState } from '../../../core/types';
 import {
 	getModeCapabilities,
+	getRendererKind,
+	getRendererKindForMode,
 	type GraphRenderer,
 } from '../../../graph/renderers/renderer-adapter';
 import {
@@ -133,6 +135,36 @@ function createLayoutSnapshot(): LayoutSnapshot {
 	};
 }
 
+function createTestCanvas(): HTMLDivElement {
+	const children: Array<HTMLDivElement & { remove: ReturnType<typeof vi.fn> }> = [];
+	const container = {
+		children,
+		style: { position: '' },
+		getBoundingClientRect: () => ({ width: 800, height: 600 }),
+		ownerDocument: {
+			createElement: () => {
+				const host = {
+					className: '',
+					isConnected: false,
+					style: {},
+					remove: vi.fn(() => {
+						const index = children.indexOf(host as never);
+						if (index >= 0) children.splice(index, 1);
+						host.isConnected = false;
+					}),
+				};
+				return host;
+			},
+		},
+		appendChild: vi.fn((host: HTMLDivElement) => {
+			children.push(host as never);
+			(host as unknown as { isConnected: boolean }).isConnected = true;
+			return host;
+		}),
+	};
+	return container as unknown as HTMLDivElement;
+}
+
 describe('WorkspaceRendererLifecycle', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -154,7 +186,7 @@ describe('WorkspaceRendererLifecycle', () => {
 		vi.mocked(createWorkspaceGraphRenderer).mockResolvedValue(renderer);
 		const lifecycle = new WorkspaceRendererLifecycle({
 			readState: createState,
-			readCanvas: () => ({}) as HTMLDivElement,
+			readCanvas: () => createTestCanvas(),
 			readLayoutSnapshot: createLayoutSnapshot,
 			readContainerSize: () => ({ width: 800, height: 600 }),
 			waitForCanvasSize: async () => true,
@@ -183,10 +215,7 @@ describe('WorkspaceRendererLifecycle', () => {
 
 		const lifecycle = new WorkspaceRendererLifecycle({
 			readState: () => state,
-			readCanvas: () =>
-				({
-					getBoundingClientRect: () => ({ width: 800, height: 600 }),
-				}) as HTMLDivElement,
+			readCanvas: () => createTestCanvas(),
 			readLayoutSnapshot: () => createLayoutSnapshot(),
 			readContainerSize: () => ({ width: 800, height: 600 }),
 			waitForCanvasSize: async () => true,
@@ -215,7 +244,7 @@ describe('WorkspaceRendererLifecycle', () => {
 		vi.mocked(createWorkspaceGraphRenderer).mockResolvedValue(renderer);
 		const lifecycle = new WorkspaceRendererLifecycle({
 			readState: createState,
-			readCanvas: () => ({}) as HTMLDivElement,
+			readCanvas: () => createTestCanvas(),
 			readLayoutSnapshot: createLayoutSnapshot,
 			readContainerSize: () => ({ width: 800, height: 600 }),
 			waitForCanvasSize: async () => true,
@@ -244,7 +273,7 @@ describe('WorkspaceRendererLifecycle', () => {
 		vi.mocked(createWorkspaceGraphRenderer).mockResolvedValue(renderer);
 		const lifecycle = new WorkspaceRendererLifecycle({
 			readState: () => state,
-			readCanvas: () => ({}) as HTMLDivElement,
+			readCanvas: () => createTestCanvas(),
 			readLayoutSnapshot: createLayoutSnapshot,
 			readContainerSize: () => ({ width: 800, height: 600 }),
 			waitForCanvasSize: async () => true,
@@ -278,7 +307,7 @@ describe('WorkspaceRendererLifecycle', () => {
 		);
 		const lifecycle = new WorkspaceRendererLifecycle({
 			readState: () => state,
-			readCanvas: () => ({}) as HTMLDivElement,
+			readCanvas: () => createTestCanvas(),
 			readLayoutSnapshot: () => createLayoutSnapshot(),
 			readContainerSize: () => ({ width: 800, height: 600 }),
 			waitForCanvasSize: async () => true,
@@ -306,10 +335,7 @@ describe('WorkspaceRendererLifecycle', () => {
 
 		const lifecycle = new WorkspaceRendererLifecycle({
 			readState: () => state,
-			readCanvas: () =>
-				({
-					getBoundingClientRect: () => ({ width: 800, height: 600 }),
-				}) as HTMLDivElement,
+			readCanvas: () => createTestCanvas(),
 			readLayoutSnapshot: () => createLayoutSnapshot(),
 			readContainerSize: () => ({ width: 800, height: 600 }),
 			waitForCanvasSize: async () => true,
@@ -336,7 +362,7 @@ describe('WorkspaceRendererLifecycle', () => {
 
 		const lifecycle = new WorkspaceRendererLifecycle({
 			readState: () => state,
-			readCanvas: () => ({}) as HTMLDivElement,
+			readCanvas: () => createTestCanvas(),
 			readLayoutSnapshot: () => createLayoutSnapshot(),
 			readContainerSize: () => ({ width: 800, height: 600 }),
 			waitForCanvasSize: async () => true,
@@ -379,10 +405,7 @@ describe('WorkspaceRendererLifecycle', () => {
 
 		const lifecycle = new WorkspaceRendererLifecycle({
 			readState: () => state,
-			readCanvas: () =>
-				({
-					getBoundingClientRect: () => ({ width: 800, height: 600 }),
-				}) as HTMLDivElement,
+			readCanvas: () => createTestCanvas(),
 			readLayoutSnapshot: () => createLayoutSnapshot(),
 			readContainerSize: () => ({ width: 800, height: 600 }),
 			waitForCanvasSize: async () => true,
@@ -406,7 +429,7 @@ describe('WorkspaceRendererLifecycle', () => {
 		vi.mocked(createWorkspaceGraphRenderer).mockResolvedValue(renderer);
 		const lifecycle = new WorkspaceRendererLifecycle({
 			readState: () => state,
-			readCanvas: () => ({}) as HTMLDivElement,
+			readCanvas: () => createTestCanvas(),
 			readLayoutSnapshot: () => createLayoutSnapshot(),
 			readContainerSize: () => ({ width: 800, height: 600 }),
 			waitForCanvasSize: async () => true,
@@ -422,5 +445,63 @@ describe('WorkspaceRendererLifecycle', () => {
 		expect(renderer.clearHeldBounds).toHaveBeenCalledOnce();
 		expect(renderer.kill).toHaveBeenCalledOnce();
 		expect(lifecycle.renderer).toBeUndefined();
+	});
+
+	it('isolates renderer DOM and tears G6 down before measuring for Sigma', async () => {
+		let state: WorkspaceState = { ...createState(), renderer: 'g6' };
+		const canvas = createTestCanvas();
+		const g6Renderer = createRenderer();
+		const sigmaRenderer = createRenderer();
+		const events: string[] = [];
+		vi.mocked(getRendererKindForMode).mockImplementation(
+			(_mode, renderer) => renderer ?? 'sigma',
+		);
+		vi.mocked(getRendererKind).mockImplementation((renderer) =>
+			renderer === g6Renderer ? 'g6' : 'sigma',
+		);
+		vi.mocked(createWorkspaceGraphRenderer)
+			.mockImplementationOnce(async (options) => {
+				Object.assign(options.container.style, {
+					display: 'grid',
+					isolation: 'isolate',
+				});
+				return g6Renderer;
+			})
+			.mockResolvedValueOnce(sigmaRenderer);
+		vi.mocked(g6Renderer.kill).mockImplementation(() => events.push('kill-g6'));
+		const waitForCanvasSize = vi.fn(async () => {
+			events.push('measure');
+			return true;
+		});
+		const lifecycle = new WorkspaceRendererLifecycle({
+			readState: () => state,
+			readCanvas: () => canvas,
+			readLayoutSnapshot: createLayoutSnapshot,
+			readContainerSize: () => ({ width: 800, height: 600 }),
+			waitForCanvasSize,
+			bindEvents: () => vi.fn(),
+			syncRendererGroups: vi.fn(),
+			setRendererDebugState: vi.fn(),
+		});
+
+		await lifecycle.rebuild();
+		const firstHost = vi.mocked(createWorkspaceGraphRenderer).mock.calls[0]?.[0]
+			.container;
+		expect(firstHost).not.toBe(canvas);
+		expect(firstHost?.className).toBe('knowledge-workspace-renderer-host');
+		expect(firstHost?.style.position).toBe('absolute');
+		expect(canvas.style.position).toBe('');
+
+		events.length = 0;
+		state = { ...state, renderer: 'sigma' };
+		await lifecycle.rebuild();
+
+		expect(events).toEqual(['kill-g6', 'measure']);
+		expect(firstHost?.isConnected).toBe(false);
+		const secondHost = vi.mocked(createWorkspaceGraphRenderer).mock.calls[1]?.[0]
+			.container;
+		expect(secondHost).not.toBe(firstHost);
+		expect(secondHost).not.toBe(canvas);
+		expect(sigmaRenderer.resize).toHaveBeenCalledOnce();
 	});
 });
