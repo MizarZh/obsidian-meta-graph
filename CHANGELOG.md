@@ -26,7 +26,8 @@ All notable changes to Meta Graph are documented here.
 - Standardized Sigma and G6 wheel zoom at fixed 20% reciprocal steps. G6 also matches Sigma's 250 ms quadratic-out animation, pointer-centered origin, 50 ms same-direction throttle, and no double-click zoom; touch pinch remains continuous.
 - Coalesced G6 hover transitions by animation frame, suppresses hover churn while dragging the canvas, and updates only affected neighborhoods and logical-edge segments. Viewport transforms now defer full visual rescaling until settled and batch unchanged Group overlay DOM writes while keeping edges visible.
 - Replaced G6's built-in canvas drag delta with frame-coalesced CSS-pixel `dx`/`dy`, keeping viewport movement 1:1 with the pointer across zoom and display scaling.
-- Changed Sigma and G6 node, edge, arrow, and Group geometry to shared linear physical scaling: 25% renders at 0.25x, 100% at 1x, and 400% at 4x.
+- Changed Sigma and G6 node, edge, arrow, and Group base geometry to shared linear physical scaling: 25% renders at 0.25x, 100% at 1x, and 400% at 4x. Hover/selection emphasis remains fixed in screen pixels, while optional label scaling uses a gentler square-root curve.
+- Namespaced G6 interaction states to prevent built-in theme selection styles from overriding Meta Graph label sizes and borders. Edge emphasis now matches Sigma without a wide halo, and node hover/selection halos use compact fixed-pixel widths.
 
 ## [1.7.0] - 2026-09-04
 

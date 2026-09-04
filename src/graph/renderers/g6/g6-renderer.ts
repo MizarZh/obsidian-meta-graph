@@ -11,6 +11,7 @@ import {
 	calculateSigmaCompatibleFitZoom,
 	denormalizePlanarPosition,
 	getPlanarGraphExtent,
+	getPlanarLabelVisualScale,
 	getPlanarNativeZoomRange,
 	getPlanarVisualScale,
 	nativeZoomToPlanarLevel,
@@ -30,6 +31,7 @@ import { createG6StylePatch, toG6Data } from './g6-data';
 import { G6GroupLayer } from './g6-groups';
 import {
 	createG6ElementStyles,
+	G6_INTERACTION_STATE,
 	type G6DisplayStyleOptions,
 	type G6VisualScale,
 } from './g6-styles';
@@ -722,9 +724,10 @@ export class G6Renderer implements PlanarRenderer {
 		const nativeZoom = normalizePlanarFitZoom(this.instance.getZoom());
 		const logicalLevel = nativeZoomToPlanarLevel(nativeZoom, this.fitZoom);
 		const visualScale = getPlanarVisualScale(logicalLevel);
+		const labelScale = getPlanarLabelVisualScale(logicalLevel);
 		return {
 			geometry: visualScale / nativeZoom,
-			label: (this.scaleLabelsWithZoom ? visualScale : 1) / nativeZoom,
+			label: (this.scaleLabelsWithZoom ? labelScale : 1) / nativeZoom,
 			screen: 1 / nativeZoom,
 		};
 	}
@@ -798,9 +801,11 @@ export class G6Renderer implements PlanarRenderer {
 			if (!this.graph.hasNode(nodeId)) continue;
 			const states: State[] = [];
 			if (neighborhood && !neighborhood.has(nodeId))
-				states.push('dimmed');
-			if (nodeId === activeNodeId) states.push('hovered');
-			if (nodeId === this.selectedNodeId) states.push('selected');
+				states.push(G6_INTERACTION_STATE.dimmed);
+			if (nodeId === activeNodeId)
+				states.push(G6_INTERACTION_STATE.hovered);
+			if (nodeId === this.selectedNodeId)
+				states.push(G6_INTERACTION_STATE.selected);
 			if (this.updateStateKey(this.nodeStateKeys, nodeId, states)) {
 				nodes.push({ id: nodeId, states });
 			}
@@ -815,15 +820,17 @@ export class G6Renderer implements PlanarRenderer {
 				activeNodeId &&
 				this.interactionEdgesByNode.get(activeNodeId)?.has(edgeId),
 			);
-			if (activeNodeId && !connected) states.push('dimmed');
-			if (connected) states.push('connected');
+			if (activeNodeId && !connected)
+				states.push(G6_INTERACTION_STATE.dimmed);
+			if (connected) states.push(G6_INTERACTION_STATE.connected);
 			if (
 				logicalEdgeId === this.hoveredEdgeId &&
 				(!this.pinnedNodeId || connected)
 			) {
-				states.push('hovered');
+				states.push(G6_INTERACTION_STATE.hovered);
 			}
-			if (logicalEdgeId === this.selectedEdgeId) states.push('selected');
+			if (logicalEdgeId === this.selectedEdgeId)
+				states.push(G6_INTERACTION_STATE.selected);
 			if (this.updateStateKey(this.edgeStateKeys, edgeId, states)) {
 				edges.push({ id: edgeId, states });
 			}

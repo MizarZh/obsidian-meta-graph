@@ -227,9 +227,10 @@ export class SigmaParallelEdgeLayer {
 			} satisfies EdgeVisualMetricsOptions;
 			const routeMetrics = resolveEdgeVisualMetrics(metricOptions);
 			const emphasis = getEdgeEmphasis(visual, state, hoveredEdgeId);
+			const cameraRatio = this.sigma.getCamera().getState().ratio;
 			const metrics = resolveEdgeVisualMetrics({
 				...metricOptions,
-				edgeSize: visual.attributes.size + emphasis,
+				edgeSize: visual.attributes.size + emphasis * cameraRatio,
 				arrowEdgeSize: visual.attributes.size,
 			});
 			const cached =
@@ -892,8 +893,9 @@ export class SigmaParallelEdgeLayer {
 			fontFamily: this.sigma.getSetting('edgeLabelFont'),
 			fontWeight: this.sigma.getSetting('edgeLabelWeight'),
 			background:
-				containerStyle.getPropertyValue('--background-primary').trim() ||
-				'#ffffff',
+				containerStyle
+					.getPropertyValue('--background-primary')
+					.trim() || '#ffffff',
 		};
 	}
 

@@ -52,6 +52,7 @@ import {
 import type { RendererCapabilities } from '../renderer-capabilities';
 import type { SigmaRendererOptions } from '../renderer-options';
 import {
+	getPlanarLabelVisualScale,
 	PLANAR_WHEEL_ZOOM_FACTOR,
 	planarZoomToSizeRatio,
 } from '../planar-viewport-scale';
@@ -649,6 +650,8 @@ export class SigmaRenderer {
 	}
 
 	private getHoverState() {
+		const instance = this.instance as
+			Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes> | undefined;
 		return {
 			activeHoverNodeId: this.getActiveHoverNodeId(),
 			pinnedNodeId: this.pinnedNodeId,
@@ -658,6 +661,7 @@ export class SigmaRenderer {
 			hoveredNeighborhood: this.hoveredNeighborhood,
 			forceLabels: this.forceLabels,
 			forceMotionActive: this.forceMotionActive,
+			sizeRatio: instance?.getCamera().getState().ratio ?? 1,
 		};
 	}
 
@@ -723,7 +727,13 @@ export class SigmaRenderer {
 			Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes> | undefined;
 		return getZoomAwareLabelSize(
 			baseSize,
-			instance ? (size) => instance.scaleSize(size) : undefined,
+			instance
+				? (size) =>
+						size *
+						getPlanarLabelVisualScale(
+							100 / instance.getCamera().getState().ratio,
+						)
+				: undefined,
 			this.scaleLabelsWithZoom,
 		);
 	}

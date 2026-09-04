@@ -9,6 +9,7 @@ import {
 	calculateSigmaCompatibleFitZoom,
 	denormalizePlanarPosition,
 	getPlanarGraphExtent,
+	getPlanarLabelVisualScale,
 	getPlanarNativeZoomRange,
 	getPlanarVisualScale,
 	nativeZoomToPlanarLevel,
@@ -38,6 +39,12 @@ describe('planar viewport scale', () => {
 		expect(planarZoomToSizeRatio(4)).toBe(4);
 		expect(planarZoomToSizeRatio(1)).toBe(1);
 		expect(planarZoomToSizeRatio(0.25)).toBe(0.25);
+	});
+
+	it('uses a gentler shared readability curve for zoomed labels', () => {
+		expect(getPlanarLabelVisualScale(25)).toBe(0.5);
+		expect(getPlanarLabelVisualScale(100)).toBe(1);
+		expect(getPlanarLabelVisualScale(400)).toBe(2);
 	});
 
 	it('matches Sigma coordinate fitting across graph and viewport aspects', () => {

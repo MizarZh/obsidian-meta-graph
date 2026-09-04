@@ -325,6 +325,28 @@ describe('graph renderer helpers', () => {
 		});
 		expect(
 			reduceSigmaNode(
+				'A.md',
+				node,
+				{
+					selectedNodeId: 'A.md',
+					hoveredNeighborhood: new Set(['A.md']),
+					forceLabels: false,
+					sizeRatio: 4,
+				},
+				palette,
+			),
+		).toMatchObject({ size: node.size + 12 });
+		expect(
+			reduceSigmaEdge(
+				edge,
+				{ selectedEdgeId: 'edge', sizeRatio: 4 },
+				palette,
+				['A.md', 'B.md'],
+				'edge',
+			),
+		).toMatchObject({ size: edge.size + 8 });
+		expect(
+			reduceSigmaNode(
 				'C.md',
 				node,
 				{
@@ -412,12 +434,10 @@ describe('graph renderer helpers', () => {
 			),
 		).toMatchObject({ label: null, forceLabel: false });
 		expect(
-			reduceSigmaEdge(
-				edge,
-				{ forceMotionActive: true },
-				palette,
-				['A.md', 'B.md'],
-			),
+			reduceSigmaEdge(edge, { forceMotionActive: true }, palette, [
+				'A.md',
+				'B.md',
+			]),
 		).toMatchObject({ label: null, forceLabel: false });
 	});
 

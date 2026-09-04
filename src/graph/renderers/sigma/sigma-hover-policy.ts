@@ -16,6 +16,8 @@ export interface SigmaHoverState {
 	hoveredNeighborhood: ReadonlySet<string>;
 	forceLabels: boolean;
 	forceMotionActive?: boolean;
+	/** Current camera ratio; converts fixed screen-pixel emphasis to data size. */
+	sizeRatio?: number;
 }
 
 export interface SigmaEdgeDisplayData extends Partial<EdgeDisplayData> {
@@ -59,7 +61,7 @@ export function reduceSigmaNode(
 				opacity === 1
 					? palette.selected
 					: withAlpha(palette.selected, opacity),
-			size: data.size + 3,
+			size: data.size + screenSizeIncrement(3, state.sizeRatio),
 			highlighted: true,
 			forceLabel: true,
 			zIndex: 3,
@@ -69,7 +71,7 @@ export function reduceSigmaNode(
 		return {
 			...data,
 			...styledColor,
-			size: data.size + 2,
+			size: data.size + screenSizeIncrement(2, state.sizeRatio),
 			highlighted: true,
 			forceLabel: true,
 			zIndex: 2,
@@ -98,6 +100,7 @@ export function reduceSigmaEdge(
 		| 'selectedEdgeId'
 		| 'hoveredEdgeId'
 		| 'forceMotionActive'
+		| 'sizeRatio'
 	>,
 	palette: GraphPalette,
 	extremities: readonly [string, string],
@@ -123,7 +126,7 @@ export function reduceSigmaEdge(
 				opacity === 1
 					? palette.selected
 					: withAlpha(palette.selected, opacity),
-			size: data.size + 2,
+			size: data.size + screenSizeIncrement(2, state.sizeRatio),
 			arrowBaseSize: data.size,
 			zIndex: 3,
 		};
@@ -137,7 +140,7 @@ export function reduceSigmaEdge(
 		return {
 			...data,
 			...(opacity === 1 ? {} : { color }),
-			size: data.size + 2,
+			size: data.size + screenSizeIncrement(2, state.sizeRatio),
 			arrowBaseSize: data.size,
 			zIndex: 2,
 		};
@@ -162,7 +165,7 @@ export function reduceSigmaEdge(
 		? {
 				...data,
 				...(opacity === 1 ? {} : { color }),
-				size: data.size + 1,
+				size: data.size + screenSizeIncrement(1, state.sizeRatio),
 				arrowBaseSize: data.size,
 				zIndex: 2,
 			}
@@ -178,6 +181,16 @@ export function reduceSigmaEdge(
 					: {}),
 				zIndex: 0,
 			};
+}
+
+function screenSizeIncrement(pixels: number, cameraRatio?: number): number {
+	const ratio =
+		typeof cameraRatio === 'number' &&
+		Number.isFinite(cameraRatio) &&
+		cameraRatio > 0
+			? cameraRatio
+			: 1;
+	return pixels * ratio;
 }
 
 function isEdgeConnectedToNode(

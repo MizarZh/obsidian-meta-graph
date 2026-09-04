@@ -10,6 +10,7 @@ import {
 	type G6GraphInstance,
 } from '../../../graph/renderers/g6/g6-renderer';
 import type { G6GraphData } from '../../../graph/renderers/g6/g6-data';
+import { G6_INTERACTION_STATE } from '../../../graph/renderers/g6/g6-styles';
 import type { G6RendererOptions } from '../../../graph/renderers/renderer-options';
 
 describe('G6 renderer', () => {
@@ -362,24 +363,32 @@ describe('G6 renderer', () => {
 		renderer.setHovered('A.md');
 		await Promise.resolve();
 		const hoverPatch = readLastDataPatch(fake.updateData);
-		expect(findStates(hoverPatch.nodes, 'A.md')).toEqual(['hovered']);
+		expect(findStates(hoverPatch.nodes, 'A.md')).toEqual([
+			G6_INTERACTION_STATE.hovered,
+		]);
 		expect(findStates(hoverPatch.nodes, 'B.md')).toBeUndefined();
-		expect(findStates(hoverPatch.nodes, 'C.md')).toEqual(['dimmed']);
-		expect(findStates(hoverPatch.edges, 'A-B')).toEqual(['connected']);
-		expect(findStates(hoverPatch.edges, 'B-C')).toEqual(['dimmed']);
+		expect(findStates(hoverPatch.nodes, 'C.md')).toEqual([
+			G6_INTERACTION_STATE.dimmed,
+		]);
+		expect(findStates(hoverPatch.edges, 'A-B')).toEqual([
+			G6_INTERACTION_STATE.connected,
+		]);
+		expect(findStates(hoverPatch.edges, 'B-C')).toEqual([
+			G6_INTERACTION_STATE.dimmed,
+		]);
 
 		renderer.setSelectedEdge('logical-A-B');
 		const edgeSelectionPatch = readLastDataPatch(fake.updateData);
 		expect(findStates(edgeSelectionPatch.edges, 'A-B')).toEqual([
-			'connected',
-			'selected',
+			G6_INTERACTION_STATE.connected,
+			G6_INTERACTION_STATE.selected,
 		]);
 
 		renderer.setSelected('C.md');
 		const nodeSelectionPatch = readLastDataPatch(fake.updateData);
 		expect(findStates(nodeSelectionPatch.nodes, 'C.md')).toEqual([
-			'dimmed',
-			'selected',
+			G6_INTERACTION_STATE.dimmed,
+			G6_INTERACTION_STATE.selected,
 		]);
 
 		await vi.waitFor(() => expect(fake.draw).toHaveBeenCalledTimes(2));

@@ -132,6 +132,12 @@ export function getPlanarVisualScale(level: number): number {
 	return normalizedLevel / 100;
 }
 
+/** Keeps zoomed labels readable while geometry follows physical graph scale. */
+export function getPlanarLabelVisualScale(level: number): number {
+	const normalizedLevel = Number.isFinite(level) && level > 0 ? level : 100;
+	return Math.sqrt(normalizedLevel / 100);
+}
+
 /** Sigma camera-ratio equivalent of the shared linear physical-size policy. */
 export function planarZoomToSizeRatio(cameraRatio: number): number {
 	return Number.isFinite(cameraRatio) && cameraRatio > 0 ? cameraRatio : 1;

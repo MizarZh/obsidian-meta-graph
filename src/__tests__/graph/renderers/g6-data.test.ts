@@ -5,11 +5,14 @@ import type {
 	RuntimeGraph,
 	RuntimeNodeAttributes,
 } from '../../../graph/model/graphology-adapter';
+import type { GraphPalette } from '../../../graph/styles/graph-styles';
 import {
 	createG6StylePatch,
 	toG6Data,
 } from '../../../graph/renderers/g6/g6-data';
 import {
+	createG6InteractionStyles,
+	G6_INTERACTION_STATE,
 	resolveG6LineDash,
 	resolveG6NodeType,
 } from '../../../graph/renderers/g6/g6-styles';
@@ -140,7 +143,55 @@ describe('G6 data adapter', () => {
 		expect(resolveG6LineDash('solid')).toBeUndefined();
 		expect(resolveG6LineDash('dotted')).toEqual([2, 4]);
 	});
+
+	it('keeps interaction emphasis in screen pixels without G6 theme states', () => {
+		const styles = createG6InteractionStyles(TEST_PALETTE, {
+			geometry: 1,
+			label: 0.5,
+			screen: 0.25,
+		});
+		const selectedNode = evaluateStateStyle(
+			styles.node.state?.[G6_INTERACTION_STATE.selected],
+			{ style: { size: 20, fill: '#112233' } },
+		);
+		const hoveredEdge = evaluateStateStyle(
+			styles.edge.state?.[G6_INTERACTION_STATE.hovered],
+			{ style: { lineWidth: 3, stroke: '#445566' } },
+		);
+
+		expect(selectedNode).toMatchObject({
+			size: 21.5,
+			halo: true,
+			haloLineWidth: 1,
+		});
+		expect(selectedNode).not.toHaveProperty('labelFontSize');
+		expect(hoveredEdge).toMatchObject({
+			lineWidth: 3.5,
+			halo: false,
+		});
+		expect(styles.node.state).not.toHaveProperty('selected');
+		expect(styles.edge.state).not.toHaveProperty('selected');
+	});
 });
+
+const TEST_PALETTE: GraphPalette = {
+	node: '#111111',
+	selected: '#222222',
+	edge: '#333333',
+	mutedNode: '#555555',
+	mutedEdge: '#666666',
+	label: '#777777',
+	labelBackground: '#ffffff',
+	background: '#ffffff',
+};
+
+function evaluateStateStyle(
+	style: unknown,
+	datum: { style: Record<string, string | number> },
+): Record<string, unknown> {
+	if (typeof style !== 'function') throw new Error('Expected state callback');
+	return (style as (value: typeof datum) => Record<string, unknown>)(datum);
+}
 
 function createRuntimeGraph(): RuntimeGraph {
 	const graph = new Graph<

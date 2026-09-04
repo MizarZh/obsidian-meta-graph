@@ -24,6 +24,14 @@ export type G6NodeType =
 const NODE_DIAMETER_SCALE = 2;
 const MIN_EDGE_THICKNESS = 1.7;
 
+/** Namespaced states avoid inheriting G6 theme styles for reserved state names. */
+export const G6_INTERACTION_STATE = {
+	dimmed: 'meta-graph-dimmed',
+	connected: 'meta-graph-connected',
+	hovered: 'meta-graph-hovered',
+	selected: 'meta-graph-selected',
+} as const;
+
 export interface G6DisplayStyleOptions {
 	labelSize: number;
 	labelBold: boolean;
@@ -113,29 +121,29 @@ export function createG6InteractionStyles(
 	return {
 		node: {
 			state: {
-				dimmed: {
+				[G6_INTERACTION_STATE.dimmed]: {
 					fill: palette.mutedNode,
 					opacity: 0.18,
 					label: false,
 				},
-				hovered: (data) => ({
+				[G6_INTERACTION_STATE.hovered]: (data) => ({
 					size:
 						readNumericSize(data.style?.size) +
-						4 * visualScale.geometry,
+						4 * visualScale.screen,
 					halo: true,
-					haloLineWidth: 12 * visualScale.screen,
+					haloLineWidth: 3 * visualScale.screen,
 					haloStroke: data.style?.fill,
 					haloStrokeOpacity: 0.35,
 					label: true,
 					zIndex: 3,
 				}),
-				selected: (data) => ({
+				[G6_INTERACTION_STATE.selected]: (data) => ({
 					size:
 						readNumericSize(data.style?.size) +
-						6 * visualScale.geometry,
+						6 * visualScale.screen,
 					fill: palette.selected,
 					halo: true,
-					haloLineWidth: 16 * visualScale.screen,
+					haloLineWidth: 4 * visualScale.screen,
 					haloStroke: palette.selected,
 					haloStrokeOpacity: 0.4,
 					label: true,
@@ -145,37 +153,33 @@ export function createG6InteractionStyles(
 		},
 		edge: {
 			state: {
-				dimmed: {
+				[G6_INTERACTION_STATE.dimmed]: {
 					stroke: palette.mutedEdge,
 					lineWidth: 0.4 * visualScale.geometry,
 					opacity: 0.12,
 					label: false,
 				},
-				connected: (data) => ({
+				[G6_INTERACTION_STATE.connected]: (data) => ({
 					lineWidth:
 						readNumericSize(data.style?.lineWidth) +
-						visualScale.geometry,
+						visualScale.screen,
 					zIndex: 2,
 				}),
-				hovered: (data) => ({
+				[G6_INTERACTION_STATE.hovered]: (data) => ({
 					lineWidth:
 						readNumericSize(data.style?.lineWidth) +
-						2 * visualScale.geometry,
-					halo: true,
-					haloStroke: data.style?.stroke,
-					haloStrokeOpacity: 0.2,
+						2 * visualScale.screen,
+					halo: false,
 					zIndex: 3,
 				}),
-				selected: (data) => ({
+				[G6_INTERACTION_STATE.selected]: (data) => ({
 					stroke: palette.selected,
 					lineWidth:
 						readNumericSize(data.style?.lineWidth) +
-						2 * visualScale.geometry,
+						2 * visualScale.screen,
 					endArrowFill: palette.selected,
 					endArrowStroke: palette.selected,
-					halo: true,
-					haloStroke: palette.selected,
-					haloStrokeOpacity: 0.25,
+					halo: false,
 					zIndex: 4,
 				}),
 			},
