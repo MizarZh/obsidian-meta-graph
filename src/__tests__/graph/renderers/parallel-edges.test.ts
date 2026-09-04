@@ -29,6 +29,7 @@ import {
 } from '../../../graph/renderers/sigma/sigma-parallel-edge-layer';
 import { isCanvasParallelEdge } from '../../../graph/renderers/sigma/sigma-parallel-edge-policy';
 import { resolveEdgeVisualMetrics } from '../../../graph/renderers/sigma/sigma-edge-visual-metrics';
+import { planarZoomToSizeRatio } from '../../../graph/renderers/planar-viewport-scale';
 
 function edgeAttributes(relation: string): RuntimeEdgeAttributes {
 	return {
@@ -225,7 +226,7 @@ describe('parallel edge lanes', () => {
 });
 
 describe('parallel edge visual metrics', () => {
-	it('matches Sigma full-width geometry across size and zoom ranges', () => {
+	it('matches Sigma physical full-width geometry across size and zoom ranges', () => {
 		for (const size of [0.5, 1, 2, 4]) {
 			for (const cameraRatio of [0.25, 0.5, 1, 2, 4]) {
 				const metrics = resolveEdgeVisualMetrics({
@@ -233,11 +234,12 @@ describe('parallel edge visual metrics', () => {
 					arrowSize: 1,
 					arrowStyle: 'filled',
 					lineStyle: 'solid',
-					scaleSize: (value) => value / Math.sqrt(cameraRatio),
+					scaleSize: (value) =>
+						value / planarZoomToSizeRatio(cameraRatio),
 					minEdgeThickness: 1.7,
 				});
 				const expectedLineWidth = Math.max(
-					size / Math.sqrt(cameraRatio),
+					size / planarZoomToSizeRatio(cameraRatio),
 					1.7,
 				);
 

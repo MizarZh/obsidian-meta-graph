@@ -16,7 +16,7 @@ All notable changes to Meta Graph are documented here.
 
 - Delayed G6 viewport event binding until its initial draw completes, preventing initialization-time `getZoom()` failures.
 - Isolated every renderer in an owned DOM host and tears down renderer changes before measuring the next view, preventing G6 Canvas container styles from collapsing Sigma into an off-screen one-pixel viewport after switching back.
-- Replaced G6 rendered-bounds fitting with Sigma-compatible coordinate fitting, so both renderers fill the same 30px-padded frame at logical 100% regardless of labels, arrows, node sizes, Groups, or parallel edges. G6 rebases the frame across resize and graph-extent changes, keeps the shared 25%-400% range, and uses Sigma's square-root visual scaling.
+- Replaced G6 rendered-bounds fitting with Sigma-compatible coordinate fitting, so both renderers fill the same 30px-padded frame at logical 100% regardless of labels, arrows, node sizes, Groups, or parallel edges. G6 rebases the frame across resize and graph-extent changes and keeps the shared 25%-400% range.
 
 ### Changed
 
@@ -26,6 +26,7 @@ All notable changes to Meta Graph are documented here.
 - Standardized Sigma and G6 wheel zoom at fixed 20% reciprocal steps. G6 also matches Sigma's 250 ms quadratic-out animation, pointer-centered origin, 50 ms same-direction throttle, and no double-click zoom; touch pinch remains continuous.
 - Coalesced G6 hover transitions by animation frame, suppresses hover churn while dragging the canvas, and updates only affected neighborhoods and logical-edge segments. Viewport transforms now defer full visual rescaling until settled and batch unchanged Group overlay DOM writes while keeping edges visible.
 - Replaced G6's built-in canvas drag delta with frame-coalesced CSS-pixel `dx`/`dy`, keeping viewport movement 1:1 with the pointer across zoom and display scaling.
+- Changed Sigma and G6 node, edge, arrow, and Group geometry to shared linear physical scaling: 25% renders at 0.25x, 100% at 1x, and 400% at 4x.
 
 ## [1.7.0] - 2026-09-04
 

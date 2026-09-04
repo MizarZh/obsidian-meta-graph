@@ -14,6 +14,7 @@ import {
 	nativeZoomToPlanarLevel,
 	normalizePlanarPosition,
 	planarLevelToNativeZoom,
+	planarZoomToSizeRatio,
 } from '../../../graph/renderers/planar-viewport-scale';
 
 describe('planar viewport scale', () => {
@@ -30,10 +31,13 @@ describe('planar viewport scale', () => {
 		expect(planarLevelToNativeZoom(500, 4)).toBe(16);
 	});
 
-	it('matches Sigma screen-size scaling', () => {
-		expect(getPlanarVisualScale(25)).toBe(0.5);
+	it('uses the same linear physical-size scaling in Sigma and G6', () => {
+		expect(getPlanarVisualScale(25)).toBe(0.25);
 		expect(getPlanarVisualScale(100)).toBe(1);
-		expect(getPlanarVisualScale(400)).toBe(2);
+		expect(getPlanarVisualScale(400)).toBe(4);
+		expect(planarZoomToSizeRatio(4)).toBe(4);
+		expect(planarZoomToSizeRatio(1)).toBe(1);
+		expect(planarZoomToSizeRatio(0.25)).toBe(0.25);
 	});
 
 	it('matches Sigma coordinate fitting across graph and viewport aspects', () => {

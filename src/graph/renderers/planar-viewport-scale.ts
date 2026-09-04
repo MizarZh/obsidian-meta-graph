@@ -126,8 +126,13 @@ export function getPlanarNativeZoomRange(fitZoom: number): [number, number] {
 	];
 }
 
-/** Matches Sigma's default zoomToSizeRatioFunction: Math.sqrt. */
+/** Keeps node and edge geometry in physical graph scale across planar renderers. */
 export function getPlanarVisualScale(level: number): number {
 	const normalizedLevel = Number.isFinite(level) && level > 0 ? level : 100;
-	return Math.sqrt(normalizedLevel / 100);
+	return normalizedLevel / 100;
+}
+
+/** Sigma camera-ratio equivalent of the shared linear physical-size policy. */
+export function planarZoomToSizeRatio(cameraRatio: number): number {
+	return Number.isFinite(cameraRatio) && cameraRatio > 0 ? cameraRatio : 1;
 }
