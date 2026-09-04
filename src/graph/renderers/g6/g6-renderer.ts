@@ -61,6 +61,7 @@ export class G6Renderer implements PlanarRenderer {
 	private readonly zoomLevelListeners = new Set<(level: number) => void>();
 	private drawQueue: Promise<void> = Promise.resolve();
 	private killed = false;
+	private viewportChangeBound = false;
 	private selectedNodeId?: string;
 	private selectedEdgeId?: string;
 	private hoveredNodeId?: string;
@@ -70,6 +71,7 @@ export class G6Renderer implements PlanarRenderer {
 	private readonly edgeStateKeys = new Map<string, string>();
 	private groupLayer?: G6GroupLayer;
 	private readonly handleViewportChange = (): void => {
+		if (this.killed) return;
 		this.emitZoomLevel();
 	};
 
@@ -78,7 +80,6 @@ export class G6Renderer implements PlanarRenderer {
 		this.isStale = options.isStale;
 		this.instance = instance;
 		this.container = options.container;
-		this.instance.on(GraphEvent.AFTER_TRANSFORM, this.handleViewportChange);
 	}
 
 	static async create(
@@ -98,6 +99,7 @@ export class G6Renderer implements PlanarRenderer {
 			renderer.kill();
 			return undefined;
 		}
+		renderer.bindViewportChange();
 		return renderer;
 	}
 
@@ -210,7 +212,10 @@ export class G6Renderer implements PlanarRenderer {
 	kill(): void {
 		if (this.killed) return;
 		this.killed = true;
-		this.instance.off(GraphEvent.AFTER_TRANSFORM, this.handleViewportChange);
+		if (this.viewportChangeBound) {
+			this.instance.off(GraphEvent.AFTER_TRANSFORM, this.handleViewportChange);
+			this.viewportChangeBound = false;
+		}
 		this.zoomLevelListeners.clear();
 		this.groupLayer?.kill();
 		this.groupLayer = undefined;
@@ -332,6 +337,12 @@ export class G6Renderer implements PlanarRenderer {
 				await this.instance.draw();
 			})
 			.catch(() => undefined);
+	}
+
+	private bindViewportChange(): void {
+		if (this.killed || this.viewportChangeBound) return;
+		this.instance.on(GraphEvent.AFTER_TRANSFORM, this.handleViewportChange);
+		this.viewportChangeBound = true;
 	}
 
 	setHoveredGroup(groupId?: string): void {

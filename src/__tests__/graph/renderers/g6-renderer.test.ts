@@ -46,6 +46,33 @@ describe('G6 renderer', () => {
 		});
 	});
 
+	it('binds viewport events only after G6 finishes its initial draw', async () => {
+		const graph = createRuntimeGraph();
+		const fake = createFakeG6();
+		let initialized = false;
+		const draw = vi.fn(async () => {
+			initialized = true;
+		});
+		const getZoom = vi.fn(() => {
+			if (!initialized) throw new Error('Viewport is not initialized');
+			return 1;
+		});
+		const on = vi.fn((_event: string, listener: () => void) => listener());
+		const instance = {
+			...fake.instance,
+			draw,
+			getZoom,
+			on,
+		} as unknown as G6GraphInstance;
+
+		await expect(
+			G6Renderer.create(createOptions(graph), () => instance),
+		).resolves.toBeDefined();
+		expect(draw).toHaveBeenCalledOnce();
+		expect(on).toHaveBeenCalledOnce();
+		expect(getZoom).toHaveBeenCalledOnce();
+	});
+
 	it('resolves visible node hits for dock-to-graph dragging', async () => {
 		const graph = createInteractiveGraph();
 		const fake = createFakeG6();

@@ -12,6 +12,10 @@ All notable changes to Meta Graph are documented here.
 - Added G6 node and logical-edge selection, hover neighborhood fading, pinned hover, context menus, and canonical Ctrl/Cmd-drag connection gestures.
 - Added G6 Group regions and member halos with selection, focus muting, hit testing, movement callbacks, dock-to-node hit testing, and bundled parallel-edge routing.
 
+### Fixed
+
+- Delayed G6 viewport event binding until its initial draw completes, preventing initialization-time `getZoom()` failures.
+
 ### Changed
 
 - Reorganized the test suite into source-aligned core, graph, layout, interaction, settings, UI, and workspace domain directories, with documented category-level test commands.
