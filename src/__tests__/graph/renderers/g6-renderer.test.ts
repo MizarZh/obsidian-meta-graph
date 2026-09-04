@@ -84,7 +84,7 @@ describe('G6 renderer', () => {
 		expect(fake.translateBy).toHaveBeenNthCalledWith(3, [100, -10], false);
 	});
 
-	it('matches Sigma wheel zoom ratio, timing, origin, and throttling', async () => {
+	it('accumulates wheel input into a smooth zoom target', async () => {
 		const graph = createRuntimeGraph();
 		const fake = createFakeG6();
 		const container = createTestContainer();
@@ -96,21 +96,20 @@ describe('G6 renderer', () => {
 
 		container.dispatchEvent(createWheelEvent(-100, 110, 220));
 		container.dispatchEvent(createWheelEvent(-100, 110, 220));
-		container.dispatchEvent(createWheelEvent(100, 210, 320));
-
-		expect(fake.zoomBy).toHaveBeenNthCalledWith(
-			1,
-			1.2,
-			{ duration: 250, easing: 'out-quad' },
+		await vi.waitFor(() => expect(fake.zoomBy).toHaveBeenCalledOnce());
+		expect(fake.zoomBy).toHaveBeenLastCalledWith(
+			1.2 ** 2,
+			false,
 			[100, 200],
 		);
-		expect(fake.zoomBy).toHaveBeenNthCalledWith(
-			2,
-			1 / 1.2,
-			{ duration: 250, easing: 'out-quad' },
+
+		container.dispatchEvent(createWheelEvent(50, 210, 320));
+		await vi.waitFor(() => expect(fake.zoomBy).toHaveBeenCalledTimes(2));
+		expect(fake.zoomBy).toHaveBeenLastCalledWith(
+			1 / Math.sqrt(1.2),
+			false,
 			[200, 300],
 		);
-		expect(fake.zoomBy).toHaveBeenCalledTimes(2);
 
 		renderer.kill();
 		container.dispatchEvent(createWheelEvent(-100, 110, 220));
@@ -311,6 +310,20 @@ describe('G6 renderer', () => {
 		expect(zoomListener).not.toHaveBeenCalled();
 	});
 
+	it('updates labels through the lightweight controller during zoom', async () => {
+		const graph = createRuntimeGraph();
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(graph),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		renderer.zoomBy(1.2);
+
+		await vi.waitFor(() => expect(fake.updateLabels).toHaveBeenCalled());
+	});
+
 	it('coalesces repeated draw requests while a draw is running', async () => {
 		const graph = createRuntimeGraph();
 		const fake = createFakeG6();
@@ -367,9 +380,9 @@ describe('G6 renderer', () => {
 
 		renderer.togglePinnedHover('A.md');
 		const focusPatch = readLastDataPatch(fake.updateData);
-		expect(findStates(focusPatch.edges, 'A-B')).toEqual([
-			G6_INTERACTION_STATE.connected,
-		]);
+		// The connected edge keeps its already-applied state, so only unrelated
+		// edges need an incremental update when hover becomes pinned focus.
+		expect(findStates(focusPatch.edges, 'A-B')).toBeUndefined();
 		expect(findStates(focusPatch.edges, 'B-C')).toEqual([
 			G6_INTERACTION_STATE.dimmed,
 			G6_INTERACTION_STATE.focusHidden,

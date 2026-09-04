@@ -52,13 +52,10 @@ const INITIAL_NATIVE_ZOOM_RANGE: [number, number] = [0.001, 1000];
 const FOCUS_DURATION = 350;
 const ZOOM_DURATION = 180;
 const ZOOM_CHANGE_EPSILON = 1e-6;
-const WHEEL_ZOOM_DURATION = 250;
-const WHEEL_ZOOM_THROTTLE = WHEEL_ZOOM_DURATION / 5;
+const WHEEL_PIXEL_DELTA_PER_STEP = 100;
+const WHEEL_ZOOM_RESPONSE_MS = 55;
+const WHEEL_ZOOM_SETTLE_EPSILON = 0.001;
 const VIEWPORT_SETTLE_MS = 80;
-const WHEEL_ZOOM_ANIMATION = {
-	duration: WHEEL_ZOOM_DURATION,
-	easing: 'out-quad',
-} as const;
 
 interface G6InteractionSnapshot {
 	activeNodeId?: string;
@@ -137,8 +134,13 @@ export class G6Renderer implements PlanarRenderer {
 	private appliedInteraction: G6InteractionSnapshot = {};
 	private readonly interactionEdgesByNode = new Map<string, Set<string>>();
 	private readonly runtimeEdgesByLogicalId = new Map<string, Set<string>>();
-	private lastWheelDirection = 0;
-	private lastWheelTriggerTime = 0;
+	private wheelZoomFrame?: number;
+	private wheelZoomFallbackQueued = false;
+	private wheelZoomInFlight = false;
+	private wheelZoomTarget?: number;
+	private wheelZoomOrigin?: [number, number];
+	private wheelZoomLastFrameTime?: number;
+	private wheelZoomVersion = 0;
 	private selectedNodeId?: string;
 	private selectedEdgeId?: string;
 	private hoveredNodeId?: string;
@@ -160,6 +162,7 @@ export class G6Renderer implements PlanarRenderer {
 		}
 		this.lastObservedNativeZoom = nativeZoom;
 		this.emitZoomLevel();
+		this.scheduleLabelSync();
 		this.scheduleViewportVisualSync();
 	};
 	private readonly handleWheel = (event: WheelEvent): void => {
@@ -167,12 +170,8 @@ export class G6Renderer implements PlanarRenderer {
 		const delta = event.deltaY;
 		if (!delta) return;
 
-		const direction = delta < 0 ? 1 : -1;
-		const factor =
-			direction > 0
-				? PLANAR_WHEEL_ZOOM_FACTOR
-				: 1 / PLANAR_WHEEL_ZOOM_FACTOR;
-		const currentZoom = this.instance.getZoom();
+		const factor = resolveWheelZoomFactor(event);
+		const currentZoom = this.wheelZoomTarget ?? this.instance.getZoom();
 		const [minZoom, maxZoom] = this.hasFitBaseline
 			? getPlanarNativeZoomRange(this.fitZoom)
 			: INITIAL_NATIVE_ZOOM_RANGE;
@@ -184,24 +183,13 @@ export class G6Renderer implements PlanarRenderer {
 
 		event.preventDefault();
 		event.stopPropagation();
-		const now = Date.now();
-		if (
-			this.lastWheelDirection === direction &&
-			this.lastWheelTriggerTime > 0 &&
-			now - this.lastWheelTriggerTime < WHEEL_ZOOM_THROTTLE
-		) {
-			return;
-		}
-		this.lastWheelDirection = direction;
-		this.lastWheelTriggerTime = now;
-
 		const bounds = this.container.getBoundingClientRect();
-		this.runViewportAction(() =>
-			this.instance.zoomBy(factor, WHEEL_ZOOM_ANIMATION, [
-				event.clientX - bounds.left,
-				event.clientY - bounds.top,
-			]),
-		);
+		this.wheelZoomTarget = nextZoom;
+		this.wheelZoomOrigin = [
+			event.clientX - bounds.left,
+			event.clientY - bounds.top,
+		];
+		this.scheduleWheelZoom();
 	};
 
 	private constructor(options: G6RendererOptions, instance: G6GraphInstance) {
@@ -346,6 +334,7 @@ export class G6Renderer implements PlanarRenderer {
 		if (!this.graph.hasNode(nodeId)) return;
 		const attributes = this.graph.getNodeAttributes(nodeId);
 		if (attributes.hidden || attributes.isBend) return;
+		this.cancelWheelZoom();
 		this.runViewportAction(() =>
 			this.instance.focusElement(nodeId, { duration: FOCUS_DURATION }),
 		);
@@ -360,6 +349,7 @@ export class G6Renderer implements PlanarRenderer {
 
 	zoomBy(factor: number): void {
 		if (!Number.isFinite(factor) || factor <= 0) return;
+		this.cancelWheelZoom();
 		this.runViewportAction(() =>
 			this.instance.zoomBy(factor, { duration: ZOOM_DURATION }),
 		);
@@ -399,6 +389,7 @@ export class G6Renderer implements PlanarRenderer {
 
 	setZoomLevel(level: number): void {
 		if (!Number.isFinite(level)) return;
+		this.cancelWheelZoom();
 		const zoom = planarLevelToNativeZoom(level, this.fitZoom);
 		this.runViewportAction(() => this.instance.zoomTo(zoom, false));
 	}
@@ -448,6 +439,7 @@ export class G6Renderer implements PlanarRenderer {
 			window?.clearTimeout(this.viewportVisualSyncTimer);
 			this.viewportVisualSyncTimer = undefined;
 		}
+		this.cancelWheelZoom();
 		this.container.removeEventListener('wheel', this.handleWheel);
 		this.groupLayer?.kill();
 		this.groupLayer = undefined;
@@ -628,6 +620,7 @@ export class G6Renderer implements PlanarRenderer {
 
 	private scheduleCoordinateFrame(viewportState: PlanarViewportState): void {
 		if (this.killed || this.isStale()) return;
+		this.cancelWheelZoom();
 		const version = ++this.viewportFrameVersion;
 		this.drawQueue = this.drawQueue
 			.then(async () => {
@@ -1131,6 +1124,105 @@ export class G6Renderer implements PlanarRenderer {
 			.catch(() => undefined);
 	}
 
+	private scheduleWheelZoom(): void {
+		if (
+			this.killed ||
+			this.isStale() ||
+			this.wheelZoomTarget === undefined ||
+			this.wheelZoomFrame !== undefined ||
+			this.wheelZoomFallbackQueued ||
+			this.wheelZoomInFlight
+		) {
+			return;
+		}
+		const window = this.container.ownerDocument?.defaultView;
+		if (!window) {
+			this.wheelZoomFallbackQueued = true;
+			queueMicrotask(() => {
+				this.wheelZoomFallbackQueued = false;
+				this.advanceWheelZoom(performance.now(), true);
+			});
+			return;
+		}
+		this.wheelZoomFrame = window.requestAnimationFrame((timestamp) => {
+			this.wheelZoomFrame = undefined;
+			this.advanceWheelZoom(timestamp, false);
+		});
+	}
+
+	private advanceWheelZoom(timestamp: number, snapToTarget: boolean): void {
+		const target = this.wheelZoomTarget;
+		const origin = this.wheelZoomOrigin;
+		if (this.killed || this.isStale() || target === undefined || !origin) {
+			this.cancelWheelZoom();
+			return;
+		}
+		const current = normalizePlanarFitZoom(this.instance.getZoom());
+		const logDistance = Math.log(target / current);
+		const elapsed =
+			this.wheelZoomLastFrameTime === undefined
+				? 1000 / 60
+				: Math.min(
+						50,
+						Math.max(1, timestamp - this.wheelZoomLastFrameTime),
+					);
+		this.wheelZoomLastFrameTime = timestamp;
+		const blend = snapToTarget
+			? 1
+			: 1 - Math.exp(-elapsed / WHEEL_ZOOM_RESPONSE_MS);
+		const next =
+			Math.abs(logDistance) <= WHEEL_ZOOM_SETTLE_EPSILON
+				? target
+				: current * Math.exp(logDistance * blend);
+		const version = this.wheelZoomVersion;
+		this.wheelZoomInFlight = true;
+		void this.instance
+			.zoomBy(next / current, false, origin)
+			.then(() => {
+				if (version !== this.wheelZoomVersion) return;
+				this.wheelZoomInFlight = false;
+				if (this.killed || this.isStale()) {
+					this.cancelWheelZoom();
+					return;
+				}
+				this.handleViewportChange();
+				const pendingTarget = this.wheelZoomTarget;
+				if (
+					pendingTarget !== undefined &&
+					Math.abs(
+						Math.log(
+							pendingTarget /
+								normalizePlanarFitZoom(this.instance.getZoom()),
+						),
+					) <= WHEEL_ZOOM_SETTLE_EPSILON
+				) {
+					this.wheelZoomTarget = undefined;
+					this.wheelZoomOrigin = undefined;
+					this.wheelZoomLastFrameTime = undefined;
+				}
+				this.scheduleWheelZoom();
+			})
+			.catch(() => {
+				if (version !== this.wheelZoomVersion) return;
+				this.wheelZoomInFlight = false;
+				this.cancelWheelZoom();
+			});
+	}
+
+	private cancelWheelZoom(): void {
+		this.wheelZoomVersion += 1;
+		const window = this.container.ownerDocument?.defaultView;
+		if (this.wheelZoomFrame !== undefined) {
+			window?.cancelAnimationFrame(this.wheelZoomFrame);
+			this.wheelZoomFrame = undefined;
+		}
+		this.wheelZoomFallbackQueued = false;
+		this.wheelZoomInFlight = false;
+		this.wheelZoomTarget = undefined;
+		this.wheelZoomOrigin = undefined;
+		this.wheelZoomLastFrameTime = undefined;
+	}
+
 	private flushViewportPan(): void {
 		if (this.killed || this.isStale()) {
 			this.pendingViewportPanX = 0;
@@ -1210,6 +1302,17 @@ export function createG6Behaviors(): NonNullable<GraphOptions['behaviors']> {
 			animation: false,
 		},
 	];
+}
+
+function resolveWheelZoomFactor(event: WheelEvent): number {
+	const step =
+		event.deltaMode === 0 || event.deltaMode === undefined
+			? Math.max(
+					-4,
+					Math.min(4, event.deltaY / WHEEL_PIXEL_DELTA_PER_STEP),
+				)
+			: Math.sign(event.deltaY);
+	return PLANAR_WHEEL_ZOOM_FACTOR ** -step;
 }
 
 function createG6DisplayStyleOptions(
