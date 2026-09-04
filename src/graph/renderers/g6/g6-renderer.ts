@@ -13,6 +13,7 @@ import type {
 } from '../renderer-groups';
 import type { G6RendererOptions } from '../renderer-options';
 import { createG6StylePatch, toG6Data } from './g6-data';
+import { G6GroupLayer } from './g6-groups';
 import { createG6InteractionStyles } from './g6-styles';
 
 const MIN_ZOOM = 0.25;
@@ -45,8 +46,8 @@ export type G6GraphFactory = (options: GraphOptions) => G6GraphInstance;
 export class G6Renderer implements PlanarRenderer {
 	readonly capabilities: RendererCapabilities = {
 		kind: 'g6',
-		supportsGroupOverlay: false,
-		supportsLayoutGroupGeometry: false,
+		supportsGroupOverlay: true,
+		supportsLayoutGroupGeometry: true,
 		supportsManualLayout: false,
 		supportsEdgePicking: true,
 		supportsNodeDragging: false,
@@ -67,6 +68,7 @@ export class G6Renderer implements PlanarRenderer {
 	private pinnedNodeId?: string;
 	private readonly nodeStateKeys = new Map<string, string>();
 	private readonly edgeStateKeys = new Map<string, string>();
+	private groupLayer?: G6GroupLayer;
 	private readonly handleViewportChange = (): void => {
 		this.emitZoomLevel();
 	};
@@ -210,34 +212,61 @@ export class G6Renderer implements PlanarRenderer {
 		this.killed = true;
 		this.instance.off(GraphEvent.AFTER_TRANSFORM, this.handleViewportChange);
 		this.zoomLevelListeners.clear();
+		this.groupLayer?.kill();
+		this.groupLayer = undefined;
 		this.instance.destroy();
 	}
 
 	setGroups(
-		_groups: GroupOverlayGroup[],
-		_callbacks?: GroupInteractionCallbacks,
-	): void {}
+		groups: GroupOverlayGroup[],
+		callbacks?: GroupInteractionCallbacks,
+	): void {
+		this.getOrCreateGroupLayer().setGroups(groups, callbacks);
+	}
 
 	setLayoutGroupGeometries(
-		_geometries: readonly LayoutGroupGeometry[],
-		_getGroupNodeIds?: (groupId: string) => Iterable<string>,
-	): void {}
+		geometries: readonly LayoutGroupGeometry[],
+		getGroupNodeIds?: (groupId: string) => Iterable<string>,
+	): void {
+		this.getOrCreateGroupLayer().setGeometries(
+			geometries,
+			getGroupNodeIds,
+		);
+	}
 
-	getGroupAtViewportPosition(_position: {
+	getGroupAtViewportPosition(position: {
 		x: number;
 		y: number;
 	}): string | undefined {
-		return undefined;
+		return this.groupLayer?.getGroupAtViewportPosition(position);
 	}
 
-	getNodeAtViewportPosition(_position: {
+	getNodeAtViewportPosition(position: {
 		x: number;
 		y: number;
 	}): string | undefined {
-		return undefined;
+		let closestNodeId: string | undefined;
+		let closestDistance = Number.POSITIVE_INFINITY;
+		const zoom = Math.max(0, this.instance.getZoom());
+		this.graph.forEachNode((nodeId, attributes) => {
+			if (attributes.hidden || attributes.isBend) return;
+			const center = this.graphToViewportPosition(attributes);
+			const distance = Math.hypot(
+				center.x - position.x,
+				center.y - position.y,
+			);
+			const hitRadius = Math.max(14, attributes.size * zoom + 8);
+			if (distance <= hitRadius && distance < closestDistance) {
+				closestNodeId = nodeId;
+				closestDistance = distance;
+			}
+		});
+		return closestNodeId;
 	}
 
-	setActiveDropGroup(_groupId?: string): void {}
+	setActiveDropGroup(groupId?: string): void {
+		this.groupLayer?.setActiveDropGroup(groupId);
+	}
 	setSelected(nodeId?: string): void {
 		if (this.selectedNodeId === nodeId) return;
 		this.selectedNodeId = nodeId;
@@ -248,11 +277,14 @@ export class G6Renderer implements PlanarRenderer {
 		this.selectedEdgeId = edgeId;
 		this.syncInteractionStates();
 	}
-	setSelectedGroup(_groupId?: string): void {}
+	setSelectedGroup(groupId?: string): void {
+		this.groupLayer?.setSelectedGroup(groupId);
+	}
 	setHovered(nodeId?: string): void {
 		if (this.hoveredNodeId === nodeId) return;
 		this.hoveredNodeId = nodeId;
 		this.syncInteractionStates();
+		this.groupLayer?.setFocusedNode(this.pinnedNodeId ?? nodeId);
 	}
 	setHoveredEdge(edgeId?: string): void {
 		if (this.hoveredEdgeId === edgeId) return;
@@ -279,11 +311,15 @@ export class G6Renderer implements PlanarRenderer {
 	togglePinnedHover(nodeId: string): void {
 		this.pinnedNodeId = this.pinnedNodeId === nodeId ? undefined : nodeId;
 		this.syncInteractionStates();
+		this.groupLayer?.setFocusedNode(
+			this.pinnedNodeId ?? this.hoveredNodeId,
+		);
 	}
 	clearPinnedHover(): void {
 		if (!this.pinnedNodeId) return;
 		this.pinnedNodeId = undefined;
 		this.syncInteractionStates();
+		this.groupLayer?.setFocusedNode(this.hoveredNodeId);
 	}
 	holdCurrentBounds(): void {}
 	clearHeldBounds(): void {}
@@ -296,6 +332,26 @@ export class G6Renderer implements PlanarRenderer {
 				await this.instance.draw();
 			})
 			.catch(() => undefined);
+	}
+
+	setHoveredGroup(groupId?: string): void {
+		this.groupLayer?.setHoveredGroup(groupId);
+	}
+
+	private getOrCreateGroupLayer(): G6GroupLayer {
+		if (!this.groupLayer) {
+			this.groupLayer = new G6GroupLayer(
+				this.instance,
+				this.container,
+				() => this.graph,
+				(position) => this.graphToViewportPosition(position),
+				(position) => this.viewportToGraphPosition(position),
+			);
+			this.groupLayer.setFocusedNode(
+				this.pinnedNodeId ?? this.hoveredNodeId,
+			);
+		}
+		return this.groupLayer;
 	}
 
 	private syncInteractionStates(scheduleDraw = true): void {
@@ -410,6 +466,15 @@ export function createG6GraphOptions(options: G6RendererOptions): GraphOptions {
 		padding: 32,
 		zoomRange: [MIN_ZOOM, MAX_ZOOM],
 		behaviors: ['drag-canvas', 'zoom-canvas'],
+		transforms: [
+			{
+				type: 'process-parallel-edges',
+				mode: 'bundle',
+				distance: 15,
+				loopMode: 'nested',
+				loopDistance: 15,
+			},
+		],
 		...createG6InteractionStyles(options.palette),
 	};
 }

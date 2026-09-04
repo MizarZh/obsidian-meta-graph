@@ -49,9 +49,16 @@ export function bindG6Events(
 		renderer.clearPinnedHover();
 		callbacks.onSelectEdge?.(edgeId);
 	};
-	const clickCanvas = (): void => {
+	const clickCanvas = (event: IPointerEvent): void => {
 		if (shouldSuppressClick()) return;
 		renderer.clearPinnedHover();
+		const groupId = renderer.getGroupAtViewportPosition(
+			readViewportPosition(event),
+		);
+		if (groupId) {
+			callbacks.onSelectGroup?.(groupId);
+			return;
+		}
 		callbacks.onSelect(undefined);
 	};
 
@@ -75,6 +82,14 @@ export function bindG6Events(
 		preventDefault(event);
 		const mouseEvent = readMouseEvent(event);
 		if (!mouseEvent) return;
+		const groupId = renderer.getGroupAtViewportPosition(
+			readViewportPosition(event),
+		);
+		if (groupId) {
+			callbacks.onSelectGroup?.(groupId);
+			callbacks.onContextMenu?.({ kind: 'group', groupId }, mouseEvent);
+			return;
+		}
 		callbacks.onSelect(undefined);
 		callbacks.onContextMenu?.({ kind: 'stage' }, mouseEvent);
 	};
@@ -127,7 +142,18 @@ export function bindG6Events(
 		callbacks.onConnectionDrag?.(connectionDrag);
 	};
 	const pointerMove = (event: IPointerEvent): void => {
-		if (!connectionDrag) return;
+		if (!connectionDrag) {
+			const hasElementTarget =
+				event.targetType === 'node' || event.targetType === 'edge';
+			renderer.setHoveredGroup(
+				hasElementTarget
+					? undefined
+					: renderer.getGroupAtViewportPosition(
+							readViewportPosition(event),
+						),
+			);
+			return;
+		}
 		preventDefault(event);
 		const targetNodeId = readVisibleNodeId(event);
 		const position = readViewportPosition(event);
@@ -189,6 +215,7 @@ export function bindG6Events(
 	return () => {
 		finishConnectionDrag(undefined);
 		renderer.setHoveredEdge(undefined);
+		renderer.setHoveredGroup(undefined);
 		graph.off(NodeEvent.CLICK, clickNode);
 		graph.off(NodeEvent.DBLCLICK, doubleClickNode);
 		graph.off(NodeEvent.CONTEXT_MENU, contextNode);

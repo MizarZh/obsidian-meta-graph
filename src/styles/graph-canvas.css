@@ -185,7 +185,8 @@
 	border-radius: 50%;
 }
 
-.knowledge-workspace-group-region:hover {
+.knowledge-workspace-group-region:hover,
+.knowledge-workspace-group-region.hovered {
 	border-color: color-mix(
 		in srgb,
 		var(--knowledge-workspace-group-color, var(--interactive-accent)) 80%,
@@ -223,6 +224,40 @@
 		var(--knowledge-workspace-group-color, var(--interactive-accent)) 12%,
 		transparent
 	);
+}
+
+.knowledge-workspace-g6-group-halo {
+	position: absolute;
+	box-sizing: border-box;
+	border: 2px solid
+		color-mix(
+			in srgb,
+			var(--knowledge-workspace-group-color, var(--interactive-accent)) 72%,
+			transparent
+		);
+	border-radius: 50%;
+	box-shadow: 0 0 0 2px
+		color-mix(
+			in srgb,
+			var(--knowledge-workspace-group-color, var(--interactive-accent)) 10%,
+			transparent
+		);
+	pointer-events: none;
+}
+
+.knowledge-workspace-g6-group-halo.muted-by-focus {
+	opacity: 0.32;
+	filter: grayscale(1) saturate(0);
+}
+
+.knowledge-workspace-g6-group-halo.selected {
+	border-width: 3px;
+	box-shadow: 0 0 0 3px
+		color-mix(
+			in srgb,
+			var(--knowledge-workspace-group-color, var(--interactive-accent)) 18%,
+			transparent
+		);
 }
 
 .knowledge-workspace-group-title {

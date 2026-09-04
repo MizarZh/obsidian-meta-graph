@@ -9,6 +9,7 @@ All notable changes to Meta Graph are documented here.
 - Added typed G6 data and style adapters for RuntimeGraph nodes, logical edges, visibility, labels, shapes, line patterns, arrows, parallel-edge metadata, and incremental style patches.
 - Added G6 Canvas renderer foundation with layout-free drawing, graph/style refresh, viewport coordinate conversion, zoom controls, fit, focus, resize, stale-render cleanup, and renderer factory support.
 - Added G6 node and logical-edge selection, hover neighborhood fading, pinned hover, context menus, and canonical Ctrl/Cmd-drag connection gestures.
+- Added G6 Group regions and member halos with selection, focus muting, hit testing, movement callbacks, dock-to-node hit testing, and bundled parallel-edge routing.
 
 ### Changed
 

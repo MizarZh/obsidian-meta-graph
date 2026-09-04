@@ -24,6 +24,7 @@ describe('G6 events', () => {
 		const togglePinnedHover = vi.fn();
 		const clearPinnedHover = vi.fn();
 		const setHoveredEdge = vi.fn();
+		const setHoveredGroup = vi.fn();
 		const renderer = {
 			instance: emitter.instance,
 			container: {} as HTMLElement,
@@ -37,6 +38,8 @@ describe('G6 events', () => {
 			togglePinnedHover,
 			clearPinnedHover,
 			setHoveredEdge,
+			setHoveredGroup,
+			getGroupAtViewportPosition: vi.fn(() => undefined),
 		} as unknown as G6Renderer;
 		const callbackHarness = createCallbacks();
 		const unbind = bindG6Events(renderer, callbackHarness.callbacks);
@@ -106,6 +109,31 @@ describe('G6 events', () => {
 		expect(emitter.listenerCount()).toBe(0);
 	});
 
+	it('routes canvas selection, hover, and context menu to groups', () => {
+		const emitter = createEmitter();
+		const renderer = createRenderer(createGraph(), emitter.instance);
+		const setHoveredGroup = vi.fn();
+		renderer.setHoveredGroup = setHoveredGroup;
+		const groupHit = vi
+			.spyOn(renderer, 'getGroupAtViewportPosition')
+			.mockReturnValue('group-a');
+		const callbackHarness = createCallbacks();
+		bindG6Events(renderer, callbackHarness.callbacks);
+
+		emitter.emit(CommonEvent.POINTER_MOVE, pointerEvent('canvas'));
+		emitter.emit(CanvasEvent.CLICK, pointerEvent('canvas'));
+		emitter.emit(CanvasEvent.CONTEXT_MENU, pointerEvent('canvas'));
+
+		expect(groupHit).toHaveBeenCalledWith({ x: 12, y: 24 });
+		expect(setHoveredGroup).toHaveBeenCalledWith('group-a');
+		expect(callbackHarness.onSelectGroup).toHaveBeenCalledWith('group-a');
+		expect(callbackHarness.onContextMenu).toHaveBeenCalledWith(
+			{ kind: 'group', groupId: 'group-a' },
+			expect.anything(),
+		);
+		expect(callbackHarness.onSelect).not.toHaveBeenCalledWith(undefined);
+	});
+
 	it('opens on double click and clears selection on canvas click', () => {
 		const emitter = createEmitter();
 		const renderer = createRenderer(createGraph(), emitter.instance);
@@ -169,6 +197,8 @@ function createRenderer(
 		togglePinnedHover: vi.fn(),
 		clearPinnedHover: vi.fn(),
 		setHoveredEdge: vi.fn(),
+		setHoveredGroup: vi.fn(),
+		getGroupAtViewportPosition: vi.fn(() => undefined),
 	} as unknown as G6Renderer;
 }
 

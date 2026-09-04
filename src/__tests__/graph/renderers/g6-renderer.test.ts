@@ -29,12 +29,39 @@ describe('G6 renderer', () => {
 			animation: false,
 			zoomRange: [0.25, 4],
 			behaviors: ['drag-canvas', 'zoom-canvas'],
+			transforms: [
+				{
+					type: 'process-parallel-edges',
+					mode: 'bundle',
+					distance: 15,
+					loopMode: 'nested',
+					loopDistance: 15,
+				},
+			],
 		});
 		expect(graphOptions).not.toHaveProperty('layout');
 		expect(graphOptions?.data?.nodes?.[0]).toMatchObject({
 			id: 'A.md',
 			style: { x: 10, y: 20 },
 		});
+	});
+
+	it('resolves visible node hits for dock-to-graph dragging', async () => {
+		const graph = createInteractiveGraph();
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(graph),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		expect(renderer.getNodeAtViewportPosition({ x: 1, y: 1 })).toBe('A.md');
+		expect(renderer.getNodeAtViewportPosition({ x: 400, y: 400 })).toBeUndefined();
+
+		graph.setNodeAttribute('A.md', 'hidden', true);
+		graph.setNodeAttribute('B.md', 'isBend', true);
+		expect(renderer.getNodeAtViewportPosition({ x: 1, y: 1 })).toBeUndefined();
+		expect(renderer.getNodeAtViewportPosition({ x: 21, y: 1 })).toBeUndefined();
 	});
 
 	it('supports zoom, fit, focus, coordinates, and zoom listeners', async () => {
