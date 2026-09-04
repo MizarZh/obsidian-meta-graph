@@ -23,6 +23,8 @@ All notable changes to Meta Graph are documented here.
 - Reorganized the test suite into source-aligned core, graph, layout, interaction, settings, UI, and workspace domain directories, with documented category-level test commands.
 - Added renderer-neutral planar, Group overlay, and external 2D force-simulation contracts so future 2D renderers can share interaction, refresh, layout-motion, and Group orchestration without inheriting Sigma internals.
 - Removed full G6 data/style rebuilds from pan-only viewport transforms and coalesced repeated draw requests into latest-state rendering, preventing pointer movement from accumulating obsolete Canvas draws.
+- Standardized Sigma and G6 wheel zoom at fixed 20% reciprocal steps. G6 also matches Sigma's 250 ms quadratic-out animation, pointer-centered origin, 50 ms same-direction throttle, and no double-click zoom; touch pinch remains continuous.
+- Coalesced G6 hover transitions by animation frame, suppresses hover churn while dragging the canvas, and updates only affected neighborhoods and logical-edge segments. Viewport transforms now defer full visual rescaling until settled and batch unchanged Group overlay DOM writes while keeping edges visible.
 
 ## [1.7.0] - 2026-09-04
 

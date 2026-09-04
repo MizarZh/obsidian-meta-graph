@@ -49,20 +49,31 @@ describe('G6 events', () => {
 		emitter.emit(NodeEvent.POINTER_ENTER, elementEvent('A'));
 		emitter.emit(NodeEvent.POINTER_LEAVE, elementEvent('A'));
 		emitter.emit(EdgeEvent.CLICK, elementEvent('runtime-edge', {}, 'edge'));
-		emitter.emit(EdgeEvent.POINTER_ENTER, elementEvent('runtime-edge', {}, 'edge'));
-		emitter.emit(EdgeEvent.POINTER_LEAVE, elementEvent('runtime-edge', {}, 'edge'));
+		emitter.emit(
+			EdgeEvent.POINTER_ENTER,
+			elementEvent('runtime-edge', {}, 'edge'),
+		);
+		emitter.emit(
+			EdgeEvent.POINTER_LEAVE,
+			elementEvent('runtime-edge', {}, 'edge'),
+		);
 
 		expect(callbackHarness.onSelect).toHaveBeenCalledWith('A');
 		expect(togglePinnedHover).toHaveBeenCalledWith('A');
 		expect(callbackHarness.onHover).toHaveBeenNthCalledWith(1, 'A');
 		expect(callbackHarness.onHover).toHaveBeenNthCalledWith(2, undefined);
 		expect(clearPinnedHover).toHaveBeenCalledOnce();
-		expect(callbackHarness.onSelectEdge).toHaveBeenCalledWith('logical-edge');
+		expect(callbackHarness.onSelectEdge).toHaveBeenCalledWith(
+			'logical-edge',
+		);
 		expect(setHoveredEdge).toHaveBeenNthCalledWith(1, 'logical-edge');
 		expect(setHoveredEdge).toHaveBeenNthCalledWith(2, undefined);
 
 		emitter.emit(NodeEvent.CONTEXT_MENU, elementEvent('A'));
-		emitter.emit(EdgeEvent.CONTEXT_MENU, elementEvent('runtime-edge', {}, 'edge'));
+		emitter.emit(
+			EdgeEvent.CONTEXT_MENU,
+			elementEvent('runtime-edge', {}, 'edge'),
+		);
 		emitter.emit(CanvasEvent.CONTEXT_MENU, pointerEvent('canvas'));
 		expect(callbackHarness.onContextMenu).toHaveBeenNthCalledWith(
 			1,
@@ -102,7 +113,9 @@ describe('G6 events', () => {
 			2,
 			expect.objectContaining({ targetNodeId: 'B', x2: 40, y2: 50 }),
 		);
-		expect(callbackHarness.onConnectionDrag).toHaveBeenLastCalledWith(undefined);
+		expect(callbackHarness.onConnectionDrag).toHaveBeenLastCalledWith(
+			undefined,
+		);
 		expect(callbackHarness.onConnect).toHaveBeenCalledWith('A', 'B');
 
 		unbind();
@@ -145,6 +158,25 @@ describe('G6 events', () => {
 
 		expect(callbackHarness.onOpen).toHaveBeenCalledWith('A');
 		expect(callbackHarness.onSelect).toHaveBeenLastCalledWith(undefined);
+	});
+
+	it('suppresses hover work while dragging the canvas', () => {
+		const emitter = createEmitter();
+		const renderer = createRenderer(createGraph(), emitter.instance);
+		const setHoveredGroup = vi.fn();
+		renderer.setHoveredGroup = setHoveredGroup;
+		const callbackHarness = createCallbacks();
+		bindG6Events(renderer, callbackHarness.callbacks);
+
+		emitter.emit(CommonEvent.DRAG_START, pointerEvent('canvas'));
+		emitter.emit(NodeEvent.POINTER_ENTER, elementEvent('A'));
+		emitter.emit(CommonEvent.POINTER_MOVE, pointerEvent('canvas'));
+		expect(callbackHarness.onHover).not.toHaveBeenCalled();
+		expect(setHoveredGroup).not.toHaveBeenCalled();
+
+		emitter.emit(CommonEvent.DRAG_END, pointerEvent('canvas'));
+		expect(callbackHarness.onHover).toHaveBeenCalledOnce();
+		expect(callbackHarness.onHover).toHaveBeenCalledWith(undefined);
 	});
 });
 
@@ -192,7 +224,10 @@ function createRenderer(
 		instance,
 		container: {} as HTMLElement,
 		runtimeGraph,
-		graphToViewportPosition: ({ x, y }: { x: number; y: number }) => ({ x, y }),
+		graphToViewportPosition: ({ x, y }: { x: number; y: number }) => ({
+			x,
+			y,
+		}),
 		getLogicalEdgeId: (edgeId: string) => edgeId,
 		togglePinnedHover: vi.fn(),
 		clearPinnedHover: vi.fn(),
@@ -257,7 +292,10 @@ function createEmitter() {
 		emit: (name: string, event: IPointerEvent) =>
 			listeners.get(name)?.forEach((listener) => listener(event)),
 		listenerCount: () =>
-			[...listeners.values()].reduce((count, group) => count + group.size, 0),
+			[...listeners.values()].reduce(
+				(count, group) => count + group.size,
+				0,
+			),
 	};
 }
 

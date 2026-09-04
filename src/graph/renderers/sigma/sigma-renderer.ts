@@ -51,6 +51,7 @@ import {
 } from './node-shape-programs';
 import type { RendererCapabilities } from '../renderer-capabilities';
 import type { SigmaRendererOptions } from '../renderer-options';
+import { PLANAR_WHEEL_ZOOM_FACTOR } from '../planar-viewport-scale';
 import {
 	createSigmaHoverRefreshIndex,
 	createSigmaHoverRefreshPlan,
@@ -148,9 +149,10 @@ export class SigmaRenderer {
 			{
 				allowInvalidContainer: true,
 				enableEdgeEvents: true,
-				minCameraRatio: 0.25,
-				maxCameraRatio: 4,
-				doubleClickZoomingDuration: 0,
+					minCameraRatio: 0.25,
+					maxCameraRatio: 4,
+					zoomingRatio: PLANAR_WHEEL_ZOOM_FACTOR,
+					doubleClickZoomingDuration: 0,
 				doubleClickZoomingRatio: 1,
 				defaultEdgeType: 'line',
 				edgeProgramClasses: {

@@ -21,9 +21,9 @@ export function bindG6Events(
 	const graph = renderer.instance;
 	let connectionDrag: ConnectionDragState | undefined;
 	let hoveredEdgeId: string | undefined;
+	let viewportDragging = false;
 	let suppressClickUntil = 0;
-	const shouldSuppressClick = (): boolean =>
-		Date.now() < suppressClickUntil;
+	const shouldSuppressClick = (): boolean => Date.now() < suppressClickUntil;
 
 	const clickNode = (event: IElementEvent): void => {
 		if (shouldSuppressClick() || event.ctrlKey || event.metaKey) return;
@@ -95,19 +95,23 @@ export function bindG6Events(
 	};
 
 	const enterNode = (event: IElementEvent): void => {
+		if (viewportDragging) return;
 		const nodeId = readVisibleNodeId(event);
 		if (nodeId) callbacks.onHover(nodeId);
 	};
 	const leaveNode = (): void => {
+		if (viewportDragging) return;
 		callbacks.onHover(undefined);
 	};
 	const enterEdge = (event: IElementEvent): void => {
+		if (viewportDragging) return;
 		const edgeId = renderer.getLogicalEdgeId(event.target.id);
 		if (!edgeId) return;
 		hoveredEdgeId = edgeId;
 		renderer.setHoveredEdge(edgeId);
 	};
 	const leaveEdge = (event: IElementEvent): void => {
+		if (viewportDragging) return;
 		const edgeId = renderer.getLogicalEdgeId(event.target.id);
 		if (!edgeId || hoveredEdgeId !== edgeId) return;
 		hoveredEdgeId = undefined;
@@ -143,6 +147,7 @@ export function bindG6Events(
 	};
 	const pointerMove = (event: IPointerEvent): void => {
 		if (!connectionDrag) {
+			if (viewportDragging) return;
 			const hasElementTarget =
 				event.targetType === 'node' || event.targetType === 'edge';
 			renderer.setHoveredGroup(
@@ -167,6 +172,24 @@ export function bindG6Events(
 			y2: position.y,
 		};
 		callbacks.onConnectionDrag?.(connectionDrag);
+	};
+	const dragStart = (event: IPointerEvent): void => {
+		if (event.targetType !== 'canvas') return;
+		viewportDragging = true;
+	};
+	const dragEnd = (event: IPointerEvent): void => {
+		if (!viewportDragging) return;
+		viewportDragging = false;
+		callbacks.onHover(undefined);
+		hoveredEdgeId = undefined;
+		renderer.setHoveredEdge(undefined);
+		renderer.setHoveredGroup(
+			event.targetType === 'node' || event.targetType === 'edge'
+				? undefined
+				: renderer.getGroupAtViewportPosition(
+						readViewportPosition(event),
+					),
+		);
 	};
 	const pointerUp = (event: IPointerEvent): void => {
 		finishConnectionDrag(readVisibleNodeId(event));
@@ -209,6 +232,8 @@ export function bindG6Events(
 	graph.on(CanvasEvent.CONTEXT_MENU, contextCanvas);
 	graph.on(CommonEvent.POINTER_MOVE, pointerMove);
 	graph.on(CommonEvent.POINTER_UP, pointerUp);
+	graph.on(CommonEvent.DRAG_START, dragStart);
+	graph.on(CommonEvent.DRAG_END, dragEnd);
 	const ownerWindow = renderer.container.ownerDocument?.defaultView;
 	ownerWindow?.addEventListener('pointerup', pointerUpWindow);
 
@@ -230,6 +255,8 @@ export function bindG6Events(
 		graph.off(CanvasEvent.CONTEXT_MENU, contextCanvas);
 		graph.off(CommonEvent.POINTER_MOVE, pointerMove);
 		graph.off(CommonEvent.POINTER_UP, pointerUp);
+		graph.off(CommonEvent.DRAG_START, dragStart);
+		graph.off(CommonEvent.DRAG_END, dragEnd);
 		ownerWindow?.removeEventListener('pointerup', pointerUpWindow);
 	};
 }

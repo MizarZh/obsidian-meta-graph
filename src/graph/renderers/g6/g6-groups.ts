@@ -36,12 +36,16 @@ export class G6GroupLayer {
 	private callbacks: GroupInteractionCallbacks = {};
 	private readonly groupElements = new Map<string, HTMLDivElement>();
 	private readonly haloElements = new Map<string, HTMLDivElement>();
+	private readonly groupRenderKeys = new Map<string, string>();
+	private readonly haloRenderKeys = new Map<string, string>();
+	private updateFrame?: number;
+	private updateQueued = false;
 	private activeDropGroupId?: string;
 	private selectedGroupId?: string;
 	private hoveredGroupId?: string;
 	private focusedNodeId?: string;
 	private move?: GroupMove;
-	private readonly updateBound = (): void => this.update();
+	private readonly updateBound = (): void => this.scheduleUpdate();
 	private readonly handlePointerMove = (event: PointerEvent): void => {
 		if (!this.move) return;
 		event.preventDefault();
@@ -54,7 +58,7 @@ export class G6GroupLayer {
 		if (stepDelta.x !== 0 || stepDelta.y !== 0) {
 			this.callbacks.onMovePreview?.(this.move.group.id, stepDelta);
 		}
-		this.update();
+		this.scheduleUpdate();
 	};
 	private readonly handlePointerUp = (event: PointerEvent): void => {
 		if (!this.move) return;
@@ -106,9 +110,10 @@ export class G6GroupLayer {
 			if (ids.has(id)) continue;
 			element.remove();
 			this.groupElements.delete(id);
+			this.groupRenderKeys.delete(id);
 		}
 		for (const group of groups) this.getOrCreateGroupElement(group);
-		this.update();
+		this.scheduleUpdate();
 	}
 
 	setGeometries(
@@ -119,7 +124,7 @@ export class G6GroupLayer {
 		if (getGroupNodeIds) {
 			this.callbacks = { ...this.callbacks, getGroupNodeIds };
 		}
-		this.update();
+		this.scheduleUpdate();
 	}
 
 	getGroupAtViewportPosition(position: {
@@ -157,19 +162,37 @@ export class G6GroupLayer {
 	setSelectedGroup(groupId?: string): void {
 		if (this.selectedGroupId === groupId) return;
 		this.selectedGroupId = groupId;
-		this.update();
+		this.scheduleUpdate();
 	}
 
 	setHoveredGroup(groupId?: string): void {
 		if (this.hoveredGroupId === groupId) return;
 		this.hoveredGroupId = groupId;
-		this.update();
+		this.scheduleUpdate();
 	}
 
 	setFocusedNode(nodeId?: string): void {
 		if (this.focusedNodeId === nodeId) return;
 		this.focusedNodeId = nodeId;
-		this.update();
+		this.scheduleUpdate();
+	}
+
+	private scheduleUpdate(): void {
+		if (this.updateQueued) return;
+		this.updateQueued = true;
+		const window = this.activeDocument.defaultView;
+		if (window) {
+			this.updateFrame = window.requestAnimationFrame(() => {
+				this.updateFrame = undefined;
+				this.updateQueued = false;
+				this.update();
+			});
+			return;
+		}
+		queueMicrotask(() => {
+			this.updateQueued = false;
+			this.update();
+		});
 	}
 
 	update(): void {
@@ -178,17 +201,30 @@ export class G6GroupLayer {
 		for (const group of this.groups) {
 			const element = this.getOrCreateGroupElement(group);
 			const rect = this.readGroupViewportRect(group);
-			element.classList.toggle('movable', group.movable !== false);
+			const movable = group.movable !== false;
+			const selected = group.id === this.selectedGroupId;
+			const hovered = group.id === this.hoveredGroupId;
+			const muted = this.isMuted(group.id);
+			const renderKey = [
+				rect.left,
+				rect.top,
+				rect.width,
+				rect.height,
+				group.shape,
+				group.color,
+				group.name,
+				movable,
+				selected,
+				hovered,
+				muted,
+			].join('\0');
+			if (this.groupRenderKeys.get(group.id) === renderKey) continue;
+			this.groupRenderKeys.set(group.id, renderKey);
+			element.classList.toggle('movable', movable);
 			element.classList.toggle('shape-circle', group.shape === 'circle');
-			element.classList.toggle(
-				'selected',
-				group.id === this.selectedGroupId,
-			);
-			element.classList.toggle(
-				'hovered',
-				group.id === this.hoveredGroupId,
-			);
-			element.classList.toggle('muted-by-focus', this.isMuted(group.id));
+			element.classList.toggle('selected', selected);
+			element.classList.toggle('hovered', hovered);
+			element.classList.toggle('muted-by-focus', muted);
 			element.style.left = `${rect.left}px`;
 			element.style.top = `${rect.top}px`;
 			element.style.width = `${rect.width}px`;
@@ -210,11 +246,19 @@ export class G6GroupLayer {
 
 	kill(): void {
 		this.endMove();
+		if (this.updateFrame !== undefined) {
+			this.activeDocument.defaultView?.cancelAnimationFrame(
+				this.updateFrame,
+			);
+			this.updateFrame = undefined;
+		}
 		this.viewport.off(GraphEvent.AFTER_DRAW, this.updateBound);
 		this.viewport.off(GraphEvent.AFTER_TRANSFORM, this.updateBound);
 		this.layer.remove();
 		this.groupElements.clear();
 		this.haloElements.clear();
+		this.groupRenderKeys.clear();
+		this.haloRenderKeys.clear();
 	}
 
 	private getOrCreateGroupElement(group: GroupOverlayGroup): HTMLDivElement {
@@ -382,6 +426,18 @@ export class G6GroupLayer {
 					4,
 					attributes.size * this.getNodeVisualScale() + 3,
 				);
+				const muted = this.isMuted(geometry.groupId);
+				const selected = geometry.groupId === this.selectedGroupId;
+				const renderKey = [
+					center.x,
+					center.y,
+					radius,
+					geometry.color,
+					muted,
+					selected,
+				].join('\0');
+				if (this.haloRenderKeys.get(key) === renderKey) continue;
+				this.haloRenderKeys.set(key, renderKey);
 				halo.style.left = `${center.x - radius}px`;
 				halo.style.top = `${center.y - radius}px`;
 				halo.style.width = `${radius * 2}px`;
@@ -390,20 +446,15 @@ export class G6GroupLayer {
 					'--knowledge-workspace-group-color',
 					geometry.color,
 				);
-				halo.classList.toggle(
-					'muted-by-focus',
-					this.isMuted(geometry.groupId),
-				);
-				halo.classList.toggle(
-					'selected',
-					geometry.groupId === this.selectedGroupId,
-				);
+				halo.classList.toggle('muted-by-focus', muted);
+				halo.classList.toggle('selected', selected);
 			}
 		}
 		for (const [key, halo] of this.haloElements) {
 			if (activeKeys.has(key)) continue;
 			halo.remove();
 			this.haloElements.delete(key);
+			this.haloRenderKeys.delete(key);
 		}
 	}
 

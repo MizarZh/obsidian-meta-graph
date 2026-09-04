@@ -38,7 +38,11 @@ describe('G6 renderer', () => {
 			zoomRange: [0.001, 1000],
 			behaviors: [
 				'drag-canvas',
-				'zoom-canvas',
+				{
+					type: 'zoom-canvas',
+					trigger: ['pinch'],
+					animation: false,
+				},
 				{
 					type: 'auto-adapt-label',
 					enable: true,
@@ -69,6 +73,39 @@ describe('G6 renderer', () => {
 				labelOffsetX: 4,
 			},
 		});
+	});
+
+	it('matches Sigma wheel zoom ratio, timing, origin, and throttling', async () => {
+		const graph = createRuntimeGraph();
+		const fake = createFakeG6();
+		const container = createTestContainer();
+		const renderer = await G6Renderer.create(
+			{ ...createOptions(graph), container },
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		container.dispatchEvent(createWheelEvent(-100, 110, 220));
+		container.dispatchEvent(createWheelEvent(-100, 110, 220));
+		container.dispatchEvent(createWheelEvent(100, 210, 320));
+
+		expect(fake.zoomBy).toHaveBeenNthCalledWith(
+			1,
+			1.2,
+			{ duration: 250, easing: 'out-quad' },
+			[100, 200],
+		);
+		expect(fake.zoomBy).toHaveBeenNthCalledWith(
+			2,
+			1 / 1.2,
+			{ duration: 250, easing: 'out-quad' },
+			[200, 300],
+		);
+		expect(fake.zoomBy).toHaveBeenCalledTimes(2);
+
+		renderer.kill();
+		container.dispatchEvent(createWheelEvent(-100, 110, 220));
+		expect(fake.zoomBy).toHaveBeenCalledTimes(2);
 	});
 
 	it('binds viewport events only after G6 finishes its initial draw', async () => {
@@ -303,6 +340,7 @@ describe('G6 renderer', () => {
 		if (!renderer) throw new Error('Expected renderer');
 
 		renderer.setHovered('A.md');
+		await Promise.resolve();
 		const hoverPatch = readLastDataPatch(fake.updateData);
 		expect(findStates(hoverPatch.nodes, 'A.md')).toEqual(['hovered']);
 		expect(findStates(hoverPatch.nodes, 'B.md')).toBeUndefined();
@@ -323,6 +361,15 @@ describe('G6 renderer', () => {
 			'dimmed',
 			'selected',
 		]);
+
+		await vi.waitFor(() => expect(fake.draw).toHaveBeenCalledTimes(2));
+		const updateCount = fake.updateData.mock.calls.length;
+		renderer.setHovered(undefined);
+		renderer.setHovered('B.md');
+		await Promise.resolve();
+		const directTransitionPatch = readLastDataPatch(fake.updateData);
+		expect(fake.updateData).toHaveBeenCalledTimes(updateCount + 1);
+		expect(findStates(directTransitionPatch.nodes, 'D.md')).toBeUndefined();
 	});
 
 	it('updates label styling and density without rebuilding the graph', async () => {
@@ -399,6 +446,17 @@ function createInteractiveGraph(): RuntimeGraph {
 		domains: [],
 		tags: [],
 	});
+	graph.addNode('D.md', {
+		label: 'D',
+		x: 70,
+		y: 20,
+		size: 8,
+		color: '#456789',
+		path: 'D.md',
+		folder: '',
+		domains: [],
+		tags: [],
+	});
 	graph.addDirectedEdgeWithKey('A-B', 'A.md', 'B.md', {
 		relation: 'leads-to',
 		type: 'arrow',
@@ -427,7 +485,7 @@ function createInteractiveGraph(): RuntimeGraph {
 function createOptions(graph: RuntimeGraph): G6RendererOptions {
 	return {
 		graph,
-		container: {} as HTMLElement,
+		container: createTestContainer(),
 		palette: {
 			node: '#111111',
 			selected: '#222222',
@@ -456,6 +514,25 @@ function createOptions(graph: RuntimeGraph): G6RendererOptions {
 		scaleLabelsWithZoom: false,
 		isStale: () => false,
 	};
+}
+
+function createTestContainer(): HTMLElement {
+	const container = new EventTarget() as HTMLElement;
+	container.getBoundingClientRect = () => ({ left: 10, top: 20 }) as DOMRect;
+	return container;
+}
+
+function createWheelEvent(
+	deltaY: number,
+	clientX: number,
+	clientY: number,
+): WheelEvent {
+	return Object.assign(new Event('wheel', { cancelable: true }), {
+		deltaX: 0,
+		deltaY,
+		clientX,
+		clientY,
+	}) as WheelEvent;
 }
 
 function createFakeG6(afterDraw?: () => void) {

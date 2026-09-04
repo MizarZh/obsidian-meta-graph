@@ -17,6 +17,7 @@ import {
 	normalizePlanarFitZoom,
 	normalizePlanarPosition,
 	PLANAR_STAGE_PADDING,
+	PLANAR_WHEEL_ZOOM_FACTOR,
 	planarLevelToNativeZoom,
 	type PlanarViewportState,
 } from '../planar-viewport-scale';
@@ -37,6 +38,20 @@ const INITIAL_NATIVE_ZOOM_RANGE: [number, number] = [0.001, 1000];
 const FOCUS_DURATION = 350;
 const ZOOM_DURATION = 180;
 const ZOOM_CHANGE_EPSILON = 1e-6;
+const WHEEL_ZOOM_DURATION = 250;
+const WHEEL_ZOOM_THROTTLE = WHEEL_ZOOM_DURATION / 5;
+const VIEWPORT_SETTLE_MS = 80;
+const WHEEL_ZOOM_ANIMATION = {
+	duration: WHEEL_ZOOM_DURATION,
+	easing: 'out-quad',
+} as const;
+
+interface G6InteractionSnapshot {
+	activeNodeId?: string;
+	hoveredEdgeId?: string;
+	selectedNodeId?: string;
+	selectedEdgeId?: string;
+}
 
 export type G6GraphInstance = Pick<
 	Graph,
@@ -90,9 +105,17 @@ export class G6Renderer implements PlanarRenderer {
 	private fitZoom = 1;
 	private hasFitBaseline = false;
 	private viewportFrameVersion = 0;
-	private viewportVisualSyncPending = false;
+	private viewportVisualSyncTimer?: number;
+	private viewportVisualSyncQueued = false;
 	private viewportChangeBound = false;
 	private lastObservedNativeZoom = 1;
+	private interactionSyncFrame?: number;
+	private interactionSyncQueued = false;
+	private appliedInteraction: G6InteractionSnapshot = {};
+	private readonly interactionEdgesByNode = new Map<string, Set<string>>();
+	private readonly runtimeEdgesByLogicalId = new Map<string, Set<string>>();
+	private lastWheelDirection = 0;
+	private lastWheelTriggerTime = 0;
 	private selectedNodeId?: string;
 	private selectedEdgeId?: string;
 	private hoveredNodeId?: string;
@@ -116,6 +139,47 @@ export class G6Renderer implements PlanarRenderer {
 		this.emitZoomLevel();
 		this.scheduleViewportVisualSync();
 	};
+	private readonly handleWheel = (event: WheelEvent): void => {
+		if (this.killed || this.fitting || this.isStale()) return;
+		const delta = event.deltaY;
+		if (!delta) return;
+
+		const direction = delta < 0 ? 1 : -1;
+		const factor =
+			direction > 0
+				? PLANAR_WHEEL_ZOOM_FACTOR
+				: 1 / PLANAR_WHEEL_ZOOM_FACTOR;
+		const currentZoom = this.instance.getZoom();
+		const [minZoom, maxZoom] = this.hasFitBaseline
+			? getPlanarNativeZoomRange(this.fitZoom)
+			: INITIAL_NATIVE_ZOOM_RANGE;
+		const nextZoom = Math.min(
+			maxZoom,
+			Math.max(minZoom, currentZoom * factor),
+		);
+		if (nextZoom === currentZoom) return;
+
+		event.preventDefault();
+		event.stopPropagation();
+		const now = Date.now();
+		if (
+			this.lastWheelDirection === direction &&
+			this.lastWheelTriggerTime > 0 &&
+			now - this.lastWheelTriggerTime < WHEEL_ZOOM_THROTTLE
+		) {
+			return;
+		}
+		this.lastWheelDirection = direction;
+		this.lastWheelTriggerTime = now;
+
+		const bounds = this.container.getBoundingClientRect();
+		this.runViewportAction(() =>
+			this.instance.zoomBy(factor, WHEEL_ZOOM_ANIMATION, [
+				event.clientX - bounds.left,
+				event.clientY - bounds.top,
+			]),
+		);
+	};
 
 	private constructor(options: G6RendererOptions, instance: G6GraphInstance) {
 		this.graph = options.graph;
@@ -127,6 +191,10 @@ export class G6Renderer implements PlanarRenderer {
 		this.isStale = options.isStale;
 		this.instance = instance;
 		this.container = options.container;
+		this.rebuildInteractionIndexes();
+		this.container.addEventListener('wheel', this.handleWheel, {
+			passive: false,
+		});
 	}
 
 	static async create(
@@ -160,8 +228,10 @@ export class G6Renderer implements PlanarRenderer {
 		this.dropMissingInteractionTargets();
 		this.nodeStateKeys.clear();
 		this.edgeStateKeys.clear();
+		this.appliedInteraction = {};
+		this.rebuildInteractionIndexes();
 		this.instance.setData(toG6Data(graph, this.readVisualScale()));
-		this.syncInteractionStates(false);
+		this.syncInteractionStates(false, true);
 		this.scheduleDraw();
 		if (viewportState) this.scheduleCoordinateFrame(viewportState);
 	}
@@ -279,6 +349,16 @@ export class G6Renderer implements PlanarRenderer {
 			this.viewportChangeBound = false;
 		}
 		this.zoomLevelListeners.clear();
+		const window = this.container.ownerDocument?.defaultView;
+		if (this.interactionSyncFrame !== undefined) {
+			window?.cancelAnimationFrame(this.interactionSyncFrame);
+			this.interactionSyncFrame = undefined;
+		}
+		if (this.viewportVisualSyncTimer !== undefined) {
+			window?.clearTimeout(this.viewportVisualSyncTimer);
+			this.viewportVisualSyncTimer = undefined;
+		}
+		this.container.removeEventListener('wheel', this.handleWheel);
 		this.groupLayer?.kill();
 		this.groupLayer = undefined;
 		this.instance.destroy();
@@ -349,13 +429,12 @@ export class G6Renderer implements PlanarRenderer {
 	setHovered(nodeId?: string): void {
 		if (this.hoveredNodeId === nodeId) return;
 		this.hoveredNodeId = nodeId;
-		this.syncInteractionStates();
-		this.groupLayer?.setFocusedNode(this.pinnedNodeId ?? nodeId);
+		this.scheduleInteractionSync();
 	}
 	setHoveredEdge(edgeId?: string): void {
 		if (this.hoveredEdgeId === edgeId) return;
 		this.hoveredEdgeId = edgeId;
-		this.syncInteractionStates();
+		this.scheduleInteractionSync();
 	}
 	getLogicalEdgeId(runtimeEdgeId: string): string | undefined {
 		if (!this.graph.hasEdge(runtimeEdgeId)) return undefined;
@@ -557,13 +636,24 @@ export class G6Renderer implements PlanarRenderer {
 	}
 
 	private scheduleViewportVisualSync(): void {
-		if (this.viewportVisualSyncPending || this.killed || this.isStale())
+		if (this.killed || this.isStale()) return;
+		const window = this.container.ownerDocument?.defaultView;
+		if (!window) {
+			if (this.viewportVisualSyncQueued) return;
+			this.viewportVisualSyncQueued = true;
+			queueMicrotask(() => {
+				this.viewportVisualSyncQueued = false;
+				this.syncViewportVisuals();
+			});
 			return;
-		this.viewportVisualSyncPending = true;
-		queueMicrotask(() => {
-			this.viewportVisualSyncPending = false;
+		}
+		if (this.viewportVisualSyncTimer !== undefined) {
+			window.clearTimeout(this.viewportVisualSyncTimer);
+		}
+		this.viewportVisualSyncTimer = window.setTimeout(() => {
+			this.viewportVisualSyncTimer = undefined;
 			this.syncViewportVisuals();
-		});
+		}, VIEWPORT_SETTLE_MS);
 	}
 
 	private syncViewportVisuals(): void {
@@ -626,16 +716,48 @@ export class G6Renderer implements PlanarRenderer {
 		return this.groupLayer;
 	}
 
-	private syncInteractionStates(scheduleDraw = true): void {
+	private scheduleInteractionSync(): void {
+		if (this.interactionSyncQueued || this.killed || this.isStale()) return;
+		this.interactionSyncQueued = true;
+		const window = this.container.ownerDocument?.defaultView;
+		if (window) {
+			this.interactionSyncFrame = window.requestAnimationFrame(() => {
+				this.interactionSyncFrame = undefined;
+				this.flushInteractionSync();
+			});
+			return;
+		}
+		queueMicrotask(() => this.flushInteractionSync());
+	}
+
+	private flushInteractionSync(): void {
+		this.interactionSyncQueued = false;
+		if (this.killed || this.isStale()) return;
+		this.syncInteractionStates();
+		this.groupLayer?.setFocusedNode(
+			this.pinnedNodeId ?? this.hoveredNodeId,
+		);
+	}
+
+	private syncInteractionStates(scheduleDraw = true, forceAll = false): void {
 		if (this.killed || this.isStale()) return;
 		const activeNodeId = this.pinnedNodeId ?? this.hoveredNodeId;
+		const nextInteraction: G6InteractionSnapshot = {
+			activeNodeId,
+			hoveredEdgeId: this.hoveredEdgeId,
+			selectedNodeId: this.selectedNodeId,
+			selectedEdgeId: this.selectedEdgeId,
+		};
 		const neighborhood = activeNodeId
 			? immediateNeighborhood(this.graph, activeNodeId)
 			: undefined;
 		const nodes: Array<{ id: string; states: State[] }> = [];
 		const edges: Array<{ id: string; states: State[] }> = [];
+		const nodeIds = this.collectAffectedNodeIds(nextInteraction, forceAll);
+		const edgeIds = this.collectAffectedEdgeIds(nextInteraction, forceAll);
 
-		this.graph.forEachNode((nodeId) => {
+		for (const nodeId of nodeIds) {
+			if (!this.graph.hasNode(nodeId)) continue;
 			const states: State[] = [];
 			if (neighborhood && !neighborhood.has(nodeId))
 				states.push('dimmed');
@@ -644,17 +766,16 @@ export class G6Renderer implements PlanarRenderer {
 			if (this.updateStateKey(this.nodeStateKeys, nodeId, states)) {
 				nodes.push({ id: nodeId, states });
 			}
-		});
+		}
 
-		this.graph.forEachEdge((edgeId, attributes, source, target) => {
+		for (const edgeId of edgeIds) {
+			if (!this.graph.hasEdge(edgeId)) continue;
+			const attributes = this.graph.getEdgeAttributes(edgeId);
 			const states: State[] = [];
 			const logicalEdgeId = attributes.logicalEdgeId ?? edgeId;
 			const connected = Boolean(
 				activeNodeId &&
-				(source === activeNodeId ||
-					target === activeNodeId ||
-					attributes.logicalSource === activeNodeId ||
-					attributes.logicalTarget === activeNodeId),
+				this.interactionEdgesByNode.get(activeNodeId)?.has(edgeId),
 			);
 			if (activeNodeId && !connected) states.push('dimmed');
 			if (connected) states.push('connected');
@@ -668,11 +789,109 @@ export class G6Renderer implements PlanarRenderer {
 			if (this.updateStateKey(this.edgeStateKeys, edgeId, states)) {
 				edges.push({ id: edgeId, states });
 			}
-		});
+		}
+		this.appliedInteraction = nextInteraction;
 
 		if (nodes.length === 0 && edges.length === 0) return;
 		this.instance.updateData({ nodes, edges });
 		if (scheduleDraw) this.scheduleDraw();
+	}
+
+	private collectAffectedNodeIds(
+		next: G6InteractionSnapshot,
+		forceAll: boolean,
+	): Set<string> {
+		if (forceAll) return new Set(this.graph.nodes());
+		const affected = new Set<string>();
+		const previous = this.appliedInteraction;
+		if (previous.activeNodeId !== next.activeNodeId) {
+			if (!previous.activeNodeId || !next.activeNodeId) {
+				this.graph.forEachNode((nodeId) => affected.add(nodeId));
+			} else {
+				for (const nodeId of immediateNeighborhood(
+					this.graph,
+					previous.activeNodeId,
+				)) {
+					affected.add(nodeId);
+				}
+				for (const nodeId of immediateNeighborhood(
+					this.graph,
+					next.activeNodeId,
+				)) {
+					affected.add(nodeId);
+				}
+			}
+		}
+		if (previous.selectedNodeId !== next.selectedNodeId) {
+			if (previous.selectedNodeId) affected.add(previous.selectedNodeId);
+			if (next.selectedNodeId) affected.add(next.selectedNodeId);
+		}
+		return affected;
+	}
+
+	private collectAffectedEdgeIds(
+		next: G6InteractionSnapshot,
+		forceAll: boolean,
+	): Set<string> {
+		if (forceAll) return new Set(this.graph.edges());
+		const affected = new Set<string>();
+		const previous = this.appliedInteraction;
+		if (previous.activeNodeId !== next.activeNodeId) {
+			if (!previous.activeNodeId || !next.activeNodeId) {
+				this.graph.forEachEdge((edgeId) => affected.add(edgeId));
+			} else {
+				this.addInteractionEdges(affected, previous.activeNodeId);
+				this.addInteractionEdges(affected, next.activeNodeId);
+			}
+		}
+		if (previous.hoveredEdgeId !== next.hoveredEdgeId) {
+			this.addLogicalEdges(affected, previous.hoveredEdgeId);
+			this.addLogicalEdges(affected, next.hoveredEdgeId);
+		}
+		if (previous.selectedEdgeId !== next.selectedEdgeId) {
+			this.addLogicalEdges(affected, previous.selectedEdgeId);
+			this.addLogicalEdges(affected, next.selectedEdgeId);
+		}
+		return affected;
+	}
+
+	private addInteractionEdges(target: Set<string>, nodeId?: string): void {
+		if (!nodeId) return;
+		for (const edgeId of this.interactionEdgesByNode.get(nodeId) ?? []) {
+			target.add(edgeId);
+		}
+	}
+
+	private addLogicalEdges(target: Set<string>, logicalEdgeId?: string): void {
+		if (!logicalEdgeId) return;
+		for (const edgeId of this.runtimeEdgesByLogicalId.get(logicalEdgeId) ??
+			[]) {
+			target.add(edgeId);
+		}
+	}
+
+	private rebuildInteractionIndexes(): void {
+		this.interactionEdgesByNode.clear();
+		this.runtimeEdgesByLogicalId.clear();
+		this.graph.forEachEdge((edgeId, attributes, source, target) => {
+			for (const nodeId of new Set([
+				source,
+				target,
+				attributes.logicalSource,
+				attributes.logicalTarget,
+			])) {
+				if (!nodeId) continue;
+				const edges =
+					this.interactionEdgesByNode.get(nodeId) ?? new Set();
+				edges.add(edgeId);
+				this.interactionEdgesByNode.set(nodeId, edges);
+			}
+			const logicalEdgeId = attributes.logicalEdgeId ?? edgeId;
+			const runtimeEdges =
+				this.runtimeEdgesByLogicalId.get(logicalEdgeId) ?? new Set();
+			runtimeEdges.add(edgeId);
+			this.runtimeEdgesByLogicalId.set(logicalEdgeId, runtimeEdges);
+		});
 	}
 
 	private updateStateKey(
@@ -759,7 +978,11 @@ export function createG6Behaviors(options: {
 	const density = Math.min(1, Math.max(0, options.labelDensity));
 	return [
 		'drag-canvas',
-		'zoom-canvas',
+		{
+			type: 'zoom-canvas',
+			trigger: ['pinch'],
+			animation: false,
+		},
 		{
 			type: 'auto-adapt-label',
 			enable: !options.forceLabels,

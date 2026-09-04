@@ -3,6 +3,7 @@ import type { RuntimeGraph } from '../model/graphology-adapter';
 export const MIN_PLANAR_ZOOM_LEVEL = 25;
 export const MAX_PLANAR_ZOOM_LEVEL = 400;
 export const PLANAR_STAGE_PADDING = 30;
+export const PLANAR_WHEEL_ZOOM_FACTOR = 1.2;
 
 export interface PlanarGraphExtent {
 	x: [number, number];
