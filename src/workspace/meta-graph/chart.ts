@@ -1,3 +1,4 @@
+import { supportsPlanarRenderer } from '../../core/types';
 import type {
 	ChartSource,
 	GlobalStyleConfig,
@@ -70,9 +71,9 @@ export function createDefaultChart(
 	const name = createUniqueChartName(getChartTypeName(type), existingCharts);
 	return {
 		id,
-			name,
-			type,
-			renderer: 'sigma',
+		name,
+		type,
+		renderer: 'sigma',
 		source: 'query',
 		query: createDefaultQuery(maxNodes),
 		curated: createDefaultCuratedWorkspace(),
@@ -194,7 +195,9 @@ export function normalizeChart(
 				? record.name.trim()
 				: fallback.name,
 		type,
-		renderer: type === 'graph' ? readPlanarRenderer(record.renderer) : 'sigma',
+		renderer: supportsPlanarRenderer(type)
+			? readPlanarRenderer(record.renderer)
+			: 'sigma',
 		source,
 		query: normalizeQuery(record.query, fallback.query, maxNodes),
 		curated: hydrated.curated,

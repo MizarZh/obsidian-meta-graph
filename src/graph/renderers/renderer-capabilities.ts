@@ -1,4 +1,4 @@
-import type { PlanarRendererKind, ViewMode } from '../../core/types';
+import { supportsPlanarRenderer, type PlanarRendererKind, type ViewMode } from '../../core/types';
 import type { Cube3DRenderer } from './cube-3d/cube-3d-renderer';
 import type { Force3DRenderer } from './force-3d/force-3d-renderer';
 import type { PlanarRenderer } from './renderer-contracts';
@@ -88,7 +88,7 @@ export function getRendererKindForMode(
 	mode: ViewMode,
 	graphRenderer: PlanarRendererKind = 'sigma',
 ): RendererKind {
-	return mode === 'graph'
+	return supportsPlanarRenderer(mode)
 		? graphRenderer
 		: getModeCapabilities(mode).rendererKind;
 }

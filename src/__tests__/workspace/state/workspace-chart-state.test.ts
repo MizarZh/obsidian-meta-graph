@@ -15,6 +15,26 @@ import { addGroupInState } from '../../../workspace/state/manual-layout-state';
 import { createWorkspaceState } from '../../../workspace/state/workspace-state';
 
 describe('workspace chart state', () => {
+	it('preserves the renderer across planar type changes and ignores it in 3D', () => {
+		let state = addChartInState(createWorkspaceState(100), {
+			type: 'graph',
+			source: 'query',
+			name: 'Planar',
+			renderer: 'g6',
+		}).state;
+		for (const type of [
+			'free',
+			'flow',
+			'arc',
+			'hierarchical-edge-bundling',
+		] as const) {
+			state = setActiveChartTypeInState(state, type).state;
+			expect(state.renderer).toBe('g6');
+		}
+		state = setActiveChartTypeInState(state, 'graph-3d').state;
+		expect(state.renderer).toBe('sigma');
+		expect(setActiveChartRendererInState(state, 'g6').state).toBe(state);
+	});
 	it('switches active charts while preserving runtime-only state', () => {
 		const state = {
 			...createWorkspaceState(100),
@@ -66,25 +86,37 @@ describe('workspace chart state', () => {
 		expect(result.state.layoutRevision).toBe(state.layoutRevision + 1);
 	});
 
-	it('creates and switches Graph renderers without running the query', () => {
-		const created = addChartInState(createWorkspaceState(100), {
-			type: 'graph',
-			renderer: 'g6',
-			source: 'query',
-			name: 'G6 graph',
-		});
+	it.each([
+		'graph',
+		'free',
+		'flow',
+		'arc',
+		'hierarchical-edge-bundling',
+	] as const)(
+		'creates and switches %s renderers without running the query',
+		(type) => {
+			const created = addChartInState(createWorkspaceState(100), {
+				type,
+				renderer: 'g6',
+				source: 'query',
+				name: 'G6 graph',
+			});
 
-		expect(created.state.renderer).toBe('g6');
-		expect(created.state.charts.at(-1)?.renderer).toBe('g6');
+			expect(created.state.renderer).toBe('g6');
+			expect(created.state.charts.at(-1)?.renderer).toBe('g6');
 
-		const switched = setActiveChartRendererInState(created.state, 'sigma');
-		expect(switched.runQuery).toBe(false);
-		expect(switched.state.renderer).toBe('sigma');
-		expect(switched.state.charts.at(-1)?.renderer).toBe('sigma');
-		expect(switched.state.layoutRevision).toBe(
-			created.state.layoutRevision,
-		);
-	});
+			const switched = setActiveChartRendererInState(
+				created.state,
+				'sigma',
+			);
+			expect(switched.runQuery).toBe(false);
+			expect(switched.state.renderer).toBe('sigma');
+			expect(switched.state.charts.at(-1)?.renderer).toBe('sigma');
+			expect(switched.state.layoutRevision).toBe(
+				created.state.layoutRevision,
+			);
+		},
+	);
 
 	it('renames the active chart without running the query', () => {
 		const state = createWorkspaceState(100);

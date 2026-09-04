@@ -31,13 +31,13 @@ import {
 	createGroupMemberHaloGeometries,
 } from './graph-group-layout';
 import { HierarchicalEdgeBundlingLayout } from './hierarchical-edge-bundling-layout';
-import type { LayoutGroupGeometry } from './group-geometry';
 
-export interface LayoutSnapshot {
+import type { PlanarLayoutGeometry } from './planar-geometry';
+
+export interface LayoutSnapshot extends PlanarLayoutGeometry {
 	positions: Map<string, GraphPosition>;
 	edgeIds: Set<string>;
 	orthogonalRoutes: OrthogonalRouteMap;
-	groupGeometries: LayoutGroupGeometry[];
 	flowRelationConflictCount?: number;
 }
 

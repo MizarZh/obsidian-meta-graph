@@ -1,3 +1,4 @@
+import { supportsPlanarRenderer } from '../../core/types';
 import type {
 	ChartLayoutConfig,
 	ConnectionFieldMode,
@@ -506,7 +507,7 @@ function chartExtensionsToV2(
 		? cloneSerializable(extensions[META_GRAPH_EXTENSION_KEY])
 		: {};
 	delete namespace.renderer;
-	if (chart.type === 'graph' && chart.renderer === 'g6') {
+	if (supportsPlanarRenderer(chart.type) && chart.renderer === 'g6') {
 		namespace.renderer = 'g6';
 	}
 	if (Object.keys(namespace).length > 0) {

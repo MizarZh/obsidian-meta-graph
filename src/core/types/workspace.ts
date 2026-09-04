@@ -24,6 +24,11 @@ export type ViewMode =
 	| 'hierarchical-edge-bundling';
 export type ChartSource = 'query' | 'curated';
 export type PlanarRendererKind = 'sigma' | 'g6';
+export type PlanarViewMode = Exclude<ViewMode, 'graph-3d' | 'cube'>;
+
+export function supportsPlanarRenderer(mode: ViewMode): mode is PlanarViewMode {
+	return mode !== 'graph-3d' && mode !== 'cube';
+}
 export interface CreateChartInput {
 	type: ViewMode;
 	source: ChartSource;
@@ -208,7 +213,7 @@ export interface MetaGraphChart {
 	id: string;
 	name: string;
 	type: ChartType;
-	/** Planar renderer preference. Only Graph currently consumes this field. */
+	/** Per-chart renderer preference for planar views. */
 	renderer?: PlanarRendererKind;
 	source: ChartSource;
 	query: GraphQuery;

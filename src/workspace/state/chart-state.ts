@@ -1,3 +1,4 @@
+import { supportsPlanarRenderer } from '../../core/types';
 import type {
 	ChartSource,
 	CreateChartInput,
@@ -97,8 +98,9 @@ export function addChartInState(
 		...defaultChart,
 		name: input.name.trim() || defaultChart.name,
 		source: input.source,
-		renderer:
-			input.type === 'graph' ? (input.renderer ?? 'sigma') : 'sigma',
+		renderer: supportsPlanarRenderer(input.type)
+			? (input.renderer ?? 'sigma')
+			: 'sigma',
 		layout:
 			input.type === 'cube'
 				? normalizeCubeLayout(
@@ -120,7 +122,11 @@ export function setActiveChartRendererInState(
 	state: WorkspaceState,
 	renderer: MetaGraphChart['renderer'],
 ): WorkspaceChartStateResult {
-	if (state.mode !== 'graph' || state.renderer === renderer || !renderer) {
+	if (
+		!supportsPlanarRenderer(state.mode) ||
+		state.renderer === renderer ||
+		!renderer
+	) {
 		return { state, runQuery: false };
 	}
 	return {
@@ -198,11 +204,12 @@ export function setActiveChartTypeInState(
 	return {
 		state: updateActiveChartState(
 			state,
-				{
-					type,
-					renderer:
-						type === 'graph' ? (activeChart.renderer ?? 'sigma') : 'sigma',
-					layout,
+			{
+				type,
+				renderer: supportsPlanarRenderer(type)
+					? (activeChart.renderer ?? 'sigma')
+					: 'sigma',
+				layout,
 			},
 			true,
 		),

@@ -6,6 +6,9 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Generalized chart renderer selection and persistence to all planar chart types. New-mode UI choices remain gated until their rendering adapters are complete.
+- Added shared graph-coordinate path commands and logical edge placement contracts to layout snapshots, reusing existing layout group geometry. Route producers and renderer consumers will migrate per mode.
+
 - Added per-chart Sigma/G6 selection for Graph views in create/configure dialogs and Graph settings. G6 persists through `charts[].extensions.meta-graph.renderer`; Sigma remains the default and is omitted for backward compatibility.
 - Added typed G6 data and style adapters for RuntimeGraph nodes, logical edges, visibility, labels, shapes, line patterns, arrows, parallel-edge metadata, and incremental style patches.
 - Added G6 Canvas renderer foundation with layout-free drawing, graph/style refresh, viewport coordinate conversion, zoom controls, fit, focus, resize, stale-render cleanup, and renderer factory support.

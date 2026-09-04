@@ -43,10 +43,19 @@ describe('renderer capabilities', () => {
 		});
 	});
 
-	it('uses the chart renderer choice only for Graph mode', () => {
+	it('uses the chart renderer choice for every planar mode', () => {
 		expect(getRendererKindForMode('graph')).toBe('sigma');
 		expect(getRendererKindForMode('graph', 'g6')).toBe('g6');
-		expect(getRendererKindForMode('flow', 'g6')).toBe('sigma');
+		for (const mode of [
+			'free',
+			'flow',
+			'arc',
+			'hierarchical-edge-bundling',
+		] as const) {
+			expect(getRendererKindForMode(mode, 'g6')).toBe('g6');
+			expect(getRendererKindForMode(mode)).toBe('sigma');
+		}
+		expect(getRendererKindForMode('cube', 'g6')).toBe('cube-3d');
 		expect(getRendererKindForMode('graph-3d', 'g6')).toBe('force-3d');
 	});
 });
