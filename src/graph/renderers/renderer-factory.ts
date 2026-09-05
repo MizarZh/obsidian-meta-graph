@@ -92,6 +92,7 @@ export async function createGraphRenderer(
 			threeLabelResolution: options.threeLabelResolution,
 			scaleLabelsWithZoom: options.scaleLabelsWithZoom,
 			isStale: options.isStale,
+			edgeRoutes: options.edgeRoutes,
 		};
 		return G6Renderer.create(g6Options);
 	}

@@ -10,6 +10,7 @@ import {
 } from '../graph/model/graphology-adapter';
 import { getParallelLane } from '../graph/model/parallel-edges';
 import type { LayoutEngine } from './layout-engine';
+import type { PlanarEdgeRoute } from './planar-geometry';
 import {
 	scaleLayoutGroupPadding,
 	type ArcGroupGeometry,
@@ -27,6 +28,7 @@ export interface ArcPoint {
 
 export class ArcLayout implements LayoutEngine {
 	private groupGeometries: ArcGroupGeometry[] = [];
+	private edgeRoutes = new Map<string, PlanarEdgeRoute>();
 
 	constructor(
 		private readonly spacing = 1,
@@ -75,11 +77,15 @@ export class ArcLayout implements LayoutEngine {
 			this.groupByNode,
 		);
 
-		applyArcEdges(graph, this.direction);
+		this.edgeRoutes = applyArcEdges(graph, this.direction);
 	}
 
 	getGroupGeometries(): ArcGroupGeometry[] {
 		return this.groupGeometries.map((geometry) => ({ ...geometry }));
+	}
+
+	getEdgeRoutes(): ReadonlyMap<string, PlanarEdgeRoute> {
+		return new Map(this.edgeRoutes);
 	}
 }
 
@@ -120,7 +126,8 @@ function calculateArcStep(
 export function applyArcEdges(
 	graph: RuntimeGraph,
 	direction: ArcDirection = 'right',
-): void {
+): Map<string, PlanarEdgeRoute> {
+	const routes = new Map<string, PlanarEdgeRoute>();
 	const logicalEdges = graph
 		.edges()
 		.filter((edge) => !graph.getEdgeAttribute(edge, 'hidden'));
@@ -154,6 +161,49 @@ export function applyArcEdges(
 		if (points.length < 2) {
 			continue;
 		}
+		const middleIndex = Math.floor((points.length - 1) / 2);
+		const labelPoint = points[middleIndex];
+		const labelNextPoint =
+			points[Math.min(points.length - 1, middleIndex + 1)];
+		const arrowPoint = points.at(-1);
+		const arrowPreviousPoint = points.at(-2);
+		if (
+			!labelPoint ||
+			!labelNextPoint ||
+			!arrowPoint ||
+			!arrowPreviousPoint
+		) {
+			continue;
+		}
+		routes.set(edge, {
+			id: edge,
+			source,
+			target,
+			start: points[0]!,
+			commands: points.slice(1).map((point) => ({
+				kind: 'line' as const,
+				to: point,
+			})),
+			parallelRouteOwner: 'layout',
+			arrow: directed
+				? {
+						position: arrowPoint,
+						angle: Math.atan2(
+							arrowPoint.y - arrowPreviousPoint.y,
+							arrowPoint.x - arrowPreviousPoint.x,
+						),
+					}
+				: undefined,
+			label: attributes.label
+				? {
+						position: labelPoint,
+						angle: Math.atan2(
+							labelNextPoint.y - labelPoint.y,
+							labelNextPoint.x - labelPoint.x,
+						),
+					}
+				: undefined,
+		});
 
 		graph.dropEdge(edge);
 		const segmentAttributes = {
@@ -214,6 +264,7 @@ export function applyArcEdges(
 			}
 		}
 	}
+	return routes;
 }
 
 export function createArcPoints(

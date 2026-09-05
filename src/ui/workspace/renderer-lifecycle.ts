@@ -326,6 +326,7 @@ export class WorkspaceRendererLifecycle {
 				palette,
 				state,
 				isStale: () => version !== this.renderVersion,
+				edgeRoutes: layoutSnapshot.edgeRoutes,
 			});
 			if (progressiveRenderer && version === this.renderVersion) {
 				this.currentRenderer = progressiveRenderer;
@@ -411,6 +412,11 @@ export class WorkspaceRendererLifecycle {
 						)
 					: state.manualLayout,
 			);
+			if (isPlanarRenderer(this.currentRenderer)) {
+				this.currentRenderer.setLayoutEdgeRoutes?.(
+					layoutSnapshot.edgeRoutes,
+				);
+			}
 			this.currentRenderer.setGraph(graph);
 			this.unbindEvents = this.options.bindEvents(this.currentRenderer);
 		} else {
@@ -420,6 +426,7 @@ export class WorkspaceRendererLifecycle {
 				palette,
 				state,
 				isStale: () => version !== this.renderVersion,
+				edgeRoutes: layoutSnapshot.edgeRoutes,
 			});
 			if (!nextRenderer) {
 				return;
@@ -489,6 +496,7 @@ export class WorkspaceRendererLifecycle {
 		palette: GraphPalette;
 		state: WorkspaceState;
 		isStale: () => boolean;
+		edgeRoutes?: LayoutSnapshot['edgeRoutes'];
 	}): Promise<GraphRenderer | undefined> {
 		const requestIsStale = options.isStale;
 		const lifetime: RendererLifetimeToken = {

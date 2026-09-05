@@ -1,9 +1,7 @@
 import type { LabelPosition } from '../../core/types';
 import type { LayoutGroupGeometry } from '../../layouts/group-geometry';
-import type {
-	GraphPosition,
-	RuntimeGraph,
-} from '../model/graphology-adapter';
+import type { PlanarEdgeRoute } from '../../layouts/planar-geometry';
+import type { GraphPosition, RuntimeGraph } from '../model/graphology-adapter';
 import type { GraphPalette } from '../styles/graph-styles';
 import type { RendererCapabilities } from './renderer-capabilities';
 import type { LabelThemeConfig } from './renderer-label-style';
@@ -43,6 +41,8 @@ export interface PlanarRenderer {
 		geometries: readonly LayoutGroupGeometry[],
 		getGroupNodeIds?: (groupId: string) => Iterable<string>,
 	): void;
+	/** Optional while layout-owned routes migrate renderer by renderer. */
+	setLayoutEdgeRoutes?(routes?: ReadonlyMap<string, PlanarEdgeRoute>): void;
 	getGroupAtViewportPosition(position: {
 		x: number;
 		y: number;

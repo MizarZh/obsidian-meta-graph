@@ -43,6 +43,7 @@ import {
 import { LayoutGroupLayer } from './sigma-layout-group-layer';
 import { SigmaParallelEdgeLayer } from './sigma-parallel-edge-layer';
 import type { LayoutGroupGeometry } from '../../../layouts/group-geometry';
+import type { PlanarEdgeRoute } from '../../../layouts/planar-geometry';
 import {
 	NodeDiamondProgram,
 	NodeHexagonProgram,
@@ -362,6 +363,8 @@ export class SigmaRenderer {
 		this.layoutGroupLayer.setGeometries(geometries, getGroupNodeIds);
 		this.syncGroupFocus();
 	}
+
+	setLayoutEdgeRoutes(_routes?: ReadonlyMap<string, PlanarEdgeRoute>): void {}
 
 	getGroupAtViewportPosition(position: {
 		x: number;

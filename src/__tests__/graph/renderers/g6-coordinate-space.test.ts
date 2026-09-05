@@ -27,7 +27,17 @@ describe('G6 coordinate space', () => {
 		const space = createG6CoordinateSpace(graph);
 
 		expect(space.scale).toBe(1);
-		expect(space.toG6({ x: 125, y: -75 })).toEqual({ x: 125, y: -75 });
+		expect(space.toG6({ x: 125, y: -75 })).toEqual({ x: 125, y: 79 });
+		expect(space.toGraph({ x: 125, y: 79 })).toEqual({ x: 125, y: -75 });
+	});
+
+	it('matches Sigma by mapping positive graph Y upward on the canvas', () => {
+		const graph = createGraph(-400, 400);
+		const space = createG6CoordinateSpace(graph);
+
+		expect(space.toG6({ x: 0, y: 12 }).y).toBeLessThan(
+			space.toG6({ x: 0, y: -12 }).y,
+		);
 	});
 });
 

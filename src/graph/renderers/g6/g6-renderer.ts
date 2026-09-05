@@ -1,6 +1,7 @@
 import { Graph, GraphEvent, type GraphOptions, type State } from '@antv/g6';
 import type { LabelPosition } from '../../../core/types';
 import type { LayoutGroupGeometry } from '../../../layouts/group-geometry';
+import type { PlanarEdgeRoute } from '../../../layouts/planar-geometry';
 import type {
 	GraphPosition,
 	RuntimeGraph,
@@ -51,6 +52,7 @@ import {
 	createG6ElementStyles,
 	createG6LabelStyles,
 	G6_INTERACTION_STATE,
+	resolveG6RotatedNodeLabelStyle,
 	type G6DisplayStyleOptions,
 	type G6VisualScale,
 } from './g6-styles';
@@ -113,6 +115,7 @@ export class G6Renderer implements PlanarRenderer {
 	readonly container: HTMLElement;
 	private graph: RuntimeGraph;
 	private coordinateSpace: G6CoordinateSpace;
+	private edgeRoutes?: ReadonlyMap<string, PlanarEdgeRoute>;
 	private palette: GraphPalette;
 	private displayStyle: G6DisplayStyleOptions;
 	private scaleLabelsWithZoom: boolean;
@@ -144,6 +147,7 @@ export class G6Renderer implements PlanarRenderer {
 	private appliedInteraction: G6InteractionSnapshot = {};
 	private readonly interactionEdgesByNode = new Map<string, Set<string>>();
 	private readonly runtimeEdgesByLogicalId = new Map<string, Set<string>>();
+	private readonly edgeElementByRuntimeEdgeId = new Map<string, string>();
 	private wheelZoomFrame?: number;
 	private wheelZoomFallbackQueued = false;
 	private wheelZoomInFlight = false;
@@ -209,6 +213,7 @@ export class G6Renderer implements PlanarRenderer {
 	) {
 		this.graph = options.graph;
 		this.coordinateSpace = coordinateSpace;
+		this.edgeRoutes = options.edgeRoutes;
 		this.palette = options.palette;
 		this.displayStyle = createG6DisplayStyleOptions(options);
 		this.scaleLabelsWithZoom = options.scaleLabelsWithZoom;
@@ -268,6 +273,7 @@ export class G6Renderer implements PlanarRenderer {
 				this.readLabelVisibility(),
 				this.readLabelStyles(),
 				this.coordinateSpace,
+				this.edgeRoutes,
 			),
 		);
 		this.replaceLabelControllerSnapshot();
@@ -299,6 +305,7 @@ export class G6Renderer implements PlanarRenderer {
 				this.readLabelVisibility(),
 				this.readLabelStyles(),
 				this.coordinateSpace,
+				this.edgeRoutes,
 			),
 		);
 		this.replaceLabelControllerSnapshot();
@@ -325,6 +332,7 @@ export class G6Renderer implements PlanarRenderer {
 				labelVisibility,
 				this.readLabelStyles(),
 				this.coordinateSpace,
+				this.edgeRoutes,
 			),
 		);
 		this.replaceLabelControllerSnapshot();
@@ -488,6 +496,10 @@ export class G6Renderer implements PlanarRenderer {
 		this.getOrCreateGroupLayer().setGeometries(geometries, getGroupNodeIds);
 	}
 
+	setLayoutEdgeRoutes(routes?: ReadonlyMap<string, PlanarEdgeRoute>): void {
+		this.edgeRoutes = routes;
+	}
+
 	getGroupAtViewportPosition(position: {
 		x: number;
 		y: number;
@@ -604,6 +616,7 @@ export class G6Renderer implements PlanarRenderer {
 		this.scheduleInteractionSync();
 	}
 	getLogicalEdgeId(runtimeEdgeId: string): string | undefined {
+		if (this.edgeRoutes?.has(runtimeEdgeId)) return runtimeEdgeId;
 		if (!this.graph.hasEdge(runtimeEdgeId)) return undefined;
 		return (
 			this.graph.getEdgeAttribute(runtimeEdgeId, 'logicalEdgeId') ??
@@ -808,6 +821,7 @@ export class G6Renderer implements PlanarRenderer {
 				visualScale,
 				visibility,
 				this.readLabelStyles(visualScale),
+				this.edgeRoutes,
 			),
 		);
 		this.replaceLabelControllerSnapshot(visualScale);
@@ -891,6 +905,7 @@ export class G6Renderer implements PlanarRenderer {
 				this.readLabelVisibility(),
 				this.readLabelStyles(visualScale),
 				this.coordinateSpace,
+				this.edgeRoutes,
 			),
 		);
 		this.instance.setOptions({
@@ -920,6 +935,8 @@ export class G6Renderer implements PlanarRenderer {
 		return createG6LabelControllerSnapshot(
 			this.graph,
 			this.readLabelStyles(visualScale),
+			this.edgeRoutes,
+			visualScale,
 		);
 	}
 
@@ -1034,9 +1051,14 @@ export class G6Renderer implements PlanarRenderer {
 			}
 		}
 
+		const updatedEdgeElements = new Set<string>();
 		for (const edgeId of edgeIds) {
 			if (!this.graph.hasEdge(edgeId)) continue;
 			const attributes = this.graph.getEdgeAttributes(edgeId);
+			const elementId =
+				this.edgeElementByRuntimeEdgeId.get(edgeId) ?? edgeId;
+			if (updatedEdgeElements.has(elementId)) continue;
+			updatedEdgeElements.add(elementId);
 			const states: State[] = [];
 			const logicalEdgeId = attributes.logicalEdgeId ?? edgeId;
 			const connected = Boolean(
@@ -1056,8 +1078,8 @@ export class G6Renderer implements PlanarRenderer {
 				states.push(G6_INTERACTION_STATE.selected);
 			if (this.pinnedNodeId && !connected)
 				states.push(G6_INTERACTION_STATE.focusHidden);
-			if (this.updateStateKey(this.edgeStateKeys, edgeId, states)) {
-				edges.push({ id: edgeId, states });
+			if (this.updateStateKey(this.edgeStateKeys, elementId, states)) {
+				edges.push({ id: elementId, states });
 			}
 		}
 		this.appliedInteraction = nextInteraction;
@@ -1145,6 +1167,7 @@ export class G6Renderer implements PlanarRenderer {
 	private rebuildInteractionIndexes(): void {
 		this.interactionEdgesByNode.clear();
 		this.runtimeEdgesByLogicalId.clear();
+		this.edgeElementByRuntimeEdgeId.clear();
 		this.graph.forEachEdge((edgeId, attributes, source, target) => {
 			for (const nodeId of new Set([
 				source,
@@ -1159,6 +1182,10 @@ export class G6Renderer implements PlanarRenderer {
 				this.interactionEdgesByNode.set(nodeId, edges);
 			}
 			const logicalEdgeId = attributes.logicalEdgeId ?? edgeId;
+			this.edgeElementByRuntimeEdgeId.set(
+				edgeId,
+				this.edgeRoutes?.has(logicalEdgeId) ? logicalEdgeId : edgeId,
+			);
 			const runtimeEdges =
 				this.runtimeEdgesByLogicalId.get(logicalEdgeId) ?? new Set();
 			runtimeEdges.add(edgeId);
@@ -1352,6 +1379,7 @@ export function createG6GraphOptions(
 			labelVisibility,
 			labelStyles,
 			coordinateSpace,
+			options.edgeRoutes,
 		),
 		animation: false,
 		autoResize: false,
@@ -1366,6 +1394,7 @@ export function createG6GraphOptions(
 				snapshot: createG6LabelControllerSnapshot(
 					options.graph,
 					labelStyles,
+					options.edgeRoutes,
 				),
 			},
 		],
@@ -1376,7 +1405,21 @@ export function createG6GraphOptions(
 function createG6LabelControllerSnapshot(
 	graph: RuntimeGraph,
 	styles: ReturnType<typeof createG6LabelStyles>,
+	edgeRoutes?: ReadonlyMap<string, PlanarEdgeRoute>,
+	visualScale?: G6VisualScale,
 ): G6LabelControllerSnapshot {
+	const nodeStyles = new Map<
+		string,
+		ReturnType<typeof resolveG6RotatedNodeLabelStyle>
+	>();
+	graph.forEachNode((nodeId, attributes) => {
+		const style = resolveG6RotatedNodeLabelStyle(
+			attributes,
+			visualScale,
+			styles.node,
+		);
+		if (Object.keys(style).length > 0) nodeStyles.set(nodeId, style);
+	});
 	return {
 		nodeIds: new Set(
 			graph
@@ -1386,13 +1429,17 @@ function createG6LabelControllerSnapshot(
 				),
 		),
 		edgeIds: new Set(
-			graph
-				.edges()
-				.filter((edgeId) =>
-					Boolean(graph.getEdgeAttribute(edgeId, 'label')),
-				),
+			graph.edges().flatMap((edgeId) => {
+				if (!graph.getEdgeAttribute(edgeId, 'label')) return [];
+				const logicalEdgeId =
+					graph.getEdgeAttribute(edgeId, 'logicalEdgeId') ?? edgeId;
+				return [
+					edgeRoutes?.has(logicalEdgeId) ? logicalEdgeId : edgeId,
+				];
+			}),
 		),
 		nodeStyle: styles.node,
+		nodeStyles,
 		edgeStyle: styles.edge,
 	};
 }

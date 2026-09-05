@@ -6,6 +6,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Enabled G6 for Arc charts. Arc layout now publishes renderer-neutral logical routes; G6 renders each route as one registered Polyline element without bend nodes or duplicate parallel routing. Arc label rotation/direction map to G6 label transforms and stay live during display-setting updates.
+
 - Enabled G6 selection for Free charts, with graph-coordinate node dragging and canonical manual-position/group-drop commits. G6 refresh now synchronizes changed node positions; manual group frames support movement previews and corner resizing.
 
 - Generalized chart renderer selection and persistence to all planar chart types. New-mode UI choices remain gated until their rendering adapters are complete.
@@ -18,6 +20,10 @@ All notable changes to Meta Graph are documented here.
 - Added G6 Group regions and member halos with selection, focus muting, hit testing, movement callbacks, dock-to-node hit testing, and bundled parallel-edge routing.
 
 ### Fixed
+
+- Reconciled the live renderer instance with the active chart renderer on every workspace update, so an interrupted or failed renderer transition cannot leave G6 active after the chart has switched back to Sigma.
+
+- Matched G6's internal Y-axis conversion to Sigma's graph coordinate orientation, so Arc **Up** and **Down** directions, routed edges, Groups, focus, and pointer hit conversion are no longer vertically mirrored.
 
 - Conditioned compact G6 coordinate domains before rendering, matching Sigma's internal normalization while keeping RuntimeGraph and persisted Free positions unchanged. This prevents Free charts from requiring extreme native zoom values that inflate label backgrounds, edge markers, and endpoint geometry; viewport conversion, dragging, focus, Groups, and hit testing all map through the same reversible coordinate space.
 - Restored G6 canvas panning for drag events synthesized from pointer movement (`button: -1`). Free node and Group movement now use G6's element model as the live position source; overlays, hit testing, runtime coordinates, and persisted snapshots read back the same applied positions without a redundant full-graph draw.

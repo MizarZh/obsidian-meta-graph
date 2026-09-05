@@ -259,6 +259,63 @@ export function createG6NodeStyle(
 		cursor: attributes.isBend ? 'default' : 'pointer',
 		zIndex: attributes.isBend ? 0 : 2,
 		...labelStyle,
+		...resolveG6RotatedNodeLabelStyle(attributes, visualScale, labelStyle),
+	};
+}
+
+/** Converts Arc/HEB layout label radians into G6 local label transforms. */
+export function resolveG6RotatedNodeLabelStyle(
+	attributes: RuntimeNodeAttributes,
+	visualScale: G6VisualScale = DEFAULT_VISUAL_SCALE,
+	labelStyle?: G6NodeStyle,
+): G6NodeStyle {
+	if (!Number.isFinite(attributes.labelRotation)) return {};
+	const rotation = attributes.labelRotation ?? 0;
+	const direction = attributes.labelDirection ?? 1;
+	const placement = String(labelStyle?.labelPlacement ?? 'right');
+	const offset = Math.hypot(
+		finiteOr(labelStyle?.labelOffsetX, 0),
+		finiteOr(labelStyle?.labelOffsetY, 0),
+	);
+	const configuredFontSize = labelStyle?.labelFontSize;
+	const fontSize = finiteOr(
+		typeof configuredFontSize === 'number' ? configuredFontSize : undefined,
+		12 * visualScale.label,
+	);
+	const distance =
+		Math.max(0, attributes.size) * visualScale.geometry +
+		fontSize * 0.25 +
+		offset;
+	let localX = 0;
+	let localY = 0;
+	let textAlign: 'left' | 'right' | 'center' = 'center';
+	if (placement === 'left') {
+		localX = -direction * distance;
+		textAlign = direction > 0 ? 'right' : 'left';
+	} else if (placement === 'top') {
+		localY = -distance;
+	} else if (placement === 'bottom') {
+		localY = distance;
+	} else if (placement !== 'center') {
+		localX = direction * distance;
+		textAlign = direction > 0 ? 'left' : 'right';
+	}
+	const cosine = Math.cos(rotation);
+	const sine = Math.sin(rotation);
+	return {
+		labelPlacement: 'center',
+		labelOffsetX: 0,
+		labelOffsetY: 0,
+		labelTextAlign: textAlign,
+		labelTextBaseline: 'middle',
+		labelTransform: [
+			[
+				'translate',
+				localX * cosine - localY * sine,
+				localX * sine + localY * cosine,
+			],
+			['rotate', (rotation * 180) / Math.PI],
+		],
 	};
 }
 

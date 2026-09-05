@@ -16,6 +16,7 @@ export interface G6LabelControllerSnapshot {
 	nodeIds: ReadonlySet<string>;
 	edgeIds: ReadonlySet<string>;
 	nodeStyle: G6NodeStyle;
+	nodeStyles?: ReadonlyMap<string, G6NodeStyle>;
 	edgeStyle: G6EdgeStyle;
 }
 
@@ -73,7 +74,10 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 		edgeIds: Iterable<string>,
 	): void {
 		for (const nodeId of nodeIds) {
-			this.applyElement(nodeId, this.snapshot.nodeStyle);
+			this.applyElement(nodeId, {
+				...this.snapshot.nodeStyle,
+				...this.snapshot.nodeStyles?.get(nodeId),
+			});
 		}
 		for (const edgeId of edgeIds) {
 			this.applyElement(edgeId, this.snapshot.edgeStyle);

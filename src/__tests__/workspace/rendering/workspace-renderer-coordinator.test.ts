@@ -7,6 +7,13 @@ import {
 import { createWorkspaceState } from '../../../workspace/state/workspace-state';
 
 vi.mock('../../../graph/renderers/renderer-adapter', () => ({
+	getRendererKind: vi.fn(
+		(renderer: { capabilities: { kind: string } }) =>
+			renderer.capabilities.kind,
+	),
+	getRendererKindForMode: vi.fn(
+		(_mode: string, renderer: string) => renderer,
+	),
 	refreshRendererGraphStyles: vi.fn(),
 	refreshRendererGraphVisibility: vi.fn(),
 }));
@@ -62,6 +69,47 @@ describe('WorkspaceRenderCoordinator', () => {
 			'selection',
 			'hover',
 		]);
+	});
+
+	it('rebuilds when the active renderer instance disagrees with state', () => {
+		const calls: string[] = [];
+		const state = createWorkspaceState(200);
+		const lifecycle = {
+			renderer: undefined as
+				| { capabilities: { kind: 'g6' } }
+				| undefined,
+			handleForceLayoutToggle: vi.fn(),
+			restartExternal2DForceLayoutIfNeeded: vi.fn(),
+			rebuild: () => {
+				calls.push('rebuild');
+				return Promise.resolve();
+			},
+			setSelection: vi.fn(),
+			setHovered: vi.fn(),
+		} as unknown as WorkspaceRendererLifecycle;
+		const coordinator = new WorkspaceRenderCoordinator({
+			window: {
+				requestAnimationFrame: vi.fn(() => 1),
+				cancelAnimationFrame: vi.fn(),
+			},
+			rendererLifecycle: lifecycle,
+			readCanvas: () => undefined,
+			readHoveredNodeId: () => undefined,
+			syncRendererGroups: vi.fn(),
+			setRendererError: vi.fn(),
+		});
+
+		coordinator.apply(state, state);
+		calls.length = 0;
+		(
+			lifecycle as unknown as {
+				renderer: { capabilities: { kind: 'g6' } };
+			}
+		).renderer = { capabilities: { kind: 'g6' } };
+
+		coordinator.apply(state, state);
+
+		expect(calls).toEqual(['rebuild']);
 	});
 });
 

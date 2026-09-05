@@ -53,7 +53,8 @@ describe('ArcLayout', () => {
 			],
 		).fromProjection(projection);
 
-		await new ArcLayout().apply(graph);
+		const layout = new ArcLayout();
+		await layout.apply(graph);
 
 		expect(graph.hasEdge('A-to-C')).toBe(false);
 		expect(graph.hasNode('__arc-bend__A-to-C__4')).toBe(true);
@@ -71,6 +72,16 @@ describe('ArcLayout', () => {
 				.mapEdges((_edge, attributes) => attributes.label)
 				.filter(Boolean),
 		).toEqual(['Next']);
+		const route = layout.getEdgeRoutes().get('A-to-C');
+		expect(route).toMatchObject({
+			id: 'A-to-C',
+			source: 'A.md',
+			target: 'C.md',
+			parallelRouteOwner: 'layout',
+		});
+		expect(route?.commands.length).toBeGreaterThan(5);
+		expect(route?.arrow?.angle).toEqual(expect.any(Number));
+		expect(route?.label?.angle).toEqual(expect.any(Number));
 	});
 
 	it('keeps parallel links on layout-owned arcs', async () => {

@@ -30,11 +30,12 @@ export function createG6CoordinateSpace(
 		scale,
 		toG6: (position) => ({
 			x: origin.x + (position.x - origin.x) * scale,
-			y: origin.y + (position.y - origin.y) * scale,
+			// Sigma's graph Y axis points up; G6 Canvas Y points down.
+			y: origin.y - (position.y - origin.y) * scale,
 		}),
 		toGraph: (position) => ({
 			x: origin.x + (position.x - origin.x) / scale,
-			y: origin.y + (position.y - origin.y) / scale,
+			y: origin.y - (position.y - origin.y) / scale,
 		}),
 	};
 }

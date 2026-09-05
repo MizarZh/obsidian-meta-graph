@@ -125,6 +125,7 @@ export async function applyStableLayout(
 	newNodeIds: string[],
 	options: StableLayoutOptions,
 ): Promise<void> {
+	snapshot.edgeRoutes = undefined;
 	const context: StableLayoutContext = {
 		graph,
 		snapshot,
@@ -194,6 +195,7 @@ async function applyArcLayout({
 	);
 	await layout.apply(graph);
 	snapshot.groupGeometries = layout.getGroupGeometries();
+	snapshot.edgeRoutes = layout.getEdgeRoutes();
 	snapshot.edgeIds = currentEdgeIds;
 	snapshot.orthogonalRoutes = createOrthogonalRouteMap();
 }

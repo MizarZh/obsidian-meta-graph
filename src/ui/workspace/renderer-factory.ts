@@ -1,5 +1,6 @@
 import type { WorkspaceState } from '../../core/types';
 import type { RuntimeGraph } from '../../graph/model/graphology-adapter';
+import type { PlanarEdgeRoute } from '../../layouts/planar-geometry';
 import type { GraphPalette } from '../../graph/styles/graph-styles';
 import {
 	createGraphRenderer,
@@ -14,6 +15,7 @@ export interface WorkspaceGraphRendererOptions {
 	palette: GraphPalette;
 	state: WorkspaceState;
 	isStale: () => boolean;
+	edgeRoutes?: ReadonlyMap<string, PlanarEdgeRoute>;
 }
 
 export function createWorkspaceGraphRenderer(
@@ -59,5 +61,6 @@ export function createWorkspaceGraphRenderer(
 		enableForceLayout: state.enableForceLayout,
 		forceLabels: state.forceLabels,
 		isStale,
+		edgeRoutes: options.edgeRoutes,
 	});
 }

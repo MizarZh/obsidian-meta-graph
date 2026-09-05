@@ -11,6 +11,7 @@ import type {
 	RuntimeNodeAttributes,
 } from '../../model/graphology-adapter';
 import { getCanonicalParallelLane } from '../../model/parallel-edges';
+import type { PlanarEdgeRoute } from '../../../layouts/planar-geometry';
 import {
 	createG6EdgeStyle,
 	createG6NodeStyle,
@@ -22,6 +23,10 @@ import {
 	type G6VisualScale,
 } from './g6-styles';
 import type { G6CoordinateSpace } from './g6-coordinate-space';
+import {
+	G6_LOGICAL_EDGE_TYPE,
+	type G6LogicalEdgeStyle,
+} from './g6-logical-edge';
 
 export interface G6NodeMetadata extends Record<string, unknown> {
 	path: string;
@@ -66,7 +71,7 @@ export interface G6EdgeData extends EdgeData {
 	style: G6EdgeStyle;
 }
 
-export type G6EdgeType = 'line' | 'quadratic';
+export type G6EdgeType = 'line' | 'quadratic' | typeof G6_LOGICAL_EDGE_TYPE;
 
 export interface G6GraphData extends GraphData {
 	nodes: G6NodeData[];
@@ -98,30 +103,45 @@ export function toG6Data(
 	labelVisibility?: G6LabelVisibility,
 	labelStyles?: G6LabelStyles,
 	coordinateSpace?: G6CoordinateSpace,
+	edgeRoutes?: ReadonlyMap<string, PlanarEdgeRoute>,
 ): G6GraphData {
+	const routed = edgeRoutes && edgeRoutes.size > 0 ? edgeRoutes : undefined;
 	return {
-		nodes: graph.mapNodes((nodeId, attributes) =>
-			toG6NodeData(
-				nodeId,
-				attributes,
-				visualScale,
-				labelVisibility?.nodeIds.has(nodeId),
-				labelStyles?.node,
-				coordinateSpace,
-			),
-		),
-		edges: graph.mapEdges((edgeId, attributes, source, target) =>
-			toG6EdgeData(
-				edgeId,
-				source,
-				target,
-				attributes,
-				graph.isDirected(edgeId),
-				visualScale,
-				labelVisibility?.edgeIds.has(edgeId),
-				labelStyles?.edge,
-			),
-		),
+		nodes: graph.nodes().flatMap((nodeId) => {
+			const attributes = graph.getNodeAttributes(nodeId);
+			if (routed && attributes.isBend) return [];
+			return [
+				toG6NodeData(
+					nodeId,
+					attributes,
+					visualScale,
+					labelVisibility?.nodeIds.has(nodeId),
+					labelStyles?.node,
+					coordinateSpace,
+				),
+			];
+		}),
+		edges: routed
+			? createG6RoutedEdges(
+					graph,
+					routed,
+					visualScale,
+					labelVisibility,
+					labelStyles,
+					coordinateSpace,
+				)
+			: graph.mapEdges((edgeId, attributes, source, target) =>
+					toG6EdgeData(
+						edgeId,
+						source,
+						target,
+						attributes,
+						graph.isDirected(edgeId),
+						visualScale,
+						labelVisibility?.edgeIds.has(edgeId),
+						labelStyles?.edge,
+					),
+				),
 	};
 }
 
@@ -132,7 +152,9 @@ export function createG6StylePatch(
 	labelVisibility?: G6LabelVisibility,
 	labelStyles?: G6LabelStyles,
 	coordinateSpace?: G6CoordinateSpace,
+	edgeRoutes?: ReadonlyMap<string, PlanarEdgeRoute>,
 ): G6StylePatch {
+	const routedLogicalIds = new Set<string>();
 	return {
 		nodes: changes.nodeIds.flatMap((nodeId) => {
 			if (!graph.hasNode(nodeId)) return [];
@@ -152,8 +174,52 @@ export function createG6StylePatch(
 			];
 		}),
 		edges: changes.edgeIds.flatMap((edgeId) => {
-			if (!graph.hasEdge(edgeId)) return [];
+			if (!graph.hasEdge(edgeId)) {
+				const route = edgeRoutes?.get(edgeId);
+				if (!route || routedLogicalIds.has(edgeId)) return [];
+				routedLogicalIds.add(edgeId);
+				const routedEdge = toG6RouteEdgeData(
+					graph,
+					route,
+					visualScale,
+					labelVisibility,
+					labelStyles,
+					coordinateSpace,
+				);
+				return routedEdge
+					? [
+							{
+								id: routedEdge.id,
+								type: routedEdge.type,
+								style: routedEdge.style,
+							},
+						]
+					: [];
+			}
 			const attributes = graph.getEdgeAttributes(edgeId);
+			const logicalEdgeId = attributes.logicalEdgeId ?? edgeId;
+			const route = edgeRoutes?.get(logicalEdgeId);
+			if (route) {
+				if (routedLogicalIds.has(logicalEdgeId)) return [];
+				routedLogicalIds.add(logicalEdgeId);
+				const routedEdge = toG6RouteEdgeData(
+					graph,
+					route,
+					visualScale,
+					labelVisibility,
+					labelStyles,
+					coordinateSpace,
+				);
+				return routedEdge
+					? [
+							{
+								id: routedEdge.id,
+								type: routedEdge.type,
+								style: routedEdge.style,
+							},
+						]
+					: [];
+			}
 			const source = graph.source(edgeId);
 			const target = graph.target(edgeId);
 			return [
@@ -186,7 +252,9 @@ export function createG6LabelStylePatch(
 	visualScale: G6VisualScale,
 	labelVisibility: G6LabelVisibility,
 	labelStyles: G6LabelStyles,
+	edgeRoutes?: ReadonlyMap<string, PlanarEdgeRoute>,
 ): G6StylePatch {
+	const routedLogicalIds = new Set<string>();
 	return {
 		nodes: graph.nodes().flatMap((nodeId) => {
 			const attributes = graph.getNodeAttributes(nodeId);
@@ -206,6 +274,24 @@ export function createG6LabelStylePatch(
 		edges: graph.edges().flatMap((edgeId) => {
 			const attributes = graph.getEdgeAttributes(edgeId);
 			if (!attributes.label) return [];
+			const logicalEdgeId = attributes.logicalEdgeId ?? edgeId;
+			if (edgeRoutes?.has(logicalEdgeId)) {
+				if (routedLogicalIds.has(logicalEdgeId)) return [];
+				routedLogicalIds.add(logicalEdgeId);
+				return [
+					{
+						id: logicalEdgeId,
+						style: {
+							...labelStyles.edge,
+							label:
+								!attributes.hidden &&
+								labelVisibility.edgeIds.has(edgeId),
+							labelText: attributes.label,
+							labelOpacity: normalizeOpacity(attributes.opacity),
+						},
+					},
+				];
+			}
 			return [
 				{
 					id: edgeId,
@@ -220,6 +306,113 @@ export function createG6LabelStylePatch(
 				},
 			];
 		}),
+	};
+}
+
+function createG6RoutedEdges(
+	graph: RuntimeGraph,
+	edgeRoutes: ReadonlyMap<string, PlanarEdgeRoute>,
+	visualScale?: G6VisualScale,
+	labelVisibility?: G6LabelVisibility,
+	labelStyles?: G6LabelStyles,
+	coordinateSpace?: G6CoordinateSpace,
+): G6EdgeData[] {
+	const routedIds = new Set(edgeRoutes.keys());
+	const ordinaryEdges = graph
+		.mapEdges((edgeId, attributes, source, target) => ({
+			edgeId,
+			attributes,
+			source,
+			target,
+		}))
+		.filter(
+			({ edgeId, attributes }) =>
+				!routedIds.has(attributes.logicalEdgeId ?? edgeId),
+		)
+		.map(({ edgeId, attributes, source, target }) =>
+			toG6EdgeData(
+				edgeId,
+				source,
+				target,
+				attributes,
+				graph.isDirected(edgeId),
+				visualScale,
+				labelVisibility?.edgeIds.has(edgeId),
+				labelStyles?.edge,
+			),
+		);
+	const logicalEdges = [...edgeRoutes.values()].flatMap((route) => {
+		const edge = toG6RouteEdgeData(
+			graph,
+			route,
+			visualScale,
+			labelVisibility,
+			labelStyles,
+			coordinateSpace,
+		);
+		return edge ? [edge] : [];
+	});
+	return [...ordinaryEdges, ...logicalEdges];
+}
+
+function toG6RouteEdgeData(
+	graph: RuntimeGraph,
+	route: PlanarEdgeRoute,
+	visualScale?: G6VisualScale,
+	labelVisibility?: G6LabelVisibility,
+	labelStyles?: G6LabelStyles,
+	coordinateSpace?: G6CoordinateSpace,
+): G6EdgeData | undefined {
+	const runtimeEdgeIds = graph.edges().filter((edgeId) => {
+		const attributes = graph.getEdgeAttributes(edgeId);
+		return (attributes.logicalEdgeId ?? edgeId) === route.id;
+	});
+	const firstEdgeId = runtimeEdgeIds[0];
+	if (!firstEdgeId) return undefined;
+	const labelEdgeId = runtimeEdgeIds.find((edgeId) =>
+		Boolean(graph.getEdgeAttribute(edgeId, 'label')),
+	);
+	const attributes = {
+		...graph.getEdgeAttributes(firstEdgeId),
+		...(labelEdgeId ? graph.getEdgeAttributes(labelEdgeId) : {}),
+	};
+	const directed = runtimeEdgeIds.some((edgeId) => graph.isDirected(edgeId));
+	const style = createG6EdgeStyle(
+		attributes,
+		directed,
+		visualScale,
+		labelEdgeId ? labelVisibility?.edgeIds.has(labelEdgeId) : false,
+		labelStyles?.edge,
+	) as G6LogicalEdgeStyle;
+	const mapPoint = (point: { x: number; y: number }) =>
+		coordinateSpace?.toG6(point) ?? point;
+	style.controlPoints = route.commands
+		.slice(0, -1)
+		.map((command) => mapPoint(command.to))
+		.map((point) => [point.x, point.y]);
+	style.radius = 0;
+	return {
+		id: route.id,
+		source: route.source,
+		target: route.target,
+		type: G6_LOGICAL_EDGE_TYPE,
+		data: {
+			relation: attributes.relation,
+			sourcePath: attributes.sourcePath,
+			sourceField: attributes.sourceField,
+			kind: attributes.kind,
+			semantic: attributes.semantic !== false,
+			directed,
+			logicalEdgeId: route.id,
+			logicalSource: route.source,
+			logicalTarget: route.target,
+			arrowStyle: attributes.arrowStyle ?? 'filled',
+			parallelGroupKey: attributes.parallelGroupKey,
+			parallelLane: attributes.parallelLane ?? 0,
+			parallelCount: attributes.parallelCount ?? 1,
+			parallelDirection: attributes.parallelDirection ?? 1,
+		},
+		style,
 	};
 }
 

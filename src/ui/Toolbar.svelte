@@ -540,7 +540,7 @@
 					/>
 				</header>
 				{@render layoutSelector(createType, selectCreateType)}
-				{#if createType === 'graph' || createType === 'free'}
+				{#if createType === 'graph' || createType === 'free' || createType === 'arc'}
 					{@render rendererSelector(
 						createRenderer,
 						(value) => (createRenderer = value),
@@ -611,7 +611,7 @@
 					/>
 				</header>
 				{@render layoutSelector(mode, onChartType)}
-				{#if mode === 'graph' || mode === 'free'}
+				{#if mode === 'graph' || mode === 'free' || mode === 'arc'}
 					{@render rendererSelector(renderer, onRenderer)}
 				{/if}
 				<label class="knowledge-workspace-create-field">

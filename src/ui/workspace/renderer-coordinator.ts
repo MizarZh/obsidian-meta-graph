@@ -1,5 +1,7 @@
 import type { GraphProjection, WorkspaceState } from '../../core/types';
 import {
+	getRendererKind,
+	getRendererKindForMode,
 	refreshRendererGraphStyles,
 	refreshRendererGraphVisibility,
 	type GraphRenderer,
@@ -60,6 +62,15 @@ export class WorkspaceRenderCoordinator {
 			previousState,
 			this.baseline,
 		);
+		const activeRenderer = this.options.rendererLifecycle.renderer;
+		if (
+			activeRenderer &&
+			getRendererKind(activeRenderer) !==
+				getRendererKindForMode(nextState.mode, nextState.renderer)
+		) {
+			changes.shouldRebuild = true;
+			changes.fitAfterRender = true;
+		}
 		const plan = createWorkspaceRenderPlan(changes);
 
 		if (plan.syncGroupsBeforeRuntime) {

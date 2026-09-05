@@ -25,7 +25,7 @@ describe('G6 renderer', () => {
 		if (!renderer) throw new Error('Expected renderer');
 		renderer.setNodePosition('A.md', { x: 321, y: -123 });
 		expect(fake.translateElementTo).toHaveBeenCalledExactlyOnceWith(
-			{ 'A.md': [155510, -71480] },
+			{ 'A.md': [155510, 71520] },
 			false,
 		);
 		expect(renderer.getNodePosition('A.md')).toEqual({ x: 321, y: -123 });
@@ -35,7 +35,7 @@ describe('G6 renderer', () => {
 		});
 		renderer.moveNodesBy(['A.md'], { x: 4, y: 5 });
 		expect(fake.translateElementTo).toHaveBeenLastCalledWith(
-			{ 'A.md': [157510, -68980] },
+			{ 'A.md': [157510, 69020] },
 			false,
 		);
 		expect(renderer.getNodePosition('A.md')).toEqual({ x: 325, y: -118 });
@@ -216,7 +216,7 @@ describe('G6 renderer', () => {
 			duration: 350,
 		});
 		const graphPosition = renderer.viewportToGraphPosition({ x: 2, y: 3 });
-		expect(graphPosition).toEqual({ x: 10.004, y: 20.006 });
+		expect(graphPosition).toEqual({ x: 10.004, y: 19.994 });
 		const viewportPosition =
 			renderer.graphToViewportPosition(graphPosition);
 		expect(viewportPosition.x).toBeCloseTo(2);

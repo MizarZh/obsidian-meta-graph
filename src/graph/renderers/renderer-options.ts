@@ -4,6 +4,7 @@ import type {
 	ThreeLabelResolution,
 } from '../../core/types';
 import type { RuntimeGraph } from '../model/graphology-adapter';
+import type { PlanarEdgeRoute } from '../../layouts/planar-geometry';
 import type { GraphPalette } from '../styles/graph-styles';
 import type { RendererKind } from './renderer-capabilities';
 
@@ -28,6 +29,7 @@ export interface RendererBaseOptions {
 	forceLabels: boolean;
 	threeLabelResolution: ThreeLabelResolution;
 	isStale: () => boolean;
+	edgeRoutes?: ReadonlyMap<string, PlanarEdgeRoute>;
 }
 
 export interface SigmaRendererOptions extends RendererBaseOptions {
