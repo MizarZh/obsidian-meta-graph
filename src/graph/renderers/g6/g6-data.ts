@@ -97,6 +97,13 @@ export interface G6LabelVisibility {
 	edgeIds: ReadonlySet<string>;
 }
 
+export function isG6RenderedNode(
+	attributes: RuntimeNodeAttributes,
+	edgeRoutes?: ReadonlyMap<string, PlanarEdgeRoute>,
+): boolean {
+	return !edgeRoutes?.size || !attributes.isBend;
+}
+
 export function toG6Data(
 	graph: RuntimeGraph,
 	visualScale?: G6VisualScale,
@@ -109,7 +116,7 @@ export function toG6Data(
 	return {
 		nodes: graph.nodes().flatMap((nodeId) => {
 			const attributes = graph.getNodeAttributes(nodeId);
-			if (routed && attributes.isBend) return [];
+			if (!isG6RenderedNode(attributes, routed)) return [];
 			return [
 				toG6NodeData(
 					nodeId,
@@ -159,6 +166,7 @@ export function createG6StylePatch(
 		nodes: changes.nodeIds.flatMap((nodeId) => {
 			if (!graph.hasNode(nodeId)) return [];
 			const attributes = graph.getNodeAttributes(nodeId);
+			if (!isG6RenderedNode(attributes, edgeRoutes)) return [];
 			return [
 				{
 					id: nodeId,
@@ -258,8 +266,9 @@ export function createG6LabelStylePatch(
 	return {
 		nodes: graph.nodes().flatMap((nodeId) => {
 			const attributes = graph.getNodeAttributes(nodeId);
+			if (!isG6RenderedNode(attributes, edgeRoutes)) return [];
 			if (!attributes.label) return [];
-			const hidden = Boolean(attributes.hidden || attributes.isBend);
+			const hidden = Boolean(attributes.hidden);
 			return [
 				{
 					id: nodeId,

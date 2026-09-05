@@ -6,6 +6,7 @@ import type {
 	RuntimeNodeAttributes,
 } from '../../../graph/model/graphology-adapter';
 import type { GraphPalette } from '../../../graph/styles/graph-styles';
+import type { PlanarEdgeRoute } from '../../../layouts/planar-geometry';
 import {
 	createG6StylePatch,
 	createG6LabelStylePatch,
@@ -128,6 +129,77 @@ describe('G6 data adapter', () => {
 				visibility: 'hidden',
 			},
 		});
+	});
+
+	it('omits routed bend nodes from complete data and incremental patches', () => {
+		const graph = createRuntimeGraph();
+		const bendNodeId = '__flow-bend__logical-A-B__1';
+		graph.addNode(bendNodeId, {
+			label: 'Bend',
+			x: 20,
+			y: 30,
+			size: 1,
+			color: '#000000',
+			path: '',
+			folder: '',
+			domains: [],
+			tags: [],
+			isBend: true,
+		});
+		const edgeRoutes = new Map<string, PlanarEdgeRoute>([
+			[
+				'logical-A-B',
+				{
+					id: 'logical-A-B',
+					source: 'A.md',
+					target: 'B.md',
+					start: { x: 10, y: 20 },
+					commands: [
+						{ kind: 'line', to: { x: 20, y: 30 } },
+						{ kind: 'line', to: { x: 30, y: 40 } },
+					],
+					parallelRouteOwner: 'layout',
+				},
+			],
+		]);
+		const visualScale = { geometry: 1, label: 1, screen: 1 };
+		const labelVisibility = resolveG6LabelVisibility(graph, {
+			labelDensity: 1,
+			forceLabels: false,
+		});
+		const labelStyles = {
+			node: { labelFontSize: 9 },
+			edge: { labelFontSize: 9 },
+		};
+
+		const data = toG6Data(
+			graph,
+			visualScale,
+			labelVisibility,
+			labelStyles,
+			undefined,
+			edgeRoutes,
+		);
+		const stylePatch = createG6StylePatch(
+			graph,
+			{ nodeIds: graph.nodes(), edgeIds: graph.edges() },
+			visualScale,
+			labelVisibility,
+			labelStyles,
+			undefined,
+			edgeRoutes,
+		);
+		const labelPatch = createG6LabelStylePatch(
+			graph,
+			visualScale,
+			labelVisibility,
+			labelStyles,
+			edgeRoutes,
+		);
+
+		expect(data.nodes.map(({ id }) => id)).not.toContain(bendNodeId);
+		expect(stylePatch.nodes.map(({ id }) => id)).not.toContain(bendNodeId);
+		expect(labelPatch.nodes.map(({ id }) => id)).not.toContain(bendNodeId);
 	});
 
 	it('creates label-only patches without touching unlabeled edges', () => {

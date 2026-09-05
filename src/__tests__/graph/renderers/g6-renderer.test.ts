@@ -5,6 +5,7 @@ import type {
 	RuntimeGraph,
 	RuntimeNodeAttributes,
 } from '../../../graph/model/graphology-adapter';
+import type { PlanarEdgeRoute } from '../../../layouts/planar-geometry';
 import {
 	G6Renderer,
 	type G6GraphInstance,
@@ -442,6 +443,89 @@ describe('G6 renderer', () => {
 		const directTransitionPatch = readLastDataPatch(fake.updateData);
 		expect(fake.updateData).toHaveBeenCalledTimes(updateCount + 1);
 		expect(findStates(directTransitionPatch.nodes, 'D.md')).toBeUndefined();
+	});
+
+	it('only patches elements present in routed Flow G6 data', async () => {
+		const graph = createInteractiveGraph();
+		const bendNodeId = '__flow-bend__logical-A-B__1';
+		graph.addNode(bendNodeId, {
+			label: 'Bend',
+			x: 20,
+			y: 30,
+			size: 1,
+			color: '#000000',
+			path: '',
+			folder: '',
+			domains: [],
+			tags: [],
+			isBend: true,
+		});
+		const edgeRoutes = new Map<string, PlanarEdgeRoute>([
+			[
+				'logical-A-B',
+				{
+					id: 'logical-A-B',
+					source: 'A.md',
+					target: 'B.md',
+					start: { x: 10, y: 20 },
+					commands: [
+						{ kind: 'line', to: { x: 20, y: 30 } },
+						{ kind: 'line', to: { x: 30, y: 20 } },
+					],
+					parallelRouteOwner: 'layout',
+				},
+			],
+		]);
+		const fake = createFakeG6();
+		const renderedNodeIds = new Set<string>();
+		const renderedEdgeIds = new Set<string>();
+		const renderer = await G6Renderer.create(
+			{ ...createOptions(graph), edgeRoutes },
+			(options) => {
+				const data = options.data as G6GraphData;
+				data.nodes.forEach(({ id }) => renderedNodeIds.add(id));
+				data.edges.forEach(({ id }) => renderedEdgeIds.add(id));
+				fake.updateData.mockImplementation((patch: G6DataPatch) => {
+					for (const node of patch.nodes ?? []) {
+						if (!renderedNodeIds.has(String(node.id))) {
+							throw new Error(
+								`Unknown G6 node: ${String(node.id)}`,
+							);
+						}
+					}
+					for (const edge of patch.edges ?? []) {
+						if (!renderedEdgeIds.has(String(edge.id))) {
+							throw new Error(
+								`Unknown G6 edge: ${String(edge.id)}`,
+							);
+						}
+					}
+				});
+				return fake.instance;
+			},
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		expect(renderedNodeIds.has(bendNodeId)).toBe(false);
+		renderer.refreshGraphStyles();
+		renderer.setLabelDensity(0.5);
+		renderer.setHovered('A.md');
+		renderer.fit();
+		await vi.waitFor(() =>
+			expect(fake.updateData.mock.calls.length).toBeGreaterThanOrEqual(4),
+		);
+		renderer.setHovered(undefined);
+		await vi.waitFor(() =>
+			expect(fake.updateData.mock.calls.length).toBeGreaterThanOrEqual(5),
+		);
+
+		const updatedNodeIds = fake.updateData.mock.calls.flatMap(([patch]) =>
+			((patch as G6DataPatch).nodes ?? []).map((node) => node.id),
+		);
+		expect(updatedNodeIds).not.toContain(bendNodeId);
+		const snapshot = fake.replaceSnapshot.mock.calls.at(-1)?.[0];
+		expect(snapshot?.nodeIds.has(bendNodeId)).toBe(false);
+		renderer.kill();
 	});
 
 	it('coalesces label appearance updates without updating graph data', async () => {

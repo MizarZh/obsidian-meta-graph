@@ -25,6 +25,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Prevented routed Flow bend nodes, which are absent from the G6 element model, from entering viewport, style, label, or hover state patches and causing `Node not found` errors.
+
 - Reconciled the live renderer instance with the active chart renderer on every workspace update, so an interrupted or failed renderer transition cannot leave G6 active after the chart has switched back to Sigma.
 
 - Matched G6's internal Y-axis conversion to Sigma's graph coordinate orientation, so Arc **Up** and **Down** directions, routed edges, Groups, focus, and pointer hit conversion are no longer vertically mirrored.

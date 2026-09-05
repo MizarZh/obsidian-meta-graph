@@ -34,6 +34,7 @@ import type { G6RendererOptions } from '../renderer-options';
 import {
 	createG6LabelStylePatch,
 	createG6StylePatch,
+	isG6RenderedNode,
 	resolveG6LabelVisibility,
 	toG6Data,
 	type G6LabelVisibility,
@@ -1039,6 +1040,14 @@ export class G6Renderer implements PlanarRenderer {
 
 		for (const nodeId of nodeIds) {
 			if (!this.graph.hasNode(nodeId)) continue;
+			if (
+				!isG6RenderedNode(
+					this.graph.getNodeAttributes(nodeId),
+					this.edgeRoutes,
+				)
+			) {
+				continue;
+			}
 			const states: State[] = [];
 			if (neighborhood && !neighborhood.has(nodeId))
 				states.push(G6_INTERACTION_STATE.dimmed);
@@ -1413,6 +1422,7 @@ function createG6LabelControllerSnapshot(
 		ReturnType<typeof resolveG6RotatedNodeLabelStyle>
 	>();
 	graph.forEachNode((nodeId, attributes) => {
+		if (!isG6RenderedNode(attributes, edgeRoutes)) return;
 		const style = resolveG6RotatedNodeLabelStyle(
 			attributes,
 			visualScale,
@@ -1422,11 +1432,13 @@ function createG6LabelControllerSnapshot(
 	});
 	return {
 		nodeIds: new Set(
-			graph
-				.nodes()
-				.filter((nodeId) =>
-					Boolean(graph.getNodeAttribute(nodeId, 'label')),
-				),
+			graph.nodes().filter((nodeId) => {
+				const attributes = graph.getNodeAttributes(nodeId);
+				return (
+					isG6RenderedNode(attributes, edgeRoutes) &&
+					Boolean(attributes.label)
+				);
+			}),
 		),
 		edgeIds: new Set(
 			graph.edges().flatMap((edgeId) => {
