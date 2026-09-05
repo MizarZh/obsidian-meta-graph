@@ -7,11 +7,19 @@ This repository is an Obsidian community plugin named **Meta Graph**.
 - Package manager: **pnpm**.
 - Bundler: esbuild.
 - UI framework: Svelte 5.
-- Graph renderer: Sigma.js with Graphology.
+- Runtime graph model: Graphology.
+- Planar renderers:
+    - Sigma.js 3 is the default renderer.
+    - AntV G6 5 uses its Canvas renderer as an optional per-chart engine.
+    - Graph, Free, Flow, and Arc currently expose Sigma/G6 selection in the UI.
+    - HEB is part of the planar renderer type contract but remains Sigma-only in the UI until its bundled-path and radial-sector G6 adapters are complete.
+- Spatial renderers: Graph 3D and Cube use their dedicated Three.js-based renderers and must not offer G6.
 - Layout engines:
     - Graph: ForceAtlas2.
+    - Free: persisted manual positions.
     - Flow: ELK layered layout.
     - Arc: deterministic arc layout.
+    - HEB: deterministic hierarchical edge-bundling layout.
 - Plugin entry point: `src/main.ts`.
 - Built release artifact: `main.js` at the plugin root.
 - Do not commit generated artifacts such as `main.js`, `node_modules/`, or build output unless explicitly requested.
@@ -37,6 +45,12 @@ pnpm exec svelte-check --tsconfig ./tsconfig.json
 pnpm exec vitest run src/__tests__/core/core.test.ts src/__tests__/workspace/persistence/workspace-persistence.test.ts
 ```
 
+For planar renderer work, run the source-aligned renderer and lifecycle tests:
+
+```bash
+pnpm exec vitest run src/__tests__/graph/renderers/g6-data.test.ts src/__tests__/graph/renderers/g6-coordinate-space.test.ts src/__tests__/graph/renderers/g6-events.test.ts src/__tests__/graph/renderers/g6-label-controller.test.ts src/__tests__/graph/renderers/g6-renderer.test.ts src/__tests__/graph/renderers/g6-flow.test.ts src/__tests__/graph/renderers/g6-arc.test.ts src/__tests__/graph/renderers/renderer-capabilities.test.ts src/__tests__/workspace/rendering/renderer-lifecycle.test.ts
+```
+
 - Never run `git diff`.
 - Never run `pnpm dev`.
 - After every completed change, run `pnpm build`.
@@ -57,10 +71,13 @@ pnpm exec vitest run src/__tests__/core/core.test.ts src/__tests__/workspace/per
 - `src/core/relation-parser.ts`: frontmatter relationship parsing.
 - `src/core/metadata-indexer.ts`: Obsidian metadata cache -> canonical knowledge index.
 - `src/query/neighborhood.ts`: query projection.
-- `src/graph/graphology-adapter.ts`: projection -> runtime Graphology graph.
-- `src/graph/graph-events.ts`: Sigma events, node selection, hover, Ctrl-drag connection gesture.
-- `src/graph/renderer-adapter.ts`: renderer kind factory, renderer type guards, graph style refresh adapter.
-- `src/graph/sigma-renderer.ts`: Sigma renderer wrapper and visual reducers.
+- `src/graph/model/graphology-adapter.ts`: projection -> canonical runtime Graphology graph shared by renderers.
+- `src/graph/renderers/renderer-contracts.ts`: renderer-neutral planar viewport, interaction, layout-route, force-simulation, and Group contracts.
+- `src/graph/renderers/renderer-capabilities.ts`: view-mode and renderer capability policy; planar modes resolve the chart's Sigma/G6 choice.
+- `src/graph/renderers/renderer-factory.ts` and `renderer-adapter.ts`: renderer construction, type guards, events, display updates, and graph style refresh routing.
+- `src/graph/renderers/sigma/`: Sigma renderer, events, WebGL programs, labels, Groups, and parallel/logical edge Canvas layers.
+- `src/graph/renderers/g6/`: G6 Canvas renderer, Graphology data/style mapping, coordinate normalization, events, labels, Groups, and logical routed edges.
+- `src/layouts/planar-geometry.ts`: renderer-neutral layout-owned logical edge routes and Group geometry.
 - `src/ui/Workspace.svelte`: main workspace UI, state subscription, and graph rebuild/layout orchestration.
 - `src/ui/ConnectionPanel.svelte`: bottom connection panel.
 - `src/ui/FilterPanel.svelte`: settings panel shell for graph/filter/text/note/link controls.
@@ -71,7 +88,8 @@ pnpm exec vitest run src/__tests__/core/core.test.ts src/__tests__/workspace/per
 - `src/ui/workspace/render-plan.ts` and `renderer-coordinator.ts`: convert change flags into an explicit render plan and apply renderer updates in fixed order.
 - `src/ui/workspace/settings-ports.ts`: projects workspace state and controller commands into domain-specific settings view/action ports.
 - `src/ui/workspace/runtime-graph.ts`: creates runtime Graphology graphs and syncs style-only changes onto existing runtime graphs.
-- `src/ui/workspace/renderer-events.ts`: workspace renderer event policy for Sigma, 3D, and Cube renderers.
+- `src/ui/workspace/renderer-lifecycle.ts`: renderer generation, owned DOM hosts, layout-before-render sequencing, scene replacement, fit, event binding, and stale-render cleanup.
+- `src/ui/workspace/renderer-events.ts`: workspace event policy for Sigma, G6, 3D, and Cube renderers.
 - `src/ui/workspace/renderer-groups.ts`: renderer group overlay sync and runtime group movement previews.
 - `src/ui/workspace/dock-graph-drag.ts`: dock item -> graph node connection drag controller.
 - `src/ui/workspace/graph-dock-connection.ts`: graph node -> dock drop target connection controller.
@@ -109,6 +127,39 @@ Built-in metadata relationships:
 
 Custom connection fields are stored in the workspace document and are parsed as directed current note -> linked note edges.
 
+## Planar renderer policy
+
+Planar chart types keep their layout identity and store the rendering engine separately:
+
+```ts
+type PlanarRendererKind = 'sigma' | 'g6';
+```
+
+The chart model defaults to Sigma. V2 workspace files persist G6 compatibly under the chart extension namespace:
+
+```yaml
+type: graph
+extensions:
+    meta-graph:
+        renderer: g6
+```
+
+Sigma is omitted from the extension and is the fallback for missing or unknown values. Old plugin versions therefore ignore the extension and open the chart with Sigma. Copying a planar chart or switching between planar view modes preserves its renderer choice; Graph 3D and Cube ignore it.
+
+Important renderer rules:
+
+- G6 is a renderer and interaction layer only. Do not configure a G6 layout. ForceAtlas2, manual positions, ELK, Arc, and HEB remain the canonical layout producers.
+- RuntimeGraph coordinates, layout snapshots, logical edge routes, and Group geometry are renderer-neutral. Do not write G6-internal coordinates back to workspace state.
+- G6's reversible coordinate-space adapter must be used for nodes, paths, viewport conversion, dragging, Groups, focus, and hit testing. Preserve the shared Y-axis orientation.
+- Sigma and G6 share the same logical 25%-400% zoom range, 30px fit padding, and physical node/edge/arrow/Group scaling. Do not use G6 rendered bounds or `fitView()` as the workspace's canonical fit calculation because labels and markers alter those bounds.
+- Layout-owned Flow and Arc routes render as one G6 logical edge per relationship. Bend nodes and segmented runtime edges remain Sigma/layout implementation details and must not become visible or pickable G6 elements.
+- Selection, hover, focus, context menus, and styling always use logical edge IDs. A routed relationship must never expose a temporary bend or segment ID to workspace state.
+- Each renderer owns an absolute-positioned child host. Destroy the old renderer and remove its host before constructing another engine so third-party inline canvas styles cannot contaminate the shared workspace container.
+- Renderer creation and scene replacement are asynchronous and generation-checked. A stale renderer or queued draw must never reclaim the active view.
+- For initial G6 creation, pass complete data to the graph options and await `render()`. For complete scene replacement, use `setData()` followed by `render()`. Wait for queued work before fitting or binding interaction events. Use `updateData()`/`draw()` or the label controller only for incremental display and style updates.
+- Complete G6 data must explicitly initialize element `states`; renderer replacement and pointer teardown must clear transient node, edge, and Group hover. Do not restore hover from the previous chart or renderer.
+- Kill G6 by removing wheel/pointer listeners, cancelling animation frames and queued work, destroying Group/label helpers, and calling the G6 instance's `destroy()`.
+
 ## Connection editing behavior
 
 Users can hold `Ctrl`, drag from one visible node to another, and release to write a link into the source note's active metadata field.
@@ -143,6 +194,14 @@ Global plugin setting:
 
 When modifying Flow behavior, avoid temporary renderer-only edges. The graph should stay synchronized with the canonical projection.
 
+For G6 Flow rendering:
+
+- Curve, Orthogonal, and Bundled layouts publish complete logical routes after ELK finishes; one relationship becomes one registered G6 logical Polyline.
+- Straight Flow edges may use ordinary G6 line/quadratic elements.
+- G6 data must omit bend nodes whenever logical routes are present. Incomplete route snapshots must fall back to real logical endpoints, never dangling bend IDs.
+- Flow container regions consume the same layout Group geometry as Sigma. Do not derive their bounds from rendered labels or G6 element bounds.
+- Style-only changes update path appearance without rerunning ELK or reconstructing route geometry.
+
 ## Style refresh policy
 
 Visual style edits must stay responsive and must not trigger full graph rebuilds unless the projection or layout input changed.
@@ -163,9 +222,10 @@ These should be classified by `analyzeWorkspaceStateChanges` as `styleRulesChang
 Important details:
 
 - Do not run ELK, ForceAtlas, Arc, or HEB layout for style-only edits.
-- Flow orthogonal edge segments must stay synchronized through `logicalEdgeId`.
+- Flow orthogonal edge segments and G6 logical routes must stay synchronized through `logicalEdgeId`.
 - Color controls use `ObsidianColorInput` and its throttled commit helper so drag previews update live without committing every pointer event.
 - Display settings such as label size/color/density stay in `syncRendererDisplaySettings`; do not convert them into graph rebuilds.
+- G6 label appearance updates use the lightweight label controller; density or visibility changes may use data patches. Neither path may call layout or replace the complete scene.
 
 ## Sigma edge width policy
 
