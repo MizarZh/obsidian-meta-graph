@@ -252,12 +252,19 @@ describe('G6 data adapter', () => {
 		const forced = resolveG6LabelVisibility(graph, {
 			labelDensity: 0,
 			forceLabels: true,
+			nodeCapacity: 0,
+		});
+		const capped = resolveG6LabelVisibility(graph, {
+			labelDensity: 1,
+			forceLabels: false,
+			nodeCapacity: 1,
 		});
 
 		expect(none.nodeIds.size).toBe(0);
 		expect(half.nodeIds.size).toBe(1);
 		expect(all.nodeIds.size).toBe(2);
 		expect(forced.nodeIds.size).toBe(2);
+		expect(capped.nodeIds.size).toBe(1);
 		expect(all.edgeIds).toEqual(new Set(['A-to-B']));
 		expect(forced.edgeIds).toEqual(new Set(['A-to-B', 'B-related-A']));
 	});

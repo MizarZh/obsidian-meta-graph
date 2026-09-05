@@ -148,6 +148,48 @@ describe('G6 label controller', () => {
 			transform: [['translate', 10, 0]],
 		});
 	});
+
+	it('temporarily hides edge labels while preserving interaction exemptions', () => {
+		const updates = new Map<string, ReturnType<typeof vi.fn>>();
+		const getElement = vi.fn((id: string) => {
+			const update = vi.fn();
+			updates.set(id, update);
+			return {
+				attributes: { labelText: id },
+				getLabelStyle: () => ({ fontSize: 9 }),
+				getShape: () => ({ update }),
+			};
+		});
+		const graph = { on: vi.fn(), off: vi.fn() };
+		const controller = new G6LabelController(
+			{ graph, element: { getElement } } as unknown as RuntimeContext,
+			{
+				type: G6_LABEL_CONTROLLER_KEY,
+				snapshot: {
+					...createSnapshot(),
+					nodeIds: new Set(),
+					edgeIds: new Set(['ordinary', 'selected']),
+				},
+			},
+		);
+
+		controller.setEdgeLabelsSuppressed(true, ['selected']);
+		expect(updates.get('ordinary')).toHaveBeenLastCalledWith({
+			fontSize: 9,
+			visibility: 'hidden',
+		});
+		expect(updates.get('selected')).toHaveBeenLastCalledWith({
+			fontSize: 9,
+			visibility: 'visible',
+		});
+
+		controller.setEdgeLabelsSuppressed(false);
+		expect(updates.get('ordinary')).toHaveBeenLastCalledWith({
+			fontSize: 9,
+			visibility: 'visible',
+		});
+		controller.destroy();
+	});
 });
 
 function createSnapshot(): G6LabelControllerSnapshot {

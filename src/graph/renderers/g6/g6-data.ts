@@ -16,6 +16,7 @@ import {
 	createG6EdgeStyle,
 	createG6NodeStyle,
 	resolveG6NodeType,
+	resolveG6RotatedNodeLabelStyle,
 	type G6EdgeStyle,
 	type G6LabelStyles,
 	type G6NodeStyle,
@@ -90,11 +91,18 @@ export interface G6StylePatch {
 export interface G6LabelVisibilityOptions {
 	labelDensity: number;
 	forceLabels: boolean;
+	nodeCapacity?: number;
 }
 
 export interface G6LabelVisibility {
 	nodeIds: ReadonlySet<string>;
 	edgeIds: ReadonlySet<string>;
+}
+
+export interface G6LabelVisibilityIndex {
+	nodeIdsByPriority: readonly string[];
+	edgeIds: readonly string[];
+	forcedEdgeIds: readonly string[];
 }
 
 export function isG6RenderedNode(
@@ -323,6 +331,70 @@ export function createG6LabelStylePatch(
 	};
 }
 
+export function createG6LabelVisibilityPatch(
+	graph: RuntimeGraph,
+	changes: { nodeIds: readonly string[]; edgeIds: readonly string[] },
+	visualScale: G6VisualScale,
+	labelVisibility: G6LabelVisibility,
+	labelStyles: G6LabelStyles,
+	edgeRoutes?: ReadonlyMap<string, PlanarEdgeRoute>,
+): G6StylePatch {
+	const routedLogicalIds = new Set<string>();
+	return {
+		nodes: changes.nodeIds.flatMap((nodeId) => {
+			if (!graph.hasNode(nodeId)) return [];
+			const attributes = graph.getNodeAttributes(nodeId);
+			if (
+				!isG6RenderedNode(attributes, edgeRoutes) ||
+				!attributes.label
+			) {
+				return [];
+			}
+			return [
+				{
+					id: nodeId,
+					style: {
+						...labelStyles.node,
+						...resolveG6RotatedNodeLabelStyle(
+							attributes,
+							visualScale,
+							labelStyles.node,
+						),
+						label:
+							!attributes.hidden &&
+							labelVisibility.nodeIds.has(nodeId),
+						labelText: attributes.label,
+					},
+				},
+			];
+		}),
+		edges: changes.edgeIds.flatMap((edgeId) => {
+			if (!graph.hasEdge(edgeId)) return [];
+			const attributes = graph.getEdgeAttributes(edgeId);
+			if (!attributes.label) return [];
+			const logicalEdgeId = attributes.logicalEdgeId ?? edgeId;
+			const elementId = edgeRoutes?.has(logicalEdgeId)
+				? logicalEdgeId
+				: edgeId;
+			if (routedLogicalIds.has(elementId)) return [];
+			routedLogicalIds.add(elementId);
+			return [
+				{
+					id: elementId,
+					style: {
+						...labelStyles.edge,
+						label:
+							!attributes.hidden &&
+							labelVisibility.edgeIds.has(edgeId),
+						labelText: attributes.label,
+						labelOpacity: normalizeOpacity(attributes.opacity),
+					},
+				},
+			];
+		}),
+	};
+}
+
 function createG6RoutedEdges(
 	graph: RuntimeGraph,
 	edgeRoutes: ReadonlyMap<string, PlanarEdgeRoute>,
@@ -534,48 +606,71 @@ export function resolveG6LabelVisibility(
 	graph: RuntimeGraph,
 	options: G6LabelVisibilityOptions,
 ): G6LabelVisibility {
+	return resolveG6LabelVisibilityFromIndex(
+		createG6LabelVisibilityIndex(graph),
+		options,
+	);
+}
+
+export function createG6LabelVisibilityIndex(
+	graph: RuntimeGraph,
+): G6LabelVisibilityIndex {
+	const edgeIds: string[] = [];
+	const forcedEdgeIds: string[] = [];
+	graph.forEachEdge((edgeId, attributes) => {
+		if (attributes.hidden || !attributes.label) return;
+		edgeIds.push(edgeId);
+		if (attributes.forceLabel) forcedEdgeIds.push(edgeId);
+	});
+	return {
+		nodeIdsByPriority: graph
+			.mapNodes((nodeId, attributes) => ({
+				id: nodeId,
+				attributes,
+				degree: graph.degree(nodeId),
+			}))
+			.filter(
+				({ attributes }) =>
+					!attributes.hidden &&
+					!attributes.isBend &&
+					Boolean(attributes.label),
+			)
+			.sort((left, right) => {
+				if (
+					Boolean(left.attributes.isPrimary) !==
+					Boolean(right.attributes.isPrimary)
+				) {
+					return left.attributes.isPrimary ? -1 : 1;
+				}
+				if (left.attributes.size !== right.attributes.size) {
+					return right.attributes.size - left.attributes.size;
+				}
+				if (left.degree !== right.degree)
+					return right.degree - left.degree;
+				return left.id.localeCompare(right.id);
+			})
+			.map(({ id }) => id),
+		edgeIds,
+		forcedEdgeIds,
+	};
+}
+
+export function resolveG6LabelVisibilityFromIndex(
+	index: G6LabelVisibilityIndex,
+	options: G6LabelVisibilityOptions,
+): G6LabelVisibility {
 	const density = Math.min(1, Math.max(0, finiteOr(options.labelDensity, 1)));
-	const candidates = graph
-		.mapNodes((nodeId, attributes) => ({
-			id: nodeId,
-			attributes,
-			degree: graph.degree(nodeId),
-		}))
-		.filter(
-			({ attributes }) =>
-				!attributes.hidden &&
-				!attributes.isBend &&
-				Boolean(attributes.label),
-		)
-		.sort((left, right) => {
-			if (
-				Boolean(left.attributes.isPrimary) !==
-				Boolean(right.attributes.isPrimary)
-			) {
-				return left.attributes.isPrimary ? -1 : 1;
-			}
-			if (left.attributes.size !== right.attributes.size) {
-				return right.attributes.size - left.attributes.size;
-			}
-			if (left.degree !== right.degree) return right.degree - left.degree;
-			return left.id.localeCompare(right.id);
-		});
+	const candidates = index.nodeIdsByPriority;
+	const capacity = Number.isFinite(options.nodeCapacity)
+		? Math.max(0, Math.floor(options.nodeCapacity ?? 0))
+		: candidates.length;
 	const nodeBudget = options.forceLabels
 		? candidates.length
-		: Math.ceil(candidates.length * density);
-	const nodeIds = new Set(
-		candidates.slice(0, nodeBudget).map(({ id }) => id),
+		: Math.min(Math.ceil(candidates.length * density), capacity);
+	const nodeIds = new Set(candidates.slice(0, nodeBudget));
+	const edgeIds = new Set(
+		options.forceLabels ? index.edgeIds : index.forcedEdgeIds,
 	);
-	const edgeIds = new Set<string>();
-	graph.forEachEdge((edgeId, attributes) => {
-		if (
-			!attributes.hidden &&
-			Boolean(attributes.label) &&
-			(options.forceLabels || attributes.forceLabel)
-		) {
-			edgeIds.add(edgeId);
-		}
-	});
 	return { nodeIds, edgeIds };
 }
 

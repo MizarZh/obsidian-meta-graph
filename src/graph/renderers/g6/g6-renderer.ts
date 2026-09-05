@@ -32,12 +32,14 @@ import type {
 } from '../renderer-groups';
 import type { G6RendererOptions } from '../renderer-options';
 import {
-	createG6LabelStylePatch,
+	createG6LabelVisibilityIndex,
+	createG6LabelVisibilityPatch,
 	createG6StylePatch,
 	isG6RenderedNode,
-	resolveG6LabelVisibility,
+	resolveG6LabelVisibilityFromIndex,
 	toG6Data,
 	type G6LabelVisibility,
+	type G6LabelVisibilityIndex,
 } from './g6-data';
 import {
 	createG6CoordinateSpace,
@@ -65,6 +67,11 @@ const ZOOM_CHANGE_EPSILON = 1e-6;
 const WHEEL_PIXEL_DELTA_PER_STEP = 100;
 const WHEEL_ZOOM_RESPONSE_MS = 55;
 const WHEEL_ZOOM_SETTLE_EPSILON = 0.001;
+const LARGE_LABEL_SCENE_ELEMENT_COUNT = 500;
+const LABEL_VIEWPORT_PIXELS_PER_NODE = 3600;
+const MIN_VIEWPORT_NODE_LABELS = 24;
+const MAX_VIEWPORT_NODE_LABELS = 400;
+const EDGE_LABEL_TRANSFORM_SETTLE_MS = 140;
 
 interface G6InteractionSnapshot {
 	activeNodeId?: string;
@@ -121,6 +128,7 @@ export class G6Renderer implements PlanarRenderer {
 	private scaleLabelsWithZoom: boolean;
 	private labelDensity: number;
 	private forceLabels: boolean;
+	private labelVisibilityIndex: G6LabelVisibilityIndex;
 	private labelVisibility?: G6LabelVisibility;
 	private readonly isStale: () => boolean;
 	private readonly zoomLevelListeners = new Set<(level: number) => void>();
@@ -129,6 +137,8 @@ export class G6Renderer implements PlanarRenderer {
 	private drawDirty = false;
 	private labelSyncScheduled = false;
 	private labelSyncFrame?: number;
+	private edgeLabelTransformTimer?: number;
+	private edgeLabelsSuppressed = false;
 	private killed = false;
 	private fitting = false;
 	private fitZoom = 1;
@@ -163,6 +173,7 @@ export class G6Renderer implements PlanarRenderer {
 	private groupLayer?: G6GroupLayer;
 	private readonly handleViewportChange = (): void => {
 		if (this.killed || this.fitting) return;
+		this.suppressEdgeLabelsDuringViewportTransform();
 		this.viewportFrameVersion += 1;
 		const nativeZoom = normalizePlanarFitZoom(this.instance.getZoom());
 		if (
@@ -207,6 +218,7 @@ export class G6Renderer implements PlanarRenderer {
 		options: G6RendererOptions,
 		instance: G6GraphInstance,
 		coordinateSpace: G6CoordinateSpace,
+		labelVisibilityIndex: G6LabelVisibilityIndex,
 	) {
 		this.graph = options.graph;
 		this.coordinateSpace = coordinateSpace;
@@ -216,6 +228,7 @@ export class G6Renderer implements PlanarRenderer {
 		this.scaleLabelsWithZoom = options.scaleLabelsWithZoom;
 		this.labelDensity = options.labelDensity;
 		this.forceLabels = options.forceLabels;
+		this.labelVisibilityIndex = labelVisibilityIndex;
 		this.isStale = options.isStale;
 		this.instance = instance;
 		this.container = options.container;
@@ -231,10 +244,22 @@ export class G6Renderer implements PlanarRenderer {
 	): Promise<G6Renderer | undefined> {
 		if (options.isStale()) return undefined;
 		const coordinateSpace = createG6CoordinateSpace(options.graph);
-		const instance = createGraph(
-			createG6GraphOptions(options, coordinateSpace),
+		const labelVisibilityIndex = createG6LabelVisibilityIndex(
+			options.graph,
 		);
-		const renderer = new G6Renderer(options, instance, coordinateSpace);
+		const instance = createGraph(
+			createG6GraphOptions(
+				options,
+				coordinateSpace,
+				labelVisibilityIndex,
+			),
+		);
+		const renderer = new G6Renderer(
+			options,
+			instance,
+			coordinateSpace,
+			labelVisibilityIndex,
+		);
 		try {
 			await instance.draw();
 		} catch (error) {
@@ -257,6 +282,7 @@ export class G6Renderer implements PlanarRenderer {
 		const viewportState = this.captureViewportState();
 		this.graph = graph;
 		this.coordinateSpace = createG6CoordinateSpace(graph);
+		this.labelVisibilityIndex = createG6LabelVisibilityIndex(graph);
 		this.labelVisibility = undefined;
 		this.dropMissingInteractionTargets();
 		this.nodeStateKeys.clear();
@@ -290,6 +316,7 @@ export class G6Renderer implements PlanarRenderer {
 	}
 
 	refreshGraphStyles(): void {
+		this.labelVisibilityIndex = createG6LabelVisibilityIndex(this.graph);
 		this.labelVisibility = undefined;
 		this.instance.updateData(
 			createG6StylePatch(
@@ -313,6 +340,7 @@ export class G6Renderer implements PlanarRenderer {
 		nodeIds: readonly string[];
 		edgeIds: readonly string[];
 	}): void {
+		this.labelVisibilityIndex = createG6LabelVisibilityIndex(this.graph);
 		this.labelVisibility = undefined;
 		const labelVisibility = this.readLabelVisibility();
 		this.instance.updateData(
@@ -435,7 +463,10 @@ export class G6Renderer implements PlanarRenderer {
 	resize(): void {
 		if (this.killed) return;
 		const viewportState = this.captureViewportState();
+		const previousLabelVisibility = this.readLabelVisibility();
 		this.instance.resize();
+		this.labelVisibility = undefined;
+		this.syncLabelVisibility(previousLabelVisibility);
 		this.scheduleDraw();
 		if (viewportState) this.scheduleCoordinateFrame(viewportState);
 	}
@@ -462,6 +493,10 @@ export class G6Renderer implements PlanarRenderer {
 			this.labelSyncFrame = undefined;
 		}
 		this.labelSyncScheduled = false;
+		if (this.edgeLabelTransformTimer !== undefined) {
+			window?.clearTimeout(this.edgeLabelTransformTimer);
+			this.edgeLabelTransformTimer = undefined;
+		}
 		if (this.viewportPanFrame !== undefined) {
 			window?.cancelAnimationFrame(this.viewportPanFrame);
 			this.viewportPanFrame = undefined;
@@ -594,8 +629,10 @@ export class G6Renderer implements PlanarRenderer {
 	}
 	setSelectedEdge(edgeId?: string): void {
 		if (this.selectedEdgeId === edgeId) return;
+		const previousEdgeId = this.selectedEdgeId;
 		this.selectedEdgeId = edgeId;
 		this.syncInteractionStates();
+		this.syncTransientEdgeLabelOwner(previousEdgeId, edgeId);
 	}
 	setSelectedGroup(groupId?: string): void {
 		this.groupLayer?.setSelectedGroup(groupId);
@@ -609,8 +646,10 @@ export class G6Renderer implements PlanarRenderer {
 	}
 	setHoveredEdge(edgeId?: string): void {
 		if (this.hoveredEdgeId === edgeId) return;
+		const previousEdgeId = this.hoveredEdgeId;
 		this.hoveredEdgeId = edgeId;
 		this.scheduleInteractionSync();
+		this.syncTransientEdgeLabelOwner(previousEdgeId, edgeId);
 	}
 	getLogicalEdgeId(runtimeEdgeId: string): string | undefined {
 		if (this.edgeRoutes?.has(runtimeEdgeId)) return runtimeEdgeId;
@@ -650,14 +689,17 @@ export class G6Renderer implements PlanarRenderer {
 		this.scheduleLabelSync();
 	}
 	setLabelDensity(labelDensity: number): void {
+		const previousLabelVisibility = this.readLabelVisibility();
 		this.labelDensity = labelDensity;
 		this.labelVisibility = undefined;
-		this.syncLabelVisibility();
+		this.syncLabelVisibility(previousLabelVisibility);
 	}
 	setForceLabels(forceLabels: boolean): void {
+		const previousLabelVisibility = this.readLabelVisibility();
 		this.forceLabels = forceLabels;
 		this.labelVisibility = undefined;
-		this.syncLabelVisibility();
+		this.syncLabelVisibility(previousLabelVisibility);
+		if (forceLabels) this.restoreViewportEdgeLabels();
 	}
 	togglePinnedHover(nodeId: string): void {
 		const previousNodeId = this.pinnedNodeId;
@@ -823,21 +865,32 @@ export class G6Renderer implements PlanarRenderer {
 		this.scheduleDraw();
 	}
 
-	private syncLabelVisibility(): void {
+	private syncLabelVisibility(previous?: G6LabelVisibility): void {
 		if (this.killed || this.isStale()) return;
 		const visualScale = this.readVisualScale();
 		const visibility = this.readLabelVisibility();
-		this.instance.updateData(
-			createG6LabelStylePatch(
-				this.graph,
-				visualScale,
-				visibility,
-				this.readLabelStyles(visualScale),
-				this.edgeRoutes,
-			),
-		);
+		const changes = previous
+			? diffLabelVisibility(previous, visibility)
+			: {
+					nodeIds: [...visibility.nodeIds],
+					edgeIds: [...visibility.edgeIds],
+				};
+		if (changes.nodeIds.length > 0 || changes.edgeIds.length > 0) {
+			this.instance.updateData(
+				createG6LabelVisibilityPatch(
+					this.graph,
+					changes,
+					visualScale,
+					visibility,
+					this.readLabelStyles(visualScale),
+					this.edgeRoutes,
+				),
+			);
+		}
 		this.replaceLabelControllerSnapshot(visualScale);
-		this.scheduleDraw();
+		if (changes.nodeIds.length > 0 || changes.edgeIds.length > 0) {
+			this.scheduleDraw();
+		}
 	}
 
 	private scheduleLabelSync(): void {
@@ -931,6 +984,7 @@ export class G6Renderer implements PlanarRenderer {
 			visualScale,
 			this.readLabelVisibility(),
 			[this.hoveredNodeId, this.pinnedNodeId, this.selectedNodeId],
+			this.readTransientEdgeLabelElementIds(),
 		);
 	}
 
@@ -961,10 +1015,14 @@ export class G6Renderer implements PlanarRenderer {
 	}
 
 	private readLabelVisibility(): G6LabelVisibility {
-		this.labelVisibility ??= resolveG6LabelVisibility(this.graph, {
-			labelDensity: this.labelDensity,
-			forceLabels: this.forceLabels,
-		});
+		this.labelVisibility ??= resolveG6LabelVisibilityFromIndex(
+			this.labelVisibilityIndex,
+			{
+				labelDensity: this.labelDensity,
+				forceLabels: this.forceLabels,
+				nodeCapacity: this.readViewportNodeLabelCapacity(),
+			},
+		);
 		return this.labelVisibility;
 	}
 
@@ -979,6 +1037,101 @@ export class G6Renderer implements PlanarRenderer {
 		) {
 			this.scheduleLabelSync();
 		}
+	}
+
+	private syncTransientEdgeLabelOwner(
+		previousEdgeId?: string,
+		nextEdgeId?: string,
+	): void {
+		if (
+			this.hasHiddenTransientEdgeLabel(previousEdgeId) ||
+			this.hasHiddenTransientEdgeLabel(nextEdgeId)
+		) {
+			this.scheduleLabelSync();
+		}
+		if (this.edgeLabelsSuppressed) {
+			this.readLabelController()?.setEdgeLabelsSuppressed(
+				true,
+				this.readTransientEdgeLabelElementIds(),
+			);
+		}
+	}
+
+	private hasHiddenTransientEdgeLabel(logicalEdgeId?: string): boolean {
+		if (!logicalEdgeId) return false;
+		const visibleEdgeIds = this.readLabelVisibility().edgeIds;
+		for (const runtimeEdgeId of this.runtimeEdgesByLogicalId.get(
+			logicalEdgeId,
+		) ?? []) {
+			if (
+				this.graph.hasEdge(runtimeEdgeId) &&
+				this.graph.getEdgeAttribute(runtimeEdgeId, 'label') &&
+				!visibleEdgeIds.has(runtimeEdgeId)
+			) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private readTransientEdgeLabelElementIds(): Set<string> {
+		const elementIds = new Set<string>();
+		for (const logicalEdgeId of [this.hoveredEdgeId, this.selectedEdgeId]) {
+			if (!logicalEdgeId) continue;
+			for (const runtimeEdgeId of this.runtimeEdgesByLogicalId.get(
+				logicalEdgeId,
+			) ?? []) {
+				if (
+					!this.graph.hasEdge(runtimeEdgeId) ||
+					!this.graph.getEdgeAttribute(runtimeEdgeId, 'label')
+				) {
+					continue;
+				}
+				elementIds.add(
+					this.edgeElementByRuntimeEdgeId.get(runtimeEdgeId) ??
+						runtimeEdgeId,
+				);
+			}
+		}
+		return elementIds;
+	}
+
+	private readViewportNodeLabelCapacity(): number | undefined {
+		if (!this.isLargeLabelScene()) return undefined;
+		const center = this.instance.getCanvasCenter();
+		return calculateViewportNodeLabelCapacity(
+			Number(center[0]) * 2,
+			Number(center[1]) * 2,
+		);
+	}
+
+	private isLargeLabelScene(): boolean {
+		const edgeCount = this.edgeRoutes?.size ?? this.graph.size;
+		return this.graph.order + edgeCount >= LARGE_LABEL_SCENE_ELEMENT_COUNT;
+	}
+
+	private suppressEdgeLabelsDuringViewportTransform(): void {
+		if (!this.isLargeLabelScene() || this.forceLabels) return;
+		const window = this.container.ownerDocument?.defaultView;
+		if (!window) return;
+		this.edgeLabelsSuppressed = true;
+		this.readLabelController()?.setEdgeLabelsSuppressed(
+			true,
+			this.readTransientEdgeLabelElementIds(),
+		);
+		if (this.edgeLabelTransformTimer !== undefined) {
+			window.clearTimeout(this.edgeLabelTransformTimer);
+		}
+		this.edgeLabelTransformTimer = window.setTimeout(() => {
+			this.edgeLabelTransformTimer = undefined;
+			this.restoreViewportEdgeLabels();
+		}, EDGE_LABEL_TRANSFORM_SETTLE_MS);
+	}
+
+	private restoreViewportEdgeLabels(): void {
+		if (!this.edgeLabelsSuppressed) return;
+		this.edgeLabelsSuppressed = false;
+		this.readLabelController()?.setEdgeLabelsSuppressed(false);
 	}
 
 	setHoveredGroup(groupId?: string): void {
@@ -1382,8 +1535,23 @@ export class G6Renderer implements PlanarRenderer {
 export function createG6GraphOptions(
 	options: G6RendererOptions,
 	coordinateSpace: G6CoordinateSpace = createG6CoordinateSpace(options.graph),
+	labelVisibilityIndex: G6LabelVisibilityIndex = createG6LabelVisibilityIndex(
+		options.graph,
+	),
 ): GraphOptions {
-	const labelVisibility = resolveG6LabelVisibility(options.graph, options);
+	const bounds = options.container.getBoundingClientRect();
+	const edgeCount = options.edgeRoutes?.size ?? options.graph.size;
+	const nodeCapacity =
+		options.graph.order + edgeCount >= LARGE_LABEL_SCENE_ELEMENT_COUNT
+			? calculateViewportNodeLabelCapacity(bounds.width, bounds.height)
+			: undefined;
+	const labelVisibility = resolveG6LabelVisibilityFromIndex(
+		labelVisibilityIndex,
+		{
+			...options,
+			nodeCapacity,
+		},
+	);
 	const displayStyle = createG6DisplayStyleOptions(options);
 	const labelStyles = createG6LabelStyles(options.palette, displayStyle);
 	return {
@@ -1426,6 +1594,7 @@ function createG6LabelControllerSnapshot(
 	visualScale?: G6VisualScale,
 	labelVisibility?: G6LabelVisibility,
 	interactionNodeIds: readonly (string | undefined)[] = [],
+	interactionEdgeIds: Iterable<string> = [],
 ): G6LabelControllerSnapshot {
 	const nodeIds = new Set(labelVisibility?.nodeIds ?? []);
 	for (const nodeId of interactionNodeIds) {
@@ -1468,6 +1637,7 @@ function createG6LabelControllerSnapshot(
 			edgeRoutes?.has(logicalEdgeId) ? logicalEdgeId : runtimeEdgeId,
 		);
 	}
+	for (const edgeId of interactionEdgeIds) edgeIds.add(edgeId);
 	return {
 		nodeIds,
 		edgeIds,
@@ -1475,6 +1645,40 @@ function createG6LabelControllerSnapshot(
 		nodeStyles,
 		edgeStyle: styles.edge,
 	};
+}
+
+export function calculateViewportNodeLabelCapacity(
+	width: number,
+	height: number,
+): number {
+	if (!(width > 0) || !(height > 0)) return MAX_VIEWPORT_NODE_LABELS;
+	return Math.min(
+		MAX_VIEWPORT_NODE_LABELS,
+		Math.max(
+			MIN_VIEWPORT_NODE_LABELS,
+			Math.floor((width * height) / LABEL_VIEWPORT_PIXELS_PER_NODE),
+		),
+	);
+}
+
+function diffLabelVisibility(
+	previous: G6LabelVisibility,
+	next: G6LabelVisibility,
+): { nodeIds: string[]; edgeIds: string[] } {
+	return {
+		nodeIds: symmetricSetDifference(previous.nodeIds, next.nodeIds),
+		edgeIds: symmetricSetDifference(previous.edgeIds, next.edgeIds),
+	};
+}
+
+function symmetricSetDifference(
+	left: ReadonlySet<string>,
+	right: ReadonlySet<string>,
+): string[] {
+	const difference: string[] = [];
+	for (const id of left) if (!right.has(id)) difference.push(id);
+	for (const id of right) if (!left.has(id)) difference.push(id);
+	return difference;
 }
 
 export function createG6Behaviors(): NonNullable<GraphOptions['behaviors']> {

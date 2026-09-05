@@ -180,6 +180,7 @@ export function createG6InteractionStyles(
 						readNumericSize(data.style?.lineWidth) +
 						2 * visualScale.screen,
 					halo: false,
+					label: true,
 					zIndex: 3,
 				}),
 				[G6_INTERACTION_STATE.selected]: (data) => ({
@@ -190,6 +191,7 @@ export function createG6InteractionStyles(
 					endArrowFill: palette.selected,
 					endArrowStroke: palette.selected,
 					halo: false,
+					label: true,
 					zIndex: 4,
 				}),
 				[G6_INTERACTION_STATE.focusHidden]: {

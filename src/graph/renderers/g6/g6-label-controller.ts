@@ -34,6 +34,8 @@ interface G6LabelOwner {
 
 export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 	private snapshot: G6LabelControllerSnapshot;
+	private edgeLabelsSuppressed = false;
+	private suppressedEdgeExemptions = new Set<string>();
 	private readonly handleAfterDraw = (event: IGraphLifeCycleEvent): void => {
 		const changes = readDataChanges(event.data);
 		if (!changes) return;
@@ -64,6 +66,24 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 		this.snapshot = snapshot;
 	}
 
+	setEdgeLabelsSuppressed(
+		suppressed: boolean,
+		exemptEdgeIds: Iterable<string> = [],
+	): void {
+		const nextExemptions = new Set(exemptEdgeIds);
+		if (
+			this.edgeLabelsSuppressed === suppressed &&
+			setsEqual(this.suppressedEdgeExemptions, nextExemptions)
+		) {
+			return;
+		}
+		this.edgeLabelsSuppressed = suppressed;
+		this.suppressedEdgeExemptions = nextExemptions;
+		for (const edgeId of this.snapshot.edgeIds) {
+			this.applyElement(edgeId, this.snapshot.edgeStyle, true);
+		}
+	}
+
 	override destroy(): void {
 		this.context.graph.off(GraphEvent.AFTER_DRAW, this.handleAfterDraw);
 		super.destroy();
@@ -80,11 +100,15 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 			});
 		}
 		for (const edgeId of edgeIds) {
-			this.applyElement(edgeId, this.snapshot.edgeStyle);
+			this.applyElement(edgeId, this.snapshot.edgeStyle, true);
 		}
 	}
 
-	private applyElement(id: string, style: G6NodeStyle | G6EdgeStyle): void {
+	private applyElement(
+		id: string,
+		style: G6NodeStyle | G6EdgeStyle,
+		edge = false,
+	): void {
 		const element = this.context.element?.getElement(id) as
 			G6LabelOwner | undefined;
 		const label = element?.getShape<Label>('label');
@@ -103,8 +127,25 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 			...style,
 		});
 		if (!labelStyle) return;
-		label.update(labelStyle);
+		label.update({
+			...labelStyle,
+			...(edge
+				? {
+						visibility:
+							this.edgeLabelsSuppressed &&
+							!this.suppressedEdgeExemptions.has(id)
+								? 'hidden'
+								: 'visible',
+					}
+				: {}),
+		});
 	}
+}
+
+function setsEqual(left: ReadonlySet<string>, right: ReadonlySet<string>) {
+	if (left.size !== right.size) return false;
+	for (const value of left) if (!right.has(value)) return false;
+	return true;
 }
 
 function readDataChanges(data: unknown): readonly unknown[] | undefined {

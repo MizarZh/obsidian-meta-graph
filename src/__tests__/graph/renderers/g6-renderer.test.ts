@@ -7,7 +7,9 @@ import type {
 } from '../../../graph/model/graphology-adapter';
 import type { PlanarEdgeRoute } from '../../../layouts/planar-geometry';
 import {
+	calculateViewportNodeLabelCapacity,
 	G6Renderer,
+	type G6GraphFactory,
 	type G6GraphInstance,
 } from '../../../graph/renderers/g6/g6-renderer';
 import type { G6GraphData } from '../../../graph/renderers/g6/g6-data';
@@ -344,6 +346,12 @@ describe('G6 renderer', () => {
 
 	it('keeps 25%-400% zoom on the camera path without rebuilding graph data', async () => {
 		const graph = createInteractiveGraph();
+		graph.forEachNode((nodeId) =>
+			graph.mergeNodeAttributes(nodeId, {
+				labelRotation: Math.PI / 4,
+				labelDirection: 1,
+			}),
+		);
 		const fake = createFakeG6();
 		const renderer = await G6Renderer.create(
 			{ ...createOptions(graph), labelDensity: 0.25 },
@@ -386,6 +394,7 @@ describe('G6 renderer', () => {
 			const nativeZoom = fake.instance.getZoom();
 			const labelSnapshot = fake.updateLabels.mock.calls.at(-1)?.[0];
 			expect(labelSnapshot?.nodeIds.size).toBe(1);
+			expect(labelSnapshot?.nodeStyles?.size).toBe(1);
 			expect(
 				Number(labelSnapshot?.nodeStyle.labelFontSize) * nativeZoom,
 			).toBeCloseTo(12);
@@ -624,8 +633,8 @@ describe('G6 renderer', () => {
 		expect(fake.setData).not.toHaveBeenCalled();
 	});
 
-	it('updates label density through a visibility data patch', async () => {
-		const graph = createRuntimeGraph();
+	it('updates only label ids changed by density', async () => {
+		const graph = createInteractiveGraph();
 		const fake = createFakeG6();
 		const renderer = await G6Renderer.create(
 			createOptions(graph),
@@ -638,10 +647,57 @@ describe('G6 renderer', () => {
 
 		expect(fake.updateData).toHaveBeenCalledOnce();
 		const labelPatch = readLastDataPatch(fake.updateData);
-		expect(
-			labelPatch.nodes?.filter((node) => node.style?.label).length,
-		).toBe(1);
+		expect(labelPatch.nodes).toHaveLength(2);
+		expect(labelPatch.nodes?.every((node) => !node.style?.label)).toBe(
+			true,
+		);
 		expect(fake.replaceSnapshot).toHaveBeenCalledOnce();
+
+		const updateCount = fake.updateData.mock.calls.length;
+		const drawCount = fake.draw.mock.calls.length;
+		renderer.setLabelDensity(0.5);
+		await Promise.resolve();
+		expect(fake.updateData).toHaveBeenCalledTimes(updateCount);
+		expect(fake.draw).toHaveBeenCalledTimes(drawCount);
+
+		renderer.setLabelDensity(0.75);
+		await vi.waitFor(() =>
+			expect(fake.updateData).toHaveBeenCalledTimes(updateCount + 1),
+		);
+		const expandedPatch = readLastDataPatch(fake.updateData);
+		expect(expandedPatch.nodes).toHaveLength(1);
+		expect(expandedPatch.nodes?.[0]?.style?.label).toBe(true);
+	});
+
+	it('caps labels by viewport and suppresses ordinary edge labels during large transforms', async () => {
+		const graph = createLargeLabelGraph();
+		const fake = createFakeG6();
+		const container = createBrowserTestContainer(800, 600);
+		let graphOptions: Parameters<G6GraphFactory>[0] | undefined;
+		const renderer = await G6Renderer.create(
+			{ ...createOptions(graph), container },
+			(options) => {
+				graphOptions = options;
+				return fake.instance;
+			},
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		expect(calculateViewportNodeLabelCapacity(800, 600)).toBe(133);
+		const data = graphOptions?.data as G6GraphData;
+		expect(data.nodes.filter((node) => node.style.label).length).toBe(133);
+
+		renderer.setSelectedEdge('large-edge');
+		fake.emitTransform();
+		expect(fake.setEdgeLabelsSuppressed).toHaveBeenCalledWith(
+			true,
+			new Set(['large-edge']),
+		);
+		await vi.waitFor(() =>
+			expect(fake.setEdgeLabelsSuppressed).toHaveBeenLastCalledWith(
+				false,
+			),
+		);
 	});
 
 	it('does not reconfigure behaviors while an interaction label is active', async () => {
@@ -742,6 +798,35 @@ function createInteractiveGraph(): RuntimeGraph {
 	return graph;
 }
 
+function createLargeLabelGraph(): RuntimeGraph {
+	const graph = createRuntimeGraph();
+	for (let index = 1; index < 600; index += 1) {
+		graph.addNode(`node-${index}.md`, {
+			label: `Node ${index}`,
+			x: index,
+			y: index % 20,
+			size: 8,
+			color: '#234567',
+			path: `node-${index}.md`,
+			folder: '',
+			domains: [],
+			tags: [],
+		});
+	}
+	graph.addDirectedEdgeWithKey('large-edge', 'A.md', 'node-1.md', {
+		relation: 'leads-to',
+		type: 'arrow',
+		size: 1,
+		color: '#456789',
+		hidden: false,
+		label: 'Large edge',
+		forceLabel: true,
+		lineStyle: 'solid',
+		logicalEdgeId: 'large-edge',
+	});
+	return graph;
+}
+
 function createOptions(graph: RuntimeGraph): G6RendererOptions {
 	return {
 		graph,
@@ -782,6 +867,26 @@ function createTestContainer(): HTMLElement {
 	return container;
 }
 
+function createBrowserTestContainer(
+	width: number,
+	height: number,
+): HTMLElement {
+	const container = createTestContainer();
+	container.getBoundingClientRect = () =>
+		({ left: 0, top: 0, width, height }) as DOMRect;
+	const browserWindow = {
+		requestAnimationFrame: (callback: FrameRequestCallback) =>
+			setTimeout(() => callback(performance.now()), 0),
+		cancelAnimationFrame: (handle: number) => clearTimeout(handle),
+		setTimeout,
+		clearTimeout,
+	};
+	Object.defineProperty(container, 'ownerDocument', {
+		value: { defaultView: browserWindow },
+	});
+	return container;
+}
+
 function createWheelEvent(
 	deltaY: number,
 	clientX: number,
@@ -811,7 +916,12 @@ function createFakeG6(afterDraw?: () => void, graph?: RuntimeGraph) {
 	const updateLabels = vi.fn<(snapshot: G6LabelControllerSnapshot) => void>();
 	const replaceSnapshot =
 		vi.fn<(snapshot: G6LabelControllerSnapshot) => void>();
-	const labelController = { updateLabels, replaceSnapshot };
+	const setEdgeLabelsSuppressed = vi.fn();
+	const labelController = {
+		updateLabels,
+		replaceSnapshot,
+		setEdgeLabelsSuppressed,
+	};
 	const focusElement = vi.fn(async () => undefined);
 	const zoomBy = vi.fn(async (factor: number) => {
 		zoom *= factor;
@@ -874,6 +984,7 @@ function createFakeG6(afterDraw?: () => void, graph?: RuntimeGraph) {
 		updateData,
 		updateLabels,
 		replaceSnapshot,
+		setEdgeLabelsSuppressed,
 		zoomBy,
 		zoomTo,
 		resizeCanvasTo: (center: [number, number]) => {
