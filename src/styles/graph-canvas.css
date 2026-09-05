@@ -339,6 +339,116 @@
 		);
 }
 
+.knowledge-workspace-g6-group-layer {
+	overflow: hidden;
+}
+
+.knowledge-workspace-g6-svg-region-shape {
+	fill: var(--knowledge-workspace-group-color, var(--interactive-accent));
+	fill-opacity: 0.06;
+	stroke: var(--knowledge-workspace-group-color, var(--interactive-accent));
+	stroke-opacity: 0.55;
+	stroke-width: 1.5;
+	vector-effect: non-scaling-stroke;
+	pointer-events: none;
+}
+
+.knowledge-workspace-g6-svg-region.hovered
+	.knowledge-workspace-g6-svg-region-shape {
+	fill-opacity: 0.08;
+	stroke-opacity: 0.8;
+	stroke-width: 1.75;
+}
+
+.knowledge-workspace-g6-svg-region.selected
+	.knowledge-workspace-g6-svg-region-shape {
+	fill-opacity: 0.12;
+	stroke-opacity: 0.9;
+	stroke-width: 2;
+}
+
+.knowledge-workspace-g6-svg-region.drop-target
+	.knowledge-workspace-g6-svg-region-shape {
+	fill: var(--interactive-accent);
+	fill-opacity: 0.18;
+	stroke: var(--interactive-accent);
+	stroke-opacity: 1;
+	stroke-width: 2.5;
+}
+
+.knowledge-workspace-g6-svg-region.muted-by-focus {
+	opacity: 0.58;
+	filter: grayscale(1) saturate(0);
+}
+
+.knowledge-workspace-g6-svg-title {
+	pointer-events: none;
+}
+
+.knowledge-workspace-g6-svg-title.interactive {
+	cursor: move;
+	pointer-events: auto;
+}
+
+.knowledge-workspace-g6-svg-title-background {
+	fill: var(--background-primary);
+	fill-opacity: 0.94;
+	stroke: var(--knowledge-workspace-group-color, var(--interactive-accent));
+	stroke-opacity: 0.22;
+	stroke-width: 1;
+	vector-effect: non-scaling-stroke;
+}
+
+.knowledge-workspace-g6-svg-title-text {
+	fill: var(--knowledge-workspace-group-color, var(--interactive-accent));
+	font-size: 11px;
+	font-weight: 600;
+	text-anchor: middle;
+	user-select: none;
+}
+
+.knowledge-workspace-g6-svg-resize {
+	display: none;
+	fill: var(--background-primary);
+	stroke: var(--knowledge-workspace-group-color, var(--interactive-accent));
+	stroke-width: 1;
+	vector-effect: non-scaling-stroke;
+	pointer-events: auto;
+}
+
+.knowledge-workspace-g6-svg-region.selected .knowledge-workspace-g6-svg-resize {
+	display: block;
+}
+
+.knowledge-workspace-g6-svg-resize.resize-top-left,
+.knowledge-workspace-g6-svg-resize.resize-bottom-right {
+	cursor: nwse-resize;
+}
+
+.knowledge-workspace-g6-svg-resize.resize-top-right,
+.knowledge-workspace-g6-svg-resize.resize-bottom-left {
+	cursor: nesw-resize;
+}
+
+.knowledge-workspace-g6-svg-halos {
+	fill: none;
+	stroke: var(--knowledge-workspace-group-color, var(--interactive-accent));
+	stroke-opacity: 0.72;
+	stroke-width: 2;
+	vector-effect: non-scaling-stroke;
+	pointer-events: none;
+}
+
+.knowledge-workspace-g6-svg-halos.muted-by-focus {
+	opacity: 0.32;
+	filter: grayscale(1) saturate(0);
+}
+
+.knowledge-workspace-g6-svg-halos.selected {
+	stroke-opacity: 0.9;
+	stroke-width: 3;
+}
+
 .knowledge-workspace-group-title {
 	position: absolute;
 	left: 50%;

@@ -302,6 +302,7 @@ export class G6Renderer implements PlanarRenderer {
 		this.replaceLabelControllerSnapshot();
 		this.syncInteractionStates(false, true);
 		this.scheduleDraw();
+		this.groupLayer?.invalidateGeometry();
 		if (viewportState) this.scheduleCoordinateFrame(viewportState);
 	}
 
@@ -333,6 +334,7 @@ export class G6Renderer implements PlanarRenderer {
 			),
 		);
 		this.replaceLabelControllerSnapshot();
+		this.groupLayer?.invalidateGeometry();
 		this.scheduleDraw();
 	}
 
@@ -361,6 +363,7 @@ export class G6Renderer implements PlanarRenderer {
 			),
 		);
 		this.replaceLabelControllerSnapshot();
+		this.groupLayer?.invalidateGeometry();
 		this.scheduleDraw();
 	}
 
@@ -468,6 +471,7 @@ export class G6Renderer implements PlanarRenderer {
 		this.labelVisibility = undefined;
 		this.syncLabelVisibility(previousLabelVisibility);
 		this.scheduleDraw();
+		this.groupLayer?.refreshViewport();
 		if (viewportState) this.scheduleCoordinateFrame(viewportState);
 	}
 
@@ -612,6 +616,7 @@ export class G6Renderer implements PlanarRenderer {
 			const position = this.getNodePosition(nodeId);
 			if (position) this.graph.mergeNodeAttributes(nodeId, position);
 		}
+		this.groupLayer?.invalidateGeometry();
 		void translation.catch((error) => {
 			console.error('[Meta Graph] G6 element translation failed', error);
 		});
@@ -845,6 +850,7 @@ export class G6Renderer implements PlanarRenderer {
 						Math.max(this.fitZoom, previousFitZoom)
 			) {
 				this.syncCoordinateFrameVisuals();
+				this.groupLayer?.invalidateGeometry();
 			} else {
 				this.scheduleLabelSync();
 			}

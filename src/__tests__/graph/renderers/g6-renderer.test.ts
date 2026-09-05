@@ -322,6 +322,27 @@ describe('G6 renderer', () => {
 		expect(renderer.getZoomLevel()).toBe(100);
 	});
 
+	it('rebuilds cached Group geometry after the initial fit baseline', async () => {
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(createRuntimeGraph()),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+		const invalidateGeometry = vi.fn();
+		(
+			renderer as unknown as {
+				groupLayer: { invalidateGeometry(): void };
+			}
+		).groupLayer = { invalidateGeometry };
+
+		renderer.fit();
+
+		await vi.waitFor(() =>
+			expect(invalidateGeometry).toHaveBeenCalledOnce(),
+		);
+	});
+
 	it('does not rebuild graph visuals for pan-only viewport transforms', async () => {
 		const graph = createRuntimeGraph();
 		const fake = createFakeG6();

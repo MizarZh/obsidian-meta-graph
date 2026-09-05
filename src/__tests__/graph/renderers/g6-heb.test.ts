@@ -9,7 +9,11 @@ import {
 	resolveG6LabelVisibility,
 	toG6Data,
 } from '../../../graph/renderers/g6/g6-data';
-import { createRadialSectorViewportShape } from '../../../graph/renderers/g6/g6-groups';
+import {
+	createG6GroupTitlePosition,
+	createGraphViewportMatrix,
+	createRadialSectorViewportShape,
+} from '../../../graph/renderers/g6/g6-groups';
 import { G6_LOGICAL_EDGE_TYPE } from '../../../graph/renderers/g6/g6-logical-edge';
 import { createG6LabelStyles } from '../../../graph/renderers/g6/g6-styles';
 import type { GraphPalette } from '../../../graph/styles/graph-styles';
@@ -101,6 +105,35 @@ describe('G6 HEB adapter', () => {
 		expect(shape.label.y).toBeLessThanOrEqual(
 			shape.rect.top + shape.rect.height,
 		);
+	});
+
+	it('represents pan, zoom, and inverted axes with one SVG matrix', () => {
+		const matrix = createGraphViewportMatrix((point) => ({
+			x: 120 + point.x * 3,
+			y: 80 - point.y * 2,
+		}));
+
+		expect(matrix).toEqual({
+			a: 3,
+			b: 0,
+			c: 0,
+			d: -2,
+			e: 120,
+			f: 80,
+		});
+	});
+
+	it('places an upright physical-size Group title at visual top', () => {
+		const rect = { left: 10, top: 20, width: 80, height: 100 };
+
+		expect(createG6GroupTitlePosition(rect, 0.5, false)).toEqual({
+			x: 50,
+			y: 26,
+		});
+		expect(createG6GroupTitlePosition(rect, 0.5, true)).toEqual({
+			x: 50,
+			y: 114,
+		});
 	});
 });
 

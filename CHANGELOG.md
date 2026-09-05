@@ -27,6 +27,10 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Invalidated cached G6 Group geometry when the initial fit baseline becomes available, so Groups render on first entry instead of waiting for a manual refresh.
+
+- Kept G6 Group titles upright and consistently sized after moving Group geometry into graph-coordinate SVG. Titles now compensate for the inverted graph Y-axis and coordinate-domain conditioning, and remain on the visual top edge in Graph and Flow.
+
 - Cleared Arc/HEB label transforms and routed-edge geometry when G6 returns to Graph, Free, or Flow. Ordinary edge payloads now overwrite route-only fields, label refreshes discard stale layout-owned placement, and G6 recreates its owned renderer host when the planar view mode changes.
 
 - Aligned radial-sector Group hit testing with HEB's angular coordinate origin, so visual sectors and pointer targets cover the same notes.
@@ -50,6 +54,8 @@ All notable changes to Meta Graph are documented here.
 - Replaced G6's throttled 20% wheel animations with one continuously retargeted zoom loop. Mouse-wheel steps retain the shared 20% scale while high-resolution trackpad deltas accumulate proportionally without discarded events; visible labels now follow each zoom frame through the lightweight label controller without rebuilding graph data.
 
 ### Changed
+
+- Replaced G6's per-member Group halo DOM with one graph-coordinate SVG overlay. Viewport transforms now update one root matrix, dynamic bounds and halo geometry are cached until graph geometry changes, large scenes cull offscreen halos, and very large scenes draw halos only for active Groups.
 
 - Reorganized the test suite into source-aligned core, graph, layout, interaction, settings, UI, and workspace domain directories, with documented category-level test commands.
 - Added renderer-neutral planar, Group overlay, and external 2D force-simulation contracts so future 2D renderers can share interaction, refresh, layout-motion, and Group orchestration without inheriting Sigma internals.
