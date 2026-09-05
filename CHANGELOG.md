@@ -55,6 +55,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Added one per-scene G6 cache for rendered nodes, logical/runtime edges, incident neighborhoods, visible and rotated labels, graph extent, route point tiers, style signatures, and node spatial lookup. Style refreshes now submit only changed element IDs, hover reuses cached neighborhoods, fit/capture reuse the cached extent, routed-edge adapters reuse one logical index, and pointer hit tests no longer scan every node.
+
 - Replaced G6's per-member Group halo DOM with one graph-coordinate SVG overlay. Viewport transforms now update one root matrix, dynamic bounds and halo geometry are cached until graph geometry changes, large scenes cull offscreen halos, and very large scenes draw halos only for active Groups.
 
 - Reorganized the test suite into source-aligned core, graph, layout, interaction, settings, UI, and workspace domain directories, with documented category-level test commands.

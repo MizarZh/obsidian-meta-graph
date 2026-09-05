@@ -3,6 +3,7 @@ import type {
 	RuntimeGraph,
 } from '../../model/graphology-adapter';
 import { getPlanarGraphExtent } from '../planar-viewport-scale';
+import type { PlanarGraphExtent } from '../planar-viewport-scale';
 
 /**
  * Keeps G6 near its normal coordinate/zoom range for Free charts, whose
@@ -19,8 +20,8 @@ export interface G6CoordinateSpace {
 
 export function createG6CoordinateSpace(
 	graph: RuntimeGraph,
+	extent: PlanarGraphExtent = getPlanarGraphExtent(graph),
 ): G6CoordinateSpace {
-	const extent = getPlanarGraphExtent(graph);
 	const scale = Math.max(
 		1,
 		MIN_G6_COORDINATE_SPAN / extent.normalizationRatio,

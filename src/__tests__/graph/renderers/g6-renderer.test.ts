@@ -175,26 +175,27 @@ describe('G6 renderer', () => {
 
 	it('resolves visible node hits for dock-to-graph dragging', async () => {
 		const graph = createInteractiveGraph();
-		const fake = createFakeG6(undefined, graph);
+		const fake = createFakeG6();
 		const renderer = await G6Renderer.create(
 			createOptions(graph),
-			() => fake.instance,
+			(options) => {
+				fake.loadData(options.data as G6GraphData);
+				return fake.instance;
+			},
 		);
 		if (!renderer) throw new Error('Expected renderer');
+		const aPosition = renderer.graphToViewportPosition({ x: 10, y: 20 });
+		const bPosition = renderer.graphToViewportPosition({ x: 30, y: 20 });
 
-		expect(renderer.getNodeAtViewportPosition({ x: 1, y: 1 })).toBe('A.md');
+		expect(renderer.getNodeAtViewportPosition(aPosition)).toBe('A.md');
 		expect(
 			renderer.getNodeAtViewportPosition({ x: 400, y: 400 }),
 		).toBeUndefined();
 
 		graph.setNodeAttribute('A.md', 'hidden', true);
 		graph.setNodeAttribute('B.md', 'isBend', true);
-		expect(
-			renderer.getNodeAtViewportPosition({ x: 1, y: 1 }),
-		).toBeUndefined();
-		expect(
-			renderer.getNodeAtViewportPosition({ x: 21, y: 1 }),
-		).toBeUndefined();
+		expect(renderer.getNodeAtViewportPosition(aPosition)).toBeUndefined();
+		expect(renderer.getNodeAtViewportPosition(bPosition)).toBeUndefined();
 	});
 
 	it('supports zoom, fit, focus, coordinates, and zoom listeners', async () => {
@@ -591,16 +592,23 @@ describe('G6 renderer', () => {
 		if (!renderer) throw new Error('Expected renderer');
 
 		expect(renderedNodeIds.has(bendNodeId)).toBe(false);
+		const baselineUpdates = fake.updateData.mock.calls.length;
 		renderer.refreshGraphStyles();
+		expect(fake.updateData).toHaveBeenCalledTimes(baselineUpdates);
 		renderer.setLabelDensity(0.5);
 		renderer.setHovered('A.md');
 		renderer.fit();
 		await vi.waitFor(() =>
-			expect(fake.updateData.mock.calls.length).toBeGreaterThanOrEqual(4),
+			expect(fake.updateData.mock.calls.length).toBeGreaterThanOrEqual(
+				baselineUpdates + 3,
+			),
 		);
+		const activeUpdates = fake.updateData.mock.calls.length;
 		renderer.setHovered(undefined);
 		await vi.waitFor(() =>
-			expect(fake.updateData.mock.calls.length).toBeGreaterThanOrEqual(5),
+			expect(fake.updateData.mock.calls.length).toBeGreaterThan(
+				activeUpdates,
+			),
 		);
 
 		const updatedNodeIds = fake.updateData.mock.calls.flatMap(([patch]) =>
@@ -652,6 +660,26 @@ describe('G6 renderer', () => {
 			labelOffsetY: -9,
 		});
 		expect(fake.setData).not.toHaveBeenCalled();
+	});
+
+	it('submits only dirty node and edge ids for style refresh', async () => {
+		const graph = createInteractiveGraph();
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(graph),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		renderer.refreshGraphStyles();
+		expect(fake.updateData).not.toHaveBeenCalled();
+		graph.setNodeAttribute('B.md', 'color', '#abcdef');
+		graph.setEdgeAttribute('A-B', 'size', 3);
+		renderer.refreshGraphStyles();
+
+		const patch = readLastDataPatch(fake.updateData);
+		expect(patch.nodes?.map(({ id }) => id)).toEqual(['B.md']);
+		expect(patch.edges?.map(({ id }) => id)).toEqual(['A-B']);
 	});
 
 	it('updates only label ids changed by density', async () => {
@@ -921,10 +949,9 @@ function createWheelEvent(
 	}) as WheelEvent;
 }
 
-function createFakeG6(afterDraw?: () => void, graph?: RuntimeGraph) {
+function createFakeG6(afterDraw?: () => void) {
 	let zoom = 1;
 	const elementPositions = new Map<string, [number, number]>();
-	graph?.forEachNode((id, { x, y }) => elementPositions.set(id, [x, y]));
 	let canvasCenter: [number, number] = [400, 300];
 	let nextCanvasCenter: [number, number] | undefined;
 	let transformListener: (() => void) | undefined;
@@ -1010,6 +1037,15 @@ function createFakeG6(afterDraw?: () => void, graph?: RuntimeGraph) {
 		zoomTo,
 		resizeCanvasTo: (center: [number, number]) => {
 			nextCanvasCenter = center;
+		},
+		loadData: (data: G6GraphData) => {
+			for (const node of data.nodes) {
+				const x = Number(node.style.x);
+				const y = Number(node.style.y);
+				if (Number.isFinite(x) && Number.isFinite(y)) {
+					elementPositions.set(node.id, [x, y]);
+				}
+			}
 		},
 		emitTransform: () => transformListener?.(),
 	};

@@ -119,6 +119,7 @@ export function toG6Data(
 	labelStyles?: G6LabelStyles,
 	coordinateSpace?: G6CoordinateSpace,
 	edgeRoutes?: ReadonlyMap<string, PlanarEdgeRoute>,
+	runtimeEdgesByLogicalId?: ReadonlyMap<string, readonly string[]>,
 ): G6GraphData {
 	const routed = edgeRoutes && edgeRoutes.size > 0 ? edgeRoutes : undefined;
 	return {
@@ -144,6 +145,7 @@ export function toG6Data(
 					labelVisibility,
 					labelStyles,
 					coordinateSpace,
+					runtimeEdgesByLogicalId,
 				)
 			: graph.mapEdges((edgeId, attributes, source, target) =>
 					toG6EdgeData(
@@ -168,10 +170,11 @@ export function createG6StylePatch(
 	labelStyles?: G6LabelStyles,
 	coordinateSpace?: G6CoordinateSpace,
 	edgeRoutes?: ReadonlyMap<string, PlanarEdgeRoute>,
+	cachedRuntimeEdgesByLogicalId?: ReadonlyMap<string, readonly string[]>,
 ): G6StylePatch {
 	const routedLogicalIds = new Set<string>();
 	const runtimeEdgesByLogicalId = edgeRoutes
-		? indexRuntimeEdgesByLogicalId(graph)
+		? (cachedRuntimeEdgesByLogicalId ?? indexRuntimeEdgesByLogicalId(graph))
 		: undefined;
 	return {
 		nodes: changes.nodeIds.flatMap((nodeId) => {
@@ -402,9 +405,11 @@ function createG6RoutedEdges(
 	labelVisibility?: G6LabelVisibility,
 	labelStyles?: G6LabelStyles,
 	coordinateSpace?: G6CoordinateSpace,
+	cachedRuntimeEdgesByLogicalId?: ReadonlyMap<string, readonly string[]>,
 ): G6EdgeData[] {
 	const routedIds = new Set(edgeRoutes.keys());
-	const runtimeEdgesByLogicalId = indexRuntimeEdgesByLogicalId(graph);
+	const runtimeEdgesByLogicalId =
+		cachedRuntimeEdgesByLogicalId ?? indexRuntimeEdgesByLogicalId(graph);
 	const ordinaryEdges = graph
 		.mapEdges((edgeId, attributes, source, target) => ({
 			edgeId,
