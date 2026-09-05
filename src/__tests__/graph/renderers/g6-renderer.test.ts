@@ -342,18 +342,72 @@ describe('G6 renderer', () => {
 		expect(zoomListener).not.toHaveBeenCalled();
 	});
 
-	it('updates labels through the lightweight controller during zoom', async () => {
-		const graph = createRuntimeGraph();
+	it('keeps 25%-400% zoom on the camera path without rebuilding graph data', async () => {
+		const graph = createInteractiveGraph();
 		const fake = createFakeG6();
 		const renderer = await G6Renderer.create(
-			createOptions(graph),
+			{ ...createOptions(graph), labelDensity: 0.25 },
 			() => fake.instance,
 		);
 		if (!renderer) throw new Error('Expected renderer');
 
-		renderer.zoomBy(1.2);
+		renderer.fit();
+		await vi.waitFor(() => expect(fake.updateData).toHaveBeenCalledOnce());
+		const baselinePatch = readLastDataPatch(fake.updateData);
+		const baselineNodeSize = Number(
+			baselinePatch.nodes?.find((node) => node.id === 'A.md')?.style
+				?.size,
+		);
+		const baselineEdge = baselinePatch.edges?.find(
+			(edge) => edge.id === 'A-B',
+		)?.style;
+		const baselineLineWidth = Number(baselineEdge?.lineWidth);
+		const baselineArrowSize = baselineEdge?.endArrowSize as
+			[number, number] | undefined;
+		const baselineNativeZoom = fake.instance.getZoom();
+		const baselineNodeScreenSize = baselineNodeSize * baselineNativeZoom;
+		const baselineEdgeScreenWidth = baselineLineWidth * baselineNativeZoom;
+		const baselineArrowScreenSize = baselineArrowSize?.map(
+			(value) => value * baselineNativeZoom,
+		);
+		fake.updateData.mockClear();
+		fake.setOptions.mockClear();
+		fake.draw.mockClear();
+		fake.updateLabels.mockClear();
 
-		await vi.waitFor(() => expect(fake.updateLabels).toHaveBeenCalled());
+		for (const level of [25, 100, 400]) {
+			const previousLabelUpdates = fake.updateLabels.mock.calls.length;
+			renderer.setZoomLevel(level);
+			await vi.waitFor(() =>
+				expect(fake.updateLabels.mock.calls.length).toBeGreaterThan(
+					previousLabelUpdates,
+				),
+			);
+			const nativeZoom = fake.instance.getZoom();
+			const labelSnapshot = fake.updateLabels.mock.calls.at(-1)?.[0];
+			expect(labelSnapshot?.nodeIds.size).toBe(1);
+			expect(
+				Number(labelSnapshot?.nodeStyle.labelFontSize) * nativeZoom,
+			).toBeCloseTo(12);
+			expect(baselineNodeSize * nativeZoom).toBeCloseTo(
+				baselineNodeScreenSize * (level / 100),
+			);
+			expect(baselineLineWidth * nativeZoom).toBeCloseTo(
+				baselineEdgeScreenWidth * (level / 100),
+			);
+			expect(
+				baselineArrowSize?.map((value) => value * nativeZoom),
+			).toEqual(
+				baselineArrowScreenSize?.map((value) =>
+					expect.closeTo(value * (level / 100)),
+				),
+			);
+		}
+
+		await new Promise((resolve) => setTimeout(resolve, 100));
+		expect(fake.updateData).not.toHaveBeenCalled();
+		expect(fake.setOptions).not.toHaveBeenCalled();
+		expect(fake.draw).not.toHaveBeenCalled();
 	});
 
 	it('coalesces repeated draw requests while a draw is running', async () => {

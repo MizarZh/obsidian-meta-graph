@@ -65,7 +65,6 @@ const ZOOM_CHANGE_EPSILON = 1e-6;
 const WHEEL_PIXEL_DELTA_PER_STEP = 100;
 const WHEEL_ZOOM_RESPONSE_MS = 55;
 const WHEEL_ZOOM_SETTLE_EPSILON = 0.001;
-const VIEWPORT_SETTLE_MS = 80;
 
 interface G6InteractionSnapshot {
 	activeNodeId?: string;
@@ -135,8 +134,6 @@ export class G6Renderer implements PlanarRenderer {
 	private fitZoom = 1;
 	private hasFitBaseline = false;
 	private viewportFrameVersion = 0;
-	private viewportVisualSyncTimer?: number;
-	private viewportVisualSyncQueued = false;
 	private viewportChangeBound = false;
 	private viewportPanFrame?: number;
 	private viewportPanQueued = false;
@@ -178,7 +175,6 @@ export class G6Renderer implements PlanarRenderer {
 		this.lastObservedNativeZoom = nativeZoom;
 		this.emitZoomLevel();
 		this.scheduleLabelSync();
-		this.scheduleViewportVisualSync();
 	};
 	private readonly handleWheel = (event: WheelEvent): void => {
 		if (this.killed || this.fitting || this.isStale()) return;
@@ -472,10 +468,6 @@ export class G6Renderer implements PlanarRenderer {
 		}
 		this.pendingViewportPanX = 0;
 		this.pendingViewportPanY = 0;
-		if (this.viewportVisualSyncTimer !== undefined) {
-			window?.clearTimeout(this.viewportVisualSyncTimer);
-			this.viewportVisualSyncTimer = undefined;
-		}
 		this.cancelWheelZoom();
 		this.container.removeEventListener('wheel', this.handleWheel);
 		this.groupLayer?.kill();
@@ -595,8 +587,10 @@ export class G6Renderer implements PlanarRenderer {
 	}
 	setSelected(nodeId?: string): void {
 		if (this.selectedNodeId === nodeId) return;
+		const previousNodeId = this.selectedNodeId;
 		this.selectedNodeId = nodeId;
 		this.syncInteractionStates();
+		this.syncTransientLabelOwner(previousNodeId, nodeId);
 	}
 	setSelectedEdge(edgeId?: string): void {
 		if (this.selectedEdgeId === edgeId) return;
@@ -608,8 +602,10 @@ export class G6Renderer implements PlanarRenderer {
 	}
 	setHovered(nodeId?: string): void {
 		if (this.hoveredNodeId === nodeId) return;
+		const previousNodeId = this.hoveredNodeId;
 		this.hoveredNodeId = nodeId;
 		this.scheduleInteractionSync();
+		this.syncTransientLabelOwner(previousNodeId, nodeId);
 	}
 	setHoveredEdge(edgeId?: string): void {
 		if (this.hoveredEdgeId === edgeId) return;
@@ -664,16 +660,20 @@ export class G6Renderer implements PlanarRenderer {
 		this.syncLabelVisibility();
 	}
 	togglePinnedHover(nodeId: string): void {
+		const previousNodeId = this.pinnedNodeId;
 		this.pinnedNodeId = this.pinnedNodeId === nodeId ? undefined : nodeId;
 		this.syncInteractionStates();
+		this.syncTransientLabelOwner(previousNodeId, this.pinnedNodeId);
 		this.groupLayer?.setFocusedNode(
 			this.pinnedNodeId ?? this.hoveredNodeId,
 		);
 	}
 	clearPinnedHover(): void {
 		if (!this.pinnedNodeId) return;
+		const previousNodeId = this.pinnedNodeId;
 		this.pinnedNodeId = undefined;
 		this.syncInteractionStates();
+		this.syncTransientLabelOwner(previousNodeId, undefined);
 		this.groupLayer?.setFocusedNode(this.hoveredNodeId);
 	}
 	holdCurrentBounds(): void {}
@@ -750,6 +750,8 @@ export class G6Renderer implements PlanarRenderer {
 		};
 		if (!(viewport.width > 0) || !(viewport.height > 0)) return;
 		const extent = getPlanarGraphExtent(this.graph);
+		const hadFitBaseline = this.hasFitBaseline;
+		const previousFitZoom = this.fitZoom;
 		this.fitZoom =
 			calculateSigmaCompatibleFitZoom(extent, viewport) /
 			this.coordinateSpace.scale;
@@ -794,7 +796,16 @@ export class G6Renderer implements PlanarRenderer {
 				return;
 			}
 			this.hasFitBaseline = true;
-			this.syncViewportVisuals();
+			if (
+				!hadFitBaseline ||
+				Math.abs(this.fitZoom - previousFitZoom) >
+					ZOOM_CHANGE_EPSILON *
+						Math.max(this.fitZoom, previousFitZoom)
+			) {
+				this.syncCoordinateFrameVisuals();
+			} else {
+				this.scheduleLabelSync();
+			}
 			this.emitZoomLevel();
 		} finally {
 			this.fitting = false;
@@ -871,28 +882,8 @@ export class G6Renderer implements PlanarRenderer {
 		this.viewportChangeBound = true;
 	}
 
-	private scheduleViewportVisualSync(): void {
-		if (this.killed || this.isStale()) return;
-		const window = this.container.ownerDocument?.defaultView;
-		if (!window) {
-			if (this.viewportVisualSyncQueued) return;
-			this.viewportVisualSyncQueued = true;
-			queueMicrotask(() => {
-				this.viewportVisualSyncQueued = false;
-				this.syncViewportVisuals();
-			});
-			return;
-		}
-		if (this.viewportVisualSyncTimer !== undefined) {
-			window.clearTimeout(this.viewportVisualSyncTimer);
-		}
-		this.viewportVisualSyncTimer = window.setTimeout(() => {
-			this.viewportVisualSyncTimer = undefined;
-			this.syncViewportVisuals();
-		}, VIEWPORT_SETTLE_MS);
-	}
-
-	private syncViewportVisuals(): void {
+	/** Rebase canvas-unit styles only when the fit coordinate frame changes. */
+	private syncCoordinateFrameVisuals(): void {
 		if (this.killed || this.isStale()) return;
 		const visualScale = this.readVisualScale();
 		this.instance.updateData(
@@ -938,6 +929,8 @@ export class G6Renderer implements PlanarRenderer {
 			this.readLabelStyles(visualScale),
 			this.edgeRoutes,
 			visualScale,
+			this.readLabelVisibility(),
+			[this.hoveredNodeId, this.pinnedNodeId, this.selectedNodeId],
 		);
 	}
 
@@ -973,6 +966,19 @@ export class G6Renderer implements PlanarRenderer {
 			forceLabels: this.forceLabels,
 		});
 		return this.labelVisibility;
+	}
+
+	private syncTransientLabelOwner(
+		previousNodeId?: string,
+		nextNodeId?: string,
+	): void {
+		const visibleNodeIds = this.readLabelVisibility().nodeIds;
+		if (
+			(previousNodeId && !visibleNodeIds.has(previousNodeId)) ||
+			(nextNodeId && !visibleNodeIds.has(nextNodeId))
+		) {
+			this.scheduleLabelSync();
+		}
 	}
 
 	setHoveredGroup(groupId?: string): void {
@@ -1404,6 +1410,8 @@ export function createG6GraphOptions(
 					options.graph,
 					labelStyles,
 					options.edgeRoutes,
+					undefined,
+					labelVisibility,
 				),
 			},
 		],
@@ -1416,40 +1424,53 @@ function createG6LabelControllerSnapshot(
 	styles: ReturnType<typeof createG6LabelStyles>,
 	edgeRoutes?: ReadonlyMap<string, PlanarEdgeRoute>,
 	visualScale?: G6VisualScale,
+	labelVisibility?: G6LabelVisibility,
+	interactionNodeIds: readonly (string | undefined)[] = [],
 ): G6LabelControllerSnapshot {
+	const nodeIds = new Set(labelVisibility?.nodeIds ?? []);
+	for (const nodeId of interactionNodeIds) {
+		if (nodeId) nodeIds.add(nodeId);
+	}
+	for (const nodeId of [...nodeIds]) {
+		if (!graph.hasNode(nodeId)) {
+			nodeIds.delete(nodeId);
+			continue;
+		}
+		const attributes = graph.getNodeAttributes(nodeId);
+		if (
+			!isG6RenderedNode(attributes, edgeRoutes) ||
+			attributes.hidden ||
+			!attributes.label
+		) {
+			nodeIds.delete(nodeId);
+		}
+	}
 	const nodeStyles = new Map<
 		string,
 		ReturnType<typeof resolveG6RotatedNodeLabelStyle>
 	>();
-	graph.forEachNode((nodeId, attributes) => {
-		if (!isG6RenderedNode(attributes, edgeRoutes)) return;
+	for (const nodeId of nodeIds) {
+		const attributes = graph.getNodeAttributes(nodeId);
 		const style = resolveG6RotatedNodeLabelStyle(
 			attributes,
 			visualScale,
 			styles.node,
 		);
 		if (Object.keys(style).length > 0) nodeStyles.set(nodeId, style);
-	});
+	}
+	const edgeIds = new Set<string>();
+	for (const runtimeEdgeId of labelVisibility?.edgeIds ?? []) {
+		if (!graph.hasEdge(runtimeEdgeId)) continue;
+		const logicalEdgeId =
+			graph.getEdgeAttribute(runtimeEdgeId, 'logicalEdgeId') ??
+			runtimeEdgeId;
+		edgeIds.add(
+			edgeRoutes?.has(logicalEdgeId) ? logicalEdgeId : runtimeEdgeId,
+		);
+	}
 	return {
-		nodeIds: new Set(
-			graph.nodes().filter((nodeId) => {
-				const attributes = graph.getNodeAttributes(nodeId);
-				return (
-					isG6RenderedNode(attributes, edgeRoutes) &&
-					Boolean(attributes.label)
-				);
-			}),
-		),
-		edgeIds: new Set(
-			graph.edges().flatMap((edgeId) => {
-				if (!graph.getEdgeAttribute(edgeId, 'label')) return [];
-				const logicalEdgeId =
-					graph.getEdgeAttribute(edgeId, 'logicalEdgeId') ?? edgeId;
-				return [
-					edgeRoutes?.has(logicalEdgeId) ? logicalEdgeId : edgeId,
-				];
-			}),
-		),
+		nodeIds,
+		edgeIds,
 		nodeStyle: styles.node,
 		nodeStyles,
 		edgeStyle: styles.edge,
