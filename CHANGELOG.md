@@ -55,6 +55,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Moved G6 node picking onto the scene grid index with one pointer-to-graph conversion and exact graph-space radius checks. Node hover leave now has an 80 ms handoff grace; large-scene transient hover updates only the two local neighborhoods, while pinned focus retains full-scene dimming. Hover state work remains coalesced to one patch and one draw per animation frame.
+
 - Added one per-scene G6 cache for rendered nodes, logical/runtime edges, incident neighborhoods, visible and rotated labels, graph extent, route point tiers, style signatures, and node spatial lookup. Style refreshes now submit only changed element IDs, hover reuses cached neighborhoods, fit/capture reuse the cached extent, routed-edge adapters reuse one logical index, and pointer hit tests no longer scan every node.
 
 - Replaced G6's per-member Group halo DOM with one graph-coordinate SVG overlay. Viewport transforms now update one root matrix, dynamic bounds and halo geometry are cached until graph geometry changes, large scenes cull offscreen halos, and very large scenes draw halos only for active Groups.

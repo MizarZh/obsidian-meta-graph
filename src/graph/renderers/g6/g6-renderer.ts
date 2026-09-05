@@ -71,6 +71,7 @@ const LABEL_VIEWPORT_PIXELS_PER_NODE = 3600;
 const MIN_VIEWPORT_NODE_LABELS = 24;
 const MAX_VIEWPORT_NODE_LABELS = 400;
 const EDGE_LABEL_TRANSFORM_SETTLE_MS = 140;
+const NODE_HOVER_LEAVE_GRACE_MS = 80;
 
 interface G6InteractionSnapshot {
 	activeNodeId?: string;
@@ -151,6 +152,7 @@ export class G6Renderer implements PlanarRenderer {
 	private lastObservedNativeZoom = 1;
 	private interactionSyncFrame?: number;
 	private interactionSyncQueued = false;
+	private hoverLeaveTimer?: number;
 	private appliedInteraction: G6InteractionSnapshot = {};
 	private wheelZoomFrame?: number;
 	private wheelZoomFallbackQueued = false;
@@ -514,6 +516,10 @@ export class G6Renderer implements PlanarRenderer {
 			window?.clearTimeout(this.edgeLabelTransformTimer);
 			this.edgeLabelTransformTimer = undefined;
 		}
+		if (this.hoverLeaveTimer !== undefined) {
+			window?.clearTimeout(this.hoverLeaveTimer);
+			this.hoverLeaveTimer = undefined;
+		}
 		if (this.viewportPanFrame !== undefined) {
 			window?.cancelAnimationFrame(this.viewportPanFrame);
 			this.viewportPanFrame = undefined;
@@ -564,14 +570,14 @@ export class G6Renderer implements PlanarRenderer {
 				8,
 		);
 		const graphPoint = this.viewportToGraphPosition(position);
-		const graphRadiusPoint = this.viewportToGraphPosition({
-			x: position.x + maxHitRadius,
-			y: position.y,
-		});
-		const graphRadius = Math.hypot(
-			graphRadiusPoint.x - graphPoint.x,
-			graphRadiusPoint.y - graphPoint.y,
-		);
+		const graphUnitsPerPixel =
+			1 /
+			Math.max(
+				1e-6,
+				this.coordinateSpace.scale *
+					normalizePlanarFitZoom(this.instance.getZoom()),
+			);
+		const graphRadius = maxHitRadius * graphUnitsPerPixel;
 		for (const nodeId of this.sceneCache.nodeSpatialIndex.query(
 			graphPoint,
 			graphRadius,
@@ -581,15 +587,13 @@ export class G6Renderer implements PlanarRenderer {
 			if (attributes.hidden || attributes.isBend) continue;
 			const nodePosition = this.getNodePosition(nodeId);
 			if (!nodePosition) continue;
-			const center = this.graphToViewportPosition(nodePosition);
 			const distance = Math.hypot(
-				center.x - position.x,
-				center.y - position.y,
+				nodePosition.x - graphPoint.x,
+				nodePosition.y - graphPoint.y,
 			);
-			const hitRadius = Math.max(
-				14,
-				attributes.size * this.readNodeVisualScale() + 8,
-			);
+			const hitRadius =
+				Math.max(14, attributes.size * this.readNodeVisualScale() + 8) *
+				graphUnitsPerPixel;
 			if (distance <= hitRadius && distance < closestDistance) {
 				closestNodeId = nodeId;
 				closestDistance = distance;
@@ -678,6 +682,22 @@ export class G6Renderer implements PlanarRenderer {
 		this.groupLayer?.setSelectedGroup(groupId);
 	}
 	setHovered(nodeId?: string): void {
+		const window = this.container.ownerDocument?.defaultView;
+		if (this.hoverLeaveTimer !== undefined) {
+			window?.clearTimeout(this.hoverLeaveTimer);
+			this.hoverLeaveTimer = undefined;
+		}
+		if (!nodeId && this.hoveredNodeId && window) {
+			this.hoverLeaveTimer = window.setTimeout(() => {
+				this.hoverLeaveTimer = undefined;
+				this.applyHoveredNode(undefined);
+			}, NODE_HOVER_LEAVE_GRACE_MS);
+			return;
+		}
+		this.applyHoveredNode(nodeId);
+	}
+
+	private applyHoveredNode(nodeId?: string): void {
 		if (this.hoveredNodeId === nodeId) return;
 		const previousNodeId = this.hoveredNodeId;
 		this.hoveredNodeId = nodeId;
@@ -1242,6 +1262,10 @@ export class G6Renderer implements PlanarRenderer {
 		const neighborhood = activeNodeId
 			? this.sceneCache.neighborNodeIdsByNode.get(activeNodeId)
 			: undefined;
+		const dimUnrelated = Boolean(
+			activeNodeId &&
+			(this.pinnedNodeId || !this.isLargeInteractionScene()),
+		);
 		const nodes: Array<{ id: string; states: State[] }> = [];
 		const edges: Array<{ id: string; states: State[] }> = [];
 		const nodeIds = this.collectAffectedNodeIds(nextInteraction, forceAll);
@@ -1258,7 +1282,7 @@ export class G6Renderer implements PlanarRenderer {
 				continue;
 			}
 			const states: State[] = [];
-			if (neighborhood && !neighborhood.has(nodeId))
+			if (dimUnrelated && neighborhood && !neighborhood.has(nodeId))
 				states.push(G6_INTERACTION_STATE.dimmed);
 			if (nodeId === activeNodeId)
 				states.push(G6_INTERACTION_STATE.hovered);
@@ -1286,7 +1310,7 @@ export class G6Renderer implements PlanarRenderer {
 					.get(activeNodeId)
 					?.has(edgeId),
 			);
-			if (activeNodeId && !connected)
+			if (dimUnrelated && activeNodeId && !connected)
 				states.push(G6_INTERACTION_STATE.dimmed);
 			if (connected) states.push(G6_INTERACTION_STATE.connected);
 			if (
@@ -1316,21 +1340,21 @@ export class G6Renderer implements PlanarRenderer {
 		if (forceAll) return new Set(this.sceneCache.renderedNodeIds);
 		const affected = new Set<string>();
 		const previous = this.appliedInteraction;
+		if (previous.pinnedNodeId !== next.pinnedNodeId) {
+			for (const nodeId of this.sceneCache.renderedNodeIds)
+				affected.add(nodeId);
+		}
 		if (previous.activeNodeId !== next.activeNodeId) {
-			if (!previous.activeNodeId || !next.activeNodeId) {
+			const localOnly =
+				this.isLargeInteractionScene() &&
+				!previous.pinnedNodeId &&
+				!next.pinnedNodeId;
+			if ((!previous.activeNodeId || !next.activeNodeId) && !localOnly) {
 				for (const nodeId of this.sceneCache.renderedNodeIds)
 					affected.add(nodeId);
 			} else {
-				for (const nodeId of this.sceneCache.neighborNodeIdsByNode.get(
-					previous.activeNodeId,
-				) ?? []) {
-					affected.add(nodeId);
-				}
-				for (const nodeId of this.sceneCache.neighborNodeIdsByNode.get(
-					next.activeNodeId,
-				) ?? []) {
-					affected.add(nodeId);
-				}
+				this.addNeighborhood(affected, previous.activeNodeId);
+				this.addNeighborhood(affected, next.activeNodeId);
 			}
 		}
 		if (previous.selectedNodeId !== next.selectedNodeId) {
@@ -1355,8 +1379,13 @@ export class G6Renderer implements PlanarRenderer {
 				for (const edgeId of edgeIds) affected.add(edgeId);
 		}
 		if (previous.activeNodeId !== next.activeNodeId) {
-			if (!previous.activeNodeId || !next.activeNodeId) {
-				this.graph.forEachEdge((edgeId) => affected.add(edgeId));
+			const localOnly =
+				this.isLargeInteractionScene() &&
+				!previous.pinnedNodeId &&
+				!next.pinnedNodeId;
+			if ((!previous.activeNodeId || !next.activeNodeId) && !localOnly) {
+				for (const edgeIds of this.sceneCache.runtimeEdgesByLogicalId.values())
+					for (const edgeId of edgeIds) affected.add(edgeId);
 			} else {
 				this.addInteractionEdges(affected, previous.activeNodeId);
 				this.addInteractionEdges(affected, next.activeNodeId);
@@ -1381,6 +1410,15 @@ export class G6Renderer implements PlanarRenderer {
 		}
 	}
 
+	private addNeighborhood(target: Set<string>, nodeId?: string): void {
+		if (!nodeId) return;
+		for (const neighborId of this.sceneCache.neighborNodeIdsByNode.get(
+			nodeId,
+		) ?? []) {
+			target.add(neighborId);
+		}
+	}
+
 	private addLogicalEdges(target: Set<string>, logicalEdgeId?: string): void {
 		if (!logicalEdgeId) return;
 		for (const edgeId of this.sceneCache.runtimeEdgesByLogicalId.get(
@@ -1388,6 +1426,10 @@ export class G6Renderer implements PlanarRenderer {
 		) ?? []) {
 			target.add(edgeId);
 		}
+	}
+
+	private isLargeInteractionScene(): boolean {
+		return this.isLargeLabelScene();
 	}
 
 	private updateStateKey(

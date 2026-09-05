@@ -186,8 +186,10 @@ describe('G6 renderer', () => {
 		if (!renderer) throw new Error('Expected renderer');
 		const aPosition = renderer.graphToViewportPosition({ x: 10, y: 20 });
 		const bPosition = renderer.graphToViewportPosition({ x: 30, y: 20 });
+		fake.getCanvasByViewport.mockClear();
 
 		expect(renderer.getNodeAtViewportPosition(aPosition)).toBe('A.md');
+		expect(fake.getCanvasByViewport).toHaveBeenCalledOnce();
 		expect(
 			renderer.getNodeAtViewportPosition({ x: 400, y: 400 }),
 		).toBeUndefined();
@@ -528,6 +530,54 @@ describe('G6 renderer', () => {
 		const directTransitionPatch = readLastDataPatch(fake.updateData);
 		expect(fake.updateData).toHaveBeenCalledTimes(updateCount + 1);
 		expect(findStates(directTransitionPatch.nodes, 'D.md')).toBeUndefined();
+	});
+
+	it('keeps node-to-node hover within one frame across a short leave gap', async () => {
+		const fake = createFakeG6();
+		const container = createBrowserTestContainer(800, 600);
+		const renderer = await G6Renderer.create(
+			{
+				...createOptions(createInteractiveGraph()),
+				container,
+			},
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+		renderer.setHovered('A.md');
+		await vi.waitFor(() => expect(fake.updateData).toHaveBeenCalled());
+		fake.updateData.mockClear();
+
+		renderer.setHovered(undefined);
+		renderer.setHovered('B.md');
+		await vi.waitFor(() => expect(fake.updateData).toHaveBeenCalledOnce());
+		const browserWindow = container.ownerDocument.defaultView;
+		if (!browserWindow) throw new Error('Expected browser window');
+		await new Promise<void>((resolve) =>
+			browserWindow.setTimeout(resolve, 100),
+		);
+
+		expect(fake.updateData).toHaveBeenCalledOnce();
+	});
+
+	it('keeps large transient hover local and reserves full dimming for pinned focus', async () => {
+		const graph = createLargeLabelGraph();
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(graph),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		renderer.setHovered('A.md');
+		await Promise.resolve();
+		const hoverPatch = readLastDataPatch(fake.updateData);
+		expect(hoverPatch.nodes?.map(({ id }) => id)).toEqual(['A.md']);
+		expect(hoverPatch.edges?.map(({ id }) => id)).toEqual(['large-edge']);
+
+		fake.updateData.mockClear();
+		renderer.togglePinnedHover('A.md');
+		const focusPatch = readLastDataPatch(fake.updateData);
+		expect(focusPatch.nodes?.length).toBeGreaterThan(500);
 	});
 
 	it('only patches elements present in routed Flow G6 data', async () => {
@@ -995,15 +1045,21 @@ function createFakeG6(afterDraw?: () => void) {
 		canvasCenter = nextCanvasCenter;
 		nextCanvasCenter = undefined;
 	});
+	const getCanvasByViewport = vi.fn(
+		([x, y]: [number, number]) => [x + 10, y + 20] as [number, number],
+	);
+	const getViewportByCanvas = vi.fn(
+		([x, y]: [number, number]) => [x - 10, y - 20] as [number, number],
+	);
 	const instance = {
 		destroy,
 		draw,
 		focusElement,
 		getCanvasCenter: () => canvasCenter,
-		getCanvasByViewport: ([x, y]: [number, number]) => [x + 10, y + 20],
+		getCanvasByViewport,
 		getElementPosition: (id: string) => elementPositions.get(id) ?? [0, 0],
 		getPluginInstance: () => labelController,
-		getViewportByCanvas: ([x, y]: [number, number]) => [x - 10, y - 20],
+		getViewportByCanvas,
 		getZoom: () => zoom,
 		off: vi.fn(),
 		on: vi.fn((_event: string, listener: () => void) => {
@@ -1024,6 +1080,8 @@ function createFakeG6(afterDraw?: () => void) {
 		destroy,
 		draw,
 		focusElement,
+		getCanvasByViewport,
+		getViewportByCanvas,
 		setData,
 		setOptions,
 		setZoomRange,
