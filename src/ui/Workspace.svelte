@@ -11,6 +11,7 @@
 		ViewMode,
 		WorkspaceState,
 	} from '../core/types';
+	import { supportsPlanarRenderer } from '../core/types';
 	import type {
 		ConnectionPanelLayout,
 		PersistedMetaGraphDocumentV2,
@@ -1567,6 +1568,15 @@
 				: '0px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+			{#if supportsPlanarRenderer(workspaceState.mode)}
+				<span
+					class="knowledge-workspace-renderer-indicator"
+					aria-label={`Rendering engine: ${workspaceState.renderer === 'g6' ? 'G6' : 'Sigma.js'}`}
+					title={`Rendering engine: ${workspaceState.renderer === 'g6' ? 'G6' : 'Sigma.js'}`}
+				>
+					{workspaceState.renderer === 'g6' ? 'G6' : 'Sigma.js'}
+				</span>
+			{/if}
 			<GraphLoadingOverlay
 				visible={graphLoading}
 				label={graphLoadingName}

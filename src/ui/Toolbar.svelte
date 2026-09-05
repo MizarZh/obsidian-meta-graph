@@ -158,6 +158,14 @@
 		{ value: 'sigma', label: 'Sigma' },
 		{ value: 'g6', label: 'G6' },
 	];
+	function supportsAvailableG6Renderer(value: ViewMode): boolean {
+		return (
+			value === 'graph' ||
+			value === 'free' ||
+			value === 'flow' ||
+			value === 'arc'
+		);
+	}
 	const SETTINGS_TABS = $derived<
 		Array<{
 			mode: SettingsPanelMode;
@@ -280,7 +288,7 @@
 			type: createType,
 			source: createSource,
 			name,
-			...(createType === 'graph' || createType === 'free'
+			...(supportsAvailableG6Renderer(createType)
 				? { renderer: createRenderer }
 				: {}),
 		});
@@ -540,7 +548,7 @@
 					/>
 				</header>
 				{@render layoutSelector(createType, selectCreateType)}
-				{#if createType === 'graph' || createType === 'free' || createType === 'arc'}
+				{#if createType && supportsAvailableG6Renderer(createType)}
 					{@render rendererSelector(
 						createRenderer,
 						(value) => (createRenderer = value),
@@ -611,7 +619,7 @@
 					/>
 				</header>
 				{@render layoutSelector(mode, onChartType)}
-				{#if mode === 'graph' || mode === 'free' || mode === 'arc'}
+				{#if supportsAvailableG6Renderer(mode)}
 					{@render rendererSelector(renderer, onRenderer)}
 				{/if}
 				<label class="knowledge-workspace-create-field">

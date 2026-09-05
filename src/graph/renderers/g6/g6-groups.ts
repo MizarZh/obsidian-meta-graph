@@ -3,6 +3,7 @@ import type { RuntimeGraph } from '../../model/graphology-adapter';
 import {
 	isGraphPointInLayoutGroup,
 	scaleLayoutGroupPadding,
+	type FlowGroupGeometry,
 	type LayoutGroupGeometry,
 } from '../../../layouts/group-geometry';
 import {
@@ -36,8 +37,10 @@ export class G6GroupLayer {
 	private geometries: LayoutGroupGeometry[] = [];
 	private callbacks: GroupInteractionCallbacks = {};
 	private readonly groupElements = new Map<string, HTMLDivElement>();
+	private readonly geometryElements = new Map<string, HTMLDivElement>();
 	private readonly haloElements = new Map<string, HTMLDivElement>();
 	private readonly groupRenderKeys = new Map<string, string>();
+	private readonly geometryRenderKeys = new Map<string, string>();
 	private readonly haloRenderKeys = new Map<string, string>();
 	private updateFrame?: number;
 	private updateQueued = false;
@@ -138,6 +141,17 @@ export class G6GroupLayer {
 		getGroupNodeIds?: (groupId: string) => Iterable<string>,
 	): void {
 		this.geometries = geometries.map((geometry) => ({ ...geometry }));
+		const flowIds = new Set(
+			geometries
+				.filter((geometry) => geometry.kind === 'flow-container')
+				.map((geometry) => geometry.groupId),
+		);
+		for (const [groupId, element] of this.geometryElements) {
+			if (flowIds.has(groupId)) continue;
+			element.remove();
+			this.geometryElements.delete(groupId);
+			this.geometryRenderKeys.delete(groupId);
+		}
 		if (getGroupNodeIds) {
 			this.callbacks = { ...this.callbacks, getGroupNodeIds };
 		}
@@ -168,13 +182,11 @@ export class G6GroupLayer {
 	setActiveDropGroup(groupId?: string): void {
 		if (this.activeDropGroupId === groupId) return;
 		if (this.activeDropGroupId) {
-			this.groupElements
-				.get(this.activeDropGroupId)
-				?.classList.remove('drop-target');
+			this.setRegionClass(this.activeDropGroupId, 'drop-target', false);
 		}
 		this.activeDropGroupId = groupId;
 		if (groupId) {
-			this.groupElements.get(groupId)?.classList.add('drop-target');
+			this.setRegionClass(groupId, 'drop-target', true);
 		}
 	}
 
@@ -223,9 +235,11 @@ export class G6GroupLayer {
 			const rect = this.readGroupViewportRect(
 				this.readPreviewGroup(group),
 			);
-			for (const handle of Array.from(element.querySelectorAll<HTMLElement>(
-				'.knowledge-workspace-group-resize',
-			))) {
+			for (const handle of Array.from(
+				element.querySelectorAll<HTMLElement>(
+					'.knowledge-workspace-group-resize',
+				),
+			)) {
 				handle.style.display = group.resizable ? '' : 'none';
 			}
 			const movable = group.movable !== false;
@@ -268,6 +282,7 @@ export class G6GroupLayer {
 				title.title = group.name;
 			}
 		}
+		this.updateFlowContainers();
 		this.updateMemberHalos();
 	}
 
@@ -283,8 +298,10 @@ export class G6GroupLayer {
 		this.viewport.off(GraphEvent.AFTER_TRANSFORM, this.updateBound);
 		this.layer.remove();
 		this.groupElements.clear();
+		this.geometryElements.clear();
 		this.haloElements.clear();
 		this.groupRenderKeys.clear();
+		this.geometryRenderKeys.clear();
 		this.haloRenderKeys.clear();
 	}
 
@@ -551,6 +568,97 @@ export class G6GroupLayer {
 		return halo;
 	}
 
+	private updateFlowContainers(): void {
+		const activeIds = new Set<string>();
+		for (const geometry of this.geometries) {
+			if (geometry.kind !== 'flow-container') continue;
+			activeIds.add(geometry.groupId);
+			const element = this.getOrCreateGeometryElement(
+				geometry.groupId,
+				geometry.name,
+			);
+			const rect = createFlowContainerViewportRect(
+				geometry,
+				this.graphToViewport,
+			);
+			const selected = geometry.groupId === this.selectedGroupId;
+			const hovered = geometry.groupId === this.hoveredGroupId;
+			const muted = this.isMuted(geometry.groupId);
+			const dropTarget = geometry.groupId === this.activeDropGroupId;
+			const renderKey = [
+				rect.left,
+				rect.top,
+				rect.width,
+				rect.height,
+				geometry.color,
+				geometry.name,
+				selected,
+				hovered,
+				muted,
+				dropTarget,
+			].join('\0');
+			if (this.geometryRenderKeys.get(geometry.groupId) === renderKey) {
+				continue;
+			}
+			this.geometryRenderKeys.set(geometry.groupId, renderKey);
+			element.style.left = `${rect.left}px`;
+			element.style.top = `${rect.top}px`;
+			element.style.width = `${rect.width}px`;
+			element.style.height = `${rect.height}px`;
+			element.style.setProperty(
+				'--knowledge-workspace-group-color',
+				geometry.color,
+			);
+			element.classList.toggle('selected', selected);
+			element.classList.toggle('hovered', hovered);
+			element.classList.toggle('muted-by-focus', muted);
+			element.classList.toggle('drop-target', dropTarget);
+			const title = element.querySelector<HTMLElement>(
+				'.knowledge-workspace-group-title',
+			);
+			if (title) {
+				title.textContent = geometry.name;
+				title.title = geometry.name;
+			}
+		}
+		for (const [groupId, element] of this.geometryElements) {
+			if (activeIds.has(groupId)) continue;
+			element.remove();
+			this.geometryElements.delete(groupId);
+			this.geometryRenderKeys.delete(groupId);
+		}
+	}
+
+	private getOrCreateGeometryElement(
+		groupId: string,
+		name: string,
+	): HTMLDivElement {
+		const existing = this.geometryElements.get(groupId);
+		if (existing) return existing;
+		const element = this.activeDocument.createElement('div');
+		element.className =
+			'knowledge-workspace-group-region knowledge-workspace-g6-layout-group-region';
+		const title = this.activeDocument.createElement('span');
+		title.className = 'knowledge-workspace-group-title';
+		title.textContent = name;
+		title.title = name;
+		element.appendChild(title);
+		this.layer.prepend(element);
+		this.geometryElements.set(groupId, element);
+		return element;
+	}
+
+	private setRegionClass(
+		groupId: string,
+		className: string,
+		enabled: boolean,
+	): void {
+		this.groupElements.get(groupId)?.classList.toggle(className, enabled);
+		this.geometryElements
+			.get(groupId)
+			?.classList.toggle(className, enabled);
+	}
+
 	private isMuted(groupId: string): boolean {
 		if (!this.focusedNodeId || !this.callbacks.getGroupNodeIds)
 			return false;
@@ -563,4 +671,24 @@ export class G6GroupLayer {
 
 function emptyRect(): ViewportGroupRect {
 	return { left: 0, top: 0, width: 0, height: 0 };
+}
+
+export function createFlowContainerViewportRect(
+	geometry: FlowGroupGeometry,
+	graphToViewport: (position: { x: number; y: number }) => {
+		x: number;
+		y: number;
+	},
+): ViewportGroupRect {
+	const first = graphToViewport({ x: geometry.x, y: geometry.y });
+	const second = graphToViewport({
+		x: geometry.x + geometry.width,
+		y: geometry.y + geometry.height,
+	});
+	return {
+		left: Math.min(first.x, second.x),
+		top: Math.min(first.y, second.y),
+		width: Math.abs(second.x - first.x),
+		height: Math.abs(second.y - first.y),
+	};
 }

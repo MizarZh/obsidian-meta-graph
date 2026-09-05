@@ -391,6 +391,10 @@ function toG6RouteEdgeData(
 		.map((command) => mapPoint(command.to))
 		.map((point) => [point.x, point.y]);
 	style.radius = 0;
+	if (route.label) {
+		style.labelPlacement = resolveRouteLabelPlacement(route);
+		style.labelAutoRotate = true;
+	}
 	return {
 		id: route.id,
 		source: route.source,
@@ -414,6 +418,49 @@ function toG6RouteEdgeData(
 		},
 		style,
 	};
+}
+
+export function resolveRouteLabelPlacement(route: PlanarEdgeRoute): number {
+	const points = [
+		route.start,
+		...route.commands.map((command) => command.to),
+	];
+	const label = route.label?.position;
+	if (!label || points.length < 2) return 0.5;
+	const lengths = points
+		.slice(1)
+		.map((point, index) =>
+			Math.hypot(point.x - points[index]!.x, point.y - points[index]!.y),
+		);
+	const total = lengths.reduce((sum, length) => sum + length, 0);
+	if (total <= 0.001) return 0.5;
+	let traversed = 0;
+	let bestDistance = Number.POSITIVE_INFINITY;
+	let bestOffset = total / 2;
+	for (const [index, length] of lengths.entries()) {
+		const start = points[index]!;
+		const end = points[index + 1]!;
+		if (length <= 0.001) continue;
+		const dx = end.x - start.x;
+		const dy = end.y - start.y;
+		const ratio = Math.min(
+			1,
+			Math.max(
+				0,
+				((label.x - start.x) * dx + (label.y - start.y) * dy) /
+					(length * length),
+			),
+		);
+		const x = start.x + dx * ratio;
+		const y = start.y + dy * ratio;
+		const distance = (label.x - x) ** 2 + (label.y - y) ** 2;
+		if (distance < bestDistance) {
+			bestDistance = distance;
+			bestOffset = traversed + length * ratio;
+		}
+		traversed += length;
+	}
+	return Math.min(1, Math.max(0, bestOffset / total));
 }
 
 export function resolveG6EdgeType(

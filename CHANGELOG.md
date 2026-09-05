@@ -6,6 +6,10 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Added a faint, non-interactive canvas badge showing the active planar rendering engine (Sigma.js or G6), positioned to avoid the Curated and Connection panels.
+
+- Enabled G6 for Flow charts. Curve, Orthogonal, and Bundled layouts now publish one renderer-neutral logical route per relationship; G6 renders that route as one Polyline without bend elements, while Straight keeps its native line representation. Flow container geometry now renders in the G6 Group layer with selection, hover, focus muting, dock highlighting, and member halos.
+
 - Enabled G6 for Arc charts. Arc layout now publishes renderer-neutral logical routes; G6 renders each route as one registered Polyline element without bend nodes or duplicate parallel routing. Arc label rotation/direction map to G6 label transforms and stay live during display-setting updates.
 
 - Enabled G6 selection for Free charts, with graph-coordinate node dragging and canonical manual-position/group-drop commits. G6 refresh now synchronizes changed node positions; manual group frames support movement previews and corner resizing.

@@ -250,15 +250,17 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 		const baseRoutes = layout.getOrthogonalRoutes();
 		if (options.flowEdgeStyle === 'orthogonal') {
 			snapshot.orthogonalRoutes = baseRoutes;
+			snapshot.edgeRoutes = layout.getEdgeRoutes();
 		} else if (options.flowEdgeStyle === 'curve') {
 			snapshot.orthogonalRoutes = baseRoutes;
+			snapshot.edgeRoutes = layout.getEdgeRoutes();
 		} else if (options.flowEdgeStyle === 'bundled') {
 			snapshot.orthogonalRoutes = createBundledFlowRoutes(
 				graph,
 				baseRoutes,
 				options.flowDirection,
 			);
-			applyBundledFlowEdges(
+			snapshot.edgeRoutes = applyBundledFlowEdges(
 				graph,
 				snapshot.orthogonalRoutes,
 				options.flowCornerRadius ?? 0,
@@ -274,14 +276,14 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 			flowLaneSpacing: options.flowLaneSpacing,
 		});
 		if (options.flowEdgeStyle === 'orthogonal') {
-			applyOrthogonalFlowEdges(
+			snapshot.edgeRoutes = applyOrthogonalFlowEdges(
 				graph,
 				snapshot.orthogonalRoutes,
 				options.flowCornerRadius ?? 0,
 				options.flowDirection,
 			);
 		} else if (options.flowEdgeStyle === 'curve') {
-			applyCurvedFlowEdges(
+			snapshot.edgeRoutes = applyCurvedFlowEdges(
 				graph,
 				snapshot.orthogonalRoutes,
 				options.flowDirection,
@@ -294,7 +296,7 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 					options.flowDirection,
 				);
 			}
-			applyBundledFlowEdges(
+			snapshot.edgeRoutes = applyBundledFlowEdges(
 				graph,
 				snapshot.orthogonalRoutes,
 				options.flowCornerRadius ?? 0,

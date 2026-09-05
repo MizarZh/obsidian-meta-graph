@@ -22,6 +22,7 @@ import {
 } from './group-geometry';
 import type { LayoutEngine } from './layout-engine';
 import { offsetParallelFlowRoute } from './parallel-routes';
+import type { PlanarEdgeRoute } from './planar-geometry';
 
 export type OrthogonalRouteMap = Map<string, ElkPoint[]>;
 
@@ -47,6 +48,7 @@ export class ElkFlowLayout implements LayoutEngine {
 	private orthogonalRoutes: OrthogonalRouteMap = new Map();
 	private conflictCount = 0;
 	private groupGeometries: FlowGroupGeometry[] = [];
+	private edgeRoutes = new Map<string, PlanarEdgeRoute>();
 
 	constructor(
 		private readonly edgeStyle: FlowEdgeStyle = 'orthogonal',
@@ -116,14 +118,14 @@ export class ElkFlowLayout implements LayoutEngine {
 				}
 			}
 			if (this.edgeStyle === 'orthogonal') {
-				applyOrthogonalFlowEdges(
+				this.edgeRoutes = applyOrthogonalFlowEdges(
 					graph,
 					this.orthogonalRoutes,
 					this.cornerRadius,
 					this.direction,
 				);
 			} else if (this.edgeStyle === 'curve') {
-				applyCurvedFlowEdges(
+				this.edgeRoutes = applyCurvedFlowEdges(
 					graph,
 					this.orthogonalRoutes,
 					this.direction,
@@ -131,6 +133,7 @@ export class ElkFlowLayout implements LayoutEngine {
 			}
 		} else {
 			this.orthogonalRoutes = new Map();
+			this.edgeRoutes = new Map();
 		}
 	}
 
@@ -144,6 +147,10 @@ export class ElkFlowLayout implements LayoutEngine {
 
 	getGroupGeometries(): FlowGroupGeometry[] {
 		return this.groupGeometries.map((geometry) => ({ ...geometry }));
+	}
+
+	getEdgeRoutes(): ReadonlyMap<string, PlanarEdgeRoute> {
+		return new Map(this.edgeRoutes);
 	}
 }
 
@@ -381,8 +388,8 @@ export function applyElkOrthogonalRoutes(
 	graph: RuntimeGraph,
 	elkEdges: ElkExtendedEdge[],
 	direction: FlowDirection = 'LR',
-): void {
-	applyOrthogonalFlowEdges(
+): Map<string, PlanarEdgeRoute> {
+	return applyOrthogonalFlowEdges(
 		graph,
 		extractElkOrthogonalRoutes(elkEdges),
 		0,
@@ -668,9 +675,9 @@ export function applyOrthogonalFlowEdges(
 	routes: ReadonlyMap<string, ElkPoint[]> = new Map(),
 	cornerRadius = 0,
 	direction: FlowDirection = 'LR',
-): void {
+): Map<string, PlanarEdgeRoute> {
 	if (cornerRadius <= FLOW_ROUTE_POINT_EPSILON) {
-		applyRoutedFlowEdges(
+		return applyRoutedFlowEdges(
 			graph,
 			routes,
 			'middle',
@@ -680,11 +687,10 @@ export function applyOrthogonalFlowEdges(
 			undefined,
 			'orthogonal',
 		);
-		return;
 	}
 	const roundRoute = (route: ElkPoint[]): ElkPoint[] =>
 		roundOrthogonalRoute(route, cornerRadius);
-	applyRoutedFlowEdges(
+	return applyRoutedFlowEdges(
 		graph,
 		routes,
 		'middle',
@@ -700,7 +706,7 @@ export function applyCurvedFlowEdges(
 	graph: RuntimeGraph,
 	routes: ReadonlyMap<string, ElkPoint[]> = new Map(),
 	direction: FlowDirection = 'LR',
-): void {
+): Map<string, PlanarEdgeRoute> {
 	const curveRoute = (
 		route: ElkPoint[],
 		source: ElkPoint,
@@ -708,7 +714,7 @@ export function applyCurvedFlowEdges(
 		edgeId: string,
 	): ElkPoint[] =>
 		createCurvedFlowRoute(route, source, target, direction, edgeId);
-	applyRoutedFlowEdges(
+	return applyRoutedFlowEdges(
 		graph,
 		routes,
 		'middle',
@@ -725,9 +731,9 @@ export function applyBundledFlowEdges(
 	routes: ReadonlyMap<string, ElkPoint[]> = new Map(),
 	cornerRadius = 0,
 	direction: FlowDirection = 'LR',
-): void {
+): Map<string, PlanarEdgeRoute> {
 	if (cornerRadius <= FLOW_ROUTE_POINT_EPSILON) {
-		applyRoutedFlowEdges(
+		return applyRoutedFlowEdges(
 			graph,
 			routes,
 			'target-branch',
@@ -737,11 +743,10 @@ export function applyBundledFlowEdges(
 			undefined,
 			'orthogonal',
 		);
-		return;
 	}
 	const roundRoute = (route: ElkPoint[]): ElkPoint[] =>
 		roundOrthogonalRoute(route, cornerRadius);
-	applyRoutedFlowEdges(
+	return applyRoutedFlowEdges(
 		graph,
 		routes,
 		'target-branch',
@@ -762,7 +767,8 @@ function applyRoutedFlowEdges(
 	storeOrthogonalRoute = false,
 	flowRouteTransform?: RouteTransform,
 	flowRouteKind?: FlowRouteKind,
-): void {
+): Map<string, PlanarEdgeRoute> {
+	const edgeRoutes = new Map<string, PlanarEdgeRoute>();
 	const logicalEdges = graph
 		.edges()
 		.filter((edge) => !graph.getEdgeAttribute(edge, 'hidden'));
@@ -878,6 +884,44 @@ function applyRoutedFlowEdges(
 			labelPlacement === 'target-branch'
 				? Math.max(0, pathNodes.length - 3)
 				: Math.floor((pathNodes.length - 2) / 2);
+		const labelStart = points[labelSegment];
+		const labelEnd = points[labelSegment + 1];
+		const arrowStart = points[arrowSegmentIndex];
+		const arrowEnd = points[arrowSegmentIndex + 1];
+		edgeRoutes.set(edge, {
+			id: edge,
+			source,
+			target,
+			start: points[0]!,
+			commands: points.slice(1).map((point) => ({
+				kind: 'line' as const,
+				to: { ...point },
+			})),
+			parallelRouteOwner: 'layout',
+			arrow:
+				directed && arrowStart && arrowEnd
+					? {
+							position: { ...arrowEnd },
+							angle: Math.atan2(
+								arrowEnd.y - arrowStart.y,
+								arrowEnd.x - arrowStart.x,
+							),
+						}
+					: undefined,
+			label:
+				attributes.label && labelStart && labelEnd
+					? {
+							position: {
+								x: (labelStart.x + labelEnd.x) / 2,
+								y: (labelStart.y + labelEnd.y) / 2,
+							},
+							angle: Math.atan2(
+								labelEnd.y - labelStart.y,
+								labelEnd.x - labelStart.x,
+							),
+						}
+					: undefined,
+		});
 
 		for (let index = 0; index < pathNodes.length - 1; index += 1) {
 			const segmentSource = pathNodes[index];
@@ -915,6 +959,7 @@ function applyRoutedFlowEdges(
 			}
 		}
 	}
+	return edgeRoutes;
 }
 
 type RouteTransform = (

@@ -36,6 +36,27 @@
 	left: 0;
 }
 
+.knowledge-workspace-renderer-indicator {
+	position: absolute;
+	bottom: calc(var(--connection-panel-height, 54px) + var(--size-4-2));
+	left: calc(var(--curated-panel-width, 0px) + var(--size-4-6));
+	z-index: 4;
+	padding: 1px 5px;
+	border-radius: var(--radius-s);
+	background: color-mix(in srgb, var(--background-primary) 72%, transparent);
+	color: var(--text-faint);
+	font-size: 10px;
+	line-height: 1.4;
+	letter-spacing: 0.02em;
+	opacity: 0.64;
+	pointer-events: none;
+	user-select: none;
+}
+
+.connection-collapsed .knowledge-workspace-renderer-indicator {
+	bottom: var(--size-4-2);
+}
+
 .knowledge-workspace-shortcut-panel {
 	display: flex;
 	flex: 0 0 clamp(280px, 28vw, 360px);
@@ -232,14 +253,16 @@
 	border: 2px solid
 		color-mix(
 			in srgb,
-			var(--knowledge-workspace-group-color, var(--interactive-accent)) 72%,
+			var(--knowledge-workspace-group-color, var(--interactive-accent))
+				72%,
 			transparent
 		);
 	border-radius: 50%;
 	box-shadow: 0 0 0 2px
 		color-mix(
 			in srgb,
-			var(--knowledge-workspace-group-color, var(--interactive-accent)) 10%,
+			var(--knowledge-workspace-group-color, var(--interactive-accent))
+				10%,
 			transparent
 		);
 	pointer-events: none;
@@ -255,7 +278,8 @@
 	box-shadow: 0 0 0 3px
 		color-mix(
 			in srgb,
-			var(--knowledge-workspace-group-color, var(--interactive-accent)) 18%,
+			var(--knowledge-workspace-group-color, var(--interactive-accent))
+				18%,
 			transparent
 		);
 }

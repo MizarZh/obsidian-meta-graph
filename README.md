@@ -47,7 +47,7 @@ settings to report them in the developer console.
 2. Run **Create graph** from the command palette.
 3. Add or select a chart in the graph toolbar. Graph, 3D graph, Cube, Free, Flow,
    Arc, and HEB (hierarchical edge bundling) layouts each keep
-   their own source, query, layout, display, and style settings. Graph, Free, and Arc views can
+   their own source, query, layout, display, and style settings. Graph, Free, Flow, and Arc views can
    use Sigma or G6; choose the renderer while creating/configuring the view or
    under **Graph settings → Renderer**. Existing and new views default to Sigma.
 4. Use the flat toolbar settings buttons to edit graph settings, filters, note
@@ -354,6 +354,11 @@ compact screen-pixel routes, rounded joins, arrows, patterns, labels, and edge
 hit testing. Off-screen routes are culled and route geometry is cached. Lane
 metadata remains runtime-only, so frontmatter and the semantic projection are
 unchanged.
+G6 renders each Curve, Orthogonal, and Bundled relationship as one logical
+Polyline using the route produced by the Flow layout; bend nodes and runtime
+segments are not added to the G6 element model. Straight relationships retain
+the native G6 line/parallel-edge representation. Selection, hover, focus,
+labels, arrows, and context menus continue to use the logical relationship ID.
 Edge-only Flow refreshes keep node positions while separating newly added
 links. Flow arrows stay on the final flow-axis segment instead of pointing
 along a perpendicular endpoint branch.
@@ -372,7 +377,9 @@ Flow groups participate in ELK layout as compound containers. Group rules and
 explicit assignments keep notes inside one colored container while preserving
 cross-group links. Changing group membership, priority, or padding reruns Flow
 layout. Edge-only refreshes still preserve existing node positions and update
-the group bounds without forcing a new layout.
+the group bounds without forcing a new layout. G6 maps the same layout-owned
+container bounds through its viewport transform, including selection, hover,
+focus muting, dock highlighting, and member halos.
 
 Use **Graph settings → Flow details → Relation placement** to control layout by
 metadata relation. **Default** follows the visible edge direction. **Before**
