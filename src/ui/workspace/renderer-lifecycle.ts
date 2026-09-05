@@ -64,6 +64,7 @@ interface RendererLifetimeToken {
 
 export class WorkspaceRendererLifecycle {
 	private currentRenderer: GraphRenderer | undefined;
+	private currentRendererMode?: WorkspaceState['mode'];
 	private rendererHost: HTMLDivElement | undefined;
 	private unbindEvents: (() => void) | undefined;
 	private unbindZoomLevel: (() => void) | undefined;
@@ -254,8 +255,10 @@ export class WorkspaceRendererLifecycle {
 			initialState.renderer,
 		);
 		if (
-			this.currentRenderer &&
-			getRendererKind(this.currentRenderer) !== initialRendererKind
+			this.rendererRequiresReplacement(
+				initialRendererKind,
+				initialState.mode,
+			)
 		) {
 			this.clearRenderer();
 		}
@@ -330,6 +333,7 @@ export class WorkspaceRendererLifecycle {
 			});
 			if (progressiveRenderer && version === this.renderVersion) {
 				this.currentRenderer = progressiveRenderer;
+				this.currentRendererMode = state.mode;
 				this.unbindEvents =
 					this.options.bindEvents(progressiveRenderer);
 				this.setSelection(
@@ -384,10 +388,7 @@ export class WorkspaceRendererLifecycle {
 		);
 
 		const rendererKind = getRendererKindForMode(state.mode, state.renderer);
-		if (
-			this.currentRenderer &&
-			getRendererKind(this.currentRenderer) !== rendererKind
-		) {
+		if (this.rendererRequiresReplacement(rendererKind, state.mode)) {
 			this.clearRenderer();
 		}
 
@@ -418,6 +419,7 @@ export class WorkspaceRendererLifecycle {
 				);
 			}
 			this.currentRenderer.setGraph(graph);
+			this.currentRendererMode = state.mode;
 			this.unbindEvents = this.options.bindEvents(this.currentRenderer);
 		} else {
 			const nextRenderer = await this.createRendererInHost({
@@ -432,6 +434,7 @@ export class WorkspaceRendererLifecycle {
 				return;
 			}
 			this.currentRenderer = nextRenderer;
+			this.currentRendererMode = state.mode;
 			this.unbindEvents = this.options.bindEvents(nextRenderer);
 		}
 		this.options.recordPerformance?.(
@@ -485,9 +488,22 @@ export class WorkspaceRendererLifecycle {
 			this.currentRenderer?.kill();
 		} finally {
 			this.currentRenderer = undefined;
+			this.currentRendererMode = undefined;
 			this.rendererHost?.remove();
 			this.rendererHost = undefined;
 		}
+	}
+
+	private rendererRequiresReplacement(
+		nextKind: ReturnType<typeof getRendererKindForMode>,
+		nextMode: WorkspaceState['mode'],
+	): boolean {
+		if (!this.currentRenderer) return false;
+		const currentKind = getRendererKind(this.currentRenderer);
+		return (
+			currentKind !== nextKind ||
+			(currentKind === 'g6' && this.currentRendererMode !== nextMode)
+		);
 	}
 
 	private async createRendererInHost(options: {

@@ -27,6 +27,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Cleared Arc/HEB label transforms and routed-edge geometry when G6 returns to Graph, Free, or Flow. Ordinary edge payloads now overwrite route-only fields, label refreshes discard stale layout-owned placement, and G6 recreates its owned renderer host when the planar view mode changes.
+
 - Aligned radial-sector Group hit testing with HEB's angular coordinate origin, so visual sectors and pointer targets cover the same notes.
 
 - Prevented routed Flow bend nodes, which are absent from the G6 element model, from entering viewport, style, label, or hover state patches and causing `Node not found` errors.

@@ -96,6 +96,58 @@ describe('G6 label controller', () => {
 		expect(update).toHaveBeenCalledOnce();
 		controller.destroy();
 	});
+
+	it('removes stale Arc and HEB label placement before resolving plain labels', () => {
+		const update = vi.fn();
+		const getLabelStyle = vi.fn(() => ({
+			transform: [['translate', 10, 0]],
+		}));
+		const getElement = vi.fn(() => ({
+			attributes: {
+				labelText: 'A',
+				labelPlacement: 'center',
+				labelOffsetX: 0,
+				labelOffsetY: 0,
+				labelTextAlign: 'left',
+				labelTextBaseline: 'middle',
+				labelTransform: [
+					['translate', 20, 0],
+					['rotate', 90],
+				],
+			},
+			getLabelStyle,
+			getShape: () => ({ update }),
+		}));
+		const graph = { on: vi.fn(), off: vi.fn() };
+		const controller = new G6LabelController(
+			{ graph, element: { getElement } } as unknown as RuntimeContext,
+			{
+				type: G6_LABEL_CONTROLLER_KEY,
+				snapshot: createSnapshot(),
+			},
+		);
+
+		controller.updateLabels({
+			...createSnapshot(),
+			nodeStyle: {
+				labelFontSize: 9,
+				labelPlacement: 'right',
+				labelOffsetX: 6,
+				labelOffsetY: 0,
+			},
+		});
+
+		expect(getLabelStyle).toHaveBeenCalledWith({
+			labelText: 'A',
+			labelFontSize: 9,
+			labelPlacement: 'right',
+			labelOffsetX: 6,
+			labelOffsetY: 0,
+		});
+		expect(update).toHaveBeenCalledWith({
+			transform: [['translate', 10, 0]],
+		});
+	});
 });
 
 function createSnapshot(): G6LabelControllerSnapshot {

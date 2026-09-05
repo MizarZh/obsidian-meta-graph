@@ -91,8 +91,15 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 		if (!element || !label || typeof element.getLabelStyle !== 'function') {
 			return;
 		}
+		const attributes = { ...element.attributes };
+		// setData() merges styles for stable ids. Remove layout-owned label fields
+		// before asking G6 to resolve the current label so omitted Arc/HEB values
+		// cannot survive in Graph, Flow, or an unrotated Arc configuration.
+		delete attributes.labelTransform;
+		delete attributes.labelTextAlign;
+		delete attributes.labelTextBaseline;
 		const labelStyle = element.getLabelStyle({
-			...element.attributes,
+			...attributes,
 			...style,
 		});
 		if (!labelStyle) return;

@@ -272,6 +272,44 @@ describe('WorkspaceRendererLifecycle', () => {
 		expect(rendererIsStale?.()).toBe(true);
 	});
 
+	it('recreates G6 when the planar view mode changes', async () => {
+		let state: WorkspaceState = {
+			...createState(),
+			mode: 'graph',
+			renderer: 'g6',
+		};
+		const canvas = createTestCanvas();
+		const graphRenderer = createRenderer();
+		const arcRenderer = createRenderer();
+		vi.mocked(getRendererKindForMode).mockReturnValue('g6');
+		vi.mocked(getRendererKind).mockReturnValue('g6');
+		vi.mocked(createWorkspaceGraphRenderer)
+			.mockResolvedValueOnce(graphRenderer)
+			.mockResolvedValueOnce(arcRenderer);
+		const lifecycle = new WorkspaceRendererLifecycle({
+			readState: () => state,
+			readCanvas: () => canvas,
+			readLayoutSnapshot: createLayoutSnapshot,
+			readContainerSize: () => ({ width: 800, height: 600 }),
+			waitForCanvasSize: async () => true,
+			bindEvents: () => vi.fn(),
+			syncRendererGroups: vi.fn(),
+			setRendererDebugState: vi.fn(),
+		});
+
+		await lifecycle.rebuild();
+		const firstHost = vi.mocked(createWorkspaceGraphRenderer).mock
+			.calls[0]?.[0].container;
+		state = { ...state, mode: 'arc' };
+		await lifecycle.rebuild();
+
+		expect(graphRenderer.kill).toHaveBeenCalledOnce();
+		expect(graphRenderer.setGraph).not.toHaveBeenCalled();
+		expect(firstHost?.isConnected).toBe(false);
+		expect(createWorkspaceGraphRenderer).toHaveBeenCalledTimes(2);
+		expect(lifecycle.renderer).toBe(arcRenderer);
+	});
+
 	it('skips runtime diagnostics until explicitly requested', async () => {
 		const renderer = createRenderer();
 		const setRendererDebugState = vi.fn();

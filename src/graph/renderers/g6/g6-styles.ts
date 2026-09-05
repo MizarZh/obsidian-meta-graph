@@ -347,6 +347,13 @@ export function createG6EdgeStyle(
 		stroke: attributes.color,
 		lineWidth,
 		lineDash: resolveG6LineDash(attributes.lineStyle, visualScale.geometry),
+		// G6 merges style objects for elements whose ids survive setData(). Keep
+		// route-owned values explicit so an Arc/HEB path cannot leak into a later
+		// ordinary Graph or straight Flow edge.
+		controlPoints: [],
+		radius: 0,
+		labelPlacement: 'center',
+		labelAutoRotate: true,
 		opacity,
 		visibility: hidden ? 'hidden' : 'visible',
 		label: showLabel,

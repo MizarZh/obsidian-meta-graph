@@ -73,6 +73,10 @@ describe('G6 data adapter', () => {
 				stroke: '#445566',
 				lineWidth: 3,
 				lineDash: [8, 6],
+				controlPoints: [],
+				radius: 0,
+				labelPlacement: 'center',
+				labelAutoRotate: true,
 				opacity: 0.75,
 				endArrow: true,
 				endArrowType: 'vee',
@@ -86,6 +90,7 @@ describe('G6 data adapter', () => {
 			id: 'B-related-A',
 			style: {
 				lineDash: [2, 4],
+				controlPoints: [],
 				endArrow: false,
 				label: false,
 			},
