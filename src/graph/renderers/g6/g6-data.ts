@@ -21,6 +21,7 @@ import {
 	type G6NodeType,
 	type G6VisualScale,
 } from './g6-styles';
+import type { G6CoordinateSpace } from './g6-coordinate-space';
 
 export interface G6NodeMetadata extends Record<string, unknown> {
 	path: string;
@@ -96,6 +97,7 @@ export function toG6Data(
 	visualScale?: G6VisualScale,
 	labelVisibility?: G6LabelVisibility,
 	labelStyles?: G6LabelStyles,
+	coordinateSpace?: G6CoordinateSpace,
 ): G6GraphData {
 	return {
 		nodes: graph.mapNodes((nodeId, attributes) =>
@@ -105,6 +107,7 @@ export function toG6Data(
 				visualScale,
 				labelVisibility?.nodeIds.has(nodeId),
 				labelStyles?.node,
+				coordinateSpace,
 			),
 		),
 		edges: graph.mapEdges((edgeId, attributes, source, target) =>
@@ -128,6 +131,7 @@ export function createG6StylePatch(
 	visualScale?: G6VisualScale,
 	labelVisibility?: G6LabelVisibility,
 	labelStyles?: G6LabelStyles,
+	coordinateSpace?: G6CoordinateSpace,
 ): G6StylePatch {
 	return {
 		nodes: changes.nodeIds.flatMap((nodeId) => {
@@ -137,11 +141,12 @@ export function createG6StylePatch(
 				{
 					id: nodeId,
 					type: resolveG6NodeType(attributes.type),
-					style: createG6NodeStyle(
+					style: createG6MappedNodeStyle(
 						attributes,
 						visualScale,
 						labelVisibility?.nodeIds.has(nodeId),
 						labelStyles?.node,
+						coordinateSpace,
 					),
 				},
 			];
@@ -306,6 +311,7 @@ function toG6NodeData(
 	visualScale?: G6VisualScale,
 	labelVisible?: boolean,
 	labelStyle?: G6NodeStyle,
+	coordinateSpace?: G6CoordinateSpace,
 ): G6NodeData {
 	return {
 		id: nodeId,
@@ -322,13 +328,35 @@ function toG6NodeData(
 			fixed: Boolean(attributes.fixed),
 			isBend: Boolean(attributes.isBend),
 		},
-		style: createG6NodeStyle(
+		style: createG6MappedNodeStyle(
 			attributes,
 			visualScale,
 			labelVisible,
 			labelStyle,
+			coordinateSpace,
 		),
 	};
+}
+
+function createG6MappedNodeStyle(
+	attributes: RuntimeNodeAttributes,
+	visualScale?: G6VisualScale,
+	labelVisible?: boolean,
+	labelStyle?: G6NodeStyle,
+	coordinateSpace?: G6CoordinateSpace,
+): G6NodeStyle {
+	const style = createG6NodeStyle(
+		attributes,
+		visualScale,
+		labelVisible,
+		labelStyle,
+	);
+	if (!coordinateSpace) return style;
+	const position = coordinateSpace.toG6({
+		x: attributes.x,
+		y: attributes.y,
+	});
+	return { ...style, x: position.x, y: position.y };
 }
 
 function toG6EdgeData(

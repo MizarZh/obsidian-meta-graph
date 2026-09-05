@@ -47,7 +47,7 @@ settings to report them in the developer console.
 2. Run **Create graph** from the command palette.
 3. Add or select a chart in the graph toolbar. Graph, 3D graph, Cube, Free, Flow,
    Arc, and HEB (hierarchical edge bundling) layouts each keep
-   their own source, query, layout, display, and style settings. Graph views can
+   their own source, query, layout, display, and style settings. Graph and Free views can
    use Sigma or G6; choose the renderer while creating/configuring the view or
    under **Graph settings → Renderer**. Existing and new views default to Sigma.
 4. Use the flat toolbar settings buttons to edit graph settings, filters, note

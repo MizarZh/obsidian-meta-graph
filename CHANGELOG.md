@@ -6,6 +6,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Enabled G6 selection for Free charts, with graph-coordinate node dragging and canonical manual-position/group-drop commits. G6 refresh now synchronizes changed node positions; manual group frames support movement previews and corner resizing.
+
 - Generalized chart renderer selection and persistence to all planar chart types. New-mode UI choices remain gated until their rendering adapters are complete.
 - Added shared graph-coordinate path commands and logical edge placement contracts to layout snapshots, reusing existing layout group geometry. Route producers and renderer consumers will migrate per mode.
 
@@ -16,6 +18,10 @@ All notable changes to Meta Graph are documented here.
 - Added G6 Group regions and member halos with selection, focus muting, hit testing, movement callbacks, dock-to-node hit testing, and bundled parallel-edge routing.
 
 ### Fixed
+
+- Conditioned compact G6 coordinate domains before rendering, matching Sigma's internal normalization while keeping RuntimeGraph and persisted Free positions unchanged. This prevents Free charts from requiring extreme native zoom values that inflate label backgrounds, edge markers, and endpoint geometry; viewport conversion, dragging, focus, Groups, and hit testing all map through the same reversible coordinate space.
+- Restored G6 canvas panning for drag events synthesized from pointer movement (`button: -1`). Free node and Group movement now use G6's element model as the live position source; overlays, hit testing, runtime coordinates, and persisted snapshots read back the same applied positions without a redundant full-graph draw.
+- Fixed Free/G6 dragging against G6's forwarded pointer-event objects, whose prototype event methods are stripped during forwarding. Drag coordinates now use G6's camera-adjusted canvas point directly, with viewport conversion retained only as a fallback.
 
 - Delayed G6 viewport event binding until its initial draw completes, preventing initialization-time `getZoom()` failures.
 - Isolated every renderer in an owned DOM host and tears down renderer changes before measuring the next view, preventing G6 Canvas container styles from collapsing Sigma into an off-screen one-pixel viewport after switching back.

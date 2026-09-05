@@ -3,7 +3,6 @@ import {
 	CommonEvent,
 	EdgeEvent,
 	NodeEvent,
-	type IDragEvent,
 	type IElementEvent,
 	type IPointerEvent,
 } from '@antv/g6';
@@ -19,6 +18,108 @@ import type { G6Renderer } from '../../../graph/renderers/g6/g6-renderer';
 import type { GraphEventCallbacks } from '../../../graph/renderers/renderer-events';
 
 describe('G6 events', () => {
+	it('drags Free nodes in graph coordinates, keeps grab offset and commits once', () => {
+		const emitter = createEmitter();
+		const graph = createGraph();
+		const panViewportBy = vi.fn();
+		const renderer = {
+			instance: emitter.instance,
+			container: {},
+			runtimeGraph: graph,
+			viewportToGraphPosition: ({ x, y }: { x: number; y: number }) => ({
+				x: x / 2,
+				y: y / 2,
+			}),
+			getNodePosition: (nodeId: string) => {
+				const { x, y } = graph.getNodeAttributes(nodeId);
+				return { x, y };
+			},
+			setHoveredEdge: vi.fn(),
+			setHoveredGroup: vi.fn(),
+			panViewportBy,
+		} as unknown as G6Renderer;
+		const harness = createCallbacks();
+		harness.callbacks.enableNodeDragging = true;
+		const unbind = bindG6Events(renderer, harness.callbacks);
+		const initial = graph.getNodeAttributes('A');
+		emitter.emit(NodeEvent.POINTER_DOWN, elementEvent('A'));
+		emitter.emit(
+			CommonEvent.DRAG_START,
+			pointerEvent('canvas', { button: -1 }),
+		);
+		emitter.emit(
+			CommonEvent.POINTER_MOVE,
+			pointerEvent('canvas', {
+				viewport: { x: 32, y: 44 } as IPointerEvent['viewport'],
+			}),
+		);
+		expect(harness.onNodeDrag).toHaveBeenCalledWith(
+			'A',
+			{ x: initial.x + 10, y: initial.y + 10 },
+			{ x: 32, y: 44 },
+		);
+		emitter.emit(CommonEvent.POINTER_UP, pointerEvent('canvas'));
+		emitter.emit(CommonEvent.POINTER_UP, pointerEvent('canvas'));
+		expect(harness.onNodeDragEnd).toHaveBeenCalledExactlyOnceWith('A');
+		expect(panViewportBy).not.toHaveBeenCalled();
+		expect(harness.onConnectionDrag).not.toHaveBeenCalled();
+		unbind();
+	});
+
+	it('uses G6 canvas coordinates and tolerates forwarded events without methods', () => {
+		const emitter = createEmitter();
+		const graph = createGraph();
+		const renderer = {
+			instance: emitter.instance,
+			container: {},
+			runtimeGraph: graph,
+			viewportToGraphPosition: vi.fn(() => ({ x: -999, y: -999 })),
+			canvasToGraphPosition: ({ x, y }: { x: number; y: number }) => ({
+				x,
+				y,
+			}),
+			getNodePosition: (nodeId: string) => {
+				const { x, y } = graph.getNodeAttributes(nodeId);
+				return { x, y };
+			},
+			setHoveredEdge: vi.fn(),
+			setHoveredGroup: vi.fn(),
+			panViewportBy: vi.fn(),
+		} as unknown as G6Renderer;
+		const harness = createCallbacks();
+		harness.callbacks.enableNodeDragging = true;
+		bindG6Events(renderer, harness.callbacks);
+		const forwarded = {
+			preventDefault: true,
+			stopPropagation: undefined,
+			nativeEvent: { clientX: 12, clientY: 24 },
+		};
+
+		expect(() =>
+			emitter.emit(
+				NodeEvent.POINTER_DOWN,
+				elementEvent('A', {
+					...forwarded,
+					canvas: { x: 10, y: 20 } as IPointerEvent['canvas'],
+				} as unknown as Partial<IPointerEvent>),
+			),
+		).not.toThrow();
+		expect(() =>
+			emitter.emit(
+				CommonEvent.POINTER_MOVE,
+				pointerEvent('canvas', {
+					...forwarded,
+					viewport: { x: 80, y: 90 } as IPointerEvent['viewport'],
+					canvas: { x: 42, y: 36 } as IPointerEvent['canvas'],
+				} as unknown as Partial<IPointerEvent>),
+			),
+		).not.toThrow();
+		expect(harness.onNodeDrag).toHaveBeenCalledWith(
+			'A',
+			{ x: 42, y: 36 },
+			{ x: 80, y: 90 },
+		);
+	});
 	it('handles selection, hover, context menus, and canonical connection drag', () => {
 		const graph = createGraph();
 		const emitter = createEmitter();
@@ -30,6 +131,10 @@ describe('G6 events', () => {
 			instance: emitter.instance,
 			container: {} as HTMLElement,
 			runtimeGraph: graph,
+			getNodePosition: (nodeId: string) => {
+				const { x, y } = graph.getNodeAttributes(nodeId);
+				return { x, y };
+			},
 			graphToViewportPosition: ({ x, y }: { x: number; y: number }) => ({
 				x: x + 100,
 				y: y + 200,
@@ -165,24 +270,29 @@ describe('G6 events', () => {
 		const emitter = createEmitter();
 		const renderer = createRenderer(createGraph(), emitter.instance);
 		const setHoveredGroup = vi.fn();
+		const panViewportBy = vi.fn();
 		renderer.setHoveredGroup = setHoveredGroup;
+		renderer.panViewportBy = panViewportBy;
 		const callbackHarness = createCallbacks();
 		bindG6Events(renderer, callbackHarness.callbacks);
 
-		emitter.emit(CommonEvent.DRAG_START, pointerEvent('canvas'));
+		emitter.emit(
+			CommonEvent.DRAG_START,
+			pointerEvent('canvas', { button: -1 }),
+		);
 		emitter.emit(
 			CommonEvent.DRAG,
 			Object.assign(pointerEvent('canvas'), {
 				dx: 25,
 				dy: -10,
 				movement: { x: 250, y: -100 },
-			}) as IDragEvent,
+			}),
 		);
 		emitter.emit(NodeEvent.POINTER_ENTER, elementEvent('A'));
 		emitter.emit(CommonEvent.POINTER_MOVE, pointerEvent('canvas'));
 		expect(callbackHarness.onHover).not.toHaveBeenCalled();
 		expect(setHoveredGroup).not.toHaveBeenCalled();
-		expect(renderer.panViewportBy).toHaveBeenCalledWith({ x: 25, y: -10 });
+		expect(panViewportBy).toHaveBeenCalledWith({ x: 25, y: -10 });
 
 		emitter.emit(CommonEvent.DRAG_END, pointerEvent('canvas'));
 		expect(callbackHarness.onHover).toHaveBeenCalledOnce();
@@ -234,6 +344,10 @@ function createRenderer(
 		instance,
 		container: {} as HTMLElement,
 		runtimeGraph,
+		getNodePosition: (nodeId: string) => {
+			const { x, y } = runtimeGraph.getNodeAttributes(nodeId);
+			return { x, y };
+		},
 		graphToViewportPosition: ({ x, y }: { x: number; y: number }) => ({
 			x,
 			y,

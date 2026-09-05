@@ -23,6 +23,15 @@ export function bindG6Events(
 	let connectionDrag: ConnectionDragState | undefined;
 	let hoveredEdgeId: string | undefined;
 	let viewportDragging = false;
+	let nodeDrag:
+		| {
+				id: string;
+				offsetX: number;
+				offsetY: number;
+				moved: boolean;
+				start: { x: number; y: number };
+		  }
+		| undefined;
 	let suppressClickUntil = 0;
 	const shouldSuppressClick = (): boolean => Date.now() < suppressClickUntil;
 
@@ -31,7 +40,7 @@ export function bindG6Events(
 		const nodeId = readVisibleNodeId(event);
 		if (!nodeId) return;
 		if (event.shiftKey) {
-			event.preventDefault();
+			preventDefault(event);
 			renderer.togglePinnedHover(nodeId);
 			return;
 		}
@@ -121,6 +130,28 @@ export function bindG6Events(
 
 	const pointerDownNode = (event: IElementEvent): void => {
 		if (
+			event.button === 0 &&
+			!event.ctrlKey &&
+			!event.metaKey &&
+			!event.shiftKey &&
+			callbacks.enableNodeDragging
+		) {
+			const id = readVisibleNodeId(event);
+			if (!id) return;
+			const point = readGraphPosition(renderer, event);
+			const position = renderer.getNodePosition(id);
+			if (!position) return;
+			nodeDrag = {
+				start: readViewportPosition(event),
+				id,
+				offsetX: position.x - point.x,
+				offsetY: position.y - point.y,
+				moved: false,
+			};
+			preventDefault(event);
+			return;
+		}
+		if (
 			event.button !== 0 ||
 			(!event.ctrlKey && !event.metaKey) ||
 			connectionDrag
@@ -130,11 +161,9 @@ export function bindG6Events(
 		const nodeId = readVisibleNodeId(event);
 		if (!nodeId) return;
 		preventDefault(event);
-		const attributes = renderer.runtimeGraph.getNodeAttributes(nodeId);
-		const source = renderer.graphToViewportPosition({
-			x: attributes.x,
-			y: attributes.y,
-		});
+		const position = renderer.getNodePosition(nodeId);
+		if (!position) return;
+		const source = renderer.graphToViewportPosition(position);
 		connectionDrag = {
 			sourceNodeId: nodeId,
 			x1: source.x,
@@ -147,6 +176,30 @@ export function bindG6Events(
 		callbacks.onConnectionDrag?.(connectionDrag);
 	};
 	const pointerMove = (event: IPointerEvent): void => {
+		if (nodeDrag) {
+			preventDefault(event);
+			const viewport = readViewportPosition(event);
+			if (
+				!nodeDrag.moved &&
+				Math.hypot(
+					viewport.x - nodeDrag.start.x,
+					viewport.y - nodeDrag.start.y,
+				) < 3
+			)
+				return;
+			const point = readGraphPosition(renderer, event);
+			nodeDrag.moved = true;
+			suppressClickUntil = Number.POSITIVE_INFINITY;
+			callbacks.onNodeDrag?.(
+				nodeDrag.id,
+				{
+					x: point.x + nodeDrag.offsetX,
+					y: point.y + nodeDrag.offsetY,
+				},
+				viewport,
+			);
+			return;
+		}
 		if (!connectionDrag) {
 			if (viewportDragging) return;
 			const hasElementTarget =
@@ -175,6 +228,7 @@ export function bindG6Events(
 		callbacks.onConnectionDrag?.(connectionDrag);
 	};
 	const dragStart = (event: IPointerEvent): void => {
+		if (nodeDrag || connectionDrag) return;
 		if (event.targetType !== 'canvas') return;
 		viewportDragging = true;
 	};
@@ -197,10 +251,28 @@ export function bindG6Events(
 		);
 	};
 	const pointerUp = (event: IPointerEvent): void => {
+		finishNodeDrag();
 		finishConnectionDrag(readVisibleNodeId(event));
 	};
 	const pointerUpWindow = (): void => {
+		finishNodeDrag();
+		viewportDragging = false;
 		finishConnectionDrag(undefined);
+	};
+
+	function finishNodeDrag(): void {
+		const drag = nodeDrag;
+		nodeDrag = undefined;
+		if (!drag?.moved) return;
+		suppressClickUntil = Date.now() + CLICK_SUPPRESSION_MS;
+		callbacks.onNodeDragEnd?.(drag.id);
+	}
+	const cancelDrag = (): void => {
+		finishNodeDrag();
+		connectionDrag = undefined;
+		viewportDragging = false;
+		suppressClickUntil = Date.now() + CLICK_SUPPRESSION_MS;
+		callbacks.onConnectionDrag?.(undefined);
 	};
 
 	function finishConnectionDrag(targetNodeId?: string): void {
@@ -242,9 +314,13 @@ export function bindG6Events(
 	graph.on(CommonEvent.DRAG_END, dragEnd);
 	const ownerWindow = renderer.container.ownerDocument?.defaultView;
 	ownerWindow?.addEventListener('pointerup', pointerUpWindow);
+	ownerWindow?.addEventListener('pointercancel', cancelDrag);
+	ownerWindow?.addEventListener('blur', cancelDrag);
 
 	return () => {
-		finishConnectionDrag(undefined);
+		nodeDrag = undefined;
+		connectionDrag = undefined;
+		callbacks.onConnectionDrag?.(undefined);
 		renderer.setHoveredEdge(undefined);
 		renderer.setHoveredGroup(undefined);
 		graph.off(NodeEvent.CLICK, clickNode);
@@ -265,13 +341,28 @@ export function bindG6Events(
 		graph.off(CommonEvent.DRAG, dragCanvas);
 		graph.off(CommonEvent.DRAG_END, dragEnd);
 		ownerWindow?.removeEventListener('pointerup', pointerUpWindow);
+		ownerWindow?.removeEventListener('pointercancel', cancelDrag);
+		ownerWindow?.removeEventListener('blur', cancelDrag);
 	};
 }
 
 function preventDefault(event: IPointerEvent): void {
-	event.preventDefault();
-	event.stopPropagation();
-	event.nativeEvent.preventDefault();
+	callEventMethod(event, 'preventDefault');
+	callEventMethod(event, 'stopPropagation');
+	const nativeEvent = event.nativeEvent;
+	if (nativeEvent) {
+		callEventMethod(nativeEvent, 'preventDefault');
+		callEventMethod(nativeEvent, 'stopPropagation');
+	}
+}
+
+function callEventMethod(
+	event: unknown,
+	method: 'preventDefault' | 'stopPropagation',
+): void {
+	if (!event || typeof event !== 'object') return;
+	const callback = (event as Record<string, unknown>)[method];
+	if (typeof callback === 'function') callback.call(event);
 }
 
 function readViewportPosition(event: IPointerEvent): {
@@ -281,9 +372,24 @@ function readViewportPosition(event: IPointerEvent): {
 	return { x: event.viewport.x, y: event.viewport.y };
 }
 
+function readGraphPosition(
+	renderer: G6Renderer,
+	event: IPointerEvent,
+): { x: number; y: number } {
+	const x = event.canvas?.x;
+	const y = event.canvas?.y;
+	if (typeof x === 'number' && typeof y === 'number') {
+		return renderer.canvasToGraphPosition({ x, y });
+	}
+	return renderer.viewportToGraphPosition(readViewportPosition(event));
+}
+
 function readMouseEvent(event: IPointerEvent): MouseEvent | undefined {
 	const nativeEvent = event.nativeEvent;
-	return 'clientX' in nativeEvent && 'clientY' in nativeEvent
+	return nativeEvent &&
+		typeof nativeEvent === 'object' &&
+		'clientX' in nativeEvent &&
+		'clientY' in nativeEvent
 		? nativeEvent
 		: undefined;
 }

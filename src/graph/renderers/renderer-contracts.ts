@@ -1,6 +1,9 @@
 import type { LabelPosition } from '../../core/types';
 import type { LayoutGroupGeometry } from '../../layouts/group-geometry';
-import type { RuntimeGraph } from '../model/graphology-adapter';
+import type {
+	GraphPosition,
+	RuntimeGraph,
+} from '../model/graphology-adapter';
 import type { GraphPalette } from '../styles/graph-styles';
 import type { RendererCapabilities } from './renderer-capabilities';
 import type { LabelThemeConfig } from './renderer-label-style';
@@ -56,6 +59,9 @@ export interface PlanarRenderer {
 		x: number;
 		y: number;
 	};
+	getNodePosition(nodeId: string): GraphPosition | undefined;
+	setNodePosition(nodeId: string, position: GraphPosition): void;
+	moveNodesBy(nodeIds: Iterable<string>, delta: GraphPosition): void;
 	setActiveDropGroup(groupId?: string): void;
 	setSelected(nodeId?: string): void;
 	setSelectedEdge(edgeId?: string): void;

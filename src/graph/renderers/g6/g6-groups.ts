@@ -23,6 +23,7 @@ interface G6GroupViewport {
 }
 
 interface GroupMove {
+	resize?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 	group: GroupOverlayGroup;
 	startGraph: { x: number; y: number };
 	lastDelta: { x: number; y: number };
@@ -50,6 +51,11 @@ export class G6GroupLayer {
 		if (!this.move) return;
 		event.preventDefault();
 		const delta = this.readMoveDelta(event);
+		if (this.move.resize) {
+			this.scheduleUpdate();
+			this.move.lastDelta = delta;
+			return;
+		}
 		const stepDelta = {
 			x: delta.x - this.move.lastDelta.x,
 			y: delta.y - this.move.lastDelta.y,
@@ -65,6 +71,14 @@ export class G6GroupLayer {
 		event.preventDefault();
 		const groupId = this.move.group.id;
 		const delta = this.readMoveDelta(event);
+		if (this.move.resize) {
+			this.move.lastDelta = delta;
+			const frame = this.readPreviewGroup(this.move.group);
+			this.endMove();
+			this.callbacks.onResizeCommit?.(groupId, frame);
+			this.scheduleUpdate();
+			return;
+		}
 		const stepDelta = {
 			x: delta.x - this.move.lastDelta.x,
 			y: delta.y - this.move.lastDelta.y,
@@ -81,6 +95,9 @@ export class G6GroupLayer {
 		private readonly viewport: G6GroupViewport,
 		private readonly container: HTMLElement,
 		private readonly getGraph: () => RuntimeGraph,
+		private readonly getNodePosition: (
+			nodeId: string,
+		) => { x: number; y: number } | undefined,
 		private readonly graphToViewport: (position: {
 			x: number;
 			y: number;
@@ -133,7 +150,9 @@ export class G6GroupLayer {
 	}): string | undefined {
 		let best: { id: string; area: number } | undefined;
 		for (const group of this.groups) {
-			const rect = this.readGroupViewportRect(group);
+			const rect = this.readGroupViewportRect(
+				this.readPreviewGroup(group),
+			);
 			if (!isViewportPointInGroup(position, rect, group.shape)) continue;
 			const area = rect.width * rect.height;
 			if (!best || area < best.area) best = { id: group.id, area };
@@ -200,7 +219,15 @@ export class G6GroupLayer {
 			this.groups.length === 0 && this.geometries.length === 0;
 		for (const group of this.groups) {
 			const element = this.getOrCreateGroupElement(group);
-			const rect = this.readGroupViewportRect(group);
+			element.classList.toggle('resizable', Boolean(group.resizable));
+			const rect = this.readGroupViewportRect(
+				this.readPreviewGroup(group),
+			);
+			for (const handle of Array.from(element.querySelectorAll<HTMLElement>(
+				'.knowledge-workspace-group-resize',
+			))) {
+				handle.style.display = group.resizable ? '' : 'none';
+			}
 			const movable = group.movable !== false;
 			const selected = group.id === this.selectedGroupId;
 			const hovered = group.id === this.hoveredGroupId;
@@ -280,19 +307,48 @@ export class G6GroupLayer {
 			this.callbacks.onContextMenu?.(group.id, event);
 		});
 		element.appendChild(title);
+		for (const direction of [
+			'top-left',
+			'top-right',
+			'bottom-left',
+			'bottom-right',
+		] as const) {
+			const handle = this.activeDocument.createElement('button');
+			handle.type = 'button';
+			handle.className = `knowledge-workspace-group-resize resize-${direction}`;
+			handle.setAttribute(
+				'aria-label',
+				`Resize ${group.name} ${direction}`,
+			);
+			handle.title = `Resize ${group.name}`;
+			handle.addEventListener('pointerdown', (event) =>
+				this.startMove(event, group.id, direction),
+			);
+			element.appendChild(handle);
+		}
 		this.layer.appendChild(element);
 		this.groupElements.set(group.id, element);
 		return element;
 	}
 
-	private startMove(event: PointerEvent, groupId: string): void {
+	private startMove(
+		event: PointerEvent,
+		groupId: string,
+		resize?: GroupMove['resize'],
+	): void {
 		const group = this.groups.find((candidate) => candidate.id === groupId);
-		if (!group || group.movable === false) return;
+		if (
+			!group ||
+			event.button !== 0 ||
+			(resize ? !group.resizable : group.movable === false)
+		)
+			return;
 		event.preventDefault();
 		event.stopPropagation();
 		this.callbacks.onSelectGroup?.(group.id);
-		this.callbacks.onMoveStart?.(group.id);
+		if (!resize) this.callbacks.onMoveStart?.(group.id);
 		this.move = {
+			resize,
 			group: { ...group },
 			startGraph: this.viewportToGraph(this.readViewportPoint(event)),
 			lastDelta: { x: 0, y: 0 },
@@ -308,6 +364,29 @@ export class G6GroupLayer {
 				once: true,
 			},
 		);
+	}
+
+	private readPreviewGroup(group: GroupOverlayGroup): GroupOverlayGroup {
+		const move = this.move;
+		if (!move || move.group.id !== group.id || group.dynamicNodeIds)
+			return group;
+		const { x: dx, y: dy } = move.lastDelta;
+		const base = move.group;
+		if (!move.resize) return { ...base, x: base.x + dx, y: base.y + dy };
+		const left = move.resize.endsWith('left');
+		const top = move.resize.startsWith('top');
+		const width = Math.max(20, base.width + (left ? -dx : dx));
+		const height = Math.max(20, base.height + (top ? -dy : dy));
+		const normalized = normalizeGroupFrameForShape(
+			{ ...base, width, height },
+			base.shape,
+		);
+		return {
+			...base,
+			...normalized,
+			x: left ? base.x + base.width - normalized.width : base.x,
+			y: top ? base.y + base.height - normalized.height : base.y,
+		};
 	}
 
 	private endMove(): void {
@@ -372,9 +451,11 @@ export class G6GroupLayer {
 			if (!graph.hasNode(nodeId)) return [];
 			const attributes = graph.getNodeAttributes(nodeId);
 			if (attributes.hidden || attributes.isBend) return [];
+			const position = this.getNodePosition(nodeId);
+			if (!position) return [];
 			return [
 				{
-					...this.graphToViewport(attributes),
+					...this.graphToViewport(position),
 					radius: Math.max(
 						0,
 						attributes.size * this.getNodeVisualScale(),
@@ -418,10 +499,12 @@ export class G6GroupLayer {
 				if (!graph.hasNode(nodeId)) continue;
 				const attributes = graph.getNodeAttributes(nodeId);
 				if (attributes.hidden || attributes.isBend) continue;
+				const position = this.getNodePosition(nodeId);
+				if (!position) continue;
 				const key = `${geometry.groupId}\0${nodeId}`;
 				activeKeys.add(key);
 				const halo = this.getOrCreateHalo(key);
-				const center = this.graphToViewport(attributes);
+				const center = this.graphToViewport(position);
 				const radius = Math.max(
 					4,
 					attributes.size * this.getNodeVisualScale() + 3,

@@ -290,7 +290,7 @@
 
 <section>
 	<header><h3>Graph settings</h3></header>
-	{#if mode === 'graph'}
+	{#if mode === 'graph' || mode === 'free'}
 		<SettingsSection title="Renderer">
 			<SegmentedSetting
 				label="Renderer"

@@ -119,25 +119,27 @@ export function bindWorkspaceRendererEvents(
 					getNextNodeOpenSuppressUntil(Date.now()),
 				);
 				const dragAction = getPlanarDragAction(capabilities);
-				let refreshImmediately = true;
+				let appliedPosition = position;
 				if (dragAction.kind === 'manual-position') {
 					planarRenderer.holdCurrentBounds();
 					planarRenderer.runtimeGraph.mergeNodeAttributes(nodeId, {
-						x: position.x,
-						y: position.y,
 						fixed: true,
 					});
+					planarRenderer.setNodePosition(nodeId, position);
+					appliedPosition =
+						planarRenderer.getNodePosition(nodeId) ?? position;
 				} else {
 					if (!isForceSimulationRenderer(planarRenderer)) return;
-					refreshImmediately = false;
 					options
 						.getOrCreateForceLayoutSimulation(planarRenderer)
 						.drag(nodeId, position, viewportPosition);
 				}
-				options.getLayoutSnapshot().positions.set(nodeId, position);
+				options
+					.getLayoutSnapshot()
+					.positions.set(nodeId, appliedPosition);
 				if (capabilities.supportsFreeNodeDrag) {
 					const viewportPosition =
-						planarRenderer.graphToViewportPosition(position);
+						planarRenderer.graphToViewportPosition(appliedPosition);
 					const groupId =
 						planarRenderer.getGroupAtViewportPosition(
 							viewportPosition,
@@ -145,8 +147,6 @@ export function bindWorkspaceRendererEvents(
 					options.setActiveNodeDropGroupId(groupId);
 					planarRenderer.setActiveDropGroup(groupId);
 				}
-				if (!refreshImmediately) return;
-				planarRenderer.refresh();
 			},
 			onNodeDragEnd: (nodeId) => {
 				if (options.readOnly) return;

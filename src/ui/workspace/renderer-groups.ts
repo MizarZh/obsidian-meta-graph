@@ -19,10 +19,7 @@ import {
 	resolveGroupShape,
 } from '../../layouts/group-shape';
 import type { LayoutSnapshot } from '../../layouts/stable-layout';
-import {
-	getGroupNodeIds,
-	moveRuntimeGroupNodes,
-} from '../interactions/manual-layout-groups';
+import { getGroupNodeIds } from '../interactions/manual-layout-groups';
 import { createCubeRendererManualLayout } from '../../workspace/state/manual-layout/cube-layout';
 
 export function syncWorkspaceRendererGroups(
@@ -155,11 +152,10 @@ export function moveWorkspaceRuntimeGroupNodes(
 		return;
 	}
 	if (!isPlanarRenderer(renderer)) return;
-	moveRuntimeGroupNodes(
-		renderer.runtimeGraph,
-		layoutSnapshot.positions,
-		nodeIds,
-		delta,
-	);
-	renderer.refresh();
+	const ids = [...nodeIds];
+	renderer.moveNodesBy(ids, delta);
+	for (const nodeId of ids) {
+		const position = renderer.getNodePosition(nodeId);
+		if (position) layoutSnapshot.positions.set(nodeId, position);
+	}
 }

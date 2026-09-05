@@ -280,7 +280,9 @@
 			type: createType,
 			source: createSource,
 			name,
-			...(createType === 'graph' ? { renderer: createRenderer } : {}),
+			...(createType === 'graph' || createType === 'free'
+				? { renderer: createRenderer }
+				: {}),
 		});
 		closeCreate();
 	}
@@ -538,7 +540,7 @@
 					/>
 				</header>
 				{@render layoutSelector(createType, selectCreateType)}
-				{#if createType === 'graph'}
+				{#if createType === 'graph' || createType === 'free'}
 					{@render rendererSelector(
 						createRenderer,
 						(value) => (createRenderer = value),
@@ -609,7 +611,7 @@
 					/>
 				</header>
 				{@render layoutSelector(mode, onChartType)}
-				{#if mode === 'graph'}
+				{#if mode === 'graph' || mode === 'free'}
 					{@render rendererSelector(renderer, onRenderer)}
 				{/if}
 				<label class="knowledge-workspace-create-field">

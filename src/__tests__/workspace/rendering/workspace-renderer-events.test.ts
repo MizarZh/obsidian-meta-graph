@@ -75,9 +75,13 @@ describe('bindWorkspaceRendererEvents', () => {
 		expect(renderer.holdCurrentBounds).toHaveBeenCalledOnce();
 		expect(renderer.runtimeGraph.mergeNodeAttributes).toHaveBeenCalledWith(
 			'A',
-			{ x: 1, y: 2, fixed: true },
+			{ fixed: true },
 		);
-		expect(renderer.refresh).toHaveBeenCalledOnce();
+		expect(renderer.setNodePosition).toHaveBeenCalledWith('A', {
+			x: 1,
+			y: 2,
+		});
+		expect(renderer.refresh).not.toHaveBeenCalled();
 	});
 
 	it('keeps navigation callbacks but disables write gestures when read-only', () => {
@@ -153,6 +157,9 @@ function createPlanarRenderer(): PlanarRenderer {
 			mergeNodeAttributes: vi.fn(),
 		},
 		graphToViewportPosition: vi.fn(() => ({ x: 10, y: 20 })),
+		getNodePosition: vi.fn(() => ({ x: 1, y: 2 })),
+		setNodePosition: vi.fn(),
+		moveNodesBy: vi.fn(),
 		refresh: vi.fn(),
 		holdCurrentBounds: vi.fn(),
 		getGroupAtViewportPosition: vi.fn(),

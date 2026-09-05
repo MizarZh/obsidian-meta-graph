@@ -1,7 +1,10 @@
 import { Graph, GraphEvent, type GraphOptions, type State } from '@antv/g6';
 import type { LabelPosition } from '../../../core/types';
 import type { LayoutGroupGeometry } from '../../../layouts/group-geometry';
-import type { RuntimeGraph } from '../../model/graphology-adapter';
+import type {
+	GraphPosition,
+	RuntimeGraph,
+} from '../../model/graphology-adapter';
 import { immediateNeighborhood } from '../../model/neighborhood';
 import type { GraphPalette } from '../../styles/graph-styles';
 import type { RendererCapabilities } from '../renderer-capabilities';
@@ -34,6 +37,10 @@ import {
 	toG6Data,
 	type G6LabelVisibility,
 } from './g6-data';
+import {
+	createG6CoordinateSpace,
+	type G6CoordinateSpace,
+} from './g6-coordinate-space';
 import { G6GroupLayer } from './g6-groups';
 import {
 	G6_LABEL_CONTROLLER_KEY,
@@ -72,6 +79,7 @@ export type G6GraphInstance = Pick<
 	| 'focusElement'
 	| 'getCanvasCenter'
 	| 'getCanvasByViewport'
+	| 'getElementPosition'
 	| 'getPluginInstance'
 	| 'getViewportByCanvas'
 	| 'getZoom'
@@ -82,6 +90,7 @@ export type G6GraphInstance = Pick<
 	| 'setOptions'
 	| 'setZoomRange'
 	| 'translateBy'
+	| 'translateElementTo'
 	| 'updateData'
 	| 'zoomBy'
 	| 'zoomTo'
@@ -96,13 +105,14 @@ export class G6Renderer implements PlanarRenderer {
 		supportsLayoutGroupGeometry: true,
 		supportsManualLayout: false,
 		supportsEdgePicking: true,
-		supportsNodeDragging: false,
+		supportsNodeDragging: true,
 		supportsConnectionMoveScheduling: false,
 		supportsExternal2DForceSimulation: false,
 	};
 	readonly instance: G6GraphInstance;
 	readonly container: HTMLElement;
 	private graph: RuntimeGraph;
+	private coordinateSpace: G6CoordinateSpace;
 	private palette: GraphPalette;
 	private displayStyle: G6DisplayStyleOptions;
 	private scaleLabelsWithZoom: boolean;
@@ -192,8 +202,13 @@ export class G6Renderer implements PlanarRenderer {
 		this.scheduleWheelZoom();
 	};
 
-	private constructor(options: G6RendererOptions, instance: G6GraphInstance) {
+	private constructor(
+		options: G6RendererOptions,
+		instance: G6GraphInstance,
+		coordinateSpace: G6CoordinateSpace,
+	) {
 		this.graph = options.graph;
+		this.coordinateSpace = coordinateSpace;
 		this.palette = options.palette;
 		this.displayStyle = createG6DisplayStyleOptions(options);
 		this.scaleLabelsWithZoom = options.scaleLabelsWithZoom;
@@ -213,8 +228,11 @@ export class G6Renderer implements PlanarRenderer {
 		createGraph: G6GraphFactory = (graphOptions) => new Graph(graphOptions),
 	): Promise<G6Renderer | undefined> {
 		if (options.isStale()) return undefined;
-		const instance = createGraph(createG6GraphOptions(options));
-		const renderer = new G6Renderer(options, instance);
+		const coordinateSpace = createG6CoordinateSpace(options.graph);
+		const instance = createGraph(
+			createG6GraphOptions(options, coordinateSpace),
+		);
+		const renderer = new G6Renderer(options, instance, coordinateSpace);
 		try {
 			await instance.draw();
 		} catch (error) {
@@ -236,6 +254,7 @@ export class G6Renderer implements PlanarRenderer {
 	setGraph(graph: RuntimeGraph): void {
 		const viewportState = this.captureViewportState();
 		this.graph = graph;
+		this.coordinateSpace = createG6CoordinateSpace(graph);
 		this.labelVisibility = undefined;
 		this.dropMissingInteractionTargets();
 		this.nodeStateKeys.clear();
@@ -248,6 +267,7 @@ export class G6Renderer implements PlanarRenderer {
 				this.readVisualScale(),
 				this.readLabelVisibility(),
 				this.readLabelStyles(),
+				this.coordinateSpace,
 			),
 		);
 		this.replaceLabelControllerSnapshot();
@@ -262,6 +282,7 @@ export class G6Renderer implements PlanarRenderer {
 	}
 
 	refresh(): void {
+		if (this.killed || this.isStale()) return;
 		this.scheduleDraw();
 	}
 
@@ -277,6 +298,7 @@ export class G6Renderer implements PlanarRenderer {
 				this.readVisualScale(),
 				this.readLabelVisibility(),
 				this.readLabelStyles(),
+				this.coordinateSpace,
 			),
 		);
 		this.replaceLabelControllerSnapshot();
@@ -302,6 +324,7 @@ export class G6Renderer implements PlanarRenderer {
 				this.readVisualScale(),
 				labelVisibility,
 				this.readLabelStyles(),
+				this.coordinateSpace,
 			),
 		);
 		this.replaceLabelControllerSnapshot();
@@ -316,16 +339,21 @@ export class G6Renderer implements PlanarRenderer {
 			position.x,
 			position.y,
 		]);
-		return { x: point[0], y: point[1] };
+		return this.canvasToGraphPosition({ x: point[0], y: point[1] });
+	}
+
+	canvasToGraphPosition(position: { x: number; y: number }): GraphPosition {
+		return this.coordinateSpace.toGraph(position);
 	}
 
 	graphToViewportPosition(position: { x: number; y: number }): {
 		x: number;
 		y: number;
 	} {
+		const g6Position = this.coordinateSpace.toG6(position);
 		const point = this.instance.getViewportByCanvas([
-			position.x,
-			position.y,
+			g6Position.x,
+			g6Position.y,
 		]);
 		return { x: point[0], y: point[1] };
 	}
@@ -475,7 +503,9 @@ export class G6Renderer implements PlanarRenderer {
 		let closestDistance = Number.POSITIVE_INFINITY;
 		this.graph.forEachNode((nodeId, attributes) => {
 			if (attributes.hidden || attributes.isBend) return;
-			const center = this.graphToViewportPosition(attributes);
+			const nodePosition = this.getNodePosition(nodeId);
+			if (!nodePosition) return;
+			const center = this.graphToViewportPosition(nodePosition);
 			const distance = Math.hypot(
 				center.x - position.x,
 				center.y - position.y,
@@ -490,6 +520,61 @@ export class G6Renderer implements PlanarRenderer {
 			}
 		});
 		return closestNodeId;
+	}
+
+	getNodePosition(nodeId: string): GraphPosition | undefined {
+		if (!this.graph.hasNode(nodeId)) return undefined;
+		const position = this.instance.getElementPosition(nodeId);
+		const x = position[0];
+		const y = position[1];
+		return typeof x === 'number' && typeof y === 'number'
+			? this.coordinateSpace.toGraph({ x, y })
+			: undefined;
+	}
+
+	setNodePosition(nodeId: string, position: GraphPosition): void {
+		this.translateNodesTo({ [nodeId]: [position.x, position.y] });
+	}
+
+	moveNodesBy(nodeIds: Iterable<string>, delta: GraphPosition): void {
+		const positions: Record<string, [number, number]> = {};
+		for (const nodeId of nodeIds) {
+			const position = this.getNodePosition(nodeId);
+			if (!position) continue;
+			positions[nodeId] = [position.x + delta.x, position.y + delta.y];
+		}
+		this.translateNodesTo(positions);
+	}
+
+	private translateNodesTo(
+		positions: Record<string, [number, number]>,
+	): void {
+		if (
+			this.killed ||
+			this.isStale() ||
+			Object.keys(positions).length === 0
+		)
+			return;
+		const g6Positions = Object.fromEntries(
+			Object.entries(positions).map(([nodeId, position]) => {
+				const mapped = this.coordinateSpace.toG6({
+					x: position[0],
+					y: position[1],
+				});
+				return [nodeId, [mapped.x, mapped.y] as [number, number]];
+			}),
+		);
+		const translation = this.instance.translateElementTo(
+			g6Positions,
+			false,
+		);
+		for (const nodeId of Object.keys(positions)) {
+			const position = this.getNodePosition(nodeId);
+			if (position) this.graph.mergeNodeAttributes(nodeId, position);
+		}
+		void translation.catch((error) => {
+			console.error('[Meta Graph] G6 element translation failed', error);
+		});
 	}
 
 	setActiveDropGroup(groupId?: string): void {
@@ -609,10 +694,14 @@ export class G6Renderer implements PlanarRenderer {
 			center[0],
 			center[1],
 		]);
+		const canonicalCenter = this.coordinateSpace.toGraph({
+			x: graphCenter[0],
+			y: graphCenter[1],
+		});
 		return {
 			zoomLevel: this.getZoomLevel(),
 			normalizedCenter: normalizePlanarPosition(
-				{ x: graphCenter[0], y: graphCenter[1] },
+				canonicalCenter,
 				getPlanarGraphExtent(this.graph),
 			),
 		};
@@ -647,7 +736,9 @@ export class G6Renderer implements PlanarRenderer {
 		};
 		if (!(viewport.width > 0) || !(viewport.height > 0)) return;
 		const extent = getPlanarGraphExtent(this.graph);
-		this.fitZoom = calculateSigmaCompatibleFitZoom(extent, viewport);
+		this.fitZoom =
+			calculateSigmaCompatibleFitZoom(extent, viewport) /
+			this.coordinateSpace.scale;
 		this.instance.setZoomRange(getPlanarNativeZoomRange(this.fitZoom));
 		this.fitting = true;
 		try {
@@ -669,9 +760,10 @@ export class G6Renderer implements PlanarRenderer {
 				viewportState.normalizedCenter,
 				extent,
 			);
+			const g6Center = this.coordinateSpace.toG6(graphCenter);
 			const currentCenter = this.instance.getViewportByCanvas([
-				graphCenter.x,
-				graphCenter.y,
+				g6Center.x,
+				g6Center.y,
 			]);
 			await this.instance.translateBy(
 				[
@@ -798,6 +890,7 @@ export class G6Renderer implements PlanarRenderer {
 				visualScale,
 				this.readLabelVisibility(),
 				this.readLabelStyles(visualScale),
+				this.coordinateSpace,
 			),
 		);
 		this.instance.setOptions({
@@ -874,6 +967,7 @@ export class G6Renderer implements PlanarRenderer {
 				this.instance,
 				this.container,
 				() => this.graph,
+				(nodeId) => this.getNodePosition(nodeId),
 				(position) => this.graphToViewportPosition(position),
 				(position) => this.viewportToGraphPosition(position),
 				() => this.readNodeVisualScale(),
@@ -1243,13 +1337,22 @@ export class G6Renderer implements PlanarRenderer {
 	}
 }
 
-export function createG6GraphOptions(options: G6RendererOptions): GraphOptions {
+export function createG6GraphOptions(
+	options: G6RendererOptions,
+	coordinateSpace: G6CoordinateSpace = createG6CoordinateSpace(options.graph),
+): GraphOptions {
 	const labelVisibility = resolveG6LabelVisibility(options.graph, options);
 	const displayStyle = createG6DisplayStyleOptions(options);
 	const labelStyles = createG6LabelStyles(options.palette, displayStyle);
 	return {
 		container: options.container,
-		data: toG6Data(options.graph, undefined, labelVisibility, labelStyles),
+		data: toG6Data(
+			options.graph,
+			undefined,
+			labelVisibility,
+			labelStyles,
+			coordinateSpace,
+		),
 		animation: false,
 		autoResize: false,
 		background: options.palette.background,

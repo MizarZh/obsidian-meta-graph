@@ -2,6 +2,7 @@ import Sigma from 'sigma';
 import { EdgeRectangleProgram } from 'sigma/rendering';
 import type { LabelPosition } from '../../../core/types';
 import {
+	type GraphPosition,
 	type RuntimeEdgeAttributes,
 	type RuntimeGraph,
 	type RuntimeNodeAttributes,
@@ -384,6 +385,32 @@ export class SigmaRenderer {
 		y: number;
 	} {
 		return this.instance.graphToViewport(position);
+	}
+
+	getNodePosition(nodeId: string): GraphPosition | undefined {
+		if (!this.graph.hasNode(nodeId)) return undefined;
+		const { x, y } = this.graph.getNodeAttributes(nodeId);
+		return { x, y };
+	}
+
+	setNodePosition(nodeId: string, position: GraphPosition): void {
+		if (!this.graph.hasNode(nodeId)) return;
+		this.graph.mergeNodeAttributes(nodeId, position);
+		this.refresh();
+	}
+
+	moveNodesBy(nodeIds: Iterable<string>, delta: GraphPosition): void {
+		let moved = false;
+		for (const nodeId of nodeIds) {
+			const position = this.getNodePosition(nodeId);
+			if (!position) continue;
+			this.graph.mergeNodeAttributes(nodeId, {
+				x: position.x + delta.x,
+				y: position.y + delta.y,
+			});
+			moved = true;
+		}
+		if (moved) this.refresh();
 	}
 
 	setActiveDropGroup(groupId?: string): void {
