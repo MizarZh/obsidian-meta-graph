@@ -47,7 +47,7 @@ settings to report them in the developer console.
 2. Run **Create graph** from the command palette.
 3. Add or select a chart in the graph toolbar. Graph, 3D graph, Cube, Free, Flow,
    Arc, and HEB (hierarchical edge bundling) layouts each keep
-   their own source, query, layout, display, and style settings. Graph, Free, Flow, and Arc views can
+   their own source, query, layout, display, and style settings. Graph, Free, Flow, Arc, and HEB views can
    use Sigma or G6; choose the renderer while creating/configuring the view or
    under **Graph settings → Renderer**. Existing and new views default to Sigma.
 4. Use the flat toolbar settings buttons to edit graph settings, filters, note
@@ -426,7 +426,11 @@ Obsidian MetadataCache
 The canonical knowledge model uses plain TypeScript maps and sets. Graphology is
 created from each projection and is only the runtime container used by the
 layout and rendering layers. Hierarchical edge bundling uses D3 hierarchy for
-layout calculation, then renders the positioned graph through Sigma.js.
+layout calculation, then renders the positioned graph through Sigma.js or G6.
+G6 receives one layout-owned logical Polyline per bundled relationship instead
+of HEB bend nodes and segments. Radial Group sectors use the same layout
+geometry, viewport transform, selection, hover, focus, and hit-testing rules as
+Sigma.
 
 Workspace rendering separates structural changes from display changes. Query,
 projection, source, mode, and layout changes rebuild the runtime graph. Display

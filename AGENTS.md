@@ -11,8 +11,7 @@ This repository is an Obsidian community plugin named **Meta Graph**.
 - Planar renderers:
     - Sigma.js 3 is the default renderer.
     - AntV G6 5 uses its Canvas renderer as an optional per-chart engine.
-    - Graph, Free, Flow, and Arc currently expose Sigma/G6 selection in the UI.
-    - HEB is part of the planar renderer type contract but remains Sigma-only in the UI until its bundled-path and radial-sector G6 adapters are complete.
+    - Graph, Free, Flow, Arc, and HEB expose Sigma/G6 selection in the UI.
 - Spatial renderers: Graph 3D and Cube use their dedicated Three.js-based renderers and must not offer G6.
 - Layout engines:
     - Graph: ForceAtlas2.
@@ -48,7 +47,7 @@ pnpm exec vitest run src/__tests__/core/core.test.ts src/__tests__/workspace/per
 For planar renderer work, run the source-aligned renderer and lifecycle tests:
 
 ```bash
-pnpm exec vitest run src/__tests__/graph/renderers/g6-data.test.ts src/__tests__/graph/renderers/g6-coordinate-space.test.ts src/__tests__/graph/renderers/g6-events.test.ts src/__tests__/graph/renderers/g6-label-controller.test.ts src/__tests__/graph/renderers/g6-renderer.test.ts src/__tests__/graph/renderers/g6-flow.test.ts src/__tests__/graph/renderers/g6-arc.test.ts src/__tests__/graph/renderers/renderer-capabilities.test.ts src/__tests__/workspace/rendering/renderer-lifecycle.test.ts
+pnpm exec vitest run src/__tests__/graph/renderers/g6-data.test.ts src/__tests__/graph/renderers/g6-coordinate-space.test.ts src/__tests__/graph/renderers/g6-events.test.ts src/__tests__/graph/renderers/g6-label-controller.test.ts src/__tests__/graph/renderers/g6-renderer.test.ts src/__tests__/graph/renderers/g6-flow.test.ts src/__tests__/graph/renderers/g6-arc.test.ts src/__tests__/graph/renderers/g6-heb.test.ts src/__tests__/graph/renderers/renderer-capabilities.test.ts src/__tests__/workspace/rendering/renderer-lifecycle.test.ts
 ```
 
 - Never run `git diff`.

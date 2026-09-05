@@ -215,6 +215,7 @@ async function applyHierarchicalEdgeBundlingLayout({
 	);
 	await layout.apply(graph);
 	snapshot.groupGeometries = layout.getGroupGeometries();
+	snapshot.edgeRoutes = layout.getEdgeRoutes();
 	snapshot.edgeIds = currentEdgeIds;
 	snapshot.orthogonalRoutes = createOrthogonalRouteMap();
 }

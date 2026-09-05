@@ -15,6 +15,7 @@ import {
 	type RadialGroupGeometry,
 } from './group-geometry';
 import type { LayoutEngine } from './layout-engine';
+import type { PlanarEdgeRoute } from './planar-geometry';
 import {
 	compareLayoutNodeIds,
 	type LayoutNodeSort,
@@ -42,6 +43,7 @@ type BundlePoint = HierarchyPointNode<BundleNode>;
 
 export class HierarchicalEdgeBundlingLayout implements LayoutEngine {
 	private groupGeometries: RadialGroupGeometry[] = [];
+	private edgeRoutes = new Map<string, PlanarEdgeRoute>();
 
 	constructor(
 		private readonly spacing = 1,
@@ -96,11 +98,15 @@ export class HierarchicalEdgeBundlingLayout implements LayoutEngine {
 			this.groups,
 		);
 
-		applyBundledEdges(graph, leafById);
+		this.edgeRoutes = applyBundledEdges(graph, leafById);
 	}
 
 	getGroupGeometries(): RadialGroupGeometry[] {
 		return this.groupGeometries.map((geometry) => ({ ...geometry }));
+	}
+
+	getEdgeRoutes(): ReadonlyMap<string, PlanarEdgeRoute> {
+		return new Map(this.edgeRoutes);
 	}
 }
 
@@ -129,7 +135,8 @@ function compareBundleNodes(
 function applyBundledEdges(
 	graph: RuntimeGraph,
 	leafById: ReadonlyMap<string, BundlePoint>,
-): void {
+): Map<string, PlanarEdgeRoute> {
+	const routes = new Map<string, PlanarEdgeRoute>();
 	const logicalEdges = graph
 		.edges()
 		.filter((edge) => !graph.getEdgeAttribute(edge, 'hidden'));
@@ -155,6 +162,46 @@ function applyBundledEdges(
 		if (points.length < 2) {
 			continue;
 		}
+		const labelSegment = Math.floor((points.length - 2) / 2);
+		const labelStart = points[labelSegment];
+		const labelEnd = points[labelSegment + 1];
+		const arrowPoint = points.at(-1);
+		const arrowPreviousPoint = points.at(-2);
+		if (!labelStart || !labelEnd || !arrowPoint || !arrowPreviousPoint) {
+			continue;
+		}
+		routes.set(edge, {
+			id: edge,
+			source,
+			target,
+			start: points[0]!,
+			commands: points.slice(1).map((point) => ({
+				kind: 'line' as const,
+				to: point,
+			})),
+			parallelRouteOwner: 'layout',
+			arrow: directed
+				? {
+						position: arrowPoint,
+						angle: Math.atan2(
+							arrowPoint.y - arrowPreviousPoint.y,
+							arrowPoint.x - arrowPreviousPoint.x,
+						),
+					}
+				: undefined,
+			label: attributes.label
+				? {
+						position: {
+							x: (labelStart.x + labelEnd.x) / 2,
+							y: (labelStart.y + labelEnd.y) / 2,
+						},
+						angle: Math.atan2(
+							labelEnd.y - labelStart.y,
+							labelEnd.x - labelStart.x,
+						),
+					}
+				: undefined,
+		});
 
 		graph.dropEdge(edge);
 		const pathNodes = [source];
@@ -165,7 +212,6 @@ function applyBundledEdges(
 		}
 		pathNodes.push(target);
 
-		const labelSegment = Math.floor((pathNodes.length - 2) / 2);
 		for (let index = 0; index < pathNodes.length - 1; index += 1) {
 			const segmentSource = pathNodes[index];
 			const segmentTarget = pathNodes[index + 1];
@@ -205,6 +251,7 @@ function applyBundledEdges(
 			}
 		}
 	}
+	return routes;
 }
 
 function createHierarchy(

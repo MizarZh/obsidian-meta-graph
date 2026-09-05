@@ -8,6 +8,7 @@
 	import ToggleSetting from '../settings/fields/ToggleSetting.svelte';
 	import FlowRelationRules from './FlowRelationRules.svelte';
 	import { MAX_FLOW_CORNER_RADIUS } from '../../workspace/meta-graph-model';
+	import { supportsPlanarRenderer } from '../../core/types';
 	import type {
 		ArcDirection,
 		FlowDirection,
@@ -290,7 +291,7 @@
 
 <section>
 	<header><h3>Graph settings</h3></header>
-	{#if mode === 'graph' || mode === 'free' || mode === 'flow' || mode === 'arc'}
+	{#if supportsPlanarRenderer(mode)}
 		<SettingsSection title="Renderer">
 			<SegmentedSetting
 				label="Renderer"

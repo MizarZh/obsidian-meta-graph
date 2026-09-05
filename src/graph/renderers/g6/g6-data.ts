@@ -162,6 +162,9 @@ export function createG6StylePatch(
 	edgeRoutes?: ReadonlyMap<string, PlanarEdgeRoute>,
 ): G6StylePatch {
 	const routedLogicalIds = new Set<string>();
+	const runtimeEdgesByLogicalId = edgeRoutes
+		? indexRuntimeEdgesByLogicalId(graph)
+		: undefined;
 	return {
 		nodes: changes.nodeIds.flatMap((nodeId) => {
 			if (!graph.hasNode(nodeId)) return [];
@@ -193,6 +196,7 @@ export function createG6StylePatch(
 					labelVisibility,
 					labelStyles,
 					coordinateSpace,
+					runtimeEdgesByLogicalId?.get(route.id),
 				);
 				return routedEdge
 					? [
@@ -217,6 +221,7 @@ export function createG6StylePatch(
 					labelVisibility,
 					labelStyles,
 					coordinateSpace,
+					runtimeEdgesByLogicalId?.get(route.id),
 				);
 				return routedEdge
 					? [
@@ -327,6 +332,7 @@ function createG6RoutedEdges(
 	coordinateSpace?: G6CoordinateSpace,
 ): G6EdgeData[] {
 	const routedIds = new Set(edgeRoutes.keys());
+	const runtimeEdgesByLogicalId = indexRuntimeEdgesByLogicalId(graph);
 	const ordinaryEdges = graph
 		.mapEdges((edgeId, attributes, source, target) => ({
 			edgeId,
@@ -358,6 +364,7 @@ function createG6RoutedEdges(
 			labelVisibility,
 			labelStyles,
 			coordinateSpace,
+			runtimeEdgesByLogicalId.get(route.id),
 		);
 		return edge ? [edge] : [];
 	});
@@ -371,21 +378,26 @@ function toG6RouteEdgeData(
 	labelVisibility?: G6LabelVisibility,
 	labelStyles?: G6LabelStyles,
 	coordinateSpace?: G6CoordinateSpace,
+	runtimeEdgeIds?: readonly string[],
 ): G6EdgeData | undefined {
-	const runtimeEdgeIds = graph.edges().filter((edgeId) => {
-		const attributes = graph.getEdgeAttributes(edgeId);
-		return (attributes.logicalEdgeId ?? edgeId) === route.id;
-	});
-	const firstEdgeId = runtimeEdgeIds[0];
+	const routeRuntimeEdgeIds =
+		runtimeEdgeIds ??
+		graph.edges().filter((edgeId) => {
+			const attributes = graph.getEdgeAttributes(edgeId);
+			return (attributes.logicalEdgeId ?? edgeId) === route.id;
+		});
+	const firstEdgeId = routeRuntimeEdgeIds[0];
 	if (!firstEdgeId) return undefined;
-	const labelEdgeId = runtimeEdgeIds.find((edgeId) =>
+	const labelEdgeId = routeRuntimeEdgeIds.find((edgeId) =>
 		Boolean(graph.getEdgeAttribute(edgeId, 'label')),
 	);
 	const attributes = {
 		...graph.getEdgeAttributes(firstEdgeId),
 		...(labelEdgeId ? graph.getEdgeAttributes(labelEdgeId) : {}),
 	};
-	const directed = runtimeEdgeIds.some((edgeId) => graph.isDirected(edgeId));
+	const directed = routeRuntimeEdgeIds.some((edgeId) =>
+		graph.isDirected(edgeId),
+	);
 	const style = createG6EdgeStyle(
 		attributes,
 		directed,
@@ -427,6 +439,19 @@ function toG6RouteEdgeData(
 		},
 		style,
 	};
+}
+
+function indexRuntimeEdgesByLogicalId(
+	graph: RuntimeGraph,
+): Map<string, string[]> {
+	const edgeIdsByLogicalId = new Map<string, string[]>();
+	graph.forEachEdge((edgeId, attributes) => {
+		const logicalEdgeId = attributes.logicalEdgeId ?? edgeId;
+		const edgeIds = edgeIdsByLogicalId.get(logicalEdgeId) ?? [];
+		edgeIds.push(edgeId);
+		edgeIdsByLogicalId.set(logicalEdgeId, edgeIds);
+	});
+	return edgeIdsByLogicalId;
 }
 
 export function resolveRouteLabelPlacement(route: PlanarEdgeRoute): number {

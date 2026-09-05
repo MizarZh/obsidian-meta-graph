@@ -84,7 +84,7 @@ export function isGraphPointInLayoutGroup(
 			return false;
 		}
 		const fullTurn = Math.PI * 2;
-		let angle = Math.atan2(point.y, point.x);
+		let angle = Math.atan2(point.y, point.x) + Math.PI / 2;
 		while (angle < geometry.startAngle) angle += fullTurn;
 		while (angle > geometry.startAngle + fullTurn) angle -= fullTurn;
 		return angle <= geometry.endAngle;

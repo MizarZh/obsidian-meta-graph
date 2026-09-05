@@ -51,9 +51,25 @@ describe('layout group hit testing', () => {
 					innerRadius: 10,
 					outerRadius: 30,
 				},
-				{ x: 15, y: 15 },
+				{ x: 15, y: -15 },
 			),
 		).toBe(true);
+		expect(
+			isGraphPointInLayoutGroup(
+				{
+					kind: 'radial-sector',
+					groupId: 'heb',
+					name: 'HEB',
+					color: '#ffffff',
+					nodeIds: [],
+					startAngle: 0,
+					endAngle: Math.PI / 2,
+					innerRadius: 10,
+					outerRadius: 30,
+				},
+				{ x: 15, y: 15 },
+			),
+		).toBe(false);
 		expect(
 			isGraphPointInLayoutGroup(
 				{

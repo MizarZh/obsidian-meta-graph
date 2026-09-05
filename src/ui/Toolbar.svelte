@@ -9,6 +9,7 @@
 	import ObsidianSlider from './obsidian/ObsidianSlider.svelte';
 	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
 	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
+	import { supportsPlanarRenderer } from '../core/types';
 	import type {
 		ChartSource,
 		CreateChartInput,
@@ -159,12 +160,7 @@
 		{ value: 'g6', label: 'G6' },
 	];
 	function supportsAvailableG6Renderer(value: ViewMode): boolean {
-		return (
-			value === 'graph' ||
-			value === 'free' ||
-			value === 'flow' ||
-			value === 'arc'
-		);
+		return supportsPlanarRenderer(value);
 	}
 	const SETTINGS_TABS = $derived<
 		Array<{

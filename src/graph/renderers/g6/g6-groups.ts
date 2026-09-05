@@ -5,6 +5,7 @@ import {
 	scaleLayoutGroupPadding,
 	type FlowGroupGeometry,
 	type LayoutGroupGeometry,
+	type RadialGroupGeometry,
 } from '../../../layouts/group-geometry';
 import {
 	fitViewportCircle,
@@ -21,6 +22,15 @@ import type {
 interface G6GroupViewport {
 	on(event: GraphEvent, listener: () => void): unknown;
 	off(event: GraphEvent, listener: () => void): unknown;
+}
+
+const RADIAL_GROUP_LABEL_INSET = 15;
+const RADIAL_SECTOR_SAMPLE_ANGLE = Math.PI / 36;
+
+export interface RadialSectorViewportShape {
+	rect: ViewportGroupRect;
+	points: Array<{ x: number; y: number }>;
+	label: { x: number; y: number };
 }
 
 interface GroupMove {
@@ -141,13 +151,17 @@ export class G6GroupLayer {
 		getGroupNodeIds?: (groupId: string) => Iterable<string>,
 	): void {
 		this.geometries = geometries.map((geometry) => ({ ...geometry }));
-		const flowIds = new Set(
+		const layoutRegionIds = new Set(
 			geometries
-				.filter((geometry) => geometry.kind === 'flow-container')
+				.filter(
+					(geometry) =>
+						geometry.kind === 'flow-container' ||
+						geometry.kind === 'radial-sector',
+				)
 				.map((geometry) => geometry.groupId),
 		);
 		for (const [groupId, element] of this.geometryElements) {
-			if (flowIds.has(groupId)) continue;
+			if (layoutRegionIds.has(groupId)) continue;
 			element.remove();
 			this.geometryElements.delete(groupId);
 			this.geometryRenderKeys.delete(groupId);
@@ -282,7 +296,7 @@ export class G6GroupLayer {
 				title.title = group.name;
 			}
 		}
-		this.updateFlowContainers();
+		this.updateLayoutRegions();
 		this.updateMemberHalos();
 	}
 
@@ -568,57 +582,20 @@ export class G6GroupLayer {
 		return halo;
 	}
 
-	private updateFlowContainers(): void {
+	private updateLayoutRegions(): void {
 		const activeIds = new Set<string>();
 		for (const geometry of this.geometries) {
-			if (geometry.kind !== 'flow-container') continue;
-			activeIds.add(geometry.groupId);
-			const element = this.getOrCreateGeometryElement(
-				geometry.groupId,
-				geometry.name,
-			);
-			const rect = createFlowContainerViewportRect(
-				geometry,
-				this.graphToViewport,
-			);
-			const selected = geometry.groupId === this.selectedGroupId;
-			const hovered = geometry.groupId === this.hoveredGroupId;
-			const muted = this.isMuted(geometry.groupId);
-			const dropTarget = geometry.groupId === this.activeDropGroupId;
-			const renderKey = [
-				rect.left,
-				rect.top,
-				rect.width,
-				rect.height,
-				geometry.color,
-				geometry.name,
-				selected,
-				hovered,
-				muted,
-				dropTarget,
-			].join('\0');
-			if (this.geometryRenderKeys.get(geometry.groupId) === renderKey) {
+			if (
+				geometry.kind !== 'flow-container' &&
+				geometry.kind !== 'radial-sector'
+			) {
 				continue;
 			}
-			this.geometryRenderKeys.set(geometry.groupId, renderKey);
-			element.style.left = `${rect.left}px`;
-			element.style.top = `${rect.top}px`;
-			element.style.width = `${rect.width}px`;
-			element.style.height = `${rect.height}px`;
-			element.style.setProperty(
-				'--knowledge-workspace-group-color',
-				geometry.color,
-			);
-			element.classList.toggle('selected', selected);
-			element.classList.toggle('hovered', hovered);
-			element.classList.toggle('muted-by-focus', muted);
-			element.classList.toggle('drop-target', dropTarget);
-			const title = element.querySelector<HTMLElement>(
-				'.knowledge-workspace-group-title',
-			);
-			if (title) {
-				title.textContent = geometry.name;
-				title.title = geometry.name;
+			activeIds.add(geometry.groupId);
+			if (geometry.kind === 'flow-container') {
+				this.updateFlowContainer(geometry);
+			} else {
+				this.updateRadialSector(geometry);
 			}
 		}
 		for (const [groupId, element] of this.geometryElements) {
@@ -627,6 +604,151 @@ export class G6GroupLayer {
 			this.geometryElements.delete(groupId);
 			this.geometryRenderKeys.delete(groupId);
 		}
+	}
+
+	private updateFlowContainer(geometry: FlowGroupGeometry): void {
+		const element = this.getOrCreateGeometryElement(
+			geometry.groupId,
+			geometry.name,
+		);
+		const rect = createFlowContainerViewportRect(
+			geometry,
+			this.graphToViewport,
+		);
+		const selected = geometry.groupId === this.selectedGroupId;
+		const hovered = geometry.groupId === this.hoveredGroupId;
+		const muted = this.isMuted(geometry.groupId);
+		const dropTarget = geometry.groupId === this.activeDropGroupId;
+		const renderKey = [
+			geometry.kind,
+			rect.left,
+			rect.top,
+			rect.width,
+			rect.height,
+			geometry.color,
+			geometry.name,
+			selected,
+			hovered,
+			muted,
+			dropTarget,
+		].join('\0');
+		if (this.geometryRenderKeys.get(geometry.groupId) === renderKey) {
+			return;
+		}
+		this.geometryRenderKeys.set(geometry.groupId, renderKey);
+		element.classList.remove('knowledge-workspace-g6-radial-sector');
+		element
+			.querySelector('.knowledge-workspace-g6-radial-sector-shape')
+			?.remove();
+		element.style.left = `${rect.left}px`;
+		element.style.top = `${rect.top}px`;
+		element.style.width = `${rect.width}px`;
+		element.style.height = `${rect.height}px`;
+		element.style.setProperty(
+			'--knowledge-workspace-group-color',
+			geometry.color,
+		);
+		element.classList.toggle('selected', selected);
+		element.classList.toggle('hovered', hovered);
+		element.classList.toggle('muted-by-focus', muted);
+		element.classList.toggle('drop-target', dropTarget);
+		const title = element.querySelector<HTMLElement>(
+			'.knowledge-workspace-group-title',
+		);
+		if (title) {
+			title.textContent = geometry.name;
+			title.title = geometry.name;
+			title.style.removeProperty('left');
+			title.style.removeProperty('top');
+		}
+	}
+
+	private updateRadialSector(geometry: RadialGroupGeometry): void {
+		const element = this.getOrCreateGeometryElement(
+			geometry.groupId,
+			geometry.name,
+		);
+		const shape = createRadialSectorViewportShape(
+			geometry,
+			this.graphToViewport,
+		);
+		const selected = geometry.groupId === this.selectedGroupId;
+		const hovered = geometry.groupId === this.hoveredGroupId;
+		const muted = this.isMuted(geometry.groupId);
+		const dropTarget = geometry.groupId === this.activeDropGroupId;
+		const localPoints = shape.points.map((point) => ({
+			x: point.x - shape.rect.left,
+			y: point.y - shape.rect.top,
+		}));
+		const pathData = createClosedPathData(localPoints);
+		const renderKey = [
+			geometry.kind,
+			shape.rect.left,
+			shape.rect.top,
+			shape.rect.width,
+			shape.rect.height,
+			pathData,
+			shape.label.x,
+			shape.label.y,
+			geometry.color,
+			geometry.name,
+			selected,
+			hovered,
+			muted,
+			dropTarget,
+		].join('\0');
+		if (this.geometryRenderKeys.get(geometry.groupId) === renderKey) return;
+		this.geometryRenderKeys.set(geometry.groupId, renderKey);
+		element.classList.add('knowledge-workspace-g6-radial-sector');
+		element.style.left = `${shape.rect.left}px`;
+		element.style.top = `${shape.rect.top}px`;
+		element.style.width = `${shape.rect.width}px`;
+		element.style.height = `${shape.rect.height}px`;
+		element.style.setProperty(
+			'--knowledge-workspace-group-color',
+			geometry.color,
+		);
+		element.classList.toggle('selected', selected);
+		element.classList.toggle('hovered', hovered);
+		element.classList.toggle('muted-by-focus', muted);
+		element.classList.toggle('drop-target', dropTarget);
+		const { svg, path } = this.getOrCreateRadialSectorShape(element);
+		svg.setAttribute(
+			'viewBox',
+			`0 0 ${shape.rect.width} ${shape.rect.height}`,
+		);
+		path.setAttribute('d', pathData);
+		const title = element.querySelector<HTMLElement>(
+			'.knowledge-workspace-group-title',
+		);
+		if (title) {
+			title.textContent = geometry.name;
+			title.title = geometry.name;
+			title.style.left = `${shape.label.x - shape.rect.left}px`;
+			title.style.top = `${shape.label.y - shape.rect.top}px`;
+		}
+	}
+
+	private getOrCreateRadialSectorShape(element: HTMLDivElement): {
+		svg: SVGSVGElement;
+		path: SVGPathElement;
+	} {
+		const existing = element.querySelector<SVGSVGElement>(
+			'.knowledge-workspace-g6-radial-sector-shape',
+		);
+		const existingPath = existing?.querySelector<SVGPathElement>('path');
+		if (existing && existingPath) {
+			return { svg: existing, path: existingPath };
+		}
+		const namespace = 'http://www.w3.org/2000/svg';
+		const svg = this.activeDocument.createElementNS(namespace, 'svg');
+		svg.classList.add('knowledge-workspace-g6-radial-sector-shape');
+		svg.setAttribute('aria-hidden', 'true');
+		const path = this.activeDocument.createElementNS(namespace, 'path');
+		path.classList.add('knowledge-workspace-g6-radial-sector-path');
+		svg.appendChild(path);
+		element.prepend(svg);
+		return { svg, path };
 	}
 
 	private getOrCreateGeometryElement(
@@ -691,4 +813,60 @@ export function createFlowContainerViewportRect(
 		width: Math.abs(second.x - first.x),
 		height: Math.abs(second.y - first.y),
 	};
+}
+
+export function createRadialSectorViewportShape(
+	geometry: RadialGroupGeometry,
+	graphToViewport: (position: { x: number; y: number }) => {
+		x: number;
+		y: number;
+	},
+): RadialSectorViewportShape {
+	const span = Math.max(0.001, geometry.endAngle - geometry.startAngle);
+	const samples = Math.max(8, Math.ceil(span / RADIAL_SECTOR_SAMPLE_ANGLE));
+	const angles = Array.from(
+		{ length: samples + 1 },
+		(_, index) => geometry.startAngle + (span * index) / samples,
+	);
+	const outer = angles.map((angle) =>
+		graphToViewport(radialPoint(angle, geometry.outerRadius)),
+	);
+	const inner = [...angles]
+		.reverse()
+		.map((angle) =>
+			graphToViewport(radialPoint(angle, geometry.innerRadius)),
+		);
+	const points = [...outer, ...inner];
+	const padding = 2;
+	const left = Math.min(...points.map((point) => point.x)) - padding;
+	const right = Math.max(...points.map((point) => point.x)) + padding;
+	const top = Math.min(...points.map((point) => point.y)) - padding;
+	const bottom = Math.max(...points.map((point) => point.y)) + padding;
+	const middleAngle = (geometry.startAngle + geometry.endAngle) / 2;
+	const labelRadius = Math.max(
+		geometry.innerRadius,
+		geometry.outerRadius - RADIAL_GROUP_LABEL_INSET,
+	);
+	return {
+		rect: { left, top, width: right - left, height: bottom - top },
+		points,
+		label: graphToViewport(radialPoint(middleAngle, labelRadius)),
+	};
+}
+
+function radialPoint(angle: number, radius: number): { x: number; y: number } {
+	return {
+		x: Math.cos(angle - Math.PI / 2) * radius,
+		y: Math.sin(angle - Math.PI / 2) * radius,
+	};
+}
+
+function createClosedPathData(points: Array<{ x: number; y: number }>): string {
+	const first = points[0];
+	if (!first) return '';
+	return [
+		`M ${first.x} ${first.y}`,
+		...points.slice(1).map((point) => `L ${point.x} ${point.y}`),
+		'Z',
+	].join(' ');
 }
