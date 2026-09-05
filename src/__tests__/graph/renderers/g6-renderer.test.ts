@@ -146,6 +146,39 @@ describe('G6 renderer', () => {
 		expect(fake.zoomBy).toHaveBeenCalledTimes(2);
 	});
 
+	it('uses one viewport frame and lets pan preempt pending wheel zoom', async () => {
+		const fake = createFakeG6();
+		const frames = createManualFrameTestContainer(800, 600);
+		const renderer = await G6Renderer.create(
+			{
+				...createOptions(createRuntimeGraph()),
+				container: frames.container,
+			},
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		frames.container.dispatchEvent(createWheelEvent(-100, 110, 220));
+		expect(frames.pendingCount()).toBe(1);
+
+		renderer.beginViewportPan();
+		renderer.panViewportBy({ x: 25, y: -10 });
+		expect(frames.pendingCount()).toBe(1);
+		frames.flush();
+		await Promise.resolve();
+
+		expect(fake.zoomBy).not.toHaveBeenCalled();
+		expect(fake.translateBy).toHaveBeenCalledOnce();
+		expect(fake.translateBy).toHaveBeenCalledWith([25, -10], false);
+
+		renderer.endViewportPan();
+		frames.container.dispatchEvent(createWheelEvent(-100, 110, 220));
+		expect(frames.pendingCount()).toBe(1);
+		frames.flush();
+		await vi.waitFor(() => expect(fake.zoomBy).toHaveBeenCalledOnce());
+		renderer.kill();
+	});
+
 	it('binds viewport events only after G6 finishes its initial draw', async () => {
 		const graph = createRuntimeGraph();
 		const fake = createFakeG6();
@@ -984,6 +1017,43 @@ function createBrowserTestContainer(
 		value: { defaultView: browserWindow },
 	});
 	return container;
+}
+
+function createManualFrameTestContainer(
+	width: number,
+	height: number,
+): {
+	container: HTMLElement;
+	flush(): void;
+	pendingCount(): number;
+} {
+	const container = createTestContainer();
+	container.getBoundingClientRect = () =>
+		({ left: 0, top: 0, width, height }) as DOMRect;
+	let nextFrame = 1;
+	const frames = new Map<number, FrameRequestCallback>();
+	const browserWindow = {
+		requestAnimationFrame: (callback: FrameRequestCallback) => {
+			const handle = nextFrame++;
+			frames.set(handle, callback);
+			return handle;
+		},
+		cancelAnimationFrame: (handle: number) => frames.delete(handle),
+		setTimeout,
+		clearTimeout,
+	};
+	Object.defineProperty(container, 'ownerDocument', {
+		value: { defaultView: browserWindow },
+	});
+	return {
+		container,
+		flush: () => {
+			const pending = [...frames.values()];
+			frames.clear();
+			for (const callback of pending) callback(performance.now());
+		},
+		pendingCount: () => frames.size,
+	};
 }
 
 function createWheelEvent(

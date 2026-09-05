@@ -271,6 +271,8 @@ describe('G6 events', () => {
 		const renderer = createRenderer(createGraph(), emitter.instance);
 		const setHoveredGroup = vi.fn();
 		const panViewportBy = vi.fn();
+		const beginViewportPan = vi.spyOn(renderer, 'beginViewportPan');
+		const endViewportPan = vi.spyOn(renderer, 'endViewportPan');
 		renderer.setHoveredGroup = setHoveredGroup;
 		renderer.panViewportBy = panViewportBy;
 		const callbackHarness = createCallbacks();
@@ -292,9 +294,11 @@ describe('G6 events', () => {
 		emitter.emit(CommonEvent.POINTER_MOVE, pointerEvent('canvas'));
 		expect(callbackHarness.onHover).not.toHaveBeenCalled();
 		expect(setHoveredGroup).not.toHaveBeenCalled();
+		expect(beginViewportPan).toHaveBeenCalledOnce();
 		expect(panViewportBy).toHaveBeenCalledWith({ x: 25, y: -10 });
 
 		emitter.emit(CommonEvent.DRAG_END, pointerEvent('canvas'));
+		expect(endViewportPan).toHaveBeenCalledOnce();
 		expect(callbackHarness.onHover).toHaveBeenCalledOnce();
 		expect(callbackHarness.onHover).toHaveBeenCalledWith(undefined);
 	});
@@ -357,6 +361,8 @@ function createRenderer(
 		clearPinnedHover: vi.fn(),
 		setHoveredEdge: vi.fn(),
 		setHoveredGroup: vi.fn(),
+		beginViewportPan: vi.fn(),
+		endViewportPan: vi.fn(),
 		panViewportBy: vi.fn(),
 		getGroupAtViewportPosition: vi.fn(() => undefined),
 	} as unknown as G6Renderer;

@@ -231,6 +231,7 @@ export function bindG6Events(
 		if (nodeDrag || connectionDrag) return;
 		if (event.targetType !== 'canvas') return;
 		viewportDragging = true;
+		renderer.beginViewportPan();
 	};
 	const dragCanvas = (event: IDragEvent): void => {
 		if (!viewportDragging) return;
@@ -239,6 +240,7 @@ export function bindG6Events(
 	const dragEnd = (event: IPointerEvent): void => {
 		if (!viewportDragging) return;
 		viewportDragging = false;
+		renderer.endViewportPan();
 		callbacks.onHover(undefined);
 		hoveredEdgeId = undefined;
 		renderer.setHoveredEdge(undefined);
@@ -256,6 +258,7 @@ export function bindG6Events(
 	};
 	const pointerUpWindow = (): void => {
 		finishNodeDrag();
+		if (viewportDragging) renderer.endViewportPan();
 		viewportDragging = false;
 		finishConnectionDrag(undefined);
 	};
@@ -270,6 +273,7 @@ export function bindG6Events(
 	const cancelDrag = (): void => {
 		finishNodeDrag();
 		connectionDrag = undefined;
+		if (viewportDragging) renderer.endViewportPan();
 		viewportDragging = false;
 		suppressClickUntil = Date.now() + CLICK_SUPPRESSION_MS;
 		callbacks.onConnectionDrag?.(undefined);
@@ -320,6 +324,8 @@ export function bindG6Events(
 	return () => {
 		nodeDrag = undefined;
 		connectionDrag = undefined;
+		if (viewportDragging) renderer.endViewportPan();
+		viewportDragging = false;
 		callbacks.onConnectionDrag?.(undefined);
 		renderer.setHoveredEdge(undefined);
 		renderer.setHoveredGroup(undefined);

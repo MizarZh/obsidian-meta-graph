@@ -55,6 +55,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Unified G6 wheel zoom and canvas pan under one viewport animation-frame scheduler. Starting a canvas pan now cancels pending wheel targets and prevents wheel input from reclaiming the camera until the drag ends.
+
 - Moved G6 node picking onto the scene grid index with one pointer-to-graph conversion and exact graph-space radius checks. Node hover leave now has an 80 ms handoff grace; large-scene transient hover updates only the two local neighborhoods, while pinned focus retains full-scene dimming. Hover state work remains coalesced to one patch and one draw per animation frame.
 
 - Added one per-scene G6 cache for rendered nodes, logical/runtime edges, incident neighborhoods, visible and rotated labels, graph extent, route point tiers, style signatures, and node spatial lookup. Style refreshes now submit only changed element IDs, hover reuses cached neighborhoods, fit/capture reuse the cached extent, routed-edge adapters reuse one logical index, and pointer hit tests no longer scan every node.

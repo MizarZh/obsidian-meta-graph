@@ -145,8 +145,9 @@ export class G6Renderer implements PlanarRenderer {
 	private hasFitBaseline = false;
 	private viewportFrameVersion = 0;
 	private viewportChangeBound = false;
-	private viewportPanFrame?: number;
-	private viewportPanQueued = false;
+	private viewportTransformFrame?: number;
+	private viewportTransformFallbackQueued = false;
+	private viewportPanActive = false;
 	private pendingViewportPanX = 0;
 	private pendingViewportPanY = 0;
 	private lastObservedNativeZoom = 1;
@@ -154,8 +155,6 @@ export class G6Renderer implements PlanarRenderer {
 	private interactionSyncQueued = false;
 	private hoverLeaveTimer?: number;
 	private appliedInteraction: G6InteractionSnapshot = {};
-	private wheelZoomFrame?: number;
-	private wheelZoomFallbackQueued = false;
 	private wheelZoomInFlight = false;
 	private wheelZoomTarget?: number;
 	private wheelZoomOrigin?: [number, number];
@@ -189,6 +188,11 @@ export class G6Renderer implements PlanarRenderer {
 		if (this.killed || this.fitting || this.isStale()) return;
 		const delta = event.deltaY;
 		if (!delta) return;
+		if (this.viewportPanActive) {
+			event.preventDefault();
+			event.stopPropagation();
+			return;
+		}
 
 		const factor = resolveWheelZoomFactor(event);
 		const currentZoom = this.wheelZoomTarget ?? this.instance.getZoom();
@@ -443,23 +447,20 @@ export class G6Renderer implements PlanarRenderer {
 		) {
 			return;
 		}
+		this.cancelWheelZoom();
 		this.pendingViewportPanX += delta.x;
 		this.pendingViewportPanY += delta.y;
-		const window = this.container.ownerDocument?.defaultView;
-		if (!window) {
-			if (this.viewportPanQueued) return;
-			this.viewportPanQueued = true;
-			queueMicrotask(() => {
-				this.viewportPanQueued = false;
-				this.flushViewportPan();
-			});
-			return;
-		}
-		if (this.viewportPanFrame !== undefined) return;
-		this.viewportPanFrame = window.requestAnimationFrame(() => {
-			this.viewportPanFrame = undefined;
-			this.flushViewportPan();
-		});
+		this.scheduleViewportTransformFrame();
+	}
+
+	beginViewportPan(): void {
+		if (this.killed || this.isStale()) return;
+		this.viewportPanActive = true;
+		this.cancelWheelZoom();
+	}
+
+	endViewportPan(): void {
+		this.viewportPanActive = false;
 	}
 
 	getZoomLevel(): number {
@@ -520,10 +521,12 @@ export class G6Renderer implements PlanarRenderer {
 			window?.clearTimeout(this.hoverLeaveTimer);
 			this.hoverLeaveTimer = undefined;
 		}
-		if (this.viewportPanFrame !== undefined) {
-			window?.cancelAnimationFrame(this.viewportPanFrame);
-			this.viewportPanFrame = undefined;
+		if (this.viewportTransformFrame !== undefined) {
+			window?.cancelAnimationFrame(this.viewportTransformFrame);
+			this.viewportTransformFrame = undefined;
 		}
+		this.viewportTransformFallbackQueued = false;
+		this.viewportPanActive = false;
 		this.pendingViewportPanX = 0;
 		this.pendingViewportPanY = 0;
 		this.cancelWheelZoom();
@@ -1488,26 +1491,54 @@ export class G6Renderer implements PlanarRenderer {
 		if (
 			this.killed ||
 			this.isStale() ||
+			this.viewportPanActive ||
 			this.wheelZoomTarget === undefined ||
-			this.wheelZoomFrame !== undefined ||
-			this.wheelZoomFallbackQueued ||
 			this.wheelZoomInFlight
+		) {
+			return;
+		}
+		this.scheduleViewportTransformFrame();
+	}
+
+	private scheduleViewportTransformFrame(): void {
+		if (
+			this.killed ||
+			this.isStale() ||
+			this.viewportTransformFrame !== undefined ||
+			this.viewportTransformFallbackQueued
 		) {
 			return;
 		}
 		const window = this.container.ownerDocument?.defaultView;
 		if (!window) {
-			this.wheelZoomFallbackQueued = true;
+			this.viewportTransformFallbackQueued = true;
 			queueMicrotask(() => {
-				this.wheelZoomFallbackQueued = false;
-				this.advanceWheelZoom(performance.now(), true);
+				this.viewportTransformFallbackQueued = false;
+				this.flushViewportTransformFrame(performance.now(), true);
 			});
 			return;
 		}
-		this.wheelZoomFrame = window.requestAnimationFrame((timestamp) => {
-			this.wheelZoomFrame = undefined;
-			this.advanceWheelZoom(timestamp, false);
-		});
+		this.viewportTransformFrame = window.requestAnimationFrame(
+			(timestamp) => {
+				this.viewportTransformFrame = undefined;
+				this.flushViewportTransformFrame(timestamp, false);
+			},
+		);
+	}
+
+	private flushViewportTransformFrame(
+		timestamp: number,
+		snapWheelToTarget: boolean,
+	): void {
+		if (this.killed || this.isStale()) return;
+		if (this.pendingViewportPanX || this.pendingViewportPanY) {
+			this.flushViewportPan();
+			return;
+		}
+		if (this.viewportPanActive || this.wheelZoomInFlight) return;
+		if (this.wheelZoomTarget !== undefined) {
+			this.advanceWheelZoom(timestamp, snapWheelToTarget);
+		}
 	}
 
 	private advanceWheelZoom(timestamp: number, snapToTarget: boolean): void {
@@ -1571,12 +1602,6 @@ export class G6Renderer implements PlanarRenderer {
 
 	private cancelWheelZoom(): void {
 		this.wheelZoomVersion += 1;
-		const window = this.container.ownerDocument?.defaultView;
-		if (this.wheelZoomFrame !== undefined) {
-			window?.cancelAnimationFrame(this.wheelZoomFrame);
-			this.wheelZoomFrame = undefined;
-		}
-		this.wheelZoomFallbackQueued = false;
 		this.wheelZoomInFlight = false;
 		this.wheelZoomTarget = undefined;
 		this.wheelZoomOrigin = undefined;
