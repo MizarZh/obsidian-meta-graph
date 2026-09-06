@@ -104,6 +104,7 @@ function createGraph() {
 function createLabelStyles() {
 	return createG6LabelStyles(PALETTE, {
 		labelSize: 12,
+		scaleLabelsWithZoom: false,
 		labelBold: false,
 		labelItalic: false,
 		labelPosition: 'right',

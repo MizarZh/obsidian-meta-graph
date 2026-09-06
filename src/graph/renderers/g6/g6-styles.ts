@@ -35,6 +35,7 @@ export const G6_INTERACTION_STATE = {
 
 export interface G6DisplayStyleOptions {
 	labelSize: number;
+	scaleLabelsWithZoom: boolean;
 	labelBold: boolean;
 	labelItalic: boolean;
 	labelPosition: LabelPosition;

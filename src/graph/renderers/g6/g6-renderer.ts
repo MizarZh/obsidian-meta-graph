@@ -64,11 +64,12 @@ const FOCUS_DURATION = 350;
 const ZOOM_DURATION = 180;
 const ZOOM_CHANGE_EPSILON = 1e-6;
 const WHEEL_PIXEL_DELTA_PER_STEP = 100;
+const MOUSE_WHEEL_INTERPOLATION_MS = 72;
+const MOUSE_WHEEL_DELTA_THRESHOLD = 50;
 const LARGE_LABEL_SCENE_ELEMENT_COUNT = 500;
 const LABEL_VIEWPORT_PIXELS_PER_NODE = 3600;
 const MIN_VIEWPORT_NODE_LABELS = 24;
 const MAX_VIEWPORT_NODE_LABELS = 400;
-const EDGE_LABEL_TRANSFORM_SETTLE_MS = 140;
 const NODE_HOVER_LEAVE_GRACE_MS = 80;
 
 interface G6InteractionSnapshot {
@@ -136,9 +137,6 @@ export class G6Renderer implements PlanarRenderer {
 	private drawDirty = false;
 	private labelSyncScheduled = false;
 	private labelSyncFrame?: number;
-	private labelZoomSettleTimer?: number;
-	private edgeLabelTransformTimer?: number;
-	private edgeLabelsSuppressed = false;
 	private killed = false;
 	private fitting = false;
 	private fitZoom = 1;
@@ -157,6 +155,9 @@ export class G6Renderer implements PlanarRenderer {
 	private appliedInteraction: G6InteractionSnapshot = {};
 	private wheelZoomTarget?: number;
 	private wheelZoomOrigin?: [number, number];
+	private wheelZoomStart?: number;
+	private wheelZoomStartedAt?: number;
+	private wheelZoomInterpolated = false;
 	private selectedNodeId?: string;
 	private selectedEdgeId?: string;
 	private hoveredNodeId?: string;
@@ -167,7 +168,6 @@ export class G6Renderer implements PlanarRenderer {
 	private groupLayer?: G6GroupLayer;
 	private readonly handleViewportChange = (): void => {
 		if (this.killed || this.fitting) return;
-		this.suppressEdgeLabelsDuringViewportTransform();
 		this.viewportFrameVersion += 1;
 		const nativeZoom = normalizePlanarFitZoom(this.instance.getZoom());
 		if (
@@ -178,9 +178,8 @@ export class G6Renderer implements PlanarRenderer {
 			return;
 		}
 		this.lastObservedNativeZoom = nativeZoom;
+		this.syncLabelZoomScale();
 		this.emitZoomLevel();
-		this.syncZoomLabelScale();
-		this.scheduleZoomLabelSettle();
 	};
 	private readonly handleWheel = (event: WheelEvent): void => {
 		if (this.killed || this.fitting || this.isStale()) return;
@@ -207,6 +206,14 @@ export class G6Renderer implements PlanarRenderer {
 		event.stopPropagation();
 		const bounds = this.container.getBoundingClientRect();
 		this.wheelZoomTarget = nextZoom;
+		this.wheelZoomInterpolated = shouldInterpolateWheel(event);
+		if (this.wheelZoomInterpolated) {
+			this.wheelZoomStart = this.instance.getZoom();
+			this.wheelZoomStartedAt = performance.now();
+		} else {
+			this.wheelZoomStart = undefined;
+			this.wheelZoomStartedAt = undefined;
+		}
 		this.wheelZoomOrigin = [
 			event.clientX - bounds.left,
 			event.clientY - bounds.top,
@@ -511,14 +518,6 @@ export class G6Renderer implements PlanarRenderer {
 			this.labelSyncFrame = undefined;
 		}
 		this.labelSyncScheduled = false;
-		if (this.edgeLabelTransformTimer !== undefined) {
-			window?.clearTimeout(this.edgeLabelTransformTimer);
-			this.edgeLabelTransformTimer = undefined;
-		}
-		if (this.labelZoomSettleTimer !== undefined) {
-			window?.clearTimeout(this.labelZoomSettleTimer);
-			this.labelZoomSettleTimer = undefined;
-		}
 		if (this.hoverLeaveTimer !== undefined) {
 			window?.clearTimeout(this.hoverLeaveTimer);
 			this.hoverLeaveTimer = undefined;
@@ -731,7 +730,7 @@ export class G6Renderer implements PlanarRenderer {
 	}
 	setScaleLabelsWithZoom(scaleLabelsWithZoom: boolean): void {
 		this.scaleLabelsWithZoom = scaleLabelsWithZoom;
-		this.scheduleLabelSync();
+		this.syncLabelZoomScale();
 	}
 	setLabelBold(labelBold: boolean): void {
 		this.displayStyle.labelBold = labelBold;
@@ -764,7 +763,6 @@ export class G6Renderer implements PlanarRenderer {
 		this.forceLabels = forceLabels;
 		this.labelVisibility = undefined;
 		this.syncLabelVisibility(previousLabelVisibility);
-		if (forceLabels) this.restoreViewportEdgeLabels();
 	}
 	togglePinnedHover(nodeId: string): void {
 		const previousNodeId = this.pinnedNodeId;
@@ -906,13 +904,14 @@ export class G6Renderer implements PlanarRenderer {
 				Math.abs(this.fitZoom - previousFitZoom) >
 					ZOOM_CHANGE_EPSILON *
 						Math.max(this.fitZoom, previousFitZoom)
-			) {
-				this.syncCoordinateFrameVisuals();
-				this.groupLayer?.invalidateGeometry();
-			} else {
-				this.scheduleLabelSync();
-			}
-			this.emitZoomLevel();
+				) {
+					this.syncCoordinateFrameVisuals();
+					this.groupLayer?.invalidateGeometry();
+				} else {
+					this.scheduleLabelSync();
+				}
+				this.syncLabelZoomScale();
+				this.emitZoomLevel();
 		} finally {
 			this.fitting = false;
 		}
@@ -971,23 +970,6 @@ export class G6Renderer implements PlanarRenderer {
 		} else {
 			queueMicrotask(enqueue);
 		}
-	}
-
-	private syncZoomLabelScale(): void {
-		const styles = this.readLabelStyles();
-		this.readLabelController()?.updateZoomScale(styles.node, styles.edge);
-	}
-
-	private scheduleZoomLabelSettle(): void {
-		const window = this.container.ownerDocument?.defaultView;
-		if (!window) return;
-		if (this.labelZoomSettleTimer !== undefined) {
-			window.clearTimeout(this.labelZoomSettleTimer);
-		}
-		this.labelZoomSettleTimer = window.setTimeout(() => {
-			this.labelZoomSettleTimer = undefined;
-			this.scheduleLabelSync();
-		}, EDGE_LABEL_TRANSFORM_SETTLE_MS);
 	}
 
 	private enqueueLabelSync(): void {
@@ -1077,12 +1059,23 @@ export class G6Renderer implements PlanarRenderer {
 		const nativeZoom = normalizePlanarFitZoom(this.instance.getZoom());
 		const logicalLevel = nativeZoomToPlanarLevel(nativeZoom, this.fitZoom);
 		const visualScale = getPlanarVisualScale(logicalLevel);
-		const labelScale = getPlanarLabelVisualScale(logicalLevel);
 		return {
 			geometry: visualScale / nativeZoom,
-			label: (this.scaleLabelsWithZoom ? labelScale : 1) / nativeZoom,
+			label: 1 / normalizePlanarFitZoom(this.fitZoom),
 			screen: 1 / nativeZoom,
 		};
+	}
+
+	private syncLabelZoomScale(): void {
+		const logicalLevel = nativeZoomToPlanarLevel(
+			this.instance.getZoom(),
+			this.fitZoom,
+		);
+		const cameraScale = getPlanarVisualScale(logicalLevel);
+		const targetScale = this.scaleLabelsWithZoom
+			? getPlanarLabelVisualScale(logicalLevel)
+			: 1;
+		this.readLabelController()?.updateZoomScale(targetScale / cameraScale);
 	}
 
 	private readNodeVisualScale(): number {
@@ -1134,12 +1127,6 @@ export class G6Renderer implements PlanarRenderer {
 			this.hasHiddenTransientEdgeLabel(nextEdgeId)
 		) {
 			this.scheduleLabelSync();
-		}
-		if (this.edgeLabelsSuppressed) {
-			this.readLabelController()?.setEdgeLabelsSuppressed(
-				true,
-				this.readTransientEdgeLabelElementIds(),
-			);
 		}
 	}
 
@@ -1198,30 +1185,6 @@ export class G6Renderer implements PlanarRenderer {
 				this.sceneCache.logicalEdgeCount >=
 			LARGE_LABEL_SCENE_ELEMENT_COUNT
 		);
-	}
-
-	private suppressEdgeLabelsDuringViewportTransform(): void {
-		if (!this.isLargeLabelScene() || this.forceLabels) return;
-		const window = this.container.ownerDocument?.defaultView;
-		if (!window) return;
-		this.edgeLabelsSuppressed = true;
-		this.readLabelController()?.setEdgeLabelsSuppressed(
-			true,
-			this.readTransientEdgeLabelElementIds(),
-		);
-		if (this.edgeLabelTransformTimer !== undefined) {
-			window.clearTimeout(this.edgeLabelTransformTimer);
-		}
-		this.edgeLabelTransformTimer = window.setTimeout(() => {
-			this.edgeLabelTransformTimer = undefined;
-			this.restoreViewportEdgeLabels();
-		}, EDGE_LABEL_TRANSFORM_SETTLE_MS);
-	}
-
-	private restoreViewportEdgeLabels(): void {
-		if (!this.edgeLabelsSuppressed) return;
-		this.edgeLabelsSuppressed = false;
-		this.readLabelController()?.setEdgeLabelsSuppressed(false);
 	}
 
 	setHoveredGroup(groupId?: string): void {
@@ -1530,13 +1493,13 @@ export class G6Renderer implements PlanarRenderer {
 			});
 			return;
 		}
-		this.viewportTransformFrame = window.requestAnimationFrame(() => {
+		this.viewportTransformFrame = window.requestAnimationFrame((now) => {
 			this.viewportTransformFrame = undefined;
-			this.flushViewportTransformFrame();
+			this.flushViewportTransformFrame(now);
 		});
 	}
 
-	private flushViewportTransformFrame(): void {
+	private flushViewportTransformFrame(now = performance.now()): void {
 		if (this.killed || this.isStale()) return;
 		if (this.pendingViewportPanX || this.pendingViewportPanY) {
 			this.flushViewportPan();
@@ -1544,29 +1507,48 @@ export class G6Renderer implements PlanarRenderer {
 		}
 		if (this.viewportPanActive) return;
 		if (this.wheelZoomTarget !== undefined) {
-			this.flushWheelZoom();
+			this.flushWheelZoom(now);
 		}
 	}
 
-	private flushWheelZoom(): void {
+	private flushWheelZoom(now: number): void {
 		const target = this.wheelZoomTarget;
 		const origin = this.wheelZoomOrigin;
 		if (this.killed || this.isStale() || target === undefined || !origin) {
 			this.cancelWheelZoom();
 			return;
 		}
-		this.wheelZoomTarget = undefined;
-		this.wheelZoomOrigin = undefined;
 		const current = normalizePlanarFitZoom(this.instance.getZoom());
-		if (target === current) return;
+		if (!this.wheelZoomInterpolated) {
+			this.cancelWheelZoom();
+			if (target === current) return;
+			void this.instance
+				.zoomBy(target / current, false, origin)
+				.catch(() => undefined);
+			return;
+		}
+		const start = normalizePlanarFitZoom(this.wheelZoomStart ?? current);
+		const startedAt = this.wheelZoomStartedAt ?? now;
+		const progress = Math.min(
+			1,
+			Math.max(0, (now - startedAt) / MOUSE_WHEEL_INTERPOLATION_MS),
+		);
+		const eased = 1 - (1 - progress) ** 2;
+		const next = start * (target / start) ** eased;
+		if (progress >= 1) this.cancelWheelZoom();
+		else this.scheduleViewportTransformFrame();
+		if (Math.abs(next - current) <= ZOOM_CHANGE_EPSILON * current) return;
 		void this.instance
-			.zoomBy(target / current, false, origin)
+			.zoomBy(next / current, false, origin)
 			.catch(() => undefined);
 	}
 
 	private cancelWheelZoom(): void {
 		this.wheelZoomTarget = undefined;
 		this.wheelZoomOrigin = undefined;
+		this.wheelZoomStart = undefined;
+		this.wheelZoomStartedAt = undefined;
+		this.wheelZoomInterpolated = false;
 	}
 
 	private flushViewportPan(): void {
@@ -1777,11 +1759,19 @@ function resolveWheelZoomFactor(event: WheelEvent): number {
 	return PLANAR_WHEEL_ZOOM_FACTOR ** -step;
 }
 
+function shouldInterpolateWheel(event: WheelEvent): boolean {
+	return (
+		(event.deltaMode ?? 0) !== 0 ||
+		Math.abs(event.deltaY) >= MOUSE_WHEEL_DELTA_THRESHOLD
+	);
+}
+
 function createG6DisplayStyleOptions(
 	options: G6RendererOptions,
 ): G6DisplayStyleOptions {
 	return {
 		labelSize: options.labelSize,
+		scaleLabelsWithZoom: options.scaleLabelsWithZoom,
 		labelBold: options.labelBold,
 		labelItalic: options.labelItalic,
 		labelPosition: options.labelPosition,

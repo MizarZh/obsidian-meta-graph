@@ -35,8 +35,7 @@ interface G6LabelOwner {
 export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 	private snapshot: G6LabelControllerSnapshot;
 	private readonly labelShapes = new Map<string, Label>();
-	private edgeLabelsSuppressed = false;
-	private suppressedEdgeExemptions = new Set<string>();
+	private zoomScale = 1;
 	private readonly handleAfterDraw = (event: IGraphLifeCycleEvent): void => {
 		const changes = readDataChanges(event.data);
 		if (!changes) return;
@@ -60,43 +59,20 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 
 	updateLabels(snapshot: G6LabelControllerSnapshot): void {
 		this.snapshot = snapshot;
+		this.pruneLabelShapes();
 		this.applyIds(snapshot.nodeIds, snapshot.edgeIds);
-	}
-
-	updateZoomScale(nodeStyle: G6NodeStyle, edgeStyle: G6EdgeStyle): void {
-		const nodePatch = createZoomLabelPatch(nodeStyle);
-		const edgePatch = createZoomLabelPatch(edgeStyle);
-		for (const nodeId of this.snapshot.nodeIds) {
-			this.getLabelShape(nodeId)?.update(nodePatch);
-		}
-		for (const edgeId of this.snapshot.edgeIds) {
-			this.getLabelShape(edgeId)?.update(edgePatch);
-		}
 	}
 
 	replaceSnapshot(snapshot: G6LabelControllerSnapshot): void {
 		this.snapshot = snapshot;
-		// A scene replacement can reuse ids with newly-created G6 elements.
-		// Resolve their label shapes lazily instead of retaining stale shape objects.
 		this.labelShapes.clear();
 	}
 
-	setEdgeLabelsSuppressed(
-		suppressed: boolean,
-		exemptEdgeIds: Iterable<string> = [],
-	): void {
-		const nextExemptions = new Set(exemptEdgeIds);
-		if (
-			this.edgeLabelsSuppressed === suppressed &&
-			setsEqual(this.suppressedEdgeExemptions, nextExemptions)
-		) {
-			return;
-		}
-		this.edgeLabelsSuppressed = suppressed;
-		this.suppressedEdgeExemptions = nextExemptions;
-		for (const edgeId of this.snapshot.edgeIds) {
-			this.applyElement(edgeId, this.snapshot.edgeStyle, true);
-		}
+	updateZoomScale(scale: number): void {
+		if (!Number.isFinite(scale) || scale <= 0) return;
+		this.zoomScale = scale;
+		for (const id of this.snapshot.nodeIds) this.scaleLabel(id);
+		for (const id of this.snapshot.edgeIds) this.scaleLabel(id);
 	}
 
 	override destroy(): void {
@@ -116,15 +92,11 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 			});
 		}
 		for (const edgeId of edgeIds) {
-			this.applyElement(edgeId, this.snapshot.edgeStyle, true);
+			this.applyElement(edgeId, this.snapshot.edgeStyle);
 		}
 	}
 
-	private applyElement(
-		id: string,
-		style: G6NodeStyle | G6EdgeStyle,
-		edge = false,
-	): void {
+	private applyElement(id: string, style: G6NodeStyle | G6EdgeStyle): void {
 		const element = this.context.element?.getElement(id) as
 			G6LabelOwner | undefined;
 		const label = element?.getShape<Label>('label');
@@ -145,51 +117,29 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 			...style,
 		});
 		if (!labelStyle) return;
-		label.update({
-			...labelStyle,
-			...(edge
-				? {
-						visibility:
-							this.edgeLabelsSuppressed &&
-							!this.suppressedEdgeExemptions.has(id)
-								? 'hidden'
-								: 'visible',
-					}
-				: {}),
-		});
+		label.update(labelStyle);
+		label.setLocalScale(this.zoomScale);
 	}
 
-	private getLabelShape(id: string): Label | undefined {
-		const cached = this.labelShapes.get(id);
-		if (cached) return cached;
-		const element = this.context.element?.getElement(id) as
-			G6LabelOwner | undefined;
-		const label = element?.getShape<Label>('label');
-		if (label) this.labelShapes.set(id, label);
-		return label;
+	private scaleLabel(id: string): void {
+		let label = this.labelShapes.get(id);
+		if (!label) {
+			const element = this.context.element?.getElement(id) as
+				G6LabelOwner | undefined;
+			label = element?.getShape<Label>('label');
+			if (!label) return;
+			this.labelShapes.set(id, label);
+		}
+		label.setLocalScale(this.zoomScale);
 	}
-}
 
-function createZoomLabelPatch(
-	style: G6NodeStyle | G6EdgeStyle,
-): Record<string, unknown> {
-	const patch: Record<string, unknown> = {};
-	if (typeof style.labelFontSize === 'number') {
-		patch.fontSize = style.labelFontSize;
+	private pruneLabelShapes(): void {
+		for (const id of this.labelShapes.keys()) {
+			if (!this.snapshot.nodeIds.has(id) && !this.snapshot.edgeIds.has(id)) {
+				this.labelShapes.delete(id);
+			}
+		}
 	}
-	if (typeof style.labelLineHeight === 'number') {
-		patch.lineHeight = style.labelLineHeight;
-	}
-	if (style.labelPadding !== undefined) {
-		patch.padding = style.labelPadding;
-	}
-	return patch;
-}
-
-function setsEqual(left: ReadonlySet<string>, right: ReadonlySet<string>) {
-	if (left.size !== right.size) return false;
-	for (const value of left) if (!right.has(value)) return false;
-	return true;
 }
 
 function readDataChanges(data: unknown): readonly unknown[] | undefined {

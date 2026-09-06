@@ -9,6 +9,7 @@ import {
 describe('G6 label controller', () => {
 	it('updates only existing label subshapes and disables label picking', () => {
 		const update = vi.fn();
+		const setLocalScale = vi.fn();
 		const getLabelStyle = vi.fn(() => ({
 			fontSize: 9,
 			fill: '#123456',
@@ -19,7 +20,7 @@ describe('G6 label controller', () => {
 				? {
 						attributes: { labelText: 'A' },
 						getLabelStyle,
-						getShape: () => ({ update }),
+						getShape: () => ({ update, setLocalScale }),
 					}
 				: undefined,
 		);
@@ -52,24 +53,16 @@ describe('G6 label controller', () => {
 			fill: '#123456',
 			pointerEvents: 'none',
 		});
+		expect(setLocalScale).toHaveBeenCalledWith(1);
 		expect(getElement).toHaveBeenCalledWith('missing.md');
 
-		getLabelStyle.mockClear();
-		update.mockClear();
-		controller.updateZoomScale(
-			{
-				labelFontSize: 6,
-				labelLineHeight: 7.2,
-				labelPadding: [1, 2],
-			},
-			{ labelFontSize: 5, labelPadding: [1, 1] },
-		);
-		expect(getLabelStyle).not.toHaveBeenCalled();
-		expect(update).toHaveBeenCalledExactlyOnceWith({
-			fontSize: 6,
-			lineHeight: 7.2,
-			padding: [1, 2],
-		});
+		getElement.mockClear();
+		setLocalScale.mockClear();
+		controller.updateZoomScale(0.5);
+		expect(setLocalScale).toHaveBeenCalledOnce();
+		expect(setLocalScale).toHaveBeenCalledWith(0.5);
+		expect(getElement).toHaveBeenCalledOnce();
+		expect(getElement).toHaveBeenCalledWith('missing.md');
 
 		controller.destroy();
 		expect(graph.off).toHaveBeenCalledWith(
@@ -80,10 +73,11 @@ describe('G6 label controller', () => {
 
 	it('reapplies current styles only to elements changed by a G6 draw', () => {
 		const update = vi.fn();
+		const setLocalScale = vi.fn();
 		const getElement = vi.fn(() => ({
 			attributes: {},
 			getLabelStyle: () => ({ fontSize: 9 }),
-			getShape: () => ({ update }),
+			getShape: () => ({ update, setLocalScale }),
 		}));
 		let afterDraw: ((event: unknown) => void) | undefined;
 		const graph = {
@@ -116,6 +110,7 @@ describe('G6 label controller', () => {
 
 	it('removes stale Arc and HEB label placement before resolving plain labels', () => {
 		const update = vi.fn();
+		const setLocalScale = vi.fn();
 		const getLabelStyle = vi.fn(() => ({
 			transform: [['translate', 10, 0]],
 		}));
@@ -133,7 +128,7 @@ describe('G6 label controller', () => {
 				],
 			},
 			getLabelStyle,
-			getShape: () => ({ update }),
+			getShape: () => ({ update, setLocalScale }),
 		}));
 		const graph = { on: vi.fn(), off: vi.fn() };
 		const controller = new G6LabelController(
@@ -164,48 +159,6 @@ describe('G6 label controller', () => {
 		expect(update).toHaveBeenCalledWith({
 			transform: [['translate', 10, 0]],
 		});
-	});
-
-	it('temporarily hides edge labels while preserving interaction exemptions', () => {
-		const updates = new Map<string, ReturnType<typeof vi.fn>>();
-		const getElement = vi.fn((id: string) => {
-			const update = vi.fn();
-			updates.set(id, update);
-			return {
-				attributes: { labelText: id },
-				getLabelStyle: () => ({ fontSize: 9 }),
-				getShape: () => ({ update }),
-			};
-		});
-		const graph = { on: vi.fn(), off: vi.fn() };
-		const controller = new G6LabelController(
-			{ graph, element: { getElement } } as unknown as RuntimeContext,
-			{
-				type: G6_LABEL_CONTROLLER_KEY,
-				snapshot: {
-					...createSnapshot(),
-					nodeIds: new Set(),
-					edgeIds: new Set(['ordinary', 'selected']),
-				},
-			},
-		);
-
-		controller.setEdgeLabelsSuppressed(true, ['selected']);
-		expect(updates.get('ordinary')).toHaveBeenLastCalledWith({
-			fontSize: 9,
-			visibility: 'hidden',
-		});
-		expect(updates.get('selected')).toHaveBeenLastCalledWith({
-			fontSize: 9,
-			visibility: 'visible',
-		});
-
-		controller.setEdgeLabelsSuppressed(false);
-		expect(updates.get('ordinary')).toHaveBeenLastCalledWith({
-			fontSize: 9,
-			visibility: 'visible',
-		});
-		controller.destroy();
 	});
 });
 

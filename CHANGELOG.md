@@ -27,6 +27,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Made G6 node and edge labels follow every zoom transform through cached label-shape scaling. Label size now changes continuously without full label-style resolution or a delayed post-zoom jump.
+
 - Invalidated cached G6 Group geometry when the initial fit baseline becomes available, so Groups render on first entry instead of waiting for a manual refresh.
 
 - Kept G6 Group titles upright and consistently sized after moving Group geometry into graph-coordinate SVG. Titles now compensate for the inverted graph Y-axis and coordinate-domain conditioning, and remain on the visual top edge in Graph and Flow.
@@ -50,12 +52,13 @@ All notable changes to Meta Graph are documented here.
 - Replaced G6 rendered-bounds fitting with Sigma-compatible coordinate fitting, so both renderers fill the same 30px-padded frame at logical 100% regardless of labels, arrows, node sizes, Groups, or parallel edges. G6 rebases the frame across resize and graph-extent changes and keeps the shared 25%-400% range.
 - Moved live G6 label appearance edits onto lightweight label-subshape updates. Label priority and visibility are cached, density and viewport-capacity changes patch only entering or leaving label IDs, and Arc/HEB rotation work is limited to visible or interaction-forced labels. Large G6 scenes temporarily suppress ordinary edge labels during viewport transforms while keeping selected, hovered, and globally forced labels visible.
 - Prevented display-only chart edits from cloning unrelated grouping, manual-layout, and style state, which had caused false graph rebuilds. Reused renderers now retain a live lifetime token across legitimate same-kind rebuilds instead of becoming permanently stale.
+- Made G6 labels follow every camera frame when **Scale text with zoom** is enabled by disabling G6's label billboard compensation. Fixed-size labels retain billboard behavior, and neither mode requires per-frame label reconstruction.
 - Aligned G6 pinned focus visuals with Sigma: non-neighbor nodes remain visible in the muted color, connected edges and arrowheads remain visible, and unrelated connections are fully hidden.
-- Replaced G6's throttled 20% wheel animations with frame-coalesced direct zoom. Mouse-wheel steps retain the shared 20% scale while high-resolution trackpad deltas accumulate proportionally without discarded events; each camera frame reaches the accumulated target without an exponential settle tail. Visible labels follow each zoom frame through the lightweight label controller without rebuilding graph data.
+- Replaced G6's throttled 20% wheel animations with one camera RAF. High-resolution trackpad deltas accumulate proportionally and reach the target in the next frame. Discrete mouse-wheel steps use a bounded 72ms interpolation that lands exactly on the target without an exponential tail. Labels remain frozen during camera frames and receive one exact update after zoom settles.
 
 ### Changed
 
-- Unified G6 wheel zoom and canvas pan under one viewport animation-frame scheduler. Starting a canvas pan now cancels pending wheel targets and prevents wheel input from reclaiming the camera until the drag ends. Zoom frames update cached label shapes directly without resolving every label style; one delayed label sync restores exact Arc/HEB placement after zoom settles.
+- Unified G6 wheel zoom and canvas pan under one viewport animation-frame scheduler. Starting a canvas pan cancels pending wheel interpolation and prevents wheel input from reclaiming the camera until the drag ends. Zoom frames perform no label shape, graph data, or full draw updates; one delayed label sync restores final sizing and exact Arc/HEB placement after zoom settles.
 
 - Moved G6 node picking onto the scene grid index with one pointer-to-graph conversion and exact graph-space radius checks. Node hover leave now has an 80 ms handoff grace. Transient hover updates only the two local neighborhoods through G6's state draw stage and does not refresh the Group layer; pinned focus retains full-scene dimming and Group focus.
 

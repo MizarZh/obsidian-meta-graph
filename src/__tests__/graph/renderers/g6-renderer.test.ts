@@ -78,12 +78,12 @@ describe('G6 renderer', () => {
 		});
 		expect(graphOptions).not.toHaveProperty('layout');
 		expect(graphOptions).not.toHaveProperty('transforms');
-		expect(graphOptions?.data?.nodes?.[0]).toMatchObject({
-			id: 'A.md',
-			style: {
-				x: 10,
-				y: 20,
-				labelFontSize: 12,
+			expect(graphOptions?.data?.nodes?.[0]).toMatchObject({
+				id: 'A.md',
+				style: {
+					x: 10,
+					y: 20,
+					labelFontSize: 12,
 				labelFontWeight: 'normal',
 				labelFontStyle: 'normal',
 				labelPlacement: 'right',
@@ -114,7 +114,7 @@ describe('G6 renderer', () => {
 		expect(fake.translateBy).toHaveBeenNthCalledWith(3, [100, -10], false);
 	});
 
-	it('accumulates wheel input into a smooth zoom target', async () => {
+	it('coalesces continuous trackpad input into one direct camera step', async () => {
 		const graph = createRuntimeGraph();
 		const fake = createFakeG6();
 		const container = createTestContainer();
@@ -124,26 +124,60 @@ describe('G6 renderer', () => {
 		);
 		if (!renderer) throw new Error('Expected renderer');
 
-		container.dispatchEvent(createWheelEvent(-100, 110, 220));
-		container.dispatchEvent(createWheelEvent(-100, 110, 220));
+		container.dispatchEvent(createWheelEvent(-25, 110, 220));
+		container.dispatchEvent(createWheelEvent(-25, 110, 220));
 		await vi.waitFor(() => expect(fake.zoomBy).toHaveBeenCalledOnce());
-		expect(fake.zoomBy).toHaveBeenLastCalledWith(
-			1.2 ** 2,
+		expect(fake.zoomBy.mock.calls.at(-1)?.[0]).toBeCloseTo(Math.sqrt(1.2));
+		expect(fake.zoomBy.mock.calls.at(-1)?.slice(1)).toEqual([
 			false,
 			[100, 200],
-		);
+		]);
 
-		container.dispatchEvent(createWheelEvent(50, 210, 320));
+		container.dispatchEvent(createWheelEvent(25, 210, 320));
 		await vi.waitFor(() => expect(fake.zoomBy).toHaveBeenCalledTimes(2));
-		expect(fake.zoomBy).toHaveBeenLastCalledWith(
-			1 / Math.sqrt(1.2),
+		expect(fake.zoomBy.mock.calls.at(-1)?.[0]).toBeCloseTo(1 / 1.2 ** 0.25);
+		expect(fake.zoomBy.mock.calls.at(-1)?.slice(1)).toEqual([
 			false,
 			[200, 300],
-		);
+		]);
 
 		renderer.kill();
 		container.dispatchEvent(createWheelEvent(-100, 110, 220));
 		expect(fake.zoomBy).toHaveBeenCalledTimes(2);
+	});
+
+	it('interpolates a discrete mouse-wheel step for a bounded duration', async () => {
+		const fake = createFakeG6();
+		const frames = createManualFrameTestContainer(800, 600);
+		const renderer = await G6Renderer.create(
+			{
+				...createOptions(createRuntimeGraph()),
+				container: frames.container,
+			},
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		frames.container.dispatchEvent(createWheelEvent(-100, 110, 220));
+		fake.updateZoomScale.mockClear();
+		frames.flush(performance.now() + 30);
+		await Promise.resolve();
+		fake.emitTransform();
+		expect(fake.zoomBy).toHaveBeenCalledOnce();
+		expect(fake.instance.getZoom()).toBeGreaterThan(1);
+		expect(fake.instance.getZoom()).toBeLessThan(1.2);
+		expect(fake.updateLabels).not.toHaveBeenCalled();
+		expect(fake.updateZoomScale).toHaveBeenCalledOnce();
+		expect(frames.pendingCount()).toBe(1);
+
+		frames.flush(performance.now() + 100);
+		await Promise.resolve();
+		fake.emitTransform();
+		expect(fake.instance.getZoom()).toBeCloseTo(1.2);
+		expect(frames.pendingCount()).toBe(0);
+		expect(fake.updateLabels).not.toHaveBeenCalled();
+		expect(fake.updateZoomScale).toHaveBeenCalledTimes(2);
+		renderer.kill();
 	});
 
 	it('uses one viewport frame and lets pan preempt pending wheel zoom', async () => {
@@ -164,7 +198,7 @@ describe('G6 renderer', () => {
 		renderer.beginViewportPan();
 		renderer.panViewportBy({ x: 25, y: -10 });
 		expect(frames.pendingCount()).toBe(1);
-		frames.flush();
+		frames.flush(performance.now() + 100);
 		await Promise.resolve();
 
 		expect(fake.zoomBy).not.toHaveBeenCalled();
@@ -174,7 +208,7 @@ describe('G6 renderer', () => {
 		renderer.endViewportPan();
 		frames.container.dispatchEvent(createWheelEvent(-100, 110, 220));
 		expect(frames.pendingCount()).toBe(1);
-		frames.flush();
+		frames.flush(performance.now() + 100);
 		await vi.waitFor(() => expect(fake.zoomBy).toHaveBeenCalledOnce());
 		expect(fake.zoomBy).toHaveBeenCalledWith(1.2, false, [110, 220]);
 		expect(frames.pendingCount()).toBe(0);
@@ -412,8 +446,9 @@ describe('G6 renderer', () => {
 			}),
 		);
 		const fake = createFakeG6();
+		const container = createBrowserTestContainer(800, 600);
 		const renderer = await G6Renderer.create(
-			{ ...createOptions(graph), labelDensity: 0.25 },
+			{ ...createOptions(graph), container, labelDensity: 0.25 },
 			() => fake.instance,
 		);
 		if (!renderer) throw new Error('Expected renderer');
@@ -444,18 +479,9 @@ describe('G6 renderer', () => {
 		fake.updateZoomScale.mockClear();
 
 		for (const level of [25, 100, 400]) {
-			const previousZoomUpdates = fake.updateZoomScale.mock.calls.length;
 			renderer.setZoomLevel(level);
-			await vi.waitFor(() =>
-				expect(fake.updateZoomScale.mock.calls.length).toBeGreaterThan(
-					previousZoomUpdates,
-				),
-			);
+			await Promise.resolve();
 			const nativeZoom = fake.instance.getZoom();
-			const nodeLabelStyle = fake.updateZoomScale.mock.calls.at(-1)?.[0];
-			expect(
-				Number(nodeLabelStyle?.labelFontSize) * nativeZoom,
-			).toBeCloseTo(12);
 			expect(baselineNodeSize * nativeZoom).toBeCloseTo(
 				baselineNodeScreenSize * (level / 100),
 			);
@@ -469,13 +495,18 @@ describe('G6 renderer', () => {
 					expect.closeTo(value * (level / 100)),
 				),
 			);
+			expect(fake.updateLabels).not.toHaveBeenCalled();
+			expect(fake.updateZoomScale.mock.calls.at(-1)?.[0]).toBeCloseTo(
+				100 / level,
+			);
 		}
 
-		await new Promise((resolve) => setTimeout(resolve, 100));
+		expect(fake.updateLabels).not.toHaveBeenCalled();
+		renderer.setScaleLabelsWithZoom(true);
+		expect(fake.updateZoomScale.mock.calls.at(-1)?.[0]).toBeCloseTo(0.5);
 		expect(fake.updateData).not.toHaveBeenCalled();
 		expect(fake.setOptions).not.toHaveBeenCalled();
 		expect(fake.draw).not.toHaveBeenCalled();
-		expect(fake.updateLabels).not.toHaveBeenCalled();
 	});
 
 	it('coalesces repeated draw requests while a draw is running', async () => {
@@ -724,6 +755,7 @@ describe('G6 renderer', () => {
 		if (!renderer) throw new Error('Expected renderer');
 
 		renderer.setLabelSize(9);
+		renderer.setScaleLabelsWithZoom(true);
 		renderer.setLabelBold(true);
 		renderer.setLabelItalic(true);
 		renderer.setLabelPosition('top');
@@ -744,8 +776,8 @@ describe('G6 renderer', () => {
 		expect(fake.updateData).not.toHaveBeenCalled();
 		expect(fake.draw).toHaveBeenCalledOnce();
 		const snapshot = fake.updateLabels.mock.calls[0]?.[0];
-		expect(snapshot?.nodeStyle).toMatchObject({
-			labelFontSize: 9,
+			expect(snapshot?.nodeStyle).toMatchObject({
+				labelFontSize: 9,
 			labelFontWeight: 'bold',
 			labelFontStyle: 'italic',
 			labelFill: '#fedcba',
@@ -812,7 +844,7 @@ describe('G6 renderer', () => {
 		expect(expandedPatch.nodes?.[0]?.style?.label).toBe(true);
 	});
 
-	it('caps labels by viewport and suppresses ordinary edge labels during large transforms', async () => {
+	it('caps labels by viewport without mutating labels during transforms', async () => {
 		const graph = createLargeLabelGraph();
 		const fake = createFakeG6();
 		const container = createBrowserTestContainer(800, 600);
@@ -830,17 +862,13 @@ describe('G6 renderer', () => {
 		const data = graphOptions?.data as G6GraphData;
 		expect(data.nodes.filter((node) => node.style.label).length).toBe(133);
 
-		renderer.setSelectedEdge('large-edge');
+		fake.updateLabels.mockClear();
+		fake.updateZoomScale.mockClear();
+		await fake.zoomTo(2);
 		fake.emitTransform();
-		expect(fake.setEdgeLabelsSuppressed).toHaveBeenCalledWith(
-			true,
-			new Set(['large-edge']),
-		);
-		await vi.waitFor(() =>
-			expect(fake.setEdgeLabelsSuppressed).toHaveBeenLastCalledWith(
-				false,
-			),
-		);
+		expect(fake.updateLabels).not.toHaveBeenCalled();
+		expect(fake.updateZoomScale).toHaveBeenCalledOnce();
+		renderer.kill();
 	});
 
 	it('does not reconfigure behaviors while an interaction label is active', async () => {
@@ -1035,7 +1063,7 @@ function createManualFrameTestContainer(
 	height: number,
 ): {
 	container: HTMLElement;
-	flush(): void;
+	flush(now?: number): void;
 	pendingCount(): number;
 } {
 	const container = createTestContainer();
@@ -1058,10 +1086,10 @@ function createManualFrameTestContainer(
 	});
 	return {
 		container,
-		flush: () => {
+		flush: (now = performance.now()) => {
 			const pending = [...frames.values()];
 			frames.clear();
-			for (const callback of pending) callback(performance.now());
+			for (const callback of pending) callback(now);
 		},
 		pendingCount: () => frames.size,
 	};
@@ -1093,15 +1121,13 @@ function createFakeG6(afterDraw?: () => void) {
 	const setData = vi.fn<(data: G6GraphData) => void>();
 	const updateData = vi.fn();
 	const updateLabels = vi.fn<(snapshot: G6LabelControllerSnapshot) => void>();
-	const updateZoomScale = vi.fn();
+	const updateZoomScale = vi.fn<(scale: number) => void>();
 	const replaceSnapshot =
 		vi.fn<(snapshot: G6LabelControllerSnapshot) => void>();
-	const setEdgeLabelsSuppressed = vi.fn();
 	const labelController = {
 		updateLabels,
 		updateZoomScale,
 		replaceSnapshot,
-		setEdgeLabelsSuppressed,
 	};
 	const focusElement = vi.fn(async () => undefined);
 	const zoomBy = vi.fn(async (factor: number) => {
@@ -1182,7 +1208,6 @@ function createFakeG6(afterDraw?: () => void) {
 		updateLabels,
 		updateZoomScale,
 		replaceSnapshot,
-		setEdgeLabelsSuppressed,
 		zoomBy,
 		zoomTo,
 		resizeCanvasTo: (center: [number, number]) => {
