@@ -104,15 +104,6 @@ export function bindG6Events(
 		callbacks.onContextMenu?.({ kind: 'stage' }, mouseEvent);
 	};
 
-	const enterNode = (event: IElementEvent): void => {
-		if (viewportDragging) return;
-		const nodeId = readVisibleNodeId(event);
-		if (nodeId) callbacks.onHover(nodeId);
-	};
-	const leaveNode = (): void => {
-		if (viewportDragging) return;
-		callbacks.onHover(undefined);
-	};
 	const enterEdge = (event: IElementEvent): void => {
 		if (viewportDragging) return;
 		const edgeId = renderer.getLogicalEdgeId(event.target.id);
@@ -202,14 +193,16 @@ export function bindG6Events(
 		}
 		if (!connectionDrag) {
 			if (viewportDragging) return;
-			const hasElementTarget =
-				event.targetType === 'node' || event.targetType === 'edge';
+			const position = readViewportPosition(event);
+			const nodeId = renderer.getNodeAtViewportPosition(position);
+			callbacks.onHover(nodeId);
+			const hasElementTarget = Boolean(
+				nodeId || event.targetType === 'edge',
+			);
 			renderer.setHoveredGroup(
 				hasElementTarget
 					? undefined
-					: renderer.getGroupAtViewportPosition(
-							readViewportPosition(event),
-						),
+					: renderer.getGroupAtViewportPosition(position),
 			);
 			return;
 		}
@@ -302,8 +295,6 @@ export function bindG6Events(
 	graph.on(NodeEvent.CLICK, clickNode);
 	graph.on(NodeEvent.DBLCLICK, doubleClickNode);
 	graph.on(NodeEvent.CONTEXT_MENU, contextNode);
-	graph.on(NodeEvent.POINTER_ENTER, enterNode);
-	graph.on(NodeEvent.POINTER_LEAVE, leaveNode);
 	graph.on(NodeEvent.POINTER_DOWN, pointerDownNode);
 	graph.on(EdgeEvent.CLICK, clickEdge);
 	graph.on(EdgeEvent.CONTEXT_MENU, contextEdge);
@@ -332,8 +323,6 @@ export function bindG6Events(
 		graph.off(NodeEvent.CLICK, clickNode);
 		graph.off(NodeEvent.DBLCLICK, doubleClickNode);
 		graph.off(NodeEvent.CONTEXT_MENU, contextNode);
-		graph.off(NodeEvent.POINTER_ENTER, enterNode);
-		graph.off(NodeEvent.POINTER_LEAVE, leaveNode);
 		graph.off(NodeEvent.POINTER_DOWN, pointerDownNode);
 		graph.off(EdgeEvent.CLICK, clickEdge);
 		graph.off(EdgeEvent.CONTEXT_MENU, contextEdge);

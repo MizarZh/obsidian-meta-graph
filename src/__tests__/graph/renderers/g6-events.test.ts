@@ -127,6 +127,10 @@ describe('G6 events', () => {
 		const clearPinnedHover = vi.fn();
 		const setHoveredEdge = vi.fn();
 		const setHoveredGroup = vi.fn();
+		const getNodeAtViewportPosition = vi
+			.fn<({ x, y }: { x: number; y: number }) => string | undefined>()
+			.mockReturnValueOnce('A')
+			.mockReturnValue(undefined);
 		const renderer = {
 			instance: emitter.instance,
 			container: {} as HTMLElement,
@@ -145,6 +149,7 @@ describe('G6 events', () => {
 			clearPinnedHover,
 			setHoveredEdge,
 			setHoveredGroup,
+			getNodeAtViewportPosition,
 			getGroupAtViewportPosition: vi.fn(() => undefined),
 		} as unknown as G6Renderer;
 		const callbackHarness = createCallbacks();
@@ -152,8 +157,13 @@ describe('G6 events', () => {
 
 		emitter.emit(NodeEvent.CLICK, elementEvent('A'));
 		emitter.emit(NodeEvent.CLICK, elementEvent('A', { shiftKey: true }));
-		emitter.emit(NodeEvent.POINTER_ENTER, elementEvent('A'));
-		emitter.emit(NodeEvent.POINTER_LEAVE, elementEvent('A'));
+		emitter.emit(CommonEvent.POINTER_MOVE, pointerEvent('canvas'));
+		emitter.emit(
+			CommonEvent.POINTER_MOVE,
+			pointerEvent('canvas', {
+				viewport: { x: 200, y: 200 } as IPointerEvent['viewport'],
+			}),
+		);
 		emitter.emit(EdgeEvent.CLICK, elementEvent('runtime-edge', {}, 'edge'));
 		emitter.emit(
 			EdgeEvent.POINTER_ENTER,
@@ -168,6 +178,14 @@ describe('G6 events', () => {
 		expect(togglePinnedHover).toHaveBeenCalledWith('A');
 		expect(callbackHarness.onHover).toHaveBeenNthCalledWith(1, 'A');
 		expect(callbackHarness.onHover).toHaveBeenNthCalledWith(2, undefined);
+		expect(getNodeAtViewportPosition).toHaveBeenNthCalledWith(1, {
+			x: 12,
+			y: 24,
+		});
+		expect(getNodeAtViewportPosition).toHaveBeenNthCalledWith(2, {
+			x: 200,
+			y: 200,
+		});
 		expect(clearPinnedHover).toHaveBeenCalledOnce();
 		expect(callbackHarness.onSelectEdge).toHaveBeenCalledWith(
 			'logical-edge',
@@ -233,6 +251,7 @@ describe('G6 events', () => {
 		const renderer = createRenderer(createGraph(), emitter.instance);
 		const setHoveredGroup = vi.fn();
 		renderer.setHoveredGroup = setHoveredGroup;
+		renderer.getNodeAtViewportPosition = vi.fn(() => undefined);
 		const groupHit = vi
 			.spyOn(renderer, 'getGroupAtViewportPosition')
 			.mockReturnValue('group-a');
@@ -356,6 +375,21 @@ function createRenderer(
 			x,
 			y,
 		}),
+		getNodeAtViewportPosition: ({ x, y }: { x: number; y: number }) => {
+			let closest: string | undefined;
+			let distance = Number.POSITIVE_INFINITY;
+			runtimeGraph.forEachNode((nodeId, attributes) => {
+				const candidate = Math.hypot(
+					attributes.x - x,
+					attributes.y - y,
+				);
+				if (candidate <= 12 && candidate < distance) {
+					closest = nodeId;
+					distance = candidate;
+				}
+			});
+			return closest;
+		},
 		getLogicalEdgeId: (edgeId: string) => edgeId,
 		togglePinnedHover: vi.fn(),
 		clearPinnedHover: vi.fn(),

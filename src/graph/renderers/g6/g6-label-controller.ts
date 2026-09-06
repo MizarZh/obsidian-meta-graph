@@ -34,6 +34,7 @@ interface G6LabelOwner {
 
 export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 	private snapshot: G6LabelControllerSnapshot;
+	private readonly labelShapes = new Map<string, Label>();
 	private edgeLabelsSuppressed = false;
 	private suppressedEdgeExemptions = new Set<string>();
 	private readonly handleAfterDraw = (event: IGraphLifeCycleEvent): void => {
@@ -62,8 +63,22 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 		this.applyIds(snapshot.nodeIds, snapshot.edgeIds);
 	}
 
+	updateZoomScale(nodeStyle: G6NodeStyle, edgeStyle: G6EdgeStyle): void {
+		const nodePatch = createZoomLabelPatch(nodeStyle);
+		const edgePatch = createZoomLabelPatch(edgeStyle);
+		for (const nodeId of this.snapshot.nodeIds) {
+			this.getLabelShape(nodeId)?.update(nodePatch);
+		}
+		for (const edgeId of this.snapshot.edgeIds) {
+			this.getLabelShape(edgeId)?.update(edgePatch);
+		}
+	}
+
 	replaceSnapshot(snapshot: G6LabelControllerSnapshot): void {
 		this.snapshot = snapshot;
+		// A scene replacement can reuse ids with newly-created G6 elements.
+		// Resolve their label shapes lazily instead of retaining stale shape objects.
+		this.labelShapes.clear();
 	}
 
 	setEdgeLabelsSuppressed(
@@ -86,6 +101,7 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 
 	override destroy(): void {
 		this.context.graph.off(GraphEvent.AFTER_DRAW, this.handleAfterDraw);
+		this.labelShapes.clear();
 		super.destroy();
 	}
 
@@ -113,8 +129,10 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 			G6LabelOwner | undefined;
 		const label = element?.getShape<Label>('label');
 		if (!element || !label || typeof element.getLabelStyle !== 'function') {
+			this.labelShapes.delete(id);
 			return;
 		}
+		this.labelShapes.set(id, label);
 		const attributes = { ...element.attributes };
 		// setData() merges styles for stable ids. Remove layout-owned label fields
 		// before asking G6 to resolve the current label so omitted Arc/HEB values
@@ -140,6 +158,32 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 				: {}),
 		});
 	}
+
+	private getLabelShape(id: string): Label | undefined {
+		const cached = this.labelShapes.get(id);
+		if (cached) return cached;
+		const element = this.context.element?.getElement(id) as
+			G6LabelOwner | undefined;
+		const label = element?.getShape<Label>('label');
+		if (label) this.labelShapes.set(id, label);
+		return label;
+	}
+}
+
+function createZoomLabelPatch(
+	style: G6NodeStyle | G6EdgeStyle,
+): Record<string, unknown> {
+	const patch: Record<string, unknown> = {};
+	if (typeof style.labelFontSize === 'number') {
+		patch.fontSize = style.labelFontSize;
+	}
+	if (typeof style.labelLineHeight === 'number') {
+		patch.lineHeight = style.labelLineHeight;
+	}
+	if (style.labelPadding !== undefined) {
+		patch.padding = style.labelPadding;
+	}
+	return patch;
 }
 
 function setsEqual(left: ReadonlySet<string>, right: ReadonlySet<string>) {

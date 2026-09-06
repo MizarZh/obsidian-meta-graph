@@ -54,6 +54,23 @@ describe('G6 label controller', () => {
 		});
 		expect(getElement).toHaveBeenCalledWith('missing.md');
 
+		getLabelStyle.mockClear();
+		update.mockClear();
+		controller.updateZoomScale(
+			{
+				labelFontSize: 6,
+				labelLineHeight: 7.2,
+				labelPadding: [1, 2],
+			},
+			{ labelFontSize: 5, labelPadding: [1, 1] },
+		);
+		expect(getLabelStyle).not.toHaveBeenCalled();
+		expect(update).toHaveBeenCalledExactlyOnceWith({
+			fontSize: 6,
+			lineHeight: 7.2,
+			padding: [1, 2],
+		});
+
 		controller.destroy();
 		expect(graph.off).toHaveBeenCalledWith(
 			GraphEvent.AFTER_DRAW,

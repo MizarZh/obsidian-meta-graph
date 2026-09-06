@@ -176,6 +176,8 @@ describe('G6 renderer', () => {
 		expect(frames.pendingCount()).toBe(1);
 		frames.flush();
 		await vi.waitFor(() => expect(fake.zoomBy).toHaveBeenCalledOnce());
+		expect(fake.zoomBy).toHaveBeenCalledWith(1.2, false, [110, 220]);
+		expect(frames.pendingCount()).toBe(0);
 		renderer.kill();
 	});
 
@@ -439,21 +441,20 @@ describe('G6 renderer', () => {
 		fake.setOptions.mockClear();
 		fake.draw.mockClear();
 		fake.updateLabels.mockClear();
+		fake.updateZoomScale.mockClear();
 
 		for (const level of [25, 100, 400]) {
-			const previousLabelUpdates = fake.updateLabels.mock.calls.length;
+			const previousZoomUpdates = fake.updateZoomScale.mock.calls.length;
 			renderer.setZoomLevel(level);
 			await vi.waitFor(() =>
-				expect(fake.updateLabels.mock.calls.length).toBeGreaterThan(
-					previousLabelUpdates,
+				expect(fake.updateZoomScale.mock.calls.length).toBeGreaterThan(
+					previousZoomUpdates,
 				),
 			);
 			const nativeZoom = fake.instance.getZoom();
-			const labelSnapshot = fake.updateLabels.mock.calls.at(-1)?.[0];
-			expect(labelSnapshot?.nodeIds.size).toBe(1);
-			expect(labelSnapshot?.nodeStyles?.size).toBe(1);
+			const nodeLabelStyle = fake.updateZoomScale.mock.calls.at(-1)?.[0];
 			expect(
-				Number(labelSnapshot?.nodeStyle.labelFontSize) * nativeZoom,
+				Number(nodeLabelStyle?.labelFontSize) * nativeZoom,
 			).toBeCloseTo(12);
 			expect(baselineNodeSize * nativeZoom).toBeCloseTo(
 				baselineNodeScreenSize * (level / 100),
@@ -474,6 +475,7 @@ describe('G6 renderer', () => {
 		expect(fake.updateData).not.toHaveBeenCalled();
 		expect(fake.setOptions).not.toHaveBeenCalled();
 		expect(fake.draw).not.toHaveBeenCalled();
+		expect(fake.updateLabels).not.toHaveBeenCalled();
 	});
 
 	it('coalesces repeated draw requests while a draw is running', async () => {
@@ -512,57 +514,61 @@ describe('G6 renderer', () => {
 			() => fake.instance,
 		);
 		if (!renderer) throw new Error('Expected renderer');
+		const setFocusedNode = vi.fn();
+		(
+			renderer as unknown as {
+				groupLayer: { setFocusedNode(nodeId?: string): void };
+			}
+		).groupLayer = { setFocusedNode };
 
 		renderer.setHovered('A.md');
 		await Promise.resolve();
-		const hoverPatch = readLastDataPatch(fake.updateData);
-		expect(findStates(hoverPatch.nodes, 'A.md')).toEqual([
-			G6_INTERACTION_STATE.hovered,
-		]);
-		expect(findStates(hoverPatch.nodes, 'B.md')).toBeUndefined();
-		expect(findStates(hoverPatch.nodes, 'C.md')).toEqual([
-			G6_INTERACTION_STATE.dimmed,
-		]);
-		expect(findStates(hoverPatch.edges, 'A-B')).toEqual([
-			G6_INTERACTION_STATE.connected,
-		]);
-		expect(findStates(hoverPatch.edges, 'B-C')).toEqual([
-			G6_INTERACTION_STATE.dimmed,
-		]);
+		expect(setFocusedNode).not.toHaveBeenCalled();
+		const hoverStates = readLastStateMap(fake.setElementState);
+		expect(fake.setElementState).toHaveBeenLastCalledWith(
+			expect.any(Object),
+			false,
+		);
+		expect(hoverStates['A.md']).toEqual([G6_INTERACTION_STATE.hovered]);
+		expect(hoverStates['B.md']).toBeUndefined();
+		expect(hoverStates['C.md']).toBeUndefined();
+		expect(hoverStates['A-B']).toEqual([G6_INTERACTION_STATE.connected]);
+		expect(hoverStates['B-C']).toBeUndefined();
 
 		renderer.togglePinnedHover('A.md');
-		const focusPatch = readLastDataPatch(fake.updateData);
+		expect(setFocusedNode).toHaveBeenLastCalledWith('A.md');
+		const focusStates = readLastStateMap(fake.setElementState);
 		// The connected edge keeps its already-applied state, so only unrelated
 		// edges need an incremental update when hover becomes pinned focus.
-		expect(findStates(focusPatch.edges, 'A-B')).toBeUndefined();
-		expect(findStates(focusPatch.edges, 'B-C')).toEqual([
+		expect(focusStates['A-B']).toBeUndefined();
+		expect(focusStates['B-C']).toEqual([
 			G6_INTERACTION_STATE.dimmed,
 			G6_INTERACTION_STATE.focusHidden,
 		]);
 		renderer.togglePinnedHover('A.md');
+		expect(setFocusedNode).toHaveBeenLastCalledWith(undefined);
 
 		renderer.setSelectedEdge('logical-A-B');
-		const edgeSelectionPatch = readLastDataPatch(fake.updateData);
-		expect(findStates(edgeSelectionPatch.edges, 'A-B')).toEqual([
+		const edgeSelectionStates = readLastStateMap(fake.setElementState);
+		expect(edgeSelectionStates['A-B']).toEqual([
 			G6_INTERACTION_STATE.connected,
 			G6_INTERACTION_STATE.selected,
 		]);
 
 		renderer.setSelected('C.md');
-		const nodeSelectionPatch = readLastDataPatch(fake.updateData);
-		expect(findStates(nodeSelectionPatch.nodes, 'C.md')).toEqual([
-			G6_INTERACTION_STATE.dimmed,
+		const nodeSelectionStates = readLastStateMap(fake.setElementState);
+		expect(nodeSelectionStates['C.md']).toEqual([
 			G6_INTERACTION_STATE.selected,
 		]);
 
-		await vi.waitFor(() => expect(fake.draw).toHaveBeenCalledTimes(2));
-		const updateCount = fake.updateData.mock.calls.length;
+		expect(fake.draw).toHaveBeenCalledOnce();
+		const stateCount = fake.setElementState.mock.calls.length;
 		renderer.setHovered(undefined);
 		renderer.setHovered('B.md');
 		await Promise.resolve();
-		const directTransitionPatch = readLastDataPatch(fake.updateData);
-		expect(fake.updateData).toHaveBeenCalledTimes(updateCount + 1);
-		expect(findStates(directTransitionPatch.nodes, 'D.md')).toBeUndefined();
+		const directTransitionStates = readLastStateMap(fake.setElementState);
+		expect(fake.setElementState).toHaveBeenCalledTimes(stateCount + 1);
+		expect(directTransitionStates['D.md']).toBeUndefined();
 	});
 
 	it('keeps node-to-node hover within one frame across a short leave gap', async () => {
@@ -577,19 +583,21 @@ describe('G6 renderer', () => {
 		);
 		if (!renderer) throw new Error('Expected renderer');
 		renderer.setHovered('A.md');
-		await vi.waitFor(() => expect(fake.updateData).toHaveBeenCalled());
-		fake.updateData.mockClear();
+		await vi.waitFor(() => expect(fake.setElementState).toHaveBeenCalled());
+		fake.setElementState.mockClear();
 
 		renderer.setHovered(undefined);
 		renderer.setHovered('B.md');
-		await vi.waitFor(() => expect(fake.updateData).toHaveBeenCalledOnce());
+		await vi.waitFor(() =>
+			expect(fake.setElementState).toHaveBeenCalledOnce(),
+		);
 		const browserWindow = container.ownerDocument.defaultView;
 		if (!browserWindow) throw new Error('Expected browser window');
 		await new Promise<void>((resolve) =>
 			browserWindow.setTimeout(resolve, 100),
 		);
 
-		expect(fake.updateData).toHaveBeenCalledOnce();
+		expect(fake.setElementState).toHaveBeenCalledOnce();
 	});
 
 	it('keeps large transient hover local and reserves full dimming for pinned focus', async () => {
@@ -603,14 +611,13 @@ describe('G6 renderer', () => {
 
 		renderer.setHovered('A.md');
 		await Promise.resolve();
-		const hoverPatch = readLastDataPatch(fake.updateData);
-		expect(hoverPatch.nodes?.map(({ id }) => id)).toEqual(['A.md']);
-		expect(hoverPatch.edges?.map(({ id }) => id)).toEqual(['large-edge']);
+		const hoverStates = readLastStateMap(fake.setElementState);
+		expect(Object.keys(hoverStates)).toEqual(['A.md', 'large-edge']);
 
-		fake.updateData.mockClear();
+		fake.setElementState.mockClear();
 		renderer.togglePinnedHover('A.md');
-		const focusPatch = readLastDataPatch(fake.updateData);
-		expect(focusPatch.nodes?.length).toBeGreaterThan(500);
+		const focusStates = readLastStateMap(fake.setElementState);
+		expect(Object.keys(focusStates).length).toBeGreaterThan(500);
 	});
 
 	it('only patches elements present in routed Flow G6 data', async () => {
@@ -683,14 +690,15 @@ describe('G6 renderer', () => {
 		renderer.fit();
 		await vi.waitFor(() =>
 			expect(fake.updateData.mock.calls.length).toBeGreaterThanOrEqual(
-				baselineUpdates + 3,
+				baselineUpdates + 2,
 			),
 		);
-		const activeUpdates = fake.updateData.mock.calls.length;
+		await vi.waitFor(() => expect(fake.setElementState).toHaveBeenCalled());
+		const activeStateUpdates = fake.setElementState.mock.calls.length;
 		renderer.setHovered(undefined);
 		await vi.waitFor(() =>
-			expect(fake.updateData.mock.calls.length).toBeGreaterThan(
-				activeUpdates,
+			expect(fake.setElementState.mock.calls.length).toBeGreaterThan(
+				activeStateUpdates,
 			),
 		);
 
@@ -698,6 +706,9 @@ describe('G6 renderer', () => {
 			((patch as G6DataPatch).nodes ?? []).map((node) => node.id),
 		);
 		expect(updatedNodeIds).not.toContain(bendNodeId);
+		for (const [states] of fake.setElementState.mock.calls) {
+			expect(Object.keys(states)).not.toContain(bendNodeId);
+		}
 		const snapshot = fake.replaceSnapshot.mock.calls.at(-1)?.[0];
 		expect(snapshot?.nodeIds.has(bendNodeId)).toBe(false);
 		renderer.kill();
@@ -1082,11 +1093,13 @@ function createFakeG6(afterDraw?: () => void) {
 	const setData = vi.fn<(data: G6GraphData) => void>();
 	const updateData = vi.fn();
 	const updateLabels = vi.fn<(snapshot: G6LabelControllerSnapshot) => void>();
+	const updateZoomScale = vi.fn();
 	const replaceSnapshot =
 		vi.fn<(snapshot: G6LabelControllerSnapshot) => void>();
 	const setEdgeLabelsSuppressed = vi.fn();
 	const labelController = {
 		updateLabels,
+		updateZoomScale,
 		replaceSnapshot,
 		setEdgeLabelsSuppressed,
 	};
@@ -1102,6 +1115,12 @@ function createFakeG6(afterDraw?: () => void) {
 			(options: Parameters<G6GraphInstance['setOptions']>[0]) => void
 		>();
 	const setZoomRange = vi.fn();
+	const setElementState = vi.fn<
+		(
+			states: Record<string, readonly string[]>,
+			animation: boolean,
+		) => Promise<void>
+	>(async () => undefined);
 	const translateBy = vi.fn(async () => undefined);
 	const translateElementTo = vi.fn(
 		async (positions: Record<string, [number, number]>) => {
@@ -1137,6 +1156,7 @@ function createFakeG6(afterDraw?: () => void) {
 		}),
 		resize,
 		setData,
+		setElementState,
 		setOptions,
 		setZoomRange,
 		translateBy,
@@ -1153,12 +1173,14 @@ function createFakeG6(afterDraw?: () => void) {
 		getCanvasByViewport,
 		getViewportByCanvas,
 		setData,
+		setElementState,
 		setOptions,
 		setZoomRange,
 		translateBy,
 		translateElementTo,
 		updateData,
 		updateLabels,
+		updateZoomScale,
 		replaceSnapshot,
 		setEdgeLabelsSuppressed,
 		zoomBy,
@@ -1192,9 +1214,11 @@ function readLastDataPatch(
 	return patch;
 }
 
-function findStates(
-	items: readonly { id?: string; states?: readonly string[] }[] | undefined,
-	id: string,
-): readonly string[] | undefined {
-	return items?.find((item) => item.id === id)?.states;
+function readLastStateMap(
+	setElementState: ReturnType<typeof createFakeG6>['setElementState'],
+): Record<string, readonly string[]> {
+	const states = setElementState.mock.calls.at(-1)?.[0] as
+		Record<string, readonly string[]> | undefined;
+	if (!states) throw new Error('Expected G6 element state patch');
+	return states;
 }

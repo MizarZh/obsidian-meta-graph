@@ -64,8 +64,6 @@ const FOCUS_DURATION = 350;
 const ZOOM_DURATION = 180;
 const ZOOM_CHANGE_EPSILON = 1e-6;
 const WHEEL_PIXEL_DELTA_PER_STEP = 100;
-const WHEEL_ZOOM_RESPONSE_MS = 55;
-const WHEEL_ZOOM_SETTLE_EPSILON = 0.001;
 const LARGE_LABEL_SCENE_ELEMENT_COUNT = 500;
 const LABEL_VIEWPORT_PIXELS_PER_NODE = 3600;
 const MIN_VIEWPORT_NODE_LABELS = 24;
@@ -96,6 +94,7 @@ export type G6GraphInstance = Pick<
 	| 'on'
 	| 'resize'
 	| 'setData'
+	| 'setElementState'
 	| 'setOptions'
 	| 'setZoomRange'
 	| 'translateBy'
@@ -137,6 +136,7 @@ export class G6Renderer implements PlanarRenderer {
 	private drawDirty = false;
 	private labelSyncScheduled = false;
 	private labelSyncFrame?: number;
+	private labelZoomSettleTimer?: number;
 	private edgeLabelTransformTimer?: number;
 	private edgeLabelsSuppressed = false;
 	private killed = false;
@@ -155,11 +155,8 @@ export class G6Renderer implements PlanarRenderer {
 	private interactionSyncQueued = false;
 	private hoverLeaveTimer?: number;
 	private appliedInteraction: G6InteractionSnapshot = {};
-	private wheelZoomInFlight = false;
 	private wheelZoomTarget?: number;
 	private wheelZoomOrigin?: [number, number];
-	private wheelZoomLastFrameTime?: number;
-	private wheelZoomVersion = 0;
 	private selectedNodeId?: string;
 	private selectedEdgeId?: string;
 	private hoveredNodeId?: string;
@@ -182,7 +179,8 @@ export class G6Renderer implements PlanarRenderer {
 		}
 		this.lastObservedNativeZoom = nativeZoom;
 		this.emitZoomLevel();
-		this.scheduleLabelSync();
+		this.syncZoomLabelScale();
+		this.scheduleZoomLabelSettle();
 	};
 	private readonly handleWheel = (event: WheelEvent): void => {
 		if (this.killed || this.fitting || this.isStale()) return;
@@ -517,6 +515,10 @@ export class G6Renderer implements PlanarRenderer {
 			window?.clearTimeout(this.edgeLabelTransformTimer);
 			this.edgeLabelTransformTimer = undefined;
 		}
+		if (this.labelZoomSettleTimer !== undefined) {
+			window?.clearTimeout(this.labelZoomSettleTimer);
+			this.labelZoomSettleTimer = undefined;
+		}
 		if (this.hoverLeaveTimer !== undefined) {
 			window?.clearTimeout(this.hoverLeaveTimer);
 			this.hoverLeaveTimer = undefined;
@@ -769,9 +771,7 @@ export class G6Renderer implements PlanarRenderer {
 		this.pinnedNodeId = this.pinnedNodeId === nodeId ? undefined : nodeId;
 		this.syncInteractionStates();
 		this.syncTransientLabelOwner(previousNodeId, this.pinnedNodeId);
-		this.groupLayer?.setFocusedNode(
-			this.pinnedNodeId ?? this.hoveredNodeId,
-		);
+		this.groupLayer?.setFocusedNode(this.pinnedNodeId);
 	}
 	clearPinnedHover(): void {
 		if (!this.pinnedNodeId) return;
@@ -779,7 +779,7 @@ export class G6Renderer implements PlanarRenderer {
 		this.pinnedNodeId = undefined;
 		this.syncInteractionStates();
 		this.syncTransientLabelOwner(previousNodeId, undefined);
-		this.groupLayer?.setFocusedNode(this.hoveredNodeId);
+		this.groupLayer?.setFocusedNode(undefined);
 	}
 	holdCurrentBounds(): void {}
 	clearHeldBounds(): void {}
@@ -971,6 +971,23 @@ export class G6Renderer implements PlanarRenderer {
 		} else {
 			queueMicrotask(enqueue);
 		}
+	}
+
+	private syncZoomLabelScale(): void {
+		const styles = this.readLabelStyles();
+		this.readLabelController()?.updateZoomScale(styles.node, styles.edge);
+	}
+
+	private scheduleZoomLabelSettle(): void {
+		const window = this.container.ownerDocument?.defaultView;
+		if (!window) return;
+		if (this.labelZoomSettleTimer !== undefined) {
+			window.clearTimeout(this.labelZoomSettleTimer);
+		}
+		this.labelZoomSettleTimer = window.setTimeout(() => {
+			this.labelZoomSettleTimer = undefined;
+			this.scheduleLabelSync();
+		}, EDGE_LABEL_TRANSFORM_SETTLE_MS);
 	}
 
 	private enqueueLabelSync(): void {
@@ -1222,9 +1239,7 @@ export class G6Renderer implements PlanarRenderer {
 				(position) => this.viewportToGraphPosition(position),
 				() => this.readNodeVisualScale(),
 			);
-			this.groupLayer.setFocusedNode(
-				this.pinnedNodeId ?? this.hoveredNodeId,
-			);
+			this.groupLayer.setFocusedNode(this.pinnedNodeId);
 		}
 		return this.groupLayer;
 	}
@@ -1247,9 +1262,6 @@ export class G6Renderer implements PlanarRenderer {
 		this.interactionSyncQueued = false;
 		if (this.killed || this.isStale()) return;
 		this.syncInteractionStates();
-		this.groupLayer?.setFocusedNode(
-			this.pinnedNodeId ?? this.hoveredNodeId,
-		);
 	}
 
 	private syncInteractionStates(scheduleDraw = true, forceAll = false): void {
@@ -1265,10 +1277,7 @@ export class G6Renderer implements PlanarRenderer {
 		const neighborhood = activeNodeId
 			? this.sceneCache.neighborNodeIdsByNode.get(activeNodeId)
 			: undefined;
-		const dimUnrelated = Boolean(
-			activeNodeId &&
-			(this.pinnedNodeId || !this.isLargeInteractionScene()),
-		);
+		const dimUnrelated = Boolean(activeNodeId && this.pinnedNodeId);
 		const nodes: Array<{ id: string; states: State[] }> = [];
 		const edges: Array<{ id: string; states: State[] }> = [];
 		const nodeIds = this.collectAffectedNodeIds(nextInteraction, forceAll);
@@ -1332,8 +1341,22 @@ export class G6Renderer implements PlanarRenderer {
 		}
 		this.appliedInteraction = nextInteraction;
 		if (nodes.length === 0 && edges.length === 0) return;
-		this.instance.updateData({ nodes, edges });
-		if (scheduleDraw) this.scheduleDraw();
+		if (!scheduleDraw) {
+			this.instance.updateData({ nodes, edges });
+			return;
+		}
+		const states = Object.fromEntries(
+			[...nodes, ...edges].map(({ id, states: elementStates }) => [
+				id,
+				elementStates,
+			]),
+		);
+		void this.instance.setElementState(states, false).catch((error) => {
+			console.error(
+				'[Meta Graph] G6 interaction state update failed',
+				error,
+			);
+		});
 	}
 
 	private collectAffectedNodeIds(
@@ -1348,10 +1371,7 @@ export class G6Renderer implements PlanarRenderer {
 				affected.add(nodeId);
 		}
 		if (previous.activeNodeId !== next.activeNodeId) {
-			const localOnly =
-				this.isLargeInteractionScene() &&
-				!previous.pinnedNodeId &&
-				!next.pinnedNodeId;
+			const localOnly = !previous.pinnedNodeId && !next.pinnedNodeId;
 			if ((!previous.activeNodeId || !next.activeNodeId) && !localOnly) {
 				for (const nodeId of this.sceneCache.renderedNodeIds)
 					affected.add(nodeId);
@@ -1382,10 +1402,7 @@ export class G6Renderer implements PlanarRenderer {
 				for (const edgeId of edgeIds) affected.add(edgeId);
 		}
 		if (previous.activeNodeId !== next.activeNodeId) {
-			const localOnly =
-				this.isLargeInteractionScene() &&
-				!previous.pinnedNodeId &&
-				!next.pinnedNodeId;
+			const localOnly = !previous.pinnedNodeId && !next.pinnedNodeId;
 			if ((!previous.activeNodeId || !next.activeNodeId) && !localOnly) {
 				for (const edgeIds of this.sceneCache.runtimeEdgesByLogicalId.values())
 					for (const edgeId of edgeIds) affected.add(edgeId);
@@ -1429,10 +1446,6 @@ export class G6Renderer implements PlanarRenderer {
 		) ?? []) {
 			target.add(edgeId);
 		}
-	}
-
-	private isLargeInteractionScene(): boolean {
-		return this.isLargeLabelScene();
 	}
 
 	private updateStateKey(
@@ -1492,8 +1505,7 @@ export class G6Renderer implements PlanarRenderer {
 			this.killed ||
 			this.isStale() ||
 			this.viewportPanActive ||
-			this.wheelZoomTarget === undefined ||
-			this.wheelZoomInFlight
+			this.wheelZoomTarget === undefined
 		) {
 			return;
 		}
@@ -1514,98 +1526,47 @@ export class G6Renderer implements PlanarRenderer {
 			this.viewportTransformFallbackQueued = true;
 			queueMicrotask(() => {
 				this.viewportTransformFallbackQueued = false;
-				this.flushViewportTransformFrame(performance.now(), true);
+				this.flushViewportTransformFrame();
 			});
 			return;
 		}
-		this.viewportTransformFrame = window.requestAnimationFrame(
-			(timestamp) => {
-				this.viewportTransformFrame = undefined;
-				this.flushViewportTransformFrame(timestamp, false);
-			},
-		);
+		this.viewportTransformFrame = window.requestAnimationFrame(() => {
+			this.viewportTransformFrame = undefined;
+			this.flushViewportTransformFrame();
+		});
 	}
 
-	private flushViewportTransformFrame(
-		timestamp: number,
-		snapWheelToTarget: boolean,
-	): void {
+	private flushViewportTransformFrame(): void {
 		if (this.killed || this.isStale()) return;
 		if (this.pendingViewportPanX || this.pendingViewportPanY) {
 			this.flushViewportPan();
 			return;
 		}
-		if (this.viewportPanActive || this.wheelZoomInFlight) return;
+		if (this.viewportPanActive) return;
 		if (this.wheelZoomTarget !== undefined) {
-			this.advanceWheelZoom(timestamp, snapWheelToTarget);
+			this.flushWheelZoom();
 		}
 	}
 
-	private advanceWheelZoom(timestamp: number, snapToTarget: boolean): void {
+	private flushWheelZoom(): void {
 		const target = this.wheelZoomTarget;
 		const origin = this.wheelZoomOrigin;
 		if (this.killed || this.isStale() || target === undefined || !origin) {
 			this.cancelWheelZoom();
 			return;
 		}
+		this.wheelZoomTarget = undefined;
+		this.wheelZoomOrigin = undefined;
 		const current = normalizePlanarFitZoom(this.instance.getZoom());
-		const logDistance = Math.log(target / current);
-		const elapsed =
-			this.wheelZoomLastFrameTime === undefined
-				? 1000 / 60
-				: Math.min(
-						50,
-						Math.max(1, timestamp - this.wheelZoomLastFrameTime),
-					);
-		this.wheelZoomLastFrameTime = timestamp;
-		const blend = snapToTarget
-			? 1
-			: 1 - Math.exp(-elapsed / WHEEL_ZOOM_RESPONSE_MS);
-		const next =
-			Math.abs(logDistance) <= WHEEL_ZOOM_SETTLE_EPSILON
-				? target
-				: current * Math.exp(logDistance * blend);
-		const version = this.wheelZoomVersion;
-		this.wheelZoomInFlight = true;
+		if (target === current) return;
 		void this.instance
-			.zoomBy(next / current, false, origin)
-			.then(() => {
-				if (version !== this.wheelZoomVersion) return;
-				this.wheelZoomInFlight = false;
-				if (this.killed || this.isStale()) {
-					this.cancelWheelZoom();
-					return;
-				}
-				this.handleViewportChange();
-				const pendingTarget = this.wheelZoomTarget;
-				if (
-					pendingTarget !== undefined &&
-					Math.abs(
-						Math.log(
-							pendingTarget /
-								normalizePlanarFitZoom(this.instance.getZoom()),
-						),
-					) <= WHEEL_ZOOM_SETTLE_EPSILON
-				) {
-					this.wheelZoomTarget = undefined;
-					this.wheelZoomOrigin = undefined;
-					this.wheelZoomLastFrameTime = undefined;
-				}
-				this.scheduleWheelZoom();
-			})
-			.catch(() => {
-				if (version !== this.wheelZoomVersion) return;
-				this.wheelZoomInFlight = false;
-				this.cancelWheelZoom();
-			});
+			.zoomBy(target / current, false, origin)
+			.catch(() => undefined);
 	}
 
 	private cancelWheelZoom(): void {
-		this.wheelZoomVersion += 1;
-		this.wheelZoomInFlight = false;
 		this.wheelZoomTarget = undefined;
 		this.wheelZoomOrigin = undefined;
-		this.wheelZoomLastFrameTime = undefined;
 	}
 
 	private flushViewportPan(): void {
