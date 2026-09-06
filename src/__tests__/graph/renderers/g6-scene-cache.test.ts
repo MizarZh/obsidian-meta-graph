@@ -28,8 +28,6 @@ describe('G6 scene cache', () => {
 			x: [0, 100],
 			y: [0, 20],
 		});
-		expect(cache.routePointTiers.get('A-B')?.full).toHaveLength(6);
-		expect(cache.routePointTiers.get('A-B')?.coarse).toHaveLength(3);
 		expect(cache.nodeSpatialIndex.query({ x: 1, y: 1 }, 5)).toEqual(['A']);
 	});
 

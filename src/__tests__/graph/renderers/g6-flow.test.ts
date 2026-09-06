@@ -5,7 +5,6 @@ import {
 	resolveRouteLabelPlacement,
 	toG6Data,
 } from '../../../graph/renderers/g6/g6-data';
-import { createFlowContainerViewportRect } from '../../../graph/renderers/g6/g6-groups';
 import { G6_LOGICAL_EDGE_TYPE } from '../../../graph/renderers/g6/g6-logical-edge';
 import type { GraphPalette } from '../../../graph/styles/graph-styles';
 import { DEFAULT_GRAPH_FORCE_SETTINGS } from '../../../layouts/force-layout';
@@ -68,7 +67,7 @@ describe('G6 Flow adapter', () => {
 		},
 	);
 
-	it('publishes Flow container geometry and maps inverted view coordinates', async () => {
+	it('publishes Flow container geometry for the shared Group scene', async () => {
 		const graph = new GraphologyAdapter(PALETTE).fromProjection(PROJECTION);
 		const snapshot = createLayoutSnapshot();
 		await applyStableLayout(graph, snapshot, [], {
@@ -93,13 +92,9 @@ describe('G6 Flow adapter', () => {
 		);
 		expect(geometry).toBeDefined();
 		if (!geometry || geometry.kind !== 'flow-container') return;
-		const rect = createFlowContainerViewportRect(geometry, (point) => ({
-			x: point.x * 2 + 10,
-			y: 500 - point.y * 2,
-		}));
-		expect(rect.width).toBeCloseTo(geometry.width * 2);
-		expect(rect.height).toBeCloseTo(geometry.height * 2);
-		expect(rect.top).toBeLessThan(500 - geometry.y * 2);
+		expect(geometry.width).toBeGreaterThan(0);
+		expect(geometry.height).toBeGreaterThan(0);
+		expect(geometry.nodeIds).toEqual(['A.md', 'B.md']);
 	});
 
 	it('places a routed label on its requested Flow branch', () => {

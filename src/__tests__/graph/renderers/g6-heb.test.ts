@@ -12,7 +12,7 @@ import {
 import {
 	createG6GroupTitlePosition,
 	createGraphViewportMatrix,
-	createRadialSectorViewportShape,
+	createRadialSectorGraphShape,
 } from '../../../graph/renderers/g6/g6-groups';
 import { G6_LOGICAL_EDGE_TYPE } from '../../../graph/renderers/g6/g6-logical-edge';
 import { createG6LabelStyles } from '../../../graph/renderers/g6/g6-styles';
@@ -68,7 +68,6 @@ describe('G6 HEB adapter', () => {
 			source: 'Topics/A.md',
 			target: 'Other/C.md',
 			type: G6_LOGICAL_EDGE_TYPE,
-			data: { logicalEdgeId: 'A-to-C', directed: true },
 			style: { endArrow: true, label: true, labelText: 'Next' },
 		});
 		expect(data.edges[0]?.style?.controlPoints).toHaveLength(
@@ -79,7 +78,7 @@ describe('G6 HEB adapter', () => {
 		).toBe(true);
 	});
 
-	it('maps radial-sector geometry through the G6 viewport', async () => {
+	it('creates radial-sector geometry for the G6 background scene', async () => {
 		const graph = createGraph();
 		const snapshot = createLayoutSnapshot();
 		await applyStableLayout(graph, snapshot, [], createLayoutOptions());
@@ -89,22 +88,12 @@ describe('G6 HEB adapter', () => {
 		expect(geometry).toBeDefined();
 		if (!geometry || geometry.kind !== 'radial-sector') return;
 
-		const shape = createRadialSectorViewportShape(geometry, (point) => ({
-			x: 500 + point.x * 2,
-			y: 400 - point.y * 2,
-		}));
+		const shape = createRadialSectorGraphShape(geometry);
 
 		expect(shape.points.length).toBeGreaterThan(16);
-		expect(shape.rect.width).toBeGreaterThan(0);
-		expect(shape.rect.height).toBeGreaterThan(0);
-		expect(shape.label.x).toBeGreaterThanOrEqual(shape.rect.left);
-		expect(shape.label.x).toBeLessThanOrEqual(
-			shape.rect.left + shape.rect.width,
-		);
-		expect(shape.label.y).toBeGreaterThanOrEqual(shape.rect.top);
-		expect(shape.label.y).toBeLessThanOrEqual(
-			shape.rect.top + shape.rect.height,
-		);
+		const labelRadius = Math.hypot(shape.label.x, shape.label.y);
+		expect(labelRadius).toBeGreaterThanOrEqual(geometry.innerRadius);
+		expect(labelRadius).toBeLessThanOrEqual(geometry.outerRadius);
 	});
 
 	it('represents pan, zoom, and inverted axes with one SVG matrix', () => {
@@ -184,7 +173,6 @@ function createLayoutOptions() {
 function createLabelStyles() {
 	return createG6LabelStyles(PALETTE, {
 		labelSize: 12,
-		scaleLabelsWithZoom: false,
 		labelBold: false,
 		labelItalic: false,
 		labelPosition: 'right',

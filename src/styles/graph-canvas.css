@@ -245,98 +245,6 @@
 	);
 }
 
-.knowledge-workspace-group-region.knowledge-workspace-g6-radial-sector,
-.knowledge-workspace-group-region.knowledge-workspace-g6-radial-sector.selected,
-.knowledge-workspace-group-region.knowledge-workspace-g6-radial-sector.drop-target {
-	overflow: visible;
-	border: 0;
-	border-radius: 0;
-	background: transparent;
-	box-shadow: none;
-}
-
-.knowledge-workspace-g6-radial-sector-shape {
-	position: absolute;
-	inset: 0;
-	width: 100%;
-	height: 100%;
-	overflow: visible;
-	pointer-events: none;
-}
-
-.knowledge-workspace-g6-radial-sector-path {
-	fill: var(--knowledge-workspace-group-color, var(--interactive-accent));
-	fill-opacity: 0.06;
-	stroke: var(--knowledge-workspace-group-color, var(--interactive-accent));
-	stroke-opacity: 0.55;
-	stroke-width: 1.5;
-	stroke-linejoin: round;
-	vector-effect: non-scaling-stroke;
-}
-
-.knowledge-workspace-g6-radial-sector.hovered
-	.knowledge-workspace-g6-radial-sector-path {
-	fill-opacity: 0.08;
-	stroke-opacity: 0.8;
-	stroke-width: 1.75;
-}
-
-.knowledge-workspace-g6-radial-sector.selected
-	.knowledge-workspace-g6-radial-sector-path {
-	fill-opacity: 0.12;
-	stroke-opacity: 0.9;
-	stroke-width: 2;
-}
-
-.knowledge-workspace-g6-radial-sector.drop-target
-	.knowledge-workspace-g6-radial-sector-path {
-	fill-opacity: 0.18;
-	stroke: var(--interactive-accent);
-	stroke-opacity: 1;
-	stroke-width: 2.5;
-}
-
-.knowledge-workspace-g6-radial-sector .knowledge-workspace-group-title {
-	transform: translate(-50%, -50%);
-}
-
-.knowledge-workspace-g6-group-halo {
-	position: absolute;
-	box-sizing: border-box;
-	border: 2px solid
-		color-mix(
-			in srgb,
-			var(--knowledge-workspace-group-color, var(--interactive-accent))
-				72%,
-			transparent
-		);
-	border-radius: 50%;
-	box-shadow: 0 0 0 2px
-		color-mix(
-			in srgb,
-			var(--knowledge-workspace-group-color, var(--interactive-accent))
-				10%,
-			transparent
-		);
-	pointer-events: none;
-}
-
-.knowledge-workspace-g6-group-halo.muted-by-focus {
-	opacity: 0.32;
-	filter: grayscale(1) saturate(0);
-}
-
-.knowledge-workspace-g6-group-halo.selected {
-	border-width: 3px;
-	box-shadow: 0 0 0 3px
-		color-mix(
-			in srgb,
-			var(--knowledge-workspace-group-color, var(--interactive-accent))
-				18%,
-			transparent
-		);
-}
-
 .knowledge-workspace-g6-group-layer {
 	overflow: hidden;
 }
@@ -344,52 +252,10 @@
 /* Visible Group graphics live in G6's background scene. This SVG only keeps
    native pointer targets for manual Group movement and resizing. */
 .knowledge-workspace-g6-group-interaction-layer
-	.knowledge-workspace-g6-svg-region-shape,
-.knowledge-workspace-g6-group-interaction-layer
 	.knowledge-workspace-g6-svg-title-background,
-.knowledge-workspace-g6-group-interaction-layer
-	.knowledge-workspace-g6-svg-title-text,
 .knowledge-workspace-g6-group-interaction-layer
 	.knowledge-workspace-g6-svg-resize {
 	opacity: 0;
-}
-
-.knowledge-workspace-g6-svg-region-shape {
-	fill: var(--knowledge-workspace-group-color, var(--interactive-accent));
-	fill-opacity: 0.06;
-	stroke: var(--knowledge-workspace-group-color, var(--interactive-accent));
-	stroke-opacity: 0.55;
-	stroke-width: 1.5;
-	vector-effect: non-scaling-stroke;
-	pointer-events: none;
-}
-
-.knowledge-workspace-g6-svg-region.hovered
-	.knowledge-workspace-g6-svg-region-shape {
-	fill-opacity: 0.08;
-	stroke-opacity: 0.8;
-	stroke-width: 1.75;
-}
-
-.knowledge-workspace-g6-svg-region.selected
-	.knowledge-workspace-g6-svg-region-shape {
-	fill-opacity: 0.12;
-	stroke-opacity: 0.9;
-	stroke-width: 2;
-}
-
-.knowledge-workspace-g6-svg-region.drop-target
-	.knowledge-workspace-g6-svg-region-shape {
-	fill: var(--interactive-accent);
-	fill-opacity: 0.18;
-	stroke: var(--interactive-accent);
-	stroke-opacity: 1;
-	stroke-width: 2.5;
-}
-
-.knowledge-workspace-g6-svg-region.muted-by-focus {
-	opacity: 0.58;
-	filter: grayscale(1) saturate(0);
 }
 
 .knowledge-workspace-g6-svg-title {
@@ -402,28 +268,13 @@
 }
 
 .knowledge-workspace-g6-svg-title-background {
-	fill: var(--background-primary);
-	fill-opacity: 0.94;
-	stroke: var(--knowledge-workspace-group-color, var(--interactive-accent));
-	stroke-opacity: 0.22;
-	stroke-width: 1;
-	vector-effect: non-scaling-stroke;
-}
-
-.knowledge-workspace-g6-svg-title-text {
-	fill: var(--knowledge-workspace-group-color, var(--interactive-accent));
-	font-size: 11px;
-	font-weight: 600;
-	text-anchor: middle;
-	user-select: none;
+	fill: transparent;
+	pointer-events: all;
 }
 
 .knowledge-workspace-g6-svg-resize {
 	display: none;
-	fill: var(--background-primary);
-	stroke: var(--knowledge-workspace-group-color, var(--interactive-accent));
-	stroke-width: 1;
-	vector-effect: non-scaling-stroke;
+	fill: transparent;
 	pointer-events: auto;
 }
 
@@ -439,25 +290,6 @@
 .knowledge-workspace-g6-svg-resize.resize-top-right,
 .knowledge-workspace-g6-svg-resize.resize-bottom-left {
 	cursor: nesw-resize;
-}
-
-.knowledge-workspace-g6-svg-halos {
-	fill: none;
-	stroke: var(--knowledge-workspace-group-color, var(--interactive-accent));
-	stroke-opacity: 0.72;
-	stroke-width: 2;
-	vector-effect: non-scaling-stroke;
-	pointer-events: none;
-}
-
-.knowledge-workspace-g6-svg-halos.muted-by-focus {
-	opacity: 0.32;
-	filter: grayscale(1) saturate(0);
-}
-
-.knowledge-workspace-g6-svg-halos.selected {
-	stroke-opacity: 0.9;
-	stroke-width: 3;
 }
 
 .knowledge-workspace-group-title {

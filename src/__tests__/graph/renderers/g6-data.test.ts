@@ -9,7 +9,6 @@ import type { GraphPalette } from '../../../graph/styles/graph-styles';
 import type { PlanarEdgeRoute } from '../../../layouts/planar-geometry';
 import {
 	createG6StylePatch,
-	createG6LabelStylePatch,
 	resolveG6LabelVisibility,
 	toG6Data,
 } from '../../../graph/renderers/g6/g6-data';
@@ -21,17 +20,12 @@ import {
 } from '../../../graph/renderers/g6/g6-styles';
 
 describe('G6 data adapter', () => {
-	it('maps runtime nodes, styles, and metadata to G6 data', () => {
+	it('maps runtime nodes and styles to minimal G6 data', () => {
 		const data = toG6Data(createRuntimeGraph());
 
 		expect(data.nodes[0]).toMatchObject({
 			id: 'A.md',
 			type: 'rect',
-			data: {
-				path: 'A.md',
-				isPrimary: true,
-				fixed: true,
-			},
 			style: {
 				x: 10,
 				y: 20,
@@ -57,18 +51,6 @@ describe('G6 data adapter', () => {
 			source: 'A.md',
 			target: 'B.md',
 			type: 'quadratic',
-			data: {
-				relation: 'leads-to',
-				directed: true,
-				logicalEdgeId: 'logical-A-B',
-				logicalSource: 'A.md',
-				logicalTarget: 'B.md',
-				arrowStyle: 'chevron',
-				parallelGroupKey: 'A\0B',
-				parallelLane: -0.5,
-				parallelCount: 2,
-				parallelDirection: 1,
-			},
 			style: {
 				stroke: '#445566',
 				lineWidth: 3,
@@ -86,6 +68,8 @@ describe('G6 data adapter', () => {
 				curveOffset: -15,
 			},
 		});
+		expect(data.nodes[0]).not.toHaveProperty('data');
+		expect(data.edges[0]).not.toHaveProperty('data');
 		expect(data.edges[1]).toMatchObject({
 			id: 'B-related-A',
 			style: {
@@ -194,42 +178,8 @@ describe('G6 data adapter', () => {
 			undefined,
 			edgeRoutes,
 		);
-		const labelPatch = createG6LabelStylePatch(
-			graph,
-			visualScale,
-			labelVisibility,
-			labelStyles,
-			edgeRoutes,
-		);
-
 		expect(data.nodes.map(({ id }) => id)).not.toContain(bendNodeId);
 		expect(stylePatch.nodes.map(({ id }) => id)).not.toContain(bendNodeId);
-		expect(labelPatch.nodes.map(({ id }) => id)).not.toContain(bendNodeId);
-	});
-
-	it('creates label-only patches without touching unlabeled edges', () => {
-		const graph = createRuntimeGraph();
-		const patch = createG6LabelStylePatch(
-			graph,
-			{ geometry: 1, label: 1, screen: 1 },
-			resolveG6LabelVisibility(graph, {
-				labelDensity: 1,
-				forceLabels: false,
-			}),
-			{
-				node: { labelFontSize: 9 },
-				edge: { labelFontSize: 9 },
-			},
-		);
-
-		expect(patch.nodes).toHaveLength(2);
-		expect(patch.edges).toHaveLength(1);
-		expect(patch.edges[0]).toMatchObject({
-			id: 'A-to-B',
-			style: { labelFontSize: 9, labelText: 'Leads to' },
-		});
-		expect(patch.edges[0]).not.toHaveProperty('type');
-		expect(patch.edges[0]?.style).not.toHaveProperty('curveOffset');
 	});
 
 	it('uses a stable monotonic node-label budget and explicit force policy', () => {

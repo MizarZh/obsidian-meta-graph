@@ -4,7 +4,6 @@ import {
 	isGraphPointInLayoutGroup,
 	scaleLayoutGroupPadding,
 	type ArcGroupGeometry,
-	type FlowGroupGeometry,
 	type LayoutGroupGeometry,
 	type RadialGroupGeometry,
 } from '../../../layouts/group-geometry';
@@ -55,8 +54,6 @@ interface G6SceneDocument {
 interface G6SceneCanvas {
 	getLayer(layer?: 'background' | 'main' | 'label' | 'transient'): {
 		getRoot(): G6SceneElement;
-		readonly ready: Promise<unknown>;
-		render(): void;
 	};
 }
 
@@ -65,8 +62,7 @@ const RADIAL_GROUP_LABEL_INSET = 15;
 const RADIAL_SECTOR_SAMPLE_ANGLE = Math.PI / 36;
 const HALO_DETAIL_LIMIT = 600;
 
-export interface RadialSectorViewportShape {
-	rect: ViewportGroupRect;
+interface RadialSectorGraphShape {
 	points: Array<{ x: number; y: number }>;
 	label: { x: number; y: number };
 }
@@ -111,17 +107,17 @@ interface CachedHalo {
 interface CanvasRegionElement {
 	wrapper: G6SceneElement;
 	shape: G6SceneElement;
+	color: string;
 }
 
 export class G6GroupLayer {
 	private readonly layer: SVGSVGElement;
 	private readonly scene: SVGGElement;
 	private readonly regionsLayer: SVGGElement;
-	private readonly backgroundCanvas: ReturnType<G6SceneCanvas['getLayer']>;
 	private readonly backgroundDocument: G6SceneDocument;
 	private readonly canvasRoot: G6SceneElement;
-	private canvasRegions: G6SceneElement;
-	private canvasHalos: G6SceneElement;
+	private readonly canvasRegions: G6SceneElement;
+	private readonly canvasHalos: G6SceneElement;
 	private readonly activeDocument: Document;
 	private groups: GroupOverlayGroup[] = [];
 	private geometries: LayoutGroupGeometry[] = [];
@@ -141,9 +137,6 @@ export class G6GroupLayer {
 	private renderQueued = false;
 	private renderFrame?: number;
 	private transformFrame?: number;
-	private backgroundReady = false;
-	private backgroundRenderPending = false;
-	private killed = false;
 	private activeDropGroupId?: string;
 	private selectedGroupId?: string;
 	private hoveredGroupId?: string;
@@ -227,7 +220,6 @@ export class G6GroupLayer {
 		this.activeDocument = container.ownerDocument;
 		const canvas = viewport.getCanvas() as G6SceneCanvas;
 		const backgroundCanvas = canvas.getLayer('background');
-		this.backgroundCanvas = backgroundCanvas;
 		this.backgroundDocument = (
 			backgroundCanvas as unknown as Record<string, unknown>
 		)['document'] as G6SceneDocument;
@@ -258,33 +250,12 @@ export class G6GroupLayer {
 		container.appendChild(this.layer);
 		viewport.on(GraphEvent.AFTER_TRANSFORM, this.handleTransform);
 		this.updateTransform();
-		void backgroundCanvas.ready.then(() => {
-			if (this.killed) return;
-			this.backgroundReady = true;
-			this.flushBackgroundRender();
-		});
-	}
-
-	setGroups(
-		groups: GroupOverlayGroup[],
-		callbacks: GroupInteractionCallbacks = this.callbacks,
-	): void {
-		this.groups = groups.map((group) => ({
-			...group,
-			dynamicNodeIds: group.dynamicNodeIds
-				? [...group.dynamicNodeIds]
-				: undefined,
-		}));
-		this.callbacks = callbacks;
-		this.rebuildMembers();
-		this.invalidateGeometry();
 	}
 
 	setScene(
 		groups: readonly GroupOverlayGroup[],
 		geometries: readonly LayoutGroupGeometry[],
 		callbacks: GroupInteractionCallbacks = this.callbacks,
-		getGroupNodeIds?: (groupId: string) => Iterable<string>,
 	): void {
 		this.groups = groups.map((group) => ({
 			...group,
@@ -296,24 +267,7 @@ export class G6GroupLayer {
 			...geometry,
 			nodeIds: [...geometry.nodeIds],
 		}));
-		this.callbacks = {
-			...callbacks,
-			...(getGroupNodeIds ? { getGroupNodeIds } : {}),
-		};
-		this.rebuildMembers();
-		this.invalidateGeometry();
-	}
-
-	setGeometries(
-		geometries: readonly LayoutGroupGeometry[],
-		getGroupNodeIds?: (groupId: string) => Iterable<string>,
-	): void {
-		this.geometries = geometries.map((geometry) => ({
-			...geometry,
-			nodeIds: [...geometry.nodeIds],
-		}));
-		if (getGroupNodeIds)
-			this.callbacks = { ...this.callbacks, getGroupNodeIds };
+		this.callbacks = callbacks;
 		this.rebuildMembers();
 		this.invalidateGeometry();
 	}
@@ -383,14 +337,12 @@ export class G6GroupLayer {
 			this.renderCanvasRegions();
 			this.renderHalos();
 			this.renderInteractionRegions();
-			this.requestBackgroundRender();
 		}
 		this.applyRegionStates();
 		this.applyHaloStates();
 	}
 
 	kill(): void {
-		this.killed = true;
 		this.endMove();
 		const window = this.activeDocument.defaultView;
 		if (this.renderFrame !== undefined)
@@ -422,23 +374,6 @@ export class G6GroupLayer {
 		} else queueMicrotask(() => this.update());
 	}
 
-	private requestBackgroundRender(): void {
-		this.backgroundRenderPending = true;
-		this.flushBackgroundRender();
-	}
-
-	private flushBackgroundRender(): void {
-		if (
-			this.killed ||
-			!this.backgroundReady ||
-			!this.backgroundRenderPending
-		) {
-			return;
-		}
-		this.backgroundRenderPending = false;
-		this.backgroundCanvas.render();
-	}
-
 	private updateTransform(): void {
 		const m = createGraphViewportMatrix(this.graphToViewport);
 		this.scene.setAttribute(
@@ -459,12 +394,13 @@ export class G6GroupLayer {
 		this.halosByGroup.clear();
 		const matrix = createGraphViewportMatrix(this.graphToViewport);
 		const scale = readUniformViewportScale(matrix);
-		const uiScale = this.getNodeVisualScale() / scale;
+		const nodeVisualScale = this.getNodeVisualScale();
+		const uiScale = nodeVisualScale / scale;
 		const invertTextY = matrix.a * matrix.d - matrix.b * matrix.c < 0;
 		for (const group of this.groups) {
 			const preview = this.readPreviewGroup(group);
 			const rect = preview.dynamicNodeIds
-				? this.readDynamicGroupRect(preview)
+				? this.readDynamicGroupRect(preview, uiScale)
 				: groupFrameToRect(
 						normalizeGroupFrameForShape(preview, preview.shape),
 					);
@@ -485,29 +421,10 @@ export class G6GroupLayer {
 		const haloKeys = new Set<string>();
 		for (const geometry of this.geometries) {
 			switch (geometry.kind) {
-				case 'flow-container': {
-					const rect = {
-						left: geometry.x,
-						top: geometry.y,
-						width: geometry.width,
-						height: geometry.height,
-					};
-					this.regions.push({
-						groupId: geometry.groupId,
-						name: geometry.name,
-						color: geometry.color,
-						shape: 'rect',
-						rect,
-						title: createG6GroupTitlePosition(
-							rect,
-							uiScale,
-							invertTextY,
-						),
-						uiScale,
-						invertTextY,
-					});
+				case 'flow-container':
+				case 'graph-container':
+				case 'member-halos':
 					break;
-				}
 				case 'arc-band': {
 					const shape = createArcBandGraphShape(
 						geometry,
@@ -539,31 +456,6 @@ export class G6GroupLayer {
 					});
 					break;
 				}
-				case 'graph-container': {
-					const rect = this.readDynamicNodeRect(
-						geometry.nodeIds,
-						geometry.padding,
-						geometry.name,
-						'rectangle',
-					);
-					this.regions.push({
-						groupId: geometry.groupId,
-						name: geometry.name,
-						color: geometry.color,
-						shape: 'rect',
-						rect,
-						title: createG6GroupTitlePosition(
-							rect,
-							uiScale,
-							invertTextY,
-						),
-						uiScale,
-						invertTextY,
-					});
-					break;
-				}
-				case 'member-halos':
-					break;
 				default:
 					assertNever(geometry);
 			}
@@ -580,10 +472,7 @@ export class G6GroupLayer {
 					color: geometry.color,
 					...position,
 					radius:
-						(Math.max(
-							0,
-							attributes.size * this.getNodeVisualScale(),
-						) +
+						(Math.max(0, attributes.size * nodeVisualScale) +
 							GROUP_MEMBER_HALO_GAP) /
 						scale,
 				};
@@ -597,12 +486,16 @@ export class G6GroupLayer {
 		}
 	}
 
-	private readDynamicGroupRect(group: GroupOverlayGroup): ViewportGroupRect {
+	private readDynamicGroupRect(
+		group: GroupOverlayGroup,
+		unit: number,
+	): ViewportGroupRect {
 		return this.readDynamicNodeRect(
 			group.dynamicNodeIds ?? [],
 			group.padding,
 			group.name,
 			group.shape,
+			unit,
 		);
 	}
 
@@ -611,13 +504,9 @@ export class G6GroupLayer {
 		paddingValue: number,
 		name: string,
 		shape: GroupOverlayGroup['shape'],
+		unit: number,
 	): ViewportGroupRect {
 		const graph = this.getGraph();
-		const viewportScale = readUniformViewportScale(
-			createGraphViewportMatrix(this.graphToViewport),
-		);
-		const visualScale = this.getNodeVisualScale();
-		const unit = visualScale / viewportScale;
 		const nodes: ViewportCircleMember[] = nodeIds.flatMap((nodeId) => {
 			if (!graph.hasNode(nodeId)) return [];
 			const attributes = graph.getNodeAttributes(nodeId);
@@ -657,24 +546,40 @@ export class G6GroupLayer {
 		for (const elements of this.regionElements.values())
 			for (const element of elements) element.wrapper.destroy();
 		this.regionElements.clear();
+		const canvasScale = this.readGraphToCanvasScale();
+		const backgroundColor = this.readBackgroundColor();
+		const fontFamily = this.readFontFamily();
 		for (const region of this.regions) {
 			const wrapper = this.backgroundDocument.createElement('g', {
 				style: { pointerEvents: 'none' },
 			});
-			const shape = this.createCanvasRegionShape(region);
+			const shape = this.createCanvasRegionShape(region, canvasScale);
 			wrapper.appendChild(shape);
-			this.appendCanvasTitle(wrapper, region);
+			this.appendCanvasTitle(
+				wrapper,
+				region,
+				canvasScale,
+				backgroundColor,
+				fontFamily,
+			);
 			if (region.manualGroup?.resizable && region.rect)
-				this.appendCanvasHandles(wrapper, region);
+				this.appendCanvasHandles(
+					wrapper,
+					region,
+					canvasScale,
+					backgroundColor,
+				);
 			this.canvasRegions.appendChild(wrapper);
 			const elements = this.regionElements.get(region.groupId) ?? [];
-			elements.push({ wrapper, shape });
+			elements.push({ wrapper, shape, color: region.color });
 			this.regionElements.set(region.groupId, elements);
 		}
 	}
 
-	private createCanvasRegionShape(region: CachedRegion): G6SceneElement {
-		const scale = this.readGraphToCanvasScale();
+	private createCanvasRegionShape(
+		region: CachedRegion,
+		canvasScale: number,
+	): G6SceneElement {
 		const stateStyle = this.resolveRegionStyle(
 			region.groupId,
 			region.color,
@@ -710,7 +615,10 @@ export class G6GroupLayer {
 				y: rect.top,
 				width: rect.width,
 				height: rect.height,
-				radius: GROUP_CONTAINER_CORNER_RADIUS * region.uiScale * scale,
+				radius:
+					GROUP_CONTAINER_CORNER_RADIUS *
+					region.uiScale *
+					canvasScale,
 			},
 		});
 	}
@@ -718,9 +626,12 @@ export class G6GroupLayer {
 	private appendCanvasTitle(
 		wrapper: G6SceneElement,
 		region: CachedRegion,
+		canvasScale: number,
+		backgroundColor: string,
+		fontFamily: string,
 	): void {
 		const point = this.graphToCanvas(region.title);
-		const scale = region.uiScale * this.readGraphToCanvasScale();
+		const scale = region.uiScale * canvasScale;
 		const width =
 			Math.min(
 				220,
@@ -734,7 +645,7 @@ export class G6GroupLayer {
 					width,
 					height: GROUP_TITLE_HEIGHT * scale,
 					radius: (GROUP_TITLE_HEIGHT / 2) * scale,
-					fill: this.readBackgroundColor(),
+					fill: backgroundColor,
 					fillOpacity: GROUP_TITLE_BACKGROUND_OPACITY,
 					stroke: region.color,
 					strokeOpacity: GROUP_TITLE_STROKE_OPACITY,
@@ -753,7 +664,7 @@ export class G6GroupLayer {
 					fill: region.color,
 					fontSize: GROUP_TITLE_FONT_SIZE * scale,
 					fontWeight: GROUP_TITLE_FONT_WEIGHT,
-					fontFamily: this.readFontFamily(),
+					fontFamily,
 					textAlign: 'center',
 					textBaseline: 'middle',
 					pointerEvents: 'none',
@@ -765,9 +676,11 @@ export class G6GroupLayer {
 	private appendCanvasHandles(
 		wrapper: G6SceneElement,
 		region: CachedRegion,
+		canvasScale: number,
+		backgroundColor: string,
 	): void {
 		if (!region.rect) return;
-		const scale = region.uiScale * this.readGraphToCanvasScale();
+		const scale = region.uiScale * canvasScale;
 		const selected = region.groupId === this.selectedGroupId;
 		for (const point of [
 			{ x: region.rect.left, y: region.rect.top },
@@ -785,7 +698,7 @@ export class G6GroupLayer {
 						cx: canvasPoint.x,
 						cy: canvasPoint.y,
 						r: 6 * scale,
-						fill: this.readBackgroundColor(),
+						fill: backgroundColor,
 						stroke: region.color,
 						lineWidth: 1,
 						opacity: selected ? 1 : 0,
@@ -800,49 +713,14 @@ export class G6GroupLayer {
 		this.regionsLayer.replaceChildren();
 		this.interactionRegionElements.clear();
 		for (const region of this.regions) {
+			const group = region.manualGroup;
+			if (!group || (group.movable === false && !group.resizable))
+				continue;
 			const wrapper = this.svg('g');
 			wrapper.classList.add('knowledge-workspace-g6-svg-region');
-			wrapper.style.setProperty(
-				'--knowledge-workspace-group-color',
-				region.color,
-			);
-			const shape = this.svg(
-				region.shape === 'path'
-					? 'path'
-					: region.shape === 'circle'
-						? 'ellipse'
-						: 'rect',
-			);
-			shape.classList.add('knowledge-workspace-g6-svg-region-shape');
-			if (region.shape === 'path')
-				shape.setAttribute(
-					'd',
-					createClosedPathData(region.points ?? []),
-				);
-			else if (region.rect && region.shape === 'circle') {
-				shape.setAttribute(
-					'cx',
-					String(region.rect.left + region.rect.width / 2),
-				);
-				shape.setAttribute(
-					'cy',
-					String(region.rect.top + region.rect.height / 2),
-				);
-				shape.setAttribute('rx', String(region.rect.width / 2));
-				shape.setAttribute('ry', String(region.rect.height / 2));
-			} else if (region.rect) {
-				shape.setAttribute('x', String(region.rect.left));
-				shape.setAttribute('y', String(region.rect.top));
-				shape.setAttribute('width', String(region.rect.width));
-				shape.setAttribute('height', String(region.rect.height));
-				shape.setAttribute(
-					'rx',
-					String(GROUP_CONTAINER_CORNER_RADIUS * region.uiScale),
-				);
-			}
-			wrapper.append(shape, this.createTitle(region));
-			if (region.manualGroup?.resizable && region.rect)
-				this.appendHandles(wrapper, region.manualGroup, region.rect);
+			wrapper.append(this.createInteractionTitle(region, group));
+			if (group.resizable && region.rect)
+				this.appendHandles(wrapper, group, region.rect, region.uiScale);
 			this.regionsLayer.appendChild(wrapper);
 			const elements =
 				this.interactionRegionElements.get(region.groupId) ?? [];
@@ -851,9 +729,12 @@ export class G6GroupLayer {
 		}
 	}
 
-	private createTitle(region: CachedRegion): SVGGElement {
+	private createInteractionTitle(
+		region: CachedRegion,
+		group: GroupOverlayGroup,
+	): SVGGElement {
 		const title = this.svg('g');
-		title.classList.add('knowledge-workspace-g6-svg-title');
+		title.classList.add('knowledge-workspace-g6-svg-title', 'interactive');
 		title.setAttribute(
 			'transform',
 			`translate(${region.title.x} ${region.title.y}) scale(${region.uiScale} ${region.invertTextY ? -region.uiScale : region.uiScale})`,
@@ -869,24 +750,16 @@ export class G6GroupLayer {
 		background.setAttribute('width', String(width));
 		background.setAttribute('height', String(GROUP_TITLE_HEIGHT));
 		background.setAttribute('rx', String(GROUP_TITLE_HEIGHT / 2));
-		const text = this.svg('text');
-		text.classList.add('knowledge-workspace-g6-svg-title-text');
-		text.setAttribute('x', '0');
-		text.setAttribute('y', '3');
-		text.textContent = region.name;
-		title.append(background, text);
-		if (region.manualGroup) {
-			title.classList.add('interactive');
-			title.addEventListener('pointerdown', (event) =>
-				this.startMove(event, region.groupId),
-			);
-			title.addEventListener('contextmenu', (event) => {
-				event.preventDefault();
-				event.stopPropagation();
-				this.callbacks.onSelectGroup?.(region.groupId);
-				this.callbacks.onContextMenu?.(region.groupId, event);
-			});
-		}
+		title.append(background);
+		title.addEventListener('pointerdown', (event) =>
+			this.startMove(event, group.id),
+		);
+		title.addEventListener('contextmenu', (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+			this.callbacks.onSelectGroup?.(group.id);
+			this.callbacks.onContextMenu?.(group.id, event);
+		});
 		return title;
 	}
 
@@ -894,6 +767,7 @@ export class G6GroupLayer {
 		wrapper: SVGGElement,
 		group: GroupOverlayGroup,
 		rect: ViewportGroupRect,
+		uiScale: number,
 	): void {
 		for (const [direction, x, y] of [
 			['top-left', rect.left, rect.top],
@@ -908,7 +782,7 @@ export class G6GroupLayer {
 			);
 			handle.setAttribute('cx', String(x));
 			handle.setAttribute('cy', String(y));
-			handle.setAttribute('r', String(6 * this.readUiScale()));
+			handle.setAttribute('r', String(6 * uiScale));
 			handle.addEventListener('pointerdown', (event) =>
 				this.startMove(event, group.id, direction),
 			);
@@ -919,10 +793,6 @@ export class G6GroupLayer {
 	private applyRegionStates(groupIds?: ReadonlySet<string>): void {
 		for (const [groupId, elements] of this.regionElements) {
 			if (!groupIds || groupIds.has(groupId)) {
-				const region = this.regions.find(
-					(item) => item.groupId === groupId,
-				);
-				if (!region) continue;
 				for (const element of elements) {
 					const style = resolveGroupRegionVisualStyle({
 						selected: groupId === this.selectedGroupId,
@@ -934,7 +804,7 @@ export class G6GroupLayer {
 						opacity: style.opacity,
 					});
 					element.shape.setAttributes(
-						this.resolveRegionStyle(groupId, region.color),
+						this.resolveRegionStyle(groupId, element.color),
 					);
 				}
 			}
@@ -979,6 +849,7 @@ export class G6GroupLayer {
 				paths: string[];
 			}
 		>();
+		const canvasScale = this.readGraphToCanvasScale();
 		for (const halo of candidates) {
 			const muted = this.isMuted(halo.groupId);
 			const selected = halo.groupId === this.selectedGroupId;
@@ -996,7 +867,7 @@ export class G6GroupLayer {
 			batch.paths.push(
 				createCirclePath({
 					...point,
-					radius: halo.radius * this.readGraphToCanvasScale(),
+					radius: halo.radius * canvasScale,
 				}),
 			);
 			batches.set(key, batch);
@@ -1077,19 +948,15 @@ export class G6GroupLayer {
 
 	private rebuildMembers(): void {
 		this.members.clear();
-		for (const group of this.groups)
-			if (group.dynamicNodeIds) {
-				this.members.set(group.id, new Set(group.dynamicNodeIds));
-			}
 		for (const geometry of this.geometries)
 			this.members.set(geometry.groupId, new Set(geometry.nodeIds));
-		if (this.callbacks.getGroupNodeIds)
-			for (const group of this.groups) {
-				this.members.set(
-					group.id,
-					new Set(this.callbacks.getGroupNodeIds(group.id)),
-				);
-			}
+		for (const group of this.groups) {
+			if (this.members.has(group.id)) continue;
+			const nodeIds =
+				group.dynamicNodeIds ??
+				this.callbacks.getGroupNodeIds?.(group.id);
+			if (nodeIds) this.members.set(group.id, new Set(nodeIds));
+		}
 	}
 
 	private focusedGroups(nodeId = this.focusedNodeId): Set<string> {
@@ -1268,15 +1135,6 @@ export class G6GroupLayer {
 	): SVGElementTagNameMap[K] {
 		return this.activeDocument.createElementNS(SVG_NS, name);
 	}
-
-	private readUiScale(): number {
-		return (
-			this.getNodeVisualScale() /
-			readUniformViewportScale(
-				createGraphViewportMatrix(this.graphToViewport),
-			)
-		);
-	}
 }
 
 export function createGraphViewportMatrix(
@@ -1344,30 +1202,10 @@ function createCirclePath({
 	return `M ${x - radius} ${y} a ${radius} ${radius} 0 1 0 ${radius * 2} 0 a ${radius} ${radius} 0 1 0 ${-radius * 2} 0`;
 }
 
-export function createFlowContainerViewportRect(
-	geometry: FlowGroupGeometry,
-	graphToViewport: (position: { x: number; y: number }) => {
-		x: number;
-		y: number;
-	},
-): ViewportGroupRect {
-	const first = graphToViewport({ x: geometry.x, y: geometry.y });
-	const second = graphToViewport({
-		x: geometry.x + geometry.width,
-		y: geometry.y + geometry.height,
-	});
-	return {
-		left: Math.min(first.x, second.x),
-		top: Math.min(first.y, second.y),
-		width: Math.abs(second.x - first.x),
-		height: Math.abs(second.y - first.y),
-	};
-}
-
 export function createArcBandGraphShape(
 	geometry: ArcGroupGeometry,
 	labelOffset = 0,
-): Pick<RadialSectorViewportShape, 'points' | 'label'> {
+): RadialSectorGraphShape {
 	const start = arcAxisPoint(geometry.direction, geometry.start);
 	const end = arcAxisPoint(geometry.direction, geometry.end);
 	const center = arcAxisPoint(
@@ -1390,9 +1228,9 @@ export function createArcBandGraphShape(
 	};
 }
 
-function createRadialSectorGraphShape(
+export function createRadialSectorGraphShape(
 	geometry: RadialGroupGeometry,
-): Pick<RadialSectorViewportShape, 'points' | 'label'> {
+): RadialSectorGraphShape {
 	const span = Math.max(0.001, geometry.endAngle - geometry.startAngle);
 	const samples = Math.max(8, Math.ceil(span / RADIAL_SECTOR_SAMPLE_ANGLE));
 	const angles = Array.from(
@@ -1411,27 +1249,6 @@ function createRadialSectorGraphShape(
 		geometry.outerRadius - RADIAL_GROUP_LABEL_INSET,
 	);
 	return { points, label: radialPoint(middle, labelRadius) };
-}
-
-export function createRadialSectorViewportShape(
-	geometry: RadialGroupGeometry,
-	graphToViewport: (position: { x: number; y: number }) => {
-		x: number;
-		y: number;
-	},
-): RadialSectorViewportShape {
-	const graphShape = createRadialSectorGraphShape(geometry);
-	const points = graphShape.points.map(graphToViewport);
-	const padding = 2;
-	const left = Math.min(...points.map((point) => point.x)) - padding;
-	const right = Math.max(...points.map((point) => point.x)) + padding;
-	const top = Math.min(...points.map((point) => point.y)) - padding;
-	const bottom = Math.max(...points.map((point) => point.y)) + padding;
-	return {
-		rect: { left, top, width: right - left, height: bottom - top },
-		points,
-		label: graphToViewport(graphShape.label),
-	};
 }
 
 function radialPoint(angle: number, radius: number): { x: number; y: number } {

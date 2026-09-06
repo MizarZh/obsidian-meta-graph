@@ -51,7 +51,7 @@ import {
 	type G6LabelControllerSnapshot,
 } from './g6-label-controller';
 import {
-	createG6ElementStyles,
+	createG6InteractionStyles,
 	createG6LabelStyles,
 	G6_INTERACTION_STATE,
 	resolveG6RotatedNodeLabelStyle,
@@ -173,11 +173,10 @@ export class G6Renderer implements PlanarRenderer {
 	private readonly nodeStateKeys = new Map<string, string>();
 	private readonly edgeStateKeys = new Map<string, string>();
 	private groupLayer?: G6GroupLayer;
-	private groupSceneVersion = 0;
-	private groupSceneGroups: GroupOverlayGroup[] = [];
-	private groupSceneGeometries: LayoutGroupGeometry[] = [];
+	private groupSceneSyncQueued = false;
+	private groupSceneGroups: readonly GroupOverlayGroup[] = [];
+	private groupSceneGeometries: readonly LayoutGroupGeometry[] = [];
 	private groupSceneCallbacks: GroupInteractionCallbacks = {};
-	private groupSceneGetNodeIds?: (groupId: string) => Iterable<string>;
 	private readonly handleViewportChange = (): void => {
 		if (this.killed || this.fitting) return;
 		this.viewportFrameVersion += 1;
@@ -326,8 +325,8 @@ export class G6Renderer implements PlanarRenderer {
 		this.replaceLabelControllerSnapshot();
 		this.syncInteractionStates(false, true);
 		this.scheduleDraw();
-		if (
-			this.groupLayer ||
+		if (this.groupLayer) this.groupLayer.invalidateGeometry();
+		else if (
 			this.groupSceneGroups.length > 0 ||
 			this.groupSceneGeometries.length > 0
 		) {
@@ -559,7 +558,7 @@ export class G6Renderer implements PlanarRenderer {
 		this.container.removeEventListener('wheel', this.handleWheel);
 		this.groupLayer?.kill();
 		this.groupLayer = undefined;
-		this.groupSceneVersion += 1;
+		this.groupSceneSyncQueued = false;
 		this.instance.destroy();
 	}
 
@@ -567,25 +566,16 @@ export class G6Renderer implements PlanarRenderer {
 		groups: GroupOverlayGroup[],
 		callbacks: GroupInteractionCallbacks = this.groupSceneCallbacks,
 	): void {
-		this.groupSceneGroups = groups.map((group) => ({
-			...group,
-			dynamicNodeIds: group.dynamicNodeIds
-				? [...group.dynamicNodeIds]
-				: undefined,
-		}));
+		this.groupSceneGroups = groups;
 		this.groupSceneCallbacks = callbacks;
 		this.scheduleGroupSceneSync();
 	}
 
 	setLayoutGroupGeometries(
 		geometries: readonly LayoutGroupGeometry[],
-		getGroupNodeIds?: (groupId: string) => Iterable<string>,
+		_getGroupNodeIds?: (groupId: string) => Iterable<string>,
 	): void {
-		this.groupSceneGeometries = geometries.map((geometry) => ({
-			...geometry,
-			nodeIds: [...geometry.nodeIds],
-		}));
-		this.groupSceneGetNodeIds = getGroupNodeIds;
+		this.groupSceneGeometries = geometries;
 		this.scheduleGroupSceneSync();
 	}
 
@@ -961,7 +951,7 @@ export class G6Renderer implements PlanarRenderer {
 		const visualScale = this.readVisualScale();
 		this.instance.setOptions({
 			background: this.palette.background,
-			...createG6ElementStyles(this.palette, visualScale),
+			...createG6InteractionStyles(this.palette, visualScale),
 		});
 		this.scheduleLabelSync();
 		this.scheduleDraw();
@@ -1080,7 +1070,7 @@ export class G6Renderer implements PlanarRenderer {
 			),
 		);
 		this.instance.setOptions({
-			...createG6ElementStyles(this.palette, visualScale),
+			...createG6InteractionStyles(this.palette, visualScale),
 		});
 		this.replaceLabelControllerSnapshot(visualScale);
 		this.scheduleDraw();
@@ -1163,7 +1153,6 @@ export class G6Renderer implements PlanarRenderer {
 				nodeCapacity: this.readViewportNodeLabelCapacity(),
 			},
 		);
-		this.sceneCache.setVisibleLabels(this.labelVisibility);
 		return this.labelVisibility;
 	}
 
@@ -1307,30 +1296,17 @@ export class G6Renderer implements PlanarRenderer {
 	}
 
 	private scheduleGroupSceneSync(): void {
-		if (this.killed || this.isStale()) return;
-		const version = ++this.groupSceneVersion;
-		this.drawQueue = this.drawQueue
-			.then(() => {
-				if (
-					this.killed ||
-					this.isStale() ||
-					version !== this.groupSceneVersion
-				) {
-					return;
-				}
-				this.getOrCreateGroupLayer().setScene(
-					this.groupSceneGroups,
-					this.groupSceneGeometries,
-					this.groupSceneCallbacks,
-					this.groupSceneGetNodeIds,
-				);
-			})
-			.catch((error) => {
-				console.error(
-					'[Meta Graph] G6 Group scene update failed',
-					error,
-				);
-			});
+		if (this.killed || this.isStale() || this.groupSceneSyncQueued) return;
+		this.groupSceneSyncQueued = true;
+		queueMicrotask(() => {
+			this.groupSceneSyncQueued = false;
+			if (this.killed || this.isStale()) return;
+			this.getOrCreateGroupLayer().setScene(
+				this.groupSceneGroups,
+				this.groupSceneGeometries,
+				this.groupSceneCallbacks,
+			);
+		});
 	}
 
 	private scheduleInteractionSync(): void {
@@ -1771,7 +1747,6 @@ export function createG6GraphOptions(
 			nodeCapacity,
 		},
 	);
-	sceneCache?.setVisibleLabels(labelVisibility);
 	const displayStyle = createG6DisplayStyleOptions(options);
 	const labelStyles = createG6LabelStyles(options.palette, displayStyle);
 	return {
@@ -1807,7 +1782,7 @@ export function createG6GraphOptions(
 				),
 			},
 		],
-		...createG6ElementStyles(options.palette),
+		...createG6InteractionStyles(options.palette),
 	};
 }
 
@@ -1948,7 +1923,6 @@ function createG6DisplayStyleOptions(
 ): G6DisplayStyleOptions {
 	return {
 		labelSize: options.labelSize,
-		scaleLabelsWithZoom: options.scaleLabelsWithZoom,
 		labelBold: options.labelBold,
 		labelItalic: options.labelItalic,
 		labelPosition: options.labelPosition,

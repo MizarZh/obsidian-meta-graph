@@ -27,7 +27,7 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
-- Created every visible G6 Group element through the background layer's own scene document and explicitly renders that Canvas after an atomic geometry commit. This prevents cross-Canvas ownership or a missed automatic render from dropping Group regions on the first frame in static Flow, Free, Arc, and HEB views.
+- Created every visible G6 Group element through the background layer's own scene document and commits complete scenes for G6's automatic presentation frame. This prevents cross-Canvas ownership from dropping Group regions on the first frame in static Flow, Free, Arc, and HEB views.
 
 - Unified Graph, Free, and Flow container corners, titles, regions, focus states, and member halos across Sigma and G6 while retaining Arc bands and HEB sectors as specialized shapes. Flow containers now use Graph's membership-driven overlay path instead of depending on an ELK container region being available on the first frame. G6 commits complete Group scenes after graph draws, calculates dynamic bounds from canonical RuntimeGraph positions, keeps stable Canvas roots, renders Arc bands, and deduplicates member halos.
 
@@ -67,6 +67,8 @@ All notable changes to Meta Graph are documented here.
 - Replaced G6's throttled 20% wheel animations with one camera RAF. High-resolution trackpad deltas accumulate proportionally and reach the target in the next frame. Discrete mouse-wheel steps use a bounded 72ms interpolation that lands exactly on the target without an exponential tail. Labels remain frozen during camera frames and receive one exact update after zoom settles.
 
 ### Changed
+
+- Removed unused G6 route tiers, duplicate label caches and patch builders, redundant element metadata, legacy Group geometry branches, hidden SVG visual replicas, and manual background-Canvas render scheduling. Group scene commits now coalesce once per microtask independently of graph draw work.
 
 - Unified G6 wheel zoom and canvas pan under one viewport animation-frame scheduler. Starting a canvas pan cancels pending wheel interpolation and prevents wheel input from reclaiming the camera until the drag ends. Zoom frames perform no label shape, graph data, or full draw updates; one delayed label sync restores final sizing and exact Arc/HEB placement after zoom settles.
 

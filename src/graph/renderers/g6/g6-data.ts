@@ -1,11 +1,5 @@
 import type { EdgeData, GraphData, NodeData } from '@antv/g6';
 import type {
-	KnowledgeEdgeKind,
-	KnowledgeNodeKind,
-	LinkArrowStyle,
-	RelationType,
-} from '../../../core/types';
-import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
@@ -29,46 +23,14 @@ import {
 	type G6LogicalEdgeStyle,
 } from './g6-logical-edge';
 
-export interface G6NodeMetadata extends Record<string, unknown> {
-	path: string;
-	folder: string;
-	kind?: KnowledgeNodeKind;
-	domains: string[];
-	tags: string[];
-	noteType?: string;
-	isPrimary: boolean;
-	isContext: boolean;
-	fixed: boolean;
-	isBend: boolean;
-}
-
-export interface G6EdgeMetadata extends Record<string, unknown> {
-	relation: RelationType;
-	sourcePath?: string;
-	sourceField?: string;
-	kind?: KnowledgeEdgeKind;
-	semantic: boolean;
-	directed: boolean;
-	logicalEdgeId: string;
-	logicalSource: string;
-	logicalTarget: string;
-	arrowStyle: LinkArrowStyle;
-	parallelGroupKey?: string;
-	parallelLane: number;
-	parallelCount: number;
-	parallelDirection: 1 | -1;
-}
-
 export interface G6NodeData extends NodeData {
 	type: G6NodeType;
-	data: G6NodeMetadata;
 	style: G6NodeStyle;
 }
 
 export interface G6EdgeData extends EdgeData {
 	id: string;
 	type: G6EdgeType;
-	data: G6EdgeMetadata;
 	style: G6EdgeStyle;
 }
 
@@ -271,69 +233,6 @@ export function createG6StylePatch(
 	};
 }
 
-export function createG6LabelStylePatch(
-	graph: RuntimeGraph,
-	visualScale: G6VisualScale,
-	labelVisibility: G6LabelVisibility,
-	labelStyles: G6LabelStyles,
-	edgeRoutes?: ReadonlyMap<string, PlanarEdgeRoute>,
-): G6StylePatch {
-	const routedLogicalIds = new Set<string>();
-	return {
-		nodes: graph.nodes().flatMap((nodeId) => {
-			const attributes = graph.getNodeAttributes(nodeId);
-			if (!isG6RenderedNode(attributes, edgeRoutes)) return [];
-			if (!attributes.label) return [];
-			const hidden = Boolean(attributes.hidden);
-			return [
-				{
-					id: nodeId,
-					style: {
-						...labelStyles.node,
-						label: !hidden && labelVisibility.nodeIds.has(nodeId),
-						labelText: attributes.label,
-					},
-				},
-			];
-		}),
-		edges: graph.edges().flatMap((edgeId) => {
-			const attributes = graph.getEdgeAttributes(edgeId);
-			if (!attributes.label) return [];
-			const logicalEdgeId = attributes.logicalEdgeId ?? edgeId;
-			if (edgeRoutes?.has(logicalEdgeId)) {
-				if (routedLogicalIds.has(logicalEdgeId)) return [];
-				routedLogicalIds.add(logicalEdgeId);
-				return [
-					{
-						id: logicalEdgeId,
-						style: {
-							...labelStyles.edge,
-							label:
-								!attributes.hidden &&
-								labelVisibility.edgeIds.has(edgeId),
-							labelText: attributes.label,
-							labelOpacity: normalizeOpacity(attributes.opacity),
-						},
-					},
-				];
-			}
-			return [
-				{
-					id: edgeId,
-					style: {
-						...labelStyles.edge,
-						label:
-							!attributes.hidden &&
-							labelVisibility.edgeIds.has(edgeId),
-						labelText: attributes.label,
-						labelOpacity: normalizeOpacity(attributes.opacity),
-					},
-				},
-			];
-		}),
-	};
-}
-
 export function createG6LabelVisibilityPatch(
 	graph: RuntimeGraph,
 	changes: { nodeIds: readonly string[]; edgeIds: readonly string[] },
@@ -498,22 +397,6 @@ function toG6RouteEdgeData(
 		source: route.source,
 		target: route.target,
 		type: G6_LOGICAL_EDGE_TYPE,
-		data: {
-			relation: attributes.relation,
-			sourcePath: attributes.sourcePath,
-			sourceField: attributes.sourceField,
-			kind: attributes.kind,
-			semantic: attributes.semantic !== false,
-			directed,
-			logicalEdgeId: route.id,
-			logicalSource: route.source,
-			logicalTarget: route.target,
-			arrowStyle: attributes.arrowStyle ?? 'filled',
-			parallelGroupKey: attributes.parallelGroupKey,
-			parallelLane: attributes.parallelLane ?? 0,
-			parallelCount: attributes.parallelCount ?? 1,
-			parallelDirection: attributes.parallelDirection ?? 1,
-		},
 		style,
 	};
 }
@@ -690,18 +573,6 @@ function toG6NodeData(
 	return {
 		id: nodeId,
 		type: resolveG6NodeType(attributes.type),
-		data: {
-			path: attributes.path,
-			folder: attributes.folder,
-			kind: attributes.kind,
-			domains: [...attributes.domains],
-			tags: [...attributes.tags],
-			noteType: attributes.noteType,
-			isPrimary: Boolean(attributes.isPrimary),
-			isContext: Boolean(attributes.isContext),
-			fixed: Boolean(attributes.fixed),
-			isBend: Boolean(attributes.isBend),
-		},
 		style: createG6MappedNodeStyle(
 			attributes,
 			visualScale,
@@ -748,22 +619,6 @@ function toG6EdgeData(
 		source,
 		target,
 		type: resolveG6EdgeType(attributes, source, target),
-		data: {
-			relation: attributes.relation,
-			sourcePath: attributes.sourcePath,
-			sourceField: attributes.sourceField,
-			kind: attributes.kind,
-			semantic: attributes.semantic !== false,
-			directed,
-			logicalEdgeId: attributes.logicalEdgeId ?? edgeId,
-			logicalSource: attributes.logicalSource ?? source,
-			logicalTarget: attributes.logicalTarget ?? target,
-			arrowStyle: attributes.arrowStyle ?? 'filled',
-			parallelGroupKey: attributes.parallelGroupKey,
-			parallelLane: attributes.parallelLane ?? 0,
-			parallelCount: attributes.parallelCount ?? 1,
-			parallelDirection: attributes.parallelDirection ?? 1,
-		},
 		style: {
 			...createG6EdgeStyle(
 				attributes,

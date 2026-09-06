@@ -489,7 +489,7 @@ describe('G6 renderer', () => {
 		expect(sceneRoot?.destroy).toHaveBeenCalledOnce();
 	});
 
-	it('explicitly renders an Arc Group band on its first background frame', async () => {
+	it('renders an Arc layout Group on its first scene commit', async () => {
 		const fake = createFakeG6();
 		const container = createBrowserTestContainer(800, 600);
 		const renderer = await G6Renderer.create(
@@ -508,21 +508,23 @@ describe('G6 renderer', () => {
 				direction: 'right',
 				start: -40,
 				end: 40,
-				halfWidth: 20,
+				halfWidth: 12,
 			},
 		]);
 
 		await vi.waitFor(() => {
-			expect(fake.renderBackground).toHaveBeenCalledOnce();
 			const region = flattenFakeScene(fake.backgroundRoot).find(
 				(element) => element.style.fillOpacity === 0.06,
+			);
+			expect(region?.ownerDocument).toBe(
+				fake.backgroundRoot.ownerDocument,
 			);
 			expect(region?.style.d).toContain('M ');
 		});
 		renderer.kill();
 	});
 
-	it('commits the complete Group scene after a pending graph draw', async () => {
+	it('coalesces the complete Group scene independently of a pending graph draw', async () => {
 		const fake = createFakeG6();
 		const container = createBrowserTestContainer(800, 600);
 		const renderer = await G6Renderer.create(
@@ -567,11 +569,8 @@ describe('G6 renderer', () => {
 			},
 		]);
 
-		await vi.waitFor(() => expect(finishDraw).toBeTypeOf('function'));
-		expect(fake.backgroundRoot.children).toHaveLength(0);
-		finishDraw?.();
-
 		await vi.waitFor(() => {
+			expect(finishDraw).toBeTypeOf('function');
 			const elements = flattenFakeScene(fake.backgroundRoot);
 			const region = elements.find(
 				(element) => element.style.fillOpacity === 0.06,
@@ -585,6 +584,7 @@ describe('G6 renderer', () => {
 			expect(Number(region?.style.height)).toBeGreaterThan(0);
 			expect(halo).toBeDefined();
 		});
+		finishDraw?.();
 		renderer.kill();
 	});
 
@@ -1402,18 +1402,13 @@ function createFakeG6(afterDraw?: () => void) {
 	const backgroundDocument = createSceneDocument();
 	const backgroundRoot = createSceneElement(backgroundDocument);
 	const mainRoot = createSceneElement(mainDocument);
-	const renderBackground = vi.fn();
 	const backgroundCanvas = {
 		document: backgroundDocument,
 		getRoot: () => backgroundRoot,
-		ready: Promise.resolve(),
-		render: renderBackground,
 	};
 	const mainCanvas = {
 		document: mainDocument,
 		getRoot: () => mainRoot,
-		ready: Promise.resolve(),
-		render: vi.fn(),
 	};
 	const canvas = {
 		document: mainDocument,
@@ -1508,7 +1503,6 @@ function createFakeG6(afterDraw?: () => void) {
 	return {
 		instance,
 		backgroundRoot,
-		renderBackground,
 		destroy,
 		draw,
 		focusElement,

@@ -12,7 +12,6 @@ import {
 import {
 	createG6LabelVisibilityIndex,
 	isG6RenderedNode,
-	type G6LabelVisibility,
 	type G6LabelVisibilityIndex,
 } from './g6-data';
 import {
@@ -20,12 +19,6 @@ import {
 	type G6NodeStyle,
 	type G6VisualScale,
 } from './g6-styles';
-
-export interface G6RoutePointTiers {
-	full: readonly GraphPosition[];
-	medium: readonly GraphPosition[];
-	coarse: readonly GraphPosition[];
-}
 
 interface RotatedLabelCacheEntry {
 	key: string;
@@ -43,13 +36,8 @@ export class G6SceneCache {
 	readonly incidentEdgesByNode = new Map<string, ReadonlySet<string>>();
 	readonly neighborNodeIdsByNode = new Map<string, ReadonlySet<string>>();
 	readonly edgeElementByRuntimeEdgeId = new Map<string, string>();
-	readonly routePointTiers = new Map<string, G6RoutePointTiers>();
 	readonly nodeSpatialIndex: G6NodeSpatialIndex;
 	labelVisibilityIndex: G6LabelVisibilityIndex;
-	visibleLabelIds: G6LabelVisibility = {
-		nodeIds: new Set(),
-		edgeIds: new Set(),
-	};
 	maxRenderedNodeSize = 0;
 	private extentValue: PlanarGraphExtent;
 	private extentDirty = false;
@@ -83,10 +71,6 @@ export class G6SceneCache {
 
 	get logicalEdgeCount(): number {
 		return this.routes?.size ?? this.graph.size;
-	}
-
-	setVisibleLabels(visibility: G6LabelVisibility): void {
-		this.visibleLabelIds = visibility;
 	}
 
 	refreshLabelIndex(): void {
@@ -208,14 +192,6 @@ export class G6SceneCache {
 				mutableNeighbors.get(nodeId) ?? new Set([nodeId]),
 			);
 		}
-		for (const [routeId, route] of this.routes ?? []) {
-			const points = [route.start, ...route.commands.map(({ to }) => to)];
-			this.routePointTiers.set(routeId, {
-				full: points,
-				medium: decimateRoute(points, 2),
-				coarse: decimateRoute(points, 4),
-			});
-		}
 	}
 }
 
@@ -266,17 +242,6 @@ export class G6NodeSpatialIndex {
 	private key(position: GraphPosition): string {
 		return `${Math.floor(position.x / this.cellSize)}:${Math.floor(position.y / this.cellSize)}`;
 	}
-}
-
-function decimateRoute(
-	points: readonly GraphPosition[],
-	step: number,
-): readonly GraphPosition[] {
-	if (points.length <= 2) return points;
-	return points.filter(
-		(_point, index) =>
-			index === 0 || index === points.length - 1 || index % step === 0,
-	);
 }
 
 function createNodeStyleKey(attributes: RuntimeNodeAttributes): string {

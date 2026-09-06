@@ -35,7 +35,6 @@ export const G6_INTERACTION_STATE = {
 
 export interface G6DisplayStyleOptions {
 	labelSize: number;
-	scaleLabelsWithZoom: boolean;
 	labelBold: boolean;
 	labelItalic: boolean;
 	labelPosition: LabelPosition;
@@ -62,16 +61,6 @@ const DEFAULT_VISUAL_SCALE: G6VisualScale = {
 	label: 1,
 	screen: 1,
 };
-
-export function createG6ElementStyles(
-	palette: GraphPalette,
-	visualScale: G6VisualScale = DEFAULT_VISUAL_SCALE,
-): {
-	node: Pick<NodeOptions, 'state'>;
-	edge: Pick<EdgeOptions, 'state'>;
-} {
-	return createG6InteractionStyles(palette, visualScale);
-}
 
 export function createG6LabelStyles(
 	palette: GraphPalette,

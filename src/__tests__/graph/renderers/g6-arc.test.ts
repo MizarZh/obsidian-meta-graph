@@ -63,7 +63,6 @@ describe('G6 Arc adapter', () => {
 			source: 'A.md',
 			target: 'B.md',
 			type: G6_LOGICAL_EDGE_TYPE,
-			data: { logicalEdgeId: 'A-to-B', directed: true },
 			style: { endArrow: true, label: true, labelText: 'Next' },
 		});
 		const controlPoints = data.edges[0]?.style?.controlPoints;
@@ -130,7 +129,6 @@ function createGraph() {
 function createLabelStyles() {
 	return createG6LabelStyles(PALETTE, {
 		labelSize: 12,
-		scaleLabelsWithZoom: false,
 		labelBold: false,
 		labelItalic: false,
 		labelPosition: 'right',
