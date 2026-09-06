@@ -415,6 +415,44 @@ describe('G6 renderer', () => {
 		);
 	});
 
+	it('renders Groups in the G6 background scene without transform rebuilds', async () => {
+		const fake = createFakeG6();
+		const container = createBrowserTestContainer(800, 600);
+		const renderer = await G6Renderer.create(
+			{ ...createOptions(createRuntimeGraph()), container },
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		renderer.setGroups([
+			{
+				id: 'group-1',
+				name: 'Group 1',
+				color: '#7567f8',
+				mode: 'manual',
+				shape: 'rectangle',
+				padding: 0.3,
+				x: -20,
+				y: -10,
+				width: 80,
+				height: 60,
+			},
+		]);
+		await vi.waitFor(() =>
+			expect(fake.backgroundRoot.children.length).toBeGreaterThan(0),
+		);
+		const sceneRoot = fake.backgroundRoot.children[0];
+		const sceneChildren = sceneRoot?.children.length;
+
+		fake.emitTransform();
+		await Promise.resolve();
+
+		expect(fake.backgroundRoot.children[0]).toBe(sceneRoot);
+		expect(sceneRoot?.children.length).toBe(sceneChildren);
+		renderer.kill();
+		expect(sceneRoot?.destroy).toHaveBeenCalledOnce();
+	});
+
 	it('does not rebuild graph visuals for pan-only viewport transforms', async () => {
 		const graph = createRuntimeGraph();
 		const fake = createFakeG6();
@@ -481,6 +519,7 @@ describe('G6 renderer', () => {
 		for (const level of [25, 100, 400]) {
 			renderer.setZoomLevel(level);
 			await Promise.resolve();
+			fake.emitTransform();
 			const nativeZoom = fake.instance.getZoom();
 			expect(baselineNodeSize * nativeZoom).toBeCloseTo(
 				baselineNodeScreenSize * (level / 100),
@@ -488,13 +527,11 @@ describe('G6 renderer', () => {
 			expect(baselineLineWidth * nativeZoom).toBeCloseTo(
 				baselineEdgeScreenWidth * (level / 100),
 			);
-			expect(
-				baselineArrowSize?.map((value) => value * nativeZoom),
-			).toEqual(
-				baselineArrowScreenSize?.map((value) =>
-					expect.closeTo(value * (level / 100)),
-				),
-			);
+			baselineArrowSize?.forEach((value, index) => {
+				expect(value * nativeZoom).toBeCloseTo(
+					(baselineArrowScreenSize?.[index] ?? 0) * (level / 100),
+				);
+			});
 			expect(fake.updateLabels).not.toHaveBeenCalled();
 			expect(fake.updateZoomScale.mock.calls.at(-1)?.[0]).toBeCloseTo(
 				100 / level,
@@ -1088,13 +1125,36 @@ function createBrowserTestContainer(
 		({ left: 0, top: 0, width, height }) as DOMRect;
 	const browserWindow = {
 		requestAnimationFrame: (callback: FrameRequestCallback) =>
+			// Test-only timer standing in for the active popout window.
+			// eslint-disable-next-line obsidianmd/prefer-window-timers
 			setTimeout(() => callback(performance.now()), 0),
+		// eslint-disable-next-line obsidianmd/prefer-window-timers
 		cancelAnimationFrame: (handle: number) => clearTimeout(handle),
 		setTimeout,
 		clearTimeout,
+		getComputedStyle: () => ({ getPropertyValue: () => '' }),
 	};
+	const createSvgElement = () => {
+		const element = new EventTarget() as unknown as SVGElement;
+		Object.assign(element, {
+			classList: { add: vi.fn(), toggle: vi.fn() },
+			style: { display: '', setProperty: vi.fn() },
+			setAttribute: vi.fn(),
+			append: vi.fn(),
+			appendChild: vi.fn(),
+			replaceChildren: vi.fn(),
+			remove: vi.fn(),
+		});
+		return element;
+	};
+	Object.assign(container, { appendChild: vi.fn() });
 	Object.defineProperty(container, 'ownerDocument', {
-		value: { defaultView: browserWindow },
+		value: {
+			defaultView: browserWindow,
+			createElementNS: createSvgElement,
+			addEventListener: vi.fn(),
+			removeEventListener: vi.fn(),
+		},
 	});
 	return container;
 }
@@ -1149,7 +1209,44 @@ function createWheelEvent(
 	}) as WheelEvent;
 }
 
+interface FakeSceneElement {
+	style: Record<string, unknown>;
+	children: FakeSceneElement[];
+	appendChild(child: FakeSceneElement): FakeSceneElement;
+	destroy: ReturnType<typeof vi.fn>;
+	setAttributes(attributes: Record<string, unknown>): void;
+}
+
 function createFakeG6(afterDraw?: () => void) {
+	const createSceneElement = (
+		style: Record<string, unknown> = {},
+	): FakeSceneElement => {
+		const children: FakeSceneElement[] = [];
+		return {
+			style,
+			children,
+			appendChild(child: ReturnType<typeof createSceneElement>) {
+				children.push(child);
+				return child;
+			},
+			destroy: vi.fn(() => {
+				children.length = 0;
+			}),
+			setAttributes(attributes: Record<string, unknown>) {
+				Object.assign(style, attributes);
+			},
+		};
+	};
+	const backgroundRoot = createSceneElement();
+	const canvas = {
+		document: {
+			createElement: (
+				_tagName: string,
+				options: { style: Record<string, unknown> },
+			) => createSceneElement(options.style),
+		},
+		getRoot: () => backgroundRoot,
+	};
 	let zoom = 1;
 	const elementPositions = new Map<string, [number, number]>();
 	let canvasCenter: [number, number] = [400, 300];
@@ -1211,6 +1308,7 @@ function createFakeG6(afterDraw?: () => void) {
 		destroy,
 		draw,
 		focusElement,
+		getCanvas: () => canvas,
 		getCanvasCenter: () => canvasCenter,
 		getCanvasByViewport,
 		getElementPosition: (id: string) => elementPositions.get(id) ?? [0, 0],
@@ -1234,6 +1332,7 @@ function createFakeG6(afterDraw?: () => void) {
 	} as unknown as G6GraphInstance;
 	return {
 		instance,
+		backgroundRoot,
 		destroy,
 		draw,
 		focusElement,
@@ -1283,8 +1382,7 @@ function readLastDataPatch(
 function readLastStateMap(
 	setElementState: ReturnType<typeof createFakeG6>['setElementState'],
 ): Record<string, readonly string[]> {
-	const states = setElementState.mock.calls.at(-1)?.[0] as
-		Record<string, readonly string[]> | undefined;
+	const states = setElementState.mock.calls.at(-1)?.[0];
 	if (!states) throw new Error('Expected G6 element state patch');
 	return states;
 }

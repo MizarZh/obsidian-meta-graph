@@ -86,6 +86,7 @@ export type G6GraphInstance = Pick<
 	| 'destroy'
 	| 'draw'
 	| 'focusElement'
+	| 'getCanvas'
 	| 'getCanvasCenter'
 	| 'getCanvasByViewport'
 	| 'getElementPosition'
@@ -436,6 +437,7 @@ export class G6Renderer implements PlanarRenderer {
 	}
 
 	fit(): void {
+		this.cancelWheelZoom();
 		this.scheduleCoordinateFrame({
 			zoomLevel: 100,
 			normalizedCenter: { x: 0.5, y: 0.5 },
@@ -1265,6 +1267,7 @@ export class G6Renderer implements PlanarRenderer {
 				(position) => this.graphToViewportPosition(position),
 				(position) => this.viewportToGraphPosition(position),
 				() => this.readNodeVisualScale(),
+				(position) => this.coordinateSpace.toG6(position),
 			);
 			this.groupLayer.setFocusedNode(this.pinnedNodeId);
 		}
@@ -1673,6 +1676,9 @@ export class G6Renderer implements PlanarRenderer {
 		this.pendingViewportPanY = 0;
 		if (x === 0 && y === 0) return;
 		void this.instance.translateBy([x, y], false).catch(() => undefined);
+		if (this.wheelZoomTarget !== undefined) {
+			this.scheduleViewportTransformFrame();
+		}
 	}
 
 	private emitZoomLevel(): void {

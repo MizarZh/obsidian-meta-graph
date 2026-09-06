@@ -343,6 +343,19 @@
 	overflow: hidden;
 }
 
+/* Visible Group graphics live in G6's background scene. This SVG only keeps
+   native pointer targets for manual Group movement and resizing. */
+.knowledge-workspace-g6-group-interaction-layer
+	.knowledge-workspace-g6-svg-region-shape,
+.knowledge-workspace-g6-group-interaction-layer
+	.knowledge-workspace-g6-svg-title-background,
+.knowledge-workspace-g6-group-interaction-layer
+	.knowledge-workspace-g6-svg-title-text,
+.knowledge-workspace-g6-group-interaction-layer
+	.knowledge-workspace-g6-svg-resize {
+	opacity: 0;
+}
+
 .knowledge-workspace-g6-svg-region-shape {
 	fill: var(--knowledge-workspace-group-color, var(--interactive-accent));
 	fill-opacity: 0.06;

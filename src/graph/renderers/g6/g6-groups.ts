@@ -22,14 +22,32 @@ import type {
 interface G6GroupViewport {
 	on(event: GraphEvent, listener: () => void): unknown;
 	off(event: GraphEvent, listener: () => void): unknown;
+	getCanvas(): unknown;
+}
+
+interface G6SceneElement {
+	appendChild(child: G6SceneElement): G6SceneElement;
+	destroy(): void;
+	setAttributes(attributes: Record<string, unknown>): void;
+}
+
+interface G6SceneDocument {
+	createElement(
+		tagName: string,
+		options: { style: Record<string, unknown> },
+	): G6SceneElement;
+}
+
+interface G6SceneCanvas {
+	getRoot(
+		layer?: 'background' | 'main' | 'label' | 'transient',
+	): G6SceneElement;
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const RADIAL_GROUP_LABEL_INSET = 15;
 const RADIAL_SECTOR_SAMPLE_ANGLE = Math.PI / 36;
-const HALO_CULL_THRESHOLD = 250;
 const HALO_DETAIL_LIMIT = 600;
-const TRANSFORM_SETTLE_MS = 140;
 
 export interface RadialSectorViewportShape {
 	rect: ViewportGroupRect;
@@ -59,7 +77,7 @@ interface CachedRegion {
 	color: string;
 	shape: 'rect' | 'circle' | 'path';
 	rect?: ViewportGroupRect;
-	path?: string;
+	points?: Array<{ x: number; y: number }>;
 	title: { x: number; y: number };
 	uiScale: number;
 	invertTextY: boolean;
@@ -74,11 +92,20 @@ interface CachedHalo {
 	radius: number;
 }
 
+interface CanvasRegionElement {
+	wrapper: G6SceneElement;
+	shape: G6SceneElement;
+}
+
 export class G6GroupLayer {
 	private readonly layer: SVGSVGElement;
 	private readonly scene: SVGGElement;
 	private readonly regionsLayer: SVGGElement;
-	private readonly halosLayer: SVGGElement;
+	private readonly canvas: G6SceneCanvas;
+	private readonly sceneDocument: G6SceneDocument;
+	private readonly canvasRoot: G6SceneElement;
+	private canvasRegions: G6SceneElement;
+	private canvasHalos: G6SceneElement;
 	private readonly activeDocument: Document;
 	private groups: GroupOverlayGroup[] = [];
 	private geometries: LayoutGroupGeometry[] = [];
@@ -88,14 +115,16 @@ export class G6GroupLayer {
 	private readonly halos: CachedHalo[] = [];
 	private readonly halosByGroup = new Map<string, CachedHalo[]>();
 	private readonly members = new Map<string, Set<string>>();
-	private readonly regionElements = new Map<string, SVGElement[]>();
-	private readonly haloElements = new Map<string, SVGPathElement[]>();
+	private readonly regionElements = new Map<string, CanvasRegionElement[]>();
+	private readonly interactionRegionElements = new Map<
+		string,
+		SVGElement[]
+	>();
+	private readonly haloElements = new Map<string, G6SceneElement[]>();
 	private geometryDirty = true;
 	private renderQueued = false;
-	private transformQueued = false;
 	private renderFrame?: number;
 	private transformFrame?: number;
-	private settleTimer?: number;
 	private activeDropGroupId?: string;
 	private selectedGroupId?: string;
 	private hoveredGroupId?: string;
@@ -103,15 +132,12 @@ export class G6GroupLayer {
 	private move?: GroupMove;
 
 	private readonly handleTransform = (): void => {
-		this.scheduleTransform();
 		const window = this.activeDocument.defaultView;
-		if (!window || this.halos.length < HALO_CULL_THRESHOLD) return;
-		if (this.settleTimer !== undefined)
-			window.clearTimeout(this.settleTimer);
-		this.settleTimer = window.setTimeout(() => {
-			this.settleTimer = undefined;
-			this.renderHalos();
-		}, TRANSFORM_SETTLE_MS);
+		if (!window || this.transformFrame !== undefined) return;
+		this.transformFrame = window.requestAnimationFrame(() => {
+			this.transformFrame = undefined;
+			this.updateTransform();
+		});
 	};
 
 	private readonly handlePointerMove = (event: PointerEvent): void => {
@@ -174,19 +200,40 @@ export class G6GroupLayer {
 			y: number;
 		}) => { x: number; y: number },
 		private readonly getNodeVisualScale: () => number = () => 1,
+		private readonly graphToCanvas: (position: {
+			x: number;
+			y: number;
+		}) => { x: number; y: number } = (position) => position,
 	) {
 		this.activeDocument = container.ownerDocument;
+		const canvas = viewport.getCanvas() as G6SceneCanvas;
+		this.canvas = canvas;
+		this.sceneDocument = (canvas as unknown as Record<string, unknown>)[
+			'document'
+		] as G6SceneDocument;
+		this.canvasRoot = this.sceneDocument.createElement('g', {
+			style: { pointerEvents: 'none' },
+		});
+		this.canvasRegions = this.sceneDocument.createElement('g', {
+			style: { pointerEvents: 'none' },
+		});
+		this.canvasHalos = this.sceneDocument.createElement('g', {
+			style: { pointerEvents: 'none' },
+		});
+		this.canvasRoot.appendChild(this.canvasRegions);
+		this.canvasRoot.appendChild(this.canvasHalos);
+		this.canvas.getRoot('background').appendChild(this.canvasRoot);
 		this.layer = this.svg('svg');
 		this.layer.classList.add(
 			'knowledge-workspace-group-layer',
 			'knowledge-workspace-g6-group-layer',
+			'knowledge-workspace-g6-group-interaction-layer',
 		);
 		this.layer.setAttribute('aria-hidden', 'true');
 		this.scene = this.svg('g');
 		this.scene.classList.add('knowledge-workspace-g6-group-scene');
 		this.regionsLayer = this.svg('g');
-		this.halosLayer = this.svg('g');
-		this.scene.append(this.regionsLayer, this.halosLayer);
+		this.scene.append(this.regionsLayer);
 		this.layer.appendChild(this.scene);
 		container.appendChild(this.layer);
 		viewport.on(GraphEvent.AFTER_TRANSFORM, this.handleTransform);
@@ -228,7 +275,7 @@ export class G6GroupLayer {
 	}
 
 	refreshViewport(): void {
-		this.scheduleTransform();
+		this.handleTransform();
 	}
 
 	getGroupAtViewportPosition(position: {
@@ -260,6 +307,8 @@ export class G6GroupLayer {
 	setSelectedGroup(groupId?: string): void {
 		if (this.selectedGroupId === groupId) return;
 		this.selectedGroupId = groupId;
+		this.ensureCache();
+		this.renderCanvasRegions();
 		this.updateStates();
 	}
 	setHoveredGroup(groupId?: string): void {
@@ -282,7 +331,8 @@ export class G6GroupLayer {
 				: '';
 		if (this.geometryDirty) {
 			this.rebuildCache();
-			this.renderRegions();
+			this.renderCanvasRegions();
+			this.renderInteractionRegions();
 		}
 		this.applyRegionStates();
 		this.renderHalos();
@@ -295,16 +345,16 @@ export class G6GroupLayer {
 			window?.cancelAnimationFrame(this.renderFrame);
 		if (this.transformFrame !== undefined)
 			window?.cancelAnimationFrame(this.transformFrame);
-		if (this.settleTimer !== undefined)
-			window?.clearTimeout(this.settleTimer);
 		this.viewport.off(GraphEvent.AFTER_TRANSFORM, this.handleTransform);
 		this.layer.remove();
+		this.canvasRoot.destroy();
 		this.groupFrames.clear();
 		this.regions.length = 0;
 		this.halos.length = 0;
 		this.halosByGroup.clear();
 		this.members.clear();
 		this.regionElements.clear();
+		this.interactionRegionElements.clear();
 		this.haloElements.clear();
 	}
 
@@ -318,23 +368,6 @@ export class G6GroupLayer {
 				this.update();
 			});
 		} else queueMicrotask(() => this.update());
-	}
-
-	private scheduleTransform(): void {
-		if (this.transformQueued) return;
-		this.transformQueued = true;
-		const window = this.activeDocument.defaultView;
-		if (window) {
-			this.transformFrame = window.requestAnimationFrame(() => {
-				this.transformFrame = undefined;
-				this.transformQueued = false;
-				this.updateTransform();
-			});
-		} else
-			queueMicrotask(() => {
-				this.transformQueued = false;
-				this.updateTransform();
-			});
 	}
 
 	private updateTransform(): void {
@@ -409,7 +442,7 @@ export class G6GroupLayer {
 					name: geometry.name,
 					color: geometry.color,
 					shape: 'path',
-					path: createClosedPathData(shape.points),
+					points: shape.points,
 					title: shape.label,
 					uiScale,
 					invertTextY,
@@ -482,9 +515,151 @@ export class G6GroupLayer {
 		return { left, top, width: right - left, height: bottom - top };
 	}
 
-	private renderRegions(): void {
-		this.regionsLayer.replaceChildren();
+	private renderCanvasRegions(): void {
+		this.canvasRegions.destroy();
 		this.regionElements.clear();
+		const regions = this.sceneDocument.createElement('g', {
+			style: { pointerEvents: 'none' },
+		});
+		this.canvasRoot.appendChild(regions);
+		this.canvasRegions = regions;
+		for (const region of this.regions) {
+			const wrapper = this.sceneDocument.createElement('g', {
+				style: { pointerEvents: 'none' },
+			});
+			const shape = this.createCanvasRegionShape(region);
+			wrapper.appendChild(shape);
+			this.appendCanvasTitle(wrapper, region);
+			if (region.manualGroup?.resizable && region.rect)
+				this.appendCanvasHandles(wrapper, region);
+			regions.appendChild(wrapper);
+			const elements = this.regionElements.get(region.groupId) ?? [];
+			elements.push({ wrapper, shape });
+			this.regionElements.set(region.groupId, elements);
+		}
+	}
+
+	private createCanvasRegionShape(region: CachedRegion): G6SceneElement {
+		const scale = this.readGraphToCanvasScale();
+		const stateStyle = this.resolveRegionStyle(
+			region.groupId,
+			region.color,
+			scale,
+		);
+		if (region.shape === 'path') {
+			return this.sceneDocument.createElement('path', {
+				style: {
+					...stateStyle,
+					d: createClosedPathData(
+						(region.points ?? []).map((point) =>
+							this.graphToCanvas(point),
+						),
+					),
+				},
+			});
+		}
+		const rect = this.toCanvasRect(region.rect ?? emptyRect());
+		if (region.shape === 'circle') {
+			return this.sceneDocument.createElement('ellipse', {
+				style: {
+					...stateStyle,
+					cx: rect.left + rect.width / 2,
+					cy: rect.top + rect.height / 2,
+					rx: rect.width / 2,
+					ry: rect.height / 2,
+				},
+			});
+		}
+		return this.sceneDocument.createElement('rect', {
+			style: {
+				...stateStyle,
+				x: rect.left,
+				y: rect.top,
+				width: rect.width,
+				height: rect.height,
+				radius: 8 * region.uiScale * scale,
+			},
+		});
+	}
+
+	private appendCanvasTitle(
+		wrapper: G6SceneElement,
+		region: CachedRegion,
+	): void {
+		const point = this.graphToCanvas(region.title);
+		const scale = region.uiScale * this.readGraphToCanvasScale();
+		const width = Math.min(220, region.name.length * 6.5 + 20) * scale;
+		wrapper.appendChild(
+			this.sceneDocument.createElement('rect', {
+				style: {
+					x: point.x - width / 2,
+					y: point.y - 10 * scale,
+					width,
+					height: 18 * scale,
+					radius: 9 * scale,
+					fill: this.readBackgroundColor(),
+					fillOpacity: 0.94,
+					stroke: region.color,
+					strokeOpacity: 0.22,
+					lineWidth: scale,
+					pointerEvents: 'none',
+				},
+			}),
+		);
+		wrapper.appendChild(
+			this.sceneDocument.createElement('text', {
+				style: {
+					x: point.x,
+					y: point.y,
+					text: region.name,
+					fill: region.color,
+					fontSize: 11 * scale,
+					fontWeight: 600,
+					textAlign: 'center',
+					textBaseline: 'middle',
+					pointerEvents: 'none',
+				},
+			}),
+		);
+	}
+
+	private appendCanvasHandles(
+		wrapper: G6SceneElement,
+		region: CachedRegion,
+	): void {
+		if (!region.rect) return;
+		const scale = region.uiScale * this.readGraphToCanvasScale();
+		const selected = region.groupId === this.selectedGroupId;
+		for (const point of [
+			{ x: region.rect.left, y: region.rect.top },
+			{ x: region.rect.left + region.rect.width, y: region.rect.top },
+			{ x: region.rect.left, y: region.rect.top + region.rect.height },
+			{
+				x: region.rect.left + region.rect.width,
+				y: region.rect.top + region.rect.height,
+			},
+		]) {
+			const canvasPoint = this.graphToCanvas(point);
+			wrapper.appendChild(
+				this.sceneDocument.createElement('circle', {
+					style: {
+						cx: canvasPoint.x,
+						cy: canvasPoint.y,
+						r: 6 * scale,
+						fill: this.readBackgroundColor(),
+						stroke: region.color,
+						lineWidth: scale,
+						opacity: selected ? 1 : 0,
+						pointerEvents: 'none',
+					},
+				}),
+			);
+		}
+	}
+
+	private renderInteractionRegions(): void {
+		this.regionsLayer.replaceChildren();
+		this.interactionRegionElements.clear();
 		for (const region of this.regions) {
 			const wrapper = this.svg('g');
 			wrapper.classList.add('knowledge-workspace-g6-svg-region');
@@ -501,7 +676,10 @@ export class G6GroupLayer {
 			);
 			shape.classList.add('knowledge-workspace-g6-svg-region-shape');
 			if (region.shape === 'path')
-				shape.setAttribute('d', region.path ?? '');
+				shape.setAttribute(
+					'd',
+					createClosedPathData(region.points ?? []),
+				);
 			else if (region.rect && region.shape === 'circle') {
 				shape.setAttribute(
 					'cx',
@@ -524,9 +702,10 @@ export class G6GroupLayer {
 			if (region.manualGroup?.resizable && region.rect)
 				this.appendHandles(wrapper, region.manualGroup, region.rect);
 			this.regionsLayer.appendChild(wrapper);
-			const elements = this.regionElements.get(region.groupId) ?? [];
+			const elements =
+				this.interactionRegionElements.get(region.groupId) ?? [];
 			elements.push(wrapper);
-			this.regionElements.set(region.groupId, elements);
+			this.interactionRegionElements.set(region.groupId, elements);
 		}
 	}
 
@@ -595,34 +774,37 @@ export class G6GroupLayer {
 	private applyRegionStates(groupIds?: ReadonlySet<string>): void {
 		for (const [groupId, elements] of this.regionElements) {
 			if (!groupIds || groupIds.has(groupId)) {
+				const region = this.regions.find(
+					(item) => item.groupId === groupId,
+				);
+				if (!region) continue;
 				for (const element of elements) {
-					element.classList.toggle(
-						'selected',
-						groupId === this.selectedGroupId,
-					);
-					element.classList.toggle(
-						'hovered',
-						groupId === this.hoveredGroupId,
-					);
-					element.classList.toggle(
-						'drop-target',
-						groupId === this.activeDropGroupId,
-					);
-					element.classList.toggle(
-						'muted-by-focus',
-						this.isMuted(groupId),
+					element.wrapper.setAttributes({
+						opacity: this.isMuted(groupId) ? 0.58 : 1,
+					});
+					element.shape.setAttributes(
+						this.resolveRegionStyle(
+							groupId,
+							region.color,
+							this.readGraphToCanvasScale(),
+						),
 					);
 				}
+			}
+		}
+		for (const [groupId, elements] of this.interactionRegionElements) {
+			if (groupIds && !groupIds.has(groupId)) continue;
+			for (const element of elements) {
+				element.classList.toggle(
+					'selected',
+					groupId === this.selectedGroupId,
+				);
 			}
 		}
 	}
 
 	private renderHalos(): void {
 		this.haloElements.clear();
-		const bounds =
-			this.halos.length >= HALO_CULL_THRESHOLD
-				? this.visibleBounds()
-				: undefined;
 		const detailed = this.halos.length <= HALO_DETAIL_LIMIT;
 		const active = new Set<string>(
 			[
@@ -648,7 +830,6 @@ export class G6GroupLayer {
 			}
 		>();
 		for (const halo of candidates) {
-			if (bounds && !circleIntersectsRect(halo, bounds)) continue;
 			const muted = this.isMuted(halo.groupId);
 			const selected = halo.groupId === this.selectedGroupId;
 			const key = `${halo.groupId}\0${halo.color}\0${muted}\0${selected}`;
@@ -659,21 +840,35 @@ export class G6GroupLayer {
 				selected,
 				paths: [],
 			};
-			batch.paths.push(createCirclePath(halo));
+			const point = this.graphToCanvas(halo);
+			batch.paths.push(
+				createCirclePath({
+					...point,
+					radius: halo.radius * this.readGraphToCanvasScale(),
+				}),
+			);
 			batches.set(key, batch);
 		}
-		this.halosLayer.replaceChildren();
+		this.canvasHalos.destroy();
+		const halos = this.sceneDocument.createElement('g', {
+			style: { pointerEvents: 'none' },
+		});
+		this.canvasRoot.appendChild(halos);
+		this.canvasHalos = halos;
 		for (const batch of batches.values()) {
-			const path = this.svg('path');
-			path.classList.add('knowledge-workspace-g6-svg-halos');
-			if (batch.muted) path.classList.add('muted-by-focus');
-			if (batch.selected) path.classList.add('selected');
-			path.style.setProperty(
-				'--knowledge-workspace-group-color',
-				batch.color,
-			);
-			path.setAttribute('d', batch.paths.join(' '));
-			this.halosLayer.appendChild(path);
+			const scale = this.readGraphToCanvasScale();
+			const path = this.sceneDocument.createElement('path', {
+				style: {
+					d: batch.paths.join(' '),
+					fill: 'none',
+					stroke: batch.color,
+					strokeOpacity: batch.selected ? 0.9 : 0.72,
+					lineWidth: (batch.selected ? 3 : 2) * scale,
+					opacity: batch.muted ? 0.32 : 1,
+					pointerEvents: 'none',
+				},
+			});
+			halos.appendChild(path);
 			const elements = this.haloElements.get(batch.groupId) ?? [];
 			elements.push(path);
 			this.haloElements.set(batch.groupId, elements);
@@ -707,10 +902,9 @@ export class G6GroupLayer {
 		}
 		for (const groupId of affected)
 			for (const element of this.haloElements.get(groupId) ?? [])
-				element.classList.toggle(
-					'muted-by-focus',
-					this.isMuted(groupId),
-				);
+				element.setAttributes({
+					opacity: this.isMuted(groupId) ? 0.32 : 1,
+				});
 	}
 
 	private updateStates(): void {
@@ -751,20 +945,79 @@ export class G6GroupLayer {
 		);
 	}
 
-	private visibleBounds(): ViewportGroupRect {
-		const width = this.container.clientWidth;
-		const height = this.container.clientHeight;
-		const points = [
-			this.viewportToGraph({ x: 0, y: 0 }),
-			this.viewportToGraph({ x: width, y: 0 }),
-			this.viewportToGraph({ x: 0, y: height }),
-			this.viewportToGraph({ x: width, y: height }),
-		];
-		const left = Math.min(...points.map((point) => point.x));
-		const right = Math.max(...points.map((point) => point.x));
-		const top = Math.min(...points.map((point) => point.y));
-		const bottom = Math.max(...points.map((point) => point.y));
-		return { left, top, width: right - left, height: bottom - top };
+	private resolveRegionStyle(
+		groupId: string,
+		color: string,
+		canvasScale: number,
+	): Record<string, unknown> {
+		const selected = groupId === this.selectedGroupId;
+		const hovered = groupId === this.hoveredGroupId;
+		const dropTarget = groupId === this.activeDropGroupId;
+		return {
+			fill: dropTarget ? this.readAccentColor() : color,
+			fillOpacity: dropTarget
+				? 0.18
+				: selected
+					? 0.12
+					: hovered
+						? 0.08
+						: 0.06,
+			stroke: dropTarget ? this.readAccentColor() : color,
+			strokeOpacity: dropTarget
+				? 1
+				: selected
+					? 0.9
+					: hovered
+						? 0.8
+						: 0.55,
+			lineWidth:
+				(dropTarget ? 2.5 : selected ? 2 : hovered ? 1.75 : 1.5) *
+				canvasScale,
+			pointerEvents: 'none',
+		};
+	}
+
+	private toCanvasRect(rect: ViewportGroupRect): ViewportGroupRect {
+		const first = this.graphToCanvas({ x: rect.left, y: rect.top });
+		const second = this.graphToCanvas({
+			x: rect.left + rect.width,
+			y: rect.top + rect.height,
+		});
+		return {
+			left: Math.min(first.x, second.x),
+			top: Math.min(first.y, second.y),
+			width: Math.abs(second.x - first.x),
+			height: Math.abs(second.y - first.y),
+		};
+	}
+
+	private readGraphToCanvasScale(): number {
+		const origin = this.graphToCanvas({ x: 0, y: 0 });
+		const x = this.graphToCanvas({ x: 1, y: 0 });
+		const y = this.graphToCanvas({ x: 0, y: 1 });
+		return Math.max(
+			1e-6,
+			(Math.hypot(x.x - origin.x, x.y - origin.y) +
+				Math.hypot(y.x - origin.x, y.y - origin.y)) /
+				2,
+		);
+	}
+
+	private readBackgroundColor(): string {
+		return this.readCssColor('--background-primary', '#ffffff');
+	}
+
+	private readAccentColor(): string {
+		return this.readCssColor('--interactive-accent', '#7c6cff');
+	}
+
+	private readCssColor(property: string, fallback: string): string {
+		return (
+			this.activeDocument.defaultView
+				?.getComputedStyle(this.container)
+				.getPropertyValue(property)
+				.trim() || fallback
+		);
 	}
 
 	private startMove(
@@ -920,18 +1173,6 @@ export function createG6GroupTitlePosition(
 			? rect.top + rect.height - 12 * uiScale
 			: rect.top + 12 * uiScale,
 	};
-}
-
-function circleIntersectsRect(
-	circle: Pick<CachedHalo, 'x' | 'y' | 'radius'>,
-	rect: ViewportGroupRect,
-): boolean {
-	return (
-		circle.x + circle.radius >= rect.left &&
-		circle.x - circle.radius <= rect.left + rect.width &&
-		circle.y + circle.radius >= rect.top &&
-		circle.y - circle.radius <= rect.top + rect.height
-	);
 }
 
 function createCirclePath({

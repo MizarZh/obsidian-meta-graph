@@ -27,6 +27,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Moved visible G6 Group regions, titles, resize handles, and member halos into G6's background Canvas scene, so they share the exact camera and presentation frame with nodes and edges during zoom and pan. The external SVG now contains only transparent manual-movement hit targets.
+
 - Matched G6 node hover to Sigma's temporary focus behavior: unrelated nodes and edges dim immediately, connected edges remain emphasized, and persistent Space-pin state remains unchanged.
 
 - Reduced G6 hover switching latency by applying node focus locally before workspace propagation, deduplicating repeated pointer samples, serializing state-stage draws with latest-state replacement, updating only neighborhood differences, and limiting transient label work to changed owners. Ordinary hover no longer refreshes Group overlays; pinned focus retains Group dimming.
