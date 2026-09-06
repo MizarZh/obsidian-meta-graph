@@ -707,6 +707,7 @@ export class G6Renderer implements PlanarRenderer {
 		this.hoveredNodeId = nodeId;
 		this.scheduleInteractionSync();
 		this.syncTransientLabelOwner(previousNodeId, nodeId);
+		this.syncGroupFocus();
 	}
 	setHoveredEdge(edgeId?: string): void {
 		if (this.hoveredEdgeId === edgeId) return;
@@ -769,7 +770,7 @@ export class G6Renderer implements PlanarRenderer {
 		this.pinnedNodeId = this.pinnedNodeId === nodeId ? undefined : nodeId;
 		this.syncInteractionStates();
 		this.syncTransientLabelOwner(previousNodeId, this.pinnedNodeId);
-		this.groupLayer?.setFocusedNode(this.pinnedNodeId);
+		this.syncGroupFocus();
 	}
 	clearPinnedHover(): void {
 		if (!this.pinnedNodeId) return;
@@ -777,7 +778,7 @@ export class G6Renderer implements PlanarRenderer {
 		this.pinnedNodeId = undefined;
 		this.syncInteractionStates();
 		this.syncTransientLabelOwner(previousNodeId, undefined);
-		this.groupLayer?.setFocusedNode(undefined);
+		this.syncGroupFocus();
 	}
 	holdCurrentBounds(): void {}
 	clearHeldBounds(): void {}
@@ -1202,7 +1203,7 @@ export class G6Renderer implements PlanarRenderer {
 				(position) => this.viewportToGraphPosition(position),
 				() => this.readNodeVisualScale(),
 			);
-			this.groupLayer.setFocusedNode(this.pinnedNodeId);
+			this.groupLayer.setFocusedNode(this.getActiveHoverNodeId());
 		}
 		return this.groupLayer;
 	}
@@ -1229,7 +1230,7 @@ export class G6Renderer implements PlanarRenderer {
 
 	private syncInteractionStates(scheduleDraw = true, forceAll = false): void {
 		if (this.killed || this.isStale()) return;
-		const activeNodeId = this.pinnedNodeId ?? this.hoveredNodeId;
+		const activeNodeId = this.getActiveHoverNodeId();
 		const nextInteraction: G6InteractionSnapshot = {
 			activeNodeId,
 			pinnedNodeId: this.pinnedNodeId,
@@ -1240,7 +1241,7 @@ export class G6Renderer implements PlanarRenderer {
 		const neighborhood = activeNodeId
 			? this.sceneCache.neighborNodeIdsByNode.get(activeNodeId)
 			: undefined;
-		const dimUnrelated = Boolean(activeNodeId && this.pinnedNodeId);
+		const dimUnrelated = Boolean(activeNodeId);
 		const nodes: Array<{ id: string; states: State[] }> = [];
 		const edges: Array<{ id: string; states: State[] }> = [];
 		const nodeIds = this.collectAffectedNodeIds(nextInteraction, forceAll);
@@ -1290,13 +1291,13 @@ export class G6Renderer implements PlanarRenderer {
 			if (connected) states.push(G6_INTERACTION_STATE.connected);
 			if (
 				logicalEdgeId === this.hoveredEdgeId &&
-				(!this.pinnedNodeId || connected)
+				(!activeNodeId || connected)
 			) {
 				states.push(G6_INTERACTION_STATE.hovered);
 			}
 			if (logicalEdgeId === this.selectedEdgeId)
 				states.push(G6_INTERACTION_STATE.selected);
-			if (this.pinnedNodeId && !connected)
+			if (activeNodeId && !connected)
 				states.push(G6_INTERACTION_STATE.focusHidden);
 			if (this.updateStateKey(this.edgeStateKeys, elementId, states)) {
 				edges.push({ id: elementId, states });
@@ -1329,13 +1330,8 @@ export class G6Renderer implements PlanarRenderer {
 		if (forceAll) return new Set(this.sceneCache.renderedNodeIds);
 		const affected = new Set<string>();
 		const previous = this.appliedInteraction;
-		if (previous.pinnedNodeId !== next.pinnedNodeId) {
-			for (const nodeId of this.sceneCache.renderedNodeIds)
-				affected.add(nodeId);
-		}
 		if (previous.activeNodeId !== next.activeNodeId) {
-			const localOnly = !previous.pinnedNodeId && !next.pinnedNodeId;
-			if ((!previous.activeNodeId || !next.activeNodeId) && !localOnly) {
+			if (!previous.activeNodeId || !next.activeNodeId) {
 				for (const nodeId of this.sceneCache.renderedNodeIds)
 					affected.add(nodeId);
 			} else {
@@ -1360,13 +1356,8 @@ export class G6Renderer implements PlanarRenderer {
 			);
 		const affected = new Set<string>();
 		const previous = this.appliedInteraction;
-		if (previous.pinnedNodeId !== next.pinnedNodeId) {
-			for (const edgeIds of this.sceneCache.runtimeEdgesByLogicalId.values())
-				for (const edgeId of edgeIds) affected.add(edgeId);
-		}
 		if (previous.activeNodeId !== next.activeNodeId) {
-			const localOnly = !previous.pinnedNodeId && !next.pinnedNodeId;
-			if ((!previous.activeNodeId || !next.activeNodeId) && !localOnly) {
+			if (!previous.activeNodeId || !next.activeNodeId) {
 				for (const edgeIds of this.sceneCache.runtimeEdgesByLogicalId.values())
 					for (const edgeId of edgeIds) affected.add(edgeId);
 			} else {
@@ -1400,6 +1391,14 @@ export class G6Renderer implements PlanarRenderer {
 		) ?? []) {
 			target.add(neighborId);
 		}
+	}
+
+	private getActiveHoverNodeId(): string | undefined {
+		return this.pinnedNodeId ?? this.hoveredNodeId;
+	}
+
+	private syncGroupFocus(): void {
+		this.groupLayer?.setFocusedNode(this.getActiveHoverNodeId());
 	}
 
 	private addLogicalEdges(target: Set<string>, logicalEdgeId?: string): void {

@@ -27,6 +27,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Matched G6 node hover to Sigma's temporary focus behavior: unrelated nodes and edges dim immediately, connected edges remain emphasized, and Group focus follows the hovered node without changing the persistent Space-pin state.
+
 - Made G6 node and edge labels follow every zoom transform through cached label-shape scaling. Label size now changes continuously without full label-style resolution or a delayed post-zoom jump.
 
 - Invalidated cached G6 Group geometry when the initial fit baseline becomes available, so Groups render on first entry instead of waiting for a manual refresh.

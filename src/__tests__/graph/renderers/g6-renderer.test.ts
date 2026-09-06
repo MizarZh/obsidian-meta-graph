@@ -554,7 +554,7 @@ describe('G6 renderer', () => {
 
 		renderer.setHovered('A.md');
 		await Promise.resolve();
-		expect(setFocusedNode).not.toHaveBeenCalled();
+		expect(setFocusedNode).toHaveBeenLastCalledWith('A.md');
 		const hoverStates = readLastStateMap(fake.setElementState);
 		expect(fake.setElementState).toHaveBeenLastCalledWith(
 			expect.any(Object),
@@ -562,22 +562,21 @@ describe('G6 renderer', () => {
 		);
 		expect(hoverStates['A.md']).toEqual([G6_INTERACTION_STATE.hovered]);
 		expect(hoverStates['B.md']).toBeUndefined();
-		expect(hoverStates['C.md']).toBeUndefined();
+		expect(hoverStates['C.md']).toEqual([G6_INTERACTION_STATE.dimmed]);
+		expect(hoverStates['D.md']).toEqual([G6_INTERACTION_STATE.dimmed]);
 		expect(hoverStates['A-B']).toEqual([G6_INTERACTION_STATE.connected]);
-		expect(hoverStates['B-C']).toBeUndefined();
-
-		renderer.togglePinnedHover('A.md');
-		expect(setFocusedNode).toHaveBeenLastCalledWith('A.md');
-		const focusStates = readLastStateMap(fake.setElementState);
-		// The connected edge keeps its already-applied state, so only unrelated
-		// edges need an incremental update when hover becomes pinned focus.
-		expect(focusStates['A-B']).toBeUndefined();
-		expect(focusStates['B-C']).toEqual([
+		expect(hoverStates['B-C']).toEqual([
 			G6_INTERACTION_STATE.dimmed,
 			G6_INTERACTION_STATE.focusHidden,
 		]);
+
+		const hoverStateCount = fake.setElementState.mock.calls.length;
 		renderer.togglePinnedHover('A.md');
-		expect(setFocusedNode).toHaveBeenLastCalledWith(undefined);
+		expect(setFocusedNode).toHaveBeenLastCalledWith('A.md');
+		expect(fake.setElementState).toHaveBeenCalledTimes(hoverStateCount);
+		renderer.togglePinnedHover('A.md');
+		expect(setFocusedNode).toHaveBeenLastCalledWith('A.md');
+		expect(fake.setElementState).toHaveBeenCalledTimes(hoverStateCount);
 
 		renderer.setSelectedEdge('logical-A-B');
 		const edgeSelectionStates = readLastStateMap(fake.setElementState);
@@ -589,6 +588,7 @@ describe('G6 renderer', () => {
 		renderer.setSelected('C.md');
 		const nodeSelectionStates = readLastStateMap(fake.setElementState);
 		expect(nodeSelectionStates['C.md']).toEqual([
+			G6_INTERACTION_STATE.dimmed,
 			G6_INTERACTION_STATE.selected,
 		]);
 
@@ -631,7 +631,7 @@ describe('G6 renderer', () => {
 		expect(fake.setElementState).toHaveBeenCalledOnce();
 	});
 
-	it('keeps large transient hover local and reserves full dimming for pinned focus', async () => {
+	it('uses pinned-focus dimming for transient hover without a second full update when pinned', async () => {
 		const graph = createLargeLabelGraph();
 		const fake = createFakeG6();
 		const renderer = await G6Renderer.create(
@@ -643,12 +643,11 @@ describe('G6 renderer', () => {
 		renderer.setHovered('A.md');
 		await Promise.resolve();
 		const hoverStates = readLastStateMap(fake.setElementState);
-		expect(Object.keys(hoverStates)).toEqual(['A.md', 'large-edge']);
+		expect(Object.keys(hoverStates).length).toBeGreaterThan(500);
 
 		fake.setElementState.mockClear();
 		renderer.togglePinnedHover('A.md');
-		const focusStates = readLastStateMap(fake.setElementState);
-		expect(Object.keys(focusStates).length).toBeGreaterThan(500);
+		expect(fake.setElementState).not.toHaveBeenCalled();
 	});
 
 	it('only patches elements present in routed Flow G6 data', async () => {
