@@ -47,6 +47,7 @@ import { G6GroupLayer } from './g6-groups';
 import {
 	G6_LABEL_CONTROLLER_KEY,
 	type G6LabelController,
+	type G6LabelControllerDirtyIds,
 	type G6LabelControllerSnapshot,
 } from './g6-label-controller';
 import {
@@ -70,7 +71,7 @@ const LARGE_LABEL_SCENE_ELEMENT_COUNT = 500;
 const LABEL_VIEWPORT_PIXELS_PER_NODE = 3600;
 const MIN_VIEWPORT_NODE_LABELS = 24;
 const MAX_VIEWPORT_NODE_LABELS = 400;
-const NODE_HOVER_LEAVE_GRACE_MS = 80;
+const NODE_HOVER_LEAVE_GRACE_MS = 32;
 
 interface G6InteractionSnapshot {
 	activeNodeId?: string;
@@ -137,6 +138,9 @@ export class G6Renderer implements PlanarRenderer {
 	private drawDirty = false;
 	private labelSyncScheduled = false;
 	private labelSyncFrame?: number;
+	private labelSyncAll = false;
+	private readonly pendingLabelNodeIds = new Set<string>();
+	private readonly pendingLabelEdgeIds = new Set<string>();
 	private killed = false;
 	private fitting = false;
 	private fitZoom = 1;
@@ -151,6 +155,8 @@ export class G6Renderer implements PlanarRenderer {
 	private lastObservedNativeZoom = 1;
 	private interactionSyncFrame?: number;
 	private interactionSyncQueued = false;
+	private interactionStateInFlight = false;
+	private readonly pendingInteractionStates = new Map<string, State[]>();
 	private hoverLeaveTimer?: number;
 	private appliedInteraction: G6InteractionSnapshot = {};
 	private wheelZoomTarget?: number;
@@ -298,6 +304,7 @@ export class G6Renderer implements PlanarRenderer {
 		this.dropMissingInteractionTargets();
 		this.nodeStateKeys.clear();
 		this.edgeStateKeys.clear();
+		this.pendingInteractionStates.clear();
 		this.appliedInteraction = {};
 		this.instance.setData(
 			toG6Data(
@@ -513,11 +520,16 @@ export class G6Renderer implements PlanarRenderer {
 			window?.cancelAnimationFrame(this.interactionSyncFrame);
 			this.interactionSyncFrame = undefined;
 		}
+		this.interactionSyncQueued = false;
+		this.pendingInteractionStates.clear();
 		if (this.labelSyncFrame !== undefined) {
 			window?.cancelAnimationFrame(this.labelSyncFrame);
 			this.labelSyncFrame = undefined;
 		}
 		this.labelSyncScheduled = false;
+		this.labelSyncAll = false;
+		this.pendingLabelNodeIds.clear();
+		this.pendingLabelEdgeIds.clear();
 		if (this.hoverLeaveTimer !== undefined) {
 			window?.clearTimeout(this.hoverLeaveTimer);
 			this.hoverLeaveTimer = undefined;
@@ -905,14 +917,14 @@ export class G6Renderer implements PlanarRenderer {
 				Math.abs(this.fitZoom - previousFitZoom) >
 					ZOOM_CHANGE_EPSILON *
 						Math.max(this.fitZoom, previousFitZoom)
-				) {
-					this.syncCoordinateFrameVisuals();
-					this.groupLayer?.invalidateGeometry();
-				} else {
-					this.scheduleLabelSync();
-				}
-				this.syncLabelZoomScale();
-				this.emitZoomLevel();
+			) {
+				this.syncCoordinateFrameVisuals();
+				this.groupLayer?.invalidateGeometry();
+			} else {
+				this.scheduleLabelSync();
+			}
+			this.syncLabelZoomScale();
+			this.emitZoomLevel();
 		} finally {
 			this.fitting = false;
 		}
@@ -957,8 +969,18 @@ export class G6Renderer implements PlanarRenderer {
 		}
 	}
 
-	private scheduleLabelSync(): void {
+	private scheduleLabelSync(dirtyIds?: G6LabelControllerDirtyIds): void {
 		if (this.killed || this.isStale()) return;
+		if (!dirtyIds) {
+			this.labelSyncAll = true;
+			this.pendingLabelNodeIds.clear();
+			this.pendingLabelEdgeIds.clear();
+		} else if (!this.labelSyncAll) {
+			for (const nodeId of dirtyIds.nodeIds ?? [])
+				this.pendingLabelNodeIds.add(nodeId);
+			for (const edgeId of dirtyIds.edgeIds ?? [])
+				this.pendingLabelEdgeIds.add(edgeId);
+		}
 		if (this.labelSyncScheduled) return;
 		this.labelSyncScheduled = true;
 		const window = this.container.ownerDocument?.defaultView;
@@ -977,10 +999,21 @@ export class G6Renderer implements PlanarRenderer {
 		this.drawQueue = this.drawQueue
 			.then(() => {
 				if (this.killed || this.isStale()) return;
+				const dirtyIds = this.labelSyncAll
+					? undefined
+					: {
+							nodeIds: new Set(this.pendingLabelNodeIds),
+							edgeIds: new Set(this.pendingLabelEdgeIds),
+						};
+				this.labelSyncAll = false;
+				this.pendingLabelNodeIds.clear();
+				this.pendingLabelEdgeIds.clear();
 				const visualScale = this.readVisualScale();
-				const snapshot =
-					this.createLabelControllerSnapshot(visualScale);
-				this.readLabelController()?.updateLabels(snapshot);
+				const snapshot = this.createLabelControllerSnapshot(
+					visualScale,
+					dirtyIds?.nodeIds,
+				);
+				this.readLabelController()?.updateLabels(snapshot, dirtyIds);
 			})
 			.catch((error) => {
 				console.error('[Meta Graph] G6 label update failed', error);
@@ -1043,6 +1076,7 @@ export class G6Renderer implements PlanarRenderer {
 
 	private createLabelControllerSnapshot(
 		visualScale: G6VisualScale = this.readVisualScale(),
+		styleNodeIds?: Iterable<string>,
 	): G6LabelControllerSnapshot {
 		return createG6LabelControllerSnapshot(
 			this.graph,
@@ -1053,6 +1087,7 @@ export class G6Renderer implements PlanarRenderer {
 			[this.hoveredNodeId, this.pinnedNodeId, this.selectedNodeId],
 			this.readTransientEdgeLabelElementIds(),
 			this.sceneCache,
+			styleNodeIds,
 		);
 	}
 
@@ -1115,7 +1150,11 @@ export class G6Renderer implements PlanarRenderer {
 			(previousNodeId && !visibleNodeIds.has(previousNodeId)) ||
 			(nextNodeId && !visibleNodeIds.has(nextNodeId))
 		) {
-			this.scheduleLabelSync();
+			this.scheduleLabelSync({
+				nodeIds: [previousNodeId, nextNodeId].filter(
+					(id): id is string => Boolean(id),
+				),
+			});
 		}
 	}
 
@@ -1127,8 +1166,32 @@ export class G6Renderer implements PlanarRenderer {
 			this.hasHiddenTransientEdgeLabel(previousEdgeId) ||
 			this.hasHiddenTransientEdgeLabel(nextEdgeId)
 		) {
-			this.scheduleLabelSync();
+			this.scheduleLabelSync({
+				edgeIds: this.readLogicalEdgeElementIds([
+					previousEdgeId,
+					nextEdgeId,
+				]),
+			});
 		}
+	}
+
+	private readLogicalEdgeElementIds(
+		logicalEdgeIds: Iterable<string | undefined>,
+	): Set<string> {
+		const elementIds = new Set<string>();
+		for (const logicalEdgeId of logicalEdgeIds) {
+			if (!logicalEdgeId) continue;
+			for (const runtimeEdgeId of this.sceneCache.runtimeEdgesByLogicalId.get(
+				logicalEdgeId,
+			) ?? []) {
+				elementIds.add(
+					this.sceneCache.edgeElementByRuntimeEdgeId.get(
+						runtimeEdgeId,
+					) ?? runtimeEdgeId,
+				);
+			}
+		}
+		return elementIds;
 	}
 
 	private hasHiddenTransientEdgeLabel(logicalEdgeId?: string): boolean {
@@ -1203,7 +1266,7 @@ export class G6Renderer implements PlanarRenderer {
 				(position) => this.viewportToGraphPosition(position),
 				() => this.readNodeVisualScale(),
 			);
-			this.groupLayer.setFocusedNode(this.getActiveHoverNodeId());
+			this.groupLayer.setFocusedNode(this.pinnedNodeId);
 		}
 		return this.groupLayer;
 	}
@@ -1315,12 +1378,39 @@ export class G6Renderer implements PlanarRenderer {
 				elementStates,
 			]),
 		);
-		void this.instance.setElementState(states, false).catch((error) => {
-			console.error(
-				'[Meta Graph] G6 interaction state update failed',
-				error,
-			);
-		});
+		this.enqueueInteractionStates(states);
+	}
+
+	private enqueueInteractionStates(states: Record<string, State[]>): void {
+		for (const [id, elementStates] of Object.entries(states))
+			this.pendingInteractionStates.set(id, elementStates);
+		this.flushInteractionStateQueue();
+	}
+
+	private flushInteractionStateQueue(): void {
+		if (
+			this.interactionStateInFlight ||
+			this.pendingInteractionStates.size === 0 ||
+			this.killed ||
+			this.isStale()
+		) {
+			return;
+		}
+		const states = Object.fromEntries(this.pendingInteractionStates);
+		this.pendingInteractionStates.clear();
+		this.interactionStateInFlight = true;
+		void this.instance
+			.setElementState(states, false)
+			.catch((error) => {
+				console.error(
+					'[Meta Graph] G6 interaction state update failed',
+					error,
+				);
+			})
+			.finally(() => {
+				this.interactionStateInFlight = false;
+				this.flushInteractionStateQueue();
+			});
 	}
 
 	private collectAffectedNodeIds(
@@ -1335,8 +1425,26 @@ export class G6Renderer implements PlanarRenderer {
 				for (const nodeId of this.sceneCache.renderedNodeIds)
 					affected.add(nodeId);
 			} else {
-				this.addNeighborhood(affected, previous.activeNodeId);
-				this.addNeighborhood(affected, next.activeNodeId);
+				affected.add(previous.activeNodeId);
+				affected.add(next.activeNodeId);
+				this.addSetDifference(
+					affected,
+					this.sceneCache.neighborNodeIdsByNode.get(
+						previous.activeNodeId,
+					),
+					this.sceneCache.neighborNodeIdsByNode.get(
+						next.activeNodeId,
+					),
+				);
+				this.addSetDifference(
+					affected,
+					this.sceneCache.neighborNodeIdsByNode.get(
+						next.activeNodeId,
+					),
+					this.sceneCache.neighborNodeIdsByNode.get(
+						previous.activeNodeId,
+					),
+				);
 			}
 		}
 		if (previous.selectedNodeId !== next.selectedNodeId) {
@@ -1361,8 +1469,20 @@ export class G6Renderer implements PlanarRenderer {
 				for (const edgeIds of this.sceneCache.runtimeEdgesByLogicalId.values())
 					for (const edgeId of edgeIds) affected.add(edgeId);
 			} else {
-				this.addInteractionEdges(affected, previous.activeNodeId);
-				this.addInteractionEdges(affected, next.activeNodeId);
+				this.addSetDifference(
+					affected,
+					this.sceneCache.incidentEdgesByNode.get(
+						previous.activeNodeId,
+					),
+					this.sceneCache.incidentEdgesByNode.get(next.activeNodeId),
+				);
+				this.addSetDifference(
+					affected,
+					this.sceneCache.incidentEdgesByNode.get(next.activeNodeId),
+					this.sceneCache.incidentEdgesByNode.get(
+						previous.activeNodeId,
+					),
+				);
 			}
 		}
 		if (previous.hoveredEdgeId !== next.hoveredEdgeId) {
@@ -1376,21 +1496,12 @@ export class G6Renderer implements PlanarRenderer {
 		return affected;
 	}
 
-	private addInteractionEdges(target: Set<string>, nodeId?: string): void {
-		if (!nodeId) return;
-		for (const edgeId of this.sceneCache.incidentEdgesByNode.get(nodeId) ??
-			[]) {
-			target.add(edgeId);
-		}
-	}
-
-	private addNeighborhood(target: Set<string>, nodeId?: string): void {
-		if (!nodeId) return;
-		for (const neighborId of this.sceneCache.neighborNodeIdsByNode.get(
-			nodeId,
-		) ?? []) {
-			target.add(neighborId);
-		}
+	private addSetDifference(
+		target: Set<string>,
+		left?: ReadonlySet<string>,
+		right?: ReadonlySet<string>,
+	): void {
+		for (const id of left ?? []) if (!right?.has(id)) target.add(id);
 	}
 
 	private getActiveHoverNodeId(): string | undefined {
@@ -1398,7 +1509,7 @@ export class G6Renderer implements PlanarRenderer {
 	}
 
 	private syncGroupFocus(): void {
-		this.groupLayer?.setFocusedNode(this.getActiveHoverNodeId());
+		this.groupLayer?.setFocusedNode(this.pinnedNodeId);
 	}
 
 	private addLogicalEdges(target: Set<string>, logicalEdgeId?: string): void {
@@ -1644,6 +1755,7 @@ function createG6LabelControllerSnapshot(
 	interactionNodeIds: readonly (string | undefined)[] = [],
 	interactionEdgeIds: Iterable<string> = [],
 	sceneCache?: G6SceneCache,
+	styleNodeIds?: Iterable<string>,
 ): G6LabelControllerSnapshot {
 	const nodeIds = new Set(labelVisibility?.nodeIds ?? []);
 	for (const nodeId of interactionNodeIds) {
@@ -1667,7 +1779,8 @@ function createG6LabelControllerSnapshot(
 		string,
 		ReturnType<typeof resolveG6RotatedNodeLabelStyle>
 	>();
-	for (const nodeId of nodeIds) {
+	for (const nodeId of styleNodeIds ?? nodeIds) {
+		if (!nodeIds.has(nodeId)) continue;
 		const attributes = graph.getNodeAttributes(nodeId);
 		const style = sceneCache
 			? sceneCache.getRotatedLabelStyle(

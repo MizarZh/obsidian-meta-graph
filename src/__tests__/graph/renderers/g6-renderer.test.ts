@@ -78,12 +78,12 @@ describe('G6 renderer', () => {
 		});
 		expect(graphOptions).not.toHaveProperty('layout');
 		expect(graphOptions).not.toHaveProperty('transforms');
-			expect(graphOptions?.data?.nodes?.[0]).toMatchObject({
-				id: 'A.md',
-				style: {
-					x: 10,
-					y: 20,
-					labelFontSize: 12,
+		expect(graphOptions?.data?.nodes?.[0]).toMatchObject({
+			id: 'A.md',
+			style: {
+				x: 10,
+				y: 20,
+				labelFontSize: 12,
 				labelFontWeight: 'normal',
 				labelFontStyle: 'normal',
 				labelPlacement: 'right',
@@ -554,7 +554,7 @@ describe('G6 renderer', () => {
 
 		renderer.setHovered('A.md');
 		await Promise.resolve();
-		expect(setFocusedNode).toHaveBeenLastCalledWith('A.md');
+		expect(setFocusedNode).toHaveBeenLastCalledWith(undefined);
 		const hoverStates = readLastStateMap(fake.setElementState);
 		expect(fake.setElementState).toHaveBeenLastCalledWith(
 			expect.any(Object),
@@ -575,10 +575,15 @@ describe('G6 renderer', () => {
 		expect(setFocusedNode).toHaveBeenLastCalledWith('A.md');
 		expect(fake.setElementState).toHaveBeenCalledTimes(hoverStateCount);
 		renderer.togglePinnedHover('A.md');
-		expect(setFocusedNode).toHaveBeenLastCalledWith('A.md');
+		expect(setFocusedNode).toHaveBeenLastCalledWith(undefined);
 		expect(fake.setElementState).toHaveBeenCalledTimes(hoverStateCount);
 
 		renderer.setSelectedEdge('logical-A-B');
+		await vi.waitFor(() =>
+			expect(readLastStateMap(fake.setElementState)['A-B']).toContain(
+				G6_INTERACTION_STATE.selected,
+			),
+		);
 		const edgeSelectionStates = readLastStateMap(fake.setElementState);
 		expect(edgeSelectionStates['A-B']).toEqual([
 			G6_INTERACTION_STATE.connected,
@@ -586,6 +591,11 @@ describe('G6 renderer', () => {
 		]);
 
 		renderer.setSelected('C.md');
+		await vi.waitFor(() =>
+			expect(readLastStateMap(fake.setElementState)['C.md']).toContain(
+				G6_INTERACTION_STATE.selected,
+			),
+		);
 		const nodeSelectionStates = readLastStateMap(fake.setElementState);
 		expect(nodeSelectionStates['C.md']).toEqual([
 			G6_INTERACTION_STATE.dimmed,
@@ -629,6 +639,38 @@ describe('G6 renderer', () => {
 		);
 
 		expect(fake.setElementState).toHaveBeenCalledOnce();
+	});
+
+	it('keeps one state draw in flight and replaces queued hover with latest state', async () => {
+		const fake = createFakeG6();
+		let releaseFirstStateDraw: (() => void) | undefined;
+		fake.setElementState.mockImplementationOnce(
+			() =>
+				new Promise<void>((resolve) => {
+					releaseFirstStateDraw = resolve;
+				}),
+		);
+		const renderer = await G6Renderer.create(
+			createOptions(createInteractiveGraph()),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		renderer.setHovered('A.md');
+		await vi.waitFor(() => expect(releaseFirstStateDraw).toBeDefined());
+		renderer.setHovered('B.md');
+		await Promise.resolve();
+		renderer.setHovered('C.md');
+		await Promise.resolve();
+		expect(fake.setElementState).toHaveBeenCalledOnce();
+
+		releaseFirstStateDraw?.();
+		await vi.waitFor(() =>
+			expect(fake.setElementState).toHaveBeenCalledTimes(2),
+		);
+		const finalStates = readLastStateMap(fake.setElementState);
+		expect(finalStates['C.md']).toEqual([G6_INTERACTION_STATE.hovered]);
+		expect(finalStates['A.md']).toEqual([G6_INTERACTION_STATE.dimmed]);
 	});
 
 	it('uses pinned-focus dimming for transient hover without a second full update when pinned', async () => {
@@ -775,8 +817,8 @@ describe('G6 renderer', () => {
 		expect(fake.updateData).not.toHaveBeenCalled();
 		expect(fake.draw).toHaveBeenCalledOnce();
 		const snapshot = fake.updateLabels.mock.calls[0]?.[0];
-			expect(snapshot?.nodeStyle).toMatchObject({
-				labelFontSize: 9,
+		expect(snapshot?.nodeStyle).toMatchObject({
+			labelFontSize: 9,
 			labelFontWeight: 'bold',
 			labelFontStyle: 'italic',
 			labelFill: '#fedcba',

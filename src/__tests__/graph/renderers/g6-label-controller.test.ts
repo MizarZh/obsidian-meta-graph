@@ -108,6 +108,30 @@ describe('G6 label controller', () => {
 		controller.destroy();
 	});
 
+	it('updates only dirty labels for transient interaction changes', () => {
+		const update = vi.fn();
+		const getElement = vi.fn(() => ({
+			attributes: {},
+			getLabelStyle: () => ({ fontSize: 9 }),
+			getShape: () => ({ update, setLocalScale: vi.fn() }),
+		}));
+		const controller = new G6LabelController(
+			{
+				graph: { on: vi.fn(), off: vi.fn() },
+				element: { getElement },
+			} as unknown as RuntimeContext,
+			{ type: G6_LABEL_CONTROLLER_KEY, snapshot: createSnapshot() },
+		);
+
+		controller.updateLabels(createSnapshot(), {
+			nodeIds: new Set(['A.md']),
+		});
+
+		expect(getElement).toHaveBeenCalledOnce();
+		expect(getElement).toHaveBeenCalledWith('A.md');
+		controller.destroy();
+	});
+
 	it('removes stale Arc and HEB label placement before resolving plain labels', () => {
 		const update = vi.fn();
 		const setLocalScale = vi.fn();

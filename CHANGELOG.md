@@ -27,7 +27,9 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
-- Matched G6 node hover to Sigma's temporary focus behavior: unrelated nodes and edges dim immediately, connected edges remain emphasized, and Group focus follows the hovered node without changing the persistent Space-pin state.
+- Matched G6 node hover to Sigma's temporary focus behavior: unrelated nodes and edges dim immediately, connected edges remain emphasized, and persistent Space-pin state remains unchanged.
+
+- Reduced G6 hover switching latency by applying node focus locally before workspace propagation, deduplicating repeated pointer samples, serializing state-stage draws with latest-state replacement, updating only neighborhood differences, and limiting transient label work to changed owners. Ordinary hover no longer refreshes Group overlays; pinned focus retains Group dimming.
 
 - Made G6 node and edge labels follow every zoom transform through cached label-shape scaling. Label size now changes continuously without full label-style resolution or a delayed post-zoom jump.
 
@@ -62,7 +64,7 @@ All notable changes to Meta Graph are documented here.
 
 - Unified G6 wheel zoom and canvas pan under one viewport animation-frame scheduler. Starting a canvas pan cancels pending wheel interpolation and prevents wheel input from reclaiming the camera until the drag ends. Zoom frames perform no label shape, graph data, or full draw updates; one delayed label sync restores final sizing and exact Arc/HEB placement after zoom settles.
 
-- Moved G6 node picking onto the scene grid index with one pointer-to-graph conversion and exact graph-space radius checks. Node hover leave now has an 80 ms handoff grace. Transient hover updates only the two local neighborhoods through G6's state draw stage and does not refresh the Group layer; pinned focus retains full-scene dimming and Group focus.
+- Moved G6 node picking onto the scene grid index with one pointer-to-graph conversion and exact graph-space radius checks. Node hover leave now has a 32 ms handoff grace. Transient hover updates only changed parts of the two local neighborhoods through G6's state draw stage and does not refresh the Group layer; pinned focus retains full-scene dimming and Group focus.
 
 - Added one per-scene G6 cache for rendered nodes, logical/runtime edges, incident neighborhoods, visible and rotated labels, graph extent, route point tiers, style signatures, and node spatial lookup. Style refreshes now submit only changed element IDs, hover reuses cached neighborhoods, fit/capture reuse the cached extent, routed-edge adapters reuse one logical index, and pointer hit tests no longer scan every node.
 

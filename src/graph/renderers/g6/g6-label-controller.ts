@@ -20,6 +20,11 @@ export interface G6LabelControllerSnapshot {
 	edgeStyle: G6EdgeStyle;
 }
 
+export interface G6LabelControllerDirtyIds {
+	nodeIds?: Iterable<string>;
+	edgeIds?: Iterable<string>;
+}
+
 interface G6LabelControllerOptions extends BasePluginOptions {
 	snapshot: G6LabelControllerSnapshot;
 }
@@ -57,10 +62,25 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 		context.graph.on(GraphEvent.AFTER_DRAW, this.handleAfterDraw);
 	}
 
-	updateLabels(snapshot: G6LabelControllerSnapshot): void {
-		this.snapshot = snapshot;
-		this.pruneLabelShapes();
-		this.applyIds(snapshot.nodeIds, snapshot.edgeIds);
+	updateLabels(
+		snapshot: G6LabelControllerSnapshot,
+		dirtyIds?: G6LabelControllerDirtyIds,
+	): void {
+		this.snapshot = dirtyIds
+			? mergeDirtyNodeStyles(this.snapshot, snapshot, dirtyIds.nodeIds)
+			: snapshot;
+		if (dirtyIds) {
+			this.pruneLabelShapes([
+				...(dirtyIds.nodeIds ?? []),
+				...(dirtyIds.edgeIds ?? []),
+			]);
+		} else {
+			this.pruneLabelShapes();
+		}
+		this.applyIds(
+			dirtyIds?.nodeIds ?? snapshot.nodeIds,
+			dirtyIds?.edgeIds ?? snapshot.edgeIds,
+		);
 	}
 
 	replaceSnapshot(snapshot: G6LabelControllerSnapshot): void {
@@ -133,13 +153,34 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 		label.setLocalScale(this.zoomScale);
 	}
 
-	private pruneLabelShapes(): void {
-		for (const id of this.labelShapes.keys()) {
-			if (!this.snapshot.nodeIds.has(id) && !this.snapshot.edgeIds.has(id)) {
+	private pruneLabelShapes(
+		ids: Iterable<string> = this.labelShapes.keys(),
+	): void {
+		for (const id of ids) {
+			if (
+				!this.snapshot.nodeIds.has(id) &&
+				!this.snapshot.edgeIds.has(id)
+			) {
 				this.labelShapes.delete(id);
 			}
 		}
 	}
+}
+
+function mergeDirtyNodeStyles(
+	previous: G6LabelControllerSnapshot,
+	next: G6LabelControllerSnapshot,
+	dirtyNodeIds: Iterable<string> = [],
+): G6LabelControllerSnapshot {
+	const nodeStyles = new Map(previous.nodeStyles);
+	for (const nodeId of nodeStyles.keys())
+		if (!next.nodeIds.has(nodeId)) nodeStyles.delete(nodeId);
+	for (const nodeId of dirtyNodeIds) {
+		const style = next.nodeStyles?.get(nodeId);
+		if (style) nodeStyles.set(nodeId, style);
+		else nodeStyles.delete(nodeId);
+	}
+	return { ...next, nodeStyles };
 }
 
 function readDataChanges(data: unknown): readonly unknown[] | undefined {

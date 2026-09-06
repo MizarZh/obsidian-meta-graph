@@ -89,6 +89,7 @@ export class G6GroupLayer {
 	private readonly halosByGroup = new Map<string, CachedHalo[]>();
 	private readonly members = new Map<string, Set<string>>();
 	private readonly regionElements = new Map<string, SVGElement[]>();
+	private readonly haloElements = new Map<string, SVGPathElement[]>();
 	private geometryDirty = true;
 	private renderQueued = false;
 	private transformQueued = false;
@@ -268,8 +269,9 @@ export class G6GroupLayer {
 	}
 	setFocusedNode(nodeId?: string): void {
 		if (this.focusedNodeId === nodeId) return;
+		const previousNodeId = this.focusedNodeId;
 		this.focusedNodeId = nodeId;
-		this.updateStates();
+		this.updateFocusStates(previousNodeId, nodeId);
 	}
 
 	update(): void {
@@ -303,6 +305,7 @@ export class G6GroupLayer {
 		this.halosByGroup.clear();
 		this.members.clear();
 		this.regionElements.clear();
+		this.haloElements.clear();
 	}
 
 	private scheduleRender(): void {
@@ -589,42 +592,46 @@ export class G6GroupLayer {
 		}
 	}
 
-	private applyRegionStates(): void {
-		for (const [groupId, elements] of this.regionElements)
-			for (const element of elements) {
-				element.classList.toggle(
-					'selected',
-					groupId === this.selectedGroupId,
-				);
-				element.classList.toggle(
-					'hovered',
-					groupId === this.hoveredGroupId,
-				);
-				element.classList.toggle(
-					'drop-target',
-					groupId === this.activeDropGroupId,
-				);
-				element.classList.toggle(
-					'muted-by-focus',
-					this.isMuted(groupId),
-				);
+	private applyRegionStates(groupIds?: ReadonlySet<string>): void {
+		for (const [groupId, elements] of this.regionElements) {
+			if (!groupIds || groupIds.has(groupId)) {
+				for (const element of elements) {
+					element.classList.toggle(
+						'selected',
+						groupId === this.selectedGroupId,
+					);
+					element.classList.toggle(
+						'hovered',
+						groupId === this.hoveredGroupId,
+					);
+					element.classList.toggle(
+						'drop-target',
+						groupId === this.activeDropGroupId,
+					);
+					element.classList.toggle(
+						'muted-by-focus',
+						this.isMuted(groupId),
+					);
+				}
 			}
+		}
 	}
 
 	private renderHalos(): void {
+		this.haloElements.clear();
 		const bounds =
 			this.halos.length >= HALO_CULL_THRESHOLD
 				? this.visibleBounds()
 				: undefined;
 		const detailed = this.halos.length <= HALO_DETAIL_LIMIT;
-		const active = new Set(
+		const active = new Set<string>(
 			[
 				this.selectedGroupId,
 				this.hoveredGroupId,
 				this.activeDropGroupId,
-				this.focusedGroup(),
 			].filter((id): id is string => Boolean(id)),
 		);
+		for (const groupId of this.focusedGroups()) active.add(groupId);
 		const candidates = detailed
 			? this.halos
 			: [...active].flatMap(
@@ -633,6 +640,7 @@ export class G6GroupLayer {
 		const batches = new Map<
 			string,
 			{
+				groupId: string;
 				color: string;
 				muted: boolean;
 				selected: boolean;
@@ -643,8 +651,9 @@ export class G6GroupLayer {
 			if (bounds && !circleIntersectsRect(halo, bounds)) continue;
 			const muted = this.isMuted(halo.groupId);
 			const selected = halo.groupId === this.selectedGroupId;
-			const key = `${halo.color}\0${muted}\0${selected}`;
+			const key = `${halo.groupId}\0${halo.color}\0${muted}\0${selected}`;
 			const batch = batches.get(key) ?? {
+				groupId: halo.groupId,
 				color: halo.color,
 				muted,
 				selected,
@@ -665,7 +674,43 @@ export class G6GroupLayer {
 			);
 			path.setAttribute('d', batch.paths.join(' '));
 			this.halosLayer.appendChild(path);
+			const elements = this.haloElements.get(batch.groupId) ?? [];
+			elements.push(path);
+			this.haloElements.set(batch.groupId, elements);
 		}
+	}
+
+	private updateFocusStates(
+		previousNodeId?: string,
+		nextNodeId?: string,
+	): void {
+		this.ensureCache();
+		const previousGroups = this.focusedGroups(previousNodeId);
+		const nextGroups = this.focusedGroups(nextNodeId);
+		const affected = new Set<string>();
+		if (!previousNodeId || !nextNodeId) {
+			for (const groupId of this.members.keys()) affected.add(groupId);
+			for (const groupId of this.regionElements.keys())
+				affected.add(groupId);
+			for (const groupId of this.haloElements.keys())
+				affected.add(groupId);
+		} else {
+			for (const groupId of previousGroups)
+				if (!nextGroups.has(groupId)) affected.add(groupId);
+			for (const groupId of nextGroups)
+				if (!previousGroups.has(groupId)) affected.add(groupId);
+		}
+		if (affected.size > 0) this.applyRegionStates(affected);
+		if (this.halos.length > HALO_DETAIL_LIMIT) {
+			this.renderHalos();
+			return;
+		}
+		for (const groupId of affected)
+			for (const element of this.haloElements.get(groupId) ?? [])
+				element.classList.toggle(
+					'muted-by-focus',
+					this.isMuted(groupId),
+				);
 	}
 
 	private updateStates(): void {
@@ -691,11 +736,12 @@ export class G6GroupLayer {
 			}
 	}
 
-	private focusedGroup(): string | undefined {
-		if (!this.focusedNodeId) return undefined;
+	private focusedGroups(nodeId = this.focusedNodeId): Set<string> {
+		const groups = new Set<string>();
+		if (!nodeId) return groups;
 		for (const [groupId, members] of this.members)
-			if (members.has(this.focusedNodeId)) return groupId;
-		return undefined;
+			if (members.has(nodeId)) groups.add(groupId);
+		return groups;
 	}
 
 	private isMuted(groupId: string): boolean {

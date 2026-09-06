@@ -35,6 +35,7 @@ describe('G6 events', () => {
 				return { x, y };
 			},
 			setHoveredEdge: vi.fn(),
+			setHovered: vi.fn(),
 			setHoveredGroup: vi.fn(),
 			panViewportBy,
 		} as unknown as G6Renderer;
@@ -83,6 +84,7 @@ describe('G6 events', () => {
 				return { x, y };
 			},
 			setHoveredEdge: vi.fn(),
+			setHovered: vi.fn(),
 			setHoveredGroup: vi.fn(),
 			panViewportBy: vi.fn(),
 		} as unknown as G6Renderer;
@@ -125,6 +127,7 @@ describe('G6 events', () => {
 		const emitter = createEmitter();
 		const togglePinnedHover = vi.fn();
 		const clearPinnedHover = vi.fn();
+		const setHovered = vi.fn();
 		const setHoveredEdge = vi.fn();
 		const setHoveredGroup = vi.fn();
 		const getNodeAtViewportPosition = vi
@@ -147,6 +150,7 @@ describe('G6 events', () => {
 				graph.getEdgeAttribute(edgeId, 'logicalEdgeId') ?? edgeId,
 			togglePinnedHover,
 			clearPinnedHover,
+			setHovered,
 			setHoveredEdge,
 			setHoveredGroup,
 			getNodeAtViewportPosition,
@@ -178,6 +182,8 @@ describe('G6 events', () => {
 		expect(togglePinnedHover).toHaveBeenCalledWith('A');
 		expect(callbackHarness.onHover).toHaveBeenNthCalledWith(1, 'A');
 		expect(callbackHarness.onHover).toHaveBeenNthCalledWith(2, undefined);
+		expect(setHovered).toHaveBeenNthCalledWith(1, 'A');
+		expect(setHovered).toHaveBeenNthCalledWith(2, undefined);
 		expect(getNodeAtViewportPosition).toHaveBeenNthCalledWith(1, {
 			x: 12,
 			y: 24,
@@ -272,6 +278,22 @@ describe('G6 events', () => {
 		expect(callbackHarness.onSelect).not.toHaveBeenCalledWith(undefined);
 	});
 
+	it('applies node hover locally and ignores repeated pointer samples', () => {
+		const emitter = createEmitter();
+		const renderer = createRenderer(createGraph(), emitter.instance);
+		const setHovered = vi.fn();
+		renderer.setHovered = setHovered;
+		renderer.getNodeAtViewportPosition = vi.fn(() => 'A');
+		const callbackHarness = createCallbacks();
+		bindG6Events(renderer, callbackHarness.callbacks);
+
+		emitter.emit(CommonEvent.POINTER_MOVE, pointerEvent('canvas'));
+		emitter.emit(CommonEvent.POINTER_MOVE, pointerEvent('canvas'));
+
+		expect(setHovered).toHaveBeenCalledExactlyOnceWith('A');
+		expect(callbackHarness.onHover).toHaveBeenCalledExactlyOnceWith('A');
+	});
+
 	it('opens on double click and clears selection on canvas click', () => {
 		const emitter = createEmitter();
 		const renderer = createRenderer(createGraph(), emitter.instance);
@@ -318,8 +340,7 @@ describe('G6 events', () => {
 
 		emitter.emit(CommonEvent.DRAG_END, pointerEvent('canvas'));
 		expect(endViewportPan).toHaveBeenCalledOnce();
-		expect(callbackHarness.onHover).toHaveBeenCalledOnce();
-		expect(callbackHarness.onHover).toHaveBeenCalledWith(undefined);
+		expect(callbackHarness.onHover).not.toHaveBeenCalled();
 	});
 });
 
@@ -393,6 +414,7 @@ function createRenderer(
 		getLogicalEdgeId: (edgeId: string) => edgeId,
 		togglePinnedHover: vi.fn(),
 		clearPinnedHover: vi.fn(),
+		setHovered: vi.fn(),
 		setHoveredEdge: vi.fn(),
 		setHoveredGroup: vi.fn(),
 		beginViewportPan: vi.fn(),

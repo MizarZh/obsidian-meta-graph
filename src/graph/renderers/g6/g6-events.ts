@@ -21,6 +21,7 @@ export function bindG6Events(
 ): () => void {
 	const graph = renderer.instance;
 	let connectionDrag: ConnectionDragState | undefined;
+	let hoveredNodeId: string | undefined;
 	let hoveredEdgeId: string | undefined;
 	let viewportDragging = false;
 	let nodeDrag:
@@ -118,6 +119,14 @@ export function bindG6Events(
 		hoveredEdgeId = undefined;
 		renderer.setHoveredEdge(undefined);
 	};
+	const updateHoveredNode = (nodeId?: string): void => {
+		if (hoveredNodeId === nodeId) return;
+		hoveredNodeId = nodeId;
+		// Apply local focus before workspace propagation. Workspace may echo the
+		// value synchronously; G6Renderer deduplicates that second call.
+		renderer.setHovered(nodeId);
+		callbacks.onHover(nodeId);
+	};
 
 	const pointerDownNode = (event: IElementEvent): void => {
 		if (
@@ -195,7 +204,7 @@ export function bindG6Events(
 			if (viewportDragging) return;
 			const position = readViewportPosition(event);
 			const nodeId = renderer.getNodeAtViewportPosition(position);
-			callbacks.onHover(nodeId);
+			updateHoveredNode(nodeId);
 			const hasElementTarget = Boolean(
 				nodeId || event.targetType === 'edge',
 			);
@@ -234,7 +243,7 @@ export function bindG6Events(
 		if (!viewportDragging) return;
 		viewportDragging = false;
 		renderer.endViewportPan();
-		callbacks.onHover(undefined);
+		updateHoveredNode(undefined);
 		hoveredEdgeId = undefined;
 		renderer.setHoveredEdge(undefined);
 		renderer.setHoveredGroup(
@@ -318,6 +327,8 @@ export function bindG6Events(
 		if (viewportDragging) renderer.endViewportPan();
 		viewportDragging = false;
 		callbacks.onConnectionDrag?.(undefined);
+		if (hoveredNodeId !== undefined) renderer.setHovered(undefined);
+		hoveredNodeId = undefined;
 		renderer.setHoveredEdge(undefined);
 		renderer.setHoveredGroup(undefined);
 		graph.off(NodeEvent.CLICK, clickNode);
