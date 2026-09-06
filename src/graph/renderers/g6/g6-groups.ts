@@ -3,6 +3,7 @@ import type { RuntimeGraph } from '../../model/graphology-adapter';
 import {
 	isGraphPointInLayoutGroup,
 	scaleLayoutGroupPadding,
+	type ArcGroupGeometry,
 	type FlowGroupGeometry,
 	type LayoutGroupGeometry,
 	type RadialGroupGeometry,
@@ -18,6 +19,16 @@ import type {
 	GroupInteractionCallbacks,
 	GroupOverlayGroup,
 } from '../renderer-groups';
+import {
+	GROUP_MEMBER_HALO_GAP,
+	GROUP_TITLE_BACKGROUND_OPACITY,
+	GROUP_TITLE_FONT_SIZE,
+	GROUP_TITLE_FONT_WEIGHT,
+	GROUP_TITLE_HEIGHT,
+	GROUP_TITLE_HORIZONTAL_PADDING,
+	resolveGroupHaloVisualStyle,
+	resolveGroupRegionVisualStyle,
+} from '../group-visual-style';
 
 interface G6GroupViewport {
 	on(event: GraphEvent, listener: () => void): unknown;
@@ -413,42 +424,94 @@ export class G6GroupLayer {
 			});
 		}
 		const graph = this.getGraph();
+		const haloKeys = new Set<string>();
 		for (const geometry of this.geometries) {
-			if (geometry.kind === 'flow-container') {
-				const rect = {
-					left: geometry.x,
-					top: geometry.y,
-					width: geometry.width,
-					height: geometry.height,
-				};
-				this.regions.push({
-					groupId: geometry.groupId,
-					name: geometry.name,
-					color: geometry.color,
-					shape: 'rect',
-					rect,
-					title: createG6GroupTitlePosition(
+			switch (geometry.kind) {
+				case 'flow-container': {
+					const rect = {
+						left: geometry.x,
+						top: geometry.y,
+						width: geometry.width,
+						height: geometry.height,
+					};
+					this.regions.push({
+						groupId: geometry.groupId,
+						name: geometry.name,
+						color: geometry.color,
+						shape: 'rect',
 						rect,
+						title: createG6GroupTitlePosition(
+							rect,
+							uiScale,
+							invertTextY,
+						),
 						uiScale,
 						invertTextY,
-					),
-					uiScale,
-					invertTextY,
-				});
-			} else if (geometry.kind === 'radial-sector') {
-				const shape = createRadialSectorGraphShape(geometry);
-				this.regions.push({
-					groupId: geometry.groupId,
-					name: geometry.name,
-					color: geometry.color,
-					shape: 'path',
-					points: shape.points,
-					title: shape.label,
-					uiScale,
-					invertTextY,
-				});
+					});
+					break;
+				}
+				case 'arc-band': {
+					const shape = createArcBandGraphShape(
+						geometry,
+						12 * uiScale,
+					);
+					this.regions.push({
+						groupId: geometry.groupId,
+						name: geometry.name,
+						color: geometry.color,
+						shape: 'path',
+						points: shape.points,
+						title: shape.label,
+						uiScale,
+						invertTextY,
+					});
+					break;
+				}
+				case 'radial-sector': {
+					const shape = createRadialSectorGraphShape(geometry);
+					this.regions.push({
+						groupId: geometry.groupId,
+						name: geometry.name,
+						color: geometry.color,
+						shape: 'path',
+						points: shape.points,
+						title: shape.label,
+						uiScale,
+						invertTextY,
+					});
+					break;
+				}
+				case 'graph-container': {
+					const rect = this.readDynamicNodeRect(
+						geometry.nodeIds,
+						geometry.padding,
+						geometry.name,
+						'rectangle',
+					);
+					this.regions.push({
+						groupId: geometry.groupId,
+						name: geometry.name,
+						color: geometry.color,
+						shape: 'rect',
+						rect,
+						title: createG6GroupTitlePosition(
+							rect,
+							uiScale,
+							invertTextY,
+						),
+						uiScale,
+						invertTextY,
+					});
+					break;
+				}
+				case 'member-halos':
+					break;
+				default:
+					assertNever(geometry);
 			}
 			for (const nodeId of geometry.nodeIds) {
+				const haloKey = `${geometry.groupId}\0${nodeId}`;
+				if (haloKeys.has(haloKey)) continue;
 				if (!graph.hasNode(nodeId)) continue;
 				const attributes = graph.getNodeAttributes(nodeId);
 				if (attributes.hidden || attributes.isBend) continue;
@@ -458,12 +521,15 @@ export class G6GroupLayer {
 					groupId: geometry.groupId,
 					color: geometry.color,
 					...position,
-					radius: Math.max(
-						4 / scale,
-						(attributes.size * this.getNodeVisualScale() + 3) /
-							scale,
-					),
+					radius:
+						(Math.max(
+							0,
+							attributes.size * this.getNodeVisualScale(),
+						) +
+							GROUP_MEMBER_HALO_GAP) /
+						scale,
 				};
+				haloKeys.add(haloKey);
 				this.halos.push(halo);
 				const groupHalos =
 					this.halosByGroup.get(geometry.groupId) ?? [];
@@ -474,15 +540,27 @@ export class G6GroupLayer {
 	}
 
 	private readDynamicGroupRect(group: GroupOverlayGroup): ViewportGroupRect {
+		return this.readDynamicNodeRect(
+			group.dynamicNodeIds ?? [],
+			group.padding,
+			group.name,
+			group.shape,
+		);
+	}
+
+	private readDynamicNodeRect(
+		nodeIds: readonly string[],
+		paddingValue: number,
+		name: string,
+		shape: GroupOverlayGroup['shape'],
+	): ViewportGroupRect {
 		const graph = this.getGraph();
 		const viewportScale = readUniformViewportScale(
 			createGraphViewportMatrix(this.graphToViewport),
 		);
 		const visualScale = this.getNodeVisualScale();
 		const unit = visualScale / viewportScale;
-		const nodes: ViewportCircleMember[] = (
-			group.dynamicNodeIds ?? []
-		).flatMap((nodeId) => {
+		const nodes: ViewportCircleMember[] = nodeIds.flatMap((nodeId) => {
 			if (!graph.hasNode(nodeId)) return [];
 			const attributes = graph.getNodeAttributes(nodeId);
 			const position = this.getNodePosition(nodeId);
@@ -492,8 +570,8 @@ export class G6GroupLayer {
 			];
 		});
 		if (!nodes.length) return emptyRect();
-		const padding = scaleLayoutGroupPadding(group.padding) * 40;
-		if (group.shape === 'circle')
+		const padding = scaleLayoutGroupPadding(paddingValue) * 40;
+		if (shape === 'circle')
 			return fitViewportCircle(nodes, (8 + padding * 0.5) * unit);
 		const xPad = (12 + padding) * unit;
 		const topPad = (24 + padding) * unit;
@@ -506,7 +584,9 @@ export class G6GroupLayer {
 			Math.min(...nodes.map((node) => node.y - node.radius)) - topPad;
 		const bottom =
 			Math.max(...nodes.map((node) => node.y + node.radius)) + bottomPad;
-		const minWidth = Math.min(220, group.name.length * 6.5 + 20) * unit;
+		const minWidth =
+			Math.min(220, name.length * 6.5 + GROUP_TITLE_HORIZONTAL_PADDING) *
+			unit;
 		if (right - left < minWidth) {
 			const extra = (minWidth - right + left) / 2;
 			left -= extra;
@@ -544,7 +624,6 @@ export class G6GroupLayer {
 		const stateStyle = this.resolveRegionStyle(
 			region.groupId,
 			region.color,
-			scale,
 		);
 		if (region.shape === 'path') {
 			return this.sceneDocument.createElement('path', {
@@ -588,20 +667,25 @@ export class G6GroupLayer {
 	): void {
 		const point = this.graphToCanvas(region.title);
 		const scale = region.uiScale * this.readGraphToCanvasScale();
-		const width = Math.min(220, region.name.length * 6.5 + 20) * scale;
+		const width =
+			Math.min(
+				220,
+				region.name.length * 6.5 + GROUP_TITLE_HORIZONTAL_PADDING,
+			) * scale;
 		wrapper.appendChild(
 			this.sceneDocument.createElement('rect', {
 				style: {
 					x: point.x - width / 2,
-					y: point.y - 10 * scale,
+					y: point.y - (GROUP_TITLE_HEIGHT / 2) * scale,
 					width,
-					height: 18 * scale,
-					radius: 9 * scale,
+					height: GROUP_TITLE_HEIGHT * scale,
+					radius: (GROUP_TITLE_HEIGHT / 2) * scale,
 					fill: this.readBackgroundColor(),
-					fillOpacity: 0.94,
+					fillOpacity: GROUP_TITLE_BACKGROUND_OPACITY,
 					stroke: region.color,
 					strokeOpacity: 0.22,
-					lineWidth: scale,
+					lineWidth: 1,
+					isSizeAttenuation: true,
 					pointerEvents: 'none',
 				},
 			}),
@@ -613,8 +697,9 @@ export class G6GroupLayer {
 					y: point.y,
 					text: region.name,
 					fill: region.color,
-					fontSize: 11 * scale,
-					fontWeight: 600,
+					fontSize: GROUP_TITLE_FONT_SIZE * scale,
+					fontWeight: GROUP_TITLE_FONT_WEIGHT,
+					fontFamily: this.readFontFamily(),
 					textAlign: 'center',
 					textBaseline: 'middle',
 					pointerEvents: 'none',
@@ -648,7 +733,7 @@ export class G6GroupLayer {
 						r: 6 * scale,
 						fill: this.readBackgroundColor(),
 						stroke: region.color,
-						lineWidth: scale,
+						lineWidth: 1,
 						opacity: selected ? 1 : 0,
 						pointerEvents: 'none',
 					},
@@ -716,14 +801,17 @@ export class G6GroupLayer {
 			'transform',
 			`translate(${region.title.x} ${region.title.y}) scale(${region.uiScale} ${region.invertTextY ? -region.uiScale : region.uiScale})`,
 		);
-		const width = Math.min(220, region.name.length * 6.5 + 20);
+		const width = Math.min(
+			220,
+			region.name.length * 6.5 + GROUP_TITLE_HORIZONTAL_PADDING,
+		);
 		const background = this.svg('rect');
 		background.classList.add('knowledge-workspace-g6-svg-title-background');
 		background.setAttribute('x', String(-width / 2));
-		background.setAttribute('y', '-10');
+		background.setAttribute('y', String(-GROUP_TITLE_HEIGHT / 2));
 		background.setAttribute('width', String(width));
-		background.setAttribute('height', '18');
-		background.setAttribute('rx', '9');
+		background.setAttribute('height', String(GROUP_TITLE_HEIGHT));
+		background.setAttribute('rx', String(GROUP_TITLE_HEIGHT / 2));
 		const text = this.svg('text');
 		text.classList.add('knowledge-workspace-g6-svg-title-text');
 		text.setAttribute('x', '0');
@@ -779,15 +867,17 @@ export class G6GroupLayer {
 				);
 				if (!region) continue;
 				for (const element of elements) {
+					const style = resolveGroupRegionVisualStyle({
+						selected: groupId === this.selectedGroupId,
+						hovered: groupId === this.hoveredGroupId,
+						dropTarget: groupId === this.activeDropGroupId,
+						muted: this.isMuted(groupId),
+					});
 					element.wrapper.setAttributes({
-						opacity: this.isMuted(groupId) ? 0.58 : 1,
+						opacity: style.opacity,
 					});
 					element.shape.setAttributes(
-						this.resolveRegionStyle(
-							groupId,
-							region.color,
-							this.readGraphToCanvasScale(),
-						),
+						this.resolveRegionStyle(groupId, region.color),
 					);
 				}
 			}
@@ -826,18 +916,21 @@ export class G6GroupLayer {
 				color: string;
 				muted: boolean;
 				selected: boolean;
+				hovered: boolean;
 				paths: string[];
 			}
 		>();
 		for (const halo of candidates) {
 			const muted = this.isMuted(halo.groupId);
 			const selected = halo.groupId === this.selectedGroupId;
-			const key = `${halo.groupId}\0${halo.color}\0${muted}\0${selected}`;
+			const hovered = halo.groupId === this.hoveredGroupId;
+			const key = `${halo.groupId}\0${halo.color}\0${muted}\0${selected}\0${hovered}`;
 			const batch = batches.get(key) ?? {
 				groupId: halo.groupId,
 				color: halo.color,
 				muted,
 				selected,
+				hovered,
 				paths: [],
 			};
 			const point = this.graphToCanvas(halo);
@@ -856,15 +949,16 @@ export class G6GroupLayer {
 		this.canvasRoot.appendChild(halos);
 		this.canvasHalos = halos;
 		for (const batch of batches.values()) {
-			const scale = this.readGraphToCanvasScale();
+			const style = resolveGroupHaloVisualStyle(batch);
 			const path = this.sceneDocument.createElement('path', {
 				style: {
 					d: batch.paths.join(' '),
 					fill: 'none',
 					stroke: batch.color,
-					strokeOpacity: batch.selected ? 0.9 : 0.72,
-					lineWidth: (batch.selected ? 3 : 2) * scale,
-					opacity: batch.muted ? 0.32 : 1,
+					strokeOpacity: style.strokeOpacity,
+					lineWidth: style.lineWidth,
+					opacity: style.opacity,
+					isSizeAttenuation: true,
 					pointerEvents: 'none',
 				},
 			});
@@ -903,7 +997,9 @@ export class G6GroupLayer {
 		for (const groupId of affected)
 			for (const element of this.haloElements.get(groupId) ?? [])
 				element.setAttributes({
-					opacity: this.isMuted(groupId) ? 0.32 : 1,
+					opacity: resolveGroupHaloVisualStyle({
+						muted: this.isMuted(groupId),
+					}).opacity,
 				});
 	}
 
@@ -948,31 +1044,23 @@ export class G6GroupLayer {
 	private resolveRegionStyle(
 		groupId: string,
 		color: string,
-		canvasScale: number,
 	): Record<string, unknown> {
 		const selected = groupId === this.selectedGroupId;
 		const hovered = groupId === this.hoveredGroupId;
 		const dropTarget = groupId === this.activeDropGroupId;
+		const style = resolveGroupRegionVisualStyle({
+			selected,
+			hovered,
+			dropTarget,
+			muted: this.isMuted(groupId),
+		});
 		return {
 			fill: dropTarget ? this.readAccentColor() : color,
-			fillOpacity: dropTarget
-				? 0.18
-				: selected
-					? 0.12
-					: hovered
-						? 0.08
-						: 0.06,
+			fillOpacity: style.fillOpacity,
 			stroke: dropTarget ? this.readAccentColor() : color,
-			strokeOpacity: dropTarget
-				? 1
-				: selected
-					? 0.9
-					: hovered
-						? 0.8
-						: 0.55,
-			lineWidth:
-				(dropTarget ? 2.5 : selected ? 2 : hovered ? 1.75 : 1.5) *
-				canvasScale,
+			strokeOpacity: style.strokeOpacity,
+			lineWidth: style.lineWidth,
+			isSizeAttenuation: true,
 			pointerEvents: 'none',
 		};
 	}
@@ -1009,6 +1097,13 @@ export class G6GroupLayer {
 
 	private readAccentColor(): string {
 		return this.readCssColor('--interactive-accent', '#7c6cff');
+	}
+
+	private readFontFamily(): string {
+		return (
+			this.activeDocument.defaultView?.getComputedStyle(this.container)
+				.fontFamily || 'sans-serif'
+		);
 	}
 
 	private readCssColor(property: string, fallback: string): string {
@@ -1203,6 +1298,32 @@ export function createFlowContainerViewportRect(
 	};
 }
 
+export function createArcBandGraphShape(
+	geometry: ArcGroupGeometry,
+	labelOffset = 0,
+): Pick<RadialSectorViewportShape, 'points' | 'label'> {
+	const start = arcAxisPoint(geometry.direction, geometry.start);
+	const end = arcAxisPoint(geometry.direction, geometry.end);
+	const center = arcAxisPoint(
+		geometry.direction,
+		(geometry.start + geometry.end) / 2,
+	);
+	const outward = arcOutwardVector(geometry.direction);
+	const cross = scalePoint(outward, geometry.halfWidth);
+	return {
+		points: [
+			addPoint(start, cross),
+			addPoint(end, cross),
+			addPoint(end, scalePoint(cross, -1)),
+			addPoint(start, scalePoint(cross, -1)),
+		],
+		label: addPoint(
+			center,
+			scalePoint(outward, geometry.halfWidth + labelOffset),
+		),
+	};
+}
+
 function createRadialSectorGraphShape(
 	geometry: RadialGroupGeometry,
 ): Pick<RadialSectorViewportShape, 'points' | 'label'> {
@@ -1252,6 +1373,49 @@ function radialPoint(angle: number, radius: number): { x: number; y: number } {
 		x: Math.cos(angle - Math.PI / 2) * radius,
 		y: Math.sin(angle - Math.PI / 2) * radius,
 	};
+}
+
+function arcAxisPoint(
+	direction: ArcGroupGeometry['direction'],
+	axis: number,
+): { x: number; y: number } {
+	return direction === 'right' || direction === 'left'
+		? { x: 0, y: axis }
+		: { x: axis, y: 0 };
+}
+
+function arcOutwardVector(direction: ArcGroupGeometry['direction']): {
+	x: number;
+	y: number;
+} {
+	switch (direction) {
+		case 'right':
+			return { x: -1, y: 0 };
+		case 'left':
+			return { x: 1, y: 0 };
+		case 'up':
+			return { x: 0, y: -1 };
+		case 'down':
+			return { x: 0, y: 1 };
+	}
+}
+
+function addPoint(
+	left: { x: number; y: number },
+	right: { x: number; y: number },
+): { x: number; y: number } {
+	return { x: left.x + right.x, y: left.y + right.y };
+}
+
+function scalePoint(
+	point: { x: number; y: number },
+	amount: number,
+): { x: number; y: number } {
+	return { x: point.x * amount, y: point.y * amount };
+}
+
+function assertNever(value: never): never {
+	throw new Error(`Unsupported Group geometry: ${String(value)}`);
 }
 
 function createClosedPathData(points: Array<{ x: number; y: number }>): string {

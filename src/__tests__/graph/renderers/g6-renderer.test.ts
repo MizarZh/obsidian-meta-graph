@@ -438,11 +438,47 @@ describe('G6 renderer', () => {
 				height: 60,
 			},
 		]);
-		await vi.waitFor(() =>
-			expect(fake.backgroundRoot.children.length).toBeGreaterThan(0),
-		);
+		renderer.setLayoutGroupGeometries([
+			{
+				kind: 'member-halos',
+				groupId: 'group-1',
+				name: 'Group 1',
+				color: '#7567f8',
+				nodeIds: ['A.md', 'B.md'],
+			},
+		]);
+		await vi.waitFor(() => {
+			const elements = flattenFakeScene(fake.backgroundRoot);
+			expect(
+				elements.some((element) => element.style.fillOpacity === 0.06),
+			).toBe(true);
+			expect(
+				elements.some(
+					(element) =>
+						element.style.fill === 'none' &&
+						element.style.strokeOpacity === 0.65,
+				),
+			).toBe(true);
+		});
 		const sceneRoot = fake.backgroundRoot.children[0];
 		const sceneChildren = sceneRoot?.children.length;
+		const sceneElements = flattenFakeScene(fake.backgroundRoot);
+		const region = sceneElements.find(
+			(element) => element.style.fillOpacity === 0.06,
+		);
+		const halo = sceneElements.find(
+			(element) =>
+				element.style.fill === 'none' &&
+				element.style.strokeOpacity === 0.65,
+		);
+		expect(region?.style).toMatchObject({
+			lineWidth: 1.5,
+			isSizeAttenuation: true,
+		});
+		expect(halo?.style).toMatchObject({
+			lineWidth: 1.5,
+			isSizeAttenuation: true,
+		});
 
 		fake.emitTransform();
 		await Promise.resolve();
@@ -1215,6 +1251,10 @@ interface FakeSceneElement {
 	appendChild(child: FakeSceneElement): FakeSceneElement;
 	destroy: ReturnType<typeof vi.fn>;
 	setAttributes(attributes: Record<string, unknown>): void;
+}
+
+function flattenFakeScene(root: FakeSceneElement): FakeSceneElement[] {
+	return [root, ...root.children.flatMap(flattenFakeScene)];
 }
 
 function createFakeG6(afterDraw?: () => void) {

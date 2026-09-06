@@ -10,8 +10,34 @@ import { G6_LOGICAL_EDGE_TYPE } from '../../../graph/renderers/g6/g6-logical-edg
 import { createG6CoordinateSpace } from '../../../graph/renderers/g6/g6-coordinate-space';
 import type { GraphPalette } from '../../../graph/styles/graph-styles';
 import { ArcLayout } from '../../../layouts/arc-layout';
+import { createArcBandGraphShape } from '../../../graph/renderers/g6/g6-groups';
 
 describe('G6 Arc adapter', () => {
+	it('creates the complete Arc Group band and outward title anchor', () => {
+		const shape = createArcBandGraphShape(
+			{
+				kind: 'arc-band',
+				groupId: 'group-1',
+				name: 'Group 1',
+				color: '#7654ff',
+				nodeIds: ['A.md', 'B.md'],
+				direction: 'right',
+				start: 10,
+				end: 30,
+				halfWidth: 5,
+			},
+			2,
+		);
+
+		expect(shape.points).toEqual([
+			{ x: -5, y: 10 },
+			{ x: -5, y: 30 },
+			{ x: 5, y: 30 },
+			{ x: 5, y: 10 },
+		]);
+		expect(shape.label).toEqual({ x: -7, y: 20 });
+	});
+
 	it('collapses Arc bend segments into one layout-owned logical edge', async () => {
 		const graph = createGraph();
 		const layout = new ArcLayout(1, 'right');

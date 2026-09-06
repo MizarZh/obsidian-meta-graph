@@ -27,6 +27,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Unified Group region, title, and member-halo styling across Sigma and G6. G6 now renders Arc band regions, keeps Group strokes in CSS-pixel units instead of coordinate-normalized units, and deduplicates member halos.
+
 - Moved visible G6 Group regions, titles, resize handles, and member halos into G6's background Canvas scene, so they share the exact camera and presentation frame with nodes and edges during zoom and pan. The external SVG now contains only transparent manual-movement hit targets.
 
 - Matched G6 node hover to Sigma's temporary focus behavior: unrelated nodes and edges dim immediately, connected edges remain emphasized, and persistent Space-pin state remains unchanged.

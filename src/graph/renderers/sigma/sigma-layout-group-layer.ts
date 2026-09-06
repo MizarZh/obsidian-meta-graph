@@ -13,9 +13,19 @@ import type {
 import { scaleLayoutGroupPadding } from '../../../layouts/group-geometry';
 import { isGraphPointInLayoutGroup } from '../../../layouts/group-geometry';
 import { CanvasTextWidthCache } from './canvas-text-metrics';
+import {
+	GROUP_FOCUS_MUTED_OPACITY,
+	GROUP_MEMBER_HALO_GAP,
+	GROUP_TITLE_BACKGROUND_OPACITY,
+	GROUP_TITLE_FONT_SIZE,
+	GROUP_TITLE_FONT_WEIGHT,
+	GROUP_TITLE_HEIGHT,
+	GROUP_TITLE_HORIZONTAL_PADDING,
+	resolveGroupHaloVisualStyle,
+	resolveGroupRegionVisualStyle,
+} from '../group-visual-style';
 
 const LAYER_ID = 'layout-groups';
-const GROUP_MEMBER_HALO_GAP = 2.5;
 const RADIAL_GROUP_LABEL_INSET = 15;
 
 interface Point {
@@ -125,7 +135,6 @@ export class LayoutGroupLayer {
 		for (const geometry of this.geometries) {
 			this.context.save();
 			if (this.isMutedByFocus(geometry)) {
-				this.context.globalAlpha = 0.38;
 				this.context.filter = 'grayscale(1) saturate(0)';
 			}
 			try {
@@ -216,6 +225,7 @@ export class LayoutGroupLayer {
 			add(opposite, scale(normal, 12)),
 			0,
 			geometry.color,
+			this.isMutedByFocus(geometry),
 		);
 	}
 
@@ -269,7 +279,13 @@ export class LayoutGroupLayer {
 		const labelBase = this.sigma.graphToViewport(
 			radialPoint(middleAngle, labelRadius),
 		);
-		this.drawLabel(geometry.name, labelBase, 0, geometry.color);
+		this.drawLabel(
+			geometry.name,
+			labelBase,
+			0,
+			geometry.color,
+			this.isMutedByFocus(geometry),
+		);
 	}
 
 	private drawFlowContainer(geometry: FlowGroupGeometry): void {
@@ -328,6 +344,7 @@ export class LayoutGroupLayer {
 			add(edgeCenter, scale(inward, 13)),
 			0,
 			geometry.color,
+			this.isMutedByFocus(geometry),
 		);
 	}
 
@@ -377,6 +394,7 @@ export class LayoutGroupLayer {
 			{ x: (left + right) / 2, y: top + 11 },
 			0,
 			geometry.color,
+			this.isMutedByFocus(geometry),
 		);
 	}
 
@@ -386,6 +404,7 @@ export class LayoutGroupLayer {
 			geometry.color,
 			this.isSelected(geometry),
 			this.isHovered(geometry),
+			this.isMutedByFocus(geometry),
 		);
 	}
 
@@ -421,11 +440,17 @@ export class LayoutGroupLayer {
 		color: string,
 		selected = false,
 		hovered = false,
+		muted = false,
 	): void {
+		const style = resolveGroupHaloVisualStyle({
+			selected,
+			hovered,
+			muted,
+		});
 		this.context.save();
-		this.context.globalAlpha = selected ? 1 : hovered ? 0.85 : 0.65;
+		this.context.globalAlpha = style.strokeOpacity * style.opacity;
 		this.context.strokeStyle = color;
-		this.context.lineWidth = selected ? 2.5 : hovered ? 2 : 1.5;
+		this.context.lineWidth = style.lineWidth;
 		for (const node of nodes) {
 			this.context.beginPath();
 			this.context.arc(
@@ -449,34 +474,32 @@ export class LayoutGroupLayer {
 	}
 
 	private regionFillOpacity(geometry: LayoutGroupGeometry): number {
-		return this.isSelected(geometry)
-			? 0.12
-			: this.isHovered(geometry)
-				? 0.08
-				: 0.06;
+		const style = this.resolveRegionStyle(geometry);
+		return style.fillOpacity * style.opacity;
 	}
 
 	private regionStrokeOpacity(geometry: LayoutGroupGeometry): number {
-		return this.isSelected(geometry)
-			? 0.9
-			: this.isHovered(geometry)
-				? 0.8
-				: 0.55;
+		const style = this.resolveRegionStyle(geometry);
+		return style.strokeOpacity * style.opacity;
 	}
 
 	private regionLineWidth(geometry: LayoutGroupGeometry): number {
-		return this.isSelected(geometry)
-			? 2
-			: this.isHovered(geometry)
-				? 1.75
-				: 1.5;
+		return this.resolveRegionStyle(geometry).lineWidth;
+	}
+
+	private resolveRegionStyle(geometry: LayoutGroupGeometry) {
+		return resolveGroupRegionVisualStyle({
+			selected: this.isSelected(geometry),
+			hovered: this.isHovered(geometry),
+			muted: this.isMutedByFocus(geometry),
+		});
 	}
 
 	private measureLabelWidth(text: string): number {
 		return this.textWidthCache.measure(this.context, text, {
 			family: this.labelStyle.fontFamily,
-			weight: 600,
-			size: 11,
+			weight: GROUP_TITLE_FONT_WEIGHT,
+			size: GROUP_TITLE_FONT_SIZE,
 		});
 	}
 
@@ -485,19 +508,27 @@ export class LayoutGroupLayer {
 		position: Point,
 		rotation: number,
 		color: string,
+		muted = false,
 	): void {
 		const normalizedRotation = keepTextUpright(rotation);
 		this.context.save();
 		this.context.translate(position.x, position.y);
 		this.context.rotate(normalizedRotation);
-		this.context.font = `600 11px ${this.labelStyle.fontFamily}`;
+		this.context.font = `${GROUP_TITLE_FONT_WEIGHT} ${GROUP_TITLE_FONT_SIZE}px ${this.labelStyle.fontFamily}`;
 		this.context.textAlign = 'center';
 		this.context.textBaseline = 'middle';
-		const width = this.measureLabelWidth(text) + 10;
-		this.context.globalAlpha = 0.88;
+		const width =
+			this.measureLabelWidth(text) + GROUP_TITLE_HORIZONTAL_PADDING;
+		const opacity = muted ? GROUP_FOCUS_MUTED_OPACITY : 1;
+		this.context.globalAlpha = GROUP_TITLE_BACKGROUND_OPACITY * opacity;
 		this.context.fillStyle = this.labelStyle.background;
-		this.context.fillRect(-width / 2, -9, width, 18);
-		this.context.globalAlpha = 1;
+		this.context.fillRect(
+			-width / 2,
+			-GROUP_TITLE_HEIGHT / 2,
+			width,
+			GROUP_TITLE_HEIGHT,
+		);
+		this.context.globalAlpha = opacity;
 		this.context.fillStyle = color;
 		this.context.fillText(text, 0, 0);
 		this.context.restore();
@@ -508,7 +539,8 @@ export class LayoutGroupLayer {
 		return {
 			fontFamily: style.fontFamily || 'sans-serif',
 			background:
-				style.getPropertyValue('--background-primary').trim() || '#ffffff',
+				style.getPropertyValue('--background-primary').trim() ||
+				'#ffffff',
 		};
 	}
 
