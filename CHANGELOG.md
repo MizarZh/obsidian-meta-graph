@@ -27,7 +27,9 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
-- Unified Group region, title, and member-halo styling across Sigma and G6. G6 now renders Arc band regions, keeps Group strokes in CSS-pixel units instead of coordinate-normalized units, and deduplicates member halos.
+- Created every visible G6 Group element through the background layer's own scene document and explicitly renders that Canvas after an atomic geometry commit. This prevents cross-Canvas ownership or a missed automatic render from dropping Group regions on the first frame in static Flow, Free, Arc, and HEB views.
+
+- Unified Graph, Free, and Flow container corners, titles, regions, focus states, and member halos across Sigma and G6 while retaining Arc bands and HEB sectors as specialized shapes. Flow containers now use Graph's membership-driven overlay path instead of depending on an ELK container region being available on the first frame. G6 commits complete Group scenes after graph draws, calculates dynamic bounds from canonical RuntimeGraph positions, keeps stable Canvas roots, renders Arc bands, and deduplicates member halos.
 
 - Moved visible G6 Group regions, titles, resize handles, and member halos into G6's background Canvas scene, so they share the exact camera and presentation frame with nodes and edges during zoom and pan. The external SVG now contains only transparent manual-movement hit targets.
 

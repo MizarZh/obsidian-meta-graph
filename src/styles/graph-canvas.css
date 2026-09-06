@@ -208,29 +208,27 @@
 
 .knowledge-workspace-group-region:hover,
 .knowledge-workspace-group-region.hovered {
+	border-width: 1.75px;
 	border-color: color-mix(
 		in srgb,
 		var(--knowledge-workspace-group-color, var(--interactive-accent)) 80%,
 		transparent
 	);
+	background: color-mix(
+		in srgb,
+		var(--knowledge-workspace-group-color, var(--interactive-accent)) 8%,
+		transparent
+	);
 }
 
 .knowledge-workspace-group-region.muted-by-focus {
-	--knowledge-workspace-group-color: var(
-		--text-muted,
-		var(--text-faint)
-	) !important;
-	opacity: 0.58;
-	filter: grayscale(1) saturate(0);
+	opacity: 0.38;
 }
 
 .knowledge-workspace-group-region.drop-target {
 	border-color: var(--interactive-accent);
 	background: color-mix(in srgb, var(--interactive-accent) 18%, transparent);
-	box-shadow:
-		0 0 0 2px color-mix(in srgb, var(--interactive-accent) 22%, transparent),
-		inset 0 0 0 1px
-			color-mix(in srgb, var(--interactive-accent) 24%, transparent);
+	border-width: 2.5px;
 }
 
 .knowledge-workspace-group-region.selected {
@@ -469,7 +467,7 @@
 	max-width: min(220px, 100%);
 	transform: translateX(-50%);
 	overflow: hidden;
-	padding: 0 7px;
+	padding: 0 5px;
 	border: 1px solid
 		color-mix(
 			in srgb,
@@ -478,11 +476,7 @@
 			transparent
 		);
 	border-radius: 999px;
-	background: color-mix(
-		in srgb,
-		var(--background-primary) 94%,
-		var(--knowledge-workspace-group-color, var(--interactive-accent))
-	);
+	background: color-mix(in srgb, var(--background-primary) 88%, transparent);
 	color: var(--knowledge-workspace-group-color, var(--interactive-accent));
 	font-size: 11px;
 	font-weight: 600;

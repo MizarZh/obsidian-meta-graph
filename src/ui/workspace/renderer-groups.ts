@@ -57,41 +57,49 @@ export function syncWorkspaceRendererGroups(
 	if (!isPlanarRenderer(renderer)) return;
 	const getGroupNodeIdsForGroup = (groupId: string): string[] =>
 		getGroupNodeIds(groupByNode, groupId);
+	const overlayGroups = createOverlayGroups(
+		mode,
+		manualLayout,
+		grouping,
+		groupByNode,
+		layoutSnapshot,
+		forceLayoutEnabled,
+	);
 	renderer.setLayoutGroupGeometries(
-		mode === 'graph'
-			? layoutSnapshot.groupGeometries.map((geometry) =>
-					geometry.kind === 'graph-container'
-						? {
-								kind: 'member-halos' as const,
-								groupId: geometry.groupId,
-								name: geometry.name,
-								color: geometry.color,
-								nodeIds: geometry.nodeIds,
-							}
-						: geometry,
-				)
-			: layoutSnapshot.groupGeometries,
+		mode === 'flow'
+			? overlayGroups.map((group) => ({
+					kind: 'member-halos' as const,
+					groupId: group.id,
+					name: group.name,
+					color: group.color,
+					nodeIds: group.dynamicNodeIds ?? [],
+				}))
+			: mode === 'graph'
+				? layoutSnapshot.groupGeometries.map((geometry) =>
+						geometry.kind === 'graph-container'
+							? {
+									kind: 'member-halos' as const,
+									groupId: geometry.groupId,
+									name: geometry.name,
+									color: geometry.color,
+									nodeIds: geometry.nodeIds,
+								}
+							: geometry,
+					)
+				: layoutSnapshot.groupGeometries,
 		getGroupNodeIdsForGroup,
 	);
-	renderer.setGroups(
-		createOverlayGroups(
-			mode,
-			manualLayout,
-			grouping,
-			layoutSnapshot,
-			forceLayoutEnabled,
-		),
-		{
-			...callbacks,
-			getGroupNodeIds: getGroupNodeIdsForGroup,
-		},
-	);
+	renderer.setGroups(overlayGroups, {
+		...callbacks,
+		getGroupNodeIds: getGroupNodeIdsForGroup,
+	});
 }
 
 function createOverlayGroups(
 	mode: ViewMode,
 	manualLayout: ManualLayoutConfig,
 	grouping: ChartGroupingConfig,
+	groupByNode: ReadonlyMap<string, string>,
 	layoutSnapshot: LayoutSnapshot,
 	forceLayoutEnabled: boolean,
 ): GroupOverlayGroup[] {
@@ -117,6 +125,25 @@ function createOverlayGroups(
 					height: 1,
 					dynamicNodeIds: geometry.nodeIds,
 					movable: canMoveGroup(mode, forceLayoutEnabled),
+					resizable: false,
+				},
+			];
+		});
+	}
+	if (mode === 'flow') {
+		return grouping.groups.flatMap((definition) => {
+			const nodeIds = getGroupNodeIds(groupByNode, definition.id);
+			if (nodeIds.length === 0) return [];
+			return [
+				{
+					...definition,
+					shape: resolveGroupShape(mode, definition.shape),
+					x: 0,
+					y: 0,
+					width: 1,
+					height: 1,
+					dynamicNodeIds: nodeIds,
+					movable: false,
 					resizable: false,
 				},
 			];

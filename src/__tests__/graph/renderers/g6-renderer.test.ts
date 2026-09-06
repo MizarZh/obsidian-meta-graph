@@ -489,6 +489,105 @@ describe('G6 renderer', () => {
 		expect(sceneRoot?.destroy).toHaveBeenCalledOnce();
 	});
 
+	it('explicitly renders an Arc Group band on its first background frame', async () => {
+		const fake = createFakeG6();
+		const container = createBrowserTestContainer(800, 600);
+		const renderer = await G6Renderer.create(
+			{ ...createOptions(createRuntimeGraph()), container },
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		renderer.setLayoutGroupGeometries([
+			{
+				kind: 'arc-band',
+				groupId: 'group-1',
+				name: 'Group 1',
+				color: '#7567f8',
+				nodeIds: ['A.md', 'B.md'],
+				direction: 'right',
+				start: -40,
+				end: 40,
+				halfWidth: 20,
+			},
+		]);
+
+		await vi.waitFor(() => {
+			expect(fake.renderBackground).toHaveBeenCalledOnce();
+			const region = flattenFakeScene(fake.backgroundRoot).find(
+				(element) => element.style.fillOpacity === 0.06,
+			);
+			expect(region?.style.d).toContain('M ');
+		});
+		renderer.kill();
+	});
+
+	it('commits the complete Group scene after a pending graph draw', async () => {
+		const fake = createFakeG6();
+		const container = createBrowserTestContainer(800, 600);
+		const renderer = await G6Renderer.create(
+			{ ...createOptions(createRuntimeGraph()), container },
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+
+		let finishDraw: (() => void) | undefined;
+		fake.draw.mockImplementationOnce(
+			() =>
+				new Promise<void>((resolve) => {
+					finishDraw = resolve;
+				}),
+		);
+		const graph = createRuntimeGraph();
+		graph.setNodeAttribute('A.md', 'x', 140);
+		graph.setNodeAttribute('A.md', 'y', -80);
+		renderer.setGraph(graph);
+		renderer.setLayoutGroupGeometries([
+			{
+				kind: 'member-halos',
+				groupId: 'group-1',
+				name: 'Group 1',
+				color: '#7567f8',
+				nodeIds: ['A.md', 'B.md'],
+			},
+		]);
+		renderer.setGroups([
+			{
+				id: 'group-1',
+				name: 'Group 1',
+				color: '#7567f8',
+				mode: 'rule',
+				shape: 'rectangle',
+				padding: 0.3,
+				x: 0,
+				y: 0,
+				width: 1,
+				height: 1,
+				dynamicNodeIds: ['A.md', 'B.md'],
+			},
+		]);
+
+		await vi.waitFor(() => expect(finishDraw).toBeTypeOf('function'));
+		expect(fake.backgroundRoot.children).toHaveLength(0);
+		finishDraw?.();
+
+		await vi.waitFor(() => {
+			const elements = flattenFakeScene(fake.backgroundRoot);
+			const region = elements.find(
+				(element) => element.style.fillOpacity === 0.06,
+			);
+			const halo = elements.find(
+				(element) =>
+					element.style.fill === 'none' &&
+					element.style.strokeOpacity === 0.65,
+			);
+			expect(Number(region?.style.width)).toBeGreaterThan(0);
+			expect(Number(region?.style.height)).toBeGreaterThan(0);
+			expect(halo).toBeDefined();
+		});
+		renderer.kill();
+	});
+
 	it('does not rebuild graph visuals for pan-only viewport transforms', async () => {
 		const graph = createRuntimeGraph();
 		const fake = createFakeG6();
@@ -1248,9 +1347,17 @@ function createWheelEvent(
 interface FakeSceneElement {
 	style: Record<string, unknown>;
 	children: FakeSceneElement[];
+	ownerDocument: FakeSceneDocument;
 	appendChild(child: FakeSceneElement): FakeSceneElement;
 	destroy: ReturnType<typeof vi.fn>;
 	setAttributes(attributes: Record<string, unknown>): void;
+}
+
+interface FakeSceneDocument {
+	createElement(
+		tagName: string,
+		options: { style: Record<string, unknown> },
+	): FakeSceneElement;
 }
 
 function flattenFakeScene(root: FakeSceneElement): FakeSceneElement[] {
@@ -1258,14 +1365,28 @@ function flattenFakeScene(root: FakeSceneElement): FakeSceneElement[] {
 }
 
 function createFakeG6(afterDraw?: () => void) {
+	const createSceneDocument = (): FakeSceneDocument => {
+		const document = {} as FakeSceneDocument;
+		document.createElement = (
+			_tagName: string,
+			options: { style: Record<string, unknown> },
+		) => createSceneElement(document, options.style);
+		return document;
+	};
 	const createSceneElement = (
+		ownerDocument: FakeSceneDocument,
 		style: Record<string, unknown> = {},
 	): FakeSceneElement => {
 		const children: FakeSceneElement[] = [];
 		return {
 			style,
 			children,
+			ownerDocument,
 			appendChild(child: ReturnType<typeof createSceneElement>) {
+				if (child.ownerDocument !== ownerDocument)
+					throw new Error(
+						'Cannot append a scene element across documents',
+					);
 				children.push(child);
 				return child;
 			},
@@ -1277,15 +1398,29 @@ function createFakeG6(afterDraw?: () => void) {
 			},
 		};
 	};
-	const backgroundRoot = createSceneElement();
-	const canvas = {
-		document: {
-			createElement: (
-				_tagName: string,
-				options: { style: Record<string, unknown> },
-			) => createSceneElement(options.style),
-		},
+	const mainDocument = createSceneDocument();
+	const backgroundDocument = createSceneDocument();
+	const backgroundRoot = createSceneElement(backgroundDocument);
+	const mainRoot = createSceneElement(mainDocument);
+	const renderBackground = vi.fn();
+	const backgroundCanvas = {
+		document: backgroundDocument,
 		getRoot: () => backgroundRoot,
+		ready: Promise.resolve(),
+		render: renderBackground,
+	};
+	const mainCanvas = {
+		document: mainDocument,
+		getRoot: () => mainRoot,
+		ready: Promise.resolve(),
+		render: vi.fn(),
+	};
+	const canvas = {
+		document: mainDocument,
+		getLayer: (layer = 'main') =>
+			layer === 'background' ? backgroundCanvas : mainCanvas,
+		getRoot: (layer = 'main') =>
+			layer === 'background' ? backgroundRoot : mainRoot,
 	};
 	let zoom = 1;
 	const elementPositions = new Map<string, [number, number]>();
@@ -1373,6 +1508,7 @@ function createFakeG6(afterDraw?: () => void) {
 	return {
 		instance,
 		backgroundRoot,
+		renderBackground,
 		destroy,
 		draw,
 		focusElement,

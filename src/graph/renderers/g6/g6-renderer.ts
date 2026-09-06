@@ -173,6 +173,11 @@ export class G6Renderer implements PlanarRenderer {
 	private readonly nodeStateKeys = new Map<string, string>();
 	private readonly edgeStateKeys = new Map<string, string>();
 	private groupLayer?: G6GroupLayer;
+	private groupSceneVersion = 0;
+	private groupSceneGroups: GroupOverlayGroup[] = [];
+	private groupSceneGeometries: LayoutGroupGeometry[] = [];
+	private groupSceneCallbacks: GroupInteractionCallbacks = {};
+	private groupSceneGetNodeIds?: (groupId: string) => Iterable<string>;
 	private readonly handleViewportChange = (): void => {
 		if (this.killed || this.fitting) return;
 		this.viewportFrameVersion += 1;
@@ -321,7 +326,13 @@ export class G6Renderer implements PlanarRenderer {
 		this.replaceLabelControllerSnapshot();
 		this.syncInteractionStates(false, true);
 		this.scheduleDraw();
-		this.groupLayer?.invalidateGeometry();
+		if (
+			this.groupLayer ||
+			this.groupSceneGroups.length > 0 ||
+			this.groupSceneGeometries.length > 0
+		) {
+			this.scheduleGroupSceneSync();
+		}
 		if (viewportState) this.scheduleCoordinateFrame(viewportState);
 	}
 
@@ -548,21 +559,34 @@ export class G6Renderer implements PlanarRenderer {
 		this.container.removeEventListener('wheel', this.handleWheel);
 		this.groupLayer?.kill();
 		this.groupLayer = undefined;
+		this.groupSceneVersion += 1;
 		this.instance.destroy();
 	}
 
 	setGroups(
 		groups: GroupOverlayGroup[],
-		callbacks?: GroupInteractionCallbacks,
+		callbacks: GroupInteractionCallbacks = this.groupSceneCallbacks,
 	): void {
-		this.getOrCreateGroupLayer().setGroups(groups, callbacks);
+		this.groupSceneGroups = groups.map((group) => ({
+			...group,
+			dynamicNodeIds: group.dynamicNodeIds
+				? [...group.dynamicNodeIds]
+				: undefined,
+		}));
+		this.groupSceneCallbacks = callbacks;
+		this.scheduleGroupSceneSync();
 	}
 
 	setLayoutGroupGeometries(
 		geometries: readonly LayoutGroupGeometry[],
 		getGroupNodeIds?: (groupId: string) => Iterable<string>,
 	): void {
-		this.getOrCreateGroupLayer().setGeometries(geometries, getGroupNodeIds);
+		this.groupSceneGeometries = geometries.map((geometry) => ({
+			...geometry,
+			nodeIds: [...geometry.nodeIds],
+		}));
+		this.groupSceneGetNodeIds = getGroupNodeIds;
+		this.scheduleGroupSceneSync();
 	}
 
 	setLayoutEdgeRoutes(routes?: ReadonlyMap<string, PlanarEdgeRoute>): void {
@@ -1263,7 +1287,7 @@ export class G6Renderer implements PlanarRenderer {
 				this.instance,
 				this.container,
 				() => this.graph,
-				(nodeId) => this.getNodePosition(nodeId),
+				(nodeId) => this.readRuntimeNodePosition(nodeId),
 				(position) => this.graphToViewportPosition(position),
 				(position) => this.viewportToGraphPosition(position),
 				() => this.readNodeVisualScale(),
@@ -1272,6 +1296,41 @@ export class G6Renderer implements PlanarRenderer {
 			this.groupLayer.setFocusedNode(this.pinnedNodeId);
 		}
 		return this.groupLayer;
+	}
+
+	private readRuntimeNodePosition(nodeId: string): GraphPosition | undefined {
+		if (!this.graph.hasNode(nodeId)) return undefined;
+		const attributes = this.graph.getNodeAttributes(nodeId);
+		return Number.isFinite(attributes.x) && Number.isFinite(attributes.y)
+			? { x: attributes.x, y: attributes.y }
+			: undefined;
+	}
+
+	private scheduleGroupSceneSync(): void {
+		if (this.killed || this.isStale()) return;
+		const version = ++this.groupSceneVersion;
+		this.drawQueue = this.drawQueue
+			.then(() => {
+				if (
+					this.killed ||
+					this.isStale() ||
+					version !== this.groupSceneVersion
+				) {
+					return;
+				}
+				this.getOrCreateGroupLayer().setScene(
+					this.groupSceneGroups,
+					this.groupSceneGeometries,
+					this.groupSceneCallbacks,
+					this.groupSceneGetNodeIds,
+				);
+			})
+			.catch((error) => {
+				console.error(
+					'[Meta Graph] G6 Group scene update failed',
+					error,
+				);
+			});
 	}
 
 	private scheduleInteractionSync(): void {

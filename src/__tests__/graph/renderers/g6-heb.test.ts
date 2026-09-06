@@ -128,11 +128,11 @@ describe('G6 HEB adapter', () => {
 
 		expect(createG6GroupTitlePosition(rect, 0.5, false)).toEqual({
 			x: 50,
-			y: 26,
+			y: 25.5,
 		});
 		expect(createG6GroupTitlePosition(rect, 0.5, true)).toEqual({
 			x: 50,
-			y: 114,
+			y: 114.5,
 		});
 	});
 });

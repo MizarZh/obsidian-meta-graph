@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+	GROUP_CONTAINER_CORNER_RADIUS,
 	GROUP_FOCUS_MUTED_OPACITY,
+	GROUP_TITLE_CENTER_OFFSET,
+	GROUP_TITLE_HEIGHT,
+	GROUP_TITLE_HORIZONTAL_PADDING,
 	resolveGroupHaloVisualStyle,
 	resolveGroupRegionVisualStyle,
 } from '../../../graph/renderers/group-visual-style';
@@ -44,5 +48,12 @@ describe('Group visual styles', () => {
 			lineWidth: 2.5,
 			opacity: GROUP_FOCUS_MUTED_OPACITY,
 		});
+	});
+
+	it('defines one container and title treatment for Graph, Free, and Flow', () => {
+		expect(GROUP_CONTAINER_CORNER_RADIUS).toBe(8);
+		expect(GROUP_TITLE_HEIGHT).toBe(18);
+		expect(GROUP_TITLE_CENTER_OFFSET).toBe(11);
+		expect(GROUP_TITLE_HORIZONTAL_PADDING).toBe(10);
 	});
 });

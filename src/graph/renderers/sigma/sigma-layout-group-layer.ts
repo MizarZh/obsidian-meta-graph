@@ -15,12 +15,15 @@ import { isGraphPointInLayoutGroup } from '../../../layouts/group-geometry';
 import { CanvasTextWidthCache } from './canvas-text-metrics';
 import {
 	GROUP_FOCUS_MUTED_OPACITY,
+	GROUP_CONTAINER_CORNER_RADIUS,
 	GROUP_MEMBER_HALO_GAP,
 	GROUP_TITLE_BACKGROUND_OPACITY,
+	GROUP_TITLE_CENTER_OFFSET,
 	GROUP_TITLE_FONT_SIZE,
 	GROUP_TITLE_FONT_WEIGHT,
 	GROUP_TITLE_HEIGHT,
 	GROUP_TITLE_HORIZONTAL_PADDING,
+	GROUP_TITLE_STROKE_OPACITY,
 	resolveGroupHaloVisualStyle,
 	resolveGroupRegionVisualStyle,
 } from '../group-visual-style';
@@ -134,9 +137,6 @@ export class LayoutGroupLayer {
 		this.labelStyle = this.readLabelStyle();
 		for (const geometry of this.geometries) {
 			this.context.save();
-			if (this.isMutedByFocus(geometry)) {
-				this.context.filter = 'grayscale(1) saturate(0)';
-			}
 			try {
 				if (geometry.kind === 'arc-band') {
 					this.drawArcBand(geometry);
@@ -289,59 +289,43 @@ export class LayoutGroupLayer {
 	}
 
 	private drawFlowContainer(geometry: FlowGroupGeometry): void {
-		const corners = [
-			this.sigma.graphToViewport({ x: geometry.x, y: geometry.y }),
-			this.sigma.graphToViewport({
-				x: geometry.x + geometry.width,
-				y: geometry.y,
-			}),
-			this.sigma.graphToViewport({
-				x: geometry.x + geometry.width,
-				y: geometry.y + geometry.height,
-			}),
-			this.sigma.graphToViewport({
-				x: geometry.x,
-				y: geometry.y + geometry.height,
-			}),
-		];
-		const first = corners[0];
-		const second = corners[1];
-		if (!first || !second) {
-			return;
-		}
+		const first = this.sigma.graphToViewport({
+			x: geometry.x,
+			y: geometry.y,
+		});
+		const opposite = this.sigma.graphToViewport({
+			x: geometry.x + geometry.width,
+			y: geometry.y + geometry.height,
+		});
+		const left = Math.min(first.x, opposite.x);
+		const right = Math.max(first.x, opposite.x);
+		const top = Math.min(first.y, opposite.y);
+		const bottom = Math.max(first.y, opposite.y);
 
 		this.context.save();
+		this.context.beginPath();
+		this.context.roundRect(
+			left,
+			top,
+			right - left,
+			bottom - top,
+			GROUP_CONTAINER_CORNER_RADIUS,
+		);
 		this.context.globalAlpha = this.regionFillOpacity(geometry);
 		this.context.fillStyle = geometry.color;
-		this.context.beginPath();
-		this.context.moveTo(first.x, first.y);
-		for (const corner of corners.slice(1)) {
-			this.context.lineTo(corner.x, corner.y);
-		}
-		this.context.closePath();
 		this.context.fill();
 		this.context.globalAlpha = this.regionStrokeOpacity(geometry);
 		this.context.strokeStyle = geometry.color;
 		this.context.lineWidth = this.regionLineWidth(geometry);
-		this.context.lineJoin = 'round';
 		this.context.stroke();
 		this.context.restore();
 
-		const edgeCenter = {
-			x: (first.x + second.x) / 2,
-			y: (first.y + second.y) / 2,
-		};
-		const containerCenter = this.sigma.graphToViewport({
-			x: geometry.x + geometry.width / 2,
-			y: geometry.y + geometry.height / 2,
-		});
-		const inward = normalize({
-			x: containerCenter.x - edgeCenter.x,
-			y: containerCenter.y - edgeCenter.y,
-		});
 		this.drawLabel(
 			geometry.name,
-			add(edgeCenter, scale(inward, 13)),
+			{
+				x: (left + right) / 2,
+				y: top + GROUP_TITLE_CENTER_OFFSET,
+			},
 			0,
 			geometry.color,
 			this.isMutedByFocus(geometry),
@@ -380,7 +364,13 @@ export class LayoutGroupLayer {
 
 		this.context.save();
 		this.context.beginPath();
-		this.context.roundRect(left, top, right - left, bottom - top, 6);
+		this.context.roundRect(
+			left,
+			top,
+			right - left,
+			bottom - top,
+			GROUP_CONTAINER_CORNER_RADIUS,
+		);
 		this.context.globalAlpha = this.regionFillOpacity(geometry);
 		this.context.fillStyle = geometry.color;
 		this.context.fill();
@@ -391,7 +381,7 @@ export class LayoutGroupLayer {
 		this.context.restore();
 		this.drawLabel(
 			geometry.name,
-			{ x: (left + right) / 2, y: top + 11 },
+			{ x: (left + right) / 2, y: top + GROUP_TITLE_CENTER_OFFSET },
 			0,
 			geometry.color,
 			this.isMutedByFocus(geometry),
@@ -522,12 +512,19 @@ export class LayoutGroupLayer {
 		const opacity = muted ? GROUP_FOCUS_MUTED_OPACITY : 1;
 		this.context.globalAlpha = GROUP_TITLE_BACKGROUND_OPACITY * opacity;
 		this.context.fillStyle = this.labelStyle.background;
-		this.context.fillRect(
+		this.context.beginPath();
+		this.context.roundRect(
 			-width / 2,
 			-GROUP_TITLE_HEIGHT / 2,
 			width,
 			GROUP_TITLE_HEIGHT,
+			GROUP_TITLE_HEIGHT / 2,
 		);
+		this.context.fill();
+		this.context.globalAlpha = GROUP_TITLE_STROKE_OPACITY * opacity;
+		this.context.strokeStyle = color;
+		this.context.lineWidth = 1;
+		this.context.stroke();
 		this.context.globalAlpha = opacity;
 		this.context.fillStyle = color;
 		this.context.fillText(text, 0, 0);
