@@ -27,6 +27,10 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Made G6 connected-edge emphasis 1.5 times the configured width and hovered/selected edges twice that width instead of adding fixed screen pixels. Dimmed edges retain their original width so focus cannot thicken fine lines.
+
+- Removed G6's excessive 1.7 minimum edge width so thin link settings take effect. Link width controls now allow 0.1 increments from 0.1, while G6 retains a separate generous hit target.
+
 - Trimmed layout-owned G6 edge bends covered by source or target nodes before endpoint clipping, preventing Flow arrows from reversing through node interiors when rendered node sizes exceed their terminal route segments.
 
 - Created every visible G6 Group element through the background layer's own scene document and commits complete scenes for G6's automatic presentation frame. This prevents cross-Canvas ownership from dropping Group regions on the first frame in static Flow, Free, Arc, and HEB views.

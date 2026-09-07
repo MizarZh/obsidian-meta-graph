@@ -18,7 +18,7 @@ export type G6NodeType =
 	'circle' | 'rect' | 'diamond' | 'triangle' | 'hexagon' | 'star';
 
 const NODE_DIAMETER_SCALE = 2;
-const MIN_EDGE_THICKNESS = 1.7;
+const MIN_EDGE_THICKNESS = 0.1;
 
 /** Namespaced states avoid inheriting G6 theme styles for reserved state names. */
 export const G6_INTERACTION_STATE = {
@@ -147,7 +147,6 @@ export function createG6InteractionStyles(
 			state: {
 				[G6_INTERACTION_STATE.dimmed]: {
 					stroke: palette.mutedEdge,
-					lineWidth: 0.4 * visualScale.geometry,
 					opacity: 0.12,
 					endArrowFill: palette.mutedEdge,
 					endArrowStroke: palette.mutedEdge,
@@ -156,24 +155,18 @@ export function createG6InteractionStyles(
 					label: false,
 				},
 				[G6_INTERACTION_STATE.connected]: (data) => ({
-					lineWidth:
-						readNumericSize(data.style?.lineWidth) +
-						visualScale.screen,
+					lineWidth: readNumericSize(data.style?.lineWidth) * 1.5,
 					zIndex: 2,
 				}),
 				[G6_INTERACTION_STATE.hovered]: (data) => ({
-					lineWidth:
-						readNumericSize(data.style?.lineWidth) +
-						2 * visualScale.screen,
+					lineWidth: readNumericSize(data.style?.lineWidth) * 2,
 					halo: false,
 					label: true,
 					zIndex: 3,
 				}),
 				[G6_INTERACTION_STATE.selected]: (data) => ({
 					stroke: palette.selected,
-					lineWidth:
-						readNumericSize(data.style?.lineWidth) +
-						2 * visualScale.screen,
+					lineWidth: readNumericSize(data.style?.lineWidth) * 2,
 					endArrowFill: palette.selected,
 					endArrowStroke: palette.selected,
 					halo: false,

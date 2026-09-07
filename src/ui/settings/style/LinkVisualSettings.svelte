@@ -71,9 +71,9 @@
 				label="Width"
 				layout="stacked"
 				value={value.size}
-				min={0.5}
+				min={0.1}
 				max={10}
-				step={0.5}
+				step={0.1}
 				format={formatWidth}
 				ariaLabel="Link line width"
 				onChange={(size) => onPatch({ size })}

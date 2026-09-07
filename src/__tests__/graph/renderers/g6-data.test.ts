@@ -20,6 +20,49 @@ import {
 } from '@/graph/renderers/g6/g6-styles';
 
 describe('G6 data adapter', () => {
+	it.each([0.1, 0.5, 3])(
+		'scales every edge emphasis from base width %s',
+		(width) => {
+			for (const scale of [0.25, 1, 4]) {
+				const styles = createG6InteractionStyles(TEST_PALETTE, {
+					geometry: scale,
+					label: 1,
+					screen: 1 / scale,
+				});
+				const datum = { style: { lineWidth: width * scale } };
+				for (const [state, factor] of [
+					[G6_INTERACTION_STATE.connected, 1.5],
+					[G6_INTERACTION_STATE.hovered, 2],
+					[G6_INTERACTION_STATE.selected, 2],
+				] as const) {
+					expect(
+						evaluateStateStyle(styles.edge.state?.[state], datum)
+							.lineWidth,
+					).toBeCloseTo(width * scale * factor);
+				}
+			}
+		},
+	);
+
+	it.each([0.1, 0.5, 1, 1.7, 3])(
+		'preserves configured edge width %s with independent picking',
+		(size) => {
+			const graph = createRuntimeGraph();
+			graph.setEdgeAttribute('A-to-B', 'size', size);
+			for (const geometry of [0.25, 1, 4]) {
+				const data = toG6Data(graph, { geometry, label: 1, screen: 1 });
+				const style = data.edges.find(
+					(edge) => edge.id === 'A-to-B',
+				)!.style;
+				expect(style.lineWidth).toBeCloseTo(size * geometry);
+				expect(
+					Number(style.lineWidth) +
+						Number(style.increasedLineWidthForHitTesting),
+				).toBeGreaterThanOrEqual(8);
+			}
+		},
+	);
+
 	it('maps runtime nodes and styles to minimal G6 data', () => {
 		const data = toG6Data(createRuntimeGraph());
 
@@ -236,7 +279,7 @@ describe('G6 data adapter', () => {
 		expect(resolveG6LineDash('dotted')).toEqual([2, 4]);
 	});
 
-	it('keeps interaction emphasis in screen pixels without G6 theme states', () => {
+	it('keeps node emphasis in screen pixels and edge emphasis proportional', () => {
 		const styles = createG6InteractionStyles(TEST_PALETTE, {
 			geometry: 1,
 			label: 0.5,
@@ -267,7 +310,7 @@ describe('G6 data adapter', () => {
 		});
 		expect(selectedNode).not.toHaveProperty('labelFontSize');
 		expect(hoveredEdge).toMatchObject({
-			lineWidth: 3.5,
+			lineWidth: 6,
 			halo: false,
 		});
 		expect(dimmedNode).toMatchObject({
@@ -275,6 +318,7 @@ describe('G6 data adapter', () => {
 			label: false,
 		});
 		expect(dimmedNode).not.toHaveProperty('opacity');
+		expect(dimmedEdge).not.toHaveProperty('lineWidth');
 		expect(dimmedEdge).toMatchObject({
 			stroke: TEST_PALETTE.mutedEdge,
 			endArrowFill: TEST_PALETTE.mutedEdge,
