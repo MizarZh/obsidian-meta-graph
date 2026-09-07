@@ -1,4 +1,4 @@
-import type { ChartGroupShape, GroupFrame, ViewMode } from '../core/types';
+import type { ChartGroupShape, GroupFrame, ViewMode } from '@/core/types';
 
 export type ResolvedGroupShape = Exclude<ChartGroupShape, 'auto'>;
 

@@ -8,15 +8,15 @@ import { floatColor } from 'sigma/utils';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeNodeAttributes,
-} from '../../model/graphology-adapter';
+} from '@/graph/model/graphology-adapter';
 import {
 	getCanonicalParallelLane,
 	getParallelLaneOffset,
-} from '../../model/parallel-edges';
+} from '@/graph/model/parallel-edges';
 import {
 	EDGE_ARROW_RATIOS,
 	EDGE_DASH_PATTERNS,
-} from './sigma-edge-visual-metrics';
+} from '@/graph/renderers/sigma/sigma-edge-visual-metrics';
 
 const VERTEX_SHADER_SOURCE = /* glsl */ `
 attribute vec4 a_id;

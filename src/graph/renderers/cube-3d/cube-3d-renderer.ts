@@ -4,7 +4,7 @@ import type {
 	LinkArrowStyle,
 	ManualLayoutConfig,
 	ThreeLabelResolution,
-} from '../../../core/types';
+} from '@/core/types';
 import {
 	type CubeFace,
 	type CubeFaceId,
@@ -13,46 +13,49 @@ import {
 	getCubeFace,
 	getCubeFaceIdForNode,
 	isCubeFaceId,
-} from './cube-faces';
+} from '@/graph/renderers/cube-3d/cube-faces';
 import {
 	resolveCubeDisplayPositions,
 	shouldShowCubeLabel,
-} from './cube-display';
+} from '@/graph/renderers/cube-3d/cube-display';
 import {
 	clamp,
 	getCubeLocalLabelPosition,
 	getCubeLocalPosition,
 	getFaceVisibilityOpacity as readFaceVisibilityOpacity,
-} from './cube-math';
+} from '@/graph/renderers/cube-3d/cube-math';
 import {
 	CUBE_FACE_COORDINATE_LIMIT,
 	CUBE_FACE_POINTER_LIMIT,
 	CUBE_FACE_POSITION_SCALE,
-} from './cube-constants';
-import { createCubeArrowTexture, createCubeNodeSprite } from './cube-sprites';
-import type { ThreeModule } from './cube-three';
-import { immediateNeighborhood } from '../../model/neighborhood';
+} from '@/graph/renderers/cube-3d/cube-constants';
+import {
+	createCubeArrowTexture,
+	createCubeNodeSprite,
+} from '@/graph/renderers/cube-3d/cube-sprites';
+import type { ThreeModule } from '@/graph/renderers/cube-3d/cube-three';
+import { immediateNeighborhood } from '@/graph/model/neighborhood';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
-} from '../../model/graphology-adapter';
-import { getCanonicalParallelLane } from '../../model/parallel-edges';
-import type { GraphPalette } from '../../styles/graph-styles';
+} from '@/graph/model/graphology-adapter';
+import { getCanonicalParallelLane } from '@/graph/model/parallel-edges';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
 import {
 	resolveThreeLabelStyle,
 	type LabelThemeConfig,
-} from '../renderer-label-style';
+} from '@/graph/renderers/renderer-label-style';
 import {
 	findClosestScreenNode,
 	projectedToViewport,
 	readViewportPosition,
-} from '../renderer-interaction';
+} from '@/graph/renderers/renderer-interaction';
 import {
 	createThreeTextSprite,
 	resolveThreeLabelPixelRatio,
-} from '../renderer-labels';
-import type { RendererCapabilities } from '../renderer-capabilities';
-import type { Cube3DRendererOptions } from '../renderer-options';
+} from '@/graph/renderers/renderer-labels';
+import type { RendererCapabilities } from '@/graph/renderers/renderer-capabilities';
+import type { Cube3DRendererOptions } from '@/graph/renderers/renderer-options';
 
 interface CubeNodeObject {
 	id: string;

@@ -5,8 +5,8 @@ import type {
 	KnowledgeNode,
 	NodeId,
 	UnresolvedLink,
-} from './graph';
-import type { ViewMode, WorkspaceState } from './workspace';
+} from '@/core/types/graph';
+import type { ViewMode, WorkspaceState } from '@/core/types/workspace';
 
 export interface MetadataDebugEntry {
 	path: string;

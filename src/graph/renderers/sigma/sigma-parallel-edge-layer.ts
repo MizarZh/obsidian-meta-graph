@@ -1,20 +1,20 @@
 import Sigma from 'sigma';
-import type { FlowDirection } from '../../../core/types';
+import type { FlowDirection } from '@/core/types';
 import type {
 	FlowRouteKind,
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../model/graphology-adapter';
-import { getCanonicalParallelLane } from '../../model/parallel-edges';
+} from '@/graph/model/graphology-adapter';
+import { getCanonicalParallelLane } from '@/graph/model/parallel-edges';
 import {
 	EDGE_CHEVRON_WING_RATIO,
 	resolveEdgeVisualMetrics,
 	type EdgeVisualMetrics,
 	type EdgeVisualMetricsOptions,
-} from './sigma-edge-visual-metrics';
-import { isCanvasParallelEdge } from './sigma-parallel-edge-policy';
-import { CanvasTextWidthCache } from './canvas-text-metrics';
+} from '@/graph/renderers/sigma/sigma-edge-visual-metrics';
+import { isCanvasParallelEdge } from '@/graph/renderers/sigma/sigma-parallel-edge-policy';
+import { CanvasTextWidthCache } from '@/graph/renderers/sigma/canvas-text-metrics';
 
 const LAYER_ID = 'parallel-edges';
 const HIT_CELL_SIZE = 64;

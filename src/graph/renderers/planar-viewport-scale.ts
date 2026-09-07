@@ -1,4 +1,4 @@
-import type { RuntimeGraph } from '../model/graphology-adapter';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
 
 export const MIN_PLANAR_ZOOM_LEVEL = 25;
 export const MAX_PLANAR_ZOOM_LEVEL = 400;

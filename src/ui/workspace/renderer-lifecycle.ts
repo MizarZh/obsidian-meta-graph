@@ -1,10 +1,10 @@
-import type { RendererDebugState, WorkspaceState } from '../../core/types';
-import type { RuntimeGraph } from '../../graph/model/graphology-adapter';
-import { serializeRuntimeGraph } from '../../graph/model/runtime-graph-debug';
+import type { RendererDebugState, WorkspaceState } from '@/core/types';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
+import { serializeRuntimeGraph } from '@/graph/model/runtime-graph-debug';
 import {
 	readGraphPalette,
 	type GraphPalette,
-} from '../../graph/styles/graph-styles';
+} from '@/graph/styles/graph-styles';
 import {
 	getModeCapabilities,
 	getRendererCapabilities,
@@ -18,21 +18,21 @@ import {
 	setRendererPalette,
 	type GraphRenderer,
 	type ForceSimulationRenderer,
-} from '../../graph/renderers/renderer-adapter';
-import { D3ForceSimulation } from '../../layouts/d3-force-simulation';
+} from '@/graph/renderers/renderer-adapter';
+import { D3ForceSimulation } from '@/layouts/d3-force-simulation';
 import {
 	applyStableLayout as applyStableRuntimeLayout,
 	hydrateManualLayoutPositions,
 	type LayoutSnapshot,
-} from '../../layouts/stable-layout';
-import { createChartGroupByNode } from '../../query/group-ownership';
-import { getWorkspaceGraphForceSettings } from './graph-settings';
-import { createWorkspaceGraphRenderer } from './renderer-factory';
+} from '@/layouts/stable-layout';
+import { createChartGroupByNode } from '@/query/group-ownership';
+import { getWorkspaceGraphForceSettings } from '@/ui/workspace/graph-settings';
+import { createWorkspaceGraphRenderer } from '@/ui/workspace/renderer-factory';
 import {
 	createWorkspaceRuntimeGraph,
 	prepareWorkspaceRuntimeGraphVisibilityIndex,
-} from './runtime-graph';
-import { createCubeRendererManualLayout } from '../../workspace/state/manual-layout/cube-layout';
+} from '@/ui/workspace/runtime-graph';
+import { createCubeRendererManualLayout } from '@/workspace/state/manual-layout/cube-layout';
 
 export interface WorkspaceRendererLifecycleOptions {
 	readState(): WorkspaceState;

@@ -1,9 +1,9 @@
 import type * as Three from 'three';
-import type { CubeFace } from './cube-faces';
+import type { CubeFace } from '@/graph/renderers/cube-3d/cube-faces';
 import {
 	CUBE_FACE_COORDINATE_LIMIT,
 	CUBE_FACE_POSITION_SCALE,
-} from './cube-constants';
+} from '@/graph/renderers/cube-3d/cube-constants';
 
 export function clamp(value: number, min: number, max: number): number {
 	return Math.max(min, Math.min(max, value));
@@ -31,30 +31,30 @@ export function getCubeLocalPosition(
 ): Three.Vector3 {
 	const range = cubeSize * CUBE_FACE_POSITION_SCALE;
 	return face.normal
-			.clone()
-			.multiplyScalar(cubeSize + offset)
-			.add(
-				face.u
-					.clone()
-					.multiplyScalar(
-						clamp(
-							x,
-							-CUBE_FACE_COORDINATE_LIMIT,
-							CUBE_FACE_COORDINATE_LIMIT,
-						) * range,
-					),
-			)
-			.add(
-				face.v
-					.clone()
-					.multiplyScalar(
-						clamp(
-							y,
-							-CUBE_FACE_COORDINATE_LIMIT,
-							CUBE_FACE_COORDINATE_LIMIT,
-						) * range,
-					),
-			);
+		.clone()
+		.multiplyScalar(cubeSize + offset)
+		.add(
+			face.u
+				.clone()
+				.multiplyScalar(
+					clamp(
+						x,
+						-CUBE_FACE_COORDINATE_LIMIT,
+						CUBE_FACE_COORDINATE_LIMIT,
+					) * range,
+				),
+		)
+		.add(
+			face.v
+				.clone()
+				.multiplyScalar(
+					clamp(
+						y,
+						-CUBE_FACE_COORDINATE_LIMIT,
+						CUBE_FACE_COORDINATE_LIMIT,
+					) * range,
+				),
+		);
 }
 
 export function getCubeLocalLabelPosition(

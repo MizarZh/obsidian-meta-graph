@@ -1,5 +1,5 @@
 import { TFile, type App } from 'obsidian';
-import { WorkspaceConnectionService } from './connection-service';
+import { WorkspaceConnectionService } from '@/workspace/services/connection-service';
 
 export function createObsidianConnectionService(
 	app: App,

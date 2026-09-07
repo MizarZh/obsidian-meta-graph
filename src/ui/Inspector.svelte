@@ -6,21 +6,21 @@
 		KnowledgeNode,
 		ManualLayoutConfig,
 		ViewMode,
-	} from '../core/types';
-	import { normalizeTags } from '../core/tags';
-	import { resolveChartGroupOwnership } from '../query/group-ownership';
-	import { resolveGroupCapabilities } from '../workspace/groups/group-policy';
+	} from '@/core/types';
+	import { normalizeTags } from '@/core/tags';
+	import { resolveChartGroupOwnership } from '@/query/group-ownership';
+	import { resolveGroupCapabilities } from '@/workspace/groups/group-policy';
 	import {
 		getConnectionDirectionIcon,
 		getConnectionDirectionLabel,
-	} from './connection-direction';
-	import InternalNotePreview from './workspace/InternalNotePreview.svelte';
-	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
-	import { obsidianTooltip } from './obsidian/obsidian-tooltip';
+	} from '@/ui/connection-direction';
+	import InternalNotePreview from '@/ui/workspace/InternalNotePreview.svelte';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from '@/ui/obsidian/ObsidianDropdown.svelte';
+	import { obsidianTooltip } from '@/ui/obsidian/obsidian-tooltip';
 	import ObsidianSuggestInput, {
 		type SuggestionOption,
-	} from './obsidian/ObsidianSuggestInput.svelte';
+	} from '@/ui/obsidian/ObsidianSuggestInput.svelte';
 
 	let {
 		app,

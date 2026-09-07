@@ -1,12 +1,12 @@
-import type { ManualLayoutConfig } from '../../core/types';
+import type { ManualLayoutConfig } from '@/core/types';
 import {
 	getRendererCapabilities,
 	isCube3DRenderer,
 	isForce3DRenderer,
 	isPlanarRenderer,
-} from './renderer-instance';
-import type { GraphRenderer } from './renderer-capabilities';
-import type { GraphPalette } from '../styles/graph-styles';
+} from '@/graph/renderers/renderer-instance';
+import type { GraphRenderer } from '@/graph/renderers/renderer-capabilities';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
 
 export function setRendererPalette(
 	renderer: GraphRenderer,

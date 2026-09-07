@@ -1,4 +1,4 @@
-import type { DockConnectionDirection, NodeId } from '../../core/types';
+import type { DockConnectionDirection, NodeId } from '@/core/types';
 
 export interface NormalizedConnectionRequest {
 	sourceNodeId: NodeId;

@@ -1,4 +1,4 @@
-import type { GraphQuery } from '../core/types';
+import type { GraphQuery } from '@/core/types';
 
 export const DEFAULT_GRAPH_QUERY: GraphQuery = {
 	roots: [],

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	normalizeConnectionRequest,
 	normalizeDockConnectionRequest,
-} from '../../../workspace/actions/connection-request';
+} from '@/workspace/actions/connection-request';
 
 describe('workspace connection request', () => {
 	it('trims fields while preserving node ids', () => {

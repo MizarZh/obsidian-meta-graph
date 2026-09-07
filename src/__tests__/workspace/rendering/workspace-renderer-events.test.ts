@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { GraphEventCallbacks } from '../../../graph/renderers/renderer-events';
-import type { GraphRenderer } from '../../../graph/renderers/renderer-adapter';
-import type { PlanarRenderer } from '../../../graph/renderers/renderer-adapter';
-import type { RendererEventBindings } from '../../../graph/renderers/renderer-events-adapter';
-import type { D3ForceSimulation } from '../../../layouts/d3-force-simulation';
-import { bindWorkspaceRendererEvents } from '../../../ui/workspace/renderer-events';
+import type { GraphEventCallbacks } from '@/graph/renderers/renderer-events';
+import type { GraphRenderer } from '@/graph/renderers/renderer-adapter';
+import type { PlanarRenderer } from '@/graph/renderers/renderer-adapter';
+import type { RendererEventBindings } from '@/graph/renderers/renderer-events-adapter';
+import type { D3ForceSimulation } from '@/layouts/d3-force-simulation';
+import { bindWorkspaceRendererEvents } from '@/ui/workspace/renderer-events';
 
 const rendererEventMock = vi.hoisted(() => ({
 	callbacks: undefined as GraphEventCallbacks | undefined,
 }));
 
-vi.mock('../../../graph/renderers/renderer-events-adapter', () => ({
+vi.mock('@/graph/renderers/renderer-events-adapter', () => ({
 	bindRendererEvents: vi.fn(
 		(renderer: GraphRenderer, bindings: RendererEventBindings) => {
 			rendererEventMock.callbacks = bindings.planar(
@@ -21,7 +21,7 @@ vi.mock('../../../graph/renderers/renderer-events-adapter', () => ({
 	),
 }));
 
-vi.mock('../../../graph/renderers/renderer-adapter', () => ({
+vi.mock('@/graph/renderers/renderer-adapter', () => ({
 	getModeCapabilities: vi.fn((mode: string) => ({
 		rendererKind: 'sigma',
 		usesExternal2DForceSimulation: mode === 'graph',

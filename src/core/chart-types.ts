@@ -1,4 +1,4 @@
-import type { ViewMode } from './types';
+import type { ViewMode } from '@/core/types';
 
 export interface ChartTypeDefinition {
 	name: string;

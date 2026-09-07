@@ -1,10 +1,10 @@
-import { bindCube3DEvents } from './cube-3d/cube-3d-events';
-import type { Cube3DRenderer } from './cube-3d/cube-3d-renderer';
-import { bindForce3DEvents } from './force-3d/force-3d-events';
-import type { Force3DRenderer } from './force-3d/force-3d-renderer';
-import { bindG6Events } from './g6/g6-events';
-import type { GraphEventCallbacks } from './renderer-events';
-import { bindGraphEvents } from './sigma/sigma-events';
+import { bindCube3DEvents } from '@/graph/renderers/cube-3d/cube-3d-events';
+import type { Cube3DRenderer } from '@/graph/renderers/cube-3d/cube-3d-renderer';
+import { bindForce3DEvents } from '@/graph/renderers/force-3d/force-3d-events';
+import type { Force3DRenderer } from '@/graph/renderers/force-3d/force-3d-renderer';
+import { bindG6Events } from '@/graph/renderers/g6/g6-events';
+import type { GraphEventCallbacks } from '@/graph/renderers/renderer-events';
+import { bindGraphEvents } from '@/graph/renderers/sigma/sigma-events';
 import {
 	isCube3DRenderer,
 	isForce3DRenderer,
@@ -12,7 +12,7 @@ import {
 	isSigmaRenderer,
 	type GraphRenderer,
 	type PlanarRenderer,
-} from './renderer-adapter';
+} from '@/graph/renderers/renderer-adapter';
 
 export interface RendererEventBindings {
 	force3d(renderer: Force3DRenderer): GraphEventCallbacks;

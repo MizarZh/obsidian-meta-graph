@@ -6,11 +6,11 @@
 		dragHandleZone,
 		type DndEvent,
 	} from 'svelte-dnd-action';
-	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
-	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
-	import type { DropdownOption } from '../obsidian/ObsidianDropdown.svelte';
-	import { buildCuratedMultiDragOrder } from './curated-multi-drag';
-	import type { CuratedFileEntry } from './curated-panel-state';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from '@/ui/obsidian/ObsidianDropdown.svelte';
+	import type { DropdownOption } from '@/ui/obsidian/ObsidianDropdown.svelte';
+	import { buildCuratedMultiDragOrder } from '@/ui/curated/curated-multi-drag';
+	import type { CuratedFileEntry } from '@/ui/curated/curated-panel-state';
 
 	type CuratedDndEntry = CuratedFileEntry & { id: string };
 

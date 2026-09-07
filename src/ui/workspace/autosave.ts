@@ -1,5 +1,5 @@
-import type { MetaGraphDocument, WorkspaceState } from '../../core/types';
-import { serializeMetaGraphState } from '../../workspace/meta-graph-model';
+import type { MetaGraphDocument, WorkspaceState } from '@/core/types';
+import { serializeMetaGraphState } from '@/workspace/meta-graph-model';
 
 interface AutoSaveTimers {
 	setTimeout(

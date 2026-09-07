@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeTag, normalizeTags } from '../../core/tags';
-import type { KnowledgeNode } from '../../core/types';
-import { matchesNodeCriterion } from '../../query/filters';
-import { DEFAULT_GRAPH_QUERY } from '../../query/graph-query';
-import { normalizeQuery } from '../../workspace/meta-graph/query';
+import { normalizeTag, normalizeTags } from '@/core/tags';
+import type { KnowledgeNode } from '@/core/types';
+import { matchesNodeCriterion } from '@/query/filters';
+import { DEFAULT_GRAPH_QUERY } from '@/query/graph-query';
+import { normalizeQuery } from '@/workspace/meta-graph/query';
 
 describe('tag normalization', () => {
 	it('removes leading hashes and whitespace', () => {

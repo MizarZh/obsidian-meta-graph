@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { KnowledgeNode, NodeFilterGroup } from '../../core/types';
+import type { KnowledgeNode, NodeFilterGroup } from '@/core/types';
 import {
 	canApplyConditionToPath,
 	createCuratedConditionDraft,
 	getConditionalMatches,
-} from '../../ui/curated/curated-panel-state';
+} from '@/ui/curated/curated-panel-state';
 
 describe('curated panel state', () => {
 	it('limits select mode filter matches to curated files', () => {

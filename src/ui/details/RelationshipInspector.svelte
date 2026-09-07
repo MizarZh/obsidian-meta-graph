@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { KnowledgeEdge, KnowledgeNode } from '../../core/types';
-	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
-	import { obsidianTooltip } from '../obsidian/obsidian-tooltip';
-	import { getOtherLinksBetweenNotes } from './relationship-details';
+	import type { KnowledgeEdge, KnowledgeNode } from '@/core/types';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import { obsidianTooltip } from '@/ui/obsidian/obsidian-tooltip';
+	import { getOtherLinksBetweenNotes } from '@/ui/details/relationship-details';
 
 	let {
 		edge,

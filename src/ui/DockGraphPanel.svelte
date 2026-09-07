@@ -9,12 +9,12 @@
 		KnowledgeNode,
 		ManualLayoutConfig,
 		ViewMode,
-	} from '../core/types';
-	import type { DockDragPayload } from './dock/types';
-	import type { WorkspaceRightPanelTab } from '../workspace/meta-graph-v2/types';
-	import DockNotesSection from './dock-panel/DockNotesSection.svelte';
-	import DockResizeHandle from './dock-panel/DockResizeHandle.svelte';
-	import DockTemplateSection from './dock-panel/DockTemplateSection.svelte';
+	} from '@/core/types';
+	import type { DockDragPayload } from '@/ui/dock/types';
+	import type { WorkspaceRightPanelTab } from '@/workspace/meta-graph-v2/types';
+	import DockNotesSection from '@/ui/dock-panel/DockNotesSection.svelte';
+	import DockResizeHandle from '@/ui/dock-panel/DockResizeHandle.svelte';
+	import DockTemplateSection from '@/ui/dock-panel/DockTemplateSection.svelte';
 	import {
 		buildGroupOptions,
 		buildNoteOptions,
@@ -22,13 +22,13 @@
 		buildTemplateEntries,
 		countTitles,
 		type DockNoteEntry,
-	} from './dock-panel/dock-panel-state';
-	import { createCuratedConditionDraft } from './curated/curated-panel-state';
-	import Inspector from './Inspector.svelte';
-	import AddNotesModal from './notes/AddNotesModal.svelte';
-	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import RelationshipInspector from './details/RelationshipInspector.svelte';
-	import GroupInspector from './details/GroupInspector.svelte';
+	} from '@/ui/dock-panel/dock-panel-state';
+	import { createCuratedConditionDraft } from '@/ui/curated/curated-panel-state';
+	import Inspector from '@/ui/Inspector.svelte';
+	import AddNotesModal from '@/ui/notes/AddNotesModal.svelte';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import RelationshipInspector from '@/ui/details/RelationshipInspector.svelte';
+	import GroupInspector from '@/ui/details/GroupInspector.svelte';
 
 	let {
 		app,

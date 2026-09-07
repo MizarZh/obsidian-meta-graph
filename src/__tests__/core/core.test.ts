@@ -4,9 +4,9 @@ import {
 	addNode,
 	createEdgeId,
 	createKnowledgeIndex,
-} from '../../core/knowledge-index';
-import type { LinkResolver } from '../../core/link-resolver';
-import { parseRelations, toStringArray } from '../../core/relation-parser';
+} from '@/core/knowledge-index';
+import type { LinkResolver } from '@/core/link-resolver';
+import { parseRelations, toStringArray } from '@/core/relation-parser';
 import type {
 	DirectionMode,
 	GraphQuery,
@@ -14,9 +14,9 @@ import type {
 	KnowledgeIndex,
 	KnowledgeNode,
 	RelationType,
-} from '../../core/types';
-import { CuratedProjectionEngine } from '../../query/curated';
-import { GraphQueryEngine } from '../../query/neighborhood';
+} from '@/core/types';
+import { CuratedProjectionEngine } from '@/query/curated';
+import { GraphQueryEngine } from '@/query/neighborhood';
 
 const resolver: LinkResolver = {
 	resolve(linkText) {

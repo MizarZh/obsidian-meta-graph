@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import type { FlowEdgeStyle, GraphProjection } from '../../../core/types';
-import { GraphologyAdapter } from '../../../graph/model/graphology-adapter';
+import type { FlowEdgeStyle, GraphProjection } from '@/core/types';
+import { GraphologyAdapter } from '@/graph/model/graphology-adapter';
 import {
 	resolveRouteLabelPlacement,
 	toG6Data,
-} from '../../../graph/renderers/g6/g6-data';
-import { G6_LOGICAL_EDGE_TYPE } from '../../../graph/renderers/g6/g6-logical-edge';
-import type { GraphPalette } from '../../../graph/styles/graph-styles';
-import { DEFAULT_GRAPH_FORCE_SETTINGS } from '../../../layouts/force-layout';
-import type { PlanarEdgeRoute } from '../../../layouts/planar-geometry';
+} from '@/graph/renderers/g6/g6-data';
+import { G6_LOGICAL_EDGE_TYPE } from '@/graph/renderers/g6/g6-logical-edge';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
+import { DEFAULT_GRAPH_FORCE_SETTINGS } from '@/layouts/force-layout';
+import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
 import {
 	applyStableLayout,
 	createLayoutSnapshot,
-} from '../../../layouts/stable-layout';
+} from '@/layouts/stable-layout';
 
 describe('G6 Flow adapter', () => {
 	it.each([

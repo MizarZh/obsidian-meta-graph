@@ -3,11 +3,11 @@ import type {
 	KnowledgeIndex,
 	MetaGraphChart,
 	WorkspaceState,
-} from '../../core/types';
-import { normalizeCubeChartState } from '../state/manual-layout/cube-layout';
-import { cloneSerializable } from '../state/persistence';
-import { pruneMissingCuratedFiles } from '../state/curated-state';
-import type { WorkspaceIndexSnapshot } from '../services/query-service';
+} from '@/core/types';
+import { normalizeCubeChartState } from '@/workspace/state/manual-layout/cube-layout';
+import { cloneSerializable } from '@/workspace/state/persistence';
+import { pruneMissingCuratedFiles } from '@/workspace/state/curated-state';
+import type { WorkspaceIndexSnapshot } from '@/workspace/services/query-service';
 
 export function applyWorkspaceIndexSnapshotToState(
 	state: WorkspaceState,

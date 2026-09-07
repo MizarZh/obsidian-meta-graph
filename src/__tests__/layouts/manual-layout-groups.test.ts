@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import type { GraphProjection } from '../../core/types';
+import type { GraphProjection } from '@/core/types';
 import {
 	GraphologyAdapter,
 	type GraphPosition,
-} from '../../graph/model/graphology-adapter';
-import type { GraphPalette } from '../../graph/styles/graph-styles';
+} from '@/graph/model/graphology-adapter';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
 import {
 	getGroupNodeIds,
 	moveRuntimeGroupNodes,
-} from '../../ui/interactions/manual-layout-groups';
+} from '@/ui/interactions/manual-layout-groups';
 
 const palette: GraphPalette = {
 	node: '#111111',

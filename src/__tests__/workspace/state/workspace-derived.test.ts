@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { KnowledgeNode } from '../../../core/types';
+import type { KnowledgeNode } from '@/core/types';
 import {
 	findDockTemplateLabel,
 	findIndexedNodeTitle,
@@ -9,8 +9,8 @@ import {
 	getSelectedDockNodes,
 	getWorkspaceNodeColor,
 	getWorkspaceNodeColors,
-} from '../../../ui/workspace/derived';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/ui/workspace/derived';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 const nodes = [
 	node('B.md', 'beta'),

@@ -1,11 +1,11 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { TFile } from 'obsidian';
 
-let WorkspaceIndexService: typeof import('../../../workspace/services/workspace-index-service').WorkspaceIndexService;
+let WorkspaceIndexService: typeof import('@/workspace/services/workspace-index-service').WorkspaceIndexService;
 
 beforeAll(async () => {
 	({ WorkspaceIndexService } =
-		await import('../../../workspace/services/workspace-index-service'));
+		await import('@/workspace/services/workspace-index-service'));
 });
 
 describe('workspace index service', () => {

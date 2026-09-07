@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import type { NodeFilterGroup } from '../../core/types';
+import type { NodeFilterGroup } from '@/core/types';
 import {
 	addFilterConditionToGroup,
 	addFilterGroupToGroup,
 	patchFilterItem,
 	removeFilterItemFromGroup,
 	shouldShowFilterValue,
-} from '../../ui/filter/filter-tree';
+} from '@/ui/filter/filter-tree';
 import {
 	canMoveRule,
 	createLinkStyleRule,
 	createNodeStyleRule,
 	moveRule,
 	removeRule,
-} from '../../ui/filter/filter-style-rules';
+} from '@/ui/filter/filter-style-rules';
 
 describe('filter panel helpers', () => {
 	it('updates nested filter tree items without mutating the original root', () => {

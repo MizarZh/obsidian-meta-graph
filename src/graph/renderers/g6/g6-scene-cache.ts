@@ -1,24 +1,24 @@
-import type { PlanarEdgeRoute } from '../../../layouts/planar-geometry';
+import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
 import type {
 	GraphPosition,
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../model/graphology-adapter';
+} from '@/graph/model/graphology-adapter';
 import {
 	getPlanarGraphExtent,
 	type PlanarGraphExtent,
-} from '../planar-viewport-scale';
+} from '@/graph/renderers/planar-viewport-scale';
 import {
 	createG6LabelVisibilityIndex,
 	isG6RenderedNode,
 	type G6LabelVisibilityIndex,
-} from './g6-data';
+} from '@/graph/renderers/g6/g6-data';
 import {
 	resolveG6RotatedNodeLabelStyle,
 	type G6NodeStyle,
 	type G6VisualScale,
-} from './g6-styles';
+} from '@/graph/renderers/g6/g6-styles';
 
 interface RotatedLabelCacheEntry {
 	key: string;

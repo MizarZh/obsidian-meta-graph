@@ -1,27 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import type {
-	ChartGroupDefinition,
-	GraphProjection,
-} from '../../../core/types';
-import { GraphologyAdapter } from '../../../graph/model/graphology-adapter';
-import { createG6CoordinateSpace } from '../../../graph/renderers/g6/g6-coordinate-space';
+import type { ChartGroupDefinition, GraphProjection } from '@/core/types';
+import { GraphologyAdapter } from '@/graph/model/graphology-adapter';
+import { createG6CoordinateSpace } from '@/graph/renderers/g6/g6-coordinate-space';
 import {
 	resolveG6LabelVisibility,
 	toG6Data,
-} from '../../../graph/renderers/g6/g6-data';
+} from '@/graph/renderers/g6/g6-data';
 import {
 	createG6GroupTitlePosition,
 	createGraphViewportMatrix,
 	createRadialSectorGraphShape,
-} from '../../../graph/renderers/g6/g6-groups';
-import { G6_LOGICAL_EDGE_TYPE } from '../../../graph/renderers/g6/g6-logical-edge';
-import { createG6LabelStyles } from '../../../graph/renderers/g6/g6-styles';
-import type { GraphPalette } from '../../../graph/styles/graph-styles';
-import { DEFAULT_GRAPH_FORCE_SETTINGS } from '../../../layouts/force-layout';
+} from '@/graph/renderers/g6/g6-groups';
+import { G6_LOGICAL_EDGE_TYPE } from '@/graph/renderers/g6/g6-logical-edge';
+import { createG6LabelStyles } from '@/graph/renderers/g6/g6-styles';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
+import { DEFAULT_GRAPH_FORCE_SETTINGS } from '@/layouts/force-layout';
 import {
 	applyStableLayout,
 	createLayoutSnapshot,
-} from '../../../layouts/stable-layout';
+} from '@/layouts/stable-layout';
 
 describe('G6 HEB adapter', () => {
 	it('collapses a bundled route into one logical G6 edge', async () => {

@@ -5,13 +5,13 @@ import {
 	createEdgeId,
 	createKnowledgeIndex,
 	normalizePath,
-} from './knowledge-index';
-import { extractLinkText, ObsidianLinkResolver } from './link-resolver';
+} from '@/core/knowledge-index';
+import { extractLinkText, ObsidianLinkResolver } from '@/core/link-resolver';
 import {
 	isRelationField,
 	parseRelations,
 	toStringArray,
-} from './relation-parser';
+} from '@/core/relation-parser';
 import type {
 	KnowledgeEdge,
 	KnowledgeIndex,
@@ -19,8 +19,8 @@ import type {
 	MetadataDebugEntry,
 	UnresolvedLink,
 	ConnectionFieldSpec,
-} from './types';
-import { normalizeTags } from './tags';
+} from '@/core/types';
+import { normalizeTags } from '@/core/tags';
 
 export class MetadataIndexer {
 	private readonly resolver: ObsidianLinkResolver;

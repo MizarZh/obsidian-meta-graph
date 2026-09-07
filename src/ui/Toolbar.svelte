@@ -4,12 +4,12 @@
 		CHART_TYPE_DEFINITIONS,
 		CHART_TYPE_ORDER,
 		getChartTypeName,
-	} from '../core/chart-types';
-	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import ObsidianSlider from './obsidian/ObsidianSlider.svelte';
-	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
-	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
-	import { supportsPlanarRenderer } from '../core/types';
+	} from '@/core/chart-types';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import ObsidianSlider from '@/ui/obsidian/ObsidianSlider.svelte';
+	import ObsidianSuggestInput from '@/ui/obsidian/ObsidianSuggestInput.svelte';
+	import ObsidianTextInput from '@/ui/obsidian/ObsidianTextInput.svelte';
+	import { supportsPlanarRenderer } from '@/core/types';
 	import type {
 		ChartSource,
 		CreateChartInput,
@@ -18,7 +18,7 @@
 		PlanarRendererKind,
 		SettingsPanelMode,
 		ViewMode,
-	} from '../core/types';
+	} from '@/core/types';
 
 	let {
 		app,

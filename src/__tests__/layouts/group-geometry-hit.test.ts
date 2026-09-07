@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isGraphPointInLayoutGroup } from '../../layouts/group-geometry';
+import { isGraphPointInLayoutGroup } from '@/layouts/group-geometry';
 
 describe('layout group hit testing', () => {
 	it('hits Flow regions and Arc bands', () => {

@@ -3,8 +3,8 @@ import type {
 	MetaGraphDock,
 	NodeId,
 	WorkspaceState,
-} from '../../core/types';
-import { normalizePath } from '../../core/knowledge-index';
+} from '@/core/types';
+import { normalizePath } from '@/core/knowledge-index';
 import {
 	addDockNote,
 	addDockTemplate,
@@ -20,7 +20,7 @@ import {
 	updateDockNotePath,
 	updateDockTemplate,
 	type ReorderPlacement,
-} from '../state/dock-state';
+} from '@/workspace/state/dock-state';
 
 export type { ReorderPlacement };
 

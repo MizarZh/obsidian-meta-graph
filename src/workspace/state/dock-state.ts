@@ -1,9 +1,9 @@
-import type { DockTemplateNode, MetaGraphDock, NodeId } from '../../core/types';
+import type { DockTemplateNode, MetaGraphDock, NodeId } from '@/core/types';
 import {
 	normalizeDockNotes,
 	normalizeDockTemplates,
-} from '../meta-graph-model';
-import { createDockId } from '../meta-graph/utils';
+} from '@/workspace/meta-graph-model';
+import { createDockId } from '@/workspace/meta-graph/utils';
 
 export type ReorderPlacement = 'before' | 'after';
 

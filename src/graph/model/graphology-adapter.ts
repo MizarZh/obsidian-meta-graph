@@ -12,15 +12,15 @@ import type {
 	RelationType,
 	DefaultLinkStyle,
 	DefaultNodeStyle,
-} from '../../core/types';
-import { isPlainLinkEdge, isUnresolvedLinkEdge } from '../../core/edge-kind';
-import type { GraphPalette } from '../styles/graph-styles';
+} from '@/core/types';
+import { isPlainLinkEdge, isUnresolvedLinkEdge } from '@/core/edge-kind';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
 import {
 	resolveLinkVisualStyle,
 	resolveNodeStyle,
 	type NodeStyleContext,
-} from '../styles/style-rules';
-import { assignParallelEdgeLanes } from './parallel-edges';
+} from '@/graph/styles/style-rules';
+import { assignParallelEdgeLanes } from '@/graph/model/parallel-edges';
 
 export interface GraphPosition {
 	x: number;

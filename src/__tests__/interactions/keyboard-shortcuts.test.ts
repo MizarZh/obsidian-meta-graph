@@ -4,7 +4,7 @@ import {
 	resolveWorkspaceShortcut,
 	shouldHandleConnectionUndoShortcut,
 	shouldHandleFindNoteShortcut,
-} from '../../ui/interactions/keyboard-shortcuts';
+} from '@/ui/interactions/keyboard-shortcuts';
 
 describe('find note shortcut', () => {
 	it('handles Ctrl+F and Cmd+F', () => {

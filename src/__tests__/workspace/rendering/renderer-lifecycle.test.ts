@@ -1,23 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { WorkspaceState } from '../../../core/types';
+import type { WorkspaceState } from '@/core/types';
 import {
 	getModeCapabilities,
 	getRendererKind,
 	getRendererKindForMode,
 	type GraphRenderer,
-} from '../../../graph/renderers/renderer-adapter';
+} from '@/graph/renderers/renderer-adapter';
 import {
 	applyStableLayout,
 	type LayoutSnapshot,
-} from '../../../layouts/stable-layout';
-import { D3ForceSimulation } from '../../../layouts/d3-force-simulation';
-import { serializeRuntimeGraph } from '../../../graph/model/runtime-graph-debug';
-import { WorkspaceRendererLifecycle } from '../../../ui/workspace/renderer-lifecycle';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
-import { createWorkspaceRuntimeGraph } from '../../../ui/workspace/runtime-graph';
-import { createWorkspaceGraphRenderer } from '../../../ui/workspace/renderer-factory';
+} from '@/layouts/stable-layout';
+import { D3ForceSimulation } from '@/layouts/d3-force-simulation';
+import { serializeRuntimeGraph } from '@/graph/model/runtime-graph-debug';
+import { WorkspaceRendererLifecycle } from '@/ui/workspace/renderer-lifecycle';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
+import { createWorkspaceRuntimeGraph } from '@/ui/workspace/runtime-graph';
+import { createWorkspaceGraphRenderer } from '@/ui/workspace/renderer-factory';
 
-vi.mock('../../../graph/renderers/renderer-adapter', () => ({
+vi.mock('@/graph/renderers/renderer-adapter', () => ({
 	getModeCapabilities: vi.fn(() => ({
 		rendererKind: 'sigma',
 		usesExternal2DForceSimulation: false,
@@ -45,7 +45,7 @@ vi.mock('../../../graph/renderers/renderer-adapter', () => ({
 	setRendererPalette: vi.fn(),
 }));
 
-vi.mock('../../../graph/styles/graph-styles', () => ({
+vi.mock('@/graph/styles/graph-styles', () => ({
 	readGraphPalette: vi.fn(() => ({
 		node: '#ffffff',
 		nodeBorder: '#000000',
@@ -55,7 +55,7 @@ vi.mock('../../../graph/styles/graph-styles', () => ({
 	})),
 }));
 
-vi.mock('../../../graph/model/runtime-graph-debug', () => ({
+vi.mock('@/graph/model/runtime-graph-debug', () => ({
 	serializeRuntimeGraph: vi.fn(() => ({
 		nodeCount: 1,
 		edgeCount: 0,
@@ -64,24 +64,24 @@ vi.mock('../../../graph/model/runtime-graph-debug', () => ({
 	})),
 }));
 
-vi.mock('../../../layouts/stable-layout', () => ({
+vi.mock('@/layouts/stable-layout', () => ({
 	hydrateManualLayoutPositions: vi.fn(),
 	applyStableLayout: vi.fn(async () => undefined),
 }));
 
-vi.mock('../../../layouts/d3-force-simulation', () => ({
+vi.mock('@/layouts/d3-force-simulation', () => ({
 	D3ForceSimulation: vi.fn(() => ({
 		start: vi.fn(),
 		stop: vi.fn(),
 	})),
 }));
 
-vi.mock('../../../ui/workspace/runtime-graph', () => ({
+vi.mock('@/ui/workspace/runtime-graph', () => ({
 	createWorkspaceRuntimeGraph: vi.fn(),
 	prepareWorkspaceRuntimeGraphVisibilityIndex: vi.fn(),
 }));
 
-vi.mock('../../../ui/workspace/renderer-factory', () => ({
+vi.mock('@/ui/workspace/renderer-factory', () => ({
 	createWorkspaceGraphRenderer: vi.fn(),
 }));
 

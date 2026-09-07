@@ -4,20 +4,20 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../../graph/model/graphology-adapter';
-import type { GraphPalette } from '../../../graph/styles/graph-styles';
-import type { PlanarEdgeRoute } from '../../../layouts/planar-geometry';
+} from '@/graph/model/graphology-adapter';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
+import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
 import {
 	createG6StylePatch,
 	resolveG6LabelVisibility,
 	toG6Data,
-} from '../../../graph/renderers/g6/g6-data';
+} from '@/graph/renderers/g6/g6-data';
 import {
 	createG6InteractionStyles,
 	G6_INTERACTION_STATE,
 	resolveG6LineDash,
 	resolveG6NodeType,
-} from '../../../graph/renderers/g6/g6-styles';
+} from '@/graph/renderers/g6/g6-styles';
 
 describe('G6 data adapter', () => {
 	it('maps runtime nodes and styles to minimal G6 data', () => {

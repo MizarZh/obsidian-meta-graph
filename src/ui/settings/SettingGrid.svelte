@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { SettingGridDensity } from './types';
+	import type { SettingGridDensity } from '@/ui/settings/types';
 
 	let {
 		columns = 2,

@@ -1,9 +1,6 @@
-import type {
-	ConnectionFieldMode,
-	ConnectionFieldSpec,
-} from '../../core/types';
-import { DEFAULT_CONNECTION_FIELD_MODE } from './constants';
-import { isRecord, uniqueStrings } from './utils';
+import type { ConnectionFieldMode, ConnectionFieldSpec } from '@/core/types';
+import { DEFAULT_CONNECTION_FIELD_MODE } from '@/workspace/meta-graph/constants';
+import { isRecord, uniqueStrings } from '@/workspace/meta-graph/utils';
 
 export function normalizeConnectionFields(value: unknown): string[] {
 	const fields = Array.isArray(value)

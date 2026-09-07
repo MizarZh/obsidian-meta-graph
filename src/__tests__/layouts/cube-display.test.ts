@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { RuntimeGraph } from '../../graph/model/graphology-adapter';
-import { resolveCubeDisplayPositions } from '../../graph/renderers/cube-3d/cube-display';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
+import { resolveCubeDisplayPositions } from '@/graph/renderers/cube-3d/cube-display';
 
 function createGraph(nodeIds: string[]): RuntimeGraph {
 	return {

@@ -3,11 +3,11 @@ import type {
 	DebugSnapshot,
 	DockConnectionDirection,
 	WorkspaceState,
-} from '../../core/types';
-import type { WorkspaceController } from '../../workspace/workspace-controller';
-import { CreateFromTemplateModal } from '../CreateFromTemplateModal';
-import { openCreatedTemplateNote } from './template-actions';
-import { openWorkspaceTemplateNote } from './template-modal-actions';
+} from '@/core/types';
+import type { WorkspaceController } from '@/workspace/workspace-controller';
+import { CreateFromTemplateModal } from '@/ui/CreateFromTemplateModal';
+import { openCreatedTemplateNote } from '@/ui/workspace/template-actions';
+import { openWorkspaceTemplateNote } from '@/ui/workspace/template-modal-actions';
 
 export interface WorkspaceCreateTemplateFlowOptions {
 	app: App;

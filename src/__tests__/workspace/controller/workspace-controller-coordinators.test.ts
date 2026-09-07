@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { WorkspaceConnectionPort } from '../../../workspace/actions/connection-actions';
-import { WorkspaceConnectionCoordinator } from '../../../workspace/controller/workspace-connection-coordinator';
-import { WorkspaceStore } from '../../../workspace/controller/workspace-store';
-import type { WorkspaceConnectionService } from '../../../workspace/services/connection-service';
-import { addConnectionFieldAndSelectInState } from '../../../workspace/state/connection-fields';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+import type { WorkspaceConnectionPort } from '@/workspace/actions/connection-actions';
+import { WorkspaceConnectionCoordinator } from '@/workspace/controller/workspace-connection-coordinator';
+import { WorkspaceStore } from '@/workspace/controller/workspace-store';
+import type { WorkspaceConnectionService } from '@/workspace/services/connection-service';
+import { addConnectionFieldAndSelectInState } from '@/workspace/state/connection-fields';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('workspace controller collaborators', () => {
 	it('owns subscriptions and identity checks in the workspace store', () => {

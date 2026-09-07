@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import SettingsSection from '../settings/SettingsSection.svelte';
+	import SettingsSection from '@/ui/settings/SettingsSection.svelte';
 	import NodeVisualSettings, {
 		type NodeVisualValue,
-	} from '../settings/style/NodeVisualSettings.svelte';
-	import NodeConditionRow from '../filter/NodeConditionRow.svelte';
-	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
+	} from '@/ui/settings/style/NodeVisualSettings.svelte';
+	import NodeConditionRow from '@/ui/filter/NodeConditionRow.svelte';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
 	import {
 		getDefaultNodeStyleOperator,
 		getNodeStyleFieldOptions,
@@ -13,7 +13,7 @@
 		getNodeStyleOperatorOptions,
 		getNodeValueOptions as resolveNodeValueOptions,
 		type SuggestionOption,
-	} from '../filter-config';
+	} from '@/ui/filter-config';
 	import type {
 		ChartGroupDefinition,
 		DefaultNodeStyle,
@@ -22,8 +22,8 @@
 		NodeShape,
 		NodeStyleField,
 		NodeStyleRule,
-	} from '../../core/types';
-	import { createRuleId } from '../filter/filter-tree';
+	} from '@/core/types';
+	import { createRuleId } from '@/ui/filter/filter-tree';
 	import {
 		activeNodeStyleValue as resolveActiveNodeStyleValue,
 		canMoveRule,
@@ -33,8 +33,8 @@
 		patchRule,
 		removeRule,
 		type StyleRuleScope,
-	} from '../filter/filter-style-rules';
-	import { BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE } from '../../workspace/meta-graph-model';
+	} from '@/ui/filter/filter-style-rules';
+	import { BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE } from '@/workspace/meta-graph-model';
 
 	const NODE_STYLE_SECTIONS = [
 		{ scope: 'global', title: 'Global note rules' },
@@ -243,10 +243,10 @@
 
 	function activeNodeVisualValue(): NodeVisualValue {
 		return {
-		color: String(activeNodeStyleValue('color')),
-		size: Number(activeNodeStyleValue('size')),
-		opacity: Number(activeNodeStyleValue('opacity')),
-		shape: activeNodeStyleValue('shape') as NodeShape,
+			color: String(activeNodeStyleValue('color')),
+			size: Number(activeNodeStyleValue('size')),
+			opacity: Number(activeNodeStyleValue('opacity')),
+			shape: activeNodeStyleValue('shape') as NodeShape,
 		};
 	}
 

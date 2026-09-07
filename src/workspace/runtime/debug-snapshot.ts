@@ -6,7 +6,7 @@ import type {
 	UnresolvedLink,
 	WorkspacePerformanceSnapshot,
 	WorkspaceState,
-} from '../../core/types';
+} from '@/core/types';
 
 export interface WorkspaceDebugSnapshotInput {
 	state: WorkspaceState;

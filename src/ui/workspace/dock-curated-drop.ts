@@ -1,7 +1,7 @@
-import type { ChartSource } from '../../core/types';
-import type { GraphRenderer } from '../../graph/renderers/renderer-adapter';
-import { readViewportPoint } from '../dock/dom';
-import type { DockDragPayload } from '../dock/types';
+import type { ChartSource } from '@/core/types';
+import type { GraphRenderer } from '@/graph/renderers/renderer-adapter';
+import { readViewportPoint } from '@/ui/dock/dom';
+import type { DockDragPayload } from '@/ui/dock/types';
 
 export type DockCuratedDropAction =
 	| {

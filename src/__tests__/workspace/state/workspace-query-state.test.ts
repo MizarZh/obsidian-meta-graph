@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
 	updateGlobalQueryInState,
 	updateQueryInState,
-} from '../../../workspace/state/query-state';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/workspace/state/query-state';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('workspace query state', () => {
 	it('updates the active chart query and mirrored workspace query', () => {

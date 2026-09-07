@@ -1,13 +1,13 @@
 import {
 	getCanonicalParallelLane,
 	type ParallelEdgeRouteAttributes,
-} from '../graph/model/parallel-edges';
+} from '@/graph/model/parallel-edges';
 import {
 	getEdgeType,
 	type RuntimeEdgeAttributes,
 	type RuntimeGraph,
 	type RuntimeNodeAttributes,
-} from '../graph/model/graphology-adapter';
+} from '@/graph/model/graphology-adapter';
 
 export interface RoutePoint {
 	x: number;

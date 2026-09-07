@@ -4,15 +4,15 @@ import type {
 	ChartGroupingConfig,
 	ChartLayoutConfig,
 	ManualLayoutConfig,
-} from '../../../core/types';
-import { CUBE_FACE_PADDING } from '../../../graph/renderers/cube-3d/cube-constants';
-import { spreadOverlappingCubeNodes } from './collision';
+} from '@/core/types';
+import { CUBE_FACE_PADDING } from '@/graph/renderers/cube-3d/cube-constants';
+import { spreadOverlappingCubeNodes } from '@/workspace/state/manual-layout/collision';
 import {
 	findManualPlacement,
 	isPlacementInBounds,
 	readGroupPlacementBounds,
 	readOccupiedPositions,
-} from './placement';
+} from '@/workspace/state/manual-layout/placement';
 
 export const CUBE_FACE_GROUPS: ChartGroup[] = [
 	{

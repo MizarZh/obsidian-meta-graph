@@ -4,7 +4,7 @@ import type {
 	GlobalStyleConfig,
 	LinkStyleRule,
 	NodeStyleRule,
-} from '../../core/types';
+} from '@/core/types';
 import {
 	BASE_STYLE_RULE_ID,
 	BUILT_IN_DEFAULT_LINK_STYLE,
@@ -12,7 +12,7 @@ import {
 	BUILT_IN_DEFAULT_PLAIN_LINK_STYLE,
 	BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE,
 	BUILT_IN_DEFAULT_UNRESOLVED_LINK_STYLE,
-} from './constants';
+} from '@/workspace/meta-graph/constants';
 import {
 	isRecord,
 	normalizeArray,
@@ -36,7 +36,7 @@ import {
 	readNodeShape,
 	readStyleColor,
 	readStyleLabel,
-} from './utils';
+} from '@/workspace/meta-graph/utils';
 
 export function createDefaultNodeStyleRule(): NodeStyleRule {
 	return {

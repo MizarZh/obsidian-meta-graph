@@ -1,4 +1,4 @@
-import { supportsPlanarRenderer } from '../../core/types';
+import { supportsPlanarRenderer } from '@/core/types';
 import type {
 	ChartLayoutConfig,
 	ConnectionFieldMode,
@@ -9,9 +9,9 @@ import type {
 	NodeFilterGroup,
 	NodeFilterItem,
 	WorkspaceState,
-} from '../../core/types';
-import { cloneSerializable } from '../state/persistence';
-import { normalizeCubeGroupDefinitions } from '../state/manual-layout/cube-layout';
+} from '@/core/types';
+import { cloneSerializable } from '@/workspace/state/persistence';
+import { normalizeCubeGroupDefinitions } from '@/workspace/state/manual-layout/cube-layout';
 import {
 	DEFAULT_CUBE_FACE_OPACITY,
 	DEFAULT_CUBE_FREE_CAMERA,
@@ -37,19 +37,19 @@ import {
 	DEFAULT_LABEL_SIZE,
 	DEFAULT_SCALE_LABELS_WITH_ZOOM,
 	DEFAULT_THREE_LABEL_RESOLUTION,
-} from '../meta-graph/constants';
+} from '@/workspace/meta-graph/constants';
 import {
 	createDefaultMetaGraphDocument,
 	normalizeMetaGraphDocument,
 	serializeMetaGraphState,
-} from '../meta-graph/document';
-import { createConnectionFieldSpecId } from '../meta-graph/connections';
-import { normalizeFilterRoot } from '../meta-graph/query';
+} from '@/workspace/meta-graph/document';
+import { createConnectionFieldSpecId } from '@/workspace/meta-graph/connections';
+import { normalizeFilterRoot } from '@/workspace/meta-graph/query';
 import {
 	isRecord,
 	normalizeTextPath,
 	uniqueStrings,
-} from '../meta-graph/utils';
+} from '@/workspace/meta-graph/utils';
 import type {
 	ParsedMetaGraphWorkspace,
 	PersistedChartContentV2,
@@ -63,7 +63,7 @@ import type {
 	PersistedResourcesV2,
 	PersistedTemplateOverrideV2,
 	WorkspacePersistenceContext,
-} from './types';
+} from '@/workspace/meta-graph-v2/types';
 
 const LEGACY_FILTER_GROUP_IDS = {
 	folders: 'v1-folders',

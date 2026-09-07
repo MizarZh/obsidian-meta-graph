@@ -2,17 +2,17 @@ import Sigma from 'sigma';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeNodeAttributes,
-} from '../../model/graphology-adapter';
+} from '@/graph/model/graphology-adapter';
 import type {
 	ArcGroupGeometry,
 	FlowGroupGeometry,
 	GraphGroupGeometry,
 	LayoutGroupGeometry,
 	RadialGroupGeometry,
-} from '../../../layouts/group-geometry';
-import { scaleLayoutGroupPadding } from '../../../layouts/group-geometry';
-import { isGraphPointInLayoutGroup } from '../../../layouts/group-geometry';
-import { CanvasTextWidthCache } from './canvas-text-metrics';
+} from '@/layouts/group-geometry';
+import { scaleLayoutGroupPadding } from '@/layouts/group-geometry';
+import { isGraphPointInLayoutGroup } from '@/layouts/group-geometry';
+import { CanvasTextWidthCache } from '@/graph/renderers/sigma/canvas-text-metrics';
 import {
 	GROUP_FOCUS_MUTED_OPACITY,
 	GROUP_CONTAINER_CORNER_RADIUS,
@@ -26,7 +26,7 @@ import {
 	GROUP_TITLE_STROKE_OPACITY,
 	resolveGroupHaloVisualStyle,
 	resolveGroupRegionVisualStyle,
-} from '../group-visual-style';
+} from '@/graph/renderers/group-visual-style';
 
 const LAYER_ID = 'layout-groups';
 const RADIAL_GROUP_LABEL_INSET = 15;

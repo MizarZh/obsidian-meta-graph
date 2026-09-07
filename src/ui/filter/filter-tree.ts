@@ -3,7 +3,7 @@ import type {
 	NodeFilterGroup,
 	NodeFilterItem,
 	NodeFilterOperator,
-} from '../../core/types';
+} from '@/core/types';
 
 export type FilterScope = 'global' | 'current';
 

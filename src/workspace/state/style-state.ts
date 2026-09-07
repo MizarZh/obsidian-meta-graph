@@ -6,7 +6,7 @@ import type {
 	MetaGraphChart,
 	NodeStyleRule,
 	WorkspaceState,
-} from '../../core/types';
+} from '@/core/types';
 import {
 	normalizeGlobalLinkStyleRules,
 	normalizeGlobalNodeStyleRules,
@@ -15,9 +15,9 @@ import {
 	normalizePlainLinkStyleOverrides,
 	normalizeUnresolvedNodeStyleOverrides,
 	normalizeUnresolvedLinkStyleOverrides,
-} from '../meta-graph-model';
-import { cloneSerializable } from './persistence';
-import { updateActiveChartState } from './state-updaters';
+} from '@/workspace/meta-graph-model';
+import { cloneSerializable } from '@/workspace/state/persistence';
+import { updateActiveChartState } from '@/workspace/state/state-updaters';
 
 type ChartStyleKey = keyof MetaGraphChart['style'];
 

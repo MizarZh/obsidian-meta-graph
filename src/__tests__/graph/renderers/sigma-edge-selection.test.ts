@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { GraphEventCallbacks } from '../../../graph/renderers/renderer-events';
-import { bindGraphEvents } from '../../../graph/renderers/sigma/sigma-events';
-import type { SigmaRenderer } from '../../../graph/renderers/sigma/sigma-renderer';
+import type { GraphEventCallbacks } from '@/graph/renderers/renderer-events';
+import { bindGraphEvents } from '@/graph/renderers/sigma/sigma-events';
+import type { SigmaRenderer } from '@/graph/renderers/sigma/sigma-renderer';
 
 describe('Sigma logical edge selection', () => {
 	it('routes Canvas edges and groups before treating a stage click as blank', () => {

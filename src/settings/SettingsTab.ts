@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
-import type KnowledgeWorkspacePlugin from '../main';
-import type { NodeOpenMode } from '../core/types';
-import type { LargeVaultMode } from './settings';
+import type KnowledgeWorkspacePlugin from '@/main';
+import type { NodeOpenMode } from '@/core/types';
+import type { LargeVaultMode } from '@/settings/settings';
 
 export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 	constructor(

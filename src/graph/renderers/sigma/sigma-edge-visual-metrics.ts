@@ -1,5 +1,5 @@
-import type { RuntimeEdgeAttributes } from '../../model/graphology-adapter';
-import { getParallelLaneStep } from '../../model/parallel-edges';
+import type { RuntimeEdgeAttributes } from '@/graph/model/graphology-adapter';
+import { getParallelLaneStep } from '@/graph/model/parallel-edges';
 
 export const EDGE_DASH_PATTERNS = {
 	dashed: [10, 7],

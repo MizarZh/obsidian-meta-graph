@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { ConnectionFieldMode, NodeId } from '../../../core/types';
+import type { ConnectionFieldMode, NodeId } from '@/core/types';
 import {
 	completeConnectionChangeInState,
 	connectPreparedNodesInState,
@@ -8,9 +8,9 @@ import {
 	redoLastConnectionInState,
 	undoLastConnectionInState,
 	type WorkspaceConnectionPort,
-} from '../../../workspace/actions/connection-actions';
-import { addConnectionFieldAndSelectInState } from '../../../workspace/state/connection-fields';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/workspace/actions/connection-actions';
+import { addConnectionFieldAndSelectInState } from '@/workspace/state/connection-fields';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('workspace connection actions', () => {
 	it('preserves the exact active paired connection spec', () => {

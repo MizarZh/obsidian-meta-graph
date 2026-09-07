@@ -6,7 +6,7 @@ import type {
 	ManualLayoutConfig,
 	MetaGraphChart,
 	NodePlacement,
-} from '../../core/types';
+} from '@/core/types';
 
 export function hydrateCuratedManualLayout(
 	source: ChartSource,

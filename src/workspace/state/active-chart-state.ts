@@ -1,8 +1,4 @@
-import type {
-	MetaGraphChart,
-	ViewMode,
-	WorkspaceState,
-} from '../../core/types';
+import type { MetaGraphChart, ViewMode, WorkspaceState } from '@/core/types';
 import {
 	DEFAULT_GRAPH_CENTER_FORCE,
 	DEFAULT_GRAPH_DRAG_LINK_FORCE,
@@ -11,8 +7,8 @@ import {
 	DEFAULT_GRAPH_REPEL_FORCE,
 	DEFAULT_GRAPH_RETURN_FORCE,
 	DEFAULT_FLOW_CORNER_RADIUS,
-} from '../meta-graph-model';
-import { cloneSerializable } from './persistence';
+} from '@/workspace/meta-graph-model';
+import { cloneSerializable } from '@/workspace/state/persistence';
 
 type ActiveChartStateFields = Pick<
 	WorkspaceState,

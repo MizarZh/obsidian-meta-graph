@@ -38,10 +38,12 @@ async function inlineImports(filePath, seen) {
 		if (!importPath.endsWith('.css')) {
 			throw new Error(`Only .css imports are supported: ${importPath}`);
 		}
-		const childPath = path.resolve(
-			path.dirname(normalizedPath),
-			importPath,
-		);
+		if (!importPath.startsWith('@/')) {
+			throw new Error(
+				`Project CSS imports must use the @/ alias: ${importPath}`,
+			);
+		}
+		const childPath = path.resolve(root, 'src', importPath.slice(2));
 		chunks.push(await inlineImports(childPath, seen));
 	}
 	seen.delete(normalizedPath);

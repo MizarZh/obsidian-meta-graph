@@ -3,9 +3,9 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../model/graphology-adapter';
-import { getCanonicalParallelLane } from '../../model/parallel-edges';
-import type { PlanarEdgeRoute } from '../../../layouts/planar-geometry';
+} from '@/graph/model/graphology-adapter';
+import { getCanonicalParallelLane } from '@/graph/model/parallel-edges';
+import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
 import {
 	createG6EdgeStyle,
 	createG6NodeStyle,
@@ -16,12 +16,12 @@ import {
 	type G6NodeStyle,
 	type G6NodeType,
 	type G6VisualScale,
-} from './g6-styles';
-import type { G6CoordinateSpace } from './g6-coordinate-space';
+} from '@/graph/renderers/g6/g6-styles';
+import type { G6CoordinateSpace } from '@/graph/renderers/g6/g6-coordinate-space';
 import {
 	G6_LOGICAL_EDGE_TYPE,
 	type G6LogicalEdgeStyle,
-} from './g6-logical-edge';
+} from '@/graph/renderers/g6/g6-logical-edge';
 
 export interface G6NodeData extends NodeData {
 	type: G6NodeType;

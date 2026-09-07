@@ -1,4 +1,4 @@
-import type { ArcDirection } from '../core/types';
+import type { ArcDirection } from '@/core/types';
 
 interface LayoutGroupGeometryBase {
 	groupId: string;

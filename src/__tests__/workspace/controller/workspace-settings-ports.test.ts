@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import {
 	createWorkspaceSettingsActions,
 	createWorkspaceSettingsView,
-} from '../../../ui/workspace/settings-ports';
-import type { WorkspaceController } from '../../../workspace/workspace-controller';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/ui/workspace/settings-ports';
+import type { WorkspaceController } from '@/workspace/workspace-controller';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('workspace settings ports', () => {
 	it('projects workspace state into domain views', () => {

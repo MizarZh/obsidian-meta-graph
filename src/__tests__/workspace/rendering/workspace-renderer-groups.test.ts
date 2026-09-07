@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { PlanarRenderer } from '../../../graph/renderers/renderer-adapter';
-import type { LayoutSnapshot } from '../../../layouts/stable-layout';
+import type { PlanarRenderer } from '@/graph/renderers/renderer-adapter';
+import type { LayoutSnapshot } from '@/layouts/stable-layout';
 
 describe('workspace renderer groups', () => {
 	it('persists positions read back from the renderer after a group move', async () => {
 		vi.stubGlobal('WebGLRenderingContext', class {});
 		vi.stubGlobal('WebGL2RenderingContext', class {});
 		const { moveWorkspaceRuntimeGroupNodes } =
-			await import('../../../ui/workspace/renderer-groups');
+			await import('@/ui/workspace/renderer-groups');
 		const moveNodesBy = vi.fn();
 		const refresh = vi.fn();
 		const renderer = {
@@ -37,7 +37,7 @@ describe('workspace renderer groups', () => {
 		vi.stubGlobal('WebGLRenderingContext', class {});
 		vi.stubGlobal('WebGL2RenderingContext', class {});
 		const { syncWorkspaceRendererGroups } =
-			await import('../../../ui/workspace/renderer-groups');
+			await import('@/ui/workspace/renderer-groups');
 		const setGroups = vi.fn();
 		const setLayoutGroupGeometries = vi.fn();
 		const renderer = {

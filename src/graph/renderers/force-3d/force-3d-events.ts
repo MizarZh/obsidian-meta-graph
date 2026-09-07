@@ -1,14 +1,14 @@
 import type {
 	GraphEventCallbacks,
 	ConnectionDragState,
-} from '../renderer-events';
-import type { Force3DRenderer } from './force-3d-renderer';
+} from '@/graph/renderers/renderer-events';
+import type { Force3DRenderer } from '@/graph/renderers/force-3d/force-3d-renderer';
 import {
 	createConnectionDragState,
 	getFinishedConnection,
 	isConnectionDragStart,
 	updateConnectionDragState,
-} from '../renderer-interaction';
+} from '@/graph/renderers/renderer-interaction';
 
 export function bindForce3DEvents(
 	renderer: Force3DRenderer,
@@ -41,18 +41,12 @@ export function bindForce3DEvents(
 		.onNodeRightClick((node, event) => {
 			event.preventDefault();
 			callbacks.onSelect(node.id);
-			callbacks.onContextMenu?.(
-				{ kind: 'node', nodeId: node.id },
-				event,
-			);
+			callbacks.onContextMenu?.({ kind: 'node', nodeId: node.id }, event);
 		})
 		.onLinkRightClick((link, event) => {
 			event.preventDefault();
 			callbacks.onSelectEdge?.(link.id);
-			callbacks.onContextMenu?.(
-				{ kind: 'edge', edgeId: link.id },
-				event,
-			);
+			callbacks.onContextMenu?.({ kind: 'edge', edgeId: link.id }, event);
 		})
 		.onNodeHover((node) => {
 			callbacks.onHover(node?.id);

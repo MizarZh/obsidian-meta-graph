@@ -22,12 +22,38 @@ export default tseslint.config(
 			},
 			parserOptions: {
 				projectService: {
-					allowDefaultProject: ['eslint.config.mts', 'manifest.json'],
+					allowDefaultProject: [
+						'eslint.config.mts',
+						'vitest.config.mts',
+						'manifest.json',
+					],
 				},
 				tsconfigRootDir: import.meta.dirname,
 				extraFileExtensions: ['.json'],
 			},
 		},
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					patterns: [
+						{
+							group: ['./*', '../*'],
+							message: 'Use the @/ alias for project imports.',
+						},
+					],
+				},
+			],
+		},
 	},
 	...obsidianmd.configs.recommended,
+	{
+		files: ['**/*.mjs'],
+		rules: Object.fromEntries(
+			Object.keys(obsidianmd.rules).map((ruleName) => [
+				`obsidianmd/${ruleName}`,
+				'off',
+			]),
+		),
+	},
 );

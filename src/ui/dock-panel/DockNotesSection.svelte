@@ -5,14 +5,14 @@
 		dragHandleZone,
 		type DndEvent,
 	} from 'svelte-dnd-action';
-	import type { DockDragPayload } from '../dock/types';
-	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
-	import ObsidianTextInput from '../obsidian/ObsidianTextInput.svelte';
+	import type { DockDragPayload } from '@/ui/dock/types';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import ObsidianTextInput from '@/ui/obsidian/ObsidianTextInput.svelte';
 	import {
 		dragKey,
 		noteDragPayload,
 		type DockNoteEntry,
-	} from './dock-panel-state';
+	} from '@/ui/dock-panel/dock-panel-state';
 
 	type DockNoteDndEntry = Omit<DockNoteEntry, 'id'> & {
 		id: string;

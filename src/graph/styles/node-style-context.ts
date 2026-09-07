@@ -1,6 +1,6 @@
-import type { ChartGroupingConfig, KnowledgeNode } from '../../core/types';
-import { resolveChartGroupOwnership } from '../../query/group-ownership';
-import type { NodeStyleContext } from './style-rules';
+import type { ChartGroupingConfig, KnowledgeNode } from '@/core/types';
+import { resolveChartGroupOwnership } from '@/query/group-ownership';
+import type { NodeStyleContext } from '@/graph/styles/style-rules';
 
 export function resolveNodeStyleContext(
 	node: KnowledgeNode,

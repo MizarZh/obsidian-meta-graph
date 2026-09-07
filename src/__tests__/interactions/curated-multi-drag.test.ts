@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildCuratedMultiDragOrder } from '../../ui/curated/curated-multi-drag';
+import { buildCuratedMultiDragOrder } from '@/ui/curated/curated-multi-drag';
 
 describe('curated multi drag', () => {
 	it('moves selected files as one block after a drop target', () => {

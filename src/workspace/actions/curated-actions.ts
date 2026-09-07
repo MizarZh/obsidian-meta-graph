@@ -2,8 +2,8 @@ import type {
 	CuratedWorkspaceConfig,
 	NodeId,
 	WorkspaceState,
-} from '../../core/types';
-import { normalizePath } from '../../core/knowledge-index';
+} from '@/core/types';
+import { normalizePath } from '@/core/knowledge-index';
 import {
 	addCuratedFilesToState,
 	clearCuratedFilesInState,
@@ -13,8 +13,8 @@ import {
 	setCuratedFilesHiddenInState,
 	updateCuratedFilePathInState,
 	updateCuratedWorkspaceInState,
-} from '../state/curated-state';
-import type { ReorderPlacement } from './dock-actions';
+} from '@/workspace/state/curated-state';
+import type { ReorderPlacement } from '@/workspace/actions/dock-actions';
 
 export interface WorkspaceCuratedActionResult {
 	state: WorkspaceState;

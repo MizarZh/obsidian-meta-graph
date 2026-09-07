@@ -1,9 +1,9 @@
-import type { MetaGraphDocument, WorkspaceState } from '../core/types';
-import { cloneSerializable } from './state/persistence';
+import type { MetaGraphDocument, WorkspaceState } from '@/core/types';
+import { cloneSerializable } from '@/workspace/state/persistence';
 import type {
 	WorkspacePersistenceContext,
 	WorkspaceSessionState,
-} from './meta-graph-v2/types';
+} from '@/workspace/meta-graph-v2/types';
 
 export function applyWorkspaceSession(
 	document: MetaGraphDocument,

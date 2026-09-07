@@ -9,9 +9,9 @@ import {
 	setManualNodePositionInState,
 	setNodeGroupInState,
 	updateGroupInState,
-} from '../../../workspace/state/manual-layout-state';
-import { setActiveChartTypeInState } from '../../../workspace/state/chart-state';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/workspace/state/manual-layout-state';
+import { setActiveChartTypeInState } from '@/workspace/state/chart-state';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('workspace manual layout state', () => {
 	it('keeps no-op node position updates referentially stable', () => {

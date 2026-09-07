@@ -1,11 +1,11 @@
 import type { LinkObject, NodeObject } from '3d-force-graph';
-import type { LinkArrowStyle, NodeShape } from '../../../core/types';
+import type { LinkArrowStyle, NodeShape } from '@/core/types';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../model/graphology-adapter';
-import { getCanonicalParallelLane } from '../../model/parallel-edges';
+} from '@/graph/model/graphology-adapter';
+import { getCanonicalParallelLane } from '@/graph/model/parallel-edges';
 
 export interface Force3DNode extends NodeObject {
 	id: string;

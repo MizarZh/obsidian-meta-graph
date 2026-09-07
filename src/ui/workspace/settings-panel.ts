@@ -1,4 +1,4 @@
-import type { ChartSource, SettingsPanelMode } from '../../core/types';
+import type { ChartSource, SettingsPanelMode } from '@/core/types';
 
 export function shouldCloseSettingsPanelForChartSource(
 	panel: SettingsPanelMode | undefined,

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { GraphProjection, KnowledgeIndex } from '../../../core/types';
+import type { GraphProjection, KnowledgeIndex } from '@/core/types';
 import {
 	applyWorkspaceIndexSnapshotToState,
 	applyWorkspaceProjectionToState,
 	projectWorkspaceState,
-} from '../../../workspace/runtime/refresh-state';
-import { addCuratedFileInState } from '../../../workspace/actions/curated-actions';
-import { setActiveChartTypeInState } from '../../../workspace/state/chart-state';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/workspace/runtime/refresh-state';
+import { addCuratedFileInState } from '@/workspace/actions/curated-actions';
+import { setActiveChartTypeInState } from '@/workspace/state/chart-state';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('workspace refresh state', () => {
 	it('applies index metadata and prunes missing curated files', () => {

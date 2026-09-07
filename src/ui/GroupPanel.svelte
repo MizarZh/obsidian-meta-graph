@@ -10,19 +10,19 @@
 		ManualLayoutConfig,
 		NodeFilterGroup,
 		ViewMode,
-	} from '../core/types';
-	import { resolveChartGroupOwnership } from '../query/group-ownership';
-	import { ThrottledCommitScheduler } from './filter/deferred-commit';
-	import NoteFilterEditor from './notes/NoteFilterEditor.svelte';
-	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
-	import SettingGrid from './settings/SettingGrid.svelte';
-	import ColorSetting from './settings/fields/ColorSetting.svelte';
-	import DropdownSetting from './settings/fields/DropdownSetting.svelte';
-	import SegmentedSetting from './settings/fields/SegmentedSetting.svelte';
-	import SliderSetting from './settings/fields/SliderSetting.svelte';
-	import TextSetting from './settings/fields/TextSetting.svelte';
-	import { resolveGroupCapabilities } from '../workspace/groups/group-policy';
+	} from '@/core/types';
+	import { resolveChartGroupOwnership } from '@/query/group-ownership';
+	import { ThrottledCommitScheduler } from '@/ui/filter/deferred-commit';
+	import NoteFilterEditor from '@/ui/notes/NoteFilterEditor.svelte';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import ObsidianTextInput from '@/ui/obsidian/ObsidianTextInput.svelte';
+	import SettingGrid from '@/ui/settings/SettingGrid.svelte';
+	import ColorSetting from '@/ui/settings/fields/ColorSetting.svelte';
+	import DropdownSetting from '@/ui/settings/fields/DropdownSetting.svelte';
+	import SegmentedSetting from '@/ui/settings/fields/SegmentedSetting.svelte';
+	import SliderSetting from '@/ui/settings/fields/SliderSetting.svelte';
+	import TextSetting from '@/ui/settings/fields/TextSetting.svelte';
+	import { resolveGroupCapabilities } from '@/workspace/groups/group-policy';
 
 	let {
 		app,

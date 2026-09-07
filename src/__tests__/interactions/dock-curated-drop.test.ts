@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DockCuratedDropController } from '../../ui/workspace/dock-curated-drop';
-import type { DockDragPayload } from '../../ui/dock/types';
+import { DockCuratedDropController } from '@/ui/workspace/dock-curated-drop';
+import type { DockDragPayload } from '@/ui/dock/types';
 
 describe('DockCuratedDropController', () => {
 	it('drops a dock note onto a graph group', () => {

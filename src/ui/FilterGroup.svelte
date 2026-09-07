@@ -6,13 +6,13 @@
 		NodeFilterGroupMode,
 		NodeFilterItem,
 		NodeFilterOperator,
-	} from '../core/types';
-	import NodeConditionRow from './filter/NodeConditionRow.svelte';
-	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
-	import type { SuggestionOption } from './obsidian/ObsidianSuggestInput.svelte';
-	import FilterGroupSelf from './FilterGroup.svelte';
-	import type { PropertyPickerOption } from './PropertyPicker.svelte';
+	} from '@/core/types';
+	import NodeConditionRow from '@/ui/filter/NodeConditionRow.svelte';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from '@/ui/obsidian/ObsidianDropdown.svelte';
+	import type { SuggestionOption } from '@/ui/obsidian/ObsidianSuggestInput.svelte';
+	import FilterGroupSelf from '@/ui/FilterGroup.svelte';
+	import type { PropertyPickerOption } from '@/ui/PropertyPicker.svelte';
 
 	let {
 		app,

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
 	getChartSourceSwitchWarning,
 	getChartTypeSwitchWarning,
-} from '../../../workspace/state/switch-warnings';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/workspace/state/switch-warnings';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('workspace switch warnings', () => {
 	it('warns when changing layout would replace manual layout', () => {

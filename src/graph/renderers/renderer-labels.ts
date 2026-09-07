@@ -1,5 +1,5 @@
 import type * as Three from 'three';
-import type { ThreeLabelResolution } from '../../core/types';
+import type { ThreeLabelResolution } from '@/core/types';
 
 export interface ThreeLabelRuntime {
 	CanvasTexture: typeof Three.CanvasTexture;

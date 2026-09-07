@@ -10,8 +10,8 @@ import {
 import type {
 	ConnectionDragState,
 	GraphEventCallbacks,
-} from '../renderer-events';
-import type { G6Renderer } from './g6-renderer';
+} from '@/graph/renderers/renderer-events';
+import type { G6Renderer } from '@/graph/renderers/g6/g6-renderer';
 
 const CLICK_SUPPRESSION_MS = 500;
 

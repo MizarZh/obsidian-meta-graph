@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { AbstractInputSuggest, type App } from 'obsidian';
 	import { onMount } from 'svelte';
-	import ObsidianTextInput from './ObsidianTextInput.svelte';
+	import ObsidianTextInput from '@/ui/obsidian/ObsidianTextInput.svelte';
 
 	export interface SuggestionOption {
 		value: string;

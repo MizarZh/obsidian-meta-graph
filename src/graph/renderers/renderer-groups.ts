@@ -1,5 +1,5 @@
-import type { ChartGroup } from '../../core/types';
-import type { ResolvedGroupShape } from '../../layouts/group-shape';
+import type { ChartGroup } from '@/core/types';
+import type { ResolvedGroupShape } from '@/layouts/group-shape';
 
 export interface GroupGeometry {
 	x: number;

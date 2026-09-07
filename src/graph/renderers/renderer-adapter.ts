@@ -13,16 +13,16 @@ export {
 	type PlanarRendererKind,
 	type RendererCapabilities,
 	type RendererKind,
-} from './renderer-capabilities';
+} from '@/graph/renderers/renderer-capabilities';
 export type {
 	ForceSimulationRenderer,
 	PlanarRenderer,
-} from './renderer-contracts';
+} from '@/graph/renderers/renderer-contracts';
 export type {
 	GroupGeometry,
 	GroupInteractionCallbacks,
 	GroupOverlayGroup,
-} from './renderer-groups';
+} from '@/graph/renderers/renderer-groups';
 export {
 	getRendererCapabilities,
 	getRendererKind,
@@ -32,12 +32,12 @@ export {
 	isG6Renderer,
 	isPlanarRenderer,
 	isSigmaRenderer,
-} from './renderer-instance';
-export type { GraphRendererOptions } from './renderer-options';
-export { createGraphRenderer } from './renderer-factory';
+} from '@/graph/renderers/renderer-instance';
+export type { GraphRendererOptions } from '@/graph/renderers/renderer-options';
+export { createGraphRenderer } from '@/graph/renderers/renderer-factory';
 export {
 	refreshRendererGraphStyles,
 	refreshRendererGraphVisibility,
 	setRendererManualLayout,
 	setRendererPalette,
-} from './renderer-refresh';
+} from '@/graph/renderers/renderer-refresh';

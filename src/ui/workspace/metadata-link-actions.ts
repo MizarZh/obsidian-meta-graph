@@ -1,4 +1,4 @@
-import { extractLinkText } from '../../core/link-resolver';
+import { extractLinkText } from '@/core/link-resolver';
 
 export interface MetadataLinkOpener<FileEntry> {
 	resolveLink: (linkText: string, sourcePath: string) => FileEntry | null;

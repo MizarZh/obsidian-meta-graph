@@ -1,17 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { GraphProjection } from '../../../core/types';
-import type { GraphPalette } from '../../../graph/styles/graph-styles';
+import type { GraphProjection } from '@/core/types';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
 import {
 	applyBundledFlowEdges,
 	createBundledFlowRoutes,
-} from '../../../layouts/elk-flow-layout';
+} from '@/layouts/elk-flow-layout';
 import {
 	createWorkspaceRuntimeGraph,
 	prepareWorkspaceRuntimeGraphVisibilityIndex,
 	syncWorkspaceRuntimeGraphStyles,
 	syncWorkspaceRuntimeGraphVisibility,
-} from '../../../ui/workspace/runtime-graph';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/ui/workspace/runtime-graph';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 const palette: GraphPalette = {
 	node: '#111111',

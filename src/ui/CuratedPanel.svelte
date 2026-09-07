@@ -6,21 +6,21 @@
 		CuratedWorkspaceConfig,
 		KnowledgeNode,
 		ManualLayoutConfig,
-	} from '../core/types';
-	import { resolveChartGroupOwnership } from '../query/group-ownership';
-	import { nodeMatchesFilterGroup } from '../query/filters';
-	import CuratedFileList from './curated/CuratedFileList.svelte';
+	} from '@/core/types';
+	import { resolveChartGroupOwnership } from '@/query/group-ownership';
+	import { nodeMatchesFilterGroup } from '@/query/filters';
+	import CuratedFileList from '@/ui/curated/CuratedFileList.svelte';
 	import {
 		buildSelectedCuratedFiles,
 		countTitles,
 		createCuratedConditionDraft,
 		type CuratedConditionDraft,
-	} from './curated/curated-panel-state';
-	import AddNotesModal from './notes/AddNotesModal.svelte';
-	import NoteFilterModal from './notes/NoteFilterModal.svelte';
-	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import ObsidianDropdown from './obsidian/ObsidianDropdown.svelte';
-	import ObsidianTextInput from './obsidian/ObsidianTextInput.svelte';
+	} from '@/ui/curated/curated-panel-state';
+	import AddNotesModal from '@/ui/notes/AddNotesModal.svelte';
+	import NoteFilterModal from '@/ui/notes/NoteFilterModal.svelte';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from '@/ui/obsidian/ObsidianDropdown.svelte';
+	import ObsidianTextInput from '@/ui/obsidian/ObsidianTextInput.svelte';
 
 	let {
 		app,

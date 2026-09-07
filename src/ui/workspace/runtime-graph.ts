@@ -3,8 +3,8 @@ import type {
 	KnowledgeEdge,
 	KnowledgeNode,
 	WorkspaceState,
-} from '../../core/types';
-import { isPlainLinkEdge, isUnresolvedLinkEdge } from '../../core/edge-kind';
+} from '@/core/types';
+import { isPlainLinkEdge, isUnresolvedLinkEdge } from '@/core/edge-kind';
 import {
 	getActiveDefaultLinkArrowSize,
 	getActiveDefaultLinkStyle,
@@ -22,20 +22,20 @@ import {
 	getActiveUnresolvedLinkArrowSize,
 	getActiveUnresolvedLinkOpacity,
 	getActiveUnresolvedLinkStyle,
-} from '../../graph/styles/active-styles';
+} from '@/graph/styles/active-styles';
 import {
 	GraphologyAdapter,
 	getEdgeType,
 	type GraphPosition,
 	type RuntimeGraph,
-} from '../../graph/model/graphology-adapter';
-import type { GraphPalette } from '../../graph/styles/graph-styles';
-import { resolveNodeStyleContexts } from '../../graph/styles/node-style-context';
+} from '@/graph/model/graphology-adapter';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
+import { resolveNodeStyleContexts } from '@/graph/styles/node-style-context';
 import {
 	resolveLinkVisualStyle,
 	resolveNodeStyle,
 	type NodeStyleContext,
-} from '../../graph/styles/style-rules';
+} from '@/graph/styles/style-rules';
 
 interface RuntimeVisibilityIndex {
 	edgeIdsByNode: ReadonlyMap<string, readonly string[]>;

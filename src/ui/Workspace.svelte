@@ -10,103 +10,103 @@
 		SettingsPanelMode,
 		ViewMode,
 		WorkspaceState,
-	} from '../core/types';
-	import { supportsPlanarRenderer } from '../core/types';
+	} from '@/core/types';
+	import { supportsPlanarRenderer } from '@/core/types';
 	import type {
 		ConnectionPanelLayout,
 		PersistedMetaGraphDocumentV2,
 		WorkspaceRightPanelTab,
 		WorkspaceSessionState,
-	} from '../workspace/meta-graph-v2/types';
-	import { createWorkspaceSessionState } from '../workspace/workspace-session';
-	import { formatError as formatErrorMessage } from '../core/errors';
+	} from '@/workspace/meta-graph-v2/types';
+	import { createWorkspaceSessionState } from '@/workspace/workspace-session';
+	import { formatError as formatErrorMessage } from '@/core/errors';
 	import type {
 		ConnectionDragState,
 		GraphContextMenuTarget,
-	} from '../graph/renderers/renderer-events';
-	import type { GraphRenderer } from '../graph/renderers/renderer-adapter';
+	} from '@/graph/renderers/renderer-events';
+	import type { GraphRenderer } from '@/graph/renderers/renderer-adapter';
 	import {
 		LayoutSnapshotStore,
 		type LayoutSnapshot,
-	} from '../layouts/stable-layout';
-	import type { WorkspaceController } from '../workspace/workspace-controller';
-	import DebugPanel from './DebugPanel.svelte';
-	import type { DockDragPayload } from './dock/types';
-	import type { DockPayloadGraphAction } from './dock/connection';
+	} from '@/layouts/stable-layout';
+	import type { WorkspaceController } from '@/workspace/workspace-controller';
+	import DebugPanel from '@/ui/DebugPanel.svelte';
+	import type { DockDragPayload } from '@/ui/dock/types';
+	import type { DockPayloadGraphAction } from '@/ui/dock/connection';
 	import {
 		getMetadataFieldSuggestions,
 		getMetadataFieldTypes,
 		getMetadataFieldValueSuggestions,
-	} from './filter-config';
+	} from '@/ui/filter-config';
 	import {
 		type GraphConnectionDropTarget,
 		type GraphConnectionDropAction,
-	} from './interactions/graph-connection-drop';
+	} from '@/ui/interactions/graph-connection-drop';
 	import {
 		WORKSPACE_ACTION_DEFINITIONS,
 		resolvePinnedFocusNodeId,
 		resolveWorkspaceShortcut,
 		type WorkspaceActionId,
-	} from './interactions/keyboard-shortcuts';
+	} from '@/ui/interactions/keyboard-shortcuts';
 	import {
 		getDockNoteEntries,
 		getFilePathSuggestions,
 		getWorkspaceNodeColor,
 		getWorkspaceNodeColors,
-	} from './workspace/derived';
-	import { shouldCloseSettingsPanelForChartSource } from './workspace/settings-panel';
+	} from '@/ui/workspace/derived';
+	import { shouldCloseSettingsPanelForChartSource } from '@/ui/workspace/settings-panel';
 	import {
 		createWorkspaceSettingsActions,
 		createWorkspaceSettingsView,
-	} from './workspace/settings-ports';
+	} from '@/ui/workspace/settings-ports';
 	import {
 		readInteractiveAccentColor,
 		readThemeSignature,
-	} from './workspace/theme';
-	import { openResolvedMetadataLink } from './workspace/metadata-link-actions';
+	} from '@/ui/workspace/theme';
+	import { openResolvedMetadataLink } from '@/ui/workspace/metadata-link-actions';
 	import {
 		openWorkspaceCreateStandaloneTemplateNote,
 		openWorkspaceCreateTemplateNote,
-	} from './workspace/workspace-template-flow';
-	import { WorkspaceAutoSave } from './workspace/autosave';
-	import { bindWorkspaceRendererEvents } from './workspace/renderer-events';
+	} from '@/ui/workspace/workspace-template-flow';
+	import { WorkspaceAutoSave } from '@/ui/workspace/autosave';
+	import { bindWorkspaceRendererEvents } from '@/ui/workspace/renderer-events';
 	import {
 		moveWorkspaceRuntimeGroupNodes,
 		syncWorkspaceRendererGroups,
-	} from './workspace/renderer-groups';
+	} from '@/ui/workspace/renderer-groups';
 	import {
 		createWorkspaceGroupByNode,
 		WorkspaceRendererLifecycle,
-	} from './workspace/renderer-lifecycle';
-	import { WorkspaceRenderCoordinator } from './workspace/renderer-coordinator';
+	} from '@/ui/workspace/renderer-lifecycle';
+	import { WorkspaceRenderCoordinator } from '@/ui/workspace/renderer-coordinator';
 	import {
 		DockCuratedDropController,
 		type DockCuratedDropAction,
 		type DockCuratedDropPreview,
-	} from './workspace/dock-curated-drop';
-	import { DockGraphDragController } from './workspace/dock-graph-drag';
-	import { GraphDockConnectionController } from './workspace/graph-dock-connection';
-	import WorkspaceSettingsPopover from './workspace/WorkspaceSettingsPopover.svelte';
-	import WorkspaceMainPanels from './workspace/WorkspaceMainPanels.svelte';
-	import GraphLoadingOverlay from './workspace/GraphLoadingOverlay.svelte';
+	} from '@/ui/workspace/dock-curated-drop';
+	import { DockGraphDragController } from '@/ui/workspace/dock-graph-drag';
+	import { GraphDockConnectionController } from '@/ui/workspace/graph-dock-connection';
+	import WorkspaceSettingsPopover from '@/ui/workspace/WorkspaceSettingsPopover.svelte';
+	import WorkspaceMainPanels from '@/ui/workspace/WorkspaceMainPanels.svelte';
+	import GraphLoadingOverlay from '@/ui/workspace/GraphLoadingOverlay.svelte';
 	import {
 		GraphLoadingCoordinator,
 		waitForGraphLoadingPaint,
-	} from './workspace/graph-loading';
+	} from '@/ui/workspace/graph-loading';
 	import {
 		createCuratedConditionDraft,
 		type CuratedConditionDraft,
-	} from './curated/curated-panel-state';
+	} from '@/ui/curated/curated-panel-state';
 	import {
 		getChartSourceSwitchWarning,
 		getChartTypeSwitchWarning,
-	} from '../workspace/state/switch-warnings';
-	import { resolveGroupCapabilities } from '../workspace/groups/group-policy';
+	} from '@/workspace/state/switch-warnings';
+	import { resolveGroupCapabilities } from '@/workspace/groups/group-policy';
 
-	import { ConfirmDeleteViewModal } from './ConfirmDeleteWorkspaceModal';
-	import { SwitchModeWarningModal } from './SwitchModeWarningModal';
-	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import Toolbar from './Toolbar.svelte';
+	import { ConfirmDeleteViewModal } from '@/ui/ConfirmDeleteWorkspaceModal';
+	import { SwitchModeWarningModal } from '@/ui/SwitchModeWarningModal';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import Toolbar from '@/ui/Toolbar.svelte';
 
 	let {
 		app,

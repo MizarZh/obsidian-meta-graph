@@ -2,10 +2,10 @@ import type { EdgeDisplayData, NodeDisplayData } from 'sigma/types';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeNodeAttributes,
-} from '../../model/graphology-adapter';
-import type { GraphPalette } from '../../styles/graph-styles';
-import { withAlpha } from '../../styles/graph-styles';
-import { isCanvasParallelEdge } from './sigma-parallel-edge-policy';
+} from '@/graph/model/graphology-adapter';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
+import { withAlpha } from '@/graph/styles/graph-styles';
+import { isCanvasParallelEdge } from '@/graph/renderers/sigma/sigma-parallel-edge-policy';
 
 export interface SigmaHoverState {
 	activeHoverNodeId?: string;

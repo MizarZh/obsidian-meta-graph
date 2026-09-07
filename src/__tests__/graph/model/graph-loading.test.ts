@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { GraphLoadingCoordinator } from '../../../ui/workspace/graph-loading';
+import { GraphLoadingCoordinator } from '@/ui/workspace/graph-loading';
 
 describe('GraphLoadingCoordinator', () => {
 	it('keeps loading visible across transition and renderer work', async () => {

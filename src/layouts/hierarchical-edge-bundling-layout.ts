@@ -4,24 +4,24 @@ import {
 	type HierarchyNode,
 	type HierarchyPointNode,
 } from 'd3-hierarchy';
-import type { ChartGroupDefinition } from '../core/types';
+import type { ChartGroupDefinition } from '@/core/types';
 import {
 	getEdgeType,
 	type RuntimeGraph,
-} from '../graph/model/graphology-adapter';
-import { getCanonicalParallelLane } from '../graph/model/parallel-edges';
+} from '@/graph/model/graphology-adapter';
+import { getCanonicalParallelLane } from '@/graph/model/parallel-edges';
 import {
 	scaleLayoutGroupPadding,
 	type RadialGroupGeometry,
-} from './group-geometry';
-import type { LayoutEngine } from './layout-engine';
-import type { PlanarEdgeRoute } from './planar-geometry';
+} from '@/layouts/group-geometry';
+import type { LayoutEngine } from '@/layouts/layout-engine';
+import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
 import {
 	compareLayoutNodeIds,
 	type LayoutNodeSort,
 	type LayoutSortDirection,
-} from './node-ordering';
-import { offsetParallelPolyline } from './parallel-routes';
+} from '@/layouts/node-ordering';
+import { offsetParallelPolyline } from '@/layouts/parallel-routes';
 
 interface BundleNode {
 	id?: string;

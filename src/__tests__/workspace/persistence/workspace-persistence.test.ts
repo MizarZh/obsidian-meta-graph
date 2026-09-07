@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
-import { cloneSerializable } from '../../../workspace/state/persistence';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
+import { cloneSerializable } from '@/workspace/state/persistence';
 import {
 	createDefaultMetaGraphDocument,
 	normalizeMetaGraphDocument,
 	serializeMetaGraphState,
-} from '../../../workspace/meta-graph-model';
+} from '@/workspace/meta-graph-model';
 import {
 	addCuratedFilePaths,
 	removeCuratedFilePaths,
 	renameCuratedFilePath,
-} from '../../../workspace/state/curated-workspace';
+} from '@/workspace/state/curated-workspace';
 
 describe('workspace persistence', () => {
 	it('uses canonical names for default charts', () => {

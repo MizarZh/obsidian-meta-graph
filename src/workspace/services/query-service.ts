@@ -3,7 +3,7 @@ import {
 	createKnowledgeIndexFromMetadataRecords,
 	MetadataIndexer,
 	type MetadataIndexRecord,
-} from '../../core/metadata-indexer';
+} from '@/core/metadata-indexer';
 import type {
 	ConnectionFieldSpec,
 	GraphProjection,
@@ -11,9 +11,9 @@ import type {
 	MetadataDebugEntry,
 	UnresolvedLink,
 	WorkspaceState,
-} from '../../core/types';
-import { CuratedProjectionEngine } from '../../query/curated';
-import { GraphQueryEngine } from '../../query/neighborhood';
+} from '@/core/types';
+import { CuratedProjectionEngine } from '@/query/curated';
+import { GraphQueryEngine } from '@/query/neighborhood';
 
 export interface WorkspaceIndexSnapshot {
 	index: KnowledgeIndex;

@@ -3,12 +3,12 @@ import ForceAtlas2LayoutSupervisor from 'graphology-layout-forceatlas2/worker';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
-} from '../graph/model/graphology-adapter';
+} from '@/graph/model/graphology-adapter';
 import {
 	compactGraphGroups,
 	createGraphGroupLinks,
-} from './graph-group-layout';
-import type { LayoutEngine } from './layout-engine';
+} from '@/layouts/graph-group-layout';
+import type { LayoutEngine } from '@/layouts/layout-engine';
 
 export interface GraphForceSettings {
 	centerForce: number;

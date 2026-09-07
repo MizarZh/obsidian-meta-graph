@@ -1,4 +1,4 @@
-import type { NodeId } from './graph';
+import type { NodeId } from '@/core/types/graph';
 
 export type DockConnectionDirection =
 	'from-graph-to-dock' | 'from-dock-to-graph';

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { DockTemplateNode } from '../../../core/types';
-import { createWorkspaceTemplateNote } from '../../../workspace/actions/template-actions';
+import type { DockTemplateNode } from '@/core/types';
+import { createWorkspaceTemplateNote } from '@/workspace/actions/template-actions';
 
 describe('workspace template note actions', () => {
 	it('creates, connects, places, and returns the new template note path', async () => {

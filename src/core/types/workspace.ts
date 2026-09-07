@@ -1,10 +1,10 @@
-import type { MetaGraphDock } from './dock';
+import type { MetaGraphDock } from '@/core/types/dock';
 import type {
 	GraphProjection,
 	GraphQuery,
 	NodeFilterGroup,
 	NodeId,
-} from './graph';
+} from '@/core/types/graph';
 import type {
 	ChartStyleConfig,
 	DefaultLinkStyle,
@@ -12,7 +12,7 @@ import type {
 	GlobalStyleConfig,
 	LinkStyleRule,
 	NodeStyleRule,
-} from './style';
+} from '@/core/types/style';
 
 export type ViewMode =
 	| 'graph'

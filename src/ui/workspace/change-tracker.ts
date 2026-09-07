@@ -2,7 +2,7 @@ import type {
 	ChartGroupingConfig,
 	GraphProjection,
 	WorkspaceState,
-} from '../../core/types';
+} from '@/core/types';
 
 export interface WorkspaceRenderBaseline {
 	projection?: WorkspaceState['projection'];
@@ -290,10 +290,10 @@ export function analyzeWorkspaceStateChanges(
 				baseline,
 				REBUILD_BASELINE_KEYS,
 			),
-			fitAfterRender:
-				activeChartChanged ||
-				modeChanged ||
-				rendererChanged ||
+		fitAfterRender:
+			activeChartChanged ||
+			modeChanged ||
+			rendererChanged ||
 			chartSourceChanged ||
 			(projectionChanged && nextState.mode !== 'cube') ||
 			flowStyleChanged ||

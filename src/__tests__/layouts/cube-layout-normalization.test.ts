@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { ChartLayoutConfig } from '../../core/types';
-import { normalizeCubeLayout } from '../../workspace/state/manual-layout';
+import type { ChartLayoutConfig } from '@/core/types';
+import { normalizeCubeLayout } from '@/workspace/state/manual-layout';
 
 describe('normalizeCubeLayout', () => {
 	it('keeps manual placements at cube face edges', () => {

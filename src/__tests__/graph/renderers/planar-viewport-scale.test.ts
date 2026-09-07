@@ -4,7 +4,7 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../../graph/model/graphology-adapter';
+} from '@/graph/model/graphology-adapter';
 import {
 	calculateSigmaCompatibleFitZoom,
 	denormalizePlanarPosition,
@@ -16,7 +16,7 @@ import {
 	normalizePlanarPosition,
 	planarLevelToNativeZoom,
 	planarZoomToSizeRatio,
-} from '../../../graph/renderers/planar-viewport-scale';
+} from '@/graph/renderers/planar-viewport-scale';
 
 describe('planar viewport scale', () => {
 	it('treats each renderer fit zoom as the shared 100% baseline', () => {

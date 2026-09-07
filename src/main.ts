@@ -9,23 +9,23 @@ import {
 import {
 	KnowledgeWorkspaceView,
 	VIEW_TYPE_KNOWLEDGE_WORKSPACE,
-} from './workspace/KnowledgeWorkspaceView';
+} from '@/workspace/KnowledgeWorkspaceView';
 import {
 	DEFAULT_SETTINGS,
 	normalizeLargeVaultMode,
 	normalizeNodeOpenMode,
 	type KnowledgeWorkspaceSettings,
-} from './settings/settings';
-import { KnowledgeWorkspaceSettingsTab } from './settings/SettingsTab';
-import { DEFAULT_GRAPH_QUERY } from './query/graph-query';
+} from '@/settings/settings';
+import { KnowledgeWorkspaceSettingsTab } from '@/settings/SettingsTab';
+import { DEFAULT_GRAPH_QUERY } from '@/query/graph-query';
 import {
 	META_GRAPH_FRONTMATTER_KEY,
 	META_GRAPH_FRONTMATTER_VALUE,
-} from './workspace/meta-graph/constants';
-import { WorkspaceIndexService } from './workspace/services/workspace-index-service';
-import type { WorkspaceSessionState } from './workspace/meta-graph-v2/types';
-import { normalizeWorkspaceSessions } from './workspace/workspace-session';
-import type { WorkspaceActionId } from './ui/interactions/keyboard-shortcuts';
+} from '@/workspace/meta-graph/constants';
+import { WorkspaceIndexService } from '@/workspace/services/workspace-index-service';
+import type { WorkspaceSessionState } from '@/workspace/meta-graph-v2/types';
+import { normalizeWorkspaceSessions } from '@/workspace/workspace-session';
+import type { WorkspaceActionId } from '@/ui/interactions/keyboard-shortcuts';
 
 export default class KnowledgeWorkspacePlugin extends Plugin {
 	settings!: KnowledgeWorkspaceSettings;
@@ -359,7 +359,7 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 			}
 		).createNewMarkdownFile(targetFolder, 'Untitled meta graph');
 		const { createMetaGraphMarkdown } =
-			await import('./workspace/meta-graph-document');
+			await import('@/workspace/meta-graph-document');
 		await this.app.vault.modify(
 			file,
 			createMetaGraphMarkdown(

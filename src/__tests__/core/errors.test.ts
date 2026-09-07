@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatError } from '../../core/errors';
+import { formatError } from '@/core/errors';
 
 describe('formatError', () => {
 	it('formats Error values with optional stack', () => {

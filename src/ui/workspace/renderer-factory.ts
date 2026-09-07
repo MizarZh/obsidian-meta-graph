@@ -1,13 +1,13 @@
-import type { WorkspaceState } from '../../core/types';
-import type { RuntimeGraph } from '../../graph/model/graphology-adapter';
-import type { PlanarEdgeRoute } from '../../layouts/planar-geometry';
-import type { GraphPalette } from '../../graph/styles/graph-styles';
+import type { WorkspaceState } from '@/core/types';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
+import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
 import {
 	createGraphRenderer,
 	getRendererKindForMode,
 	type GraphRenderer,
-} from '../../graph/renderers/renderer-adapter';
-import { createCubeRendererManualLayout } from '../../workspace/state/manual-layout/cube-layout';
+} from '@/graph/renderers/renderer-adapter';
+import { createCubeRendererManualLayout } from '@/workspace/state/manual-layout/cube-layout';
 
 export interface WorkspaceGraphRendererOptions {
 	graph: RuntimeGraph;

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ObsidianSlider from './obsidian/ObsidianSlider.svelte';
+	import ObsidianSlider from '@/ui/obsidian/ObsidianSlider.svelte';
 
 	let {
 		fadeDistance,

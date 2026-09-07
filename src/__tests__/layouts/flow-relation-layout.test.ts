@@ -4,14 +4,14 @@ import type {
 	ChartGroupDefinition,
 	FlowRelationRule,
 	GraphProjection,
-} from '../../core/types';
-import { GraphologyAdapter } from '../../graph/model/graphology-adapter';
-import type { GraphPalette } from '../../graph/styles/graph-styles';
+} from '@/core/types';
+import { GraphologyAdapter } from '@/graph/model/graphology-adapter';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
 import {
 	ElkFlowLayout,
 	extractElkLayoutOrthogonalRoutes,
-} from '../../layouts/elk-flow-layout';
-import { createFlowLayoutPlan } from '../../layouts/flow-relation-layout';
+} from '@/layouts/elk-flow-layout';
+import { createFlowLayoutPlan } from '@/layouts/flow-relation-layout';
 
 const palette: GraphPalette = {
 	node: '#111111',

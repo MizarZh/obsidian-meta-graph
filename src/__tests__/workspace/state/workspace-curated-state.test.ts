@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { CuratedWorkspaceConfig, WorkspaceState } from '../../../core/types';
+import type { CuratedWorkspaceConfig, WorkspaceState } from '@/core/types';
 import {
 	addCuratedFilesToState,
 	pruneMissingCuratedFiles,
 	removeCuratedFilesFromState,
 	updateCuratedFilePathInState,
-} from '../../../workspace/state/curated-state';
-import { addGroupInState } from '../../../workspace/state/manual-layout-state';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/workspace/state/curated-state';
+import { addGroupInState } from '@/workspace/state/manual-layout-state';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('workspace curated state', () => {
 	it('renames curated paths across charts and mirrors the active chart', () => {

@@ -5,7 +5,7 @@ import type {
 	NodeFilterGroupMode,
 	NodeFilterOperator,
 	NodeStyleField,
-} from '../core/types';
+} from '@/core/types';
 
 export interface SuggestionOption {
 	value: string;

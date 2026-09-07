@@ -1,8 +1,8 @@
 import type { ForceGraph3DInstance } from '3d-force-graph';
 import type * as Three from 'three';
 import type { Object3D } from 'three';
-import type { LabelPosition, ThreeLabelResolution } from '../../../core/types';
-import type { RuntimeGraph } from '../../model/graphology-adapter';
+import type { LabelPosition, ThreeLabelResolution } from '@/core/types';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
 import {
 	type Force3DLink,
 	type Force3DNode,
@@ -10,26 +10,26 @@ import {
 	hasFiniteCoordinates,
 	syncForce3DDataStyles,
 	toForce3DData,
-} from './force-3d-data';
-import { immediateNeighborhood } from '../../model/neighborhood';
-import type { GraphPalette } from '../../styles/graph-styles';
-import { withAlpha } from '../../styles/graph-styles';
+} from '@/graph/renderers/force-3d/force-3d-data';
+import { immediateNeighborhood } from '@/graph/model/neighborhood';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
+import { withAlpha } from '@/graph/styles/graph-styles';
 import {
 	resolveThreeLabelStyle,
 	type LabelThemeConfig,
-} from '../renderer-label-style';
+} from '@/graph/renderers/renderer-label-style';
 import {
 	findClosestScreenNode,
 	readViewportPosition,
 	type ScreenNode,
-} from '../renderer-interaction';
+} from '@/graph/renderers/renderer-interaction';
 import {
 	createThreeTextSprite,
 	resolveThreeLabelPixelRatio,
-} from '../renderer-labels';
-import type { RendererCapabilities } from '../renderer-capabilities';
-import type { Force3DRendererOptions } from '../renderer-options';
-import { createCubeNodeSprite } from '../cube-3d/cube-sprites';
+} from '@/graph/renderers/renderer-labels';
+import type { RendererCapabilities } from '@/graph/renderers/renderer-capabilities';
+import type { Force3DRendererOptions } from '@/graph/renderers/renderer-options';
+import { createCubeNodeSprite } from '@/graph/renderers/cube-3d/cube-sprites';
 
 interface ThreeRuntime {
 	CanvasTexture: typeof Three.CanvasTexture;

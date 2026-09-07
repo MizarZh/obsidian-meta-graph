@@ -1,5 +1,5 @@
 import type { App } from 'obsidian';
-import { normalizePath } from './knowledge-index';
+import { normalizePath } from '@/core/knowledge-index';
 
 export interface LinkResolver {
 	resolve(linkText: string, sourcePath: string): string | undefined;

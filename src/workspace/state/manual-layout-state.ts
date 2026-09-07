@@ -5,18 +5,18 @@ import type {
 	MetaGraphChart,
 	NodeId,
 	WorkspaceState,
-} from '../../core/types';
-import { normalizeGroupFrameForShape } from '../../layouts/group-shape';
-import { resolveChartGroupOwnership } from '../../query/group-ownership';
+} from '@/core/types';
+import { normalizeGroupFrameForShape } from '@/layouts/group-shape';
+import { resolveChartGroupOwnership } from '@/query/group-ownership';
 import {
 	createUniqueDefaultGroup,
 	findManualPlacement,
 	getManualGroup,
 	moveManualNodesToGroup,
 	readGroupPlacementBounds,
-} from './manual-layout';
-import { toGroupDefinition } from '../meta-graph/grouping';
-import { updateActiveChartState } from './state-updaters';
+} from '@/workspace/state/manual-layout';
+import { toGroupDefinition } from '@/workspace/meta-graph/grouping';
+import { updateActiveChartState } from '@/workspace/state/state-updaters';
 
 type Position = { x: number; y: number };
 

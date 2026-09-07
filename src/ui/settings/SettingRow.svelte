@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { SettingLayout } from './types';
+	import type { SettingLayout } from '@/ui/settings/types';
 
 	let {
 		label,

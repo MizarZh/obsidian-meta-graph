@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { GraphProjection } from '../../../core/types';
+import type { GraphProjection } from '@/core/types';
 import {
 	GraphologyAdapter,
 	getEdgeType,
 	type GraphPosition,
-} from '../../../graph/model/graphology-adapter';
-import type { GraphPalette } from '../../../graph/styles/graph-styles';
+} from '@/graph/model/graphology-adapter';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
 import {
 	applyBundledFlowEdges,
 	applyCurvedFlowEdges,
@@ -14,7 +14,7 @@ import {
 	createBundledFlowRoutes,
 	extractElkOrthogonalRoutes,
 	toElkDirection,
-} from '../../../layouts/elk-flow-layout';
+} from '@/layouts/elk-flow-layout';
 
 const palette: GraphPalette = {
 	node: '#111111',
@@ -224,29 +224,24 @@ describe('GraphologyAdapter positions', () => {
 		expect(graph.getEdgeAttribute(segmentIds.at(-1)!, 'type')).toBe(
 			'arrow',
 		);
-		expect(
-			graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteRounded'),
-		).toBe(true);
-		expect(
-			graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteKind'),
-		).toBe('rounded');
+		expect(graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteRounded')).toBe(
+			true,
+		);
+		expect(graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteKind')).toBe(
+			'rounded',
+		);
 		expect(
 			graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteOrthogonal'),
 		).not.toBe(true);
-		const flowRoute = graph.getEdgeAttribute(
-			segmentIds[0]!,
-			'flowRoute',
-		);
+		const flowRoute = graph.getEdgeAttribute(segmentIds[0]!, 'flowRoute');
 		expect(flowRoute).toBeDefined();
 		const flowRoutePoints = flowRoute ?? [];
 		expect(
 			flowRoutePoints.some(
 				(point, index) =>
 					index > 0 &&
-					(Math.abs(point.x - flowRoutePoints[index - 1]!.x) > 0.001 &&
-						Math.abs(
-							point.y - flowRoutePoints[index - 1]!.y,
-						) > 0.001),
+					Math.abs(point.x - flowRoutePoints[index - 1]!.x) > 0.001 &&
+					Math.abs(point.y - flowRoutePoints[index - 1]!.y) > 0.001,
 			),
 		).toBe(true);
 	});
@@ -313,8 +308,8 @@ describe('GraphologyAdapter positions', () => {
 			flowRoute?.some(
 				(point, index) =>
 					index > 0 &&
-					(Math.abs(point.x - flowRoute[index - 1]!.x) > 0.001 &&
-						Math.abs(point.y - flowRoute[index - 1]!.y) > 0.001),
+					Math.abs(point.x - flowRoute[index - 1]!.x) > 0.001 &&
+					Math.abs(point.y - flowRoute[index - 1]!.y) > 0.001,
 			),
 		).toBe(true);
 	});
@@ -434,12 +429,12 @@ describe('GraphologyAdapter positions', () => {
 		expect(graph.getEdgeAttribute(segmentIds.at(-1)!, 'type')).toBe(
 			'arrow',
 		);
-		expect(
-			graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteRounded'),
-		).toBe(true);
-		expect(
-			graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteKind'),
-		).toBe('rounded');
+		expect(graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteRounded')).toBe(
+			true,
+		);
+		expect(graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteKind')).toBe(
+			'rounded',
+		);
 	});
 
 	it('does not merge unrelated many-to-many crossings', () => {

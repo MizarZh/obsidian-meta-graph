@@ -1,6 +1,6 @@
 <script lang="ts">
-	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import type { DebugSnapshot } from '../core/types';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import type { DebugSnapshot } from '@/core/types';
 
 	let {
 		snapshot,

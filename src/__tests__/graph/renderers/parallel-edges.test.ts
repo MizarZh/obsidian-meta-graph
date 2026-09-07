@@ -1,35 +1,35 @@
 import { describe, expect, it } from 'vitest';
 import Graph from 'graphology';
-import type { GraphProjection } from '../../../core/types';
+import type { GraphProjection } from '@/core/types';
 import {
 	assignParallelEdgeLanes,
 	getCanonicalParallelLane,
 	getParallelLane,
-} from '../../../graph/model/parallel-edges';
-import { GraphologyAdapter } from '../../../graph/model/graphology-adapter';
+} from '@/graph/model/parallel-edges';
+import { GraphologyAdapter } from '@/graph/model/graphology-adapter';
 import {
 	applyParallelDirectEdges,
 	createParallelDirectRoute,
 	offsetParallelFlowRoute,
 	offsetParallelPolyline,
 	syncParallelDirectEdgeRoutes,
-} from '../../../layouts/parallel-routes';
-import { applyOrthogonalFlowEdges } from '../../../layouts/elk-flow-layout';
+} from '@/layouts/parallel-routes';
+import { applyOrthogonalFlowEdges } from '@/layouts/elk-flow-layout';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../../graph/model/graphology-adapter';
+} from '@/graph/model/graphology-adapter';
 import {
 	createParallelCanvasRoute,
 	createParallelCanvasRouteFromPolyline,
 	distanceToPolyline,
 	getEdgeFocusPriority,
 	orderNativeEdgeSegments,
-} from '../../../graph/renderers/sigma/sigma-parallel-edge-layer';
-import { isCanvasParallelEdge } from '../../../graph/renderers/sigma/sigma-parallel-edge-policy';
-import { resolveEdgeVisualMetrics } from '../../../graph/renderers/sigma/sigma-edge-visual-metrics';
-import { planarZoomToSizeRatio } from '../../../graph/renderers/planar-viewport-scale';
+} from '@/graph/renderers/sigma/sigma-parallel-edge-layer';
+import { isCanvasParallelEdge } from '@/graph/renderers/sigma/sigma-parallel-edge-policy';
+import { resolveEdgeVisualMetrics } from '@/graph/renderers/sigma/sigma-edge-visual-metrics';
+import { planarZoomToSizeRatio } from '@/graph/renderers/planar-viewport-scale';
 
 function edgeAttributes(relation: string): RuntimeEdgeAttributes {
 	return {

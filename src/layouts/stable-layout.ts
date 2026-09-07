@@ -9,12 +9,12 @@ import type {
 	LayoutSortDirection,
 	ManualLayoutConfig,
 	ViewMode,
-} from '../core/types';
+} from '@/core/types';
 import type {
 	GraphPosition,
 	RuntimeGraph,
-} from '../graph/model/graphology-adapter';
-import { ArcLayout } from './arc-layout';
+} from '@/graph/model/graphology-adapter';
+import { ArcLayout } from '@/layouts/arc-layout';
 import {
 	applyBundledFlowEdges,
 	applyCurvedFlowEdges,
@@ -23,16 +23,19 @@ import {
 	createBundledFlowRoutes,
 	ElkFlowLayout,
 	type OrthogonalRouteMap,
-} from './elk-flow-layout';
-import { ForceAtlasLayout, type GraphForceSettings } from './force-layout';
-import { placeNewFlowNodes } from './flow-insertion';
+} from '@/layouts/elk-flow-layout';
+import {
+	ForceAtlasLayout,
+	type GraphForceSettings,
+} from '@/layouts/force-layout';
+import { placeNewFlowNodes } from '@/layouts/flow-insertion';
 import {
 	createGraphGroupGeometries,
 	createGroupMemberHaloGeometries,
-} from './graph-group-layout';
-import { HierarchicalEdgeBundlingLayout } from './hierarchical-edge-bundling-layout';
+} from '@/layouts/graph-group-layout';
+import { HierarchicalEdgeBundlingLayout } from '@/layouts/hierarchical-edge-bundling-layout';
 
-import type { PlanarLayoutGeometry } from './planar-geometry';
+import type { PlanarLayoutGeometry } from '@/layouts/planar-geometry';
 
 export interface LayoutSnapshot extends PlanarLayoutGeometry {
 	positions: Map<string, GraphPosition>;

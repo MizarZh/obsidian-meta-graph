@@ -1,14 +1,17 @@
-import type { LabelPosition } from '../../core/types';
-import type { LayoutGroupGeometry } from '../../layouts/group-geometry';
-import type { PlanarEdgeRoute } from '../../layouts/planar-geometry';
-import type { GraphPosition, RuntimeGraph } from '../model/graphology-adapter';
-import type { GraphPalette } from '../styles/graph-styles';
-import type { RendererCapabilities } from './renderer-capabilities';
-import type { LabelThemeConfig } from './renderer-label-style';
+import type { LabelPosition } from '@/core/types';
+import type { LayoutGroupGeometry } from '@/layouts/group-geometry';
+import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
+import type {
+	GraphPosition,
+	RuntimeGraph,
+} from '@/graph/model/graphology-adapter';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
+import type { RendererCapabilities } from '@/graph/renderers/renderer-capabilities';
+import type { LabelThemeConfig } from '@/graph/renderers/renderer-label-style';
 import type {
 	GroupInteractionCallbacks,
 	GroupOverlayGroup,
-} from './renderer-groups';
+} from '@/graph/renderers/renderer-groups';
 
 export interface ForceSimulationRenderer {
 	readonly runtimeGraph: RuntimeGraph;

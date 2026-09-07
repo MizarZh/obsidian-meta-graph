@@ -3,8 +3,8 @@ import type {
 	ChartGroupDefinition,
 	ChartLayoutConfig,
 	GroupFrame,
-} from '../../../core/types';
-import { CUBE_FACE_GROUPS_BY_ID } from './cube-layout';
+} from '@/core/types';
+import { CUBE_FACE_GROUPS_BY_ID } from '@/workspace/state/manual-layout/cube-layout';
 
 export function getManualGroup(
 	layout: ChartLayoutConfig,

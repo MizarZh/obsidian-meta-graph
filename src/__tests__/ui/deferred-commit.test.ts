@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
 	DeferredCommitScheduler,
 	ThrottledCommitScheduler,
-} from '../../ui/filter/deferred-commit';
-import { ColorCommitScheduler } from '../../ui/filter/color-commit';
+} from '@/ui/filter/deferred-commit';
+import { ColorCommitScheduler } from '@/ui/filter/color-commit';
 
 describe('commit schedulers', () => {
 	it('defers commits until the delay elapses', () => {

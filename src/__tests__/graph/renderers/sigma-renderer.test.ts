@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { calculateLabelOpacity } from '../../../graph/renderers/sigma/label-opacity';
-import type { SigmaRenderer as SigmaRendererType } from '../../../graph/renderers/sigma/sigma-renderer';
+import { calculateLabelOpacity } from '@/graph/renderers/sigma/label-opacity';
+import type { SigmaRenderer as SigmaRendererType } from '@/graph/renderers/sigma/sigma-renderer';
 
 describe('label opacity', () => {
 	it('keeps the configured opacity before the fade distance', () => {
@@ -30,8 +30,8 @@ describe('SigmaRenderer refresh', () => {
 		});
 		vi.stubGlobal('WebGLRenderingContext', WebGLContext);
 		vi.stubGlobal('WebGL2RenderingContext', WebGLContext);
-		const sigmaRendererModule: typeof import('../../../graph/renderers/sigma/sigma-renderer') =
-			await import('../../../graph/renderers/sigma/sigma-renderer');
+		const sigmaRendererModule: typeof import('@/graph/renderers/sigma/sigma-renderer') =
+			await import('@/graph/renderers/sigma/sigma-renderer');
 		const SigmaRenderer = sigmaRendererModule.SigmaRenderer;
 		const refresh = vi.fn();
 		const update = vi.fn();

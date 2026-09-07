@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { WorkspaceState } from '../../core/types';
+import type { WorkspaceState } from '@/core/types';
 import {
 	resolveConnectionPreviewMarkers,
 	resolveConnectionPreviewStyle,
-} from '../../ui/workspace/connection-preview-style';
-import { createWorkspaceState } from '../../workspace/state/workspace-state';
+} from '@/ui/workspace/connection-preview-style';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('resolveConnectionPreviewStyle', () => {
 	it('uses the active link defaults and matching field rules', () => {

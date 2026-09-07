@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { DefaultNodeStyle, NodeShape } from '../../../core/types';
-	import ColorSetting from '../fields/ColorSetting.svelte';
-	import SegmentedSetting from '../fields/SegmentedSetting.svelte';
-	import SliderSetting from '../fields/SliderSetting.svelte';
-	import SettingGrid from '../SettingGrid.svelte';
-	import type { SettingOption } from '../types';
+	import type { DefaultNodeStyle, NodeShape } from '@/core/types';
+	import ColorSetting from '@/ui/settings/fields/ColorSetting.svelte';
+	import SegmentedSetting from '@/ui/settings/fields/SegmentedSetting.svelte';
+	import SliderSetting from '@/ui/settings/fields/SliderSetting.svelte';
+	import SettingGrid from '@/ui/settings/SettingGrid.svelte';
+	import type { SettingOption } from '@/ui/settings/types';
 
 	export type NodeVisualValue = Required<
 		Pick<DefaultNodeStyle, 'color' | 'size' | 'opacity' | 'shape'>

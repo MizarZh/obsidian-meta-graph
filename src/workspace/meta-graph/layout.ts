@@ -8,8 +8,8 @@ import type {
 	LayoutSortDirection,
 	ManualLayoutConfig,
 	ViewMode,
-} from '../../core/types';
-import { cloneSerializable } from '../state/persistence';
+} from '@/core/types';
+import { cloneSerializable } from '@/workspace/state/persistence';
 import {
 	DEFAULT_GRAPH_CENTER_FORCE,
 	DEFAULT_GRAPH_DRAG_LINK_FORCE,
@@ -19,8 +19,8 @@ import {
 	DEFAULT_GRAPH_RETURN_FORCE,
 	DEFAULT_FLOW_CORNER_RADIUS,
 	MAX_FLOW_CORNER_RADIUS,
-} from './constants';
-import { normalizeFilterGroup } from './query';
+} from '@/workspace/meta-graph/constants';
+import { normalizeFilterGroup } from '@/workspace/meta-graph/query';
 import {
 	createDockId,
 	isRecord,
@@ -28,7 +28,7 @@ import {
 	readFiniteNumber,
 	readOptionalFiniteNumber,
 	uniqueById,
-} from './utils';
+} from '@/workspace/meta-graph/utils';
 
 export function normalizeLayout(
 	value: unknown,

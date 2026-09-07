@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { openCreatedTemplateNote } from '../../../ui/workspace/template-actions';
+import { openCreatedTemplateNote } from '@/ui/workspace/template-actions';
 
 interface VaultEntry {
 	kind: 'file' | 'folder';

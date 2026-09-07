@@ -1,12 +1,12 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import type { SettingsPanelMode } from '../../core/types';
-	import FilterPanel from '../FilterPanel.svelte';
-	import GroupPanel from '../GroupPanel.svelte';
+	import type { SettingsPanelMode } from '@/core/types';
+	import FilterPanel from '@/ui/FilterPanel.svelte';
+	import GroupPanel from '@/ui/GroupPanel.svelte';
 	import type {
 		WorkspaceSettingsActions,
 		WorkspaceSettingsView,
-	} from './settings-ports';
+	} from '@/ui/workspace/settings-ports';
 
 	let {
 		app,

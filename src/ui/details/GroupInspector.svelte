@@ -6,12 +6,12 @@
 		ManualLayoutConfig,
 		NodeFilterItem,
 		ViewMode,
-	} from '../../core/types';
-	import { resolveChartGroupOwnership } from '../../query/group-ownership';
-	import { resolveGroupCapabilities } from '../../workspace/groups/group-policy';
-	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
-	import ObsidianTextInput from '../obsidian/ObsidianTextInput.svelte';
-	import { obsidianTooltip } from '../obsidian/obsidian-tooltip';
+	} from '@/core/types';
+	import { resolveChartGroupOwnership } from '@/query/group-ownership';
+	import { resolveGroupCapabilities } from '@/workspace/groups/group-policy';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import ObsidianTextInput from '@/ui/obsidian/ObsidianTextInput.svelte';
+	import { obsidianTooltip } from '@/ui/obsidian/obsidian-tooltip';
 
 	let {
 		group,

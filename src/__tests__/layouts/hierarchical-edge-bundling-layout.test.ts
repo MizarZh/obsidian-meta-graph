@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { ChartGroupDefinition, GraphProjection } from '../../core/types';
-import { GraphologyAdapter } from '../../graph/model/graphology-adapter';
-import { isCanvasParallelEdge } from '../../graph/renderers/sigma/sigma-parallel-edge-policy';
-import type { GraphPalette } from '../../graph/styles/graph-styles';
+import type { ChartGroupDefinition, GraphProjection } from '@/core/types';
+import { GraphologyAdapter } from '@/graph/model/graphology-adapter';
+import { isCanvasParallelEdge } from '@/graph/renderers/sigma/sigma-parallel-edge-policy';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
 import {
 	HierarchicalEdgeBundlingLayout,
 	getRadialLabelPlacement,
-} from '../../layouts/hierarchical-edge-bundling-layout';
+} from '@/layouts/hierarchical-edge-bundling-layout';
 
 const palette: GraphPalette = {
 	node: '#111111',

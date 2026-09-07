@@ -3,7 +3,7 @@ import {
 	getModeCapabilities,
 	getRendererKindForMode,
 	type RendererCapabilities,
-} from '../../../graph/renderers/renderer-capabilities';
+} from '@/graph/renderers/renderer-capabilities';
 
 const declaredCapabilities: RendererCapabilities = {
 	kind: 'cube-3d',

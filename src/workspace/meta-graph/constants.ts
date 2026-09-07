@@ -6,7 +6,7 @@ import type {
 	LabelPosition,
 	MetaGraphDock,
 	ThreeLabelResolution,
-} from '../../core/types';
+} from '@/core/types';
 
 export const META_GRAPH_FRONTMATTER_KEY = 'meta-graph';
 export const META_GRAPH_FRONTMATTER_VALUE = 'workspace';

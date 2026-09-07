@@ -1,4 +1,4 @@
-import type { ChartGroup } from '../../../core/types';
+import type { ChartGroup } from '@/core/types';
 
 export const MANUAL_NODE_SPACING = 0.62;
 

@@ -1,7 +1,10 @@
 <script lang="ts">
-	import SettingRow from '../SettingRow.svelte';
-	import ObsidianSlider from '../../obsidian/ObsidianSlider.svelte';
-	import type { NumericSettingFormatter, SettingLayout } from '../types';
+	import SettingRow from '@/ui/settings/SettingRow.svelte';
+	import ObsidianSlider from '@/ui/obsidian/ObsidianSlider.svelte';
+	import type {
+		NumericSettingFormatter,
+		SettingLayout,
+	} from '@/ui/settings/types';
 
 	let {
 		label,

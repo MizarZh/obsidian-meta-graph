@@ -1,4 +1,4 @@
-import type { ChartSource, ViewMode, WorkspaceState } from '../../core/types';
+import type { ChartSource, ViewMode, WorkspaceState } from '@/core/types';
 
 export type WorkspaceSwitchWarningSeverity = 'destructive' | 'contextual';
 

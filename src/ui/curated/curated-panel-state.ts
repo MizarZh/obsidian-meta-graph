@@ -5,8 +5,8 @@ import type {
 	ManualLayoutConfig,
 	NodeFilterGroup,
 	NodeFilterItem,
-} from '../../core/types';
-import { nodeMatchesFilterGroup } from '../../query/filters';
+} from '@/core/types';
+import { nodeMatchesFilterGroup } from '@/query/filters';
 
 export type ReorderPlacement = 'before' | 'after';
 export type ConditionalMode = 'add' | 'remove' | 'select';

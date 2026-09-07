@@ -4,9 +4,9 @@ import type {
 	NodeFilterGroup,
 	NodeFilterItem,
 	WorkspaceState,
-} from '../../core/types';
-import { normalizeTextPath } from '../meta-graph/utils';
-import { createUpdatedActiveChartStateFields } from './active-chart-state';
+} from '@/core/types';
+import { normalizeTextPath } from '@/workspace/meta-graph/utils';
+import { createUpdatedActiveChartStateFields } from '@/workspace/state/active-chart-state';
 
 const PATH_FILTER_OPERATORS = new Set([
 	'links-to',

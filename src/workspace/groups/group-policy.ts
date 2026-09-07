@@ -2,7 +2,7 @@ import type {
 	ChartGroupDefinition,
 	ChartGroupMode,
 	ViewMode,
-} from '../../core/types';
+} from '@/core/types';
 
 export type GroupSpatialStrategy =
 	'automatic-region' | 'fixed-frame' | 'layout-region' | 'surface' | 'none';

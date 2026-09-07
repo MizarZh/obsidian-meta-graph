@@ -2,11 +2,11 @@ import type {
 	LabelPosition,
 	ManualLayoutConfig,
 	ThreeLabelResolution,
-} from '../../core/types';
-import type { RuntimeGraph } from '../model/graphology-adapter';
-import type { PlanarEdgeRoute } from '../../layouts/planar-geometry';
-import type { GraphPalette } from '../styles/graph-styles';
-import type { RendererKind } from './renderer-capabilities';
+} from '@/core/types';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
+import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
+import type { RendererKind } from '@/graph/renderers/renderer-capabilities';
 
 /** Settings shared by every renderer implementation. */
 export interface RendererBaseOptions {

@@ -1,15 +1,15 @@
 import { Graph, GraphEvent, type GraphOptions, type State } from '@antv/g6';
-import type { LabelPosition } from '../../../core/types';
-import type { LayoutGroupGeometry } from '../../../layouts/group-geometry';
-import type { PlanarEdgeRoute } from '../../../layouts/planar-geometry';
+import type { LabelPosition } from '@/core/types';
+import type { LayoutGroupGeometry } from '@/layouts/group-geometry';
+import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
 import type {
 	GraphPosition,
 	RuntimeGraph,
-} from '../../model/graphology-adapter';
-import type { GraphPalette } from '../../styles/graph-styles';
-import type { RendererCapabilities } from '../renderer-capabilities';
-import type { PlanarRenderer } from '../renderer-contracts';
-import type { LabelThemeConfig } from '../renderer-label-style';
+} from '@/graph/model/graphology-adapter';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
+import type { RendererCapabilities } from '@/graph/renderers/renderer-capabilities';
+import type { PlanarRenderer } from '@/graph/renderers/renderer-contracts';
+import type { LabelThemeConfig } from '@/graph/renderers/renderer-label-style';
 import {
 	calculateSigmaCompatibleFitZoom,
 	denormalizePlanarPosition,
@@ -23,12 +23,12 @@ import {
 	PLANAR_WHEEL_ZOOM_FACTOR,
 	planarLevelToNativeZoom,
 	type PlanarViewportState,
-} from '../planar-viewport-scale';
+} from '@/graph/renderers/planar-viewport-scale';
 import type {
 	GroupInteractionCallbacks,
 	GroupOverlayGroup,
-} from '../renderer-groups';
-import type { G6RendererOptions } from '../renderer-options';
+} from '@/graph/renderers/renderer-groups';
+import type { G6RendererOptions } from '@/graph/renderers/renderer-options';
 import {
 	createG6LabelVisibilityIndex,
 	createG6LabelVisibilityPatch,
@@ -38,18 +38,18 @@ import {
 	toG6Data,
 	type G6LabelVisibility,
 	type G6LabelVisibilityIndex,
-} from './g6-data';
+} from '@/graph/renderers/g6/g6-data';
 import {
 	createG6CoordinateSpace,
 	type G6CoordinateSpace,
-} from './g6-coordinate-space';
-import { G6GroupLayer } from './g6-groups';
+} from '@/graph/renderers/g6/g6-coordinate-space';
+import { G6GroupLayer } from '@/graph/renderers/g6/g6-groups';
 import {
 	G6_LABEL_CONTROLLER_KEY,
 	type G6LabelController,
 	type G6LabelControllerDirtyIds,
 	type G6LabelControllerSnapshot,
-} from './g6-label-controller';
+} from '@/graph/renderers/g6/g6-label-controller';
 import {
 	createG6InteractionStyles,
 	createG6LabelStyles,
@@ -57,8 +57,8 @@ import {
 	resolveG6RotatedNodeLabelStyle,
 	type G6DisplayStyleOptions,
 	type G6VisualScale,
-} from './g6-styles';
-import { G6SceneCache } from './g6-scene-cache';
+} from '@/graph/renderers/g6/g6-styles';
+import { G6SceneCache } from '@/graph/renderers/g6/g6-scene-cache';
 
 const INITIAL_NATIVE_ZOOM_RANGE: [number, number] = [0.001, 1000];
 const FOCUS_DURATION = 350;

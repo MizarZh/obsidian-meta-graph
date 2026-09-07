@@ -1,16 +1,16 @@
-import { Cube3DRenderer } from './cube-3d/cube-3d-renderer';
-import { Force3DRenderer } from './force-3d/force-3d-renderer';
-import { G6Renderer } from './g6/g6-renderer';
+import { Cube3DRenderer } from '@/graph/renderers/cube-3d/cube-3d-renderer';
+import { Force3DRenderer } from '@/graph/renderers/force-3d/force-3d-renderer';
+import { G6Renderer } from '@/graph/renderers/g6/g6-renderer';
 import {
 	type GraphRenderer,
 	type RendererCapabilities,
 	type RendererKind,
-} from './renderer-capabilities';
+} from '@/graph/renderers/renderer-capabilities';
 import type {
 	ForceSimulationRenderer,
 	PlanarRenderer,
-} from './renderer-contracts';
-import { SigmaRenderer } from './sigma/sigma-renderer';
+} from '@/graph/renderers/renderer-contracts';
+import { SigmaRenderer } from '@/graph/renderers/sigma/sigma-renderer';
 
 const FORCE_3D_CAPABILITIES: RendererCapabilities = {
 	kind: 'force-3d',

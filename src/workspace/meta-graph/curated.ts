@@ -2,8 +2,8 @@ import type {
 	CuratedWorkspaceConfig,
 	CuratedWorkspaceContext,
 	CuratedWorkspaceFile,
-} from '../../core/types';
-import { DEFAULT_CURATED_CONTEXT } from './constants';
+} from '@/core/types';
+import { DEFAULT_CURATED_CONTEXT } from '@/workspace/meta-graph/constants';
 import {
 	isRecord,
 	normalizeTextPath,
@@ -11,7 +11,7 @@ import {
 	readFiniteNumber,
 	readOptionalFiniteNumber,
 	uniqueByPath,
-} from './utils';
+} from '@/workspace/meta-graph/utils';
 
 export function createDefaultCuratedWorkspace(): CuratedWorkspaceConfig {
 	return {

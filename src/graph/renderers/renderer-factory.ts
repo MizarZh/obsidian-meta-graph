@@ -1,15 +1,15 @@
-import { Cube3DRenderer } from './cube-3d/cube-3d-renderer';
-import { Force3DRenderer } from './force-3d/force-3d-renderer';
-import { G6Renderer } from './g6/g6-renderer';
-import type { GraphRenderer } from './renderer-capabilities';
+import { Cube3DRenderer } from '@/graph/renderers/cube-3d/cube-3d-renderer';
+import { Force3DRenderer } from '@/graph/renderers/force-3d/force-3d-renderer';
+import { G6Renderer } from '@/graph/renderers/g6/g6-renderer';
+import type { GraphRenderer } from '@/graph/renderers/renderer-capabilities';
 import type {
 	Cube3DRendererOptions,
 	Force3DRendererOptions,
 	G6RendererOptions,
 	GraphRendererOptions,
 	SigmaRendererOptions,
-} from './renderer-options';
-import { SigmaRenderer } from './sigma/sigma-renderer';
+} from '@/graph/renderers/renderer-options';
+import { SigmaRenderer } from '@/graph/renderers/sigma/sigma-renderer';
 
 export async function createGraphRenderer(
 	options: GraphRendererOptions,

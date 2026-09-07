@@ -1,4 +1,4 @@
-import type { KnowledgeEdge } from '../../core/types';
+import type { KnowledgeEdge } from '@/core/types';
 
 export function getOtherLinksBetweenNotes(
 	current: KnowledgeEdge,

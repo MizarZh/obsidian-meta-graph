@@ -1,6 +1,6 @@
 import type { ElkExtendedEdge } from 'elkjs/lib/elk.bundled.js';
-import type { FlowRelationPlacement, FlowRelationRule } from '../core/types';
-import type { RuntimeGraph } from '../graph/model/graphology-adapter';
+import type { FlowRelationPlacement, FlowRelationRule } from '@/core/types';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
 
 const IN_LAYER_PREDECESSOR =
 	'org.eclipse.elk.layered.crossingMinimization.inLayerPredOf';

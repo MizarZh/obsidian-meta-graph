@@ -1,7 +1,7 @@
 <script lang="ts">
-	import SettingRow from '../SettingRow.svelte';
-	import ObsidianColorInput from '../../obsidian/ObsidianColorInput.svelte';
-	import type { SettingLayout } from '../types';
+	import SettingRow from '@/ui/settings/SettingRow.svelte';
+	import ObsidianColorInput from '@/ui/obsidian/ObsidianColorInput.svelte';
+	import type { SettingLayout } from '@/ui/settings/types';
 
 	let {
 		label,

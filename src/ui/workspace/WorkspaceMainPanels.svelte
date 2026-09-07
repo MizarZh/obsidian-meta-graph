@@ -1,23 +1,23 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import type { KnowledgeNode, WorkspaceState } from '../../core/types';
-	import type { ConnectionDragState } from '../../graph/renderers/renderer-events';
-	import type { WorkspaceController } from '../../workspace/workspace-controller';
+	import type { KnowledgeNode, WorkspaceState } from '@/core/types';
+	import type { ConnectionDragState } from '@/graph/renderers/renderer-events';
+	import type { WorkspaceController } from '@/workspace/workspace-controller';
 	import type {
 		ConnectionPanelLayout,
 		WorkspaceRightPanelTab,
-	} from '../../workspace/meta-graph-v2/types';
-	import ConnectionPanel from '../ConnectionPanel.svelte';
-	import CuratedPanel from '../CuratedPanel.svelte';
-	import DockGraphPanel from '../DockGraphPanel.svelte';
-	import type { DockDragPayload } from '../dock/types';
-	import type { CuratedConditionDraft } from '../curated/curated-panel-state';
-	import type { DockCuratedDropPreview } from './dock-curated-drop';
-	import type { DockNoteEntry } from './derived';
+	} from '@/workspace/meta-graph-v2/types';
+	import ConnectionPanel from '@/ui/ConnectionPanel.svelte';
+	import CuratedPanel from '@/ui/CuratedPanel.svelte';
+	import DockGraphPanel from '@/ui/DockGraphPanel.svelte';
+	import type { DockDragPayload } from '@/ui/dock/types';
+	import type { CuratedConditionDraft } from '@/ui/curated/curated-panel-state';
+	import type { DockCuratedDropPreview } from '@/ui/workspace/dock-curated-drop';
+	import type { DockNoteEntry } from '@/ui/workspace/derived';
 	import {
 		resolveConnectionPreviewMarkers,
 		resolveConnectionPreviewStyle,
-	} from './connection-preview-style';
+	} from '@/ui/workspace/connection-preview-style';
 
 	let {
 		app,

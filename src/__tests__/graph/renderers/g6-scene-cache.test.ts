@@ -4,9 +4,9 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../../graph/model/graphology-adapter';
-import { G6SceneCache } from '../../../graph/renderers/g6/g6-scene-cache';
-import type { PlanarEdgeRoute } from '../../../layouts/planar-geometry';
+} from '@/graph/model/graphology-adapter';
+import { G6SceneCache } from '@/graph/renderers/g6/g6-scene-cache';
+import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
 
 describe('G6 scene cache', () => {
 	it('builds renderer, logical-edge, extent, route, and spatial indexes once', () => {

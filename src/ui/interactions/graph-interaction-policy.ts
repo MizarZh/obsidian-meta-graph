@@ -1,4 +1,4 @@
-import type { ModeCapabilities } from '../../graph/renderers/renderer-adapter';
+import type { ModeCapabilities } from '@/graph/renderers/renderer-adapter';
 
 export type PlanarDragAction =
 	{ kind: 'manual-position' } | { kind: 'force-simulation' };

@@ -8,15 +8,15 @@ import type {
 	UnresolvedLink,
 	WorkspacePerformanceSample,
 	WorkspaceState,
-} from '../../core/types';
-import { createWorkspaceDebugSnapshot } from '../runtime/debug-snapshot';
+} from '@/core/types';
+import { createWorkspaceDebugSnapshot } from '@/workspace/runtime/debug-snapshot';
 import {
 	applyWorkspaceIndexSnapshotToState,
 	projectWorkspaceState,
-} from '../runtime/refresh-state';
-import { WorkspaceProjectionService } from '../services/query-service';
-import type { WorkspaceIndexService } from '../services/workspace-index-service';
-import type { WorkspaceStore } from './workspace-store';
+} from '@/workspace/runtime/refresh-state';
+import { WorkspaceProjectionService } from '@/workspace/services/query-service';
+import type { WorkspaceIndexService } from '@/workspace/services/workspace-index-service';
+import type { WorkspaceStore } from '@/workspace/controller/workspace-store';
 
 export class WorkspaceRefreshCoordinator {
 	private index?: KnowledgeIndex;

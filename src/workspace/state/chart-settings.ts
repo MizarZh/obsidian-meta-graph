@@ -10,12 +10,12 @@ import type {
 	MetaGraphChart,
 	ThreeLabelResolution,
 	WorkspaceState,
-} from '../../core/types';
+} from '@/core/types';
 import {
 	DEFAULT_FLOW_CORNER_RADIUS,
 	MAX_FLOW_CORNER_RADIUS,
-} from '../meta-graph-model';
-import { updateActiveChartState } from './state-updaters';
+} from '@/workspace/meta-graph-model';
+import { updateActiveChartState } from '@/workspace/state/state-updaters';
 
 export type GraphForceSettingKey =
 	| 'centerForce'

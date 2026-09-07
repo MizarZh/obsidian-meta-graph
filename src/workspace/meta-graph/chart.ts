@@ -1,13 +1,13 @@
-import { supportsPlanarRenderer } from '../../core/types';
+import { supportsPlanarRenderer } from '@/core/types';
 import type {
 	ChartSource,
 	GlobalStyleConfig,
 	MetaGraphChart,
 	ThreeLabelResolution,
 	ViewMode,
-} from '../../core/types';
-import { normalizeGroupFrameForShape } from '../../layouts/group-shape';
-import { getChartTypeName } from '../../core/chart-types';
+} from '@/core/types';
+import { normalizeGroupFrameForShape } from '@/layouts/group-shape';
+import { getChartTypeName } from '@/core/chart-types';
 import {
 	DEFAULT_CUBE_FREE_CAMERA,
 	DEFAULT_CUBE_FACE_OPACITY,
@@ -27,19 +27,28 @@ import {
 	DEFAULT_LABEL_SIZE,
 	DEFAULT_SCALE_LABELS_WITH_ZOOM,
 	DEFAULT_THREE_LABEL_RESOLUTION,
-} from './constants';
+} from '@/workspace/meta-graph/constants';
 import {
 	createDefaultCuratedWorkspace,
 	normalizeCuratedWorkspace,
-} from './curated';
-import { hydrateCuratedManualLayout } from './curated-layout';
-import { createDefaultChartGrouping, normalizeChartGrouping } from './grouping';
+} from '@/workspace/meta-graph/curated';
+import { hydrateCuratedManualLayout } from '@/workspace/meta-graph/curated-layout';
+import {
+	createDefaultChartGrouping,
+	normalizeChartGrouping,
+} from '@/workspace/meta-graph/grouping';
 import {
 	CUBE_FACE_GROUP_DEFINITIONS,
 	normalizeCubeGroupDefinitions,
-} from '../state/manual-layout/cube-layout';
-import { createDefaultLayout, normalizeLayout } from './layout';
-import { createDefaultQuery, normalizeQuery } from './query';
+} from '@/workspace/state/manual-layout/cube-layout';
+import {
+	createDefaultLayout,
+	normalizeLayout,
+} from '@/workspace/meta-graph/layout';
+import {
+	createDefaultQuery,
+	normalizeQuery,
+} from '@/workspace/meta-graph/query';
 import {
 	createDefaultGlobalStyle,
 	normalizeLinkStyleOverrides,
@@ -51,14 +60,14 @@ import {
 	normalizeUnresolvedLinkStyleOverrides,
 	readBaseLinkStyleRule,
 	readBaseNodeStyleRule,
-} from './style';
+} from '@/workspace/meta-graph/style';
 import {
 	clampNumber,
 	isRecord,
 	readBoolean,
 	readFiniteNumber,
 	readLabelPosition,
-} from './utils';
+} from '@/workspace/meta-graph/utils';
 
 export function createDefaultChart(
 	type: ViewMode,

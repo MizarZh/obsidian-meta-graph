@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { ColorCommitScheduler } from '../filter/color-commit';
+	import { ColorCommitScheduler } from '@/ui/filter/color-commit';
 
 	let {
 		value,

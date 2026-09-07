@@ -1,7 +1,7 @@
 import type {
 	GraphPosition,
 	RuntimeGraph,
-} from '../../graph/model/graphology-adapter';
+} from '@/graph/model/graphology-adapter';
 
 export function getGroupNodeIds(
 	groupByNode: ReadonlyMap<string, string>,

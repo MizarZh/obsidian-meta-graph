@@ -10,9 +10,9 @@ import {
 	setActiveChartRendererInState,
 	setActiveChartSourceInState,
 	setActiveChartTypeInState,
-} from '../../../workspace/state/chart-state';
-import { addGroupInState } from '../../../workspace/state/manual-layout-state';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/workspace/state/chart-state';
+import { addGroupInState } from '@/workspace/state/manual-layout-state';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('workspace chart state', () => {
 	it('preserves the renderer across planar type changes and ignores it in 3D', () => {

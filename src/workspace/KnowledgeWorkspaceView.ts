@@ -4,22 +4,22 @@ import {
 	type ViewStateResult,
 	type WorkspaceLeaf,
 } from 'obsidian';
-import { formatError } from '../core/errors';
-import type { MetaGraphDocument, WorkspaceState } from '../core/types';
-import { DEFAULT_GRAPH_QUERY } from '../query/graph-query';
-import type KnowledgeWorkspacePlugin from '../main';
-import type { WorkspaceController } from './workspace-controller';
+import { formatError } from '@/core/errors';
+import type { MetaGraphDocument, WorkspaceState } from '@/core/types';
+import { DEFAULT_GRAPH_QUERY } from '@/query/graph-query';
+import type KnowledgeWorkspacePlugin from '@/main';
+import type { WorkspaceController } from '@/workspace/workspace-controller';
 import type {
 	PersistedMetaGraphDocumentV2,
 	WorkspacePersistenceContext,
 	WorkspaceSessionState,
-} from './meta-graph-v2/types';
-import { applyWorkspaceSession } from './workspace-session';
-import { serializeWorkspaceStateV2 } from './meta-graph-v2/codec';
-import type { WorkspaceActionId } from '../ui/interactions/keyboard-shortcuts';
+} from '@/workspace/meta-graph-v2/types';
+import { applyWorkspaceSession } from '@/workspace/workspace-session';
+import { serializeWorkspaceStateV2 } from '@/workspace/meta-graph-v2/codec';
+import type { WorkspaceActionId } from '@/ui/interactions/keyboard-shortcuts';
 
 type MountedWorkspace = Parameters<typeof import('svelte').unmount>[0];
-type MetaGraphDocumentModule = typeof import('./meta-graph-document');
+type MetaGraphDocumentModule = typeof import('@/workspace/meta-graph-document');
 
 export const VIEW_TYPE_KNOWLEDGE_WORKSPACE = 'meta-graph';
 
@@ -145,7 +145,10 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		await this.renderWorkspace(data, revision);
 	}
 
-	private async renderWorkspace(data: string, revision: number): Promise<void> {
+	private async renderWorkspace(
+		data: string,
+		revision: number,
+	): Promise<void> {
 		await this.unmountWorkspace();
 		if (this.data !== data || this.renderRevision !== revision) {
 			return;
@@ -164,9 +167,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 				this.plugin.settings.fadeDistance,
 			);
 			persistence = parsed.persistence;
-			sessionKey = this.file?.path
-				? `path:${this.file.path}`
-				: undefined;
+			sessionKey = this.file?.path ? `path:${this.file.path}` : undefined;
 			session = this.plugin.getWorkspaceSession(sessionKey);
 			document = applyWorkspaceSession(
 				parsed.document,
@@ -183,8 +184,8 @@ export class KnowledgeWorkspaceView extends TextFileView {
 		const [{ mount }, { default: Workspace }, { WorkspaceController }] =
 			await Promise.all([
 				import('svelte'),
-				import('../ui/Workspace.svelte'),
-				import('./workspace-controller'),
+				import('@/ui/Workspace.svelte'),
+				import('@/workspace/workspace-controller'),
 			]);
 		if (this.data !== data || this.renderRevision !== revision) {
 			return;
@@ -280,7 +281,8 @@ export class KnowledgeWorkspaceView extends TextFileView {
 	}
 
 	private loadMetaGraphDocumentModule(): Promise<MetaGraphDocumentModule> {
-		this.metaGraphDocumentModule ??= import('./meta-graph-document');
+		this.metaGraphDocumentModule ??=
+			import('@/workspace/meta-graph-document');
 		return this.metaGraphDocumentModule;
 	}
 

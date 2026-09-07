@@ -1,6 +1,7 @@
 import esbuild from 'esbuild';
 import process from 'process';
 import { builtinModules } from 'node:module';
+import { fileURLToPath } from 'node:url';
 import sveltePlugin from 'esbuild-svelte';
 
 const banner = `/*
@@ -10,12 +11,16 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = process.argv[2] === 'production';
+const sourceRoot = fileURLToPath(new URL('./src', import.meta.url));
 
 const context = await esbuild.context({
 	banner: {
 		js: banner,
 	},
 	entryPoints: ['src/main.ts'],
+	alias: {
+		'@': sourceRoot,
+	},
 	bundle: true,
 	plugins: [sveltePlugin()],
 	external: [

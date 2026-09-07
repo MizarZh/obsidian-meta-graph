@@ -4,8 +4,8 @@ import type {
 	ChartGroupingConfig,
 	KnowledgeNode,
 	NodeFilterGroup,
-} from '../../../core/types';
-import { resolveChartGroupOwnership } from '../../../query/group-ownership';
+} from '@/core/types';
+import { resolveChartGroupOwnership } from '@/query/group-ownership';
 
 describe('chart group ownership', () => {
 	it('uses group order for overlapping rules and reports the conflict', () => {

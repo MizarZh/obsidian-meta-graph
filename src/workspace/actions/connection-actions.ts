@@ -3,16 +3,16 @@ import type {
 	DockConnectionDirection,
 	NodeId,
 	WorkspaceState,
-} from '../../core/types';
+} from '@/core/types';
 import {
 	getActiveConnectionSpecInState,
 	setActiveConnectionFieldInState,
-} from '../state/connection-fields';
+} from '@/workspace/state/connection-fields';
 import {
 	normalizeConnectionRequest,
 	normalizeDockConnectionRequest,
 	type NormalizedConnectionRequest,
-} from './connection-request';
+} from '@/workspace/actions/connection-request';
 
 export interface WorkspaceConnectionPort {
 	readonly undoCount: number;

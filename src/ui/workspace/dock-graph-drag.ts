@@ -1,19 +1,19 @@
-import type { ConnectionDragState } from '../../graph/renderers/renderer-events';
-import type { GraphRenderer } from '../../graph/renderers/renderer-adapter';
+import type { ConnectionDragState } from '@/graph/renderers/renderer-events';
+import type { GraphRenderer } from '@/graph/renderers/renderer-adapter';
 import {
 	createDockConnectionDragState,
 	updateDockConnectionDragState,
-} from '../dock/connection-drag';
+} from '@/ui/dock/connection-drag';
 import {
 	resolveDockPayloadGraphAction,
 	type DockPayloadGraphAction,
-} from '../dock/connection';
+} from '@/ui/dock/connection';
 import {
 	readElementCenterViewportPosition,
 	readViewportPoint,
-} from '../dock/dom';
-import { canDockPayloadTargetNode } from '../dock/drag';
-import type { DockDragPayload } from '../dock/types';
+} from '@/ui/dock/dom';
+import { canDockPayloadTargetNode } from '@/ui/dock/drag';
+import type { DockDragPayload } from '@/ui/dock/types';
 
 export interface DockGraphDragControllerOptions {
 	window: Window;

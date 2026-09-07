@@ -1,17 +1,17 @@
 <script lang="ts">
-	import SettingsSection from '../settings/SettingsSection.svelte';
-	import SettingGrid from '../settings/SettingGrid.svelte';
-	import ColorSetting from '../settings/fields/ColorSetting.svelte';
-	import DropdownSetting from '../settings/fields/DropdownSetting.svelte';
-	import SegmentedSetting from '../settings/fields/SegmentedSetting.svelte';
-	import SliderSetting from '../settings/fields/SliderSetting.svelte';
-	import ToggleSetting from '../settings/fields/ToggleSetting.svelte';
+	import SettingsSection from '@/ui/settings/SettingsSection.svelte';
+	import SettingGrid from '@/ui/settings/SettingGrid.svelte';
+	import ColorSetting from '@/ui/settings/fields/ColorSetting.svelte';
+	import DropdownSetting from '@/ui/settings/fields/DropdownSetting.svelte';
+	import SegmentedSetting from '@/ui/settings/fields/SegmentedSetting.svelte';
+	import SliderSetting from '@/ui/settings/fields/SliderSetting.svelte';
+	import ToggleSetting from '@/ui/settings/fields/ToggleSetting.svelte';
 	import type {
 		ArcLabelAngle,
 		LabelPosition,
 		ThreeLabelResolution,
 		ViewMode,
-	} from '../../core/types';
+	} from '@/core/types';
 
 	const LABEL_POSITION_OPTIONS: Array<{
 		value: LabelPosition;

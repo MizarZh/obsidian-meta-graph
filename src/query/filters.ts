@@ -7,9 +7,9 @@ import type {
 	NodeFilterGroup,
 	NodeFilterItem,
 	NodeFilterOperator,
-} from '../core/types';
-import { normalizeTag } from '../core/tags';
-import { isPlainLinkEdge, isUnresolvedLinkEdge } from '../core/edge-kind';
+} from '@/core/types';
+import { normalizeTag } from '@/core/tags';
+import { isPlainLinkEdge, isUnresolvedLinkEdge } from '@/core/edge-kind';
 
 export function nodeMatchesFilters(
 	node: KnowledgeNode,

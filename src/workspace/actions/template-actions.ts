@@ -2,8 +2,8 @@ import type {
 	DockConnectionDirection,
 	DockTemplateNode,
 	NodeId,
-} from '../../core/types';
-import { resolveTemplateNoteRequest } from './template-request';
+} from '@/core/types';
+import { resolveTemplateNoteRequest } from '@/workspace/actions/template-request';
 
 type TemplateNoteFile = { path: NodeId };
 type TemplateNoteCreator = (

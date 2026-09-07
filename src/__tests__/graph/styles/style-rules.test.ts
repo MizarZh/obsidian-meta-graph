@@ -4,18 +4,18 @@ import type {
 	KnowledgeNode,
 	LinkStyleRule,
 	NodeStyleRule,
-} from '../../../core/types';
+} from '@/core/types';
 import {
 	resolveLinkArrowSize,
 	resolveLinkArrowStyle,
 	resolveLinkOpacity,
 	resolveLinkStyle,
 	resolveNodeStyle,
-} from '../../../graph/styles/style-rules';
-import { resolveNodeStyleContext } from '../../../graph/styles/node-style-context';
-import { normalizeMetaGraphDocument } from '../../../workspace/meta-graph-model';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
-import { readOptionalNodeShape } from '../../../workspace/meta-graph/utils';
+} from '@/graph/styles/style-rules';
+import { resolveNodeStyleContext } from '@/graph/styles/node-style-context';
+import { normalizeMetaGraphDocument } from '@/workspace/meta-graph-model';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
+import { readOptionalNodeShape } from '@/workspace/meta-graph/utils';
 
 const node: KnowledgeNode = {
 	id: 'science/Star.md',

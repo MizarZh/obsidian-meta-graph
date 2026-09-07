@@ -1,10 +1,10 @@
-import type { ConnectionDragState } from '../../graph/renderers/renderer-events';
-import { readDockDropTarget, readElementAtPoint } from '../dock/dom';
+import type { ConnectionDragState } from '@/graph/renderers/renderer-events';
+import { readDockDropTarget, readElementAtPoint } from '@/ui/dock/dom';
 import {
 	resolveGraphConnectionDropAction,
 	type GraphConnectionDropAction,
 	type GraphConnectionDropTarget,
-} from '../interactions/graph-connection-drop';
+} from '@/ui/interactions/graph-connection-drop';
 
 const EMPTY_TARGET: GraphConnectionDropTarget = {
 	notePath: undefined,

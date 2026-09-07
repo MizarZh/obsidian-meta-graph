@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { RuntimeGraph } from '../../../graph/model/graphology-adapter';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
 import {
 	createSigmaHoverRefreshIndex,
 	createSigmaHoverRefreshPlan,
 	SigmaHoverRefreshCoordinator,
 	type SigmaHoverRefreshState,
-} from '../../../graph/renderers/sigma/sigma-hover-refresh';
+} from '@/graph/renderers/sigma/sigma-hover-refresh';
 
 describe('Sigma hover refresh planning', () => {
 	it('refreshes only the neighborhood delta and incident logical segments', () => {

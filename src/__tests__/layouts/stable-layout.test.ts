@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import type { GraphProjection } from '../../core/types';
+import type { GraphProjection } from '@/core/types';
 import {
 	GraphologyAdapter,
 	type GraphPosition,
-} from '../../graph/model/graphology-adapter';
-import type { GraphPalette } from '../../graph/styles/graph-styles';
-import { DEFAULT_GRAPH_FORCE_SETTINGS } from '../../layouts/force-layout';
+} from '@/graph/model/graphology-adapter';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
+import { DEFAULT_GRAPH_FORCE_SETTINGS } from '@/layouts/force-layout';
 import {
 	applyStableLayout,
 	createLayoutSnapshot,
 	getLayoutSnapshotKey,
 	hydrateManualLayoutPositions,
 	LayoutSnapshotStore,
-} from '../../layouts/stable-layout';
+} from '@/layouts/stable-layout';
 
 const palette: GraphPalette = {
 	node: '#111111',

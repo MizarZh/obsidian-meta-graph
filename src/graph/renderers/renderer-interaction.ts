@@ -1,4 +1,4 @@
-import type { ConnectionDragState } from './renderer-events';
+import type { ConnectionDragState } from '@/graph/renderers/renderer-events';
 
 export interface ViewportPoint {
 	x: number;

@@ -5,7 +5,7 @@ import type { ProgramInfo } from 'sigma/rendering';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeNodeAttributes,
-} from '../../model/graphology-adapter';
+} from '@/graph/model/graphology-adapter';
 
 type NodeShapeUniform = 'u_sizeRatio' | 'u_correctionRatio' | 'u_matrix';
 

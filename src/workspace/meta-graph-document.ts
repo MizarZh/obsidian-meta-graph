@@ -1,28 +1,28 @@
 import { parseYaml, stringifyYaml } from 'obsidian';
-import type { MetaGraphDocument } from '../core/types';
+import type { MetaGraphDocument } from '@/core/types';
 import {
 	createDefaultMetaGraphDocumentV2,
 	createPersistenceContextFromV1,
 	parsePersistedMetaGraphDocumentV2,
-} from './meta-graph-v2/codec';
+} from '@/workspace/meta-graph-v2/codec';
 import type {
 	ParsedMetaGraphWorkspace,
 	PersistedMetaGraphDocumentV2,
-} from './meta-graph-v2/types';
+} from '@/workspace/meta-graph-v2/types';
 import {
 	META_GRAPH_FRONTMATTER_KEY,
 	META_GRAPH_FRONTMATTER_VALUE,
 	META_GRAPH_VERSION,
 	META_GRAPH_VERSION_KEY,
 	normalizeMetaGraphDocument,
-} from './meta-graph-model';
+} from '@/workspace/meta-graph-model';
 
 export {
 	META_GRAPH_FRONTMATTER_KEY,
 	META_GRAPH_FRONTMATTER_VALUE,
 	META_GRAPH_VERSION,
 	META_GRAPH_VERSION_KEY,
-} from './meta-graph-model';
+} from '@/workspace/meta-graph-model';
 
 const FRONTMATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/u;
 

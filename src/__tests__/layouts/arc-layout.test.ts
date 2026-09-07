@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import type { ChartGroupDefinition, GraphProjection } from '../../core/types';
-import { GraphologyAdapter } from '../../graph/model/graphology-adapter';
-import type { GraphPalette } from '../../graph/styles/graph-styles';
+import type { ChartGroupDefinition, GraphProjection } from '@/core/types';
+import { GraphologyAdapter } from '@/graph/model/graphology-adapter';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
 import {
 	ArcLayout,
 	createArcPoints,
 	getArcLabelPlacement,
-} from '../../layouts/arc-layout';
-import { isCanvasParallelEdge } from '../../graph/renderers/sigma/sigma-parallel-edge-policy';
+} from '@/layouts/arc-layout';
+import { isCanvasParallelEdge } from '@/graph/renderers/sigma/sigma-parallel-edge-policy';
 import {
 	normalizeLayoutGroupPadding,
 	scaleLayoutGroupPadding,
-} from '../../layouts/group-geometry';
+} from '@/layouts/group-geometry';
 
 const palette: GraphPalette = {
 	node: '#111111',

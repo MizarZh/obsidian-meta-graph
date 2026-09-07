@@ -1,5 +1,5 @@
 import type { IconName } from 'obsidian';
-import type { ConnectionFieldMode } from '../core/types';
+import type { ConnectionFieldMode } from '@/core/types';
 
 export function getConnectionDirectionIcon(
 	mode: ConnectionFieldMode,

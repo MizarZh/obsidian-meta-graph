@@ -3,8 +3,8 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../model/graphology-adapter';
-import { scaleLayoutGroupPadding } from '../../../layouts/group-geometry';
+} from '@/graph/model/graphology-adapter';
+import { scaleLayoutGroupPadding } from '@/layouts/group-geometry';
 import {
 	fitViewportCircle,
 	isViewportPointInGroup,
@@ -12,17 +12,17 @@ import {
 	type ResolvedGroupShape,
 	type ViewportCircleMember,
 	type ViewportGroupRect,
-} from '../../../layouts/group-shape';
+} from '@/layouts/group-shape';
 import type {
 	GroupGeometry,
 	GroupInteractionCallbacks,
 	GroupOverlayGroup,
-} from '../renderer-groups';
+} from '@/graph/renderers/renderer-groups';
 export type {
 	GroupGeometry,
 	GroupInteractionCallbacks,
 	GroupOverlayGroup,
-} from '../renderer-groups';
+} from '@/graph/renderers/renderer-groups';
 
 type GroupResizeDirection =
 	| 'left'

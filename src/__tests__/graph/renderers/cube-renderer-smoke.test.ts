@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { GraphPalette } from '../../../graph/styles/graph-styles';
-import { Cube3DRenderer } from '../../../graph/renderers/cube-3d/cube-3d-renderer';
-import type { RuntimeGraph } from '../../../graph/model/graphology-adapter';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
+import { Cube3DRenderer } from '@/graph/renderers/cube-3d/cube-3d-renderer';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
 
 class Vector3 {
 	x: number;

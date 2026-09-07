@@ -3,23 +3,23 @@ import type {
 	ArcDirection,
 	ArcLabelAngle,
 	ChartGroupDefinition,
-} from '../core/types';
+} from '@/core/types';
 import {
 	getEdgeType,
 	type RuntimeGraph,
-} from '../graph/model/graphology-adapter';
-import { getParallelLane } from '../graph/model/parallel-edges';
-import type { LayoutEngine } from './layout-engine';
-import type { PlanarEdgeRoute } from './planar-geometry';
+} from '@/graph/model/graphology-adapter';
+import { getParallelLane } from '@/graph/model/parallel-edges';
+import type { LayoutEngine } from '@/layouts/layout-engine';
+import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
 import {
 	scaleLayoutGroupPadding,
 	type ArcGroupGeometry,
-} from './group-geometry';
+} from '@/layouts/group-geometry';
 import {
 	compareLayoutNodeIds,
 	type LayoutNodeSort,
 	type LayoutSortDirection,
-} from './node-ordering';
+} from '@/layouts/node-ordering';
 
 export interface ArcPoint {
 	x: number;

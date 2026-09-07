@@ -4,16 +4,16 @@ import type {
 	NodeLabelDrawingFunction,
 } from 'sigma/rendering';
 import type { NodeDisplayData } from 'sigma/types';
-import type { LabelPosition } from '../../../core/types';
+import type { LabelPosition } from '@/core/types';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeNodeAttributes,
-} from '../../model/graphology-adapter';
+} from '@/graph/model/graphology-adapter';
 import {
 	getNodeLabelBox,
 	getRotatedNodeLabelBox,
-} from './sigma-label-geometry';
-import { CanvasTextWidthCache } from './canvas-text-metrics';
+} from '@/graph/renderers/sigma/sigma-label-geometry';
+import { CanvasTextWidthCache } from '@/graph/renderers/sigma/canvas-text-metrics';
 
 export function createNodeLabelDrawer(
 	getRenderedLabelSize: (baseSize: number) => number,
@@ -146,10 +146,8 @@ export function createEdgeLabelDrawer(
 		deltaX = targetX - sourceX;
 		deltaY = targetY - sourceY;
 		distance = Math.hypot(deltaX, deltaY);
-		const fitted = fitEdgeLabel(
-			label,
-			distance,
-			(text) => textWidthCache.measure(context, text, font),
+		const fitted = fitEdgeLabel(label, distance, (text) =>
+			textWidthCache.measure(context, text, font),
 		);
 		if (!fitted) return;
 		const textWidth = textWidthCache.measure(context, fitted, font);

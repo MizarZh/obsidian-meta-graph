@@ -1,16 +1,16 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import type { SettingsPanelMode } from '../core/types';
+	import type { SettingsPanelMode } from '@/core/types';
 	import type {
 		WorkspaceSettingsActions,
 		WorkspaceSettingsView,
-	} from './workspace/settings-ports';
-	import FilterRulesPanel from './filter-panel/FilterRulesPanel.svelte';
-	import GraphSettingsPanel from './filter-panel/GraphSettingsPanel.svelte';
-	import LinkStylePanel from './filter-panel/LinkStylePanel.svelte';
-	import NodeStylePanel from './filter-panel/NodeStylePanel.svelte';
-	import StyleTransferControls from './filter-panel/StyleTransferControls.svelte';
-	import TextStylePanel from './filter-panel/TextStylePanel.svelte';
+	} from '@/ui/workspace/settings-ports';
+	import FilterRulesPanel from '@/ui/filter-panel/FilterRulesPanel.svelte';
+	import GraphSettingsPanel from '@/ui/filter-panel/GraphSettingsPanel.svelte';
+	import LinkStylePanel from '@/ui/filter-panel/LinkStylePanel.svelte';
+	import NodeStylePanel from '@/ui/filter-panel/NodeStylePanel.svelte';
+	import StyleTransferControls from '@/ui/filter-panel/StyleTransferControls.svelte';
+	import TextStylePanel from '@/ui/filter-panel/TextStylePanel.svelte';
 
 	let {
 		app,

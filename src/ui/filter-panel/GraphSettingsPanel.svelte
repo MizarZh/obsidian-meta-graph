@@ -1,14 +1,14 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import SettingsSection from '../settings/SettingsSection.svelte';
-	import DropdownSetting from '../settings/fields/DropdownSetting.svelte';
-	import SegmentedSetting from '../settings/fields/SegmentedSetting.svelte';
-	import SliderSetting from '../settings/fields/SliderSetting.svelte';
-	import TextSetting from '../settings/fields/TextSetting.svelte';
-	import ToggleSetting from '../settings/fields/ToggleSetting.svelte';
-	import FlowRelationRules from './FlowRelationRules.svelte';
-	import { MAX_FLOW_CORNER_RADIUS } from '../../workspace/meta-graph-model';
-	import { supportsPlanarRenderer } from '../../core/types';
+	import SettingsSection from '@/ui/settings/SettingsSection.svelte';
+	import DropdownSetting from '@/ui/settings/fields/DropdownSetting.svelte';
+	import SegmentedSetting from '@/ui/settings/fields/SegmentedSetting.svelte';
+	import SliderSetting from '@/ui/settings/fields/SliderSetting.svelte';
+	import TextSetting from '@/ui/settings/fields/TextSetting.svelte';
+	import ToggleSetting from '@/ui/settings/fields/ToggleSetting.svelte';
+	import FlowRelationRules from '@/ui/filter-panel/FlowRelationRules.svelte';
+	import { MAX_FLOW_CORNER_RADIUS } from '@/workspace/meta-graph-model';
+	import { supportsPlanarRenderer } from '@/core/types';
 	import type {
 		ArcDirection,
 		FlowDirection,
@@ -19,7 +19,7 @@
 		LayoutSortDirection,
 		PlanarRendererKind,
 		ViewMode,
-	} from '../../core/types';
+	} from '@/core/types';
 
 	let {
 		app,

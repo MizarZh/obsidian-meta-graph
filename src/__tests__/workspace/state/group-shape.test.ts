@@ -5,7 +5,7 @@ import {
 	isViewportPointInGroup,
 	normalizeGroupFrameForShape,
 	resolveGroupShape,
-} from '../../../layouts/group-shape';
+} from '@/layouts/group-shape';
 
 describe('group shapes', () => {
 	it('uses circles for Graph and rectangles elsewhere by default', () => {

@@ -1,6 +1,6 @@
-import { createEdgeId, normalizePath } from './knowledge-index';
-import { extractLinkText, type LinkResolver } from './link-resolver';
-import type { ConnectionFieldSpec, KnowledgeEdge } from './types';
+import { createEdgeId, normalizePath } from '@/core/knowledge-index';
+import { extractLinkText, type LinkResolver } from '@/core/link-resolver';
+import type { ConnectionFieldSpec, KnowledgeEdge } from '@/core/types';
 
 interface RelationDefinition {
 	field: string;

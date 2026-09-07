@@ -7,8 +7,8 @@ import {
 	reorderDockTemplatesInState,
 	setDockWidthInState,
 	updateDockNotePathInState,
-} from '../../../workspace/actions/dock-actions';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/workspace/actions/dock-actions';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('workspace dock actions', () => {
 	it('adds dock templates through workspace state', () => {

@@ -2,15 +2,18 @@ import type {
 	ConnectionFieldMode,
 	ConnectionFieldSpec,
 	WorkspaceState,
-} from '../../core/types';
+} from '@/core/types';
 import {
 	DEFAULT_CONNECTION_FIELD_MODE,
 	createConnectionFieldSpec,
 	normalizeConnectionFieldModes,
 	normalizeConnectionFields,
 	normalizeConnectionFieldSpecs,
-} from '../meta-graph-model';
-import { moveRelative, type ReorderPlacement } from './dock-state';
+} from '@/workspace/meta-graph-model';
+import {
+	moveRelative,
+	type ReorderPlacement,
+} from '@/workspace/state/dock-state';
 
 export interface ConnectionFieldStateResult {
 	state: WorkspaceState;

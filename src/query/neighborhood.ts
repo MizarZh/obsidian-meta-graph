@@ -6,8 +6,8 @@ import type {
 	KnowledgeIndex,
 	KnowledgeNode,
 	NodeId,
-} from '../core/types';
-import { edgeMatchesFilters, nodeMatchesFilters } from './filters';
+} from '@/core/types';
+import { edgeMatchesFilters, nodeMatchesFilters } from '@/query/filters';
 
 interface QueueItem {
 	nodeId: NodeId;

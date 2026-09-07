@@ -1,9 +1,9 @@
 <script lang="ts">
-	import SettingRow from '../SettingRow.svelte';
+	import SettingRow from '@/ui/settings/SettingRow.svelte';
 	import ObsidianDropdown, {
 		type DropdownOption,
-	} from '../../obsidian/ObsidianDropdown.svelte';
-	import type { SettingLayout } from '../types';
+	} from '@/ui/obsidian/ObsidianDropdown.svelte';
+	import type { SettingLayout } from '@/ui/settings/types';
 
 	let {
 		label,

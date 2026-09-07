@@ -2,36 +2,39 @@ import type {
 	ChartGroupDefinition,
 	ChartLayoutConfig,
 	GroupFrame,
-} from '../../core/types';
-import { normalizePath } from '../../core/knowledge-index';
+} from '@/core/types';
+import { normalizePath } from '@/core/knowledge-index';
 import {
 	CUBE_FACE_GROUPS_BY_ID,
 	CUBE_FACE_IDS,
 	getCubeFaceIdForNode,
-} from './manual-layout/cube-layout';
+} from '@/workspace/state/manual-layout/cube-layout';
 import {
 	expandGroupToPositions,
 	findManualPlacement,
 	isPositionInsideGroup,
 	readGroupPlacementBounds,
 	readUngroupedPlacementBounds,
-} from './manual-layout/placement';
-import { createFramedGroup, getGroupFrame } from './manual-layout/groups';
+} from '@/workspace/state/manual-layout/placement';
+import {
+	createFramedGroup,
+	getGroupFrame,
+} from '@/workspace/state/manual-layout/groups';
 
 export {
 	CUBE_FACE_GROUPS,
 	normalizeCubeLayout,
-} from './manual-layout/cube-layout';
+} from '@/workspace/state/manual-layout/cube-layout';
 export {
 	createUniqueDefaultGroup,
 	getManualGroup,
 	normalizeGroupPatch,
-} from './manual-layout/groups';
+} from '@/workspace/state/manual-layout/groups';
 export {
 	findManualPlacement,
 	readGroupPlacementBounds,
 	type PlacementBounds,
-} from './manual-layout/placement';
+} from '@/workspace/state/manual-layout/placement';
 
 export function addManualPlacements(
 	layout: ChartLayoutConfig,

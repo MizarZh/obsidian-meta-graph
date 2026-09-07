@@ -1,4 +1,4 @@
-import { withAlpha, type GraphPalette } from '../styles/graph-styles';
+import { withAlpha, type GraphPalette } from '@/graph/styles/graph-styles';
 
 export interface LabelThemeConfig {
 	labelLightTextColor: string;

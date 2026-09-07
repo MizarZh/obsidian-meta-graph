@@ -4,11 +4,11 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../graph/model/graphology-adapter';
+} from '@/graph/model/graphology-adapter';
 import {
 	DEFAULT_GRAPH_FORCE_SETTINGS,
 	ForceAtlasLayout,
-} from '../../layouts/force-layout';
+} from '@/layouts/force-layout';
 
 describe('ForceAtlasLayout', () => {
 	it('unfixes cached nodes before applying graph spacing', async () => {

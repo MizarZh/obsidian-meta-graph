@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { ChartStyleConfig } from '../../core/types';
-	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
+	import type { ChartStyleConfig } from '@/core/types';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
 	import {
 		copyChartStyles,
 		pasteChartStyles,
-	} from '../filter/style-transfer';
+	} from '@/ui/filter/style-transfer';
 
 	let {
 		style,

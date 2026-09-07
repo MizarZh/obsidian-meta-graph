@@ -1,4 +1,4 @@
-import type { LayoutGroupGeometry } from './group-geometry';
+import type { LayoutGroupGeometry } from '@/layouts/group-geometry';
 
 /** All coordinates are layout graph coordinates, before viewport normalization. */
 export interface PlanarPoint {

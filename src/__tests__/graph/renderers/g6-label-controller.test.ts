@@ -4,7 +4,7 @@ import {
 	G6LabelController,
 	G6_LABEL_CONTROLLER_KEY,
 	type G6LabelControllerSnapshot,
-} from '../../../graph/renderers/g6/g6-label-controller';
+} from '@/graph/renderers/g6/g6-label-controller';
 
 describe('G6 label controller', () => {
 	it('updates only existing label subshapes and disables label picking', () => {

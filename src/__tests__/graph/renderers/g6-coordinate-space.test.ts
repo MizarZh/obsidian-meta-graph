@@ -4,11 +4,11 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../../graph/model/graphology-adapter';
+} from '@/graph/model/graphology-adapter';
 import {
 	createG6CoordinateSpace,
 	MIN_G6_COORDINATE_SPAN,
-} from '../../../graph/renderers/g6/g6-coordinate-space';
+} from '@/graph/renderers/g6/g6-coordinate-space';
 
 describe('G6 coordinate space', () => {
 	it('conditions compact Free coordinates and preserves exact round trips', () => {

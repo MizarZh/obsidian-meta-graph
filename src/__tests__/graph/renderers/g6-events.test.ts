@@ -12,10 +12,10 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../../graph/model/graphology-adapter';
-import { bindG6Events } from '../../../graph/renderers/g6/g6-events';
-import type { G6Renderer } from '../../../graph/renderers/g6/g6-renderer';
-import type { GraphEventCallbacks } from '../../../graph/renderers/renderer-events';
+} from '@/graph/model/graphology-adapter';
+import { bindG6Events } from '@/graph/renderers/g6/g6-events';
+import type { G6Renderer } from '@/graph/renderers/g6/g6-renderer';
+import type { GraphEventCallbacks } from '@/graph/renderers/renderer-events';
 
 describe('G6 events', () => {
 	it('drags Free nodes in graph coordinates, keeps grab offset and commits once', () => {

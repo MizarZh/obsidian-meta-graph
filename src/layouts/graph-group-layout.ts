@@ -1,9 +1,9 @@
-import type { ChartGroupDefinition } from '../core/types';
-import type { RuntimeGraph } from '../graph/model/graphology-adapter';
+import type { ChartGroupDefinition } from '@/core/types';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
 import type {
 	GraphGroupGeometry,
 	GroupMemberHaloGeometry,
-} from './group-geometry';
+} from '@/layouts/group-geometry';
 
 export interface GraphGroupLink {
 	groupId: string;

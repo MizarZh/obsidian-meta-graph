@@ -1,19 +1,19 @@
 import Sigma from 'sigma';
 import { EdgeRectangleProgram } from 'sigma/rendering';
-import type { LabelPosition } from '../../../core/types';
+import type { LabelPosition } from '@/core/types';
 import {
 	type GraphPosition,
 	type RuntimeEdgeAttributes,
 	type RuntimeGraph,
 	type RuntimeNodeAttributes,
-} from '../../model/graphology-adapter';
-import { immediateNeighborhood } from '../../model/neighborhood';
-import type { GraphPalette } from '../../styles/graph-styles';
+} from '@/graph/model/graphology-adapter';
+import { immediateNeighborhood } from '@/graph/model/neighborhood';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
 import {
 	resolveThreeLabelStyle,
 	type LabelThemeConfig,
-} from '../renderer-label-style';
-import { calculateLabelOpacity } from './label-opacity';
+} from '@/graph/renderers/renderer-label-style';
+import { calculateLabelOpacity } from '@/graph/renderers/sigma/label-opacity';
 import {
 	ArrowEdgeProgram,
 	ChevronArrowEdgeProgram,
@@ -26,49 +26,52 @@ import {
 	DottedChevronArrowEdgeProgram,
 	DottedArrowEdgeProgram,
 	DottedEdgeProgram,
-} from './patterned-edge-program';
+} from '@/graph/renderers/sigma/patterned-edge-program';
 import {
 	createEdgeLabelDrawer,
 	createNodeHoverDrawer,
 	createNodeLabelDrawer,
-} from './sigma-label-rendering';
-import { CanvasTextWidthCache } from './canvas-text-metrics';
-import { getZoomAwareLabelSize } from './sigma-label-geometry';
-import { reduceSigmaEdge, reduceSigmaNode } from './sigma-hover-policy';
+} from '@/graph/renderers/sigma/sigma-label-rendering';
+import { CanvasTextWidthCache } from '@/graph/renderers/sigma/canvas-text-metrics';
+import { getZoomAwareLabelSize } from '@/graph/renderers/sigma/sigma-label-geometry';
+import {
+	reduceSigmaEdge,
+	reduceSigmaNode,
+} from '@/graph/renderers/sigma/sigma-hover-policy';
 import {
 	GroupOverlayLayer,
 	type GroupInteractionCallbacks,
 	type GroupOverlayGroup,
-} from './sigma-group-overlay';
-import { LayoutGroupLayer } from './sigma-layout-group-layer';
-import { SigmaParallelEdgeLayer } from './sigma-parallel-edge-layer';
-import type { LayoutGroupGeometry } from '../../../layouts/group-geometry';
-import type { PlanarEdgeRoute } from '../../../layouts/planar-geometry';
+} from '@/graph/renderers/sigma/sigma-group-overlay';
+import { LayoutGroupLayer } from '@/graph/renderers/sigma/sigma-layout-group-layer';
+import { SigmaParallelEdgeLayer } from '@/graph/renderers/sigma/sigma-parallel-edge-layer';
+import type { LayoutGroupGeometry } from '@/layouts/group-geometry';
+import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
 import {
 	NodeDiamondProgram,
 	NodeHexagonProgram,
 	NodeSquareProgram,
 	NodeStarProgram,
 	NodeTriangleProgram,
-} from './node-shape-programs';
-import type { RendererCapabilities } from '../renderer-capabilities';
-import type { SigmaRendererOptions } from '../renderer-options';
+} from '@/graph/renderers/sigma/node-shape-programs';
+import type { RendererCapabilities } from '@/graph/renderers/renderer-capabilities';
+import type { SigmaRendererOptions } from '@/graph/renderers/renderer-options';
 import {
 	getPlanarLabelVisualScale,
 	PLANAR_WHEEL_ZOOM_FACTOR,
 	planarZoomToSizeRatio,
-} from '../planar-viewport-scale';
+} from '@/graph/renderers/planar-viewport-scale';
 import {
 	createSigmaHoverRefreshIndex,
 	createSigmaHoverRefreshPlan,
 	SigmaHoverRefreshCoordinator,
 	type SigmaHoverRefreshIndex,
 	type SigmaHoverRefreshState,
-} from './sigma-hover-refresh';
+} from '@/graph/renderers/sigma/sigma-hover-refresh';
 export type {
 	GroupGeometry,
 	GroupInteractionCallbacks,
-} from './sigma-group-overlay';
+} from '@/graph/renderers/sigma/sigma-group-overlay';
 
 export class SigmaRenderer {
 	readonly instance: Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>;

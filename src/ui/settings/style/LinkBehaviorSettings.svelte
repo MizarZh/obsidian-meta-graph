@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { DefaultLinkStyle } from '../../../core/types';
-	import SettingGrid from '../SettingGrid.svelte';
-	import TextSetting from '../fields/TextSetting.svelte';
-	import ToggleSetting from '../fields/ToggleSetting.svelte';
+	import type { DefaultLinkStyle } from '@/core/types';
+	import SettingGrid from '@/ui/settings/SettingGrid.svelte';
+	import TextSetting from '@/ui/settings/fields/TextSetting.svelte';
+	import ToggleSetting from '@/ui/settings/fields/ToggleSetting.svelte';
 
 	export type LinkBehaviorValue = Partial<
 		Pick<DefaultLinkStyle, 'label' | 'showLabel' | 'hidden'>

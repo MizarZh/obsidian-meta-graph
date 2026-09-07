@@ -1,28 +1,28 @@
-import type { GraphProjection, WorkspaceState } from '../../core/types';
+import type { GraphProjection, WorkspaceState } from '@/core/types';
 import {
 	getRendererKind,
 	getRendererKindForMode,
 	refreshRendererGraphStyles,
 	refreshRendererGraphVisibility,
 	type GraphRenderer,
-} from '../../graph/renderers/renderer-adapter';
-import { readGraphPalette } from '../../graph/styles/graph-styles';
+} from '@/graph/renderers/renderer-adapter';
+import { readGraphPalette } from '@/graph/styles/graph-styles';
 import {
 	analyzeWorkspaceStateChanges,
 	createWorkspaceRenderBaseline,
 	syncWorkspaceRenderBaselineStyles,
 	type WorkspaceRenderBaseline,
-} from './change-tracker';
-import { syncRendererDisplaySettings } from './renderer-display-sync';
-import type { WorkspaceRendererLifecycle } from './renderer-lifecycle';
+} from '@/ui/workspace/change-tracker';
+import { syncRendererDisplaySettings } from '@/ui/workspace/renderer-display-sync';
+import type { WorkspaceRendererLifecycle } from '@/ui/workspace/renderer-lifecycle';
 import {
 	createWorkspaceRenderPlan,
 	type WorkspaceRenderPlan,
-} from './render-plan';
+} from '@/ui/workspace/render-plan';
 import {
 	syncWorkspaceRuntimeGraphStyles,
 	syncWorkspaceRuntimeGraphVisibility,
-} from './runtime-graph';
+} from '@/ui/workspace/runtime-graph';
 
 interface AnimationFrameHost {
 	requestAnimationFrame(callback: FrameRequestCallback): number;

@@ -1,5 +1,5 @@
-import type { RendererDebugState } from '../../core/types';
-import type { RuntimeGraph } from './graphology-adapter';
+import type { RendererDebugState } from '@/core/types';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
 
 export function serializeRuntimeGraph(
 	graph: RuntimeGraph,

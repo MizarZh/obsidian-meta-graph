@@ -1,26 +1,26 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import SettingsSection from '../settings/SettingsSection.svelte';
+	import SettingsSection from '@/ui/settings/SettingsSection.svelte';
 	import LinkVisualSettings, {
 		type LinkVisualValue,
-	} from '../settings/style/LinkVisualSettings.svelte';
-	import LinkBehaviorSettings from '../settings/style/LinkBehaviorSettings.svelte';
-	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
-	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
+	} from '@/ui/settings/style/LinkVisualSettings.svelte';
+	import LinkBehaviorSettings from '@/ui/settings/style/LinkBehaviorSettings.svelte';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from '@/ui/obsidian/ObsidianDropdown.svelte';
 	import ObsidianSuggestInput, {
 		type SuggestionOption,
-	} from '../obsidian/ObsidianSuggestInput.svelte';
-	import ObsidianTextInput from '../obsidian/ObsidianTextInput.svelte';
+	} from '@/ui/obsidian/ObsidianSuggestInput.svelte';
+	import ObsidianTextInput from '@/ui/obsidian/ObsidianTextInput.svelte';
 	import PropertyPicker, {
 		type PropertyPickerOption,
-	} from '../PropertyPicker.svelte';
+	} from '@/ui/PropertyPicker.svelte';
 	import type {
 		DefaultLinkStyle,
 		LinkStyleField,
 		LinkStyleRule,
 		NodeFilterOperator,
-	} from '../../core/types';
-	import { createRuleId } from '../filter/filter-tree';
+	} from '@/core/types';
+	import { createRuleId } from '@/ui/filter/filter-tree';
 	import {
 		activeLinkLineStyle as resolveActiveLinkLineStyle,
 		activeLinkArrowStyle as resolveActiveLinkArrowStyle,
@@ -32,12 +32,12 @@
 		patchRule,
 		removeRule,
 		type StyleRuleScope,
-	} from '../filter/filter-style-rules';
-	import { TEXT_FILTER_OPERATOR_OPTIONS } from '../filter-config';
+	} from '@/ui/filter/filter-style-rules';
+	import { TEXT_FILTER_OPERATOR_OPTIONS } from '@/ui/filter-config';
 	import {
 		BUILT_IN_DEFAULT_PLAIN_LINK_STYLE,
 		BUILT_IN_DEFAULT_UNRESOLVED_LINK_STYLE,
-	} from '../../workspace/meta-graph-model';
+	} from '@/workspace/meta-graph-model';
 
 	const LINK_STYLE_FIELD_OPTIONS = [
 		{

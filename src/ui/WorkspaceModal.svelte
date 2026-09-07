@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { onDestroy, onMount } from 'svelte';
-	import ObsidianButton from './obsidian/ObsidianButton.svelte';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
 
 	let {
 		open,

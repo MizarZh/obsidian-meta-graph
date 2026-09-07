@@ -1,5 +1,5 @@
-import { normalizePath } from '../../core/knowledge-index';
-import type { NodeId, WorkspaceState } from '../../core/types';
+import { normalizePath } from '@/core/knowledge-index';
+import type { NodeId, WorkspaceState } from '@/core/types';
 
 export interface WorkspaceNodeOpener<FileEntry> {
 	getFile(path: NodeId): unknown;

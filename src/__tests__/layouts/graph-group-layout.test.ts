@@ -1,18 +1,18 @@
 import Graph from 'graphology';
 import { describe, expect, it } from 'vitest';
-import type { ChartGroupDefinition } from '../../core/types';
+import type { ChartGroupDefinition } from '@/core/types';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../graph/model/graphology-adapter';
+} from '@/graph/model/graphology-adapter';
 import {
 	compactGraphGroups,
 	createGraphGroupGeometries,
 	createGraphGroupLinks,
 	createGroupMemberHaloGeometries,
 	getGraphGroupTargetRadius,
-} from '../../layouts/graph-group-layout';
+} from '@/layouts/graph-group-layout';
 
 describe('Graph groups', () => {
 	it('uses a compact radius that grows with group size', () => {

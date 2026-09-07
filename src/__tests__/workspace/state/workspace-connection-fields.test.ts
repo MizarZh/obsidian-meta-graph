@@ -5,8 +5,8 @@ import {
 	getConnectionModeForFieldInState,
 	setActiveConnectionFieldInState,
 	updateConnectionFieldInState,
-} from '../../../workspace/state/connection-fields';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/workspace/state/connection-fields';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('workspace connection fields', () => {
 	it('does not select metadata fields until they are added', () => {

@@ -5,16 +5,16 @@
 		NodeFilterField,
 		NodeFilterOperator,
 		NodeStyleField,
-	} from '../../core/types';
-	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
+	} from '@/core/types';
+	import ObsidianDropdown from '@/ui/obsidian/ObsidianDropdown.svelte';
 	import ObsidianSuggestInput, {
 		type SuggestionOption,
-	} from '../obsidian/ObsidianSuggestInput.svelte';
-	import ObsidianTextInput from '../obsidian/ObsidianTextInput.svelte';
-	import ObsidianToggle from '../obsidian/ObsidianToggle.svelte';
+	} from '@/ui/obsidian/ObsidianSuggestInput.svelte';
+	import ObsidianTextInput from '@/ui/obsidian/ObsidianTextInput.svelte';
+	import ObsidianToggle from '@/ui/obsidian/ObsidianToggle.svelte';
 	import PropertyPicker, {
 		type PropertyPickerOption,
-	} from '../PropertyPicker.svelte';
+	} from '@/ui/PropertyPicker.svelte';
 
 	type NodeConditionField = NodeFilterField | NodeStyleField;
 

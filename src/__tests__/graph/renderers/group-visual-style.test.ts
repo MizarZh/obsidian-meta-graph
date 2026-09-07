@@ -7,7 +7,7 @@ import {
 	GROUP_TITLE_HORIZONTAL_PADDING,
 	resolveGroupHaloVisualStyle,
 	resolveGroupRegionVisualStyle,
-} from '../../../graph/renderers/group-visual-style';
+} from '@/graph/renderers/group-visual-style';
 
 describe('Group visual styles', () => {
 	it('uses one region state table for Sigma and G6', () => {

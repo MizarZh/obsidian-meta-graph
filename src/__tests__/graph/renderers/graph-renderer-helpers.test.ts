@@ -4,36 +4,36 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../../graph/model/graphology-adapter';
-import type { GraphPalette } from '../../../graph/styles/graph-styles';
+} from '@/graph/model/graphology-adapter';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
 import {
 	findOpenDisplayPosition,
 	getCubeFaceIdForNode,
 	hasCubeDisplayOverlap,
 	isCubeFaceId,
-} from '../../../graph/renderers/cube-3d/cube-faces';
+} from '@/graph/renderers/cube-3d/cube-faces';
 import {
 	getLinkEndpointId,
 	hasFiniteCoordinates,
 	syncForce3DDataStyles,
 	toForce3DData,
-} from '../../../graph/renderers/force-3d/force-3d-data';
+} from '@/graph/renderers/force-3d/force-3d-data';
 import {
 	createConnectionDragState,
 	getFinishedConnection,
 	isConnectionDragStart,
 	updateConnectionDragState,
 	type ConnectionDragRenderer,
-} from '../../../graph/renderers/renderer-interaction';
+} from '@/graph/renderers/renderer-interaction';
 import {
 	getNodeLabelBox,
 	getRotatedNodeLabelBox,
 	getZoomAwareLabelSize,
-} from '../../../graph/renderers/sigma/sigma-label-geometry';
+} from '@/graph/renderers/sigma/sigma-label-geometry';
 import {
 	reduceSigmaEdge,
 	reduceSigmaNode,
-} from '../../../graph/renderers/sigma/sigma-hover-policy';
+} from '@/graph/renderers/sigma/sigma-hover-policy';
 
 const palette: GraphPalette = {
 	node: '#111111',

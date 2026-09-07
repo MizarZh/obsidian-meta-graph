@@ -5,18 +5,18 @@ import {
 	normalizePath,
 	removeEdge,
 	removeNode,
-} from '../../core/knowledge-index';
-import type { MetadataIndexRecord } from '../../core/metadata-indexer';
+} from '@/core/knowledge-index';
+import type { MetadataIndexRecord } from '@/core/metadata-indexer';
 import type {
 	ConnectionFieldSpec,
 	KnowledgeEdge,
 	KnowledgeNode,
-} from '../../core/types';
-import type { LargeVaultMode } from '../../settings/settings';
+} from '@/core/types';
+import type { LargeVaultMode } from '@/settings/settings';
 import type {
 	WorkspaceIndexBuild,
 	WorkspaceIndexSnapshot,
-} from './query-service';
+} from '@/workspace/services/query-service';
 
 interface WorkspaceIndexCacheEntry extends WorkspaceIndexBuild {
 	dirtyFiles: Map<string, TFile>;
@@ -167,7 +167,8 @@ export class WorkspaceIndexService {
 		revision: number,
 	): Promise<WorkspaceIndexSnapshot> {
 		const startedAt = performance.now();
-		const { buildWorkspaceIndexState } = await import('./query-service');
+		const { buildWorkspaceIndexState } =
+			await import('@/workspace/services/query-service');
 		const result = buildWorkspaceIndexState(
 			this.app,
 			debug,
@@ -194,7 +195,7 @@ export class WorkspaceIndexService {
 		const startedAt = performance.now();
 		const changedFiles = [...entry.dirtyFiles.values()];
 		entry.dirtyFiles.clear();
-		const { MetadataIndexer } = await import('../../core/metadata-indexer');
+		const { MetadataIndexer } = await import('@/core/metadata-indexer');
 		const indexer = new MetadataIndexer(this.app, debug, connectionFields);
 		for (const file of changedFiles) {
 			const record: MetadataIndexRecord = indexer.buildFileRecord(

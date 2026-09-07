@@ -1,15 +1,15 @@
-import type { ManualLayoutConfig } from '../../../core/types';
+import type { ManualLayoutConfig } from '@/core/types';
 import type {
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../model/graphology-adapter';
+} from '@/graph/model/graphology-adapter';
 import {
 	type CubeFaceId,
 	findOpenDisplayPosition,
 	getCubeFaceIdForNode,
 	hashString,
 	hasCubeDisplayOverlap,
-} from './cube-faces';
+} from '@/graph/renderers/cube-3d/cube-faces';
 
 export interface CubeDisplayPosition {
 	faceId: CubeFaceId;
@@ -38,18 +38,18 @@ export function resolveCubeDisplayPositions(
 		bucket.push({ id: nodeId, x: position.x, y: position.y });
 		byFace.set(faceId, bucket);
 	}
-		for (const [faceId, items] of byFace) {
-			const occupied: Array<{ x: number; y: number }> = [];
-			for (const item of items) {
-				if (manualLayout.nodes[item.id]) {
-					const position = { x: item.x, y: item.y };
-					positions.set(item.id, { faceId, ...position });
-					occupied.push(position);
-					continue;
-				}
-				const overlaps = occupied.some((position) =>
-					hasCubeDisplayOverlap(position, item),
-				);
+	for (const [faceId, items] of byFace) {
+		const occupied: Array<{ x: number; y: number }> = [];
+		for (const item of items) {
+			if (manualLayout.nodes[item.id]) {
+				const position = { x: item.x, y: item.y };
+				positions.set(item.id, { faceId, ...position });
+				occupied.push(position);
+				continue;
+			}
+			const overlaps = occupied.some((position) =>
+				hasCubeDisplayOverlap(position, item),
+			);
 			const position = overlaps
 				? findOpenDisplayPosition(occupied.length + 1, occupied)
 				: { x: item.x, y: item.y };

@@ -5,7 +5,7 @@ import type {
 	KnowledgeNode,
 	NodeId,
 	RelationType,
-} from './types';
+} from '@/core/types';
 
 export function createKnowledgeIndex(): KnowledgeIndex {
 	return {

@@ -1,4 +1,4 @@
-import type { LabelPosition } from '../../../core/types';
+import type { LabelPosition } from '@/core/types';
 
 /** Keeps label zoom independent from each node's own visual size. */
 export function getZoomAwareLabelSize(

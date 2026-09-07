@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { MetaGraphDocument } from '../../../core/types';
-import { WorkspaceAutoSave } from '../../../ui/workspace/autosave';
-import { serializeMetaGraphState } from '../../../workspace/meta-graph-model';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+import type { MetaGraphDocument } from '@/core/types';
+import { WorkspaceAutoSave } from '@/ui/workspace/autosave';
+import { serializeMetaGraphState } from '@/workspace/meta-graph-model';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('WorkspaceAutoSave', () => {
 	afterEach(() => {

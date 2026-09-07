@@ -1,4 +1,4 @@
-import type { RuntimeGraph } from './graphology-adapter';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
 
 /**
  * Assigns deterministic lanes to edges that connect the same pair of nodes.

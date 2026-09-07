@@ -21,8 +21,8 @@ import type {
 	ThreeLabelResolution,
 	ViewMode,
 	WorkspaceState,
-} from '../../core/types';
-import type { WorkspaceController } from '../../workspace/workspace-controller';
+} from '@/core/types';
+import type { WorkspaceController } from '@/workspace/workspace-controller';
 
 export interface WorkspaceSettingsSuggestions {
 	folders: string[];

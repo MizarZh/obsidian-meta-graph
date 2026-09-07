@@ -1,15 +1,15 @@
-import { normalizePath } from '../../core/knowledge-index';
-import { extractLinkText } from '../../core/link-resolver';
+import { normalizePath } from '@/core/knowledge-index';
+import { extractLinkText } from '@/core/link-resolver';
 import type {
 	ConnectionFieldMode,
 	DockConnectionDirection,
 	NodeId,
-} from '../../core/types';
+} from '@/core/types';
 import {
 	normalizeConnectionRequest,
 	normalizeDockConnectionRequest,
 	type NormalizedConnectionRequest,
-} from '../actions/connection-request';
+} from '@/workspace/actions/connection-request';
 
 export interface WorkspaceConnectionAdapter<FileEntry> {
 	getFile(path: string): unknown;

@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import type { GraphProjection } from '../../../core/types';
-import { GraphologyAdapter } from '../../../graph/model/graphology-adapter';
+import type { GraphProjection } from '@/core/types';
+import { GraphologyAdapter } from '@/graph/model/graphology-adapter';
 import {
 	toG6Data,
 	resolveG6LabelVisibility,
-} from '../../../graph/renderers/g6/g6-data';
-import { createG6LabelStyles } from '../../../graph/renderers/g6/g6-styles';
-import { G6_LOGICAL_EDGE_TYPE } from '../../../graph/renderers/g6/g6-logical-edge';
-import { createG6CoordinateSpace } from '../../../graph/renderers/g6/g6-coordinate-space';
-import type { GraphPalette } from '../../../graph/styles/graph-styles';
-import { ArcLayout } from '../../../layouts/arc-layout';
-import { createArcBandGraphShape } from '../../../graph/renderers/g6/g6-groups';
+} from '@/graph/renderers/g6/g6-data';
+import { createG6LabelStyles } from '@/graph/renderers/g6/g6-styles';
+import { G6_LOGICAL_EDGE_TYPE } from '@/graph/renderers/g6/g6-logical-edge';
+import { createG6CoordinateSpace } from '@/graph/renderers/g6/g6-coordinate-space';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
+import { ArcLayout } from '@/layouts/arc-layout';
+import { createArcBandGraphShape } from '@/graph/renderers/g6/g6-groups';
 
 describe('G6 Arc adapter', () => {
 	it('creates the complete Arc Group band and outward title anchor', () => {

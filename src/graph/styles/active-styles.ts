@@ -5,11 +5,11 @@ import type {
 	LinkStyleRule,
 	NodeStyleRule,
 	WorkspaceState,
-} from '../../core/types';
+} from '@/core/types';
 import {
 	BUILT_IN_DEFAULT_NODE_STYLE,
 	BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE,
-} from '../../workspace/meta-graph/constants';
+} from '@/workspace/meta-graph/constants';
 
 type ActiveLinkStyle = Omit<
 	Required<DefaultLinkStyle>,
@@ -40,8 +40,8 @@ export function getActiveDefaultNodeStyle(
 		size: state.nodeStyleOverrides.size ?? state.defaultNodeStyle.size,
 		opacity: clampNodeOpacity(
 			state.nodeStyleOverrides.opacity ??
-			state.defaultNodeStyle.opacity ??
-			BUILT_IN_DEFAULT_NODE_STYLE.opacity,
+				state.defaultNodeStyle.opacity ??
+				BUILT_IN_DEFAULT_NODE_STYLE.opacity,
 		),
 		shape:
 			state.nodeStyleOverrides.shape ??
@@ -141,7 +141,7 @@ export function getActiveUnresolvedNodeStyle(
 		size: state.unresolvedNodeStyleOverrides.size ?? 6,
 		opacity: clampNodeOpacity(
 			state.unresolvedNodeStyleOverrides.opacity ??
-			BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE.opacity,
+				BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE.opacity,
 		),
 		shape:
 			state.unresolvedNodeStyleOverrides.shape ??

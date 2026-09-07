@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { ChartStyleConfig } from '../../../core/types';
-import { copyChartStyles, pasteChartStyles } from '../../../ui/filter/style-transfer';
+import type { ChartStyleConfig } from '@/core/types';
+import { copyChartStyles, pasteChartStyles } from '@/ui/filter/style-transfer';
 
 function createStyle(): ChartStyleConfig {
 	return {

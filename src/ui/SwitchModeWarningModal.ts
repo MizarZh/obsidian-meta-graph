@@ -1,5 +1,5 @@
 import { App, Modal, Setting } from 'obsidian';
-import type { WorkspaceSwitchWarning } from '../workspace/state/switch-warnings';
+import type { WorkspaceSwitchWarning } from '@/workspace/state/switch-warnings';
 
 export class SwitchModeWarningModal extends Modal {
 	constructor(

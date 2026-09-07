@@ -1,5 +1,5 @@
-import type { ChartGroupingConfig, KnowledgeNode, NodeId } from '../core/types';
-import { nodeMatchesFilterGroup } from './filters';
+import type { ChartGroupingConfig, KnowledgeNode, NodeId } from '@/core/types';
+import { nodeMatchesFilterGroup } from '@/query/filters';
 
 export type ChartGroupOwnershipSource = 'override' | 'rule' | 'none';
 

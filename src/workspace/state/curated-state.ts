@@ -1,20 +1,26 @@
-import { normalizePath } from '../../core/knowledge-index';
+import { normalizePath } from '@/core/knowledge-index';
 import type {
 	CuratedWorkspaceConfig,
 	MetaGraphChart,
 	NodeId,
 	WorkspaceState,
-} from '../../core/types';
+} from '@/core/types';
 import {
 	addCuratedFilePaths,
 	removeCuratedFilePaths,
 	renameCuratedFilePath,
-} from './curated-workspace';
-import { normalizeCuratedWorkspace } from '../meta-graph-model';
-import { cloneSerializable } from './persistence';
-import { addManualPlacements, removeManualPlacements } from './manual-layout';
-import { moveRelative, type ReorderPlacement } from './dock-state';
-import { updateActiveChartState } from './state-updaters';
+} from '@/workspace/state/curated-workspace';
+import { normalizeCuratedWorkspace } from '@/workspace/meta-graph-model';
+import { cloneSerializable } from '@/workspace/state/persistence';
+import {
+	addManualPlacements,
+	removeManualPlacements,
+} from '@/workspace/state/manual-layout';
+import {
+	moveRelative,
+	type ReorderPlacement,
+} from '@/workspace/state/dock-state';
+import { updateActiveChartState } from '@/workspace/state/state-updaters';
 
 export interface WorkspaceCuratedUpdateResult {
 	state: WorkspaceState;

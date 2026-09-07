@@ -1,6 +1,6 @@
-import type { MetaGraphChart, WorkspaceState } from '../../core/types';
-import { createUpdatedActiveChartStateFields } from './active-chart-state';
-import { cloneSerializable } from './persistence';
+import type { MetaGraphChart, WorkspaceState } from '@/core/types';
+import { createUpdatedActiveChartStateFields } from '@/workspace/state/active-chart-state';
+import { cloneSerializable } from '@/workspace/state/persistence';
 
 export function updateActiveChartState(
 	state: WorkspaceState,

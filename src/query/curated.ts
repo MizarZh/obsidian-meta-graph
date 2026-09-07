@@ -4,8 +4,8 @@ import type {
 	KnowledgeEdge,
 	KnowledgeIndex,
 	NodeId,
-} from '../core/types';
-import { isPlainLinkEdge, isUnresolvedLinkEdge } from '../core/edge-kind';
+} from '@/core/types';
+import { isPlainLinkEdge, isUnresolvedLinkEdge } from '@/core/edge-kind';
 
 export class CuratedProjectionEngine {
 	project(

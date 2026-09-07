@@ -1,25 +1,25 @@
-import type { ViewMode } from '../../core/types';
+import type { ViewMode } from '@/core/types';
 import type {
 	ConnectionDragState,
 	GraphContextMenuTarget,
-} from '../../graph/renderers/renderer-events';
-import type { GraphPosition } from '../../graph/model/graphology-adapter';
+} from '@/graph/renderers/renderer-events';
+import type { GraphPosition } from '@/graph/model/graphology-adapter';
 import {
 	getModeCapabilities,
 	isForceSimulationRenderer,
 	type ForceSimulationRenderer,
 	type GraphRenderer,
 	type PlanarRenderer,
-} from '../../graph/renderers/renderer-adapter';
-import { bindRendererEvents } from '../../graph/renderers/renderer-events-adapter';
-import type { D3ForceSimulation } from '../../layouts/d3-force-simulation';
-import type { LayoutSnapshot } from '../../layouts/stable-layout';
+} from '@/graph/renderers/renderer-adapter';
+import { bindRendererEvents } from '@/graph/renderers/renderer-events-adapter';
+import type { D3ForceSimulation } from '@/layouts/d3-force-simulation';
+import type { LayoutSnapshot } from '@/layouts/stable-layout';
 import {
 	getNextNodeOpenSuppressUntil,
 	getPlanarDragAction,
 	getPlanarDragEndAction,
 	shouldOpenNode,
-} from '../interactions/graph-interaction-policy';
+} from '@/ui/interactions/graph-interaction-policy';
 
 export interface WorkspaceRendererEventOptions {
 	renderer: GraphRenderer;

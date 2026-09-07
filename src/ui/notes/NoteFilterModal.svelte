@@ -1,13 +1,13 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import type { KnowledgeNode } from '../../core/types';
+	import type { KnowledgeNode } from '@/core/types';
 	import {
 		createConditionFilterRoot,
 		type CuratedConditionDraft,
-	} from '../curated/curated-panel-state';
-	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
-	import WorkspaceModal from '../WorkspaceModal.svelte';
-	import NoteFilterEditor from './NoteFilterEditor.svelte';
+	} from '@/ui/curated/curated-panel-state';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import WorkspaceModal from '@/ui/WorkspaceModal.svelte';
+	import NoteFilterEditor from '@/ui/notes/NoteFilterEditor.svelte';
 
 	let {
 		app,

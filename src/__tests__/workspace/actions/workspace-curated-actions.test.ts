@@ -10,8 +10,8 @@ import {
 	setCuratedFilesHiddenActionInState,
 	updateCuratedFilePathActionInState,
 	updateCuratedWorkspaceActionInState,
-} from '../../../workspace/actions/curated-actions';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/workspace/actions/curated-actions';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('workspace curated actions', () => {
 	it('adds and removes curated files with query refresh intent', () => {
@@ -159,8 +159,8 @@ describe('workspace curated actions', () => {
 			{ path: 'B.md', hidden: true },
 		]);
 		expect(hidden.state.curated.files[0]).toBe(
-			state.charts.find((chart) => chart.id === state.activeChartId)?.curated
-				.files[0],
+			state.charts.find((chart) => chart.id === state.activeChartId)
+				?.curated.files[0],
 		);
 		expect(
 			hidden.state.charts.find(

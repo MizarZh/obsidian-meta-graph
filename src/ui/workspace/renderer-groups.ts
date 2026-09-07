@@ -2,8 +2,8 @@ import type {
 	ChartGroupingConfig,
 	ManualLayoutConfig,
 	ViewMode,
-} from '../../core/types';
-import type { GraphPosition } from '../../graph/model/graphology-adapter';
+} from '@/core/types';
+import type { GraphPosition } from '@/graph/model/graphology-adapter';
 import {
 	getRendererCapabilities,
 	getModeCapabilities,
@@ -12,15 +12,15 @@ import {
 	type GraphRenderer,
 	type GroupInteractionCallbacks,
 	type GroupOverlayGroup,
-} from '../../graph/renderers/renderer-adapter';
+} from '@/graph/renderers/renderer-adapter';
 import {
 	canMoveGroup,
 	normalizeGroupFrameForShape,
 	resolveGroupShape,
-} from '../../layouts/group-shape';
-import type { LayoutSnapshot } from '../../layouts/stable-layout';
-import { getGroupNodeIds } from '../interactions/manual-layout-groups';
-import { createCubeRendererManualLayout } from '../../workspace/state/manual-layout/cube-layout';
+} from '@/layouts/group-shape';
+import type { LayoutSnapshot } from '@/layouts/stable-layout';
+import { getGroupNodeIds } from '@/ui/interactions/manual-layout-groups';
+import { createCubeRendererManualLayout } from '@/workspace/state/manual-layout/cube-layout';
 
 export function syncWorkspaceRendererGroups(
 	renderer: GraphRenderer | undefined,

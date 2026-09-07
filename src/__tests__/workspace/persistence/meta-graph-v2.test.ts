@@ -5,15 +5,15 @@ import {
 	parsePersistedMetaGraphDocumentV2,
 	serializeRuntimeDocumentV2,
 	serializeWorkspaceStateV2,
-} from '../../../workspace/meta-graph-v2/codec';
-import { createDefaultMetaGraphDocument } from '../../../workspace/meta-graph-model';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
-import { updateWorkspaceReferencesInState } from '../../../workspace/state/reference-walker';
+} from '@/workspace/meta-graph-v2/codec';
+import { createDefaultMetaGraphDocument } from '@/workspace/meta-graph-model';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
+import { updateWorkspaceReferencesInState } from '@/workspace/state/reference-walker';
 import {
 	applyWorkspaceSession,
 	createWorkspaceSessionState,
 	normalizeWorkspaceSessions,
-} from '../../../workspace/workspace-session';
+} from '@/workspace/workspace-session';
 
 describe('Meta Graph v2 persistence', () => {
 	it.each([

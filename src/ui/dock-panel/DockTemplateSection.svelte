@@ -6,20 +6,20 @@
 		dragHandleZone,
 		type DndEvent,
 	} from 'svelte-dnd-action';
-	import type { DockTemplateNode } from '../../core/types';
-	import type { DockDragPayload } from '../dock/types';
-	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
-	import ObsidianDropdown from '../obsidian/ObsidianDropdown.svelte';
-	import ObsidianSuggestInput from '../obsidian/ObsidianSuggestInput.svelte';
-	import ObsidianTextInput from '../obsidian/ObsidianTextInput.svelte';
-	import type { DropdownOption } from '../obsidian/ObsidianDropdown.svelte';
-	import type { SuggestionOption } from '../obsidian/ObsidianSuggestInput.svelte';
-	import WorkspaceModal from '../WorkspaceModal.svelte';
+	import type { DockTemplateNode } from '@/core/types';
+	import type { DockDragPayload } from '@/ui/dock/types';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import ObsidianDropdown from '@/ui/obsidian/ObsidianDropdown.svelte';
+	import ObsidianSuggestInput from '@/ui/obsidian/ObsidianSuggestInput.svelte';
+	import ObsidianTextInput from '@/ui/obsidian/ObsidianTextInput.svelte';
+	import type { DropdownOption } from '@/ui/obsidian/ObsidianDropdown.svelte';
+	import type { SuggestionOption } from '@/ui/obsidian/ObsidianSuggestInput.svelte';
+	import WorkspaceModal from '@/ui/WorkspaceModal.svelte';
 	import {
 		dragKey,
 		templateDragPayload,
 		type DockTemplateEntry,
-	} from './dock-panel-state';
+	} from '@/ui/dock-panel/dock-panel-state';
 
 	let {
 		app,

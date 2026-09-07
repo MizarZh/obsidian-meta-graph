@@ -3,10 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeNodeAttributes,
-} from '../../graph/model/graphology-adapter';
-import type { ForceSimulationRenderer } from '../../graph/renderers/renderer-contracts';
-import { D3ForceSimulation } from '../../layouts/d3-force-simulation';
-import { DEFAULT_GRAPH_FORCE_SETTINGS } from '../../layouts/force-layout';
+} from '@/graph/model/graphology-adapter';
+import type { ForceSimulationRenderer } from '@/graph/renderers/renderer-contracts';
+import { D3ForceSimulation } from '@/layouts/d3-force-simulation';
+import { DEFAULT_GRAPH_FORCE_SETTINGS } from '@/layouts/force-layout';
 
 describe('D3ForceSimulation', () => {
 	afterEach(() => {

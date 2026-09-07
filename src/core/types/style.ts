@@ -1,4 +1,4 @@
-import type { NodeFilterField, NodeFilterOperator } from './graph';
+import type { NodeFilterField, NodeFilterOperator } from '@/core/types/graph';
 
 export type NodeStyleField = 'all' | NodeFilterField | 'group';
 export type LinkStyleField = 'all' | 'relation' | 'source-field';

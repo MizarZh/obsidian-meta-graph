@@ -2,7 +2,7 @@ import type {
 	DockConnectionDirection,
 	NodeId,
 	WorkspaceState,
-} from '../../core/types';
+} from '@/core/types';
 import {
 	connectPreparedNodesInState,
 	prepareConnectDockNoteInState,
@@ -10,9 +10,9 @@ import {
 	redoLastConnectionInState,
 	undoLastConnectionInState,
 	type WorkspaceConnectionActionResult,
-} from '../actions/connection-actions';
-import type { WorkspaceConnectionService } from '../services/connection-service';
-import type { WorkspaceStore } from './workspace-store';
+} from '@/workspace/actions/connection-actions';
+import type { WorkspaceConnectionService } from '@/workspace/services/connection-service';
+import type { WorkspaceStore } from '@/workspace/controller/workspace-store';
 
 export interface WorkspaceConnectionCoordinatorOptions<TFile> {
 	store: WorkspaceStore;

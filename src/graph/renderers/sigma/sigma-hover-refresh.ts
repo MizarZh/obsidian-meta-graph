@@ -1,4 +1,4 @@
-import type { RuntimeGraph } from '../../model/graphology-adapter';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
 
 export interface SigmaHoverRefreshState {
 	activeNodeId?: string;

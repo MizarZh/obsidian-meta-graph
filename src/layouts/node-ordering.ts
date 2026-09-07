@@ -1,7 +1,7 @@
 import type {
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../graph/model/graphology-adapter';
+} from '@/graph/model/graphology-adapter';
 
 export const DEFAULT_LAYOUT_NODE_SORT = 'name';
 export const DEFAULT_LAYOUT_SORT_DIRECTION = 'asc';
@@ -31,8 +31,14 @@ export function compareLayoutNodeIds(
 		const leftAttributes = graph.getNodeAttributes(left);
 		const rightAttributes = graph.getNodeAttributes(right);
 		const primary =
-			compareSortValue(graph, left, right, leftAttributes, rightAttributes, sort) *
-			multiplier;
+			compareSortValue(
+				graph,
+				left,
+				right,
+				leftAttributes,
+				rightAttributes,
+				sort,
+			) * multiplier;
 		return (
 			primary ||
 			compareText(leftAttributes.label, rightAttributes.label) ||
@@ -74,14 +80,20 @@ function compareSortValue(
 				readFirstValue(rightAttributes.domains),
 			);
 		case 'created':
-			return compareNumber(leftAttributes.createdTime, rightAttributes.createdTime);
+			return compareNumber(
+				leftAttributes.createdTime,
+				rightAttributes.createdTime,
+			);
 		case 'modified':
 			return compareNumber(
 				leftAttributes.modifiedTime,
 				rightAttributes.modifiedTime,
 			);
 		case 'degree':
-			return compareNumber(readVisibleDegree(graph, left), readVisibleDegree(graph, right));
+			return compareNumber(
+				readVisibleDegree(graph, left),
+				readVisibleDegree(graph, right),
+			);
 		case 'in-degree':
 			return compareNumber(
 				readVisibleDirectedDegree(graph, left, 'in'),
@@ -101,7 +113,10 @@ function compareText(left: string, right: string): number {
 	return left.localeCompare(right, undefined, { sensitivity: 'base' });
 }
 
-function compareNumber(left: number | undefined, right: number | undefined): number {
+function compareNumber(
+	left: number | undefined,
+	right: number | undefined,
+): number {
 	if (left === undefined && right === undefined) {
 		return 0;
 	}

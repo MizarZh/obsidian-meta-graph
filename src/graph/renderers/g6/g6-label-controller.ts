@@ -8,7 +8,7 @@ import {
 	type Label,
 	type RuntimeContext,
 } from '@antv/g6';
-import type { G6EdgeStyle, G6NodeStyle } from './g6-styles';
+import type { G6EdgeStyle, G6NodeStyle } from '@/graph/renderers/g6/g6-styles';
 
 export const G6_LABEL_CONTROLLER_KEY = 'meta-graph-label-controller';
 

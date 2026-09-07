@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { WorkspaceStateChanges } from '../../../ui/workspace/change-tracker';
-import { createWorkspaceRenderPlan } from '../../../ui/workspace/render-plan';
+import type { WorkspaceStateChanges } from '@/ui/workspace/change-tracker';
+import { createWorkspaceRenderPlan } from '@/ui/workspace/render-plan';
 
 describe('workspace render plan', () => {
 	it('turns rebuild changes into one explicit rebuild action', () => {

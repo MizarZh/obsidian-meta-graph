@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { GraphProjection, KnowledgeIndex } from '../../../core/types';
-import { createWorkspaceDebugSnapshot } from '../../../workspace/runtime/debug-snapshot';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+import type { GraphProjection, KnowledgeIndex } from '@/core/types';
+import { createWorkspaceDebugSnapshot } from '@/workspace/runtime/debug-snapshot';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('workspace debug snapshot', () => {
 	it('serializes index maps and projection sets', () => {

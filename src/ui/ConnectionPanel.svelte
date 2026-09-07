@@ -3,14 +3,14 @@
 	import type {
 		ConnectionFieldMode,
 		ConnectionFieldSpec,
-	} from '../core/types';
-	import type { ConnectionPanelLayout } from '../workspace/meta-graph-v2/types';
+	} from '@/core/types';
+	import type { ConnectionPanelLayout } from '@/workspace/meta-graph-v2/types';
 	import {
 		getConnectionDirectionIcon,
 		getConnectionDirectionLabel,
-	} from './connection-direction';
-	import ObsidianButton from './obsidian/ObsidianButton.svelte';
-	import ObsidianSuggestInput from './obsidian/ObsidianSuggestInput.svelte';
+	} from '@/ui/connection-direction';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import ObsidianSuggestInput from '@/ui/obsidian/ObsidianSuggestInput.svelte';
 
 	type ReorderPlacement = 'before' | 'after';
 

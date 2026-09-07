@@ -1,4 +1,4 @@
-import type { WorkspaceStateChanges } from './change-tracker';
+import type { WorkspaceStateChanges } from '@/ui/workspace/change-tracker';
 
 const DISPLAY_CHANGE_KEYS = [
 	'fadeDistanceChanged',

@@ -2,15 +2,15 @@ import type {
 	ChartGroupDefinition,
 	ChartGroupingConfig,
 	ManualLayoutConfig,
-} from '../../core/types';
-import { normalizeFilterGroup } from './query';
+} from '@/core/types';
+import { normalizeFilterGroup } from '@/workspace/meta-graph/query';
 import {
 	createDockId,
 	isRecord,
 	normalizeTextPath,
 	readFiniteNumber,
 	uniqueById,
-} from './utils';
+} from '@/workspace/meta-graph/utils';
 
 export function createDefaultChartGrouping(): ChartGroupingConfig {
 	return { groups: [], overrides: {} };

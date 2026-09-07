@@ -3,11 +3,11 @@
 		DefaultLinkStyle,
 		LinkArrowStyle,
 		LinkLineStyle,
-	} from '../../../core/types';
-	import ColorSetting from '../fields/ColorSetting.svelte';
-	import SegmentedSetting from '../fields/SegmentedSetting.svelte';
-	import SliderSetting from '../fields/SliderSetting.svelte';
-	import SettingGrid from '../SettingGrid.svelte';
+	} from '@/core/types';
+	import ColorSetting from '@/ui/settings/fields/ColorSetting.svelte';
+	import SegmentedSetting from '@/ui/settings/fields/SegmentedSetting.svelte';
+	import SliderSetting from '@/ui/settings/fields/SliderSetting.svelte';
+	import SettingGrid from '@/ui/settings/SettingGrid.svelte';
 
 	export type LinkVisualValue = Required<
 		Pick<

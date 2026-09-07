@@ -68,6 +68,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Standardized project imports on the `@/` alias rooted at `src`, with matching TypeScript, esbuild, Vitest, Svelte, and ESLint resolution.
+
 - Removed unused G6 route tiers, duplicate label caches and patch builders, redundant element metadata, legacy Group geometry branches, hidden SVG visual replicas, and manual background-Canvas render scheduling. Group scene commits now coalesce once per microtask independently of graph draw work.
 
 - Unified G6 wheel zoom and canvas pan under one viewport animation-frame scheduler. Starting a canvas pan cancels pending wheel interpolation and prevents wheel input from reclaiming the camera until the drag ends. Zoom frames perform no label shape, graph data, or full draw updates; one delayed label sync restores final sizing and exact Arc/HEB placement after zoom settles.

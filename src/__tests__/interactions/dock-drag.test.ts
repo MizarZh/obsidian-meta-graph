@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { canDockPayloadTargetNode, getDockDragKey } from '../../ui/dock/drag';
-import type { DockDragPayload } from '../../ui/dock/types';
+import { canDockPayloadTargetNode, getDockDragKey } from '@/ui/dock/drag';
+import type { DockDragPayload } from '@/ui/dock/types';
 
 describe('dock drag helpers', () => {
 	it('builds stable drag keys for notes and templates', () => {

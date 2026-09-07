@@ -3,11 +3,11 @@ import type {
 	DockTemplateNode,
 	NodeId,
 	WorkspaceState,
-} from '../../core/types';
-import { createWorkspaceTemplateNote } from '../actions/template-actions';
-import { resolveTemplateNoteRequest } from '../actions/template-request';
-import { placeNodeInDefaultGroupInState } from '../state/manual-layout-state';
-import type { WorkspaceStore } from './workspace-store';
+} from '@/core/types';
+import { createWorkspaceTemplateNote } from '@/workspace/actions/template-actions';
+import { resolveTemplateNoteRequest } from '@/workspace/actions/template-request';
+import { placeNodeInDefaultGroupInState } from '@/workspace/state/manual-layout-state';
+import type { WorkspaceStore } from '@/workspace/controller/workspace-store';
 
 type TemplateNoteFile = { path: NodeId };
 

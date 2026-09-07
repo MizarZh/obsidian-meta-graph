@@ -1,14 +1,14 @@
-import type { Cube3DRenderer } from './cube-3d-renderer';
+import type { Cube3DRenderer } from '@/graph/renderers/cube-3d/cube-3d-renderer';
 import type {
 	ConnectionDragState,
 	GraphEventCallbacks,
-} from '../renderer-events';
+} from '@/graph/renderers/renderer-events';
 import {
 	createConnectionDragState,
 	getFinishedConnection,
 	isConnectionDragStart,
 	updateConnectionDragState,
-} from '../renderer-interaction';
+} from '@/graph/renderers/renderer-interaction';
 
 export function bindCube3DEvents(
 	renderer: Cube3DRenderer,

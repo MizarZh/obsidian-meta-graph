@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveThreeLabelPixelRatio } from '../../../graph/renderers/renderer-labels';
+import { resolveThreeLabelPixelRatio } from '@/graph/renderers/renderer-labels';
 
 describe('3D renderer labels', () => {
 	it('preserves the existing device ratio for standard clarity', () => {

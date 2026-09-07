@@ -1,5 +1,5 @@
-import type { WorkspaceState } from '../../core/types';
-import type { WorkspaceStateChanges } from './change-tracker';
+import type { WorkspaceState } from '@/core/types';
+import type { WorkspaceStateChanges } from '@/ui/workspace/change-tracker';
 
 interface DisplayRenderer {
 	setFadeDistance(value: number): void;

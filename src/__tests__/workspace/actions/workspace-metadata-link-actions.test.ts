@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { openResolvedMetadataLink } from '../../../ui/workspace/metadata-link-actions';
+import { openResolvedMetadataLink } from '@/ui/workspace/metadata-link-actions';
 
 interface FileEntry {
 	path: string;

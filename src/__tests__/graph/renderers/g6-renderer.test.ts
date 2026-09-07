@@ -4,18 +4,18 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
 	RuntimeNodeAttributes,
-} from '../../../graph/model/graphology-adapter';
-import type { PlanarEdgeRoute } from '../../../layouts/planar-geometry';
+} from '@/graph/model/graphology-adapter';
+import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
 import {
 	calculateViewportNodeLabelCapacity,
 	G6Renderer,
 	type G6GraphFactory,
 	type G6GraphInstance,
-} from '../../../graph/renderers/g6/g6-renderer';
-import type { G6GraphData } from '../../../graph/renderers/g6/g6-data';
-import type { G6LabelControllerSnapshot } from '../../../graph/renderers/g6/g6-label-controller';
-import { G6_INTERACTION_STATE } from '../../../graph/renderers/g6/g6-styles';
-import type { G6RendererOptions } from '../../../graph/renderers/renderer-options';
+} from '@/graph/renderers/g6/g6-renderer';
+import type { G6GraphData } from '@/graph/renderers/g6/g6-data';
+import type { G6LabelControllerSnapshot } from '@/graph/renderers/g6/g6-label-controller';
+import { G6_INTERACTION_STATE } from '@/graph/renderers/g6/g6-styles';
+import type { G6RendererOptions } from '@/graph/renderers/renderer-options';
 
 describe('G6 renderer', () => {
 	it('moves nodes through the G6 model and mirrors the applied position', async () => {

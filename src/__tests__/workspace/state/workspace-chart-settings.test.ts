@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { MetaGraphChart, WorkspaceState } from '../../../core/types';
+import type { MetaGraphChart, WorkspaceState } from '@/core/types';
 import {
 	setArcLabelAngleInState,
 	setArcSpacingInState,
@@ -14,9 +14,9 @@ import {
 	setLabelDensityInState,
 	setLabelSizeInState,
 	setThreeLabelResolutionInState,
-} from '../../../workspace/state/chart-settings';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
-import { updateActiveChartState } from '../../../workspace/state/state-updaters';
+} from '@/workspace/state/chart-settings';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
+import { updateActiveChartState } from '@/workspace/state/state-updaters';
 
 function getActiveChart(state: WorkspaceState): MetaGraphChart {
 	const chart = state.charts.find((item) => item.id === state.activeChartId);

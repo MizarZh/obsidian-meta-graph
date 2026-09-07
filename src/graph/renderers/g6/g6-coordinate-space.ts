@@ -1,9 +1,9 @@
 import type {
 	GraphPosition,
 	RuntimeGraph,
-} from '../../model/graphology-adapter';
-import { getPlanarGraphExtent } from '../planar-viewport-scale';
-import type { PlanarGraphExtent } from '../planar-viewport-scale';
+} from '@/graph/model/graphology-adapter';
+import { getPlanarGraphExtent } from '@/graph/renderers/planar-viewport-scale';
+import type { PlanarGraphExtent } from '@/graph/renderers/planar-viewport-scale';
 
 /**
  * Keeps G6 near its normal coordinate/zoom range for Free charts, whose

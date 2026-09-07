@@ -1,8 +1,8 @@
 import type {
 	GraphEventCallbacks,
 	ConnectionDragState,
-} from '../renderer-events';
-import type { SigmaRenderer } from './sigma-renderer';
+} from '@/graph/renderers/renderer-events';
+import type { SigmaRenderer } from '@/graph/renderers/sigma/sigma-renderer';
 
 export function bindGraphEvents(
 	renderer: SigmaRenderer,

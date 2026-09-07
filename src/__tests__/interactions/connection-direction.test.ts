@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	getConnectionDirectionIcon,
 	getConnectionDirectionLabel,
-} from '../../ui/connection-direction';
+} from '@/ui/connection-direction';
 
 describe('connection direction display', () => {
 	it.each([

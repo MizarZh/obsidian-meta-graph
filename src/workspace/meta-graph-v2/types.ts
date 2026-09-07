@@ -17,7 +17,7 @@ import type {
 	NodeFilterGroup,
 	NodeStyleRule,
 	ThreeLabelResolution,
-} from '../../core/types';
+} from '@/core/types';
 
 export interface PersistedMetaGraphDocumentV2 {
 	defaultChart: string;
@@ -239,7 +239,7 @@ export interface WorkspacePersistenceContext {
 
 export interface ParsedMetaGraphWorkspace {
 	// eslint-disable-next-line obsidianmd/prefer-active-doc -- persisted domain model, not a DOM Document
-	document: import('../../core/types').MetaGraphDocument;
+	document: import('@/core/types').MetaGraphDocument;
 	persistence: WorkspacePersistenceContext;
 }
 

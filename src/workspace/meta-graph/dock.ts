@@ -2,7 +2,7 @@ import type {
 	DockNoteNode,
 	DockTemplateNode,
 	MetaGraphDock,
-} from '../../core/types';
+} from '@/core/types';
 import {
 	createDockId,
 	isRecord,
@@ -10,7 +10,7 @@ import {
 	readFiniteNumber,
 	uniqueById,
 	uniqueByPath,
-} from './utils';
+} from '@/workspace/meta-graph/utils';
 
 export function normalizeDock(value: unknown): MetaGraphDock {
 	const record = isRecord(value) ? value : {};

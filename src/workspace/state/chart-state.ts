@@ -1,20 +1,20 @@
-import { supportsPlanarRenderer } from '../../core/types';
+import { supportsPlanarRenderer } from '@/core/types';
 import type {
 	ChartSource,
 	CreateChartInput,
 	MetaGraphChart,
 	ViewMode,
 	WorkspaceState,
-} from '../../core/types';
+} from '@/core/types';
 import {
 	createDefaultChart,
 	createDefaultCuratedWorkspace,
-} from '../meta-graph-model';
-import { addCuratedFilePaths } from './curated-workspace';
-import { normalizeCubeLayout } from './manual-layout';
-import { cloneSerializable } from './persistence';
-import { createWorkspaceState } from './workspace-state';
-import { updateActiveChartState } from './state-updaters';
+} from '@/workspace/meta-graph-model';
+import { addCuratedFilePaths } from '@/workspace/state/curated-workspace';
+import { normalizeCubeLayout } from '@/workspace/state/manual-layout';
+import { cloneSerializable } from '@/workspace/state/persistence';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
+import { updateActiveChartState } from '@/workspace/state/state-updaters';
 
 export interface WorkspaceChartStateResult {
 	state: WorkspaceState;

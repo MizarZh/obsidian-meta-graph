@@ -6,8 +6,8 @@ import {
 	selectGroupInState,
 	selectNodeInState,
 	setCurrentFileInState,
-} from '../../../workspace/actions/file-actions';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/workspace/actions/file-actions';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 interface TestFile {
 	path: string;

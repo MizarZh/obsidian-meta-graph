@@ -1,9 +1,13 @@
-import { supportsPlanarRenderer, type PlanarRendererKind, type ViewMode } from '../../core/types';
-import type { Cube3DRenderer } from './cube-3d/cube-3d-renderer';
-import type { Force3DRenderer } from './force-3d/force-3d-renderer';
-import type { PlanarRenderer } from './renderer-contracts';
+import {
+	supportsPlanarRenderer,
+	type PlanarRendererKind,
+	type ViewMode,
+} from '@/core/types';
+import type { Cube3DRenderer } from '@/graph/renderers/cube-3d/cube-3d-renderer';
+import type { Force3DRenderer } from '@/graph/renderers/force-3d/force-3d-renderer';
+import type { PlanarRenderer } from '@/graph/renderers/renderer-contracts';
 
-export type { PlanarRendererKind } from '../../core/types';
+export type { PlanarRendererKind } from '@/core/types';
 export type RendererKind = PlanarRendererKind | 'force-3d' | 'cube-3d';
 
 /** Capabilities describe implementation support, independent of active chart mode. */

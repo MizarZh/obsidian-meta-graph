@@ -32,9 +32,9 @@ import type {
 	ViewMode,
 	WorkspacePerformanceSample,
 	WorkspaceState,
-} from '../core/types';
-import { createWorkspaceState } from './state/workspace-state';
-import { serializeMetaGraphState } from './meta-graph-model';
+} from '@/core/types';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
+import { serializeMetaGraphState } from '@/workspace/meta-graph-model';
 import {
 	setArcDirectionInState,
 	setArcLabelAngleInState,
@@ -71,7 +71,7 @@ import {
 	setLayoutNodeSortInState,
 	setLayoutSortDirectionInState,
 	type GraphForceSettingKey,
-} from './state/chart-settings';
+} from '@/workspace/state/chart-settings';
 import {
 	setDefaultLinkStyleInState,
 	setDefaultNodeStyleInState,
@@ -87,15 +87,15 @@ import {
 	setNodeStyleRulesInState,
 	setPlainLinkStyleOverridesInState,
 	setUnresolvedLinkStyleOverridesInState,
-} from './state/style-state';
+} from '@/workspace/state/style-state';
 import {
 	addConnectionFieldAndSelectInState,
 	removeConnectionFieldFromState,
 	reorderConnectionFieldInState,
 	setActiveConnectionFieldInState,
 	updateConnectionFieldInState,
-} from './state/connection-fields';
-import { createObsidianConnectionService } from './services/connection-adapter';
+} from '@/workspace/state/connection-fields';
+import { createObsidianConnectionService } from '@/workspace/services/connection-adapter';
 import {
 	addCuratedFileInState,
 	addCuratedFilesActionInState,
@@ -108,7 +108,7 @@ import {
 	updateCuratedFilePathActionInState,
 	updateCuratedWorkspaceActionInState,
 	type WorkspaceCuratedActionResult,
-} from './actions/curated-actions';
+} from '@/workspace/actions/curated-actions';
 import {
 	addDockNoteInState,
 	addDockNotesInState,
@@ -125,7 +125,7 @@ import {
 	updateDockNotePathInState,
 	updateDockTemplateInState,
 	type ReorderPlacement,
-} from './actions/dock-actions';
+} from '@/workspace/actions/dock-actions';
 import {
 	addGroupInState,
 	deleteGroupInState,
@@ -136,8 +136,8 @@ import {
 	setManualNodePositionInState,
 	setNodeGroupInState,
 	updateGroupInState,
-} from './state/manual-layout-state';
-import type { WorkspaceIndexService } from './services/workspace-index-service';
+} from '@/workspace/state/manual-layout-state';
+import type { WorkspaceIndexService } from '@/workspace/services/workspace-index-service';
 import {
 	hoverNodeInState,
 	openWorkspaceNode,
@@ -145,11 +145,11 @@ import {
 	selectGroupInState,
 	selectNodeInState,
 	setCurrentFileInState,
-} from './actions/file-actions';
+} from '@/workspace/actions/file-actions';
 import {
 	updateGlobalQueryInState,
 	updateQueryInState,
-} from './state/query-state';
+} from '@/workspace/state/query-state';
 import {
 	addChartInState,
 	deleteActiveChartInState,
@@ -161,16 +161,16 @@ import {
 	setActiveChartRendererInState,
 	setActiveChartSourceInState,
 	setActiveChartTypeInState,
-} from './state/chart-state';
-import { createTemplateNoteFile } from './services/template-service';
-import { updateWorkspaceReferencesInState } from './state/reference-walker';
+} from '@/workspace/state/chart-state';
+import { createTemplateNoteFile } from '@/workspace/services/template-service';
+import { updateWorkspaceReferencesInState } from '@/workspace/state/reference-walker';
 import {
 	WorkspaceStore,
 	type WorkspaceStateListener,
-} from './controller/workspace-store';
-import { WorkspaceRefreshCoordinator } from './controller/workspace-refresh-coordinator';
-import { WorkspaceConnectionCoordinator } from './controller/workspace-connection-coordinator';
-import { WorkspaceTemplateCoordinator } from './controller/workspace-template-coordinator';
+} from '@/workspace/controller/workspace-store';
+import { WorkspaceRefreshCoordinator } from '@/workspace/controller/workspace-refresh-coordinator';
+import { WorkspaceConnectionCoordinator } from '@/workspace/controller/workspace-connection-coordinator';
+import { WorkspaceTemplateCoordinator } from '@/workspace/controller/workspace-template-coordinator';
 
 export class WorkspaceController {
 	private readonly store: WorkspaceStore;

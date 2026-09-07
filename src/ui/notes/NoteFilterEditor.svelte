@@ -6,7 +6,7 @@
 		NodeFilterGroup,
 		NodeFilterItem,
 		NodeFilterOperator,
-	} from '../../core/types';
+	} from '@/core/types';
 	import {
 		getDefaultFilterOperator as resolveDefaultFilterOperator,
 		getFilterFieldOptions as resolveFilterFieldOptions,
@@ -18,15 +18,15 @@
 		getMetadataFieldValueSuggestions,
 		getNodeValueOptions as resolveNodeValueOptions,
 		uniqueSorted,
-	} from '../filter-config';
-	import FilterGroup from '../FilterGroup.svelte';
-	import type { SuggestionOption } from '../obsidian/ObsidianSuggestInput.svelte';
+	} from '@/ui/filter-config';
+	import FilterGroup from '@/ui/FilterGroup.svelte';
+	import type { SuggestionOption } from '@/ui/obsidian/ObsidianSuggestInput.svelte';
 	import {
 		createRuleId,
 		patchFilterItem,
 		removeFilterItemFromGroup,
 		updateFilterGroup,
-	} from '../curated/curated-panel-state';
+	} from '@/ui/curated/curated-panel-state';
 
 	let {
 		app,

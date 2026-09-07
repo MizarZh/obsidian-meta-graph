@@ -8,21 +8,21 @@ import type {
 	FlowDirection,
 	FlowEdgeStyle,
 	FlowRelationRule,
-} from '../core/types';
+} from '@/core/types';
 import {
 	getEdgeType,
 	type FlowRouteKind,
 	type RuntimeEdgeAttributes,
 	type RuntimeGraph,
-} from '../graph/model/graphology-adapter';
-import { createFlowLayoutPlan } from './flow-relation-layout';
+} from '@/graph/model/graphology-adapter';
+import { createFlowLayoutPlan } from '@/layouts/flow-relation-layout';
 import {
 	scaleLayoutGroupPadding,
 	type FlowGroupGeometry,
-} from './group-geometry';
-import type { LayoutEngine } from './layout-engine';
-import { offsetParallelFlowRoute } from './parallel-routes';
-import type { PlanarEdgeRoute } from './planar-geometry';
+} from '@/layouts/group-geometry';
+import type { LayoutEngine } from '@/layouts/layout-engine';
+import { offsetParallelFlowRoute } from '@/layouts/parallel-routes';
+import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
 
 export type OrthogonalRouteMap = Map<string, ElkPoint[]>;
 

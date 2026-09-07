@@ -14,6 +14,10 @@
 		"forceConsistentCasingInFileNames": true,
 		"allowSyntheticDefaultImports": true,
 		"esModuleInterop": true,
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["src/*"]
+		},
 		"lib": ["ES2021", "DOM"]
 	},
 	"include": ["src/**/*.ts", "src/**/*.svelte"]

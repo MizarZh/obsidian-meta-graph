@@ -1,4 +1,4 @@
-import type { NodeOpenMode } from '../core/types';
+import type { NodeOpenMode } from '@/core/types';
 
 export type LargeVaultMode = 'auto' | 'on' | 'off';
 

@@ -2,16 +2,16 @@ import type {
 	DebugSnapshot,
 	KnowledgeNode,
 	WorkspaceState,
-} from '../../core/types';
+} from '@/core/types';
 import {
 	getActiveDefaultNodeStyle,
 	getActiveNodeStyleRules,
-} from '../../graph/styles/active-styles';
+} from '@/graph/styles/active-styles';
 import {
 	resolveNodeStyleContext,
 	resolveNodeStyleContexts,
-} from '../../graph/styles/node-style-context';
-import { resolveNodeStyle } from '../../graph/styles/style-rules';
+} from '@/graph/styles/node-style-context';
+import { resolveNodeStyle } from '@/graph/styles/style-rules';
 
 type DockNotes = WorkspaceState['dock']['notes'];
 type SnapshotNodeIndex = { index: Pick<DebugSnapshot['index'], 'nodes'> };

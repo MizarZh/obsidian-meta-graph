@@ -3,7 +3,7 @@ import {
 	DEFAULT_SETTINGS,
 	normalizeLargeVaultMode,
 	normalizeNodeOpenMode,
-} from '../../settings/settings';
+} from '@/settings/settings';
 
 describe('plugin settings', () => {
 	it('defaults node opening to a new tab', () => {

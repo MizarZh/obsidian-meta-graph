@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { WorkspaceRendererLifecycle } from '../../../ui/workspace/renderer-lifecycle';
+import type { WorkspaceRendererLifecycle } from '@/ui/workspace/renderer-lifecycle';
 import {
 	readChangedVisibilityNodeIds,
 	WorkspaceRenderCoordinator,
-} from '../../../ui/workspace/renderer-coordinator';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/ui/workspace/renderer-coordinator';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
-vi.mock('../../../graph/renderers/renderer-adapter', () => ({
+vi.mock('@/graph/renderers/renderer-adapter', () => ({
 	getRendererKind: vi.fn(
 		(renderer: { capabilities: { kind: string } }) =>
 			renderer.capabilities.kind,
@@ -75,9 +75,7 @@ describe('WorkspaceRenderCoordinator', () => {
 		const calls: string[] = [];
 		const state = createWorkspaceState(200);
 		const lifecycle = {
-			renderer: undefined as
-				| { capabilities: { kind: 'g6' } }
-				| undefined,
+			renderer: undefined as { capabilities: { kind: 'g6' } } | undefined,
 			handleForceLayoutToggle: vi.fn(),
 			restartExternal2DForceLayoutIfNeeded: vi.fn(),
 			rebuild: () => {

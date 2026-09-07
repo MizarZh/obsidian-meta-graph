@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveGroupCapabilities } from '../../../workspace/groups/group-policy';
+import { resolveGroupCapabilities } from '@/workspace/groups/group-policy';
 
 describe('group capabilities', () => {
 	it('separates membership and spatial policy', () => {

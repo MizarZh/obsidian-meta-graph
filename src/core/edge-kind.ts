@@ -1,4 +1,4 @@
-import type { KnowledgeEdge } from './types';
+import type { KnowledgeEdge } from '@/core/types';
 
 type EdgeKindFields = Pick<KnowledgeEdge, 'kind' | 'semantic'>;
 

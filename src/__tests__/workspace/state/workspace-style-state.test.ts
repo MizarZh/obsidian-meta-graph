@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { MetaGraphChart, WorkspaceState } from '../../../core/types';
+import type { MetaGraphChart, WorkspaceState } from '@/core/types';
 import {
 	setDefaultNodeStyleInState,
 	setGlobalNodeStyleRulesInState,
@@ -8,8 +8,8 @@ import {
 	moveNodeStyleRuleToScopeInState,
 	moveLinkStyleRuleToScopeInState,
 	setNodeStyleRulesInState,
-} from '../../../workspace/state/style-state';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
+} from '@/workspace/state/style-state';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 function getActiveChart(state: WorkspaceState): MetaGraphChart {
 	const chart = state.charts.find((item) => item.id === state.activeChartId);

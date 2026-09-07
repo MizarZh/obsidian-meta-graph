@@ -1,4 +1,4 @@
-import type { WorkspaceState } from '../../core/types';
+import type { WorkspaceState } from '@/core/types';
 
 export type WorkspaceStateListener = (state: WorkspaceState) => void;
 

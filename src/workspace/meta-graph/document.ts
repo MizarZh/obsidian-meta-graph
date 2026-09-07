@@ -9,20 +9,33 @@ import type {
 	MetaGraphDocument,
 	MetaGraphDock,
 	NodeStyleRule,
-} from '../../core/types';
-import { cloneSerializable } from '../state/persistence';
-import { createChartId, createDefaultCharts, normalizeChart } from './chart';
-import { DEFAULT_CONNECTION_FIELDS, DEFAULT_DOCK } from './constants';
+} from '@/core/types';
+import { cloneSerializable } from '@/workspace/state/persistence';
+import {
+	createChartId,
+	createDefaultCharts,
+	normalizeChart,
+} from '@/workspace/meta-graph/chart';
+import {
+	DEFAULT_CONNECTION_FIELDS,
+	DEFAULT_DOCK,
+} from '@/workspace/meta-graph/constants';
 import {
 	normalizeConnectionFieldModes,
 	normalizeConnectionFields,
 	normalizeConnectionFieldSpecs,
-} from './connections';
-import { serializeChartForDocument } from './curated-layout';
-import { normalizeDock } from './dock';
-import { createDefaultGlobalQuery, normalizeQuery } from './query';
-import { createDefaultGlobalStyle, normalizeGlobalStyle } from './style';
-import { isRecord } from './utils';
+} from '@/workspace/meta-graph/connections';
+import { serializeChartForDocument } from '@/workspace/meta-graph/curated-layout';
+import { normalizeDock } from '@/workspace/meta-graph/dock';
+import {
+	createDefaultGlobalQuery,
+	normalizeQuery,
+} from '@/workspace/meta-graph/query';
+import {
+	createDefaultGlobalStyle,
+	normalizeGlobalStyle,
+} from '@/workspace/meta-graph/style';
+import { isRecord } from '@/workspace/meta-graph/utils';
 
 export function normalizeMetaGraphDocument(
 	value: unknown,

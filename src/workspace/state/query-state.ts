@@ -1,6 +1,6 @@
-import type { GraphQuery, WorkspaceState } from '../../core/types';
-import { normalizeTags } from '../../core/tags';
-import { updateActiveChartState } from './state-updaters';
+import type { GraphQuery, WorkspaceState } from '@/core/types';
+import { normalizeTags } from '@/core/tags';
+import { updateActiveChartState } from '@/workspace/state/state-updaters';
 
 type QueryPatch = Partial<Omit<GraphQuery, 'roots'>>;
 

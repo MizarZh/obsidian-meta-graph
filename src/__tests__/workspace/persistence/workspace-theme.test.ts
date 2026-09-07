@@ -3,7 +3,7 @@ import {
 	readInteractiveAccentColor,
 	readThemeSignature,
 	type ThemeDocumentLike,
-} from '../../../ui/workspace/theme';
+} from '@/ui/workspace/theme';
 
 function createThemeDocument(
 	documentClassName: string,

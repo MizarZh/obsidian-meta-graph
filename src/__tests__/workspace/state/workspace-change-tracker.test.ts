@@ -3,10 +3,10 @@ import {
 	analyzeWorkspaceStateChanges,
 	createWorkspaceRenderBaseline,
 	syncWorkspaceRenderBaselineStyles,
-} from '../../../ui/workspace/change-tracker';
-import { createWorkspaceState } from '../../../workspace/state/workspace-state';
-import type { GraphProjection } from '../../../core/types';
-import { setCuratedFilesHiddenActionInState } from '../../../workspace/actions/curated-actions';
+} from '@/ui/workspace/change-tracker';
+import { createWorkspaceState } from '@/workspace/state/workspace-state';
+import type { GraphProjection } from '@/core/types';
+import { setCuratedFilesHiddenActionInState } from '@/workspace/actions/curated-actions';
 
 describe('workspace change tracker', () => {
 	it('requests initial rebuild against empty baseline', () => {

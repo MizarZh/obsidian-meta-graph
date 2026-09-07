@@ -27,28 +27,28 @@ export {
 	META_GRAPH_FRONTMATTER_VALUE,
 	META_GRAPH_VERSION,
 	META_GRAPH_VERSION_KEY,
-} from './meta-graph/constants';
+} from '@/workspace/meta-graph/constants';
 export {
 	createConnectionFieldSpec,
 	createConnectionFieldSpecId,
 	normalizeConnectionFieldModes,
 	normalizeConnectionFields,
 	normalizeConnectionFieldSpecs,
-} from './meta-graph/connections';
+} from '@/workspace/meta-graph/connections';
 export {
 	createDefaultCuratedWorkspace,
 	normalizeCuratedWorkspace,
-} from './meta-graph/curated';
+} from '@/workspace/meta-graph/curated';
 export {
 	normalizeDock,
 	normalizeDockNotes,
 	normalizeDockTemplates,
-} from './meta-graph/dock';
+} from '@/workspace/meta-graph/dock';
 export {
 	createDefaultMetaGraphDocument,
 	normalizeMetaGraphDocument,
 	serializeMetaGraphState,
-} from './meta-graph/document';
+} from '@/workspace/meta-graph/document';
 export {
 	connectionSpecId,
 	createDefaultMetaGraphDocumentV2,
@@ -57,15 +57,15 @@ export {
 	parsePersistedMetaGraphDocumentV2,
 	serializeRuntimeDocumentV2,
 	serializeWorkspaceStateV2,
-} from './meta-graph-v2/codec';
+} from '@/workspace/meta-graph-v2/codec';
 export type {
 	ParsedMetaGraphWorkspace,
 	PersistedMetaGraphDocumentV2,
 	ConnectionPanelLayout,
 	WorkspacePersistenceContext,
 	WorkspaceSessionState,
-} from './meta-graph-v2/types';
-export { createDefaultChart } from './meta-graph/chart';
+} from '@/workspace/meta-graph-v2/types';
+export { createDefaultChart } from '@/workspace/meta-graph/chart';
 export {
 	createDefaultLinkStyleRule,
 	createDefaultNodeStyleRule,
@@ -76,4 +76,4 @@ export {
 	normalizePlainLinkStyleOverrides,
 	normalizeUnresolvedNodeStyleOverrides,
 	normalizeUnresolvedLinkStyleOverrides,
-} from './meta-graph/style';
+} from '@/workspace/meta-graph/style';

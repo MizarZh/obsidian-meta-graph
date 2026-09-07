@@ -3,13 +3,16 @@ import type {
 	DebugSnapshot,
 	DockConnectionDirection,
 	WorkspaceState,
-} from '../../core/types';
-import { CreateFromTemplateModal } from '../CreateFromTemplateModal';
-import { findDockTemplateLabel, findIndexedNodeTitle } from './derived';
+} from '@/core/types';
+import { CreateFromTemplateModal } from '@/ui/CreateFromTemplateModal';
+import {
+	findDockTemplateLabel,
+	findIndexedNodeTitle,
+} from '@/ui/workspace/derived';
 import {
 	openCreatedTemplateNote,
 	type CreatedTemplateNoteOpener,
-} from './template-actions';
+} from '@/ui/workspace/template-actions';
 
 export interface WorkspaceTemplateNoteOptions<
 	FileEntry,

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { CanvasTextWidthCache } from '../../../graph/renderers/sigma/canvas-text-metrics';
-import { fitEdgeLabel } from '../../../graph/renderers/sigma/sigma-label-rendering';
+import { CanvasTextWidthCache } from '@/graph/renderers/sigma/canvas-text-metrics';
+import { fitEdgeLabel } from '@/graph/renderers/sigma/sigma-label-rendering';
 
 function createContext() {
 	let font = '';
@@ -26,7 +26,9 @@ describe('CanvasTextWidthCache', () => {
 		const font = { family: 'Inter', weight: 600, size: 10 };
 
 		expect(cache.measure(context, 'label', font)).toBe(50);
-		expect(cache.measure(context, 'label', { ...font, size: 20 })).toBe(100);
+		expect(cache.measure(context, 'label', { ...font, size: 20 })).toBe(
+			100,
+		);
 		expect(measureText).toHaveBeenCalledOnce();
 	});
 

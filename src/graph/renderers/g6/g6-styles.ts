@@ -1,19 +1,15 @@
 import type { EdgeData, EdgeOptions, NodeData, NodeOptions } from '@antv/g6';
-import type {
-	LabelPosition,
-	LinkLineStyle,
-	NodeShape,
-} from '../../../core/types';
+import type { LabelPosition, LinkLineStyle, NodeShape } from '@/core/types';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeNodeAttributes,
-} from '../../model/graphology-adapter';
-import type { GraphPalette } from '../../styles/graph-styles';
+} from '@/graph/model/graphology-adapter';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
 import {
 	resolveThreeLabelStyle,
 	type LabelThemeConfig,
-} from '../renderer-label-style';
-import { resolveEdgeVisualMetrics } from '../sigma/sigma-edge-visual-metrics';
+} from '@/graph/renderers/renderer-label-style';
+import { resolveEdgeVisualMetrics } from '@/graph/renderers/sigma/sigma-edge-visual-metrics';
 
 export type G6NodeStyle = NonNullable<NodeData['style']>;
 export type G6EdgeStyle = NonNullable<EdgeData['style']>;

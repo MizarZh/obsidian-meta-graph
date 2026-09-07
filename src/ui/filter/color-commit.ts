@@ -1,4 +1,4 @@
-import { ThrottledCommitScheduler } from './deferred-commit';
+import { ThrottledCommitScheduler } from '@/ui/filter/deferred-commit';
 
 const COLOR_COMMIT_INTERVAL_MS = 120;
 

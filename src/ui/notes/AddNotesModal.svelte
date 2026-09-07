@@ -1,20 +1,20 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import type { KnowledgeNode, NodeFilterGroup } from '../../core/types';
-	import { nodeMatchesFilterGroup } from '../../query/filters';
+	import type { KnowledgeNode, NodeFilterGroup } from '@/core/types';
+	import { nodeMatchesFilterGroup } from '@/query/filters';
 	import {
 		buildTitleIndex,
 		createConditionFilterRoot,
 		parseBatchInput,
 		type CuratedConditionDraft,
-	} from '../curated/curated-panel-state';
-	import ObsidianButton from '../obsidian/ObsidianButton.svelte';
+	} from '@/ui/curated/curated-panel-state';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown, {
 		type DropdownOption,
-	} from '../obsidian/ObsidianDropdown.svelte';
-	import ObsidianTextInput from '../obsidian/ObsidianTextInput.svelte';
-	import WorkspaceModal from '../WorkspaceModal.svelte';
-	import NoteFilterEditor from './NoteFilterEditor.svelte';
+	} from '@/ui/obsidian/ObsidianDropdown.svelte';
+	import ObsidianTextInput from '@/ui/obsidian/ObsidianTextInput.svelte';
+	import WorkspaceModal from '@/ui/WorkspaceModal.svelte';
+	import NoteFilterEditor from '@/ui/notes/NoteFilterEditor.svelte';
 
 	let {
 		app,

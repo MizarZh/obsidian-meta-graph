@@ -11,17 +11,17 @@ import {
 	type SimulationLinkDatum,
 	type SimulationNodeDatum,
 } from 'd3-force';
-import type { RuntimeGraph } from '../graph/model/graphology-adapter';
-import type { ForceSimulationRenderer } from '../graph/renderers/renderer-contracts';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
+import type { ForceSimulationRenderer } from '@/graph/renderers/renderer-contracts';
 import {
 	DEFAULT_GRAPH_FORCE_SETTINGS,
 	type GraphForceSettings,
-} from './force-layout';
+} from '@/layouts/force-layout';
 import {
 	collectGraphGroupMembers,
 	createGraphGroupLinks,
 	getGraphGroupTargetRadius,
-} from './graph-group-layout';
+} from '@/layouts/graph-group-layout';
 
 interface ForceNode extends SimulationNodeDatum {
 	id: string;

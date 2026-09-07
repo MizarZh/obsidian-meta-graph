@@ -3,21 +3,21 @@ import type {
 	KnowledgeEdge,
 	LinkArrowStyle,
 	WorkspaceState,
-} from '../../core/types';
+} from '@/core/types';
 import {
 	getActiveDefaultLinkStyle,
 	getActiveDefaultLinkArrowSize,
 	getActiveLinkStyleRules,
 	getActiveDefaultLinkArrowStyle,
 	getActiveDefaultLinkOpacity,
-} from '../../graph/styles/active-styles';
+} from '@/graph/styles/active-styles';
 import {
 	resolveLinkStyle,
 	resolveLinkArrowStyle,
 	resolveLinkArrowSize,
 	resolveLinkOpacity,
 	type LinkStyle,
-} from '../../graph/styles/style-rules';
+} from '@/graph/styles/style-rules';
 
 export interface ConnectionPreviewMarkers {
 	start: boolean;

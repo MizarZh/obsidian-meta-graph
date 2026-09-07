@@ -1,23 +1,23 @@
 import { GraphEvent } from '@antv/g6';
-import type { RuntimeGraph } from '../../model/graphology-adapter';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
 import {
 	isGraphPointInLayoutGroup,
 	scaleLayoutGroupPadding,
 	type ArcGroupGeometry,
 	type LayoutGroupGeometry,
 	type RadialGroupGeometry,
-} from '../../../layouts/group-geometry';
+} from '@/layouts/group-geometry';
 import {
 	fitViewportCircle,
 	isViewportPointInGroup,
 	normalizeGroupFrameForShape,
 	type ViewportCircleMember,
 	type ViewportGroupRect,
-} from '../../../layouts/group-shape';
+} from '@/layouts/group-shape';
 import type {
 	GroupInteractionCallbacks,
 	GroupOverlayGroup,
-} from '../renderer-groups';
+} from '@/graph/renderers/renderer-groups';
 import {
 	GROUP_MEMBER_HALO_GAP,
 	GROUP_CONTAINER_CORNER_RADIUS,
@@ -30,7 +30,7 @@ import {
 	GROUP_TITLE_STROKE_OPACITY,
 	resolveGroupHaloVisualStyle,
 	resolveGroupRegionVisualStyle,
-} from '../group-visual-style';
+} from '@/graph/renderers/group-visual-style';
 
 interface G6GroupViewport {
 	on(event: GraphEvent, listener: () => void): unknown;

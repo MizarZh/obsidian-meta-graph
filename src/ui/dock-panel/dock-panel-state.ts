@@ -3,8 +3,8 @@ import type {
 	ChartGroupDefinition,
 	DockTemplateNode,
 	KnowledgeNode,
-} from '../../core/types';
-import type { DockDragPayload } from '../dock/types';
+} from '@/core/types';
+import type { DockDragPayload } from '@/ui/dock/types';
 
 export type ReorderPlacement = 'before' | 'after';
 

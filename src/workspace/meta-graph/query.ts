@@ -4,10 +4,10 @@ import type {
 	NodeFilterGroup,
 	NodeFilterItem,
 	NodeFilterRule,
-} from '../../core/types';
-import { DEFAULT_GRAPH_QUERY } from '../../query/graph-query';
-import { normalizeTags } from '../../core/tags';
-import { cloneSerializable } from '../state/persistence';
+} from '@/core/types';
+import { DEFAULT_GRAPH_QUERY } from '@/query/graph-query';
+import { normalizeTags } from '@/core/tags';
+import { cloneSerializable } from '@/workspace/state/persistence';
 import {
 	createRuleId,
 	isRecord,
@@ -16,7 +16,7 @@ import {
 	readFilterGroupMode,
 	readFilterOperator,
 	readFiniteNumber,
-} from './utils';
+} from '@/workspace/meta-graph/utils';
 
 export function normalizeQuery(
 	value: unknown,

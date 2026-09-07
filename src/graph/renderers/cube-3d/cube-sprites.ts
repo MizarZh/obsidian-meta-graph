@@ -1,8 +1,8 @@
 import type * as Three from 'three';
-import type { LinkArrowStyle, NodeShape } from '../../../core/types';
-import type { RuntimeNodeAttributes } from '../../model/graphology-adapter';
-import { createThreeTextSprite } from '../renderer-labels';
-import type { ThreeModule } from './cube-three';
+import type { LinkArrowStyle, NodeShape } from '@/core/types';
+import type { RuntimeNodeAttributes } from '@/graph/model/graphology-adapter';
+import { createThreeTextSprite } from '@/graph/renderers/renderer-labels';
+import type { ThreeModule } from '@/graph/renderers/cube-3d/cube-three';
 
 export function createCubeNodeSprite(
 	three: Pick<ThreeModule, 'CanvasTexture' | 'Sprite' | 'SpriteMaterial'>,

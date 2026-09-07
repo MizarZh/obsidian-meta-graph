@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { KnowledgeEdge } from '../../core/types';
-import { getOtherLinksBetweenNotes } from '../../ui/details/relationship-details';
+import type { KnowledgeEdge } from '@/core/types';
+import { getOtherLinksBetweenNotes } from '@/ui/details/relationship-details';
 
 describe('relationship details', () => {
 	it('keeps the selected relationship separate from other links for the pair', () => {

@@ -1,9 +1,9 @@
-import type { ChartGroup } from '../../../core/types';
+import type { ChartGroup } from '@/core/types';
 import {
 	distanceSquared,
 	findManualPlacement,
 	readGroupPlacementBounds,
-} from './placement';
+} from '@/workspace/state/manual-layout/placement';
 
 const CUBE_NODE_OVERLAP_DISTANCE = 0.08;
 

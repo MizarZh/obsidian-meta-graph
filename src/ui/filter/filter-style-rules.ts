@@ -5,7 +5,7 @@ import type {
 	LinkLineStyle,
 	LinkStyleRule,
 	NodeStyleRule,
-} from '../../core/types';
+} from '@/core/types';
 
 export type StyleRuleKind = 'node' | 'link';
 export type StyleRuleScope = 'global' | 'current';

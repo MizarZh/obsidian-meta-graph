@@ -1,7 +1,7 @@
 <script lang="ts" generics="T extends string | number">
-	import SettingRow from '../SettingRow.svelte';
-	import ObsidianButton from '../../obsidian/ObsidianButton.svelte';
-	import type { SettingOption } from '../types';
+	import SettingRow from '@/ui/settings/SettingRow.svelte';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import type { SettingOption } from '@/ui/settings/types';
 
 	let {
 		label,
@@ -24,12 +24,7 @@
 	} = $props();
 </script>
 
-<SettingRow
-	{label}
-	{description}
-	layout="segmented"
-	class={rowClass}
->
+<SettingRow {label} {description} layout="segmented" class={rowClass}>
 	<div
 		class={`knowledge-workspace-segmented knowledge-workspace-setting-segmented ${className}`.trim()}
 	>
