@@ -27,6 +27,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Trimmed layout-owned G6 edge bends covered by source or target nodes before endpoint clipping, preventing Flow arrows from reversing through node interiors when rendered node sizes exceed their terminal route segments.
+
 - Created every visible G6 Group element through the background layer's own scene document and commits complete scenes for G6's automatic presentation frame. This prevents cross-Canvas ownership from dropping Group regions on the first frame in static Flow, Free, Arc, and HEB views.
 
 - Unified Graph, Free, and Flow container corners, titles, regions, focus states, and member halos across Sigma and G6 while retaining Arc bands and HEB sectors as specialized shapes. Flow containers now use Graph's membership-driven overlay path instead of depending on an ELK container region being available on the first frame. G6 commits complete Group scenes after graph draws, calculates dynamic bounds from canonical RuntimeGraph positions, keeps stable Canvas roots, renders Arc bands, and deduplicates member halos.
