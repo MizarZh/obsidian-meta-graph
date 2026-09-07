@@ -74,6 +74,7 @@ const MAX_VIEWPORT_NODE_LABELS = 400;
 const NODE_HOVER_LEAVE_GRACE_MS = 32;
 
 interface G6InteractionSnapshot {
+	dimUnrelated?: boolean;
 	activeNodeId?: string;
 	pinnedNodeId?: string;
 	hoveredEdgeId?: string;
@@ -168,6 +169,7 @@ export class G6Renderer implements PlanarRenderer {
 	private selectedNodeId?: string;
 	private selectedEdgeId?: string;
 	private hoveredNodeId?: string;
+	private hoverMode: import('@/settings/settings').NodeHoverMode = 'local';
 	private hoveredEdgeId?: string;
 	private pinnedNodeId?: string;
 	private readonly nodeStateKeys = new Map<string, string>();
@@ -727,6 +729,12 @@ export class G6Renderer implements PlanarRenderer {
 			return;
 		}
 		this.applyHoveredNode(nodeId);
+	}
+
+	setHoverMode(mode: import('@/settings/settings').NodeHoverMode): void {
+		if (this.hoverMode === mode) return;
+		this.hoverMode = mode;
+		this.scheduleInteractionSync();
 	}
 
 	private applyHoveredNode(nodeId?: string): void {
@@ -1332,7 +1340,11 @@ export class G6Renderer implements PlanarRenderer {
 	private syncInteractionStates(scheduleDraw = true, forceAll = false): void {
 		if (this.killed || this.isStale()) return;
 		const activeNodeId = this.getActiveHoverNodeId();
+		const dimUnrelated = Boolean(
+			activeNodeId && (this.pinnedNodeId || this.hoverMode === 'local'),
+		);
 		const nextInteraction: G6InteractionSnapshot = {
+			dimUnrelated,
 			activeNodeId,
 			pinnedNodeId: this.pinnedNodeId,
 			hoveredEdgeId: this.hoveredEdgeId,
@@ -1342,7 +1354,6 @@ export class G6Renderer implements PlanarRenderer {
 		const neighborhood = activeNodeId
 			? this.sceneCache.neighborNodeIdsByNode.get(activeNodeId)
 			: undefined;
-		const dimUnrelated = Boolean(activeNodeId);
 		const nodes: Array<{ id: string; states: State[] }> = [];
 		const edges: Array<{ id: string; states: State[] }> = [];
 		const nodeIds = this.collectAffectedNodeIds(nextInteraction, forceAll);
@@ -1392,13 +1403,13 @@ export class G6Renderer implements PlanarRenderer {
 			if (connected) states.push(G6_INTERACTION_STATE.connected);
 			if (
 				logicalEdgeId === this.hoveredEdgeId &&
-				(!activeNodeId || connected)
+				(!dimUnrelated || connected)
 			) {
 				states.push(G6_INTERACTION_STATE.hovered);
 			}
 			if (logicalEdgeId === this.selectedEdgeId)
 				states.push(G6_INTERACTION_STATE.selected);
-			if (activeNodeId && !connected)
+			if (dimUnrelated && !connected)
 				states.push(G6_INTERACTION_STATE.focusHidden);
 			if (this.updateStateKey(this.edgeStateKeys, elementId, states)) {
 				edges.push({ id: elementId, states });
@@ -1455,7 +1466,12 @@ export class G6Renderer implements PlanarRenderer {
 		next: G6InteractionSnapshot,
 		forceAll: boolean,
 	): Set<string> {
-		if (forceAll) return new Set(this.sceneCache.renderedNodeIds);
+		if (
+			forceAll ||
+			Boolean(this.appliedInteraction.dimUnrelated) !==
+				Boolean(next.dimUnrelated)
+		)
+			return new Set(this.sceneCache.renderedNodeIds);
 		const affected = new Set<string>();
 		const previous = this.appliedInteraction;
 		if (previous.activeNodeId !== next.activeNodeId) {
@@ -1496,7 +1512,11 @@ export class G6Renderer implements PlanarRenderer {
 		next: G6InteractionSnapshot,
 		forceAll: boolean,
 	): Set<string> {
-		if (forceAll)
+		if (
+			forceAll ||
+			Boolean(this.appliedInteraction.dimUnrelated) !==
+				Boolean(next.dimUnrelated)
+		)
 			return new Set(
 				[...this.sceneCache.runtimeEdgesByLogicalId.values()].flat(),
 			);

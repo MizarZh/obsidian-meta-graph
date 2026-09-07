@@ -94,6 +94,7 @@ export interface OrderedNativeEdgeSegmentDescriptor extends NativeEdgeSegmentDes
 }
 
 export interface ParallelEdgeLayerState {
+	localHover?: boolean;
 	activeHoverNodeId?: string;
 	pinnedNodeId?: string;
 	forceMotionActive?: boolean;
@@ -715,6 +716,7 @@ export class SigmaParallelEdgeLayer {
 			isEdgeHoverActive(descriptor, state, hoveredEdgeId) ||
 			isEdgeConnectedToNode(descriptor, state.pinnedNodeId);
 		const connectedToHover =
+			(state.localHover === false && !state.pinnedNodeId) ||
 			selected ||
 			isEdgeHoverActive(descriptor, state, hoveredEdgeId) ||
 			!state.activeHoverNodeId ||

@@ -18,7 +18,9 @@ import { applyWorkspaceSession } from '@/workspace/workspace-session';
 import { serializeWorkspaceStateV2 } from '@/workspace/meta-graph-v2/codec';
 import type { WorkspaceActionId } from '@/ui/interactions/keyboard-shortcuts';
 
-type MountedWorkspace = Parameters<typeof import('svelte').unmount>[0];
+type MountedWorkspace = Parameters<typeof import('svelte').unmount>[0] & {
+	syncHoverMode?: () => void;
+};
 type MetaGraphDocumentModule = typeof import('@/workspace/meta-graph-document');
 
 export const VIEW_TYPE_KNOWLEDGE_WORKSPACE = 'meta-graph';
@@ -116,6 +118,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 	}
 
 	updateDisplaySettings(): void {
+		this.component?.syncHoverMode?.();
 		this.controller?.setFadeDistance(this.plugin.settings.fadeDistance);
 		this.controller?.setRelayoutFlowAfterConnection(
 			this.plugin.settings.relayoutFlowAfterConnection,
@@ -217,6 +220,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 				onOpenNodeInRightSplit: (nodeId: string) =>
 					this.openNodeInRightSplit(nodeId),
 				getNodeOpenMode: () => this.plugin.settings.nodeOpenMode,
+				getNodeHoverMode: () => this.plugin.settings.nodeHoverMode,
 				readOnly: persistence.readOnly,
 				sourceVersion: persistence.sourceVersion,
 				serializeDocument: (state: WorkspaceState) =>

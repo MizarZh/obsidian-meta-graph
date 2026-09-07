@@ -845,6 +845,43 @@ describe('G6 renderer', () => {
 		expect(finalStates['A.md']).toEqual([G6_INTERACTION_STATE.dimmed]);
 	});
 
+	it('switches hover mode live while Space pin still applies local focus', async () => {
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(createInteractiveGraph()),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+		renderer.setHovered('A.md');
+		await vi.waitFor(() =>
+			expect(readLastStateMap(fake.setElementState)['C.md']).toContain(
+				G6_INTERACTION_STATE.dimmed,
+			),
+		);
+		renderer.setHoverMode('emphasis');
+		await vi.waitFor(() =>
+			expect(readLastStateMap(fake.setElementState)['C.md']).toEqual([]),
+		);
+		expect(readLastStateMap(fake.setElementState)['B-C']).toEqual([]);
+		renderer.togglePinnedHover('A.md');
+		await vi.waitFor(() =>
+			expect(readLastStateMap(fake.setElementState)['C.md']).toContain(
+				G6_INTERACTION_STATE.dimmed,
+			),
+		);
+		renderer.clearPinnedHover();
+		await vi.waitFor(() =>
+			expect(readLastStateMap(fake.setElementState)['C.md']).toEqual([]),
+		);
+		renderer.setHoverMode('local');
+		await vi.waitFor(() =>
+			expect(readLastStateMap(fake.setElementState)['C.md']).toContain(
+				G6_INTERACTION_STATE.dimmed,
+			),
+		);
+		renderer.kill();
+	});
+
 	it('uses pinned-focus dimming for transient hover without a second full update when pinned', async () => {
 		const graph = createLargeLabelGraph();
 		const fake = createFakeG6();

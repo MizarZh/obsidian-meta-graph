@@ -2,6 +2,7 @@ import { App, PluginSettingTab, Setting } from 'obsidian';
 import type KnowledgeWorkspacePlugin from '@/main';
 import type { NodeOpenMode } from '@/core/types';
 import type { LargeVaultMode } from '@/settings/settings';
+import { normalizeNodeHoverMode } from '@/settings/settings';
 
 export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 	constructor(
@@ -35,6 +36,22 @@ export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(this.containerEl).setName('Behavior').setHeading();
+		new Setting(this.containerEl)
+			.setName('Node hover')
+			.setDesc(
+				'In planar views, emphasize connections or show the local neighborhood. Space always pins the local neighborhood.',
+			)
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('emphasis', 'Emphasize only')
+					.addOption('local', 'Local')
+					.setValue(this.plugin.settings.nodeHoverMode)
+					.onChange(async (value) => {
+						this.plugin.settings.nodeHoverMode =
+							normalizeNodeHoverMode(value);
+						await this.plugin.saveSettings();
+					}),
+			);
 		new Setting(this.containerEl)
 			.setName('Relayout flow after connecting nodes')
 			.setDesc(

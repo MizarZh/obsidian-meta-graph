@@ -93,6 +93,7 @@ export class SigmaRenderer {
 	private hoveredEdgeId?: string;
 	private hoveredNodeId?: string;
 	private pinnedNodeId?: string;
+	private hoverMode: import('@/settings/settings').NodeHoverMode = 'local';
 	private hoveredNeighborhood = new Set<string>();
 	private fadeDistance: number;
 	private labelPosition: LabelPosition;
@@ -251,6 +252,7 @@ export class SigmaRenderer {
 			() => this.graph,
 			() => ({
 				activeHoverNodeId: this.getActiveHoverNodeId(),
+				localHover: this.hoverMode === 'local',
 				pinnedNodeId: this.pinnedNodeId,
 				forceMotionActive: this.forceMotionActive,
 				selectedEdgeId: this.selectedEdgeId,
@@ -474,6 +476,12 @@ export class SigmaRenderer {
 		this.refresh();
 	}
 
+	setHoverMode(mode: import('@/settings/settings').NodeHoverMode): void {
+		if (this.hoverMode === mode) return;
+		this.hoverMode = mode;
+		this.refresh();
+	}
+
 	setLabelSize(labelSize: number): void {
 		this.instance.setSettings({ labelSize, edgeLabelSize: labelSize });
 	}
@@ -686,6 +694,7 @@ export class SigmaRenderer {
 		const instance = this.instance as
 			Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes> | undefined;
 		return {
+			localHover: this.hoverMode === 'local',
 			activeHoverNodeId: this.getActiveHoverNodeId(),
 			pinnedNodeId: this.pinnedNodeId,
 			selectedNodeId: this.selectedNodeId,
@@ -703,7 +712,9 @@ export class SigmaRenderer {
 	}
 
 	private syncGroupFocus(): void {
-		const activeNodeId = this.getActiveHoverNodeId();
+		const activeNodeId =
+			this.pinnedNodeId ??
+			(this.hoverMode === 'local' ? this.hoveredNodeId : undefined);
 		this.groupOverlayLayer.setFocusedNode(activeNodeId);
 		this.layoutGroupLayer.setFocusedNode(activeNodeId);
 	}

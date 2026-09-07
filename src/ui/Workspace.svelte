@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Menu, Notice, TFile, type App } from 'obsidian';
 	import { onMount, untrack } from 'svelte';
+	import type { NodeHoverMode } from '@/settings/settings';
 	import type {
 		ChartSource,
 		DebugSnapshot,
@@ -122,6 +123,7 @@
 		onDetailsNoteContentExpandedChange,
 		onOpenNodeInRightSplit,
 		getNodeOpenMode,
+		getNodeHoverMode = () => 'local',
 		onWorkspaceActionsChange,
 		readOnly = false,
 		sourceVersion = 2,
@@ -141,6 +143,7 @@
 		onDetailsNoteContentExpandedChange: (expanded: boolean) => void;
 		onOpenNodeInRightSplit: (nodeId: string) => Promise<void>;
 		getNodeOpenMode: () => NodeOpenMode;
+		getNodeHoverMode?: () => NodeHoverMode;
 		onWorkspaceActionsChange?: (
 			host:
 				| {
@@ -562,7 +565,17 @@
 		rendererLifecycle.refreshPalette();
 	}
 
+	export function syncHoverMode(): void {
+		applyHoverMode(rendererLifecycle.renderer);
+	}
+
+	function applyHoverMode(renderer?: GraphRenderer): void {
+		if (renderer && 'setHoverMode' in renderer)
+			renderer.setHoverMode?.(getNodeHoverMode());
+	}
+
 	function bindEventsForRenderer(targetRenderer: GraphRenderer): () => void {
+		applyHoverMode(targetRenderer);
 		return bindWorkspaceRendererEvents({
 			renderer: targetRenderer,
 			mode: workspaceState.mode,

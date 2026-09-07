@@ -304,6 +304,27 @@ describe('graph renderer helpers', () => {
 	it('reduces Sigma node and edge hover display state', () => {
 		const node = createNodeAttributes();
 		const edge = createEdgeAttributes();
+		const emphasisState = {
+			activeHoverNodeId: 'other',
+			localHover: false,
+			hoveredNeighborhood: new Set(['other']),
+			forceLabels: false,
+		};
+		expect(
+			reduceSigmaNode('A.md', node, emphasisState, palette).color,
+		).toBe(node.color);
+		expect(
+			reduceSigmaEdge(edge, emphasisState, palette, ['A.md', 'B.md'])
+				.size,
+		).toBe(edge.size);
+		expect(
+			reduceSigmaNode(
+				'A.md',
+				node,
+				{ ...emphasisState, pinnedNodeId: 'other' },
+				palette,
+			).color,
+		).toBe(palette.mutedNode);
 
 		expect(
 			reduceSigmaNode(

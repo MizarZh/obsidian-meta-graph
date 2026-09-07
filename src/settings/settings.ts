@@ -1,6 +1,7 @@
 import type { NodeOpenMode } from '@/core/types';
 
 export type LargeVaultMode = 'auto' | 'on' | 'off';
+export type NodeHoverMode = 'emphasis' | 'local';
 
 export interface KnowledgeWorkspaceSettings {
 	fadeDistance: number;
@@ -11,6 +12,7 @@ export interface KnowledgeWorkspaceSettings {
 	nodeOpenMode: NodeOpenMode;
 	detailsNoteContentExpanded: boolean;
 	largeVaultMode: LargeVaultMode;
+	nodeHoverMode: NodeHoverMode;
 }
 
 export const DEFAULT_SETTINGS: KnowledgeWorkspaceSettings = {
@@ -22,7 +24,12 @@ export const DEFAULT_SETTINGS: KnowledgeWorkspaceSettings = {
 	nodeOpenMode: 'tab',
 	detailsNoteContentExpanded: false,
 	largeVaultMode: 'auto',
+	nodeHoverMode: 'local',
 };
+
+export function normalizeNodeHoverMode(value: unknown): NodeHoverMode {
+	return value === 'emphasis' ? 'emphasis' : 'local';
+}
 
 export function normalizeNodeOpenMode(value: unknown): NodeOpenMode {
 	return value === 'tab' || value === 'right-split'

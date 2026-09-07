@@ -14,6 +14,7 @@ import {
 	DEFAULT_SETTINGS,
 	normalizeLargeVaultMode,
 	normalizeNodeOpenMode,
+	normalizeNodeHoverMode,
 	type KnowledgeWorkspaceSettings,
 } from '@/settings/settings';
 import { KnowledgeWorkspaceSettingsTab } from '@/settings/SettingsTab';
@@ -310,6 +311,7 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 			fadeDistance: clamp(settings.fadeDistance, 0.25, 4),
 			nodeOpenMode: normalizeNodeOpenMode(settings.nodeOpenMode),
 			largeVaultMode: normalizeLargeVaultMode(settings.largeVaultMode),
+			nodeHoverMode: normalizeNodeHoverMode(settings.nodeHoverMode),
 			detailsNoteContentExpanded:
 				settings.detailsNoteContentExpanded === true,
 		};

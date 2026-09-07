@@ -3,9 +3,16 @@ import {
 	DEFAULT_SETTINGS,
 	normalizeLargeVaultMode,
 	normalizeNodeOpenMode,
+	normalizeNodeHoverMode,
 } from '@/settings/settings';
 
 describe('plugin settings', () => {
+	it('preserves local hover by default and normalizes persisted modes', () => {
+		expect(DEFAULT_SETTINGS.nodeHoverMode).toBe('local');
+		expect(normalizeNodeHoverMode('emphasis')).toBe('emphasis');
+		for (const value of ['local', 'unknown', undefined, null])
+			expect(normalizeNodeHoverMode(value)).toBe('local');
+	});
 	it('defaults node opening to a new tab', () => {
 		expect(DEFAULT_SETTINGS.nodeOpenMode).toBe('tab');
 		expect(DEFAULT_SETTINGS.openTemplateNoteInNewTab).toBe(false);

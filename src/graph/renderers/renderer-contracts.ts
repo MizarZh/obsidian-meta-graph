@@ -1,4 +1,5 @@
 import type { LabelPosition } from '@/core/types';
+import type { NodeHoverMode } from '@/settings/settings';
 import type { LayoutGroupGeometry } from '@/layouts/group-geometry';
 import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
 import type {
@@ -70,6 +71,7 @@ export interface PlanarRenderer {
 	setSelectedEdge(edgeId?: string): void;
 	setSelectedGroup(groupId?: string): void;
 	setHovered(nodeId?: string): void;
+	setHoverMode?(mode: NodeHoverMode): void;
 	setFadeDistance(fadeDistance: number): void;
 	setLabelSize(labelSize: number): void;
 	setScaleLabelsWithZoom(scaleLabelsWithZoom: boolean): void;

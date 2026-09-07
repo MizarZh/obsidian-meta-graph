@@ -6,6 +6,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Added the global Node hover setting for planar Sigma/G6 views: Emphasize only preserves the surrounding graph, while Local focuses the neighborhood. Changes apply to open views immediately; Space pin always retains local focus.
+
 - Enabled G6 for HEB charts. HEB now publishes one renderer-neutral bundled route per relationship, G6 renders each route as one logical Polyline without bend elements, and radial Group sectors render through the shared viewport layer with selection, hover, focus muting, hit testing, and member halos.
 
 - Added a faint, non-interactive canvas badge showing the active planar rendering engine (Sigma.js or G6), positioned to avoid the Curated and Connection panels.
