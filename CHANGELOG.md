@@ -37,6 +37,10 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Group position commits preserve unchanged state references, avoiding a scene rebuild that stopped the running force simulation immediately on release.
+
+- Kept Graph force simulation active while dragging a Group. Members remain pinned as a rigid set under the pointer, connected outside nodes respond continuously, and releasing the Group unpins all members without rebuilding the simulation. Applies to Sigma and G6; Free movement is unchanged.
+
 - Synchronized G6 Group bounds and member halos with submitted node positions during force and manual movement. Group geometry now reads the G6 position model and commits with the node batch instead of using newer simulation coordinates on a separate animation frame.
 
 - Added geometry-only translation updates for native G6 straight and quadratic edges. Moving edges reuse arrow markers and label shapes; unchanged single-line text layouts reuse their measured geometry, while wrapping, truncation, styling and interaction changes retain full updates. Labels remain visible during force motion; loops, badges and custom routed edges keep the existing pipeline.

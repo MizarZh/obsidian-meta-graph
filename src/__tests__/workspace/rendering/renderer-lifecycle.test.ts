@@ -421,6 +421,39 @@ describe('WorkspaceRendererLifecycle', () => {
 		expect(D3ForceSimulation).not.toHaveBeenCalled();
 	});
 
+	it('starts group force dragging from displayed positions only when enabled', async () => {
+		const state = { ...createState(), enableForceLayout: true };
+		const renderer = createRenderer();
+		Object.assign(renderer, {
+			getNodePosition: vi.fn((id: string) =>
+				id === 'a' ? { x: 12, y: 34 } : undefined,
+			),
+		});
+		vi.mocked(createWorkspaceGraphRenderer).mockResolvedValue(renderer);
+		const lifecycle = new WorkspaceRendererLifecycle({
+			readState: () => state,
+			readCanvas: () => createTestCanvas(),
+			readLayoutSnapshot: () => createLayoutSnapshot(),
+			readContainerSize: () => ({ width: 800, height: 600 }),
+			waitForCanvasSize: async () => true,
+			bindEvents: () => vi.fn(),
+			syncRendererGroups: vi.fn(),
+			setRendererDebugState: vi.fn(),
+		});
+		await lifecycle.rebuild();
+		const beginGroupDrag = vi.fn();
+		vi.spyOn(lifecycle, 'getOrCreateForceLayoutSimulation').mockReturnValue(
+			{ beginGroupDrag } as unknown as D3ForceSimulation,
+		);
+		lifecycle.beginGroupForceDrag(['a', 'missing']);
+		expect(beginGroupDrag).toHaveBeenCalledExactlyOnceWith(
+			new Map([['a', { x: 12, y: 34 }]]),
+		);
+		state.enableForceLayout = false;
+		lifecycle.beginGroupForceDrag(['a']);
+		expect(beginGroupDrag).toHaveBeenCalledOnce();
+	});
+
 	it('creates a progressive first frame before large graph layout', async () => {
 		const state = createState();
 		const renderer = createRenderer();

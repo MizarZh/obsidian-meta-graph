@@ -216,6 +216,27 @@ export class WorkspaceRendererLifecycle {
 		return this.forceLayoutSimulation;
 	}
 
+	beginGroupForceDrag(nodeIds: Iterable<string>): void {
+		const state = this.options.readState();
+		const renderer = this.currentRenderer;
+		if (
+			state.mode !== 'graph' ||
+			!state.enableForceLayout ||
+			!renderer ||
+			!isForceSimulationRenderer(renderer) ||
+			!isPlanarRenderer(renderer)
+		)
+			return;
+		const positions = new Map<string, { x: number; y: number }>();
+		for (const id of nodeIds) {
+			const position = renderer.getNodePosition(id);
+			if (position) positions.set(id, position);
+		}
+		this.getOrCreateForceLayoutSimulation(renderer).beginGroupDrag(
+			positions,
+		);
+	}
+
 	stopForceLayoutSimulation(): void {
 		this.forceLayoutSimulation?.stop();
 		this.forceLayoutSimulation = undefined;

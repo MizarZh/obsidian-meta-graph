@@ -132,6 +132,72 @@ async function measure(kind: Kind, scale = 1) {
 }
 
 describe('force interaction tuning', () => {
+	it('keeps a dragged group rigid while connected outside nodes simulate, then releases all members', () => {
+		const graph = createGraph('chain');
+		const renderer = {
+			runtimeGraph: graph,
+			beginForceMotion: vi.fn(),
+			endForceMotion: vi.fn(),
+			clearHeldBounds: vi.fn(),
+			viewportToGraphPosition: (p: { x: number; y: number }) => p,
+			syncForcePositions: vi.fn(),
+		};
+		const controller = new D3ForceSimulation(graph, renderer);
+		const internal = controller as unknown as Internals;
+		const positions = new Map(
+			['0', '1'].map((id) => {
+				const { x, y } = graph.getNodeAttributes(id);
+				return [id, { x, y }] as const;
+			}),
+		);
+		const outside = { ...graph.getNodeAttributes('2') };
+		try {
+			controller.beginGroupDrag(positions);
+			expect(controller.moveGroupDrag({ x: 10, y: 5 })).toBe(true);
+			for (let i = 0; i < 220; i++) {
+				internal.simulation!.stop().tick();
+				internal.applyTick();
+			}
+			for (const [id, p] of positions)
+				expect(graph.getNodeAttributes(id)).toMatchObject({
+					x: p.x + 10,
+					y: p.y + 5,
+					fixed: true,
+				});
+			expect(
+				Math.hypot(
+					graph.getNodeAttribute('2', 'x') - outside.x,
+					graph.getNodeAttribute('2', 'y') - outside.y,
+				),
+			).toBeGreaterThan(0.1);
+			expect(renderer.endForceMotion).not.toHaveBeenCalled();
+			expect(internal.simulation?.alphaTarget()).toBe(0.12);
+			controller.moveGroupDrag({ x: 1, y: -1 });
+			expect(graph.getNodeAttribute('0', 'x')).toBe(
+				positions.get('0')!.x + 11,
+			);
+			controller.releaseGroup();
+			for (const id of positions.keys())
+				expect(graph.getNodeAttribute(id, 'fixed')).toBe(false);
+			expect(internal.simulation?.alphaTarget()).toBe(0);
+			expect(controller.moveGroupDrag({ x: 1, y: 1 })).toBe(false);
+			const releasedX = graph.getNodeAttribute('0', 'x');
+			const simulation = internal.simulation!;
+			for (let i = 0; i < 3; i++) {
+				simulation.tick();
+				internal.applyTick();
+			}
+			expect(internal.simulation).toBe(simulation);
+			expect(graph.getNodeAttribute('0', 'x')).not.toBe(releasedX);
+			expect(renderer.endForceMotion).not.toHaveBeenCalled();
+			controller.beginGroupDrag(positions);
+			controller.stop();
+			for (const id of positions.keys())
+				expect(graph.getNodeAttribute(id, 'fixed')).toBe(false);
+		} finally {
+			controller.stop();
+		}
+	});
 	it.each(['chain', 'star'] as const)(
 		'settles a static 150-node %s handoff within a bounded radius',
 		async (kind) => {

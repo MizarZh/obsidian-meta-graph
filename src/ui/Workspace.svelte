@@ -889,9 +889,13 @@
 				onSelectGroup: (groupId) => controller.selectGroup(groupId),
 				onContextMenu: (groupId, event) =>
 					showGraphContextMenu({ kind: 'group', groupId }, event),
-				onMoveStart: () => {
+				onMoveStart: (groupId) => {
 					if (workspaceState.mode === 'graph') {
-						rendererLifecycle.stopForceLayoutSimulation();
+						rendererLifecycle.beginGroupForceDrag(
+							[...groupByNode]
+								.filter(([, id]) => id === groupId)
+								.map(([nodeId]) => nodeId),
+						);
 					}
 				},
 				onMovePreview: moveRuntimeGroupNodes,
@@ -904,7 +908,9 @@
 				},
 				onMoveEnd: () => {
 					if (workspaceState.mode === 'graph') {
-						rendererLifecycle.restartExternal2DForceLayoutIfNeeded();
+						rendererLifecycle
+							.getForceLayoutSimulation()
+							?.releaseGroup();
 					}
 				},
 				onResizeCommit: (groupId, geometry) =>
@@ -917,6 +923,11 @@
 		groupId: string,
 		delta: { x: number; y: number },
 	): void {
+		if (
+			workspaceState.mode === 'graph' &&
+			rendererLifecycle.getForceLayoutSimulation()?.moveGroupDrag(delta)
+		)
+			return;
 		const groupByNode = createWorkspaceGroupByNode(workspaceState);
 		moveWorkspaceRuntimeGroupNodes(
 			rendererLifecycle.renderer,

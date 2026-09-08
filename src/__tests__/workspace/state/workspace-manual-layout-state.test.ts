@@ -12,8 +12,58 @@ import {
 } from '@/workspace/state/manual-layout-state';
 import { setActiveChartTypeInState } from '@/workspace/state/chart-state';
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
+import {
+	analyzeWorkspaceStateChanges,
+	createWorkspaceRenderBaseline,
+} from '@/ui/workspace/change-tracker';
+import { createWorkspaceRenderPlan } from '@/ui/workspace/render-plan';
 
 describe('workspace manual layout state', () => {
+	it.each(['graph', 'free'] as const)(
+		'commits %s group positions without rebuilding or restarting force',
+		(mode) => {
+			let state = addGroupInState(
+				setActiveChartTypeInState(createWorkspaceState(100), mode)
+					.state,
+			);
+			const group = readFirstGroup(state)!;
+			state = setManualNodePositionInState(
+				state,
+				'A.md',
+				{ x: 1, y: 2 },
+				group.id,
+			);
+			const next = moveGroupInState(
+				state,
+				group.id,
+				{ x: 3, y: -1 },
+				{
+					'A.md': { x: 8, y: 9 },
+				},
+			);
+			const changes = analyzeWorkspaceStateChanges(
+				next,
+				state,
+				createWorkspaceRenderBaseline(state),
+			);
+			const plan = createWorkspaceRenderPlan(changes);
+			expect(next.grouping).toBe(state.grouping);
+			expect(next.query).toBe(state.query);
+			expect(next.manualLayout.nodes['A.md']).toEqual({ x: 8, y: 9 });
+			expect(state.manualLayout.nodes['A.md']).toEqual({ x: 1, y: 2 });
+			expect(
+				next.charts.find((chart) => chart.id === next.activeChartId)
+					?.layout.manual,
+			).toBe(next.manualLayout);
+			expect(changes.styleRulesChanged).toBe(false);
+			expect(changes.groupingChanged).toBe(false);
+			expect(plan.syncGroupsBeforeRuntime).toBe(true);
+			expect(plan.rebuild).toBeUndefined();
+			expect(plan.restartForceLayout).toBe(false);
+			expect(plan.applyForceLayoutToggle).toBe(false);
+		},
+	);
+
 	it('keeps no-op node position updates referentially stable', () => {
 		const state = setManualNodePositionInState(
 			createWorkspaceState(100),

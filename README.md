@@ -122,8 +122,9 @@ settings to report them in the developer console.
 15. In Free views, drag nodes directly to place them by hand. Free views do not
     run an automatic layout after the first placement, and dragged node
     positions are saved in the workspace file.
-16. Drag a group title to move the group. Graph pauses and then resumes its force
-    simulation; Free saves the frame and member positions. In Free, use any edge
+16. Drag a group title to move the group. Graph pins its members while connected
+    outside nodes continue simulating, then releases the members on drop;
+    Free saves the frame and member positions. In Free, use any edge
     or corner handle to resize the region without changing membership.
 17. In Free, drag a node into any group frame to create an explicit assignment.
     Drag it out over empty space to set an explicit **Ungrouped** override. Use

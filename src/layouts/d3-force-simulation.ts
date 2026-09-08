@@ -50,6 +50,7 @@ export class D3ForceSimulation {
 	private settleTimer?: number;
 	private stableFrameCount = 0;
 	private forceMotionActive = false;
+	private readonly draggedGroupNodes = new Set<string>();
 
 	constructor(
 		private readonly graph: RuntimeGraph,
@@ -78,7 +79,11 @@ export class D3ForceSimulation {
 		}
 		simulation
 			.alpha(Math.max(simulation.alpha(), 0.12))
-			.alphaTarget(this.draggedNodePosition ? 0.12 : 0)
+			.alphaTarget(
+				this.draggedNodePosition || this.draggedGroupNodes.size
+					? 0.12
+					: 0,
+			)
 			.restart();
 		this.stableFrameCount = 0;
 		if (!this.forceMotionActive) {
@@ -113,6 +118,58 @@ export class D3ForceSimulation {
 		this.applyTick();
 	}
 
+	beginGroupDrag(
+		positions: ReadonlyMap<string, { x: number; y: number }>,
+	): void {
+		this.ensureSimulation();
+		for (const [id, position] of positions) {
+			const node = this.nodesById.get(id);
+			if (
+				!node ||
+				!Number.isFinite(position.x) ||
+				!Number.isFinite(position.y)
+			)
+				continue;
+			this.draggedGroupNodes.add(id);
+			node.x = node.fx = position.x;
+			node.y = node.fy = position.y;
+			node.vx = node.vy = 0;
+		}
+		if (!this.draggedGroupNodes.size) return;
+		this.start();
+		this.applyTick();
+	}
+
+	moveGroupDrag(delta: { x: number; y: number }): boolean {
+		if (!this.draggedGroupNodes.size) return false;
+		for (const id of this.draggedGroupNodes) {
+			const node = this.nodesById.get(id);
+			if (!node) continue;
+			node.x = node.fx = (node.fx ?? node.x ?? 0) + delta.x;
+			node.y = node.fy = (node.fy ?? node.y ?? 0) + delta.y;
+			node.vx = node.vy = 0;
+		}
+		this.start();
+		this.applyTick();
+		return true;
+	}
+
+	releaseGroup(): void {
+		if (!this.draggedGroupNodes.size) return;
+		for (const id of this.draggedGroupNodes) {
+			const node = this.nodesById.get(id);
+			if (node) {
+				node.fx = null;
+				node.fy = null;
+			}
+			if (this.graph.hasNode(id))
+				this.graph.setNodeAttribute(id, 'fixed', false);
+		}
+		this.draggedGroupNodes.clear();
+		this.simulation?.alphaTarget(0).restart();
+		this.scheduleStop();
+	}
+
 	release(nodeId: string): void {
 		this.ensureSimulation();
 		const node = this.nodesById.get(nodeId);
@@ -138,6 +195,11 @@ export class D3ForceSimulation {
 		this.settleTimer = undefined;
 		this.simulation?.stop();
 		this.simulation = undefined;
+		for (const id of this.draggedGroupNodes) {
+			if (this.graph.hasNode(id))
+				this.graph.setNodeAttribute(id, 'fixed', false);
+		}
+		this.draggedGroupNodes.clear();
 		if (
 			this.draggedNodePosition &&
 			this.graph.hasNode(this.draggedNodePosition.nodeId)
@@ -342,7 +404,8 @@ export class D3ForceSimulation {
 				return {
 					...attributes,
 					...position,
-					...(nodeId === this.draggedNodePosition?.nodeId
+					...(nodeId === this.draggedNodePosition?.nodeId ||
+					this.draggedGroupNodes.has(nodeId)
 						? { fixed: true }
 						: {}),
 				};
@@ -372,10 +435,10 @@ export class D3ForceSimulation {
 
 	private scheduleStop(): void {
 		(this.timerWindow ?? window).clearTimeout(this.settleTimer);
-		if (this.draggedNodePosition) return;
+		if (this.draggedNodePosition || this.draggedGroupNodes.size) return;
 		this.settleTimer = (this.timerWindow ?? window).setTimeout(() => {
 			// Cool a long-running simulation smoothly; never stop a held node.
-			if (this.draggedNodePosition) return;
+			if (this.draggedNodePosition || this.draggedGroupNodes.size) return;
 			this.simulation
 				?.alphaTarget(0)
 				.alpha(Math.min(this.simulation.alpha(), 0.02));
@@ -384,7 +447,7 @@ export class D3ForceSimulation {
 
 	private updateSettledState(maxDisplacement: number): void {
 		if (!this.forceMotionActive) return;
-		if (this.draggedNodePosition) {
+		if (this.draggedNodePosition || this.draggedGroupNodes.size) {
 			this.stableFrameCount = 0;
 			return;
 		}

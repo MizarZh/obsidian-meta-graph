@@ -260,23 +260,32 @@ export function moveGroupInState(
 			};
 		}
 	}
-	return updateActiveChartState(state, {
-		layout: {
-			...activeChart.layout,
-			manual: {
-				...manual,
-				nodes,
-				groupFrames: {
-					...manual.groupFrames,
-					[groupId]: {
-						...frame,
-						x: frame.x + delta.x,
-						y: frame.y + delta.y,
-					},
-				},
+	const manualLayout = {
+		...manual,
+		nodes,
+		groupFrames: {
+			...manual.groupFrames,
+			[groupId]: {
+				...frame,
+				x: frame.x + delta.x,
+				y: frame.y + delta.y,
 			},
 		},
-	});
+	};
+	// Position commits must not clone grouping: that schedules a scene rebuild
+	// and destroys the force simulation just as the dragged members are released.
+	return {
+		...state,
+		manualLayout,
+		charts: state.charts.map((chart) =>
+			chart.id === activeChart.id
+				? {
+						...chart,
+						layout: { ...chart.layout, manual: manualLayout },
+					}
+				: chart,
+		),
+	};
 }
 
 export function resizeGroupInState(
