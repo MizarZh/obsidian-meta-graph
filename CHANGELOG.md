@@ -37,6 +37,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Sigma keeps node and edge labels visible during dragging and force motion, following the existing label density and visibility settings.
+
 - Group position commits preserve unchanged state references, avoiding a scene rebuild that stopped the running force simulation immediately on release.
 
 - Kept Graph force simulation active while dragging a Group. Members remain pinned as a rigid set under the pointer, connected outside nodes respond continuously, and releasing the Group unpins all members without rebuilding the simulation. Applies to Sigma and G6; Free movement is unchanged.

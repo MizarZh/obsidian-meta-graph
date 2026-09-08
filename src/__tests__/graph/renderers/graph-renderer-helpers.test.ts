@@ -453,13 +453,13 @@ describe('graph renderer helpers', () => {
 				},
 				palette,
 			),
-		).toMatchObject({ label: null, forceLabel: false });
+		).toMatchObject({ label: node.label, forceLabel: true });
 		expect(
 			reduceSigmaEdge(edge, { forceMotionActive: true }, palette, [
 				'A.md',
 				'B.md',
 			]),
-		).toMatchObject({ label: null, forceLabel: false });
+		).toEqual(reduceSigmaEdge(edge, {}, palette, ['A.md', 'B.md']));
 	});
 
 	it('computes Sigma label geometry independent of renderer lifecycle', () => {

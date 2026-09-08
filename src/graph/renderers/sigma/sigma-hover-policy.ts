@@ -85,9 +85,7 @@ export function reduceSigmaNode(
 	return {
 		...data,
 		...styledColor,
-		...(state.forceMotionActive
-			? { label: null, forceLabel: false }
-			: { forceLabel: state.forceLabels }),
+		forceLabel: state.forceLabels,
 		zIndex: 0,
 	};
 }
@@ -156,9 +154,6 @@ export function reduceSigmaEdge(
 		return {
 			...data,
 			...(opacity === 1 ? {} : { color }),
-			...(state.forceMotionActive
-				? { label: null, forceLabel: false }
-				: {}),
 		};
 	}
 	const [source, target] = extremities;
@@ -171,9 +166,6 @@ export function reduceSigmaEdge(
 		return {
 			...data,
 			...(opacity === 1 ? {} : { color }),
-			...(state.forceMotionActive
-				? { label: null, forceLabel: false }
-				: {}),
 		};
 	}
 	return connected
@@ -191,9 +183,6 @@ export function reduceSigmaEdge(
 						? palette.mutedEdge
 						: withAlpha(palette.mutedEdge, opacity * 0.12),
 				size: 0.4,
-				...(state.forceMotionActive
-					? { label: null, forceLabel: false }
-					: {}),
 				zIndex: 0,
 			};
 }

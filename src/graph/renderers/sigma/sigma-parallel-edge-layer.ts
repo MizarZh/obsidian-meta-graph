@@ -710,11 +710,6 @@ export class SigmaParallelEdgeLayer {
 		const state = this.getState();
 		const descriptor = getEdgeFocusDescriptor(visual);
 		const selected = edgeMatchesId(descriptor, state.selectedEdgeId);
-		const preserveMotionLabel =
-			!state.forceMotionActive ||
-			selected ||
-			isEdgeHoverActive(descriptor, state, hoveredEdgeId) ||
-			isEdgeConnectedToNode(descriptor, state.pinnedNodeId);
 		const connectedToHover =
 			(state.localHover === false && !state.pinnedNodeId) ||
 			selected ||
@@ -739,7 +734,7 @@ export class SigmaParallelEdgeLayer {
 		if (visual.directed) {
 			this.drawArrow(visible);
 		}
-		if (drawLabel && preserveMotionLabel && attributes.label) {
+		if (drawLabel && attributes.label) {
 			this.drawLabel(visible, labelStyle);
 		}
 		this.context.restore();
