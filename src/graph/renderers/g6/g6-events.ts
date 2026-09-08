@@ -134,7 +134,7 @@ export function bindG6Events(
 			!event.ctrlKey &&
 			!event.metaKey &&
 			!event.shiftKey &&
-			callbacks.enableNodeDragging
+			(callbacks.enableNodeDragging || callbacks.enableForceLayout)
 		) {
 			const id = readVisibleNodeId(event);
 			if (!id) return;
@@ -196,7 +196,12 @@ export function bindG6Events(
 					x: point.x + nodeDrag.offsetX,
 					y: point.y + nodeDrag.offsetY,
 				},
-				viewport,
+				callbacks.enableForceLayout
+					? renderer.graphToViewportPosition({
+							x: point.x + nodeDrag.offsetX,
+							y: point.y + nodeDrag.offsetY,
+						})
+					: viewport,
 			);
 			return;
 		}

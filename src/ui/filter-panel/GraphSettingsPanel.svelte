@@ -7,6 +7,7 @@
 	import TextSetting from '@/ui/settings/fields/TextSetting.svelte';
 	import ToggleSetting from '@/ui/settings/fields/ToggleSetting.svelte';
 	import FlowRelationRules from '@/ui/filter-panel/FlowRelationRules.svelte';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
 	import { MAX_FLOW_CORNER_RADIUS } from '@/workspace/meta-graph-model';
 	import { supportsPlanarRenderer } from '@/core/types';
 	import type {
@@ -43,8 +44,6 @@
 		graphCenterForce,
 		graphRepelForce,
 		graphLinkForce,
-		graphDragLinkForce,
-		graphReturnForce,
 		graphLinkDistance,
 		flowLayerSpacing,
 		flowLaneSpacing,
@@ -67,8 +66,7 @@
 		onGraphCenterForce,
 		onGraphRepelForce,
 		onGraphLinkForce,
-		onGraphDragLinkForce,
-		onGraphReturnForce,
+		onResetGraphForces,
 		onGraphLinkDistance,
 		onFlowLayerSpacing,
 		onFlowLaneSpacing,
@@ -96,8 +94,6 @@
 		graphCenterForce: number;
 		graphRepelForce: number;
 		graphLinkForce: number;
-		graphDragLinkForce: number;
-		graphReturnForce: number;
 		graphLinkDistance: number;
 		flowLayerSpacing: number;
 		flowLaneSpacing: number;
@@ -120,8 +116,7 @@
 		onGraphCenterForce: (value: number) => void;
 		onGraphRepelForce: (value: number) => void;
 		onGraphLinkForce: (value: number) => void;
-		onGraphDragLinkForce: (value: number) => void;
-		onGraphReturnForce: (value: number) => void;
+		onResetGraphForces: () => void;
 		onGraphLinkDistance: (value: number) => void;
 		onFlowLayerSpacing: (spacing: number) => void;
 		onFlowLaneSpacing: (spacing: number) => void;
@@ -363,6 +358,7 @@
 		<SettingsSection title="Forces" bind:open={forcesOpen}>
 			<SliderSetting
 				label="Center force"
+				description="Higher values keep the graph more compact."
 				value={graphCenterForce}
 				min={0}
 				max={5}
@@ -373,6 +369,7 @@
 			/>
 			<SliderSetting
 				label="Repel force"
+				description="Higher values spread nearby nodes apart. Start with link distance to adjust spacing."
 				value={graphRepelForce}
 				min={0}
 				max={20}
@@ -383,6 +380,7 @@
 			/>
 			<SliderSetting
 				label="Link force"
+				description="Higher values make connected nodes respond more strongly when dragging."
 				value={graphLinkForce}
 				min={0}
 				max={5}
@@ -391,26 +389,7 @@
 				onChange={onGraphLinkForce}
 				onCommit={onGraphLinkForce}
 			/>
-			<SliderSetting
-				label="Drag link force"
-				value={graphDragLinkForce}
-				min={0}
-				max={5}
-				step={0.05}
-				format={(value) => formatCompact(value, 2)}
-				onChange={onGraphDragLinkForce}
-				onCommit={onGraphDragLinkForce}
-			/>
-			<SliderSetting
-				label="Return force"
-				value={graphReturnForce}
-				min={0}
-				max={5}
-				step={0.05}
-				format={(value) => formatCompact(value, 2)}
-				onChange={onGraphReturnForce}
-				onCommit={onGraphReturnForce}
-			/>
+			<ObsidianButton text="Reset forces" onClick={onResetGraphForces} />
 		</SettingsSection>
 	{/if}
 	{#if settingsVisibility.flowLayout}

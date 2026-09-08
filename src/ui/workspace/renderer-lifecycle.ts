@@ -174,6 +174,7 @@ export class WorkspaceRendererLifecycle {
 		this.unbindEvents?.();
 		this.unbindEvents = this.options.bindEvents(this.currentRenderer);
 		this.stopForceLayoutSimulation();
+		if (enableForceLayout) this.restartExternal2DForceLayoutIfNeeded();
 	}
 
 	restartExternal2DForceLayoutIfNeeded(): void {
@@ -205,6 +206,7 @@ export class WorkspaceRendererLifecycle {
 						.readLayoutSnapshot()
 						.positions.set(nodeId, position);
 				},
+				this.options.readCanvas()?.ownerDocument.defaultView ?? window,
 			);
 		}
 		return this.forceLayoutSimulation;
@@ -221,6 +223,7 @@ export class WorkspaceRendererLifecycle {
 	}
 
 	async rebuild(fitAfterRender = false, forceLayout = false): Promise<void> {
+		this.stopForceLayoutSimulation();
 		const version = ++this.renderVersion;
 		this.options.setRenderPending?.(true);
 		try {

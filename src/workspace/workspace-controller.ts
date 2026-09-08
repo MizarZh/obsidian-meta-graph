@@ -53,6 +53,7 @@ import {
 	setFlowSpacingInState,
 	setForceLabelsInState,
 	setGraphForceSettingInState,
+	resetGraphForcesInState,
 	setGraphSpacingInState,
 	setLabelBoldInState,
 	setLabelItalicInState,
@@ -580,6 +581,10 @@ export class WorkspaceController {
 		this.setWorkspaceState(
 			setGraphSpacingInState(this.state, graphSpacing),
 		);
+	}
+
+	resetGraphForces(): void {
+		this.setWorkspaceState(resetGraphForcesInState(this.state));
 	}
 
 	setGraphCenterForce(centerForce: number): void {

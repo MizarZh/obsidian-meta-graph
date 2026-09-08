@@ -120,7 +120,7 @@ export class G6Renderer implements PlanarRenderer {
 		supportsEdgePicking: true,
 		supportsNodeDragging: true,
 		supportsConnectionMoveScheduling: false,
-		supportsExternal2DForceSimulation: false,
+		supportsExternal2DForceSimulation: true,
 	};
 	readonly instance: G6GraphInstance;
 	readonly container: HTMLElement;
@@ -819,6 +819,28 @@ export class G6Renderer implements PlanarRenderer {
 	}
 	holdCurrentBounds(): void {}
 	clearHeldBounds(): void {}
+
+	beginForceMotion(): void {}
+	endForceMotion(): void {
+		if (this.killed || this.isStale()) return;
+		this.sceneCache.refreshLabelIndex();
+		this.labelVisibility = undefined;
+		this.scheduleLabelSync();
+	}
+
+	syncForcePositions(): void {
+		if (this.killed || this.isStale()) return;
+		const nodes = [...this.sceneCache.renderedNodeIds].map((id) => {
+			const attributes = this.graph.getNodeAttributes(id);
+			const position = { x: attributes.x, y: attributes.y };
+			this.sceneCache.updateNodePosition(id, position);
+			const mapped = this.coordinateSpace.toG6(position);
+			return { id, style: { x: mapped.x, y: mapped.y } };
+		});
+		this.instance.updateData({ nodes });
+		this.groupLayer?.invalidateGeometry();
+		this.scheduleDraw();
+	}
 
 	private scheduleDraw(): void {
 		if (this.killed || this.isStale()) return;

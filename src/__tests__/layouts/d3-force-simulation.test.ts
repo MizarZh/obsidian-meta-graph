@@ -14,7 +14,7 @@ describe('D3ForceSimulation', () => {
 		vi.unstubAllGlobals();
 	});
 
-	it('does not hold renderer bounds while the force layout settles', () => {
+	it('does not interrupt a held node after four seconds', () => {
 		vi.useFakeTimers();
 		vi.stubGlobal('window', {
 			clearTimeout: globalThis.clearTimeout,
@@ -31,14 +31,21 @@ describe('D3ForceSimulation', () => {
 		const renderer = createRenderer();
 
 		const simulation = new D3ForceSimulation(graph, renderer);
-		simulation.start();
+		simulation.drag('A', { x: 3, y: 2 });
 
 		expect(renderer.clearHeldBounds).not.toHaveBeenCalled();
 
 		vi.advanceTimersByTime(4000);
 
-		expect(renderer.clearHeldBounds).toHaveBeenCalledTimes(1);
-		expect(renderer.endForceMotion).toHaveBeenCalledTimes(1);
+		expect(renderer.endForceMotion).not.toHaveBeenCalled();
+		expect(graph.getNodeAttributes('A')).toMatchObject({
+			x: 3,
+			y: 2,
+			fixed: true,
+		});
+		simulation.release('A');
+		simulation.stop();
+		expect(renderer.endForceMotion).toHaveBeenCalledOnce();
 	});
 
 	it('starts rebuilt simulations at interaction heat instead of full heat', () => {
@@ -78,9 +85,9 @@ describe('D3ForceSimulation', () => {
 		const simulation = new D3ForceSimulation(graph, renderer);
 		const charge = readChargeForce(simulation);
 
-		expect(charge.strength()({ id: 'A' })).toBeCloseTo(-10);
+		expect(charge.strength()({ id: 'A' })).toBeCloseTo(-0.75);
 		expect(charge.distanceMin()).toBeCloseTo(0.625);
-		expect(charge.distanceMax()).toBeCloseTo(20);
+		expect(charge.distanceMax()).toBeCloseTo(15);
 	});
 
 	it('reprojects dragged nodes from viewport targets on ticks', () => {

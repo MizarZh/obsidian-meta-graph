@@ -107,9 +107,13 @@ settings to report them in the developer console.
 14. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
     through the force-directed layout. Nearby nodes can move with the graph
     forces, and the layout keeps settling briefly after release. Use
-    **Center force**, **Repel force**, **Link force**, **Drag link force**,
-    **Return force**, and **Link distance** to tune the graph toward Obsidian's
-    built-in graph behavior. The Graph view
+    **Link distance** first to adjust spacing, **Center force** for compactness,
+    **Repel force** for separation, and **Link force** for connected-node response.
+    **Reset forces** restores the recommended defaults. Dragging stays active
+    while the pointer is held, and release cools smoothly. Neighbors move through
+    springs; no direct neighbor shifts or extra return pull are applied.
+    Both Sigma and G6 use the original ForceAtlas2 placement and D3 simulation.
+    The Graph view
     only runs its initial ForceAtlas placement once for a chart; later refreshes,
     force setting changes, added notes, and added links keep existing positions.
     New nodes are placed near positioned neighbors when possible, then Force

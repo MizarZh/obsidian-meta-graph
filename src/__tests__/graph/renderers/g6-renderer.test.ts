@@ -18,6 +18,36 @@ import { G6_INTERACTION_STATE } from '@/graph/renderers/g6/g6-styles';
 import type { G6RendererOptions } from '@/graph/renderers/renderer-options';
 
 describe('G6 renderer', () => {
+	it('patches force positions through the stable coordinate adapter without fitting or replacing data', async () => {
+		const graph = createRuntimeGraph();
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(graph),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+		const before = renderer.graphToViewportPosition({ x: 1, y: 2 });
+		fake.setData.mockClear();
+		fake.updateData.mockClear();
+		graph.mergeNodeAttributes('A.md', { x: 321, y: -123 });
+		renderer.beginForceMotion();
+		renderer.syncForcePositions();
+		expect(readLastDataPatch(fake.updateData).nodes).toContainEqual({
+			id: 'A.md',
+			style: { x: 155510, y: 71520 },
+		});
+		expect(renderer.graphToViewportPosition({ x: 1, y: 2 })).toEqual(
+			before,
+		);
+		expect(fake.setData).not.toHaveBeenCalled();
+		expect(renderer.capabilities.supportsExternal2DForceSimulation).toBe(
+			true,
+		);
+		renderer.kill();
+		fake.updateData.mockClear();
+		renderer.syncForcePositions();
+		expect(fake.updateData).not.toHaveBeenCalled();
+	});
 	it('moves nodes through the G6 model and mirrors the applied position', async () => {
 		const graph = createRuntimeGraph();
 		const fake = createFakeG6();

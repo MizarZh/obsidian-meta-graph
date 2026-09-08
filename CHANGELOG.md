@@ -6,6 +6,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Added Reset forces and concise guidance for Graph's four force controls. Sigma and G6 share the original ForceAtlas2 placement and D3 interaction simulation.
+
 - Added the global Node hover setting for planar Sigma/G6 views: Emphasize only preserves the surrounding graph, while Local focuses the neighborhood. Changes apply to open views immediately; Space pin always retains local focus.
 
 - Enabled G6 for HEB charts. HEB now publishes one renderer-neutral bundled route per relationship, G6 renders each route as one logical Polyline without bend elements, and radial Group sectors render through the shared viewport layer with selection, hover, focus muting, hit testing, and member halos.
@@ -26,6 +28,10 @@ All notable changes to Meta Graph are documented here.
 - Added G6 Canvas renderer foundation with layout-free drawing, graph/style refresh, viewport coordinate conversion, zoom controls, fit, focus, resize, stale-render cleanup, and renderer factory support.
 - Added G6 node and logical-edge selection, hover neighborhood fading, pinned hover, context menus, and canonical Ctrl/Cmd-drag connection gestures.
 - Added G6 Group regions and member halos with selection, focus muting, hit testing, movement callbacks, dock-to-node hit testing, and bundled parallel-edge routing.
+
+### Changed
+
+- Tuned Graph dragging with distance-scaled repulsion, softer centering, degree-aware springs, stronger collision handling and bounded node velocity. Dragged nodes publish immediately and remain active while held; release cools smoothly without direct neighbor displacement or an extra return force. Force parameter edits preserve the runtime graph and group references.
 
 ### Fixed
 

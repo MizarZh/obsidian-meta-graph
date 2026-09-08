@@ -145,6 +145,7 @@ export interface WorkspaceGraphSettingsActions {
 	setGraphDragLinkForce(value: number): void;
 	setGraphReturnForce(value: number): void;
 	setGraphLinkDistance(value: number): void;
+	resetGraphForces(): void;
 	setFlowLayerSpacing(value: number): void;
 	setFlowLaneSpacing(value: number): void;
 	setArcSpacing(value: number): void;
@@ -317,6 +318,7 @@ export function createWorkspaceSettingsActions(
 	return {
 		graph: {
 			setRenderer: (value) => controller.setActiveChartRenderer(value),
+			resetGraphForces: () => controller.resetGraphForces(),
 			setFlowEdgeStyle: (value) => controller.setFlowEdgeStyle(value),
 			setFlowDirection: (value) => controller.setFlowDirection(value),
 			setFlowCornerRadius: (value) =>

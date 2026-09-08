@@ -55,8 +55,6 @@
 			graphCenterForce={view.graph.graphCenterForce}
 			graphRepelForce={view.graph.graphRepelForce}
 			graphLinkForce={view.graph.graphLinkForce}
-			graphDragLinkForce={view.graph.graphDragLinkForce}
-			graphReturnForce={view.graph.graphReturnForce}
 			graphLinkDistance={view.graph.graphLinkDistance}
 			flowLayerSpacing={view.graph.flowLayerSpacing}
 			flowLaneSpacing={view.graph.flowLaneSpacing}
@@ -79,8 +77,7 @@
 			onGraphCenterForce={actions.graph.setGraphCenterForce}
 			onGraphRepelForce={actions.graph.setGraphRepelForce}
 			onGraphLinkForce={actions.graph.setGraphLinkForce}
-			onGraphDragLinkForce={actions.graph.setGraphDragLinkForce}
-			onGraphReturnForce={actions.graph.setGraphReturnForce}
+			onResetGraphForces={actions.graph.resetGraphForces}
 			onGraphLinkDistance={actions.graph.setGraphLinkDistance}
 			onFlowLayerSpacing={actions.graph.setFlowLayerSpacing}
 			onFlowLaneSpacing={actions.graph.setFlowLaneSpacing}

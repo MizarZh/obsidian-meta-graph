@@ -16,6 +16,7 @@ import {
 	MAX_FLOW_CORNER_RADIUS,
 } from '@/workspace/meta-graph-model';
 import { updateActiveChartState } from '@/workspace/state/state-updaters';
+import { DEFAULT_GRAPH_FORCE_SETTINGS } from '@/layouts/force-layout';
 
 export type GraphForceSettingKey =
 	| 'centerForce'
@@ -305,9 +306,32 @@ export function setGraphForceSettingInState(
 ): WorkspaceState {
 	const normalized = normalizeForceSetting(value);
 	const chart = getActiveChart(state);
-	return chart.layout[key] === normalized
-		? state
-		: updateActiveChartLayout(state, { [key]: normalized });
+	if (chart.layout[key] === normalized) return state;
+	return applyGraphForceSettings(state, { [key]: normalized });
+}
+
+export function resetGraphForcesInState(state: WorkspaceState): WorkspaceState {
+	return applyGraphForceSettings(state, DEFAULT_GRAPH_FORCE_SETTINGS);
+}
+
+function applyGraphForceSettings(
+	state: WorkspaceState,
+	patch: Partial<typeof DEFAULT_GRAPH_FORCE_SETTINGS>,
+): WorkspaceState {
+	const chart = getActiveChart(state);
+	const layout = { ...chart.layout, ...patch };
+	return {
+		...state,
+		charts: state.charts.map((item) =>
+			item.id === chart.id ? { ...chart, layout } : item,
+		),
+		graphCenterForce: layout.centerForce ?? state.graphCenterForce,
+		graphRepelForce: layout.repelForce ?? state.graphRepelForce,
+		graphLinkForce: layout.linkForce ?? state.graphLinkForce,
+		graphDragLinkForce: layout.dragLinkForce ?? state.graphDragLinkForce,
+		graphReturnForce: layout.returnForce ?? state.graphReturnForce,
+		graphLinkDistance: layout.linkDistance ?? state.graphLinkDistance,
+	};
 }
 
 function setDisplayValue<Key extends ChartDisplayKey>(

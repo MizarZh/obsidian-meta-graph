@@ -15,6 +15,7 @@ import type {
 } from '@/graph/renderers/renderer-groups';
 
 export interface ForceSimulationRenderer {
+	syncForcePositions?(): void;
 	readonly runtimeGraph: RuntimeGraph;
 	beginForceMotion(): void;
 	endForceMotion(): void;

@@ -1,5 +1,4 @@
 import {
-	forceCenter,
 	forceCollide,
 	forceLink,
 	forceManyBody,
@@ -33,7 +32,7 @@ interface ForceLink extends SimulationLinkDatum<ForceNode> {
 	isGroup?: boolean;
 }
 
-const HARD_STOP_DELAY_MS = 4000;
+const COOLING_DELAY_MS = 12000;
 const STABLE_FRAME_LIMIT = 8;
 const ALPHA_STOP_THRESHOLD = 0.0015;
 
@@ -42,10 +41,6 @@ export class D3ForceSimulation {
 	private nodes: ForceNode[] = [];
 	private readonly nodesById = new Map<string, ForceNode>();
 	private readonly neighborsById = new Map<string, Set<string>>();
-	private readonly returnTargetsById = new Map<
-		string,
-		{ x: number; y: number; expiresAt: number }
-	>();
 	private draggedNodePosition?: { nodeId: string; x: number; y: number };
 	private draggedNodeViewportTarget?: {
 		nodeId: string;
@@ -66,20 +61,24 @@ export class D3ForceSimulation {
 			nodeId: string,
 			position: { x: number; y: number },
 		) => void,
+		private readonly timerWindow?: Pick<
+			Window,
+			'setTimeout' | 'clearTimeout'
+		>,
 	) {
 		this.rebuild();
 	}
 
 	start(): void {
 		this.ensureSimulation();
-		window.clearTimeout(this.settleTimer);
+		(this.timerWindow ?? window).clearTimeout(this.settleTimer);
 		const simulation = this.simulation;
 		if (!simulation) {
 			return;
 		}
 		simulation
 			.alpha(Math.max(simulation.alpha(), 0.12))
-			.alphaTarget(0)
+			.alphaTarget(this.draggedNodePosition ? 0.12 : 0)
 			.restart();
 		this.stableFrameCount = 0;
 		if (!this.forceMotionActive) {
@@ -99,13 +98,6 @@ export class D3ForceSimulation {
 		if (!node) {
 			return;
 		}
-		const previous =
-			this.draggedNodePosition?.nodeId === nodeId
-				? this.draggedNodePosition
-				: undefined;
-		const delta = previous
-			? { x: position.x - previous.x, y: position.y - previous.y }
-			: { x: 0, y: 0 };
 		this.draggedNodePosition = { nodeId, x: position.x, y: position.y };
 		this.draggedNodeViewportTarget = viewportPosition
 			? { nodeId, x: viewportPosition.x, y: viewportPosition.y }
@@ -114,8 +106,11 @@ export class D3ForceSimulation {
 		node.fy = position.y;
 		node.x = position.x;
 		node.y = position.y;
-		this.dragNeighbors(nodeId, delta);
+		node.vx = 0;
+		node.vy = 0;
 		this.start();
+		// Publish immediately; pointer tracking must not wait for a physics tick.
+		this.applyTick();
 	}
 
 	release(nodeId: string): void {
@@ -134,16 +129,27 @@ export class D3ForceSimulation {
 		if (this.draggedNodeViewportTarget?.nodeId === nodeId) {
 			this.draggedNodeViewportTarget = undefined;
 		}
-		this.setReturnTarget(nodeId);
 		this.simulation?.alphaTarget(0).restart();
 		this.scheduleStop();
 	}
 
 	stop(): void {
-		window.clearTimeout(this.settleTimer);
+		(this.timerWindow ?? window).clearTimeout(this.settleTimer);
 		this.settleTimer = undefined;
 		this.simulation?.stop();
 		this.simulation = undefined;
+		if (
+			this.draggedNodePosition &&
+			this.graph.hasNode(this.draggedNodePosition.nodeId)
+		) {
+			this.graph.setNodeAttribute(
+				this.draggedNodePosition.nodeId,
+				'fixed',
+				false,
+			);
+		}
+		this.draggedNodePosition = undefined;
+		this.draggedNodeViewportTarget = undefined;
 		this.stableFrameCount = 0;
 		if (this.forceMotionActive) {
 			this.forceMotionActive = false;
@@ -161,7 +167,11 @@ export class D3ForceSimulation {
 	private rebuild(): void {
 		this.nodes = this.graph
 			.nodes()
-			.filter((nodeId) => !this.graph.getNodeAttribute(nodeId, 'isBend'))
+			.filter(
+				(nodeId) =>
+					!this.graph.getNodeAttribute(nodeId, 'isBend') &&
+					!this.graph.getNodeAttribute(nodeId, 'hidden'),
+			)
 			.map((nodeId) => {
 				const attributes = this.graph.getNodeAttributes(nodeId);
 				return {
@@ -172,7 +182,6 @@ export class D3ForceSimulation {
 			});
 		this.nodesById.clear();
 		this.neighborsById.clear();
-		this.returnTargetsById.clear();
 		for (const node of this.nodes) {
 			this.nodesById.set(node.id, node);
 		}
@@ -223,13 +232,14 @@ export class D3ForceSimulation {
 		];
 
 		const center = getGraphCenter(this.nodes);
-		const distance = (this.forceSettings.linkDistance / 100) * this.spacing;
-		const centerStrength = this.forceSettings.centerForce * 0.03;
+		const distance =
+			Math.max(this.forceSettings.linkDistance / 100, 0.1) * this.spacing;
+		const centerStrength = this.forceSettings.centerForce * 0.006;
 		const linkStrength = Math.min(this.forceSettings.linkForce * 0.25, 1);
 		const repelStrength =
-			-this.forceSettings.repelForce * Math.max(distance, 1) * 0.4;
-		const repelMinDistance = Math.max(distance * 0.25, 0.5);
-		const repelMaxDistance = Math.max(distance * 8, 16 * this.spacing);
+			-this.forceSettings.repelForce * distance * distance * 0.012;
+		const repelMinDistance = distance * 0.25;
+		const repelMaxDistance = distance * 6;
 		this.simulation = forceSimulation<ForceNode, ForceLink>(this.nodes)
 			.force(
 				'link',
@@ -241,7 +251,24 @@ export class D3ForceSimulation {
 					.strength((link) =>
 						link.isGroup
 							? Math.max(linkStrength, 0.35)
-							: linkStrength,
+							: linkStrength /
+								Math.sqrt(
+									Math.max(
+										1,
+										Math.min(
+											this.neighborsById.get(
+												typeof link.source === 'string'
+													? link.source
+													: link.source.id,
+											)?.size ?? 1,
+											this.neighborsById.get(
+												typeof link.target === 'string'
+													? link.target
+													: link.target.id,
+											)?.size ?? 1,
+										),
+									),
+								),
 					),
 			)
 			.force(
@@ -254,59 +281,36 @@ export class D3ForceSimulation {
 			.force(
 				'collide',
 				forceCollide<ForceNode>()
-					.radius(Math.max(distance * 0.04, 0.01))
-					.strength(0.18),
+					.radius(Math.max(distance * 0.08, 0.01))
+					.strength(0.7)
+					.iterations(2),
 			)
-			.force('x', forceX(center.x).strength(centerStrength * 2))
+			.force('x', forceX(center.x).strength(centerStrength))
 			.force('y', forceY(center.y).strength(centerStrength * 2))
-			.force(
-				'center',
-				forceCenter(center.x, center.y).strength(centerStrength),
-			)
 			.force(
 				'group',
 				createGraphGroupCohesionForce(this.groupByNode, distance),
 			)
-			.alphaDecay(0.045)
-			.velocityDecay(0.78)
+			.force('speed-limit', () => {
+				// Bound free-node motion in graph units, independent of graph size.
+				for (const node of this.nodes) {
+					const speed = Math.hypot(node.vx ?? 0, node.vy ?? 0);
+					if (speed <= distance * 0.12) continue;
+					const ratio = (distance * 0.12) / speed;
+					node.vx = (node.vx ?? 0) * ratio;
+					node.vy = (node.vy ?? 0) * ratio;
+				}
+			})
+			.alphaDecay(0.025)
+			.alphaMin(ALPHA_STOP_THRESHOLD)
+			.velocityDecay(0.45)
 			.stop()
 			.alpha(0)
 			.on('tick', () => this.applyTick())
 			.on('end', () => this.finishSettling());
 	}
 
-	private dragNeighbors(
-		nodeId: string,
-		delta: { x: number; y: number },
-	): void {
-		if (delta.x === 0 && delta.y === 0) {
-			return;
-		}
-		const influence = Math.min(
-			this.forceSettings.dragLinkForce * 0.18,
-			0.85,
-		);
-		if (influence <= 0) {
-			return;
-		}
-		for (const neighborId of this.neighborsById.get(nodeId) ?? []) {
-			const neighbor = this.nodesById.get(neighborId);
-			if (
-				!neighbor ||
-				neighbor.fx !== undefined ||
-				neighbor.fy !== undefined
-			) {
-				continue;
-			}
-			const x = (neighbor.x ?? 0) + delta.x * influence;
-			const y = (neighbor.y ?? 0) + delta.y * influence;
-			neighbor.x = x;
-			neighbor.y = y;
-		}
-	}
-
 	private applyTick(): void {
-		this.applyReturnForces();
 		this.syncDraggedNodeToViewportTarget();
 		const positions = new Map<string, { x: number; y: number }>();
 		let maxDisplacement = 0;
@@ -345,6 +349,7 @@ export class D3ForceSimulation {
 			},
 			{ attributes: ['x', 'y', 'fixed'] },
 		);
+		this.renderer.syncForcePositions?.();
 		this.updateSettledState(maxDisplacement);
 	}
 
@@ -365,69 +370,16 @@ export class D3ForceSimulation {
 		node.y = position.y;
 	}
 
-	private setReturnTarget(nodeId: string): void {
-		const neighbors = [...(this.neighborsById.get(nodeId) ?? [])]
-			.map((neighborId) => this.nodesById.get(neighborId))
-			.filter((neighbor): neighbor is ForceNode =>
-				Boolean(
-					neighbor &&
-					typeof neighbor.x === 'number' &&
-					typeof neighbor.y === 'number',
-				),
-			);
-		if (neighbors.length === 0 || this.forceSettings.returnForce <= 0) {
-			this.returnTargetsById.delete(nodeId);
-			return;
-		}
-		const target = {
-			x:
-				neighbors.reduce(
-					(sum, neighbor) => sum + (neighbor.x ?? 0),
-					0,
-				) / neighbors.length,
-			y:
-				neighbors.reduce(
-					(sum, neighbor) => sum + (neighbor.y ?? 0),
-					0,
-				) / neighbors.length,
-			expiresAt: performance.now() + 4000,
-		};
-		this.returnTargetsById.set(nodeId, target);
-	}
-
-	private applyReturnForces(): void {
-		const now = performance.now();
-		const returnDistance =
-			(this.forceSettings.linkDistance / 100) * this.spacing * 1.5;
-		const strength = Math.min(this.forceSettings.returnForce * 0.02, 0.2);
-		if (strength <= 0) {
-			return;
-		}
-		for (const [nodeId, target] of this.returnTargetsById.entries()) {
-			const node = this.nodesById.get(nodeId);
-			if (!node || target.expiresAt < now) {
-				this.returnTargetsById.delete(nodeId);
-				continue;
-			}
-			const dx = target.x - (node.x ?? 0);
-			const dy = target.y - (node.y ?? 0);
-			const distance = Math.hypot(dx, dy);
-			if (distance <= returnDistance) {
-				this.returnTargetsById.delete(nodeId);
-				continue;
-			}
-			const excessRatio = (distance - returnDistance) / distance;
-			node.vx = (node.vx ?? 0) + dx * excessRatio * strength;
-			node.vy = (node.vy ?? 0) + dy * excessRatio * strength;
-		}
-	}
-
 	private scheduleStop(): void {
-		window.clearTimeout(this.settleTimer);
-		this.settleTimer = window.setTimeout(
-			() => this.finishSettling(),
-			HARD_STOP_DELAY_MS,
-		);
+		(this.timerWindow ?? window).clearTimeout(this.settleTimer);
+		if (this.draggedNodePosition) return;
+		this.settleTimer = (this.timerWindow ?? window).setTimeout(() => {
+			// Cool a long-running simulation smoothly; never stop a held node.
+			if (this.draggedNodePosition) return;
+			this.simulation
+				?.alphaTarget(0)
+				.alpha(Math.min(this.simulation.alpha(), 0.02));
+		}, COOLING_DELAY_MS);
 	}
 
 	private updateSettledState(maxDisplacement: number): void {
