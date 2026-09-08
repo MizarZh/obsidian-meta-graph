@@ -356,9 +356,17 @@
 	{/if}
 	{#if settingsVisibility.graphForces}
 		<SettingsSection title="Forces" bind:open={forcesOpen}>
+			{#snippet actions()}
+				<ObsidianButton
+					text="Reset"
+					tooltip="Reset forces"
+					ariaLabel="Reset forces"
+					onClick={onResetGraphForces}
+				/>
+			{/snippet}
 			<SliderSetting
 				label="Center force"
-				description="Higher values keep the graph more compact."
+				tooltip="Higher values keep the graph more compact."
 				value={graphCenterForce}
 				min={0}
 				max={5}
@@ -369,7 +377,7 @@
 			/>
 			<SliderSetting
 				label="Repel force"
-				description="Higher values spread nearby nodes apart. Start with link distance to adjust spacing."
+				tooltip="Higher values spread nearby nodes apart. Start with link distance to adjust spacing."
 				value={graphRepelForce}
 				min={0}
 				max={20}
@@ -380,7 +388,7 @@
 			/>
 			<SliderSetting
 				label="Link force"
-				description="Higher values make connected nodes respond more strongly when dragging."
+				tooltip="Higher values make connected nodes respond more strongly when dragging."
 				value={graphLinkForce}
 				min={0}
 				max={5}
@@ -389,7 +397,6 @@
 				onChange={onGraphLinkForce}
 				onCommit={onGraphLinkForce}
 			/>
-			<ObsidianButton text="Reset forces" onClick={onResetGraphForces} />
 		</SettingsSection>
 	{/if}
 	{#if settingsVisibility.flowLayout}

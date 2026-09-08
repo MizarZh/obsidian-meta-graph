@@ -31,6 +31,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Compacted the Forces panel by moving guidance into hover tooltips and the Reset button into the section header; slider values and reset behavior are unchanged.
+
 - Tuned Graph dragging with distance-scaled repulsion, softer centering, degree-aware springs, stronger collision handling and bounded node velocity. Dragged nodes publish immediately and remain active while held; release cools smoothly without direct neighbor displacement or an extra return force. Force parameter edits preserve the runtime graph and group references.
 
 ### Fixed

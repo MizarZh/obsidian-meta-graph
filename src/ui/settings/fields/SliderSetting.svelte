@@ -9,6 +9,7 @@
 	let {
 		label,
 		description = '',
+		tooltip,
 		value,
 		min,
 		max,
@@ -16,13 +17,14 @@
 		layout = 'row',
 		format = (nextValue) => String(nextValue),
 		disabled = false,
-		ariaLabel = label,
+		ariaLabel = tooltip ? `${label}. ${tooltip}` : label,
 		class: className = '',
 		onChange,
 		onCommit,
 	}: {
 		label: string;
 		description?: string;
+		tooltip?: string;
 		value: number;
 		min: number | null;
 		max: number | null;
@@ -37,7 +39,7 @@
 	} = $props();
 </script>
 
-<SettingRow {label} {description} {layout} class={className}>
+<SettingRow {label} {description} {tooltip} {layout} class={className}>
 	<div class="knowledge-workspace-slider-value">
 		<ObsidianSlider
 			{value}
