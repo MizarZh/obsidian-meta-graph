@@ -703,7 +703,7 @@ export class G6Renderer implements PlanarRenderer {
 				this.sceneCache.updateNodePosition(nodeId, position);
 			}
 		}
-		this.groupLayer?.invalidateGeometry();
+		this.groupLayer?.syncGeometry();
 		void translation.catch((error) => {
 			console.error('[Meta Graph] G6 element translation failed', error);
 		});
@@ -891,9 +891,12 @@ export class G6Renderer implements PlanarRenderer {
 			positions[id] = [mapped.x, mapped.y];
 		}
 		if (Object.keys(positions).length === 0) return;
-		this.groupLayer?.invalidateGeometry();
 		// G6's translate stage updates endpoints without recomputing every style.
-		await this.instance.translateElementTo(positions, false);
+		const translation = this.instance.translateElementTo(positions, false);
+		// Non-animated G6 translation applies model/element positions synchronously.
+		// Commit Groups before yielding, so the same Canvas frame presents both.
+		this.groupLayer?.syncGeometry();
+		await translation;
 	}
 
 	private scheduleDraw(): void {
@@ -1364,7 +1367,7 @@ export class G6Renderer implements PlanarRenderer {
 				this.instance,
 				this.container,
 				() => this.graph,
-				(nodeId) => this.readRuntimeNodePosition(nodeId),
+				(nodeId) => this.getNodePosition(nodeId),
 				(position) => this.graphToViewportPosition(position),
 				(position) => this.viewportToGraphPosition(position),
 				() => this.readNodeVisualScale(),
@@ -1373,14 +1376,6 @@ export class G6Renderer implements PlanarRenderer {
 			this.groupLayer.setFocusedNode(this.pinnedNodeId);
 		}
 		return this.groupLayer;
-	}
-
-	private readRuntimeNodePosition(nodeId: string): GraphPosition | undefined {
-		if (!this.graph.hasNode(nodeId)) return undefined;
-		const attributes = this.graph.getNodeAttributes(nodeId);
-		return Number.isFinite(attributes.x) && Number.isFinite(attributes.y)
-			? { x: attributes.x, y: attributes.y }
-			: undefined;
 	}
 
 	private scheduleGroupSceneSync(): void {

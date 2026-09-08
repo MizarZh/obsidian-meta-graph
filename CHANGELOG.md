@@ -37,6 +37,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Synchronized G6 Group bounds and member halos with submitted node positions during force and manual movement. Group geometry now reads the G6 position model and commits with the node batch instead of using newer simulation coordinates on a separate animation frame.
+
 - Added geometry-only translation updates for native G6 straight and quadratic edges. Moving edges reuse arrow markers and label shapes; unchanged single-line text layouts reuse their measured geometry, while wrapping, truncation, styling and interaction changes retain full updates. Labels remain visible during force motion; loops, badges and custom routed edges keep the existing pipeline.
 
 - Avoided rebuilding native G6 node child shapes for position-only movement. An instance-local translate adapter preserves G6 transforms and position events, keeps labels visible, and retains full rendering for style changes and custom nodes. Hooks are restored on removal and teardown.

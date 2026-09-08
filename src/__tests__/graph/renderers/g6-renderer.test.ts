@@ -18,6 +18,91 @@ import { G6_INTERACTION_STATE } from '@/graph/renderers/g6/g6-styles';
 import type { G6RendererOptions } from '@/graph/renderers/renderer-options';
 
 describe('G6 renderer', () => {
+	it('commits Group halos with force nodes and never reads ahead of a slow G6 batch', async () => {
+		const graph = createRuntimeGraph();
+		const fake = createFakeG6();
+		const container = createBrowserTestContainer(800, 600);
+		const callbacks = new Map<number, FrameRequestCallback>();
+		let frameId = 0;
+		const window = container.ownerDocument.defaultView!;
+		window.requestAnimationFrame = (callback) => {
+			callbacks.set(++frameId, callback);
+			return frameId;
+		};
+		window.cancelAnimationFrame = (id) => {
+			callbacks.delete(id);
+		};
+		const flush = () => {
+			const frames = [...callbacks.values()];
+			callbacks.clear();
+			frames.forEach((callback) => callback(0));
+		};
+		const drain = async () => {
+			for (let i = 0; i < 16; i++) await Promise.resolve();
+		};
+		const renderer = await G6Renderer.create(
+			{ ...createOptions(graph), container },
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+		renderer.setNodePosition('A.md', { x: 10, y: 20 });
+		renderer.setLayoutGroupGeometries([
+			{
+				kind: 'member-halos',
+				groupId: 'group',
+				name: 'Group',
+				color: '#7567f8',
+				nodeIds: ['A.md'],
+			},
+		]);
+		await drain();
+		flush();
+		await drain();
+		const halo = () =>
+			flattenFakeScene(fake.backgroundRoot)
+				.filter(
+					(element) =>
+						element.style.fill === 'none' &&
+						element.style.strokeOpacity === 0.65,
+				)
+				.at(-1)?.style.d;
+		const initial = halo();
+		expect(initial).toBeDefined();
+		let finish!: () => void;
+		const translate = fake.translateElementTo.getMockImplementation()!;
+		fake.translateElementTo.mockImplementationOnce((positions) => {
+			void translate(positions);
+			return new Promise<void>((resolve) => {
+				finish = resolve;
+			});
+		});
+		graph.mergeNodeAttributes('A.md', { x: 321, y: -123 });
+		renderer.syncForcePositions();
+		expect(halo()).toEqual(initial);
+		flush();
+		await drain();
+		const submitted = halo();
+		expect(submitted).not.toEqual(initial);
+		expect(renderer.getNodePosition('A.md')).toEqual({ x: 321, y: -123 });
+		graph.mergeNodeAttributes('A.md', { x: 500, y: 200 });
+		renderer.syncForcePositions();
+		const layer = (
+			renderer as unknown as {
+				groupLayer: { invalidateGeometry(): void };
+			}
+		).groupLayer;
+		layer.invalidateGeometry();
+		flush();
+		await drain();
+		expect(halo()).toEqual(submitted);
+		finish();
+		await drain();
+		flush();
+		await drain();
+		expect(halo()).not.toEqual(submitted);
+		expect(renderer.getNodePosition('A.md')).toEqual({ x: 500, y: 200 });
+		renderer.kill();
+	});
 	it('patches force positions through the stable coordinate adapter without fitting or replacing data', async () => {
 		const graph = createRuntimeGraph();
 		const fake = createFakeG6();

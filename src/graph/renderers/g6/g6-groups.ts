@@ -277,6 +277,18 @@ export class G6GroupLayer {
 		this.scheduleRender();
 	}
 
+	/** Commit with a node-position batch, without a second animation frame. */
+	syncGeometry(): void {
+		if (this.renderFrame !== undefined) {
+			this.activeDocument.defaultView?.cancelAnimationFrame(
+				this.renderFrame,
+			);
+			this.renderFrame = undefined;
+		}
+		this.geometryDirty = true;
+		this.update();
+	}
+
 	refreshViewport(): void {
 		this.handleTransform();
 	}
