@@ -13,6 +13,8 @@ import type { G6EdgeStyle, G6NodeStyle } from '@/graph/renderers/g6/g6-styles';
 export const G6_LABEL_CONTROLLER_KEY = 'meta-graph-label-controller';
 
 export interface G6LabelControllerSnapshot {
+	/** Membership and placement contain only dirty owners. */
+	partial?: boolean;
 	nodeIds: ReadonlySet<string>;
 	edgeIds: ReadonlySet<string>;
 	nodeStyle: G6NodeStyle;
@@ -38,7 +40,11 @@ interface G6LabelOwner {
 }
 
 export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
-	private snapshot: G6LabelControllerSnapshot;
+	private snapshot: G6LabelControllerSnapshot & {
+		nodeIds: Set<string>;
+		edgeIds: Set<string>;
+		nodeStyles: Map<string, G6NodeStyle>;
+	};
 	private readonly labelShapes = new Map<string, Label>();
 	private zoomScale = 1;
 	private readonly handleAfterDraw = (event: IGraphLifeCycleEvent): void => {
@@ -58,7 +64,7 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 
 	constructor(context: RuntimeContext, options: G6LabelControllerOptions) {
 		super(context, options);
-		this.snapshot = options.snapshot;
+		this.snapshot = ownSnapshot(options.snapshot);
 		context.graph.on(GraphEvent.AFTER_DRAW, this.handleAfterDraw);
 	}
 
@@ -66,9 +72,29 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 		snapshot: G6LabelControllerSnapshot,
 		dirtyIds?: G6LabelControllerDirtyIds,
 	): void {
-		this.snapshot = dirtyIds
-			? mergeDirtyNodeStyles(this.snapshot, snapshot, dirtyIds.nodeIds)
-			: snapshot;
+		if (snapshot.partial && dirtyIds) {
+			for (const id of dirtyIds.nodeIds ?? []) {
+				if (snapshot.nodeIds.has(id)) this.snapshot.nodeIds.add(id);
+				else this.snapshot.nodeIds.delete(id);
+				const style = snapshot.nodeStyles?.get(id);
+				if (style) this.snapshot.nodeStyles.set(id, style);
+				else this.snapshot.nodeStyles.delete(id);
+			}
+			for (const id of dirtyIds.edgeIds ?? []) {
+				if (snapshot.edgeIds.has(id)) this.snapshot.edgeIds.add(id);
+				else this.snapshot.edgeIds.delete(id);
+			}
+		} else {
+			this.snapshot = ownSnapshot(
+				dirtyIds
+					? mergeDirtyNodeStyles(
+							this.snapshot,
+							snapshot,
+							dirtyIds.nodeIds,
+						)
+					: snapshot,
+			);
+		}
 		if (dirtyIds) {
 			this.pruneLabelShapes([
 				...(dirtyIds.nodeIds ?? []),
@@ -84,7 +110,7 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 	}
 
 	replaceSnapshot(snapshot: G6LabelControllerSnapshot): void {
-		this.snapshot = snapshot;
+		this.snapshot = ownSnapshot(snapshot);
 		this.labelShapes.clear();
 	}
 
@@ -165,6 +191,15 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 			}
 		}
 	}
+}
+
+function ownSnapshot(snapshot: G6LabelControllerSnapshot) {
+	return {
+		...snapshot,
+		nodeIds: new Set(snapshot.nodeIds),
+		edgeIds: new Set(snapshot.edgeIds),
+		nodeStyles: new Map(snapshot.nodeStyles),
+	};
 }
 
 function mergeDirtyNodeStyles(

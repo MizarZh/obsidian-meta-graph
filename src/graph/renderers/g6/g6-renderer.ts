@@ -1,4 +1,5 @@
 import { Graph, GraphEvent, type GraphOptions, type State } from '@antv/g6';
+import { G6_STATE_TRANSFORM } from '@/graph/renderers/g6/g6-state-transform';
 import type { LabelPosition } from '@/core/types';
 import type { LayoutGroupGeometry } from '@/layouts/group-geometry';
 import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
@@ -71,7 +72,7 @@ const LARGE_LABEL_SCENE_ELEMENT_COUNT = 500;
 const LABEL_VIEWPORT_PIXELS_PER_NODE = 3600;
 const MIN_VIEWPORT_NODE_LABELS = 24;
 const MAX_VIEWPORT_NODE_LABELS = 400;
-const NODE_HOVER_LEAVE_GRACE_MS = 32;
+const NODE_HOVER_LEAVE_GRACE_MS = 80;
 
 interface G6InteractionSnapshot {
 	dimUnrelated?: boolean;
@@ -1036,6 +1037,7 @@ export class G6Renderer implements PlanarRenderer {
 				const snapshot = this.createLabelControllerSnapshot(
 					visualScale,
 					dirtyIds?.nodeIds,
+					dirtyIds?.edgeIds,
 				);
 				this.readLabelController()?.updateLabels(snapshot, dirtyIds);
 			})
@@ -1101,6 +1103,7 @@ export class G6Renderer implements PlanarRenderer {
 	private createLabelControllerSnapshot(
 		visualScale: G6VisualScale = this.readVisualScale(),
 		styleNodeIds?: Iterable<string>,
+		styleEdgeIds?: Iterable<string>,
 	): G6LabelControllerSnapshot {
 		return createG6LabelControllerSnapshot(
 			this.graph,
@@ -1112,6 +1115,7 @@ export class G6Renderer implements PlanarRenderer {
 			this.readTransientEdgeLabelElementIds(),
 			this.sceneCache,
 			styleNodeIds,
+			styleEdgeIds,
 		);
 	}
 
@@ -1786,6 +1790,7 @@ export function createG6GraphOptions(
 		padding: PLANAR_STAGE_PADDING,
 		zoomRange: INITIAL_NATIVE_ZOOM_RANGE,
 		behaviors: createG6Behaviors(),
+		transforms: [G6_STATE_TRANSFORM],
 		plugins: [
 			{
 				type: G6_LABEL_CONTROLLER_KEY,
@@ -1816,10 +1821,18 @@ function createG6LabelControllerSnapshot(
 	interactionEdgeIds: Iterable<string> = [],
 	sceneCache?: G6SceneCache,
 	styleNodeIds?: Iterable<string>,
+	styleEdgeIds?: Iterable<string>,
 ): G6LabelControllerSnapshot {
-	const nodeIds = new Set(labelVisibility?.nodeIds ?? []);
+	const partial = styleNodeIds !== undefined;
+	const dirtyNodes = partial ? new Set(styleNodeIds) : undefined;
+	const nodeIds = new Set(
+		partial
+			? [...dirtyNodes!].filter((id) => labelVisibility?.nodeIds.has(id))
+			: (labelVisibility?.nodeIds ?? []),
+	);
 	for (const nodeId of interactionNodeIds) {
-		if (nodeId) nodeIds.add(nodeId);
+		if (nodeId && (!dirtyNodes || dirtyNodes.has(nodeId)))
+			nodeIds.add(nodeId);
 	}
 	for (const nodeId of [...nodeIds]) {
 		if (!graph.hasNode(nodeId)) {
@@ -1857,7 +1870,15 @@ function createG6LabelControllerSnapshot(
 		if (Object.keys(style).length > 0) nodeStyles.set(nodeId, style);
 	}
 	const edgeIds = new Set<string>();
-	for (const runtimeEdgeId of labelVisibility?.edgeIds ?? []) {
+	const dirtyEdges = partial ? new Set(styleEdgeIds) : undefined;
+	const runtimeLabelIds = dirtyEdges
+		? [...dirtyEdges]
+				.flatMap(
+					(id) => sceneCache?.runtimeEdgesByLogicalId.get(id) ?? [id],
+				)
+				.filter((id) => labelVisibility?.edgeIds.has(id))
+		: (labelVisibility?.edgeIds ?? []);
+	for (const runtimeEdgeId of runtimeLabelIds) {
 		if (!graph.hasEdge(runtimeEdgeId)) continue;
 		const logicalEdgeId =
 			graph.getEdgeAttribute(runtimeEdgeId, 'logicalEdgeId') ??
@@ -1866,8 +1887,10 @@ function createG6LabelControllerSnapshot(
 			edgeRoutes?.has(logicalEdgeId) ? logicalEdgeId : runtimeEdgeId,
 		);
 	}
-	for (const edgeId of interactionEdgeIds) edgeIds.add(edgeId);
+	for (const edgeId of interactionEdgeIds)
+		if (!dirtyEdges || dirtyEdges.has(edgeId)) edgeIds.add(edgeId);
 	return {
+		partial,
 		nodeIds,
 		edgeIds,
 		nodeStyle: styles.node,

@@ -77,7 +77,7 @@ describe('G6 renderer', () => {
 			],
 		});
 		expect(graphOptions).not.toHaveProperty('layout');
-		expect(graphOptions).not.toHaveProperty('transforms');
+		expect(graphOptions?.transforms).toEqual(['meta-graph-state-update']);
 		expect(graphOptions?.data?.nodes?.[0]).toMatchObject({
 			id: 'A.md',
 			style: {

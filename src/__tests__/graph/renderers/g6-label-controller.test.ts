@@ -7,6 +7,47 @@ import {
 } from '@/graph/renderers/g6/g6-label-controller';
 
 describe('G6 label controller', () => {
+	it('merges partial hover membership without visiting untouched labels', () => {
+		const getElement = vi.fn(() => ({
+			attributes: {},
+			getLabelStyle: () => ({ fontSize: 9 }),
+			getShape: () => ({ update: vi.fn(), setLocalScale: vi.fn() }),
+		}));
+		const controller = new G6LabelController(
+			{
+				graph: { on: vi.fn(), off: vi.fn() },
+				element: { getElement },
+			} as unknown as RuntimeContext,
+			{ type: G6_LABEL_CONTROLLER_KEY, snapshot: createSnapshot() },
+		);
+		controller.updateLabels(
+			{
+				...createSnapshot(),
+				partial: true,
+				nodeIds: new Set(['hover.md']),
+				edgeIds: new Set(),
+			},
+			{ nodeIds: ['hover.md'], edgeIds: [] },
+		);
+		expect(getElement.mock.calls).toHaveLength(1);
+		getElement.mockClear();
+		controller.updateZoomScale(2);
+		expect(getElement).toHaveBeenCalledWith('A.md');
+		getElement.mockClear();
+		controller.updateLabels(
+			{
+				...createSnapshot(),
+				partial: true,
+				nodeIds: new Set(),
+				edgeIds: new Set(),
+			},
+			{ nodeIds: ['hover.md'], edgeIds: [] },
+		);
+		getElement.mockClear();
+		controller.updateZoomScale(1);
+		expect(getElement).not.toHaveBeenCalledWith('hover.md');
+		controller.destroy();
+	});
 	it('updates only existing label subshapes and disables label picking', () => {
 		const update = vi.fn();
 		const setLocalScale = vi.fn();

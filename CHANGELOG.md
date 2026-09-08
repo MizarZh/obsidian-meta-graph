@@ -29,6 +29,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Reduced G6 Local-hover work with an instance-scoped G6 5.1 state-transform adapter: compute styles only for updated elements and discard automatically added edges when node geometry is unchanged. Hover labels now merge owner-only membership/placement deltas, and an 80 ms leave grace avoids full Local resets across brief gaps. Real G6 runtime tests cover sparse computation, endpoint updates, and adapter teardown.
+
 - Made G6 connected-edge emphasis 1.5 times the configured width and hovered/selected edges twice that width instead of adding fixed screen pixels. Dimmed edges retain their original width so focus cannot thicken fine lines.
 
 - Removed G6's excessive 1.7 minimum edge width so thin link settings take effect. Link width controls now allow 0.1 increments from 0.1, while G6 retains a separate generous hit target.
