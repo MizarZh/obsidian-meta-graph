@@ -21,21 +21,26 @@ describe('G6 renderer', () => {
 	it('patches force positions through the stable coordinate adapter without fitting or replacing data', async () => {
 		const graph = createRuntimeGraph();
 		const fake = createFakeG6();
+		const frames = createManualFrameTestContainer(800, 600);
 		const renderer = await G6Renderer.create(
-			createOptions(graph),
+			{ ...createOptions(graph), container: frames.container },
 			() => fake.instance,
 		);
 		if (!renderer) throw new Error('Expected renderer');
 		const before = renderer.graphToViewportPosition({ x: 1, y: 2 });
 		fake.setData.mockClear();
-		fake.updateData.mockClear();
+		fake.translateElementTo.mockClear();
 		graph.mergeNodeAttributes('A.md', { x: 321, y: -123 });
 		renderer.beginForceMotion();
 		renderer.syncForcePositions();
-		expect(readLastDataPatch(fake.updateData).nodes).toContainEqual({
-			id: 'A.md',
-			style: { x: 155510, y: 71520 },
-		});
+		expect(fake.translateElementTo).not.toHaveBeenCalled();
+		frames.flush();
+		for (let i = 0; i < 12; i++) await Promise.resolve();
+		expect(fake.translateElementTo).toHaveBeenCalledWith(
+			expect.objectContaining({ 'A.md': [155510, 71520] }),
+			false,
+		);
+		expect(fake.updateData).not.toHaveBeenCalled();
 		expect(renderer.graphToViewportPosition({ x: 1, y: 2 })).toEqual(
 			before,
 		);
@@ -44,9 +49,74 @@ describe('G6 renderer', () => {
 			true,
 		);
 		renderer.kill();
-		fake.updateData.mockClear();
+		fake.translateElementTo.mockClear();
 		renderer.syncForcePositions();
-		expect(fake.updateData).not.toHaveBeenCalled();
+		expect(fake.translateElementTo).not.toHaveBeenCalled();
+	});
+	it('coalesces force ticks, skips unchanged nodes and retains the latest position during a slow draw', async () => {
+		const graph = createRuntimeGraph();
+		const fake = createFakeG6();
+		const frames = createManualFrameTestContainer(800, 600);
+		const renderer = await G6Renderer.create(
+			{ ...createOptions(graph), container: frames.container },
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+		const drain = async () => {
+			for (let i = 0; i < 12; i++) await Promise.resolve();
+		};
+		renderer.syncForcePositions();
+		frames.flush();
+		await drain();
+		fake.translateElementTo.mockClear();
+		fake.draw.mockClear();
+		renderer.syncForcePositions();
+		frames.flush();
+		await drain();
+		expect(fake.translateElementTo).not.toHaveBeenCalled();
+		expect(fake.draw).not.toHaveBeenCalled();
+		let finishDraw!: () => void;
+		fake.translateElementTo.mockImplementationOnce(
+			() =>
+				new Promise<void>((resolve) => {
+					finishDraw = resolve;
+				}),
+		);
+		for (let x = 10; x <= 100; x++) {
+			graph.setNodeAttribute('A.md', 'x', x);
+			renderer.syncForcePositions();
+		}
+		expect(fake.translateElementTo).not.toHaveBeenCalled();
+		frames.flush();
+		await drain();
+		expect(fake.translateElementTo).toHaveBeenCalledTimes(1);
+		expect(fake.translateElementTo).toHaveBeenLastCalledWith(
+			{ 'A.md': [45010, 20] },
+			false,
+		);
+		for (let x = 101; x <= 200; x++) {
+			graph.setNodeAttribute('A.md', 'x', x);
+			renderer.syncForcePositions();
+		}
+		frames.flush();
+		await drain();
+		expect(fake.translateElementTo).toHaveBeenCalledTimes(1);
+		finishDraw();
+		await drain();
+		frames.flush();
+		await drain();
+		expect(fake.translateElementTo).toHaveBeenCalledTimes(2);
+		expect(fake.translateElementTo).toHaveBeenLastCalledWith(
+			{ 'A.md': [95010, 20] },
+			false,
+		);
+		expect(fake.draw).not.toHaveBeenCalled();
+		renderer.syncForcePositions();
+		renderer.kill();
+		fake.translateElementTo.mockClear();
+		frames.flush();
+		await drain();
+		expect(fake.translateElementTo).not.toHaveBeenCalled();
 	});
 	it('moves nodes through the G6 model and mirrors the applied position', async () => {
 		const graph = createRuntimeGraph();
@@ -107,7 +177,10 @@ describe('G6 renderer', () => {
 			],
 		});
 		expect(graphOptions).not.toHaveProperty('layout');
-		expect(graphOptions?.transforms).toEqual(['meta-graph-state-update']);
+		expect(graphOptions?.transforms).toEqual([
+			'meta-graph-state-update',
+			'meta-graph-position-update',
+		]);
 		expect(graphOptions?.data?.nodes?.[0]).toMatchObject({
 			id: 'A.md',
 			style: {

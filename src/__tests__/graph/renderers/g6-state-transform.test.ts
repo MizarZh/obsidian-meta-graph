@@ -88,6 +88,21 @@ function harness(count: number, optimized: boolean) {
 }
 
 describe('G6 state transform against installed runtime', () => {
+	it('moves force endpoints without a full style scan in the translate stage', () => {
+		const h = harness(1000, true);
+		h.model.translateNodeLikeTo('n1', [40, 50]);
+		const data = h.draw('translate');
+		expect(h.computed).not.toHaveBeenCalled();
+		expect(h.scan).not.toHaveBeenCalled();
+		expect([...data.update.nodes.keys()]).toEqual(['n1']);
+		expect([...data.update.edges.keys()]).toEqual(['e0']);
+		expect(h.model.getNodeData(['n1'])[0]?.style).toMatchObject({
+			x: 40,
+			y: 50,
+		});
+		h.transform.destroy();
+	});
+
 	it('reproduces the upstream all-element style scan for one state change', () => {
 		const h = harness(1000, false);
 		h.model.updateData({ nodes: [{ id: 'n1', states: ['dimmed'] }] });

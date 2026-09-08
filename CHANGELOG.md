@@ -37,6 +37,12 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Added geometry-only translation updates for native G6 straight and quadratic edges. Moving edges reuse arrow markers and label shapes; unchanged single-line text layouts reuse their measured geometry, while wrapping, truncation, styling and interaction changes retain full updates. Labels remain visible during force motion; loops, badges and custom routed edges keep the existing pipeline.
+
+- Avoided rebuilding native G6 node child shapes for position-only movement. An instance-local translate adapter preserves G6 transforms and position events, keeps labels visible, and retains full rendering for style changes and custom nodes. Hooks are restored on removal and teardown.
+
+- Reduced G6 force-motion overhead with frame-coalesced, latest-position-only submissions and one in-flight position draw. Unchanged nodes are skipped; batched non-animated translations bypass G6's full style recomputation while preserving connected edges and the fixed coordinate adapter. Pending force frames are cancelled on teardown.
+
 - Reduced G6 Local-hover work with an instance-scoped G6 5.1 state-transform adapter: compute styles only for updated elements and discard automatically added edges when node geometry is unchanged. Hover labels now merge owner-only membership/placement deltas, and an 80 ms leave grace avoids full Local resets across brief gaps. Real G6 runtime tests cover sparse computation, endpoint updates, and adapter teardown.
 
 - Made G6 connected-edge emphasis 1.5 times the configured width and hovered/selected edges twice that width instead of adding fixed screen pixels. Dimmed edges retain their original width so focus cannot thicken fine lines.

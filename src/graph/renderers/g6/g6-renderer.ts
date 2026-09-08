@@ -1,5 +1,6 @@
 import { Graph, GraphEvent, type GraphOptions, type State } from '@antv/g6';
 import { G6_STATE_TRANSFORM } from '@/graph/renderers/g6/g6-state-transform';
+import { G6_POSITION_TRANSFORM } from '@/graph/renderers/g6/g6-position-transform';
 import type { LabelPosition } from '@/core/types';
 import type { LayoutGroupGeometry } from '@/layouts/group-geometry';
 import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
@@ -139,6 +140,10 @@ export class G6Renderer implements PlanarRenderer {
 	private drawQueue: Promise<void> = Promise.resolve();
 	private drawScheduled = false;
 	private drawDirty = false;
+	private forceSyncFrame?: number;
+	private forceSyncScheduled = false;
+	private forcePositionsDirty = false;
+	private readonly submittedForcePositions = new Map<string, GraphPosition>();
 	private labelSyncScheduled = false;
 	private labelSyncFrame?: number;
 	private labelSyncAll = false;
@@ -301,6 +306,8 @@ export class G6Renderer implements PlanarRenderer {
 	}
 
 	setGraph(graph: RuntimeGraph): void {
+		this.forcePositionsDirty = false;
+		this.submittedForcePositions.clear();
 		const viewportState = this.captureViewportState();
 		this.graph = graph;
 		this.sceneCache = new G6SceneCache(graph, this.edgeRoutes);
@@ -531,6 +538,12 @@ export class G6Renderer implements PlanarRenderer {
 		}
 		this.zoomLevelListeners.clear();
 		const window = this.container.ownerDocument?.defaultView;
+		if (this.forceSyncFrame !== undefined) {
+			window?.cancelAnimationFrame(this.forceSyncFrame);
+			this.forceSyncFrame = undefined;
+		}
+		this.forcePositionsDirty = false;
+		this.submittedForcePositions.clear();
 		if (this.interactionSyncFrame !== undefined) {
 			window?.cancelAnimationFrame(this.interactionSyncFrame);
 			this.interactionSyncFrame = undefined;
@@ -820,7 +833,9 @@ export class G6Renderer implements PlanarRenderer {
 	holdCurrentBounds(): void {}
 	clearHeldBounds(): void {}
 
-	beginForceMotion(): void {}
+	beginForceMotion(): void {
+		this.submittedForcePositions.clear();
+	}
 	endForceMotion(): void {
 		if (this.killed || this.isStale()) return;
 		this.sceneCache.refreshLabelIndex();
@@ -830,16 +845,55 @@ export class G6Renderer implements PlanarRenderer {
 
 	syncForcePositions(): void {
 		if (this.killed || this.isStale()) return;
-		const nodes = [...this.sceneCache.renderedNodeIds].map((id) => {
+		this.forcePositionsDirty = true;
+		if (this.forceSyncScheduled) return;
+		this.forceSyncScheduled = true;
+		const enqueue = () => {
+			this.forceSyncFrame = undefined;
+			this.drawQueue = this.drawQueue
+				.then(async () => {
+					if (
+						this.killed ||
+						this.isStale() ||
+						!this.forcePositionsDirty
+					)
+						return;
+					this.forcePositionsDirty = false;
+					await this.submitForcePositions();
+				})
+				.catch((error) => {
+					this.submittedForcePositions.clear();
+					console.error('[Meta Graph] G6 force draw failed', error);
+				})
+				.finally(() => {
+					this.forceSyncScheduled = false;
+					if (this.forcePositionsDirty) this.syncForcePositions();
+				});
+		};
+		const window = this.container.ownerDocument?.defaultView;
+		if (window) this.forceSyncFrame = window.requestAnimationFrame(enqueue);
+		else queueMicrotask(enqueue);
+	}
+
+	private async submitForcePositions(): Promise<void> {
+		const positions: Record<string, [number, number]> = {};
+		for (const id of this.sceneCache.renderedNodeIds) {
 			const attributes = this.graph.getNodeAttributes(id);
 			const position = { x: attributes.x, y: attributes.y };
+			if (!Number.isFinite(position.x) || !Number.isFinite(position.y))
+				continue;
+			const previous = this.submittedForcePositions.get(id);
+			if (previous?.x === position.x && previous.y === position.y)
+				continue;
+			this.submittedForcePositions.set(id, position);
 			this.sceneCache.updateNodePosition(id, position);
 			const mapped = this.coordinateSpace.toG6(position);
-			return { id, style: { x: mapped.x, y: mapped.y } };
-		});
-		this.instance.updateData({ nodes });
+			positions[id] = [mapped.x, mapped.y];
+		}
+		if (Object.keys(positions).length === 0) return;
 		this.groupLayer?.invalidateGeometry();
-		this.scheduleDraw();
+		// G6's translate stage updates endpoints without recomputing every style.
+		await this.instance.translateElementTo(positions, false);
 	}
 
 	private scheduleDraw(): void {
@@ -1812,7 +1866,7 @@ export function createG6GraphOptions(
 		padding: PLANAR_STAGE_PADDING,
 		zoomRange: INITIAL_NATIVE_ZOOM_RANGE,
 		behaviors: createG6Behaviors(),
-		transforms: [G6_STATE_TRANSFORM],
+		transforms: [G6_STATE_TRANSFORM, G6_POSITION_TRANSFORM],
 		plugins: [
 			{
 				type: G6_LABEL_CONTROLLER_KEY,

@@ -19,9 +19,9 @@ type Internals = {
 };
 type Kind = 'chain' | 'star' | 'clusters';
 
-function createGraph(kind: Kind): RuntimeGraph {
+function createGraph(kind: Kind, count = 16): RuntimeGraph {
 	const graph: RuntimeGraph = new Graph({ multi: true, type: 'mixed' });
-	for (let i = 0; i < 16; i++)
+	for (let i = 0; i < count; i++)
 		graph.addNode(String(i), {
 			x: Math.cos(i * 2.4) * (1 + i / 4),
 			y: Math.sin(i * 2.4) * (1 + i / 4),
@@ -32,7 +32,7 @@ function createGraph(kind: Kind): RuntimeGraph {
 			folder: '',
 			domains: [],
 			tags: [],
-			});
+		});
 	const add = (a: number, b: number) =>
 		graph.addEdge(String(a), String(b), {
 			relation: 'related',
@@ -44,8 +44,8 @@ function createGraph(kind: Kind): RuntimeGraph {
 			forceLabel: false,
 			lineStyle: 'solid',
 		});
-	if (kind === 'chain') for (let i = 1; i < 16; i++) add(i - 1, i);
-	if (kind === 'star') for (let i = 1; i < 16; i++) add(0, i);
+	if (kind === 'chain') for (let i = 1; i < count; i++) add(i - 1, i);
+	if (kind === 'star') for (let i = 1; i < count; i++) add(0, i);
 	if (kind === 'clusters') {
 		for (let i = 0; i < 16; i++)
 			for (let j = i + 1; j < 16; j++)
@@ -132,6 +132,51 @@ async function measure(kind: Kind, scale = 1) {
 }
 
 describe('force interaction tuning', () => {
+	it.each(['chain', 'star'] as const)(
+		'settles a static 150-node %s handoff within a bounded radius',
+		async (kind) => {
+			const graph = createGraph(kind, 150);
+			await new ForceAtlasLayout().apply(graph);
+			const radius = () => {
+				const nodes = graph
+					.nodes()
+					.map((id) => graph.getNodeAttributes(id));
+				const cx =
+					nodes.reduce((sum, n) => sum + n.x, 0) / nodes.length;
+				const cy =
+					nodes.reduce((sum, n) => sum + n.y, 0) / nodes.length;
+				return Math.sqrt(
+					nodes.reduce(
+						(sum, n) => sum + (n.x - cx) ** 2 + (n.y - cy) ** 2,
+						0,
+					) / nodes.length,
+				);
+			};
+			const before = radius();
+			const controller = new D3ForceSimulation(graph, {
+				runtimeGraph: graph,
+				beginForceMotion: vi.fn(),
+				endForceMotion: vi.fn(),
+				clearHeldBounds: vi.fn(),
+				viewportToGraphPosition: (p) => p,
+			});
+			const internal = controller as unknown as Internals;
+			controller.start();
+			let ticks = 0;
+			try {
+				while (internal.simulation && ticks < 600) {
+					internal.simulation.stop().tick();
+					internal.applyTick();
+					ticks++;
+				}
+				expect(radius() / before).toBeLessThan(5);
+				expect(ticks).toBeLessThan(200);
+				expect(internal.simulation).toBeUndefined();
+			} finally {
+				controller.stop();
+			}
+		},
+	);
 	it.each(['chain', 'star', 'clusters'] as const)(
 		'%s keeps pinning exact and settles without large release jumps',
 		async (kind) => {
