@@ -124,7 +124,11 @@ export class WorkspaceRenderCoordinator {
 		if (plan.rebuild) {
 			this.baseline = createWorkspaceRenderBaseline(nextState);
 			void this.options.rendererLifecycle
-				.rebuild(plan.rebuild.fitAfterRender, plan.rebuild.forceLayout)
+				.rebuild(
+					plan.rebuild.fitAfterRender,
+					plan.rebuild.forceLayout,
+					plan.rebuild.preserveViewportScale,
+				)
 				.catch((error: unknown) =>
 					this.options.setRendererError(error),
 				);

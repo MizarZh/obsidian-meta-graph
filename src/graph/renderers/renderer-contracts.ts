@@ -31,7 +31,10 @@ export interface ForceSimulationRenderer {
 export interface PlanarRenderer {
 	readonly capabilities: RendererCapabilities;
 	readonly runtimeGraph: RuntimeGraph;
-	setGraph(graph: RuntimeGraph): void;
+	setGraph(
+		graph: RuntimeGraph,
+		options?: { preserveViewportScale?: boolean },
+	): void;
 	setPalette(palette: GraphPalette): void;
 	refresh(): void;
 	refreshGraphStyles(): void;

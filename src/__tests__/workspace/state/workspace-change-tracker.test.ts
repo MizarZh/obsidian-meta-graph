@@ -7,8 +7,77 @@ import {
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
 import type { GraphProjection } from '@/core/types';
 import { setCuratedFilesHiddenActionInState } from '@/workspace/actions/curated-actions';
+import { createDefaultMetaGraphDocument } from '@/workspace/meta-graph-model';
+import {
+	setFlowLayerSpacingInState,
+	setFlowLaneSpacingInState,
+} from '@/workspace/state/chart-settings';
 
 describe('workspace change tracker', () => {
+	it.each([
+		[2, 1],
+		[1, 2],
+		[2, 2],
+	])(
+		'preserves Flow scale for spacing %s/%s',
+		(flowLayerSpacing, flowLaneSpacing) => {
+			const document = createDefaultMetaGraphDocument(200, 1.5);
+			document.activeChart = 'learning-flow';
+			const state = createWorkspaceState(200, 1.5, document);
+			const next = setFlowLaneSpacingInState(
+				setFlowLayerSpacingInState(state, flowLayerSpacing),
+				flowLaneSpacing,
+			);
+			expect(next.grouping).not.toBe(state.grouping);
+			expect(next.grouping).toEqual(state.grouping);
+			const baseline = createWorkspaceRenderBaseline(state);
+			expect(
+				analyzeWorkspaceStateChanges(
+					{
+						...next,
+						grouping: {
+							...next.grouping,
+							overrides: { 'note.md': 'changed-group' },
+						},
+					},
+					state,
+					baseline,
+				),
+			).toMatchObject({
+				fitAfterRender: true,
+				preserveViewportScale: false,
+			});
+			expect(
+				analyzeWorkspaceStateChanges(next, state, baseline),
+			).toMatchObject({
+				shouldRebuild: true,
+				forceLayout: true,
+				fitAfterRender: false,
+				preserveViewportScale: true,
+			});
+			expect(
+				analyzeWorkspaceStateChanges(
+					{ ...next, activeChartId: 'other' },
+					state,
+					baseline,
+				),
+			).toMatchObject({
+				fitAfterRender: true,
+				preserveViewportScale: false,
+			});
+			expect(
+				analyzeWorkspaceStateChanges(
+					{ ...state, layoutRevision: state.layoutRevision + 1 },
+					state,
+					baseline,
+				),
+			).toMatchObject({
+				fitAfterRender: true,
+				preserveViewportScale: false,
+			});
+		},
+	);
+
 	it('requests initial rebuild against empty baseline', () => {
 		const state = createWorkspaceState(200);
 

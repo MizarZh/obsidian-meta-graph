@@ -5,6 +5,12 @@ import {
 	WorkspaceRenderCoordinator,
 } from '@/ui/workspace/renderer-coordinator';
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
+import { createDefaultMetaGraphDocument } from '@/workspace/meta-graph-model';
+import {
+	setFlowLayerSpacingInState,
+	setFlowLaneSpacingInState,
+} from '@/workspace/state/chart-settings';
+import { setActiveChartRendererInState } from '@/workspace/state/chart-state';
 
 vi.mock('@/graph/renderers/renderer-adapter', () => ({
 	getRendererKind: vi.fn(
@@ -19,6 +25,53 @@ vi.mock('@/graph/renderers/renderer-adapter', () => ({
 }));
 
 describe('WorkspaceRenderCoordinator', () => {
+	it.each(['sigma', 'g6'] as const)(
+		'preserves spacing through actual chart setters for %s',
+		(kind) => {
+			const document = createDefaultMetaGraphDocument(200, 1.5);
+			document.activeChart = 'learning-flow';
+			let state = setActiveChartRendererInState(
+				createWorkspaceState(200, 1.5, document),
+				kind,
+			).state;
+			const rebuild = vi.fn(async () => undefined);
+			const lifecycle = {
+				renderer: { capabilities: { kind } },
+				rebuild,
+				setSelection: vi.fn(),
+				setHovered: vi.fn(),
+			} as unknown as WorkspaceRendererLifecycle;
+			const coordinator = new WorkspaceRenderCoordinator({
+				window: {
+					requestAnimationFrame: vi.fn(() => 1),
+					cancelAnimationFrame: vi.fn(),
+				},
+				rendererLifecycle: lifecycle,
+				readCanvas: () => undefined,
+				readHoveredNodeId: () => undefined,
+				syncRendererGroups: vi.fn(),
+				setRendererError: vi.fn(),
+			});
+			coordinator.apply(state, state);
+			for (const spacing of [2, 3]) {
+				for (const setter of [
+					setFlowLayerSpacingInState,
+					setFlowLaneSpacingInState,
+				]) {
+					const next = setter(state, spacing);
+					coordinator.apply(next, state);
+					expect(rebuild).toHaveBeenLastCalledWith(false, true, true);
+					state = next;
+				}
+			}
+			coordinator.apply(
+				{ ...state, layoutRevision: state.layoutRevision + 1 },
+				state,
+			);
+			expect(rebuild).toHaveBeenLastCalledWith(true, true, undefined);
+		},
+	);
+
 	it('applies renderer actions in fixed order', () => {
 		const calls: string[] = [];
 		const state = createWorkspaceState(200);

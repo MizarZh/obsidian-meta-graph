@@ -243,12 +243,21 @@ export class WorkspaceRendererLifecycle {
 		this.currentRenderer?.clearHeldBounds();
 	}
 
-	async rebuild(fitAfterRender = false, forceLayout = false): Promise<void> {
+	async rebuild(
+		fitAfterRender = false,
+		forceLayout = false,
+		preserveViewportScale = false,
+	): Promise<void> {
 		this.stopForceLayoutSimulation();
 		const version = ++this.renderVersion;
 		this.options.setRenderPending?.(true);
 		try {
-			await this.rebuildVersion(version, fitAfterRender, forceLayout);
+			await this.rebuildVersion(
+				version,
+				fitAfterRender,
+				forceLayout,
+				preserveViewportScale,
+			);
 		} finally {
 			if (version === this.renderVersion) {
 				this.options.setRenderPending?.(false);
@@ -260,6 +269,7 @@ export class WorkspaceRendererLifecycle {
 		version: number,
 		fitAfterRender: boolean,
 		forceLayout: boolean,
+		preserveViewportScale: boolean,
 	): Promise<void> {
 		const rebuildStartedAt = performance.now();
 		const initialState = this.options.readState();
@@ -442,7 +452,16 @@ export class WorkspaceRendererLifecycle {
 					layoutSnapshot.edgeRoutes,
 				);
 			}
-			this.currentRenderer.setGraph(graph);
+			if (
+				isPlanarRenderer(this.currentRenderer) &&
+				preserveViewportScale
+			) {
+				this.currentRenderer.setGraph(graph, {
+					preserveViewportScale: true,
+				});
+			} else {
+				this.currentRenderer.setGraph(graph);
+			}
 			this.currentRendererMode = state.mode;
 			this.unbindEvents = this.options.bindEvents(this.currentRenderer);
 		} else {

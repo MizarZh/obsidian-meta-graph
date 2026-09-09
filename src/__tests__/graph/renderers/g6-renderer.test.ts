@@ -18,6 +18,50 @@ import { G6_INTERACTION_STATE } from '@/graph/renderers/g6/g6-styles';
 import type { G6RendererOptions } from '@/graph/renderers/renderer-options';
 
 describe('G6 renderer', () => {
+	it('keeps physical spacing scale across consecutive scene changes until fit', async () => {
+		const graph = createRuntimeGraph();
+		graph.addNode('B.md', {
+			...graph.getNodeAttributes('A.md'),
+			x: 110,
+			y: 120,
+		});
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(graph),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+		renderer.fit();
+		await vi.waitFor(() =>
+			expect(fake.zoomTo).toHaveBeenLastCalledWith(1.08, false),
+		);
+		for (const factor of [2, 4]) {
+			const expanded = graph.copy();
+			expanded.setNodeAttribute('B.md', 'x', 10 + 100 * factor);
+			expanded.setNodeAttribute('B.md', 'y', 20 + 100 * factor);
+			fake.zoomTo.mockClear();
+			renderer.setGraph(expanded, { preserveViewportScale: true });
+			await vi.waitFor(() =>
+				expect(fake.zoomTo).toHaveBeenLastCalledWith(1.08, false),
+			);
+			const data = fake.setData.mock.calls.at(-1)![0];
+			const a = data.nodes.find((node) => node.id === 'A.md')!;
+			const b = data.nodes.find((node) => node.id === 'B.md')!;
+			expect(Number(b.style.x) - Number(a.style.x)).toBeCloseTo(
+				500 * factor,
+			);
+			expect(Number(a.style.size) * fake.instance.getZoom()).toBeCloseTo(
+				16,
+			);
+		}
+		renderer.fit();
+		await vi.waitFor(() =>
+			expect(fake.zoomTo).toHaveBeenLastCalledWith(0.27, false),
+		);
+		expect(renderer.getZoomLevel()).toBe(100);
+		renderer.kill();
+	});
+
 	it('commits Group halos with force nodes and never reads ahead of a slow G6 batch', async () => {
 		const graph = createRuntimeGraph();
 		const fake = createFakeG6();

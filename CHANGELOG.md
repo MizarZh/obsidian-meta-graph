@@ -49,6 +49,10 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Flow Layer spacing and Lane spacing now preserve the current viewport scale in Sigma and G6, so increasing both visibly expands the layout instead of automatically fitting it back into the canvas. Manual fit and Refresh still fit the complete graph.
+
+- Fixed spacing changes incorrectly triggering auto-fit when chart state setters clone unchanged grouping data. Regression coverage now uses the actual spacing setters and render coordinator.
+
 - G6 translation skips unchanged edge key/halo path writes without caching stale geometry across style or state updates.
 
 - Native G6 nodes now submit only coordinates and transforms during position-only updates, avoiding repeated full-style writes while preserving retained children, rotation/scale and image position notifications. Style changes keep the normal update path.

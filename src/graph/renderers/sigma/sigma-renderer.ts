@@ -351,7 +351,19 @@ export class SigmaRenderer {
 		return this.graph;
 	}
 
-	setGraph(graph: RuntimeGraph): void {
+	private spacingBoundsHeld = false;
+
+	setGraph(
+		graph: RuntimeGraph,
+		options?: { preserveViewportScale?: boolean },
+	): void {
+		if (options?.preserveViewportScale) {
+			this.holdCurrentBounds();
+			this.spacingBoundsHeld = true;
+		} else if (this.spacingBoundsHeld) {
+			this.spacingBoundsHeld = false;
+			this.clearHeldBounds();
+		}
 		this.diagnostics?.setEnabled(false);
 		this.graph = graph;
 		this.hoverRefreshIndex = createSigmaHoverRefreshIndex(graph);
@@ -693,6 +705,10 @@ export class SigmaRenderer {
 	}
 
 	fit(): void {
+		if (this.spacingBoundsHeld) {
+			this.spacingBoundsHeld = false;
+			this.clearHeldBounds();
+		}
 		void this.instance.getCamera().animatedReset({ duration: 350 });
 	}
 
@@ -732,6 +748,8 @@ export class SigmaRenderer {
 	}
 
 	clearHeldBounds(): void {
+		// Flow spacing owns its frame until an explicit fit or scene reset.
+		if (this.spacingBoundsHeld) return;
 		if (this.instance.getCustomBBox()) {
 			this.instance.setCustomBBox(null);
 		}

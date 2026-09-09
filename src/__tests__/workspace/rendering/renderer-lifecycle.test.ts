@@ -268,6 +268,12 @@ describe('WorkspaceRendererLifecycle', () => {
 		expect(renderer.setGraph).toHaveBeenCalledOnce();
 		expect(rendererIsStale?.()).toBe(false);
 
+		await lifecycle.rebuild(false, true, true);
+		expect(renderer.setGraph).toHaveBeenLastCalledWith(expect.anything(), {
+			preserveViewportScale: true,
+		});
+		expect(renderer.fit).toHaveBeenCalledOnce();
+
 		lifecycle.dispose();
 		expect(rendererIsStale?.()).toBe(true);
 	});

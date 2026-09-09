@@ -356,15 +356,23 @@ export class G6Renderer implements PlanarRenderer {
 		return this.graph;
 	}
 
-	setGraph(graph: RuntimeGraph): void {
+	private spacingExtent?: G6SceneCache['graphExtent'];
+
+	setGraph(
+		graph: RuntimeGraph,
+		options?: { preserveViewportScale?: boolean },
+	): void {
+		const preserveScale = options?.preserveViewportScale === true;
+		if (preserveScale) this.spacingExtent ??= this.sceneCache.graphExtent;
 		this.forcePositionsDirty = false;
 		this.submittedForcePositions.clear();
 		const viewportState = this.captureViewportState();
+		if (!preserveScale) this.spacingExtent = undefined;
 		this.graph = graph;
 		this.sceneCache = new G6SceneCache(graph, this.edgeRoutes);
 		this.coordinateSpace = createG6CoordinateSpace(
 			graph,
-			this.sceneCache.graphExtent,
+			this.spacingExtent ?? this.sceneCache.graphExtent,
 		);
 		this.labelVisibility = undefined;
 		this.dropMissingInteractionTargets();
@@ -508,6 +516,7 @@ export class G6Renderer implements PlanarRenderer {
 	}
 
 	fit(): void {
+		this.spacingExtent = undefined;
 		this.cancelWheelZoom();
 		this.scheduleCoordinateFrame({
 			zoomLevel: 100,
@@ -1018,7 +1027,7 @@ export class G6Renderer implements PlanarRenderer {
 			zoomLevel: this.getZoomLevel(),
 			normalizedCenter: normalizePlanarPosition(
 				canonicalCenter,
-				this.sceneCache.graphExtent,
+				this.spacingExtent ?? this.sceneCache.graphExtent,
 			),
 		};
 	}
@@ -1051,7 +1060,7 @@ export class G6Renderer implements PlanarRenderer {
 			height: canvasCenter[1] * 2,
 		};
 		if (!(viewport.width > 0) || !(viewport.height > 0)) return;
-		const extent = this.sceneCache.graphExtent;
+		const extent = this.spacingExtent ?? this.sceneCache.graphExtent;
 		const hadFitBaseline = this.hasFitBaseline;
 		const previousFitZoom = this.fitZoom;
 		this.fitZoom =

@@ -32,6 +32,7 @@ export interface WorkspaceRenderPlan {
 	rebuild?: {
 		fitAfterRender: boolean;
 		forceLayout: boolean;
+		preserveViewportScale?: boolean;
 	};
 	syncSelection: boolean;
 }
@@ -62,6 +63,9 @@ export function createWorkspaceRenderPlan(
 			? {
 					fitAfterRender: changes.fitAfterRender,
 					forceLayout: changes.forceLayout,
+					...(changes.preserveViewportScale
+						? { preserveViewportScale: true }
+						: {}),
 				}
 			: undefined,
 		syncSelection: !changes.shouldRebuild,

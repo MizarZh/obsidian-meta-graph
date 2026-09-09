@@ -13,6 +13,8 @@ export interface WorkspaceRenderBaseline {
 	chartSource?: WorkspaceState['chartSource'];
 	flowEdgeStyle?: WorkspaceState['flowEdgeStyle'];
 	flowDirection?: WorkspaceState['flowDirection'];
+	flowLayerSpacing?: number;
+	flowLaneSpacing?: number;
 	flowCornerRadius?: WorkspaceState['flowCornerRadius'];
 	arcDirection?: WorkspaceState['arcDirection'];
 	arcLabelAngle?: WorkspaceState['arcLabelAngle'];
@@ -59,6 +61,7 @@ export interface WorkspaceStateChanges {
 	shouldRebuild: boolean;
 	fitAfterRender: boolean;
 	forceLayout: boolean;
+	preserveViewportScale?: boolean;
 }
 
 type WorkspaceStateKey = keyof WorkspaceState;
@@ -181,7 +184,26 @@ export function analyzeWorkspaceStateChanges(
 				baseline.grouping,
 			));
 
+	const preserveViewportScale =
+		nextState.mode === 'flow' &&
+		!activeChartChanged &&
+		!modeChanged &&
+		!rendererChanged &&
+		!chartSourceChanged &&
+		!projectionChanged &&
+		!flowStyleChanged &&
+		!flowDirectionChanged &&
+		!nodeSortChanged &&
+		(baselineValueChanged(nextState, baseline, 'flowLayerSpacing') ||
+			baselineValueChanged(nextState, baseline, 'flowLaneSpacing')) &&
+		// Chart setters clone grouping even when only spacing changes.
+		// Only a content change should invalidate the preserved frame.
+		(!groupingChanged ||
+			JSON.stringify(nextState.grouping) ===
+				JSON.stringify(baseline.grouping));
+
 	return {
+		preserveViewportScale,
 		groupingChanged,
 		manualLayoutChanged: baselineValueChanged(
 			nextState,
@@ -303,7 +325,9 @@ export function analyzeWorkspaceStateChanges(
 			flowDirectionChanged ||
 			arcDirectionChanged ||
 			nodeSortChanged ||
-			(layoutRevisionChanged && nextState.mode !== 'cube'),
+			(layoutRevisionChanged &&
+				nextState.mode !== 'cube' &&
+				!preserveViewportScale),
 		forceLayout:
 			flowStyleChanged ||
 			flowDirectionChanged ||
@@ -425,6 +449,8 @@ export function createWorkspaceRenderBaseline(
 		chartSource: state.chartSource,
 		flowEdgeStyle: state.flowEdgeStyle,
 		flowDirection: state.flowDirection,
+		flowLayerSpacing: state.flowLayerSpacing,
+		flowLaneSpacing: state.flowLaneSpacing,
 		flowCornerRadius: state.flowCornerRadius,
 		arcDirection: state.arcDirection,
 		arcLabelAngle: state.arcLabelAngle,
