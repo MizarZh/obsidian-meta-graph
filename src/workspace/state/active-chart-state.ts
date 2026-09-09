@@ -38,6 +38,7 @@ type ActiveChartStateFields = Pick<
 	| 'labelDarkBackgroundOpacity'
 	| 'labelDensity'
 	| 'cubeFaceOpacity'
+	| 'parallelEdgeStyle'
 	| 'cubeSize'
 	| 'cubeFreeCamera'
 	| 'forceLabels'
@@ -153,6 +154,7 @@ function createActiveChartStateFields(
 		labelDarkBackgroundOpacity: chart.display.labelDarkBackgroundOpacity,
 		labelDensity: chart.display.labelDensity,
 		cubeFaceOpacity: chart.display.cubeFaceOpacity,
+		parallelEdgeStyle: chart.display.parallelEdgeStyle ?? 'straight',
 		cubeSize: chart.display.cubeSize,
 		cubeFreeCamera: chart.display.cubeFreeCamera,
 		forceLabels: chart.display.forceLabels,

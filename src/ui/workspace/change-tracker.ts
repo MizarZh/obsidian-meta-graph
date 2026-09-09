@@ -48,6 +48,7 @@ export interface WorkspaceStateChanges {
 	labelThemeChanged: boolean;
 	labelDensityChanged: boolean;
 	cubeFaceOpacityChanged: boolean;
+	parallelEdgeStyleChanged?: boolean;
 	cubeSizeChanged: boolean;
 	cubeFreeCameraChanged: boolean;
 	forceLabelsChanged: boolean;
@@ -257,6 +258,8 @@ export function analyzeWorkspaceStateChanges(
 		),
 		cubeFaceOpacityChanged:
 			nextState.cubeFaceOpacity !== currentState.cubeFaceOpacity,
+		parallelEdgeStyleChanged:
+			nextState.parallelEdgeStyle !== currentState.parallelEdgeStyle,
 		cubeSizeChanged: nextState.cubeSize !== currentState.cubeSize,
 		cubeFreeCameraChanged:
 			nextState.cubeFreeCamera !== currentState.cubeFreeCamera,

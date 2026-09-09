@@ -71,6 +71,7 @@ import {
 	setThreeLabelResolutionInState,
 	setLayoutNodeSortInState,
 	setLayoutSortDirectionInState,
+	setParallelEdgeStyleInState,
 	type GraphForceSettingKey,
 } from '@/workspace/state/chart-settings';
 import {
@@ -490,6 +491,10 @@ export class WorkspaceController {
 		this.setWorkspaceState(
 			setLabelDensityInState(this.state, labelDensity),
 		);
+	}
+
+	setParallelEdgeStyle(value: 'straight' | 'curve'): void {
+		this.setWorkspaceState(setParallelEdgeStyleInState(this.state, value));
 	}
 
 	setCubeFaceOpacity(cubeFaceOpacity: number): void {

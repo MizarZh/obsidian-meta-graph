@@ -12,6 +12,7 @@ const DISPLAY_CHANGE_KEYS = [
 	'labelThemeChanged',
 	'labelDensityChanged',
 	'cubeFaceOpacityChanged',
+	'parallelEdgeStyleChanged',
 	'cubeSizeChanged',
 	'cubeFreeCameraChanged',
 	'forceLabelsChanged',

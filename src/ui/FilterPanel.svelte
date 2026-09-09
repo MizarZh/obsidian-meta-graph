@@ -40,6 +40,8 @@
 			fadeDistance={view.graph.fadeDistance}
 			labelDensity={view.graph.labelDensity}
 			cubeFaceOpacity={view.graph.cubeFaceOpacity}
+			parallelEdgeStyle={view.graph.parallelEdgeStyle ?? 'straight'}
+			onParallelEdgeStyle={actions.graph.setParallelEdgeStyle}
 			cubeSize={view.graph.cubeSize}
 			cubeFreeCamera={view.graph.cubeFreeCamera}
 			enableForceLayout={view.graph.enableForceLayout}

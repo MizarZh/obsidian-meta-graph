@@ -29,6 +29,8 @@
 		fadeDistance,
 		labelDensity,
 		cubeFaceOpacity,
+		parallelEdgeStyle = 'straight',
+		onParallelEdgeStyle,
 		cubeSize,
 		cubeFreeCamera,
 		enableForceLayout,
@@ -79,6 +81,8 @@
 		fadeDistance: number;
 		labelDensity: number;
 		cubeFaceOpacity: number;
+		parallelEdgeStyle?: 'straight' | 'curve';
+		onParallelEdgeStyle: (value: 'straight' | 'curve') => void;
 		cubeSize: number;
 		cubeFreeCamera: boolean;
 		enableForceLayout: boolean;
@@ -293,6 +297,19 @@
 				value={renderer}
 				options={RENDERER_OPTIONS}
 				onChange={onRenderer}
+			/>
+		</SettingsSection>
+	{/if}
+	{#if mode === 'graph' && renderer === 'sigma'}
+		<SettingsSection title="Edges">
+			<SegmentedSetting
+				label="Parallel edges"
+				value={parallelEdgeStyle}
+				options={[
+					{ value: 'straight', label: 'Straight' },
+					{ value: 'curve', label: 'Curved' },
+				]}
+				onChange={onParallelEdgeStyle}
 			/>
 		</SettingsSection>
 	{/if}

@@ -2,6 +2,7 @@ import type { WorkspaceState } from '@/core/types';
 import type { WorkspaceStateChanges } from '@/ui/workspace/change-tracker';
 
 interface DisplayRenderer {
+	setParallelEdgeStyle?(value: 'straight' | 'curve'): void;
 	setFadeDistance(value: number): void;
 	setLabelSize(value: number): void;
 	setScaleLabelsWithZoom?(value: boolean): void;
@@ -35,6 +36,12 @@ export function syncRendererDisplaySettings(
 	state: WorkspaceState,
 	changes: WorkspaceStateChanges,
 ): void {
+	if (changes.parallelEdgeStyleChanged)
+		renderer?.setParallelEdgeStyle?.(
+			state.mode === 'graph'
+				? (state.parallelEdgeStyle ?? 'straight')
+				: 'straight',
+		);
 	if (changes.fadeDistanceChanged) {
 		renderer?.setFadeDistance(state.fadeDistance);
 	}

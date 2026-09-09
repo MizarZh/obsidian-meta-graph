@@ -7,6 +7,15 @@ body.
 
 ## Metadata
 
+### Sigma Graph parallel edges
+
+In **Graph settings -> Edges -> Parallel edges**, choose **Straight** or
+**Curved** when the renderer is Sigma. This affects multiple relationships
+between the same two nodes, including reverse-direction links. The choice is
+saved per chart; existing charts default to Straight. Switching does not rerun
+the force layout. Single edges, G6, and layout-owned Flow/Arc/HEB routes are
+unchanged. Curved edges retain arrows, labels, selection and hit testing.
+
 ### Performance diagnostics
 
 Enable **Settings -> Community plugins -> Meta Graph -> Diagnostics -> Performance logs**.

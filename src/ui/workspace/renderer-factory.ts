@@ -56,6 +56,10 @@ export function createWorkspaceGraphRenderer(
 		labelDarkBackgroundOpacity: state.labelDarkBackgroundOpacity,
 		labelDensity: state.labelDensity,
 		cubeFaceOpacity: state.cubeFaceOpacity,
+		parallelEdgeStyle:
+			state.mode === 'graph'
+				? (state.parallelEdgeStyle ?? 'straight')
+				: 'straight',
 		cubeSize: state.cubeSize,
 		cubeFreeCamera: state.cubeFreeCamera,
 		enableForceLayout: state.enableForceLayout,

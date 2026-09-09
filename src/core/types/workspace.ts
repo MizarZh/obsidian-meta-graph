@@ -151,6 +151,7 @@ export interface ManualLayoutConfig {
 }
 
 export interface ChartDisplayConfig {
+	parallelEdgeStyle?: 'straight' | 'curve';
 	fadeDistance: number;
 	labelSize: number;
 	scaleLabelsWithZoom: boolean;
@@ -240,6 +241,7 @@ export interface MetaGraphDocument {
 }
 
 export interface WorkspaceState {
+	parallelEdgeStyle?: 'straight' | 'curve';
 	charts: MetaGraphChart[];
 	activeChartId: string;
 	mode: ViewMode;

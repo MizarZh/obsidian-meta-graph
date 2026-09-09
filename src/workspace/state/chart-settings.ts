@@ -210,6 +210,17 @@ export function setCubeFaceOpacityInState(
 	return setDisplayValue(state, 'cubeFaceOpacity', opacity);
 }
 
+export function setParallelEdgeStyleInState(
+	state: WorkspaceState,
+	value: 'straight' | 'curve',
+): WorkspaceState {
+	return setDisplayValue(
+		state,
+		'parallelEdgeStyle',
+		value === 'curve' ? 'curve' : 'straight',
+	);
+}
+
 export function setCubeSizeInState(
 	state: WorkspaceState,
 	cubeSize: number,

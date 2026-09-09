@@ -507,6 +507,9 @@ function chartExtensionsToV2(
 		? cloneSerializable(extensions[META_GRAPH_EXTENSION_KEY])
 		: {};
 	delete namespace.renderer;
+	delete namespace.parallelEdgeStyle;
+	if (chart.display.parallelEdgeStyle === 'curve')
+		namespace.parallelEdgeStyle = 'curve';
 	if (supportsPlanarRenderer(chart.type) && chart.renderer === 'g6') {
 		namespace.renderer = 'g6';
 	}
@@ -1212,6 +1215,7 @@ function v2ChartToLegacyRecord(
 		},
 		display: {
 			fadeDistance: display.fadeDistance ?? fadeDistance,
+			parallelEdgeStyle: readChartParallelEdgeStyle(value.extensions),
 			labelSize: labels.size,
 			scaleLabelsWithZoom: labels.scaleWithZoom,
 			threeLabelResolution: labels.threeResolution,
@@ -1257,6 +1261,14 @@ function v2ChartToLegacyRecord(
 			linkRules: style.linkRules,
 		},
 	};
+}
+
+function readChartParallelEdgeStyle(extensions: unknown): 'straight' | 'curve' {
+	if (!isRecord(extensions)) return 'straight';
+	const namespace = extensions[META_GRAPH_EXTENSION_KEY];
+	return isRecord(namespace) && namespace.parallelEdgeStyle === 'curve'
+		? 'curve'
+		: 'straight';
 }
 
 function readChartRenderer(extensions: unknown): MetaGraphChart['renderer'] {

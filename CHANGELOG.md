@@ -6,6 +6,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Added per-chart Straight/Curved parallel edges for Sigma Graph views. Curved lanes share geometry for drawing, arrows, labels and picking; changing the setting does not rerun layout. Existing charts default to Straight and G6/other chart modes remain unchanged.
+
 - Split G6 force scheduling diagnostics into animation-frame wait and draw-queue wait, retaining the total wait metric.
 
 - Added `simulationSolve` to opt-in Sigma/G6 performance logs, separating actual D3 force evaluation and integration from pointer-driven position publication.

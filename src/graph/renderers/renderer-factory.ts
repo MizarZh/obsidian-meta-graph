@@ -98,6 +98,7 @@ export async function createGraphRenderer(
 	}
 
 	const sigmaOptions: SigmaRendererOptions = {
+		parallelEdgeStyle: options.parallelEdgeStyle,
 		graph: options.graph,
 		container: options.container,
 		palette: options.palette,

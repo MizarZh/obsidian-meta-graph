@@ -113,6 +113,7 @@ export class SigmaRenderer {
 	private forceMotionActive = false;
 	private readonly groupOverlayLayer: GroupOverlayLayer;
 	private readonly layoutGroupLayer: LayoutGroupLayer;
+	private parallelEdgeStyle: 'straight' | 'curve' = 'straight';
 	private readonly parallelEdgeLayer: SigmaParallelEdgeLayer;
 	private hoverRefreshIndex: SigmaHoverRefreshIndex;
 	private readonly hoverRefreshCoordinator: SigmaHoverRefreshCoordinator;
@@ -144,6 +145,7 @@ export class SigmaRenderer {
 			labelDarkBackgroundOpacity,
 		} = options;
 		this.graph = graph;
+		this.parallelEdgeStyle = options.parallelEdgeStyle ?? 'straight';
 		this.palette = palette;
 		this.fadeDistance = fadeDistance;
 		this.scaleLabelsWithZoom = scaleLabelsWithZoom;
@@ -259,6 +261,7 @@ export class SigmaRenderer {
 			() => this.graph,
 			() => ({
 				activeHoverNodeId: this.getActiveHoverNodeId(),
+				parallelEdgeStyle: this.parallelEdgeStyle,
 				localHover: this.hoverMode === 'local',
 				pinnedNodeId: this.pinnedNodeId,
 				forceMotionActive: this.forceMotionActive,
@@ -581,6 +584,12 @@ export class SigmaRenderer {
 		this.labelTheme = labelTheme;
 		this.instance.setSetting('labelColor', { color: this.getLabelColor() });
 		this.refresh();
+	}
+
+	setParallelEdgeStyle(value: 'straight' | 'curve'): void {
+		if (this.parallelEdgeStyle === value) return;
+		this.parallelEdgeStyle = value;
+		this.parallelEdgeLayer.update();
 	}
 
 	setLabelDensity(labelDensity: number): void {

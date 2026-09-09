@@ -14,6 +14,7 @@ import {
 	type EdgeVisualMetricsOptions,
 } from '@/graph/renderers/sigma/sigma-edge-visual-metrics';
 import { isCanvasParallelEdge } from '@/graph/renderers/sigma/sigma-parallel-edge-policy';
+import { createParallelCurveRoute } from './sigma-parallel-curve';
 import { CanvasTextWidthCache } from '@/graph/renderers/sigma/canvas-text-metrics';
 
 const LAYER_ID = 'parallel-edges';
@@ -94,6 +95,7 @@ export interface OrderedNativeEdgeSegmentDescriptor extends NativeEdgeSegmentDes
 }
 
 export interface ParallelEdgeLayerState {
+	parallelEdgeStyle?: 'straight' | 'curve';
 	localHover?: boolean;
 	activeHoverNodeId?: string;
 	pinnedNodeId?: string;
@@ -314,6 +316,7 @@ export class SigmaParallelEdgeLayer {
 			flowRoute?.direction,
 		);
 		const signature = [
+			this.getState().parallelEdgeStyle ?? 'straight',
 			source.x,
 			source.y,
 			target.x,
@@ -345,14 +348,22 @@ export class SigmaParallelEdgeLayer {
 					axis,
 					flowRoute.kind,
 				)
-			: createParallelCanvasRoute(
-					source,
-					target,
-					sourceRadius,
-					targetRadius,
-					laneOffset,
-					axis,
-				);
+			: this.getState().parallelEdgeStyle === 'curve'
+				? createParallelCurveRoute(
+						source,
+						target,
+						sourceRadius,
+						targetRadius,
+						laneOffset,
+					)
+				: createParallelCanvasRoute(
+						source,
+						target,
+						sourceRadius,
+						targetRadius,
+						laneOffset,
+						axis,
+					);
 		if (!route) {
 			return undefined;
 		}

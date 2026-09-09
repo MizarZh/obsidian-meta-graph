@@ -112,6 +112,7 @@ export function createDefaultChart(
 			labelDarkBackgroundColor: DEFAULT_LABEL_DARK_BACKGROUND_COLOR,
 			labelDarkBackgroundOpacity: DEFAULT_LABEL_DARK_BACKGROUND_OPACITY,
 			labelDensity: DEFAULT_LABEL_DENSITY,
+			parallelEdgeStyle: 'straight',
 			cubeFaceOpacity: DEFAULT_CUBE_FACE_OPACITY,
 			cubeSize: DEFAULT_CUBE_SIZE,
 			cubeFreeCamera: DEFAULT_CUBE_FREE_CAMERA,
@@ -285,6 +286,8 @@ export function normalizeChart(
 				0,
 				1,
 			),
+			parallelEdgeStyle:
+				display.parallelEdgeStyle === 'curve' ? 'curve' : 'straight',
 			cubeFaceOpacity: clampNumber(
 				readFiniteNumber(
 					display.cubeFaceOpacity,

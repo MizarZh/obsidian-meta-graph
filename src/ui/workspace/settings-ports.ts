@@ -41,6 +41,7 @@ export interface WorkspaceGraphSettingsView {
 	fadeDistance: number;
 	labelDensity: number;
 	cubeFaceOpacity: number;
+	parallelEdgeStyle?: 'straight' | 'curve';
 	cubeSize: number;
 	cubeFreeCamera: boolean;
 	enableForceLayout: boolean;
@@ -127,6 +128,7 @@ type StyleRuleScope = 'global' | 'current';
 export interface WorkspaceGraphSettingsActions {
 	setRenderer(value: PlanarRendererKind): void;
 	setFlowEdgeStyle(value: FlowEdgeStyle): void;
+	setParallelEdgeStyle(value: 'straight' | 'curve'): void;
 	setFlowDirection(value: FlowDirection): void;
 	setFlowCornerRadius(value: number): void;
 	setFlowRelationRules(value: FlowRelationRule[]): void;
@@ -225,6 +227,7 @@ export function createWorkspaceSettingsView(
 			fadeDistance: state.fadeDistance,
 			labelDensity: state.labelDensity,
 			cubeFaceOpacity: state.cubeFaceOpacity,
+			parallelEdgeStyle: state.parallelEdgeStyle ?? 'straight',
 			cubeSize: state.cubeSize,
 			cubeFreeCamera: state.cubeFreeCamera,
 			enableForceLayout: state.enableForceLayout,
@@ -320,6 +323,8 @@ export function createWorkspaceSettingsActions(
 			setRenderer: (value) => controller.setActiveChartRenderer(value),
 			resetGraphForces: () => controller.resetGraphForces(),
 			setFlowEdgeStyle: (value) => controller.setFlowEdgeStyle(value),
+			setParallelEdgeStyle: (value) =>
+				controller.setParallelEdgeStyle(value),
 			setFlowDirection: (value) => controller.setFlowDirection(value),
 			setFlowCornerRadius: (value) =>
 				controller.setFlowCornerRadius(value),
