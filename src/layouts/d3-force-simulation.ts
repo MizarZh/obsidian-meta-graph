@@ -11,7 +11,10 @@ import {
 	type SimulationNodeDatum,
 } from 'd3-force';
 import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
-import { getPlanarPerformance } from '@/graph/renderers/planar-performance';
+import {
+	getPlanarPerformance,
+	type PlanarPerformance,
+} from '@/graph/renderers/planar-performance';
 import type { ForceSimulationRenderer } from '@/graph/renderers/renderer-contracts';
 import {
 	DEFAULT_GRAPH_FORCE_SETTINGS,
@@ -303,7 +306,15 @@ export class D3ForceSimulation {
 			-this.forceSettings.repelForce * distance * distance * 0.012;
 		const repelMinDistance = distance * 0.25;
 		const repelMaxDistance = distance * 6;
+		let solving: PlanarPerformance | undefined;
+		let solveStarted = 0;
 		this.simulation = forceSimulation<ForceNode, ForceLink>(this.nodes)
+			// D3's timer calls its closed-over tick, not simulation.tick. The first
+			// force and tick event bracket all forces plus velocity integration.
+			.force('diagnostic-start', () => {
+				solving = getPlanarPerformance(this.renderer);
+				if (solving) solveStarted = performance.now();
+			})
 			.force(
 				'link',
 				forceLink<ForceNode, ForceLink>(links)
@@ -369,11 +380,19 @@ export class D3ForceSimulation {
 			.velocityDecay(0.45)
 			.stop()
 			.alpha(0)
-			.on('tick', () => this.applyTick())
+			.on('tick', () => {
+				if (solving && solving === getPlanarPerformance(this.renderer))
+					solving.record(
+						'simulationSolve',
+						performance.now() - solveStarted,
+					);
+				solving = undefined;
+				this.applyTick(true);
+			})
 			.on('end', () => this.finishSettling());
 	}
 
-	private applyTick(): void {
+	private applyTick(simulationTick = false): void {
 		const diagnostics = getPlanarPerformance(this.renderer);
 		const started = diagnostics ? performance.now() : 0;
 		diagnostics?.record(
@@ -422,7 +441,9 @@ export class D3ForceSimulation {
 			},
 			{ attributes: ['x', 'y', 'fixed'] },
 		);
-		this.renderer.syncForcePositions?.();
+		this.renderer.syncForcePositions?.(
+			simulationTick ? 'simulation-tick' : undefined,
+		);
 		this.updateSettledState(maxDisplacement);
 		diagnostics?.record('simulationPublish', performance.now() - started);
 	}

@@ -7,8 +7,79 @@ import type {
 import type { ForceSimulationRenderer } from '@/graph/renderers/renderer-contracts';
 import { D3ForceSimulation } from '@/layouts/d3-force-simulation';
 import { DEFAULT_GRAPH_FORCE_SETTINGS } from '@/layouts/force-layout';
+import * as performanceLogs from '@/graph/renderers/planar-performance';
 
 describe('D3ForceSimulation', () => {
+	it('measures actual solver steps separately from pointer publication and honors live disable', () => {
+		const record = vi.fn();
+		const session = {
+			record,
+		} as unknown as performanceLogs.PlanarPerformance;
+		const logging = vi
+			.spyOn(performanceLogs, 'getPlanarPerformance')
+			.mockReturnValue(session);
+		const graph = new Graph<
+			RuntimeNodeAttributes,
+			RuntimeEdgeAttributes,
+			Record<string, never>
+		>({ multi: true, type: 'mixed' });
+		graph.addNode('A', node(0, 0));
+		graph.addNode('B', node(1, 0));
+		graph.addEdgeWithKey('A-B', 'A', 'B', edge());
+		const timerWindow = {
+			setTimeout: vi.fn(() => 0),
+			clearTimeout: vi.fn(),
+		} as unknown as Pick<Window, 'setTimeout' | 'clearTimeout'>;
+		const syncPositions = vi.fn();
+		const simulation = new D3ForceSimulation(
+			graph,
+			{ ...createRenderer(), syncForcePositions: syncPositions },
+			1,
+			DEFAULT_GRAPH_FORCE_SETTINGS,
+			new Map(),
+			undefined,
+			timerWindow,
+		);
+		try {
+			simulation.drag('A', { x: 3, y: 2 });
+			expect(syncPositions).toHaveBeenLastCalledWith(undefined);
+			expect(
+				record.mock.calls.some(
+					([metric]) => metric === 'simulationSolve',
+				),
+			).toBe(false);
+			const inner = (
+				simulation as unknown as {
+					simulation: {
+						tick(): void;
+						stop(): void;
+						on(event: string): () => void;
+					};
+				}
+			).simulation;
+			inner.stop();
+			inner.tick();
+			inner.on('tick')();
+			expect(syncPositions).toHaveBeenLastCalledWith('simulation-tick');
+			expect(
+				record.mock.calls.filter(
+					([metric]) => metric === 'simulationSolve',
+				),
+			).toHaveLength(1);
+			expect(record).toHaveBeenCalledWith(
+				'simulationSolve',
+				expect.any(Number),
+			);
+			logging.mockReturnValue(undefined);
+			record.mockClear();
+			inner.tick();
+			inner.on('tick')();
+			expect(record).not.toHaveBeenCalled();
+		} finally {
+			simulation.stop();
+			logging.mockRestore();
+		}
+	});
 	afterEach(() => {
 		vi.useRealTimers();
 		vi.unstubAllGlobals();

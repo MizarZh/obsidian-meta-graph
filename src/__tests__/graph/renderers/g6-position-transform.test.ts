@@ -15,6 +15,55 @@ import {
 } from '@/graph/renderers/g6/g6-position-transform';
 
 describe('G6 position-only native node updates', () => {
+	it('matches full updates for partial positions and retained rotation/scale without style writes', () => {
+		const make = () =>
+			new Circle({
+				style: {
+					x: 4,
+					y: 5,
+					z: 0,
+					size: 20,
+					label: false,
+					transform: [
+						['translate', 4, 5],
+						['rotate', 30],
+						['scale', 2, 3],
+					],
+					visibility: 'hidden',
+					cursor: 'pointer',
+					zIndex: 7,
+				},
+			});
+		const node = make();
+		const reference = make();
+		const restore = installG6PositionOnlyUpdate(node);
+		const set = vi.spyOn(node, 'setAttribute');
+		try {
+			for (const patch of [
+				{ x: 12 },
+				{ y: -8 },
+				{ z: 3 },
+				{ x: 0, y: 0, z: 0 },
+			]) {
+				node.update(patch);
+				reference.update(patch);
+				expect(node.attributes).toEqual(reference.attributes);
+				expect(Array.from(node.getLocalTransform())).toEqual(
+					Array.from(reference.getLocalTransform()),
+				);
+			}
+			expect(set.mock.calls.every(([key]) => key === 'transform')).toBe(
+				true,
+			);
+			node.update({ fill: 'red', size: 30 });
+			reference.update({ fill: 'red', size: 30 });
+			expect(node.attributes).toEqual(reference.attributes);
+		} finally {
+			restore();
+			node.destroy();
+			reference.destroy();
+		}
+	});
 	it('removes 3000 child-shape renders from a 150-node motion sequence', () => {
 		const nodes = Array.from(
 			{ length: 150 },

@@ -16,11 +16,24 @@ The switch applies immediately to open Sigma/G6 views and defaults to off.
 Summaries contain counts/timings only, never note text or paths; idle windows do
 not log. A final partial summary is emitted when an instrumented view closes.
 
+`simulationSolve` measures D3's force evaluation and velocity/position integration
+on actual timer ticks, before position publication; it excludes alpha adjustment,
+scheduling waits and rendering. Pointer-only publication does not increment it.
+It is available for both Sigma and G6, following the global logging toggle.
 `simulationPublish` measures copying simulation positions to the runtime graph,
 not the force solver itself. G6 `translateSync` measures synchronous element
 submission; `forceBatch` includes Group sync and completion, and `forceQueueWait`
 is scheduling delay. Sigma `render` includes `process`, so do not add those
 times. Canvas `mainDraw` is CPU drawing work, not GPU completion.
+G6 splits scheduling into `forceFrameWait` (request to rAF callback) and
+`forceDrawQueueWait` (callback to queued task start). Their durations sum to
+`forceQueueWait` for a completed batch, but window counts can differ at boundaries.
+These waits are elapsed time, not CPU work. `edgePathWriteSkipped` counts unchanged
+key/halo paths that avoid redundant writes; moving paths still update normally.
+Automatic D3 ticks now enqueue G6 positions without requesting an extra rAF;
+`forceSameFrameRequest` counts this path. It does not guarantee same-frame painting.
+Pointer bursts and follow-up submissions after busy batches still use rAF, and
+all submissions retain draw-queue ordering and latest-position coalescing.
 `activePaintInterval` excludes idle gaps of one second or more and is not monitor
 FPS. G6 label counts are eligible labels; Sigma's edge-label count excludes its
 custom Canvas edge layer. Samples are capped at 4096 per metric/window; full
@@ -44,6 +57,9 @@ per-element animation task creation and style snapshots. Such batches do not
 increment `g6ScheduleElement`; `g6ExecuteTasks` and node/edge update timings still
 apply. Custom elements, structural changes and pre-update listeners retain the
 original path. Compare `translateSync` and redraw intervals, not just task counts.
+`nodeMinimalPositionHit` counts native nodes updated by writing only coordinates
+and their transform; retained styles and children are not resubmitted. Mixed
+style updates retain the full update path.
 
 Add relationship properties to note frontmatter, then add those metadata field
 names in the workspace connection panel. Each property accepts a single string

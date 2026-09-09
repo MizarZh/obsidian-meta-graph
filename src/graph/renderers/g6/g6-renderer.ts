@@ -896,7 +896,7 @@ export class G6Renderer implements PlanarRenderer {
 		this.scheduleLabelSync();
 	}
 
-	syncForcePositions(): void {
+	syncForcePositions(source?: 'simulation-tick'): void {
 		if (this.killed || this.isStale()) return;
 		getPlanarPerformance(this)?.record('forceSyncRequest');
 		this.forcePositionsDirty = true;
@@ -906,6 +906,9 @@ export class G6Renderer implements PlanarRenderer {
 		const queuedAt = diagnostics ? performance.now() : 0;
 		const enqueue = () => {
 			this.forceSyncFrame = undefined;
+			const enqueuedAt = diagnostics ? performance.now() : 0;
+			if (diagnostics === getPlanarPerformance(this))
+				diagnostics?.record('forceFrameWait', enqueuedAt - queuedAt);
 			this.drawQueue = this.drawQueue
 				.then(async () => {
 					if (
@@ -915,7 +918,15 @@ export class G6Renderer implements PlanarRenderer {
 					)
 						return;
 					this.forcePositionsDirty = false;
-					diagnostics?.record(
+					const activeDiagnostics =
+						diagnostics === getPlanarPerformance(this)
+							? diagnostics
+							: undefined;
+					activeDiagnostics?.record(
+						'forceDrawQueueWait',
+						performance.now() - enqueuedAt,
+					);
+					activeDiagnostics?.record(
 						'forceQueueWait',
 						performance.now() - queuedAt,
 					);
@@ -931,7 +942,14 @@ export class G6Renderer implements PlanarRenderer {
 				});
 		};
 		const window = this.container.ownerDocument?.defaultView;
-		if (window) this.forceSyncFrame = window.requestAnimationFrame(enqueue);
+		// D3 already paces automatic steps. Keep queue ordering/backpressure,
+		// but don't request another frame merely to enqueue these positions.
+		// Pointer bursts and follow-up work after a busy batch still use rAF.
+		if (source === 'simulation-tick') {
+			diagnostics?.record('forceSameFrameRequest');
+			enqueue();
+		} else if (window)
+			this.forceSyncFrame = window.requestAnimationFrame(enqueue);
 		else queueMicrotask(enqueue);
 	}
 

@@ -37,8 +37,15 @@ export function updateG6EdgePosition(
 	// Updating d also lets G reposition existing start/end markers. Their
 	// color, size and shape do not change when only the endpoints move.
 	started = diagnostics ? performance.now() : 0;
-	key.setAttribute('d', path);
-	edge.getShape('halo')?.setAttribute('d', path);
+	for (const shape of [key, edge.getShape('halo')]) {
+		if (!shape) continue;
+		const current = shape.attributes as { d?: unknown } | undefined;
+		if (samePath(current?.d, path)) {
+			diagnostics?.record('edgePathWriteSkipped');
+		} else {
+			shape.setAttribute('d', path);
+		}
+	}
 	diagnostics?.record('edgeApplyPathAndMarkers', performance.now() - started);
 	const label = edge.getShape<Label>('label');
 	if (attributes.label !== false && attributes.labelText && label) {
@@ -48,6 +55,26 @@ export function updateG6EdgePosition(
 		diagnostics?.record('edgePositionLabel', performance.now() - started);
 	}
 	return true;
+}
+
+// Compare current shape data, not a cache: style/state updates can replace it.
+function samePath(previous: unknown, next: unknown): boolean {
+	if (previous === next) return true;
+	if (
+		!Array.isArray(previous) ||
+		!Array.isArray(next) ||
+		previous.length !== next.length
+	)
+		return false;
+	return next.every((segment: unknown, index: number) => {
+		const before: unknown = previous[index];
+		return (
+			Array.isArray(segment) &&
+			Array.isArray(before) &&
+			segment.length === before.length &&
+			segment.every((value: unknown, i: number) => value === before[i])
+		);
+	});
 }
 
 function updateLabelPosition(label: Label, next: Label['attributes']): void {

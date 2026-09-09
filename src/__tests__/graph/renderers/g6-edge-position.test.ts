@@ -20,6 +20,40 @@ function keyShape(edge: BaseEdge): KeyShapeSnapshot {
 }
 
 describe('G6 edge geometry-only updates', () => {
+	it('skips identical path writes but repairs changed halo paths independently', () => {
+		const path = [
+			['M', 0, 0],
+			['L', 40, 20],
+		];
+		const key = {
+			attributes: { d: path.map((part) => [...part]) },
+			setAttribute: vi.fn(),
+		};
+		const halo = {
+			attributes: {
+				d: [
+					['M', 0, 0],
+					['L', 1, 1],
+				],
+			},
+			setAttribute: vi.fn(),
+		};
+		const edge = {
+			attributes: { sourceNode: 'a', targetNode: 'b', label: false },
+			getShape: (name: string) =>
+				name === 'key' ? key : name === 'halo' ? halo : undefined,
+			getKeyPath: () => path,
+		} as unknown as BaseEdge;
+		expect(updateG6EdgePosition(edge)).toBe(true);
+		expect(key.setAttribute).not.toHaveBeenCalled();
+		expect(halo.setAttribute).toHaveBeenCalledWith('d', path);
+		key.attributes.d = [
+			['M', 0, 0],
+			['L', 2, 2],
+		];
+		updateG6EdgePosition(edge);
+		expect(key.setAttribute).toHaveBeenCalledWith('d', path);
+	});
 	it.each([
 		['fits', 200, 'relation', false],
 		['wraps', 40, 'relation', true],

@@ -6,6 +6,10 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Split G6 force scheduling diagnostics into animation-frame wait and draw-queue wait, retaining the total wait metric.
+
+- Added `simulationSolve` to opt-in Sigma/G6 performance logs, separating actual D3 force evaluation and integration from pointer-driven position publication.
+
 - Extended opt-in G6 performance logs with translation-stage timings, actual position fast-path hit/fallback counts, per-metric totals and compatibility warnings. Instrumentation restores original methods when disabled.
 
 - Added an opt-in global Performance logs setting for Sigma and G6. Five-second console summaries report scene counts, submission/render timings and active redraw intervals without note content or paths; changing the toggle immediately attaches or removes instrumentation on open graphs.
@@ -35,11 +39,17 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- G6 now attempts same-frame queue submission for automatic D3 ticks without an additional renderer animation frame. Pointer updates, backpressure, latest-position coalescing and synchronized Group updates retain their existing behavior.
+
 - Compacted the Forces panel by moving guidance into hover tooltips and the Reset button into the section header; slider values and reset behavior are unchanged.
 
 - Tuned Graph dragging with distance-scaled repulsion, softer centering, degree-aware springs, stronger collision handling and bounded node velocity. Dragged nodes publish immediately and remain active while held; release cools smoothly without direct neighbor displacement or an extra return force. Force parameter edits preserve the runtime graph and group references.
 
 ### Fixed
+
+- G6 translation skips unchanged edge key/halo path writes without caching stale geometry across style or state updates.
+
+- Native G6 nodes now submit only coordinates and transforms during position-only updates, avoiding repeated full-style writes while preserving retained children, rotation/scale and image position notifications. Style changes keep the normal update path.
 
 - G6 batches native non-animated translation updates into one lightweight task, avoiding per-element animation style snapshots. Element updates, labels and Group synchronization are preserved; structural, custom, animated and pre-update-listener cases use the original pipeline.
 

@@ -15,7 +15,8 @@ import type {
 } from '@/graph/renderers/renderer-groups';
 
 export interface ForceSimulationRenderer {
-	syncForcePositions?(): void;
+	/** Timer-driven simulation steps may avoid an additional renderer rAF. */
+	syncForcePositions?(source?: 'simulation-tick'): void;
 	readonly runtimeGraph: RuntimeGraph;
 	beginForceMotion(): void;
 	endForceMotion(): void;

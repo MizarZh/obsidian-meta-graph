@@ -11,6 +11,8 @@ import {
 	type BaseNode,
 	type BaseEdge,
 } from '@antv/g6';
+import { replaceTranslateInTransform } from '@antv/g6/esm/utils/transform';
+import { dispatchPositionChange } from '@antv/g6/esm/elements/shapes/image';
 import {
 	POSITION_ONLY_EDGE_TYPES,
 	updateG6EdgePosition,
@@ -58,7 +60,29 @@ export function installG6PositionOnlyUpdate(
 		diagnostics?.record('nodeFastHit');
 		node.render = () => {};
 		try {
-			original.call(node, attributes);
+			const native = node as BaseNode;
+			if (
+				nativeNodes.has(node.constructor) &&
+				native.attributes &&
+				typeof native.setAttribute === 'function' &&
+				keys.every((key) => Number.isFinite(attributes?.[key]))
+			) {
+				// Match BaseShape.applyTransform, but submit only position changes.
+				// Reapplying all retained style keys dirties unrelated scene state.
+				const { x = 0, y = 0, z, transform } = native.attributes;
+				const next = replaceTranslateInTransform(
+					attributes?.x ?? x,
+					attributes?.y ?? y,
+					attributes?.z ?? z,
+					transform,
+				);
+				Object.assign(native.attributes, attributes);
+				if (next) native.setAttribute('transform', next);
+				dispatchPositionChange(native);
+				diagnostics?.record('nodeMinimalPositionHit');
+			} else {
+				original.call(node, attributes);
+			}
 		} finally {
 			node.render = render;
 			diagnostics?.record('nodeFastUpdate', performance.now() - started);
