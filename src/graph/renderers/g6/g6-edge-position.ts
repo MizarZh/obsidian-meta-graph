@@ -1,4 +1,5 @@
 import { Line, Quadratic, type BaseEdge, type Label } from '@antv/g6';
+import type { PlanarPerformance } from '@/graph/renderers/planar-performance';
 
 // G6 5.1 compatibility seam. Only these native edges use the fast path.
 export const POSITION_ONLY_EDGE_TYPES: ReadonlySet<unknown> = new Set([
@@ -15,7 +16,10 @@ interface EdgeGeometry {
 }
 
 /** Called only by a translate-stage hook, never by a style/state update. */
-export function updateG6EdgePosition(edge: BaseEdge): boolean {
+export function updateG6EdgePosition(
+	edge: BaseEdge,
+	diagnostics?: PlanarPerformance,
+): boolean {
 	const attributes = edge.attributes;
 	const key = edge.getShape('key');
 	// Self-loops, badges and custom geometry keep G6's complete update path.
@@ -27,15 +31,21 @@ export function updateG6EdgePosition(edge: BaseEdge): boolean {
 		return false;
 	const geometry = edge as unknown as EdgeGeometry;
 	if (typeof geometry.getKeyPath !== 'function') return false;
+	let started = diagnostics ? performance.now() : 0;
 	const path = geometry.getKeyPath(attributes);
+	diagnostics?.record('edgeComputePath', performance.now() - started);
 	// Updating d also lets G reposition existing start/end markers. Their
 	// color, size and shape do not change when only the endpoints move.
+	started = diagnostics ? performance.now() : 0;
 	key.setAttribute('d', path);
 	edge.getShape('halo')?.setAttribute('d', path);
+	diagnostics?.record('edgeApplyPathAndMarkers', performance.now() - started);
 	const label = edge.getShape<Label>('label');
 	if (attributes.label !== false && attributes.labelText && label) {
+		started = diagnostics ? performance.now() : 0;
 		const next = geometry.getLabelStyle(attributes);
 		if (next) updateLabelPosition(label, next);
+		diagnostics?.record('edgePositionLabel', performance.now() - started);
 	}
 	return true;
 }

@@ -1,6 +1,13 @@
 import { Graph, GraphEvent, type GraphOptions, type State } from '@antv/g6';
 import { G6_STATE_TRANSFORM } from '@/graph/renderers/g6/g6-state-transform';
 import { G6_POSITION_TRANSFORM } from '@/graph/renderers/g6/g6-position-transform';
+import { installG6TranslateBatch } from '@/graph/renderers/g6/g6-translate-batch';
+import { observeG6Translation } from '@/graph/renderers/g6/g6-translation-diagnostics';
+import {
+	PlanarPerformance,
+	observeGCanvas,
+	getPlanarPerformance,
+} from '@/graph/renderers/planar-performance';
 import type { LabelPosition } from '@/core/types';
 import type { LayoutGroupGeometry } from '@/layouts/group-geometry';
 import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
@@ -113,6 +120,8 @@ export type G6GraphInstance = Pick<
 export type G6GraphFactory = (options: GraphOptions) => G6GraphInstance;
 
 export class G6Renderer implements PlanarRenderer {
+	private diagnostics?: PlanarPerformance;
+	private restoreTranslateBatch?: () => void;
 	readonly capabilities: RendererCapabilities = {
 		kind: 'g6',
 		supportsGroupOverlay: true,
@@ -298,6 +307,48 @@ export class G6Renderer implements PlanarRenderer {
 			return undefined;
 		}
 		renderer.bindViewportChange();
+		renderer.restoreTranslateBatch = installG6TranslateBatch(instance);
+		renderer.diagnostics = new PlanarPerformance({
+			owner: renderer,
+			engine: 'g6',
+			container: options.container,
+			snapshot: () => ({
+				nodes: renderer.graph.order,
+				runtimeEdges: renderer.graph.size,
+				logicalEdges: renderer.sceneCache.logicalEdgeCount,
+				renderedNodes: renderer.sceneCache.renderedNodeIds.size,
+				eligibleNodeLabels: renderer.readLabelVisibility().nodeIds.size,
+				eligibleEdgeLabels: renderer.readLabelVisibility().edgeIds.size,
+				groups: new Set([
+					...renderer.groupSceneGroups.map((g) => g.id),
+					...renderer.groupSceneGeometries.map((g) => g.groupId),
+				]).size,
+				forceLabels: renderer.forceLabels,
+				labelDensity: renderer.labelDensity,
+				positionFastPath: true,
+				retainedTranslationLabels: true,
+			}),
+			attach: (session) => {
+				const stopTranslationDiagnostics = observeG6Translation(
+					instance,
+					session,
+				);
+				const canvas = instance.getCanvas();
+				const cleanup = (
+					['main', 'background', 'label', 'transient'] as const
+				).map((layer) =>
+					observeGCanvas(
+						canvas.getLayer(layer) as unknown as EventTarget,
+						layer,
+						session,
+					),
+				);
+				return () => {
+					stopTranslationDiagnostics();
+					cleanup.forEach((dispose) => dispose());
+				};
+			},
+		});
 		return renderer;
 	}
 
@@ -527,6 +578,8 @@ export class G6Renderer implements PlanarRenderer {
 
 	kill(): void {
 		if (this.killed) return;
+		this.diagnostics?.destroy();
+		this.restoreTranslateBatch?.();
 		this.killed = true;
 		this.viewportFrameVersion += 1;
 		if (this.viewportChangeBound) {
@@ -845,9 +898,12 @@ export class G6Renderer implements PlanarRenderer {
 
 	syncForcePositions(): void {
 		if (this.killed || this.isStale()) return;
+		getPlanarPerformance(this)?.record('forceSyncRequest');
 		this.forcePositionsDirty = true;
 		if (this.forceSyncScheduled) return;
 		this.forceSyncScheduled = true;
+		const diagnostics = getPlanarPerformance(this);
+		const queuedAt = diagnostics ? performance.now() : 0;
 		const enqueue = () => {
 			this.forceSyncFrame = undefined;
 			this.drawQueue = this.drawQueue
@@ -859,6 +915,10 @@ export class G6Renderer implements PlanarRenderer {
 					)
 						return;
 					this.forcePositionsDirty = false;
+					diagnostics?.record(
+						'forceQueueWait',
+						performance.now() - queuedAt,
+					);
 					await this.submitForcePositions();
 				})
 				.catch((error) => {
@@ -891,12 +951,16 @@ export class G6Renderer implements PlanarRenderer {
 			positions[id] = [mapped.x, mapped.y];
 		}
 		if (Object.keys(positions).length === 0) return;
+		const diagnostics = getPlanarPerformance(this);
+		const started = diagnostics ? performance.now() : 0;
 		// G6's translate stage updates endpoints without recomputing every style.
 		const translation = this.instance.translateElementTo(positions, false);
+		diagnostics?.record('translateSync', performance.now() - started);
 		// Non-animated G6 translation applies model/element positions synchronously.
 		// Commit Groups before yielding, so the same Canvas frame presents both.
 		this.groupLayer?.syncGeometry();
 		await translation;
+		diagnostics?.record('forceBatch', performance.now() - started);
 	}
 
 	private scheduleDraw(): void {

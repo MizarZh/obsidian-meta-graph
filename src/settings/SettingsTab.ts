@@ -105,6 +105,19 @@ export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 
 		new Setting(this.containerEl).setName('Diagnostics').setHeading();
 		new Setting(this.containerEl)
+			.setName('Performance logs')
+			.setDesc(
+				'Log graph rendering summaries every five seconds while active. Applies immediately; no note text or paths are logged.',
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.performanceLogging)
+					.onChange(async (value) => {
+						this.plugin.settings.performanceLogging = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+		new Setting(this.containerEl)
 			.setName('Debug unresolved links')
 			.setDesc('Log unresolved metadata links to the developer console.')
 			.addToggle((toggle) =>

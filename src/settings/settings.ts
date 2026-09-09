@@ -6,6 +6,7 @@ export type NodeHoverMode = 'emphasis' | 'local';
 export interface KnowledgeWorkspaceSettings {
 	fadeDistance: number;
 	debug: boolean;
+	performanceLogging: boolean;
 	showDebugButton: boolean;
 	relayoutFlowAfterConnection: boolean;
 	openTemplateNoteInNewTab: boolean;
@@ -18,6 +19,7 @@ export interface KnowledgeWorkspaceSettings {
 export const DEFAULT_SETTINGS: KnowledgeWorkspaceSettings = {
 	fadeDistance: 1.5,
 	debug: false,
+	performanceLogging: false,
 	showDebugButton: false,
 	relayoutFlowAfterConnection: false,
 	openTemplateNoteInNewTab: false,

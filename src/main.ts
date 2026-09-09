@@ -27,6 +27,7 @@ import { WorkspaceIndexService } from '@/workspace/services/workspace-index-serv
 import type { WorkspaceSessionState } from '@/workspace/meta-graph-v2/types';
 import { normalizeWorkspaceSessions } from '@/workspace/workspace-session';
 import type { WorkspaceActionId } from '@/ui/interactions/keyboard-shortcuts';
+import { setPlanarPerformanceLogging } from '@/graph/renderers/planar-performance';
 
 export default class KnowledgeWorkspacePlugin extends Plugin {
 	settings!: KnowledgeWorkspaceSettings;
@@ -38,6 +39,8 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
+		setPlanarPerformanceLogging(this.settings.performanceLogging);
+		this.register(() => setPlanarPerformanceLogging(false));
 		this.register(() => {
 			if (this.sessionSaveTimer !== undefined) {
 				window.clearTimeout(this.sessionSaveTimer);
@@ -232,6 +235,7 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 	}
 
 	async saveSettings(): Promise<void> {
+		setPlanarPerformanceLogging(this.settings.performanceLogging);
 		await this.savePluginData();
 		this.workspaceIndex.setLargeVaultMode(this.settings.largeVaultMode);
 		this.updateOpenViewsSettings();
@@ -312,6 +316,7 @@ export default class KnowledgeWorkspacePlugin extends Plugin {
 			nodeOpenMode: normalizeNodeOpenMode(settings.nodeOpenMode),
 			largeVaultMode: normalizeLargeVaultMode(settings.largeVaultMode),
 			nodeHoverMode: normalizeNodeHoverMode(settings.nodeHoverMode),
+			performanceLogging: settings.performanceLogging === true,
 			detailsNoteContentExpanded:
 				settings.detailsNoteContentExpanded === true,
 		};

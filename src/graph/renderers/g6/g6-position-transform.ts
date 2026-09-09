@@ -15,6 +15,8 @@ import {
 	POSITION_ONLY_EDGE_TYPES,
 	updateG6EdgePosition,
 } from '@/graph/renderers/g6/g6-edge-position';
+import { getG6TranslationDiagnostics } from '@/graph/renderers/g6/g6-translation-diagnostics';
+import type { PlanarPerformance } from '@/graph/renderers/planar-performance';
 
 export const G6_POSITION_TRANSFORM = 'meta-graph-position-update';
 const nativeNodes: ReadonlySet<unknown> = new Set([
@@ -30,23 +32,36 @@ const nativeNodes: ReadonlySet<unknown> = new Set([
  * but don't rebuild unchanged child shapes for a position-only update. */
 export function installG6PositionOnlyUpdate(
 	node: Pick<BaseNode, 'update' | 'render'>,
+	readDiagnostics?: () => PlanarPerformance | undefined,
 ): () => void {
 	const original = node.update;
 	const update: BaseNode['update'] = (attributes) => {
+		const diagnostics = readDiagnostics?.();
+		const started = diagnostics ? performance.now() : 0;
 		const keys = Object.keys(attributes ?? {});
 		if (
 			!keys.length ||
 			!keys.every((key) => key === 'x' || key === 'y' || key === 'z')
 		) {
-			original.call(node, attributes);
+			diagnostics?.record('nodeFastFallbackAttributes');
+			try {
+				original.call(node, attributes);
+			} finally {
+				diagnostics?.record(
+					'nodeFallbackUpdate',
+					performance.now() - started,
+				);
+			}
 			return;
 		}
 		const render = node.render;
+		diagnostics?.record('nodeFastHit');
 		node.render = () => {};
 		try {
 			original.call(node, attributes);
 		} finally {
 			node.render = render;
+			diagnostics?.record('nodeFastUpdate', performance.now() - started);
 		}
 	};
 	node.update = update;
@@ -76,8 +91,12 @@ export class G6PositionTransform extends BaseTransform {
 		if (context.stage === 'translate') {
 			for (const id of data.update.edges.keys()) {
 				const edge = this.context.element?.getElement<BaseEdge>(id);
-				if (!edge || !POSITION_ONLY_EDGE_TYPES.has(edge.constructor))
+				if (!edge || !POSITION_ONLY_EDGE_TYPES.has(edge.constructor)) {
+					getG6TranslationDiagnostics(this.context.graph)?.record(
+						edge ? 'edgeFastUnsupported' : 'edgeFastMissing',
+					);
 					continue;
+				}
 				let hook = this.edges.get(id);
 				if (hook?.edge !== edge) {
 					hook?.restore();
@@ -87,13 +106,35 @@ export class G6PositionTransform extends BaseTransform {
 					const update: BaseEdge['update'] = (attributes) => {
 						const translate = armed;
 						armed = false;
+						const diagnostics = translate
+							? getG6TranslationDiagnostics(this.context.graph)
+							: undefined;
+						const started = diagnostics ? performance.now() : 0;
 						if (
 							translate &&
 							Object.keys(attributes ?? {}).length === 0 &&
-							updateG6EdgePosition(edge)
-						)
+							updateG6EdgePosition(edge, diagnostics)
+						) {
+							diagnostics?.record('edgeFastHit');
+							diagnostics?.record(
+								'edgeFastUpdate',
+								performance.now() - started,
+							);
 							return;
-						original.call(edge, attributes);
+						}
+						diagnostics?.record(
+							Object.keys(attributes ?? {}).length
+								? 'edgeFastFallbackAttributes'
+								: 'edgeFastFallbackGeometry',
+						);
+						try {
+							original.call(edge, attributes);
+						} finally {
+							diagnostics?.record(
+								'edgeFallbackUpdate',
+								performance.now() - started,
+							);
+						}
 					};
 					edge.update = update;
 					hook = {
@@ -117,13 +158,20 @@ export class G6PositionTransform extends BaseTransform {
 		if (context.stage !== 'translate') return data;
 		for (const id of data.update.nodes.keys()) {
 			const node = this.context.element?.getElement<BaseNode>(id);
-			if (!node || !nativeNodes.has(node.constructor)) continue;
+			if (!node || !nativeNodes.has(node.constructor)) {
+				getG6TranslationDiagnostics(this.context.graph)?.record(
+					node ? 'nodeFastUnsupported' : 'nodeFastMissing',
+				);
+				continue;
+			}
 			const previous = this.installed.get(id);
 			if (previous?.node === node) continue;
 			previous?.restore();
 			this.installed.set(id, {
 				node,
-				restore: installG6PositionOnlyUpdate(node),
+				restore: installG6PositionOnlyUpdate(node, () =>
+					getG6TranslationDiagnostics(this.context.graph),
+				),
 			});
 		}
 		return data;

@@ -1,4 +1,8 @@
 import Sigma from 'sigma';
+import {
+	PlanarPerformance,
+	isPlanarPerformanceLoggingEnabled,
+} from '@/graph/renderers/planar-performance';
 import { EdgeRectangleProgram } from 'sigma/rendering';
 import type { LabelPosition } from '@/core/types';
 import {
@@ -75,6 +79,9 @@ export type {
 
 export class SigmaRenderer {
 	readonly instance: Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes>;
+	private diagnostics?: PlanarPerformance;
+	private diagnosticManualGroups = new Set<string>();
+	private diagnosticLayoutGroups = new Set<string>();
 	private graph: RuntimeGraph;
 	private palette: GraphPalette;
 	readonly capabilities: RendererCapabilities = {
@@ -278,6 +285,57 @@ export class SigmaRenderer {
 			(previous, next) => this.applyHoverRefresh(previous, next),
 		);
 		this.raiseHoverLabelLayer();
+		this.diagnostics = new PlanarPerformance({
+			owner: this,
+			engine: 'sigma',
+			container,
+			snapshot: () => ({
+				nodes: this.graph.order,
+				runtimeEdges: this.graph.size,
+				displayedNodeLabels:
+					this.instance.getNodeDisplayedLabels().size,
+				displayedNativeEdgeLabels:
+					this.instance.getEdgeDisplayedLabels().size,
+				groups: new Set([
+					...this.diagnosticManualGroups,
+					...this.diagnosticLayoutGroups,
+				]).size,
+				forceLabels: this.forceLabels,
+			}),
+			attach: (session) => {
+				let started = 0;
+				let processStarted = 0;
+				const beforeProcess = () => {
+					processStarted = performance.now();
+				};
+				const afterProcess = () =>
+					session.record(
+						'process',
+						performance.now() - processStarted,
+					);
+				const before = () => {
+					started = performance.now();
+				};
+				const after = () => {
+					session.record('render', performance.now() - started);
+					session.paint();
+				};
+				const updated = () => session.record('graphAttributeBatch');
+				this.instance.on('beforeRender', before);
+				this.instance.on('afterRender', after);
+				this.instance.on('beforeProcess', beforeProcess);
+				this.instance.on('afterProcess', afterProcess);
+				this.graph.on('eachNodeAttributesUpdated', updated);
+				const graph = this.graph;
+				return () => {
+					this.instance.off('beforeRender', before);
+					this.instance.off('afterRender', after);
+					this.instance.off('beforeProcess', beforeProcess);
+					this.instance.off('afterProcess', afterProcess);
+					graph.off('eachNodeAttributesUpdated', updated);
+				};
+			},
+		});
 		this.instance.getCamera().on('updated', this.handleCameraUpdated);
 		if (this.scaleLabelsWithZoom) {
 			// Sigma draws once inside its constructor, before this.instance is assigned.
@@ -291,6 +349,7 @@ export class SigmaRenderer {
 	}
 
 	setGraph(graph: RuntimeGraph): void {
+		this.diagnostics?.setEnabled(false);
 		this.graph = graph;
 		this.hoverRefreshIndex = createSigmaHoverRefreshIndex(graph);
 		if (this.pinnedNodeId && !graph.hasNode(this.pinnedNodeId)) {
@@ -299,6 +358,7 @@ export class SigmaRenderer {
 		this.updateHoveredNeighborhood();
 		this.hoverRefreshCoordinator.synchronize(this.readHoverRefreshState());
 		this.instance.setGraph(graph);
+		this.diagnostics?.setEnabled(isPlanarPerformanceLoggingEnabled());
 		this.parallelEdgeLayer.invalidate();
 		this.syncGroupFocus();
 		this.groupOverlayLayer.update();
@@ -358,6 +418,7 @@ export class SigmaRenderer {
 		callbacks?: GroupInteractionCallbacks,
 	): void {
 		this.groupOverlayLayer.setGroups(groups, callbacks);
+		this.diagnosticManualGroups = new Set(groups.map((group) => group.id));
 		this.syncGroupFocus();
 	}
 
@@ -366,6 +427,9 @@ export class SigmaRenderer {
 		getGroupNodeIds?: (groupId: string) => Iterable<string>,
 	): void {
 		this.layoutGroupLayer.setGeometries(geometries, getGroupNodeIds);
+		this.diagnosticLayoutGroups = new Set(
+			geometries.map((group) => group.groupId),
+		);
 		this.syncGroupFocus();
 	}
 
@@ -665,6 +729,7 @@ export class SigmaRenderer {
 	}
 
 	kill(): void {
+		this.diagnostics?.destroy();
 		this.hoverRefreshCoordinator.dispose();
 		this.instance.getCamera().off('updated', this.handleCameraUpdated);
 		this.zoomLevelListeners.clear();

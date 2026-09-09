@@ -6,6 +6,10 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Extended opt-in G6 performance logs with translation-stage timings, actual position fast-path hit/fallback counts, per-metric totals and compatibility warnings. Instrumentation restores original methods when disabled.
+
+- Added an opt-in global Performance logs setting for Sigma and G6. Five-second console summaries report scene counts, submission/render timings and active redraw intervals without note content or paths; changing the toggle immediately attaches or removes instrumentation on open graphs.
+
 - Added Reset forces and concise guidance for Graph's four force controls. Sigma and G6 share the original ForceAtlas2 placement and D3 interaction simulation.
 
 - Added the global Node hover setting for planar Sigma/G6 views: Emphasize only preserves the surrounding graph, while Local focuses the neighborhood. Changes apply to open views immediately; Space pin always retains local focus.
@@ -36,6 +40,10 @@ All notable changes to Meta Graph are documented here.
 - Tuned Graph dragging with distance-scaled repulsion, softer centering, degree-aware springs, stronger collision handling and bounded node velocity. Dragged nodes publish immediately and remain active while held; release cools smoothly without direct neighbor displacement or an extra return force. Force parameter edits preserve the runtime graph and group references.
 
 ### Fixed
+
+- G6 batches native non-animated translation updates into one lightweight task, avoiding per-element animation style snapshots. Element updates, labels and Group synchronization are preserved; structural, custom, animated and pre-update-listener cases use the original pipeline.
+
+- G6 reuses retained node labels during translation instead of rebuilding their text and backgrounds after every force tick. Edge labels, style changes, zoom and replacement labels keep their normal updates.
 
 - Sigma keeps node and edge labels visible during dragging and force motion, following the existing label density and visibility settings.
 

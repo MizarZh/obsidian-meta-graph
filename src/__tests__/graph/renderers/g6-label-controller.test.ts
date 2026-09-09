@@ -7,6 +7,62 @@ import {
 } from '@/graph/renderers/g6/g6-label-controller';
 
 describe('G6 label controller', () => {
+	it('retains translated node labels while updating edges, new labels, styles and zoom', () => {
+		const nodeLabel = { update: vi.fn(), setLocalScale: vi.fn() };
+		const edgeLabel = { update: vi.fn(), setLocalScale: vi.fn() };
+		let currentNodeLabel = nodeLabel;
+		const listeners = new Map<string, (event: never) => void>();
+		const controller = new G6LabelController(
+			{
+				graph: {
+					on: (event: string, listener: (event: never) => void) =>
+						listeners.set(event, listener),
+					off: vi.fn(),
+				},
+				element: {
+					getElement: (id: string) => ({
+						attributes: { labelText: id },
+						getLabelStyle: () => ({ text: id, fontSize: 12 }),
+						getShape: () =>
+							id === 'node' ? currentNodeLabel : edgeLabel,
+					}),
+				},
+			} as unknown as RuntimeContext,
+			{
+				type: G6_LABEL_CONTROLLER_KEY,
+				snapshot: {
+					nodeIds: new Set(['node']),
+					edgeIds: new Set(['edge']),
+					nodeStyle: {},
+					edgeStyle: {},
+				},
+			},
+		);
+		const draw = (stage: string) =>
+			listeners.get(GraphEvent.AFTER_DRAW)!({
+				data: {
+					stage,
+					dataChanges: [
+						{ value: { id: 'node' } },
+						{ value: { id: 'edge' } },
+					],
+				},
+			} as never);
+		draw('translate'); // An uncached label must still be initialized.
+		expect(nodeLabel.update).toHaveBeenCalledOnce();
+		for (let i = 0; i < 60; i++) draw('translate');
+		expect(nodeLabel.update).toHaveBeenCalledOnce();
+		expect(edgeLabel.update).toHaveBeenCalledTimes(61);
+		controller.updateZoomScale(0.5);
+		expect(nodeLabel.setLocalScale).toHaveBeenLastCalledWith(0.5);
+		draw('state');
+		expect(nodeLabel.update).toHaveBeenCalledTimes(2);
+		currentNodeLabel = { update: vi.fn(), setLocalScale: vi.fn() };
+		draw('translate');
+		expect(currentNodeLabel.update).toHaveBeenCalledOnce();
+		expect(currentNodeLabel.setLocalScale).toHaveBeenCalledWith(0.5);
+		controller.destroy();
+	});
 	it('merges partial hover membership without visiting untouched labels', () => {
 		const getElement = vi.fn(() => ({
 			attributes: {},

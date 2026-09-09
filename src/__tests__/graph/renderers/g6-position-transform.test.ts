@@ -43,7 +43,7 @@ describe('G6 position-only native node updates', () => {
 			renders.reduce((sum, render) => sum + render.mock.calls.length, 0),
 		).toBe(3000);
 		renders.forEach((render) => render.mockClear());
-		const restores = nodes.map(installG6PositionOnlyUpdate);
+		const restores = nodes.map((node) => installG6PositionOnlyUpdate(node));
 		try {
 			move();
 			expect(

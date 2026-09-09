@@ -11,6 +11,7 @@ import {
 	type SimulationNodeDatum,
 } from 'd3-force';
 import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
+import { getPlanarPerformance } from '@/graph/renderers/planar-performance';
 import type { ForceSimulationRenderer } from '@/graph/renderers/renderer-contracts';
 import {
 	DEFAULT_GRAPH_FORCE_SETTINGS,
@@ -373,6 +374,15 @@ export class D3ForceSimulation {
 	}
 
 	private applyTick(): void {
+		const diagnostics = getPlanarPerformance(this.renderer);
+		const started = diagnostics ? performance.now() : 0;
+		diagnostics?.record(
+			this.draggedGroupNodes.size
+				? 'groupDragTick'
+				: this.draggedNodePosition
+					? 'nodeDragTick'
+					: 'releasedTick',
+		);
 		this.syncDraggedNodeToViewportTarget();
 		const positions = new Map<string, { x: number; y: number }>();
 		let maxDisplacement = 0;
@@ -414,6 +424,7 @@ export class D3ForceSimulation {
 		);
 		this.renderer.syncForcePositions?.();
 		this.updateSettledState(maxDisplacement);
+		diagnostics?.record('simulationPublish', performance.now() - started);
 	}
 
 	private syncDraggedNodeToViewportTarget(): void {

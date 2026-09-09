@@ -7,6 +7,9 @@ import {
 } from '@/settings/settings';
 
 describe('plugin settings', () => {
+	it('keeps performance logging opt-in', () => {
+		expect(DEFAULT_SETTINGS.performanceLogging).toBe(false);
+	});
 	it('preserves local hover by default and normalizes persisted modes', () => {
 		expect(DEFAULT_SETTINGS.nodeHoverMode).toBe('local');
 		expect(normalizeNodeHoverMode('emphasis')).toBe('emphasis');

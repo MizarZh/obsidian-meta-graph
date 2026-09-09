@@ -48,14 +48,31 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 	private readonly labelShapes = new Map<string, Label>();
 	private zoomScale = 1;
 	private readonly handleAfterDraw = (event: IGraphLifeCycleEvent): void => {
-		const changes = readDataChanges(event.data);
+		const data: unknown = event.data;
+		const changes = readDataChanges(data);
 		if (!changes) return;
+		const translating =
+			data !== null &&
+			typeof data === 'object' &&
+			'stage' in data &&
+			data.stage === 'translate';
 		const nodeIds = new Set<string>();
 		const edgeIds = new Set<string>();
 		for (const change of changes) {
 			const id = readChangeId(change);
 			if (!id) continue;
-			if (this.snapshot.nodeIds.has(id)) nodeIds.add(id);
+			if (this.snapshot.nodeIds.has(id)) {
+				// A retained node label inherits its parent's translation. Reapplying
+				// its style rebuilds text/background unnecessarily on every force tick.
+				// New/replaced labels still need our style and zoom scale applied.
+				const cached = this.labelShapes.get(id);
+				const retained =
+					translating &&
+					cached &&
+					this.context.element?.getElement(id)?.getShape('label') ===
+						cached;
+				if (!retained) nodeIds.add(id);
+			}
 			if (this.snapshot.edgeIds.has(id)) edgeIds.add(id);
 		}
 		if (nodeIds.size === 0 && edgeIds.size === 0) return;

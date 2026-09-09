@@ -7,6 +7,44 @@ body.
 
 ## Metadata
 
+### Performance diagnostics
+
+Enable **Settings -> Community plugins -> Meta Graph -> Diagnostics -> Performance logs**.
+Reproduce the problem for 10–15 seconds with each renderer, then copy the console
+lines prefixed `[Meta Graph performance]`. Disable the setting afterward.
+The switch applies immediately to open Sigma/G6 views and defaults to off.
+Summaries contain counts/timings only, never note text or paths; idle windows do
+not log. A final partial summary is emitted when an instrumented view closes.
+
+`simulationPublish` measures copying simulation positions to the runtime graph,
+not the force solver itself. G6 `translateSync` measures synchronous element
+submission; `forceBatch` includes Group sync and completion, and `forceQueueWait`
+is scheduling delay. Sigma `render` includes `process`, so do not add those
+times. Canvas `mainDraw` is CPU drawing work, not GPU completion.
+`activePaintInterval` excludes idle gaps of one second or more and is not monitor
+FPS. G6 label counts are eligible labels; Sigma's edge-label count excludes its
+custom Canvas edge layer. Samples are capped at 4096 per metric/window; full
+counts, averages and maxima remain available. Each view has an anonymous session
+number. Diagnostics add some overhead and do not require a full browser trace.
+
+Schema 2 adds `totalMs` and G6 synchronous translation breakdowns:
+`g6ModelPosition` (per-node model writes), `g6PrepareChanges` (change preparation),
+`g6ScheduleElement` (per-element task creation), and `g6ExecuteTasks` (synchronous
+task execution). `nodeFastHit`/`edgeFastHit` count actual fast-path calls;
+`*FallbackAttributes`, `*FallbackGeometry`, `*Unsupported` and `*Missing` explain
+non-hits. Node/edge update and edge path/marker/label timings are nested within
+task execution, not additive. Unsupported types are counted but their individual
+update duration is not isolated. Missing internal hooks emit `*Unavailable`.
+Per-element averages are not per-frame costs: compare `totalMs` over the same
+window, or divide by `g6TranslateTotal.count`. Detailed instrumentation adds
+overhead; disable Performance logs after collecting a few summaries.
+
+`lightweightTranslateBatch` counts native non-animated batches that bypass
+per-element animation task creation and style snapshots. Such batches do not
+increment `g6ScheduleElement`; `g6ExecuteTasks` and node/edge update timings still
+apply. Custom elements, structural changes and pre-update listeners retain the
+original path. Compare `translateSync` and redraw intervals, not just task counts.
+
 Add relationship properties to note frontmatter, then add those metadata field
 names in the workspace connection panel. Each property accepts a single string
 or an array. Meta Graph only parses connection metadata fields that the
