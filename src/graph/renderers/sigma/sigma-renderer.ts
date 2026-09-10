@@ -224,7 +224,11 @@ export class SigmaRenderer {
 					() => this.getLabelBackground(),
 					() => this.getLabelStyle(),
 					this.textWidthCache,
-					() => this.labelMaxWidth,
+					() =>
+						this.pinnedNodeId ||
+						(this.hoverMode === 'local' && this.hoveredNodeId)
+							? 0
+							: this.labelMaxWidth,
 				),
 				defaultDrawNodeHover: createNodeHoverDrawer(
 					(baseSize) => this.getRenderedLabelSize(baseSize),
@@ -235,7 +239,7 @@ export class SigmaRenderer {
 					() => this.getLabelBackground(),
 					() => this.getLabelStyle(),
 					this.textWidthCache,
-					() => this.labelMaxWidth,
+					() => 0,
 				),
 				defaultDrawEdgeLabel: createEdgeLabelDrawer(
 					(baseSize) => this.getRenderedLabelSize(baseSize),

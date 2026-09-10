@@ -53,6 +53,33 @@ describe('G6 label controller', () => {
 			wordWrapWidth: 120,
 		});
 		expect(label.update).toHaveBeenCalledTimes(2);
+		controller.updateLabels({
+			...snapshot,
+			nodeStyle: limited,
+			edgeStyle: limited,
+			fullLabelNodeIds: new Set(['node']),
+		});
+		expect(label.update.mock.calls[2]?.[0]).toEqual({
+			text: '金融市场投资',
+			wordWrap: false,
+			wordWrapWidth: 120,
+		});
+		expect(label.update.mock.calls[3]?.[0]).toEqual({
+			text: '金融市场投资',
+			wordWrap: true,
+			wordWrapWidth: 120,
+		});
+		controller.updateLabels({
+			...snapshot,
+			nodeStyle: limited,
+			edgeStyle: limited,
+			fullLabelNodeIds: new Set(),
+		});
+		expect(label.update.mock.calls[4]?.[0]).toEqual({
+			text: '金融市场投资',
+			wordWrap: true,
+			wordWrapWidth: 120,
+		});
 		controller.updateLabels(snapshot);
 		expect(label.update).toHaveBeenLastCalledWith({
 			text: '金融市场投资',

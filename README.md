@@ -143,6 +143,8 @@ settings to report them in the developer console.
    the `...` suffix fits inside the limit. Width is specified at 100% zoom
    and scales with text. Original names and search remain unchanged;
    changing this setting does not rerun layout.
+   Hovering a node reveals its full name. Local hover and pinned focus reveal
+   full names for the focused node and its neighbors; leaving restores the limit.
    Rules can have an optional **Name** in their editor. Without a name, the card
    title shows the matching condition including its operator (for example,
    **Source field is related**). Named rules keep that condition in the summary.

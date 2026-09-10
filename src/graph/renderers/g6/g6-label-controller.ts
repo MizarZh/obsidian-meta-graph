@@ -13,6 +13,7 @@ import type { G6EdgeStyle, G6NodeStyle } from '@/graph/renderers/g6/g6-styles';
 export const G6_LABEL_CONTROLLER_KEY = 'meta-graph-label-controller';
 
 export interface G6LabelControllerSnapshot {
+	fullLabelNodeIds?: ReadonlySet<string>;
 	/** Membership and placement contain only dirty owners. */
 	partial?: boolean;
 	nodeIds: ReadonlySet<string>;
@@ -90,6 +91,7 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 		dirtyIds?: G6LabelControllerDirtyIds,
 	): void {
 		if (snapshot.partial && dirtyIds) {
+			this.snapshot.fullLabelNodeIds = snapshot.fullLabelNodeIds;
 			for (const id of dirtyIds.nodeIds ?? []) {
 				if (snapshot.nodeIds.has(id)) this.snapshot.nodeIds.add(id);
 				else this.snapshot.nodeIds.delete(id);
@@ -152,6 +154,9 @@ export class G6LabelController extends BasePlugin<G6LabelControllerOptions> {
 			this.applyElement(nodeId, {
 				...this.snapshot.nodeStyle,
 				...this.snapshot.nodeStyles?.get(nodeId),
+				...(this.snapshot.fullLabelNodeIds?.has(nodeId)
+					? { labelWordWrap: false }
+					: {}),
 			});
 		}
 		for (const edgeId of edgeIds) {

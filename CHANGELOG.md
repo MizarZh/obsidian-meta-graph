@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Node hover reveals full names despite the text-width limit. Local hover/pinned focus also reveals neighbor names; leaving focus restores truncation, using label-only updates.
+
 - Removed the Max text width subtitle; usage details remain in its hover tooltip.
 
 - Setting rows with descriptions reserve space for their controls and wrap help text; the label-length setting uses a shorter description.

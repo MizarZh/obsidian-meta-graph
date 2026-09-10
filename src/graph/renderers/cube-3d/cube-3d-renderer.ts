@@ -58,6 +58,7 @@ import type { RendererCapabilities } from '@/graph/renderers/renderer-capabiliti
 import type { Cube3DRendererOptions } from '@/graph/renderers/renderer-options';
 
 interface CubeNodeObject {
+	fullLabel?: boolean;
 	id: string;
 	faceId: CubeFaceId;
 	color: string;
@@ -797,6 +798,9 @@ export class Cube3DRenderer {
 						attributes.label,
 						this.labelSize,
 						attributes.isPrimary ? 1.1 : 1,
+						this.hoveredNeighborhood.has(nodeId) ||
+							nodeId === this.hoveredNodeId ||
+							nodeId === this.pinnedNodeId,
 					)
 				: undefined;
 			if (label) {
@@ -812,6 +816,10 @@ export class Cube3DRenderer {
 				this.labelGroup.add(label);
 			}
 			this.nodeObjects.set(nodeId, {
+				fullLabel:
+					this.hoveredNeighborhood.has(nodeId) ||
+					nodeId === this.hoveredNodeId ||
+					nodeId === this.pinnedNodeId,
 				id: nodeId,
 				faceId,
 				color: attributes.color,
@@ -1039,6 +1047,32 @@ export class Cube3DRenderer {
 		this.hoveredNeighborhood = focusNodeId
 			? immediateNeighborhood(this.graph, focusNodeId)
 			: new Set();
+		if (this.labelMaxWidth <= 0) return;
+		for (const node of this.nodeObjects.values()) {
+			const full =
+				node.id === this.hoveredNodeId ||
+				node.id === this.pinnedNodeId ||
+				this.hoveredNeighborhood.has(node.id);
+			if (
+				!node.label ||
+				full === node.fullLabel ||
+				!this.graph.hasNode(node.id)
+			)
+				continue;
+			const attributes = this.graph.getNodeAttributes(node.id);
+			const next = this.createLabelSprite(
+				attributes.label,
+				this.labelSize,
+				attributes.isPrimary ? 1.1 : 1,
+				full,
+			);
+			node.label.material.map?.dispose();
+			node.label.material.map = next.material.map;
+			node.label.material.needsUpdate = true;
+			node.label.scale.copy(next.scale);
+			next.material.dispose();
+			node.fullLabel = full;
+		}
 	}
 
 	private localPosition(
@@ -1084,6 +1118,7 @@ export class Cube3DRenderer {
 		text: string,
 		size: number,
 		scale: number,
+		fullName = false,
 	): Three.Sprite {
 		const fontSize = Math.max(10, size);
 		const labelStyle = resolveThreeLabelStyle(
@@ -1092,7 +1127,7 @@ export class Cube3DRenderer {
 		);
 		return createThreeTextSprite(this.three, {
 			text,
-			maxWidth: this.labelMaxWidth,
+			maxWidth: fullName ? 0 : this.labelMaxWidth,
 			fontSize,
 			textColor: labelStyle.textColor,
 			backgroundColor: labelStyle.backgroundColor,

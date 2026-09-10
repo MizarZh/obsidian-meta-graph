@@ -824,6 +824,7 @@ export class G6Renderer implements PlanarRenderer {
 		if (this.hoverMode === mode) return;
 		this.hoverMode = mode;
 		this.scheduleInteractionSync();
+		this.syncTransientLabelOwner(this.hoveredNodeId, this.hoveredNodeId);
 	}
 
 	private applyHoveredNode(nodeId?: string): void {
@@ -1312,7 +1313,7 @@ export class G6Renderer implements PlanarRenderer {
 		styleNodeIds?: Iterable<string>,
 		styleEdgeIds?: Iterable<string>,
 	): G6LabelControllerSnapshot {
-		return createG6LabelControllerSnapshot(
+		const snapshot = createG6LabelControllerSnapshot(
 			this.graph,
 			this.readLabelStyles(visualScale),
 			this.edgeRoutes,
@@ -1324,6 +1325,17 @@ export class G6Renderer implements PlanarRenderer {
 			styleNodeIds,
 			styleEdgeIds,
 		);
+		const active = this.getActiveHoverNodeId();
+		const fullLabelNodeIds = new Set<string>();
+		if (this.hoveredNodeId) fullLabelNodeIds.add(this.hoveredNodeId);
+		if (active && (this.pinnedNodeId || this.hoverMode === 'local')) {
+			fullLabelNodeIds.add(active);
+			for (const id of this.sceneCache.neighborNodeIdsByNode.get(
+				active,
+			) ?? [])
+				fullLabelNodeIds.add(id);
+		}
+		return { ...snapshot, fullLabelNodeIds };
 	}
 
 	private readVisualScale(): G6VisualScale {
@@ -1379,6 +1391,24 @@ export class G6Renderer implements PlanarRenderer {
 		previousNodeId?: string,
 		nextNodeId?: string,
 	): void {
+		if ((this.displayStyle.labelMaxWidth ?? 0) > 0) {
+			const nodeIds = new Set<string>();
+			for (const id of [
+				previousNodeId,
+				nextNodeId,
+				this.hoveredNodeId,
+				this.pinnedNodeId,
+			]) {
+				if (!id) continue;
+				nodeIds.add(id);
+				for (const neighbor of this.sceneCache.neighborNodeIdsByNode.get(
+					id,
+				) ?? [])
+					nodeIds.add(neighbor);
+			}
+			this.scheduleLabelSync({ nodeIds });
+			return;
+		}
 		const visibleNodeIds = this.readLabelVisibility().nodeIds;
 		if (
 			(previousNodeId && !visibleNodeIds.has(previousNodeId)) ||

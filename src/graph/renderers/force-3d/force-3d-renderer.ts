@@ -709,7 +709,14 @@ export class Force3DRenderer {
 			this.getNodeOpacity(node),
 		);
 		this.nodeShapeSprites.set(node.id, shape);
-		const label = this.createTextSprite(node.label, this.labelSize, 1);
+		const label = this.createTextSprite(
+			node.label,
+			this.labelSize,
+			1,
+			this.hoveredNeighborhood.has(node.id) ||
+				node.id === this.hoveredNodeId ||
+				node.id === this.pinnedNodeId,
+		);
 		this.nodeLabelSprites.set(node.id, label);
 		const group = new this.three.Group();
 		group.add(shape, label);
@@ -794,7 +801,14 @@ export class Force3DRenderer {
 			if (!sprite) {
 				continue;
 			}
-			const next = this.createTextSprite(node.label, this.labelSize, 1);
+			const next = this.createTextSprite(
+				node.label,
+				this.labelSize,
+				1,
+				this.hoveredNeighborhood.has(node.id) ||
+					node.id === this.hoveredNodeId ||
+					node.id === this.pinnedNodeId,
+			);
 			this.replaceSpriteTexture(sprite, next);
 		}
 		for (const link of this.instance.graphData().links) {
@@ -935,10 +949,19 @@ export class Force3DRenderer {
 	}
 
 	private updateHoveredNeighborhood(): void {
+		const previous = this.hoveredNeighborhood;
 		const activeHoverNodeId = this.getActiveHoverNodeId();
 		this.hoveredNeighborhood = activeHoverNodeId
 			? immediateNeighborhood(this.graph, activeHoverNodeId)
 			: new Set();
+		if (this.labelMaxWidth > 0)
+			this.scheduleVisualUpdate({
+				nodeLabelIds: new Set([
+					...previous,
+					...this.hoveredNeighborhood,
+					...(this.hoveredNodeId ? [this.hoveredNodeId] : []),
+				]),
+			});
 	}
 
 	private findNode(nodeId: string): Force3DNode | undefined {
@@ -988,6 +1011,7 @@ export class Force3DRenderer {
 		text: string,
 		fontSize: number,
 		scaleFactor: number,
+		fullName = false,
 	): Three.Sprite {
 		const labelStyle = resolveThreeLabelStyle(
 			this.palette,
@@ -995,7 +1019,7 @@ export class Force3DRenderer {
 		);
 		return createThreeTextSprite(this.three, {
 			text,
-			maxWidth: this.labelMaxWidth,
+			maxWidth: fullName ? 0 : this.labelMaxWidth,
 			fontSize,
 			textColor: labelStyle.textColor,
 			backgroundColor: labelStyle.backgroundColor,
