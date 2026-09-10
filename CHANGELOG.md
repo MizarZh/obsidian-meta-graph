@@ -6,7 +6,11 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
-- Query and Workspace charts share a Nodes sidebar with search, counts, single/range/multiple selection, focus, and note opening. Query rows follow the final projection and show read-only groups without member editing or drag/drop; Workspace retains its saved-member actions, including hidden/missing entries. Chart changes clear transient list selection and result refresh prunes departed nodes.
+- Node list filter dialog uses an aligned, muted subtitle instead of an unpadded paragraph, reducing excess vertical space.
+
+- Query's Nodes sidebar now supports local node filtering and single/batch group assignment. List filters do not change graph queries or membership; grouping uses one batch state update and preserves Cube/Graph 3D restrictions.
+
+- Query and Workspace charts share a Nodes sidebar with search, counts, single/range/multiple selection, focus, and note opening. Query rows follow the final projection without member editing or drag/drop; Workspace retains its saved-member actions, including hidden/missing entries. Chart changes clear transient list selection and result refresh prunes departed nodes.
 
 - Added per-chart Straight/Curved parallel edges for Sigma Graph views. Curved lanes share geometry for drawing, arrows, labels and picking; changing the setting does not rerun layout. Existing charts default to Straight and G6/other chart modes remain unchanged.
 

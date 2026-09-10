@@ -18,6 +18,7 @@
 	let {
 		files,
 		editable = false,
+		groupEditable = true,
 		selectedTitleCounts,
 		getGroupOptions,
 		selectedPaths,
@@ -33,6 +34,7 @@
 	}: {
 		files: NodeListEntry[];
 		editable?: boolean;
+		groupEditable?: boolean;
 		selectedTitleCounts: Record<string, number>;
 		getGroupOptions: (currentGroupId: string) => DropdownOption[];
 		selectedPaths: Set<string>;
@@ -161,7 +163,7 @@
 							>{file.detail}</span
 						>
 					{/if}
-					{#if editable}
+					{#if groupEditable}
 						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 						<div
 							class="knowledge-workspace-curated-file-group"
@@ -185,7 +187,7 @@
 								options={getGroupOptions(file.groupId)}
 								ariaLabel={`Group for ${file.title}`}
 								onChange={(value) =>
-									onMoveFileToGroup(file.path, value)}
+									onMoveFileToGroup(file.id, value)}
 							/>
 						</div>
 					{:else}

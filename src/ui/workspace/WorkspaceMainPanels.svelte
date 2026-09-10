@@ -295,6 +295,7 @@
 
 {#key `${workspaceState.activeChartId}:${listSource}`}
 	<NodeListPanel
+		groupEditable={workspaceState.mode !== 'graph-3d'}
 		{app}
 		source={listSource}
 		files={nodeListFiles}
@@ -324,7 +325,7 @@
 		onSetFilesHidden={(paths, hidden) =>
 			controller.setCuratedFilesHidden(paths, hidden)}
 		onMoveFilesToGroup={(paths, groupId) =>
-			controller.moveCuratedFilesToGroup(paths, groupId)}
+			controller.moveNodesToGroup(paths, groupId)}
 		onClearFiles={() => controller.clearCuratedFiles()}
 		onReorderFiles={(paths) => controller.reorderCuratedFiles(paths)}
 		{onOpenNote}

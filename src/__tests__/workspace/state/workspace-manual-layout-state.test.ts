@@ -3,6 +3,7 @@ import {
 	addGroupInState,
 	deleteGroupInState,
 	moveCuratedFilesToGroupInState,
+	moveNodesToGroupInState,
 	moveGroupInState,
 	reorderGroupInState,
 	resizeGroupInState,
@@ -19,6 +20,50 @@ import {
 import { createWorkspaceRenderPlan } from '@/ui/workspace/render-plan';
 
 describe('workspace manual layout state', () => {
+	it.each([
+		'graph',
+		'free',
+		'flow',
+		'arc',
+		'hierarchical-edge-bundling',
+	] as const)(
+		'assigns Query nodes in %s without changing query or saved membership',
+		(mode) => {
+			const state = addGroupInState(
+				setActiveChartTypeInState(createWorkspaceState(100), mode)
+					.state,
+			);
+			const groupId = state.grouping.groups[0]!.id;
+			const ids = ['A.md', '__unresolved__/B'];
+			const next = moveNodesToGroupInState(state, ids, groupId);
+			expect(next.chartSource).toBe('query');
+			expect(next.query).toEqual(state.query);
+			expect(next.globalQuery).toEqual(state.globalQuery);
+			expect(next.curated).toEqual(state.curated);
+			for (const id of ids)
+				expect(next.grouping.overrides[id]).toBe(groupId);
+			const ungrouped = moveNodesToGroupInState(next, ids);
+			for (const id of ids)
+				expect(ungrouped.grouping.overrides[id]).toBeNull();
+			expect(moveNodesToGroupInState(state, [], groupId)).toBe(state);
+		},
+	);
+
+	it('preserves Cube required groups and 3D assignment restrictions', () => {
+		const cube = setActiveChartTypeInState(
+			createWorkspaceState(100),
+			'cube',
+		).state;
+		expect(moveNodesToGroupInState(cube, ['A.md'])).toBe(cube);
+		const spatial = setActiveChartTypeInState(
+			createWorkspaceState(100),
+			'graph-3d',
+		).state;
+		expect(moveNodesToGroupInState(spatial, ['A.md'], 'group')).toBe(
+			spatial,
+		);
+	});
+
 	it.each(['graph', 'free'] as const)(
 		'commits %s group positions without rebuilding or restarting force',
 		(mode) => {

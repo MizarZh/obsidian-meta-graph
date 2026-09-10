@@ -302,6 +302,14 @@ export function moveCuratedFilesToGroupInState(
 	paths: NodeId[],
 	groupId?: string,
 ): WorkspaceState {
+	return moveNodesToGroupInState(state, paths, groupId);
+}
+
+export function moveNodesToGroupInState(
+	state: WorkspaceState,
+	paths: NodeId[],
+	groupId?: string,
+): WorkspaceState {
 	if (paths.length === 0) {
 		return state;
 	}

@@ -423,7 +423,7 @@
 }
 
 .knowledge-workspace-curated-panel .knowledge-workspace-curated-header.query {
-	grid-template-columns: minmax(0, 1fr) auto repeat(2, 32px);
+	grid-template-columns: minmax(0, 1fr) auto repeat(3, 32px);
 }
 
 .knowledge-workspace-curated-header h3 small {

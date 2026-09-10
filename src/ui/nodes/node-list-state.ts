@@ -2,7 +2,40 @@ import type {
 	ChartGroupDefinition,
 	GraphProjection,
 	ManualLayoutConfig,
+	KnowledgeNode,
+	NodeFilterGroup,
 } from '@/core/types';
+import { nodeMatchesFilterGroup } from '@/query/filters';
+
+/** Display-only filtering: never edits the projection or saved membership. */
+export function filterNodeListEntries(
+	files: NodeListEntry[],
+	search: string,
+	indexedNodes: ReadonlyMap<string, KnowledgeNode>,
+	filterRoot: NodeFilterGroup,
+): NodeListEntry[] {
+	const query = search.trim().toLocaleLowerCase();
+	return files.filter((file) => {
+		const node = indexedNodes.get(file.id);
+		if (
+			node
+				? !nodeMatchesFilterGroup(node, filterRoot)
+				: filterRoot.children.length > 0
+		)
+			return false;
+		return (
+			!query ||
+			[
+				file.title,
+				file.path,
+				file.detail,
+				file.groupId,
+				file.groupName,
+				...(node?.aliases ?? []),
+			].some((value) => value?.toLocaleLowerCase().includes(query))
+		);
+	});
+}
 
 export interface NodeListEntry {
 	id: string;

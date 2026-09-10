@@ -26,7 +26,13 @@
 	} = $props();
 </script>
 
-<WorkspaceModal {open} title="Filter workspace files" compact={true} {onClose}>
+<WorkspaceModal
+	{open}
+	title="Filter node list"
+	subtitle="Only filters the Nodes list. The graph is unchanged."
+	compact={true}
+	{onClose}
+>
 	<NoteFilterEditor
 		{app}
 		{nodes}

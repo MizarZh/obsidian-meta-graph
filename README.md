@@ -120,9 +120,10 @@ settings to report them in the developer console.
    including isolated notes, and existing metadata links between them.
    Both sources share the **Nodes** panel. Query lists the current graph result;
    Workspace lists saved members, including hidden and missing files. Panel
-   search only narrows the list and does not change the graph. Query supports
-   selection, navigation, and read-only group labels; adding, removing, hiding,
-   moving to groups, and manual ordering are Workspace-only list actions.
+   search and **Filter node list** only narrow the list and do not change the graph.
+   Both sources support single-node and batch group assignment (except Graph 3D;
+   Cube requires a group). Adding, removing, hiding, and manual ordering remain
+   Workspace-only list actions.
    Click a node row to select only that row. `Ctrl`/`Cmd`-click toggles
    individual rows; `Shift`-click selects a range in the visible list, and
    `Ctrl`/`Cmd`+`Shift`-click adds a range. Selected rows are highlighted.

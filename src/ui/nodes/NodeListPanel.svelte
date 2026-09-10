@@ -6,9 +6,9 @@
 		CuratedWorkspaceConfig,
 		KnowledgeNode,
 	} from '@/core/types';
-	import { nodeMatchesFilterGroup } from '@/query/filters';
 	import NodeList from '@/ui/nodes/NodeList.svelte';
 	import {
+		filterNodeListEntries as filterSelectedFiles,
 		retainNodeListSelection,
 		type NodeListEntry,
 	} from '@/ui/nodes/node-list-state';
@@ -31,6 +31,7 @@
 		nodes,
 		groups,
 		groupRequired = false,
+		groupEditable = true,
 		folders,
 		nodeColors,
 		workspaceFilePath,
@@ -62,6 +63,7 @@
 		nodes: KnowledgeNode[];
 		groups: ChartGroupDefinition[];
 		groupRequired?: boolean;
+		groupEditable?: boolean;
 		folders: string[];
 		nodeColors: Map<string, string>;
 		workspaceFilePath?: string;
@@ -107,14 +109,12 @@
 	const selectedPaths = $derived(
 		new Set(curated.files.map((file) => file.path)),
 	);
-	const nodesByPath = $derived(
-		new Map(nodes.map((node) => [node.path, node])),
-	);
+	const nodesById = $derived(new Map(nodes.map((node) => [node.id, node])));
 	const filteredSelectedFiles = $derived(
 		filterSelectedFiles(
 			selectedFiles,
 			listSearch,
-			nodesByPath,
+			nodesById,
 			conditionDraft.filterRoot,
 		),
 	);
@@ -123,7 +123,7 @@
 	);
 	const listSearchActive = $derived(listSearch.trim().length > 0);
 	const filterCount = $derived(
-		editable ? countFilterConditions(conditionDraft.filterRoot) : 0,
+		countFilterConditions(conditionDraft.filterRoot),
 	);
 	const selectedCount = $derived(
 		selectedFiles.filter((file) => selected.has(file.id)).length,
@@ -251,8 +251,8 @@
 	}
 
 	function moveSelectedToGroup(groupId: string): void {
-		const paths = curated.files
-			.map((file) => file.path)
+		const paths = selectedFiles
+			.map((file) => file.id)
 			.filter((path) => selected.has(path));
 		if (paths.length === 0) {
 			return;
@@ -315,37 +315,6 @@
 		window.addEventListener('pointerup', onUp);
 	}
 
-	function filterSelectedFiles(
-		files: typeof selectedFiles,
-		search: string,
-		indexedNodes: Map<string, KnowledgeNode>,
-		filterRoot: CuratedConditionDraft['filterRoot'],
-	): typeof selectedFiles {
-		const query = search.trim().toLocaleLowerCase();
-		return files
-			.filter((file) => {
-				if (!editable) return true;
-				const node = indexedNodes.get(file.path);
-				return node
-					? nodeMatchesFilterGroup(node, filterRoot)
-					: filterRoot.children.length === 0;
-			})
-			.filter(
-				(file) =>
-					!query ||
-					[
-						file.title,
-						file.path,
-						file.detail,
-						file.groupId,
-						file.groupName,
-						...(indexedNodes.get(file.path)?.aliases ?? []),
-					].some((value) =>
-						value?.toLocaleLowerCase().includes(query),
-					),
-			);
-	}
-
 	function countFilterConditions(
 		group: CuratedConditionDraft['filterRoot'],
 	): number {
@@ -400,15 +369,15 @@
 					if (!searchOpen) listSearch = '';
 				}}
 			/>
+			<ObsidianButton
+				class="knowledge-workspace-curated-filter"
+				icon="list-filter"
+				active={filterCount > 0}
+				ariaLabel="Filter node list"
+				tooltip="Filter node list (does not change graph)"
+				onClick={() => (filterModalOpen = true)}
+			/>
 			{#if editable}
-				<ObsidianButton
-					class="knowledge-workspace-curated-filter"
-					icon="list-filter"
-					active={filterCount > 0}
-					ariaLabel="Filter workspace files"
-					tooltip="Filter"
-					onClick={() => (filterModalOpen = true)}
-				/>
 				<ObsidianButton
 					class="knowledge-workspace-curated-add"
 					icon="plus"
@@ -475,7 +444,7 @@
 				<span class="knowledge-workspace-curated-selection-count">
 					{selectedCount} selected
 				</span>
-				{#if editable}
+				{#if groupEditable}
 					<label class="knowledge-workspace-curated-selection-group">
 						<span>Group</span>
 						<ObsidianDropdown
@@ -492,6 +461,8 @@
 							}}
 						/>
 					</label>
+				{/if}
+				{#if editable}
 					<ObsidianButton
 						icon="eye-off"
 						ariaLabel="Hide selected"
@@ -529,6 +500,7 @@
 		</div>
 		<NodeList
 			{editable}
+			{groupEditable}
 			files={filteredSelectedFiles}
 			selectedTitleCounts={filteredSelectedTitleCounts}
 			{getGroupOptions}
@@ -562,14 +534,14 @@
 			{onAddFiles}
 			onClose={() => (addNotesOpen = false)}
 		/>
-		<NoteFilterModal
-			{app}
-			open={filterModalOpen}
-			{nodes}
-			{folders}
-			draft={conditionDraft}
-			onDraftChange={onConditionDraftChange}
-			onClose={() => (filterModalOpen = false)}
-		/>
 	{/if}
+	<NoteFilterModal
+		{app}
+		open={filterModalOpen}
+		{nodes}
+		{folders}
+		draft={conditionDraft}
+		onDraftChange={onConditionDraftChange}
+		onClose={() => (filterModalOpen = false)}
+	/>
 </aside>

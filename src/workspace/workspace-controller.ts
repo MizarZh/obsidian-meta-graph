@@ -132,6 +132,7 @@ import {
 	addGroupInState,
 	deleteGroupInState,
 	moveCuratedFilesToGroupInState,
+	moveNodesToGroupInState,
 	moveGroupInState,
 	reorderGroupInState,
 	resizeGroupInState,
@@ -575,6 +576,12 @@ export class WorkspaceController {
 	moveCuratedFilesToGroup(paths: NodeId[], groupId?: string): void {
 		this.setWorkspaceState(
 			moveCuratedFilesToGroupInState(this.state, paths, groupId),
+		);
+	}
+
+	moveNodesToGroup(nodeIds: NodeId[], groupId?: string): void {
+		this.setWorkspaceState(
+			moveNodesToGroupInState(this.state, nodeIds, groupId),
 		);
 	}
 
