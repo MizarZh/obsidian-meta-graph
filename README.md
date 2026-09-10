@@ -145,6 +145,11 @@ settings to report them in the developer console.
    changing this setting does not rerun layout.
    Hovering a node reveals its full name. Local hover and pinned focus reveal
    full names for the focused node and its neighbors; leaving restores the limit.
+   The collapsible **Legend** at the bottom-right lists configured node/link
+   styles for the active chart, including defaults and Global/Chart rules.
+   It uses custom rule names or matching conditions and updates live. Hover an
+   entry for its condition; rules can overlap, and the legend is not a count of
+   currently matched nodes or links.
    Rules can have an optional **Name** in their editor. Without a name, the card
    title shows the matching condition including its operator (for example,
    **Source field is related**). Named rules keep that condition in the summary.

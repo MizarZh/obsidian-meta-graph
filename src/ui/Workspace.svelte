@@ -92,6 +92,7 @@
 	import { GraphDockConnectionController } from '@/ui/workspace/graph-dock-connection';
 	import WorkspaceSettingsPopover from '@/ui/workspace/WorkspaceSettingsPopover.svelte';
 	import WorkspaceMainPanels from '@/ui/workspace/WorkspaceMainPanels.svelte';
+	import GraphLegend from '@/ui/workspace/GraphLegend.svelte';
 	import GraphLoadingOverlay from '@/ui/workspace/GraphLoadingOverlay.svelte';
 	import {
 		GraphLoadingCoordinator,
@@ -1625,6 +1626,11 @@
 				: '0px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+			<GraphLegend
+				state={workspaceState}
+				metadataFields={metadataFieldSuggestions}
+				metadataTypes={metadataFieldTypes}
+			/>
 			{#if supportsPlanarRenderer(workspaceState.mode)}
 				<span
 					class="knowledge-workspace-renderer-indicator"
