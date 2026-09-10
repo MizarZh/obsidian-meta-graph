@@ -1,4 +1,5 @@
 import { Graph, GraphEvent, type GraphOptions, type State } from '@antv/g6';
+import { flowTitleReferenceExtent } from '@/graph/renderers/flow-title-viewport';
 import { G6_STATE_TRANSFORM } from '@/graph/renderers/g6/g6-state-transform';
 import { G6_POSITION_TRANSFORM } from '@/graph/renderers/g6/g6-position-transform';
 import { installG6TranslateBatch } from '@/graph/renderers/g6/g6-translate-batch';
@@ -357,13 +358,16 @@ export class G6Renderer implements PlanarRenderer {
 	}
 
 	private spacingExtent?: G6SceneCache['graphExtent'];
+	private flowReferenceExtent?: G6SceneCache['graphExtent'];
 
 	setGraph(
 		graph: RuntimeGraph,
 		options?: { preserveViewportScale?: boolean },
 	): void {
 		const preserveScale = options?.preserveViewportScale === true;
-		if (preserveScale) this.spacingExtent ??= this.sceneCache.graphExtent;
+		if (preserveScale)
+			this.spacingExtent ??=
+				this.flowReferenceExtent ?? this.sceneCache.graphExtent;
 		this.forcePositionsDirty = false;
 		this.submittedForcePositions.clear();
 		const viewportState = this.captureViewportState();
@@ -644,8 +648,17 @@ export class G6Renderer implements PlanarRenderer {
 		groups: GroupOverlayGroup[],
 		callbacks: GroupInteractionCallbacks = this.groupSceneCallbacks,
 	): void {
+		const hadFlowTitles = this.groupSceneGroups.some(
+			(group) => !!group.titleBandHeight,
+		);
 		this.groupSceneGroups = groups;
 		this.groupSceneCallbacks = callbacks;
+		if (hadFlowTitles !== groups.some((group) => !!group.titleBandHeight)) {
+			this.scheduleCoordinateFrame({
+				zoomLevel: this.getZoomLevel(),
+				normalizedCenter: { x: 0.5, y: 0.5 },
+			});
+		}
 		this.scheduleGroupSceneSync();
 	}
 
@@ -844,6 +857,7 @@ export class G6Renderer implements PlanarRenderer {
 	setScaleLabelsWithZoom(scaleLabelsWithZoom: boolean): void {
 		this.scaleLabelsWithZoom = scaleLabelsWithZoom;
 		this.syncLabelZoomScale();
+		this.groupLayer?.refreshTitlePlacement();
 	}
 	setLabelBold(labelBold: boolean): void {
 		this.displayStyle.labelBold = labelBold;
@@ -1060,8 +1074,26 @@ export class G6Renderer implements PlanarRenderer {
 			height: canvasCenter[1] * 2,
 		};
 		if (!(viewport.width > 0) || !(viewport.height > 0)) return;
-		const extent = this.spacingExtent ?? this.sceneCache.graphExtent;
+		const baseExtent = this.spacingExtent ?? this.sceneCache.graphExtent;
+		const extent = this.groupSceneGroups.some(
+			(group) => !!group.titleBandHeight,
+		)
+			? flowTitleReferenceExtent(
+					baseExtent,
+					viewport,
+					this.spacingExtent
+						? []
+						: this.groupSceneGroups.filter(
+								(group) => !!group.titleBandHeight,
+							),
+				)
+			: baseExtent;
 		const hadFitBaseline = this.hasFitBaseline;
+		this.flowReferenceExtent = this.groupSceneGroups.some(
+			(group) => !!group.titleBandHeight,
+		)
+			? extent
+			: undefined;
 		const previousFitZoom = this.fitZoom;
 		this.fitZoom =
 			calculateSigmaCompatibleFitZoom(extent, viewport) /
@@ -1165,6 +1197,7 @@ export class G6Renderer implements PlanarRenderer {
 	}
 
 	private scheduleLabelSync(dirtyIds?: G6LabelControllerDirtyIds): void {
+		this.groupLayer?.refreshTitlePlacement();
 		if (this.killed || this.isStale()) return;
 		if (!dirtyIds) {
 			this.labelSyncAll = true;
@@ -1463,6 +1496,18 @@ export class G6Renderer implements PlanarRenderer {
 				(position) => this.viewportToGraphPosition(position),
 				() => this.readNodeVisualScale(),
 				(position) => this.coordinateSpace.toG6(position),
+				() => ({
+					size:
+						this.displayStyle.labelSize *
+						(this.scaleLabelsWithZoom
+							? getPlanarLabelVisualScale(this.getZoomLevel())
+							: 1),
+					position: this.displayStyle.labelPosition,
+					offset: this.displayStyle.labelOffset,
+					bold: this.displayStyle.labelBold,
+					italic: this.displayStyle.labelItalic,
+				}),
+				() => this.resize(),
 			);
 			this.groupLayer.setFocusedNode(this.pinnedNodeId);
 		}

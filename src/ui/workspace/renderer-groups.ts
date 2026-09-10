@@ -3,7 +3,12 @@ import type {
 	ManualLayoutConfig,
 	ViewMode,
 } from '@/core/types';
-import type { GraphPosition } from '@/graph/model/graphology-adapter';
+import type {
+	GraphPosition,
+	RuntimeGraph,
+} from '@/graph/model/graphology-adapter';
+import { createFlowGroupGeometriesFromGraph } from '@/layouts/elk-flow-layout';
+import { getFlowGroupHeaderHeight } from '@/layouts/flow-group-frame';
 import {
 	getRendererCapabilities,
 	getModeCapabilities,
@@ -64,6 +69,7 @@ export function syncWorkspaceRendererGroups(
 		groupByNode,
 		layoutSnapshot,
 		forceLayoutEnabled,
+		renderer.runtimeGraph,
 	);
 	renderer.setLayoutGroupGeometries(
 		mode === 'flow'
@@ -72,7 +78,7 @@ export function syncWorkspaceRendererGroups(
 					groupId: group.id,
 					name: group.name,
 					color: group.color,
-					nodeIds: group.dynamicNodeIds ?? [],
+					nodeIds: getGroupNodeIdsForGroup(group.id),
 				}))
 			: mode === 'graph'
 				? layoutSnapshot.groupGeometries.map((geometry) =>
@@ -102,6 +108,7 @@ function createOverlayGroups(
 	groupByNode: ReadonlyMap<string, string>,
 	layoutSnapshot: LayoutSnapshot,
 	forceLayoutEnabled: boolean,
+	runtimeGraph: RuntimeGraph,
 ): GroupOverlayGroup[] {
 	if (mode === 'graph') {
 		const definitions = new Map(
@@ -131,19 +138,43 @@ function createOverlayGroups(
 		});
 	}
 	if (mode === 'flow') {
+		const geometries = new Map(
+			layoutSnapshot.groupGeometries
+				.filter((geometry) => geometry.kind === 'flow-container')
+				.map((geometry) => [geometry.groupId, geometry]),
+		);
+		const missing = grouping.groups.filter(
+			(group) => !geometries.has(group.id),
+		);
+		if (missing.length) {
+			for (const geometry of createFlowGroupGeometriesFromGraph(
+				runtimeGraph,
+				missing,
+				groupByNode,
+			)) {
+				geometries.set(geometry.groupId, geometry);
+			}
+		}
 		return grouping.groups.flatMap((definition) => {
 			const nodeIds = getGroupNodeIds(groupByNode, definition.id);
-			if (nodeIds.length === 0) return [];
+			const geometry = geometries.get(definition.id);
+			if (nodeIds.length === 0 || !geometry) return [];
+			const shape = resolveGroupShape(mode, definition.shape);
 			return [
 				{
 					...definition,
-					shape: resolveGroupShape(mode, definition.shape),
-					x: 0,
-					y: 0,
-					width: 1,
-					height: 1,
-					dynamicNodeIds: nodeIds,
+					...normalizeGroupFrameForShape(
+						{
+							x: geometry.x,
+							y: geometry.y,
+							width: geometry.width,
+							height: geometry.height,
+						},
+						shape,
+					),
+					shape,
 					movable: false,
+					titleBandHeight: getFlowGroupHeaderHeight(definition.shape),
 					resizable: false,
 				},
 			];

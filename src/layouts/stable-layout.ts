@@ -29,6 +29,7 @@ import {
 	type GraphForceSettings,
 } from '@/layouts/force-layout';
 import { placeNewFlowNodes } from '@/layouts/flow-insertion';
+import type { FlowNodeFootprint } from '@/layouts/flow-node-footprints';
 import {
 	createGraphGroupGeometries,
 	createGroupMemberHaloGeometries,
@@ -65,6 +66,8 @@ export interface StableLayoutOptions {
 	flowLayerSpacing: number;
 	flowLaneSpacing: number;
 	flowCornerRadius?: number;
+	flowNodeFootprints?: ReadonlyMap<string, FlowNodeFootprint>;
+	flowTitleTextWidths?: ReadonlyMap<string, number>;
 	arcSpacing: number;
 	arcDirection: ArcDirection;
 	arcLabelAngle: ArcLabelAngle;
@@ -245,6 +248,8 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 			options.groups,
 			options.groupByNode,
 			options.flowCornerRadius ?? 0,
+			options.flowNodeFootprints,
+			options.flowTitleTextWidths,
 		);
 		await layout.apply(graph);
 		if (options.isStale?.()) return;
@@ -307,11 +312,29 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 				options.flowDirection,
 			);
 		}
+		const previousGroups = new Map(
+			snapshot.groupGeometries.map((item) => [item.groupId, item]),
+		);
 		snapshot.groupGeometries = createFlowGroupGeometriesFromGraph(
 			graph,
 			options.groups ?? [],
 			options.groupByNode ?? new Map(),
-		);
+		).map((geometry) => {
+			const previous = previousGroups.get(geometry.groupId);
+			// Edge-only refresh must retain the actual ELK title reservation.
+			if (
+				previous?.kind === 'flow-container' &&
+				previous.nodeIds.length === geometry.nodeIds.length &&
+				geometry.nodeIds.every((id) => previous.nodeIds.includes(id))
+			) {
+				return {
+					...previous,
+					name: geometry.name,
+					color: geometry.color,
+				};
+			}
+			return geometry;
+		});
 	}
 
 	if (flowEdgesChanged) {

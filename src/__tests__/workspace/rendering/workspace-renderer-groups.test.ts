@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
+import Graphology from 'graphology';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
 import type { PlanarRenderer } from '@/graph/renderers/renderer-adapter';
 import type { LayoutSnapshot } from '@/layouts/stable-layout';
 
@@ -33,78 +35,120 @@ describe('workspace renderer groups', () => {
 		expect(refresh).not.toHaveBeenCalled();
 	});
 
-	it('builds Flow containers from canonical membership when ELK geometry is unavailable', async () => {
-		vi.stubGlobal('WebGLRenderingContext', class {});
-		vi.stubGlobal('WebGL2RenderingContext', class {});
-		const { syncWorkspaceRendererGroups } =
-			await import('@/ui/workspace/renderer-groups');
-		const setGroups = vi.fn();
-		const setLayoutGroupGeometries = vi.fn();
-		const renderer = {
-			capabilities: {
-				kind: 'g6',
-				supportsGroupOverlay: true,
-				supportsLayoutGroupGeometry: true,
-				supportsManualLayout: false,
-			},
-			setGroups,
-			setLayoutGroupGeometries,
-		} as unknown as PlanarRenderer;
-		const snapshot = {
-			positions: new Map(),
-			edgeIds: new Set(),
-			orthogonalRoutes: new Map(),
-			groupGeometries: [],
-		} as unknown as LayoutSnapshot;
+	it.each(['sigma', 'g6'] as const)(
+		'uses fixed Flow frames with %s, falling back to canonical node coordinates',
+		async (kind) => {
+			vi.stubGlobal('WebGLRenderingContext', class {});
+			vi.stubGlobal('WebGL2RenderingContext', class {});
+			const { syncWorkspaceRendererGroups } =
+				await import('@/ui/workspace/renderer-groups');
+			const setGroups = vi.fn();
+			const setLayoutGroupGeometries = vi.fn();
+			const graph = new Graphology();
+			graph.addNode('A.md', { x: 10, y: 20 });
+			graph.addNode('B.md', { x: 110, y: 120 });
+			const renderer = {
+				runtimeGraph: graph as RuntimeGraph,
+				capabilities: {
+					kind,
+					supportsGroupOverlay: true,
+					supportsLayoutGroupGeometry: true,
+					supportsManualLayout: false,
+				},
+				setGroups,
+				setLayoutGroupGeometries,
+			} as unknown as PlanarRenderer;
+			const snapshot = {
+				positions: new Map(),
+				edgeIds: new Set(),
+				orthogonalRoutes: new Map(),
+				groupGeometries: [],
+			} as unknown as LayoutSnapshot;
 
-		syncWorkspaceRendererGroups(
-			renderer,
-			'flow',
-			{ nodes: {}, groups: [], groupFrames: {} },
-			{
-				groups: [
+			const sync = () =>
+				syncWorkspaceRendererGroups(
+					renderer,
+					'flow',
+					{ nodes: {}, groups: [], groupFrames: {} },
 					{
+						groups: [
+							{
+								id: 'group-1',
+								name: 'Group 1',
+								color: '#7567f8',
+								mode: 'rule',
+								padding: 0.3,
+							},
+						],
+						overrides: {},
+					},
+					new Map([
+						['A.md', 'group-1'],
+						['B.md', 'group-1'],
+					]),
+					snapshot,
+					false,
+					{},
+				);
+			sync();
+			const fallback = setGroups.mock.calls.at(-1)![0][0];
+			expect(fallback.dynamicNodeIds).toBeUndefined();
+			expect(fallback.width).toBeGreaterThan(220);
+			expect(fallback.height).toBeGreaterThan(144);
+
+			expect(setGroups).toHaveBeenCalledWith(
+				[
+					expect.objectContaining({
 						id: 'group-1',
+						shape: 'rectangle',
+						movable: false,
+						resizable: false,
+					}),
+				],
+				expect.any(Object),
+			);
+			expect(setLayoutGroupGeometries).toHaveBeenCalledWith(
+				[
+					{
+						kind: 'member-halos',
+						groupId: 'group-1',
 						name: 'Group 1',
 						color: '#7567f8',
-						mode: 'rule',
-						padding: 0.3,
+						nodeIds: ['A.md', 'B.md'],
 					},
 				],
-				overrides: {},
-			},
-			new Map([
-				['A.md', 'group-1'],
-				['B.md', 'group-1'],
-			]),
-			snapshot,
-			false,
-			{},
-		);
-
-		expect(setGroups).toHaveBeenCalledWith(
-			[
-				expect.objectContaining({
-					id: 'group-1',
-					shape: 'rectangle',
-					dynamicNodeIds: ['A.md', 'B.md'],
-					movable: false,
-					resizable: false,
-				}),
-			],
-			expect.any(Object),
-		);
-		expect(setLayoutGroupGeometries).toHaveBeenCalledWith(
-			[
+				expect.any(Function),
+			);
+			snapshot.groupGeometries = [
 				{
-					kind: 'member-halos',
+					kind: 'flow-container',
 					groupId: 'group-1',
 					name: 'Group 1',
 					color: '#7567f8',
 					nodeIds: ['A.md', 'B.md'],
+					x: -50,
+					y: -30,
+					width: 500,
+					height: 250,
 				},
-			],
-			expect.any(Function),
-		);
-	});
+			];
+			sync();
+			const fixed = setGroups.mock.calls.at(-1)![0][0];
+			expect(fixed).toMatchObject({
+				x: -50,
+				y: -30,
+				width: 500,
+				height: 250,
+			});
+			expect(fixed.dynamicNodeIds).toBeUndefined();
+			graph.setNodeAttribute('A.md', 'size', 1000);
+			graph.setNodeAttribute(
+				'A.md',
+				'label',
+				'A long title must not resize the layout frame',
+			);
+			sync();
+			expect(setGroups.mock.calls.at(-1)![0][0]).toEqual(fixed);
+		},
+	);
 });

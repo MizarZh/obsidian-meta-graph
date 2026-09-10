@@ -207,6 +207,38 @@ describe('WorkspaceRendererLifecycle', () => {
 		expect(renderer.setZoomLevel).toHaveBeenCalledWith(175);
 	});
 
+	it('does not turn Flow node labels into global ELK node footprints', async () => {
+		const state = createState();
+		state.mode = 'flow';
+		state.labelSize = 80;
+		state.grouping.groups = [
+			{
+				id: 'group',
+				name: 'Group 1',
+				mode: 'manual',
+				color: '#777',
+				padding: 0,
+			},
+		];
+		vi.mocked(createWorkspaceGraphRenderer).mockResolvedValue(
+			createRenderer(),
+		);
+		const lifecycle = new WorkspaceRendererLifecycle({
+			readState: () => state,
+			readCanvas: () => createTestCanvas(),
+			readLayoutSnapshot: createLayoutSnapshot,
+			readContainerSize: () => ({ width: 800, height: 600 }),
+			waitForCanvasSize: async () => true,
+			bindEvents: () => vi.fn(),
+			syncRendererGroups: vi.fn(),
+			setRendererDebugState: vi.fn(),
+		});
+		await lifecycle.rebuild();
+		const options = vi.mocked(applyStableLayout).mock.calls.at(-1)![3];
+		expect(options).not.toHaveProperty('flowNodeFootprints');
+		expect(options.groups).toEqual(state.grouping.groups);
+	});
+
 	it('creates a renderer, binds events, and publishes rendered debug state', async () => {
 		const state = createState();
 		const renderer = createRenderer();

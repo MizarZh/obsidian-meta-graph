@@ -12,6 +12,12 @@ import {
 	extractElkLayoutOrthogonalRoutes,
 } from '@/layouts/elk-flow-layout';
 import { createFlowLayoutPlan } from '@/layouts/flow-relation-layout';
+import { createFlowNodeFootprints } from '@/layouts/flow-node-footprints';
+import {
+	getFlowGroupHeaderHeight,
+	getFlowGroupTitleWidth,
+} from '@/layouts/flow-group-frame';
+import { isViewportPointInGroup } from '@/layouts/group-shape';
 
 const palette: GraphPalette = {
 	node: '#111111',
@@ -24,6 +30,107 @@ const palette: GraphPalette = {
 };
 
 describe('Flow relation placement', () => {
+	it('keeps a short-title singleton group compact in actual ELK output', async () => {
+		const graph = runtimeGraph([
+			edge('A-B', 'A.md', 'B.md', 'A.md', 'leads-to'),
+		]);
+		const layout = new ElkFlowLayout(
+			'straight',
+			'LR',
+			1,
+			1,
+			[],
+			[{ ...group('one'), padding: 0 }],
+			new Map([['A.md', 'one']]),
+			0,
+			new Map(),
+			new Map([['one', 48]]),
+		);
+		await layout.apply(graph);
+		const frame = layout.getGroupGeometries()[0]!;
+		expect(frame.width).toBeGreaterThanOrEqual(84);
+		expect(frame.width).toBeLessThan(240);
+		expect(frame.height).toBeLessThan(180);
+	});
+	it.each(['LR', 'RL', 'TD', 'DT'] as const)(
+		'allocates nonoverlapping title slots before routing (%s)',
+		async (direction) => {
+			const graph = runtimeGraph([
+				edge('A-B', 'A.md', 'B.md', 'A.md', 'leads-to'),
+				edge('B-C', 'B.md', 'C.md', 'B.md', 'leads-to'),
+			]);
+			const definitions = [
+				group('one'),
+				{ ...group('two'), shape: 'circle' as const },
+			];
+			const footprints = createFlowNodeFootprints(
+				graph,
+				14,
+				4,
+				(text) => text.length * 14,
+			);
+			const layout = new ElkFlowLayout(
+				'orthogonal',
+				direction,
+				1,
+				1,
+				[],
+				definitions,
+				new Map([
+					['A.md', 'one'],
+					['B.md', 'two'],
+				]),
+				0,
+				footprints,
+			);
+			await layout.apply(graph);
+			const titles = layout.getGroupGeometries().map((frame) => {
+				const definition = definitions.find(
+					(item) => item.id === frame.groupId,
+				)!;
+				const band = getFlowGroupHeaderHeight(definition.shape);
+				// Only nominal title dimensions participate in layout.
+				const titleWidth = getFlowGroupTitleWidth(definition.name);
+				const title = {
+					x: frame.x + frame.width / 2 - titleWidth / 2,
+					y: frame.y + frame.height - band / 2 - 12,
+					width: titleWidth,
+					height: 24,
+				};
+				for (const id of ['A.md', 'B.md', 'C.md']) {
+					const node = graph.getNodeAttributes(id),
+						footprint = footprints.get(id)!;
+					expect(
+						overlap(title, {
+							x: node.x - footprint.width / 2,
+							y: node.y - footprint.height / 2,
+							...footprint,
+						}),
+					).toBe(false);
+				}
+				for (const x of [title.x, title.x + title.width])
+					for (const y of [title.y, title.y + title.height])
+						expect(
+							isViewportPointInGroup(
+								{ x, y },
+								{
+									left: frame.x,
+									top: frame.y,
+									width: frame.width,
+									height: frame.height,
+								},
+								definition.shape === 'circle'
+									? 'circle'
+									: 'rectangle',
+							),
+							JSON.stringify({ frame, title, x, y }),
+						).toBe(true);
+				return title;
+			});
+			expect(overlap(titles[0]!, titles[1]!)).toBe(false);
+			expect(layout.getEdgeRoutes().size).toBe(2);
+		},
+	);
 	it('places linked notes before or after the metadata owner', () => {
 		const graph = runtimeGraph([
 			edge('leads', 'A.md', 'B.md', 'A.md', 'Leads-To'),
@@ -155,6 +262,15 @@ describe('Flow relation placement', () => {
 		expect(a.x).toBeLessThan((research?.x ?? 0) + (research?.width ?? 0));
 		expect(a.y).toBeGreaterThan(research?.y ?? Number.POSITIVE_INFINITY);
 		expect(a.y).toBeLessThan((research?.y ?? 0) + (research?.height ?? 0));
+		for (const frame of layout.getGroupGeometries()) {
+			for (const id of frame.nodeIds) {
+				const node = graph.getNodeAttributes(id);
+				expect(node.x - 60 - frame.x).toBeGreaterThanOrEqual(24);
+				expect(
+					frame.y + frame.height - (node.y + 22),
+				).toBeGreaterThanOrEqual(64);
+			}
+		}
 	});
 
 	it('applies Flow layer spacing inside compound groups', async () => {
@@ -257,6 +373,18 @@ describe('Flow relation placement', () => {
 		]);
 	});
 });
+
+function overlap(
+	a: { x: number; y: number; width: number; height: number },
+	b: { x: number; y: number; width: number; height: number },
+): boolean {
+	return (
+		a.x < b.x + b.width &&
+		a.x + a.width > b.x &&
+		a.y < b.y + b.height &&
+		a.y + a.height > b.y
+	);
+}
 
 function group(id: string): ChartGroupDefinition {
 	return {

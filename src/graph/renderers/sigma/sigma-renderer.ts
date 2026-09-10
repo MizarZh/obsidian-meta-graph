@@ -1,4 +1,5 @@
 import Sigma from 'sigma';
+import { flowTitleReferenceExtent } from '@/graph/renderers/flow-title-viewport';
 import {
 	PlanarPerformance,
 	isPlanarPerformanceLoggingEnabled,
@@ -62,6 +63,7 @@ import type { RendererCapabilities } from '@/graph/renderers/renderer-capabiliti
 import type { SigmaRendererOptions } from '@/graph/renderers/renderer-options';
 import {
 	getPlanarLabelVisualScale,
+	getPlanarGraphExtent,
 	PLANAR_WHEEL_ZOOM_FACTOR,
 	planarZoomToSizeRatio,
 } from '@/graph/renderers/planar-viewport-scale';
@@ -276,6 +278,18 @@ export class SigmaRenderer {
 		this.groupOverlayLayer = new GroupOverlayLayer(
 			this.instance,
 			() => this.graph,
+			() => ({
+				size: getZoomAwareLabelSize(
+					this.instance.getSetting('labelSize'),
+					(size) => this.instance.scaleSize(size),
+					this.scaleLabelsWithZoom,
+				),
+				position: this.labelPosition,
+				offset: this.labelOffset,
+				bold: this.labelBold,
+				italic: this.labelItalic,
+			}),
+			() => this.resize(),
 		);
 		this.layoutGroupLayer = new LayoutGroupLayer(
 			this.instance,
@@ -352,6 +366,35 @@ export class SigmaRenderer {
 	}
 
 	private spacingBoundsHeld = false;
+	private hasFlowTitles = false;
+	private flowTitleGroups: GroupOverlayGroup[] = [];
+
+	private syncFlowTitleReference(): void {
+		if (!this.hasFlowTitles) return;
+		const held = this.spacingBoundsHeld
+			? this.instance.getCustomBBox()
+			: null;
+		const base = held
+			? {
+					...held,
+					center: {
+						x: (held.x[0] + held.x[1]) / 2,
+						y: (held.y[0] + held.y[1]) / 2,
+					},
+					normalizationRatio:
+						Math.max(
+							held.x[1] - held.x[0],
+							held.y[1] - held.y[0],
+						) || 1,
+				}
+			: getPlanarGraphExtent(this.graph);
+		const extent = flowTitleReferenceExtent(
+			base,
+			this.instance.getDimensions(),
+			held ? [] : this.flowTitleGroups,
+		);
+		this.instance.setCustomBBox({ x: extent.x, y: extent.y });
+	}
 
 	setGraph(
 		graph: RuntimeGraph,
@@ -373,6 +416,7 @@ export class SigmaRenderer {
 		this.updateHoveredNeighborhood();
 		this.hoverRefreshCoordinator.synchronize(this.readHoverRefreshState());
 		this.instance.setGraph(graph);
+		this.syncFlowTitleReference();
 		this.diagnostics?.setEnabled(isPlanarPerformanceLoggingEnabled());
 		this.parallelEdgeLayer.invalidate();
 		this.syncGroupFocus();
@@ -432,6 +476,13 @@ export class SigmaRenderer {
 		groups: GroupOverlayGroup[],
 		callbacks?: GroupInteractionCallbacks,
 	): void {
+		const hadFlowTitles = this.hasFlowTitles;
+		this.flowTitleGroups = groups.filter(
+			(group) => !!group.titleBandHeight,
+		);
+		this.hasFlowTitles = groups.some((group) => !!group.titleBandHeight);
+		if (this.hasFlowTitles) this.syncFlowTitleReference();
+		else if (hadFlowTitles) this.instance.setCustomBBox(null);
 		this.groupOverlayLayer.setGroups(groups, callbacks);
 		this.diagnosticManualGroups = new Set(groups.map((group) => group.id));
 		this.syncGroupFocus();
@@ -563,6 +614,7 @@ export class SigmaRenderer {
 
 	setLabelSize(labelSize: number): void {
 		this.instance.setSettings({ labelSize, edgeLabelSize: labelSize });
+		this.groupOverlayLayer.update();
 	}
 
 	setScaleLabelsWithZoom(scaleLabelsWithZoom: boolean): void {
@@ -709,6 +761,7 @@ export class SigmaRenderer {
 			this.spacingBoundsHeld = false;
 			this.clearHeldBounds();
 		}
+		this.syncFlowTitleReference();
 		void this.instance.getCamera().animatedReset({ duration: 350 });
 	}
 
@@ -735,6 +788,7 @@ export class SigmaRenderer {
 	}
 
 	resize(): void {
+		this.syncFlowTitleReference();
 		// Sigma's resize() updates canvas dimensions, which clears the drawing
 		// buffers. scheduleRefresh() coalesces resize events into one frame and
 		// repaints without changing graph coordinates or camera state.
@@ -748,6 +802,10 @@ export class SigmaRenderer {
 	}
 
 	clearHeldBounds(): void {
+		if (this.hasFlowTitles) {
+			this.syncFlowTitleReference();
+			return;
+		}
 		// Flow spacing owns its frame until an explicit fit or scene reset.
 		if (this.spacingBoundsHeld) return;
 		if (this.instance.getCustomBBox()) {

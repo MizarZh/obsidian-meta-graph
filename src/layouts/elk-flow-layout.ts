@@ -23,12 +23,19 @@ import {
 import type { LayoutEngine } from '@/layouts/layout-engine';
 import { offsetParallelFlowRoute } from '@/layouts/parallel-routes';
 import type { PlanarEdgeRoute } from '@/layouts/planar-geometry';
+import type { FlowNodeFootprint } from '@/layouts/flow-node-footprints';
 
 export type OrthogonalRouteMap = Map<string, ElkPoint[]>;
 
+import {
+	FLOW_GROUP_BASE_PADDING,
+	FLOW_GROUP_HEADER_HEIGHT,
+	getFlowGroupMinimumWidth,
+	getFlowGroupHeaderHeight,
+} from '@/layouts/flow-group-frame';
+
 const FLOW_NODE_WIDTH = 120;
 const FLOW_NODE_HEIGHT = 44;
-const FLOW_GROUP_BASE_PADDING = 12;
 const FLOW_GROUP_EXTRA_PADDING = 48;
 
 interface ElkNodeBounds {
@@ -59,6 +66,14 @@ export class ElkFlowLayout implements LayoutEngine {
 		private readonly groups: readonly ChartGroupDefinition[] = [],
 		private readonly groupByNode: ReadonlyMap<string, string> = new Map(),
 		private readonly cornerRadius = 0,
+		private readonly nodeFootprints: ReadonlyMap<
+			string,
+			FlowNodeFootprint
+		> = new Map(),
+		private readonly titleTextWidths: ReadonlyMap<
+			string,
+			number
+		> = new Map(),
 	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
@@ -76,6 +91,8 @@ export class ElkFlowLayout implements LayoutEngine {
 			this.groups,
 			this.groupByNode,
 			flowLayoutOptions,
+			this.nodeFootprints,
+			this.titleTextWidths,
 		);
 		const elkGraph: ElkNode = {
 			id: 'root',
@@ -87,7 +104,25 @@ export class ElkFlowLayout implements LayoutEngine {
 			edges: plan.edges,
 		};
 
-		const result = await this.elk.layout(elkGraph);
+		let result = await this.elk.layout(elkGraph);
+		// A circular overlay must not grow outside the box ELK assigned to it.
+		const circularIds = new Set(
+			this.groups
+				.filter((group) => group.shape === 'circle')
+				.map((group) => hierarchy.groupElkIdByGroupId.get(group.id)),
+		);
+		let squareChanged = false;
+		for (const child of result.children ?? []) {
+			if (!circularIds.has(child.id) || child.width === child.height)
+				continue;
+			const diameter = Math.max(child.width ?? 0, child.height ?? 0);
+			child.layoutOptions = {
+				...child.layoutOptions,
+				'elk.nodeSize.minimum': `(${diameter},${diameter})`,
+			};
+			squareChanged = true;
+		}
+		if (squareChanged) result = await this.elk.layout(result);
 		const boundsById = collectElkNodeBounds(result);
 		for (const nodeId of graph.nodes()) {
 			const bounds = boundsById.get(nodeId);
@@ -160,6 +195,8 @@ function createFlowElkHierarchy(
 	groups: readonly ChartGroupDefinition[],
 	groupByNode: ReadonlyMap<string, string>,
 	flowLayoutOptions: Readonly<Record<string, string>>,
+	nodeFootprints: ReadonlyMap<string, FlowNodeFootprint>,
+	titleTextWidths: ReadonlyMap<string, number>,
 ): FlowElkHierarchy {
 	const nodeIds = graph
 		.nodes()
@@ -185,15 +222,50 @@ function createFlowElkHierarchy(
 			continue;
 		}
 		const elkId = createUniqueFlowGroupElkId(index, occupiedIds);
+		// At this diameter the top band's capsule fits inside the circular chord.
+		const minimumWidth =
+			group.shape === 'circle'
+				? getFlowGroupMinimumWidth(
+						group.name,
+						titleTextWidths.get(group.id),
+					) *
+						2 +
+					64
+				: getFlowGroupMinimumWidth(
+						group.name,
+						titleTextWidths.get(group.id),
+					);
+		const minimumHeight =
+			group.shape === 'circle'
+				? minimumWidth
+				: FLOW_GROUP_HEADER_HEIGHT + FLOW_NODE_HEIGHT;
+		// Layered's minimum-size option is evaluated in its horizontal working
+		// orientation; vertical layouts transpose it on output.
+		const vertical =
+			flowLayoutOptions['elk.direction'] === 'UP' ||
+			flowLayoutOptions['elk.direction'] === 'DOWN';
 		groupElkIdByGroupId.set(group.id, elkId);
 		children.push({
 			id: elkId,
 			layoutOptions: {
 				...flowLayoutOptions,
-				'elk.padding': createElkPadding(group.padding),
+				'elk.padding': createElkPadding(
+					group.padding,
+					getFlowGroupHeaderHeight(group.shape),
+				),
+				// This is an ELK constraint, not a renderer-only enlarged frame.
+				// Sibling groups and ungrouped nodes must route around this space.
+				'elk.nodeSize.constraints': 'MINIMUM_SIZE',
+				'elk.nodeSize.minimum': vertical
+					? `(${minimumHeight},${minimumWidth})`
+					: `(${minimumWidth},${minimumHeight})`,
 			},
 			children: members.map((nodeId) =>
-				createFlowElkNode(nodeId, nodeLayoutOptions),
+				createFlowElkNode(
+					nodeId,
+					nodeLayoutOptions,
+					nodeFootprints.get(nodeId),
+				),
 			),
 		});
 	}
@@ -202,7 +274,13 @@ function createFlowElkHierarchy(
 		if (groupId && groupElkIdByGroupId.has(groupId)) {
 			continue;
 		}
-		children.push(createFlowElkNode(nodeId, nodeLayoutOptions));
+		children.push(
+			createFlowElkNode(
+				nodeId,
+				nodeLayoutOptions,
+				nodeFootprints.get(nodeId),
+			),
+		);
 	}
 	return { children, groupElkIdByGroupId };
 }
@@ -228,12 +306,13 @@ function createFlowElkLayoutOptions(
 function createFlowElkNode(
 	nodeId: string,
 	nodeLayoutOptions: ReadonlyMap<string, Record<string, string>>,
+	footprint?: FlowNodeFootprint,
 ): ElkNode {
 	const layoutOptions = nodeLayoutOptions.get(nodeId);
 	return {
 		id: nodeId,
-		width: FLOW_NODE_WIDTH,
-		height: FLOW_NODE_HEIGHT,
+		width: footprint?.width ?? FLOW_NODE_WIDTH,
+		height: footprint?.height ?? FLOW_NODE_HEIGHT,
 		...(layoutOptions ? { layoutOptions } : {}),
 	};
 }
@@ -253,12 +332,13 @@ function createUniqueFlowGroupElkId(
 	return id;
 }
 
-function createElkPadding(padding: number): string {
+function createElkPadding(padding: number, headerHeight: number): string {
 	const value =
 		FLOW_GROUP_BASE_PADDING +
 		scaleLayoutGroupPadding(padding) * FLOW_GROUP_EXTRA_PADDING;
 	const formatted = value.toFixed(2);
-	return `[top=${formatted},left=${formatted},bottom=${formatted},right=${formatted}]`;
+	// Canonical Y points up in both renderers, so ELK's bottom is screen top.
+	return `[top=${formatted},left=${formatted},bottom=${(value + headerHeight).toFixed(2)},right=${formatted}]`;
 }
 
 function collectElkNodeBounds(root: ElkNode): Map<string, ElkNodeBounds> {
@@ -360,10 +440,24 @@ export function createFlowGroupGeometriesFromGraph(
 				name: group.name,
 				color: group.color,
 				nodeIds: members.map((member) => member.nodeId),
-				x: left - padding,
+				x:
+					(left +
+						right -
+						Math.max(
+							right - left + padding * 2,
+							getFlowGroupMinimumWidth(group.name),
+						)) /
+					2,
 				y: top - padding,
-				width: right - left + padding * 2,
-				height: bottom - top + padding * 2,
+				width: Math.max(
+					right - left + padding * 2,
+					getFlowGroupMinimumWidth(group.name),
+				),
+				height:
+					bottom -
+					top +
+					padding * 2 +
+					getFlowGroupHeaderHeight(group.shape),
 			},
 		];
 	});

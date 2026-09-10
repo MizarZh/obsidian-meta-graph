@@ -22,6 +22,8 @@ export interface GroupInteractionCallbacks {
 export interface GroupOverlayGroup extends ChartGroup {
 	shape: ResolvedGroupShape;
 	dynamicNodeIds?: string[];
+	/** Reserved title band, in graph units, for layout-owned Flow frames. */
+	titleBandHeight?: number;
 	movable?: boolean;
 	resizable?: boolean;
 }

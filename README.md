@@ -441,6 +441,18 @@ reserve different corridors. This can reduce repeated long routes in dense chart
 while keeping each connection traceable. Labels remain attached to each edge's
 target branch.
 
+Flow keeps normal ELK node sizes, with modest group padding and a 40-unit title
+band (80 for circles). Short group titles reserve their measured nominal width;
+node text does not inflate every layout node. Fit includes the complete node and
+group bounds without enforcing a physical zoom floor.
+
+Group capsules share the existing text size, bold, italic, and scale-with-zoom
+settings with node labels. Capsule text uses the same resolved on-screen font
+size; padding, border and background scale with it. Their graph-coordinate
+anchor stays fixed in the header. Font changes update live without rerunning
+layout or enlarging groups. There is no sidebar, relocation or connector line.
+Hover a shortened title for its full name.
+
 Flow groups participate in ELK layout as compound containers. Group rules and
 explicit assignments keep notes inside one colored container while preserving
 cross-group links. Changing group membership, priority, or padding reruns Flow

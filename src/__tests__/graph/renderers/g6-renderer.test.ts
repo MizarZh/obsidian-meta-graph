@@ -17,7 +17,113 @@ import type { G6LabelControllerSnapshot } from '@/graph/renderers/g6/g6-label-co
 import { G6_INTERACTION_STATE } from '@/graph/renderers/g6/g6-styles';
 import type { G6RendererOptions } from '@/graph/renderers/renderer-options';
 
+const flowTitles = vi.hoisted(() => ({
+	update: vi.fn(),
+	setGroups: vi.fn(),
+	destroy: vi.fn(),
+}));
+vi.mock('@/graph/renderers/flow-title-layer', () => ({
+	FlowTitleLayer: class {
+		update = flowTitles.update;
+		setGroups = flowTitles.setGroups;
+		destroy = flowTitles.destroy;
+	},
+}));
+
 describe('G6 renderer', () => {
+	it('fits the full grouped Flow extent and preserves that reference across spacing changes', async () => {
+		const graph = createRuntimeGraph();
+		graph.addNode('B.md', {
+			...graph.getNodeAttributes('A.md'),
+			x: 110,
+			y: 120,
+		});
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			{
+				...createOptions(graph),
+				container: createBrowserTestContainer(800, 600),
+			},
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+		renderer.setGroups([
+			{
+				id: 'flow',
+				name: 'Group 1',
+				mode: 'rule',
+				color: '#7567f8',
+				shape: 'rectangle',
+				padding: 0,
+				x: 0,
+				y: 0,
+				width: 2000,
+				height: 800,
+				titleBandHeight: 160,
+			},
+		]);
+		await vi.waitFor(() =>
+			expect(fake.zoomTo.mock.calls.at(-1)?.[0]).toBeCloseTo(0.072),
+		);
+		for (const factor of [2, 4]) {
+			const expanded = graph.copy();
+			expanded.setNodeAttribute('B.md', 'x', 10 + 100 * factor);
+			expanded.setNodeAttribute('B.md', 'y', 20 + 100 * factor);
+			fake.setData.mockClear();
+			renderer.setGraph(expanded, { preserveViewportScale: true });
+			await vi.waitFor(() => {
+				const data = fake.setData.mock.calls.at(-1)![0];
+				const a = data.nodes.find((node) => node.id === 'A.md')!;
+				const b = data.nodes.find((node) => node.id === 'B.md')!;
+				expect(
+					(Number(b.style.x) - Number(a.style.x)) *
+						fake.instance.getZoom(),
+				).toBeCloseTo(36 * factor);
+			});
+		}
+		renderer.kill();
+	});
+	it('updates the shared Flow title layer on camera transforms and destroys it', async () => {
+		flowTitles.update.mockClear();
+		flowTitles.setGroups.mockClear();
+		flowTitles.destroy.mockClear();
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			{
+				...createOptions(createRuntimeGraph()),
+				container: createBrowserTestContainer(800, 600),
+			},
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+		renderer.setGroups([
+			{
+				id: 'flow',
+				name: 'Group 1',
+				color: '#7567f8',
+				mode: 'rule',
+				shape: 'rectangle',
+				padding: 0.3,
+				x: 0,
+				y: 0,
+				width: 200,
+				height: 140,
+				titleBandHeight: 40,
+				movable: false,
+				resizable: false,
+			},
+		]);
+		await vi.waitFor(() => expect(flowTitles.setGroups).toHaveBeenCalled());
+		expect(flowTitles.setGroups.mock.calls.at(-1)?.[0]).toEqual([
+			expect.objectContaining({ id: 'flow', name: 'Group 1' }),
+		]);
+		flowTitles.update.mockClear();
+		fake.emitTransform();
+		await vi.waitFor(() => expect(flowTitles.update).toHaveBeenCalled());
+		renderer.kill();
+		expect(flowTitles.destroy).toHaveBeenCalledOnce();
+	});
+
 	it('keeps physical spacing scale across consecutive scene changes until fit', async () => {
 		const graph = createRuntimeGraph();
 		graph.addNode('B.md', {

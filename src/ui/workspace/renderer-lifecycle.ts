@@ -383,6 +383,32 @@ export class WorkspaceRendererLifecycle {
 		await this.options.yieldToMainThread?.();
 		if (version !== this.renderVersion) return;
 		const layoutStartedAt = performance.now();
+		let flowTitleTextWidths;
+		if (state.mode === 'flow' && state.grouping.groups.length) {
+			const canvas = this.options.readCanvas();
+			const context = canvas?.ownerDocument
+				.createElement('canvas')
+				.getContext?.('2d');
+			if (context) {
+				const family =
+					canvas?.ownerDocument.defaultView?.getComputedStyle(canvas)
+						.fontFamily || 'sans-serif';
+				context.font = `${state.labelItalic ? 'italic ' : ''}${state.labelBold ? '600' : '400'} ${state.labelSize}px ${family}`;
+			}
+
+			if (context) {
+				const family =
+					canvas?.ownerDocument.defaultView?.getComputedStyle(canvas)
+						.fontFamily || 'sans-serif';
+				context.font = `600 12px ${family}`;
+				flowTitleTextWidths = new Map(
+					state.grouping.groups.map((group) => [
+						group.id,
+						context.measureText(group.name).width,
+					]),
+				);
+			}
+		}
 		await applyStableRuntimeLayout(graph, layoutSnapshot, newNodeIds, {
 			mode: state.mode,
 			forceLayout,
@@ -394,6 +420,7 @@ export class WorkspaceRendererLifecycle {
 			flowLayerSpacing: state.flowLayerSpacing,
 			flowLaneSpacing: state.flowLaneSpacing,
 			flowCornerRadius: state.flowCornerRadius,
+			flowTitleTextWidths,
 			arcSpacing: state.arcSpacing,
 			arcDirection: state.arcDirection,
 			arcLabelAngle: state.arcLabelAngle,

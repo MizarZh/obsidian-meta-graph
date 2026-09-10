@@ -1,4 +1,8 @@
 import Sigma from 'sigma';
+import {
+	FlowTitleLayer,
+	type FlowTitleDisplay,
+} from '@/graph/renderers/flow-title-layer';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
@@ -54,6 +58,7 @@ export class GroupOverlayLayer {
 	private activeDropGroupId: string | undefined;
 	private focusedNodeId: string | undefined;
 	private selectedGroupId: string | undefined;
+	private flowTitles?: FlowTitleLayer;
 	private interaction:
 		| {
 				kind: 'move' | 'resize';
@@ -71,6 +76,14 @@ export class GroupOverlayLayer {
 			RuntimeEdgeAttributes
 		>,
 		private readonly getGraph: () => RuntimeGraph,
+		private readonly readLabels: () => FlowTitleDisplay = () => ({
+			size: 12,
+			position: 'right',
+			offset: 4,
+		}),
+		private readonly resizeViewport: () => void = () => {
+			sigma.resize();
+		},
 	) {
 		const container = sigma.getContainer();
 		this.activeDocument = container.ownerDocument;
@@ -91,6 +104,27 @@ export class GroupOverlayLayer {
 	): void {
 		this.groups = groups;
 		this.callbacks = callbacks;
+		const flowGroups = groups.filter((group) => group.titleBandHeight);
+		if (flowGroups.length) {
+			this.flowTitles ??= new FlowTitleLayer({
+				container: this.sigma.getContainer(),
+				getGraph: this.getGraph,
+				toViewport: (point) => this.sigma.graphToViewport(point),
+				nodeRadius: (size) =>
+					(
+						this.sigma as unknown as {
+							scaleSize(size: number): number;
+						}
+					).scaleSize(size),
+				readLabels: this.readLabels,
+				resize: this.resizeViewport,
+			});
+			this.flowTitles.setGroups(flowGroups, callbacks);
+		} else if (this.flowTitles) {
+			this.flowTitles.destroy();
+			this.flowTitles = undefined;
+			this.resizeViewport();
+		}
 		const groupIds = new Set(groups.map((group) => group.id));
 		for (const [groupId, element] of this.elements.entries()) {
 			if (!groupIds.has(groupId)) {
@@ -152,6 +186,7 @@ export class GroupOverlayLayer {
 	}
 
 	update(): void {
+		this.flowTitles?.update();
 		if (this.groups.length === 0) {
 			this.layer.hidden = true;
 			return;
@@ -188,6 +223,11 @@ export class GroupOverlayLayer {
 			if (title) {
 				title.textContent = group.name;
 				title.title = group.name;
+				if (group.titleBandHeight) {
+					title.style.display = 'none';
+				} else {
+					title.removeAttribute('style');
+				}
 			}
 		}
 	}
@@ -205,6 +245,7 @@ export class GroupOverlayLayer {
 	}
 
 	kill(): void {
+		this.flowTitles?.destroy();
 		this.endInteraction(false);
 		this.sigma.off('afterRender', this.updateBound);
 		this.layer.remove();

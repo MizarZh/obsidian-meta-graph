@@ -1,4 +1,8 @@
 import { GraphEvent } from '@antv/g6';
+import {
+	FlowTitleLayer,
+	type FlowTitleDisplay,
+} from '@/graph/renderers/flow-title-layer';
 import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
 import {
 	isGraphPointInLayoutGroup,
@@ -134,6 +138,7 @@ export class G6GroupLayer {
 	>();
 	private readonly haloElements = new Map<string, G6SceneElement[]>();
 	private geometryDirty = true;
+	private flowTitles?: FlowTitleLayer;
 	private renderQueued = false;
 	private renderFrame?: number;
 	private transformFrame?: number;
@@ -216,6 +221,12 @@ export class G6GroupLayer {
 			x: number;
 			y: number;
 		}) => { x: number; y: number } = (position) => position,
+		private readonly readLabels: () => FlowTitleDisplay = () => ({
+			size: 12,
+			position: 'right',
+			offset: 4,
+		}),
+		private readonly resizeViewport: () => void = () => undefined,
 	) {
 		this.activeDocument = container.ownerDocument;
 		const canvas = viewport.getCanvas() as G6SceneCanvas;
@@ -268,6 +279,22 @@ export class G6GroupLayer {
 			nodeIds: [...geometry.nodeIds],
 		}));
 		this.callbacks = callbacks;
+		const flowGroups = this.groups.filter((group) => group.titleBandHeight);
+		if (flowGroups.length) {
+			this.flowTitles ??= new FlowTitleLayer({
+				container: this.container,
+				getGraph: this.getGraph,
+				toViewport: this.graphToViewport,
+				nodeRadius: (size) => size * this.getNodeVisualScale(),
+				readLabels: this.readLabels,
+				resize: this.resizeViewport,
+			});
+			this.flowTitles.setGroups(flowGroups, callbacks);
+		} else if (this.flowTitles) {
+			this.flowTitles.destroy();
+			this.flowTitles = undefined;
+			this.resizeViewport();
+		}
 		this.rebuildMembers();
 		this.invalidateGeometry();
 	}
@@ -339,6 +366,7 @@ export class G6GroupLayer {
 	}
 
 	update(): void {
+		this.flowTitles?.update();
 		this.renderQueued = false;
 		this.layer.style.display =
 			this.groups.length === 0 && this.geometries.length === 0
@@ -354,7 +382,12 @@ export class G6GroupLayer {
 		this.applyHaloStates();
 	}
 
+	refreshTitlePlacement(): void {
+		this.flowTitles?.update();
+	}
+
 	kill(): void {
+		this.flowTitles?.destroy();
 		this.endMove();
 		const window = this.activeDocument.defaultView;
 		if (this.renderFrame !== undefined)
@@ -392,6 +425,7 @@ export class G6GroupLayer {
 			'transform',
 			`matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})`,
 		);
+		this.flowTitles?.update();
 	}
 
 	private ensureCache(): void {
@@ -642,6 +676,9 @@ export class G6GroupLayer {
 		backgroundColor: string,
 		fontFamily: string,
 	): void {
+		if (region.manualGroup?.titleBandHeight && region.rect) {
+			return;
+		}
 		const point = this.graphToCanvas(region.title);
 		const scale = region.uiScale * canvasScale;
 		const width =

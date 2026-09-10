@@ -49,7 +49,19 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
-- Flow Layer spacing and Lane spacing now preserve the current viewport scale in Sigma and G6, so increasing both visibly expands the layout instead of automatically fitting it back into the canvas. Manual fit and Refresh still fit the complete graph.
+- Flow group capsule text now shares node-label size, bold/italic and scale-with-zoom settings, using the same resolved screen font size in Sigma/G6. Capsule backgrounds scale with the font, while header anchors stay fixed. Font edits update live without layout or group expansion.
+
+- Flow group capsules keep fixed graph-coordinate header anchors. Removed screen-space relocation and connector lines so zooming does not displace their centers.
+
+- Fixed global Flow layout inflation: stopped passing node-label footprints into ELK, removed the fourfold title reservation, and removed the physical zoom floor that prevented full Fit. Title rendering does not change layout or camera state.
+
+- Flow group capsules use modest ELK header space and measured minimum widths. Circular containers reserve their actual square footprint; edge-only refreshes retain layout-owned frames.
+
+- Flow groups reserve additional layout padding and a dedicated title band. Long titles truncate with their full names available on hover.
+
+- Flow group frames now use layout coordinates in Sigma and G6. Zooming scales the frame with its nodes instead of recomputing bounds from screen padding or title width; layout updates still refresh group bounds.
+
+- Flow Layer spacing and Lane spacing preserve the viewport reference in Sigma and G6, so increasing both expands the layout instead of automatically fitting it back into the canvas. Explicit Fit restores the complete graph and group extent.
 
 - Fixed spacing changes incorrectly triggering auto-fit when chart state setters clone unchanged grouping data. Regression coverage now uses the actual spacing setters and render coordinator.
 
