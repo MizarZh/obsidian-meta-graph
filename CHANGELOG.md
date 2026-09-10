@@ -6,6 +6,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Fixed Sigma Flow's initial centering: custom group-title bounds now invalidate coordinate normalization, and resize/fit read current container dimensions before calculating bounds. No window resize is required to correct the view.
+
 - Sigma Graph force dragging stops inside the viewport with node-size-aware padding. Force motion holds the coordinate bounds to prevent repeated extent expansion; Free dragging and Ctrl connection gestures are unchanged.
 
 - Node list filter dialog uses an aligned, muted subtitle instead of an unpadded paragraph, reducing excess vertical space.

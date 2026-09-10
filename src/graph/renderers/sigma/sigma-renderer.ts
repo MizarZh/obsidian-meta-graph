@@ -393,7 +393,19 @@ export class SigmaRenderer {
 			this.instance.getDimensions(),
 			held ? [] : this.flowTitleGroups,
 		);
+		const previous = this.instance.getCustomBBox();
+		if (
+			previous &&
+			previous.x[0] === extent.x[0] &&
+			previous.x[1] === extent.x[1] &&
+			previous.y[0] === extent.y[0] &&
+			previous.y[1] === extent.y[1]
+		)
+			return;
 		this.instance.setCustomBBox({ x: extent.x, y: extent.y });
+		// setCustomBBox only schedules a render in Sigma 3. Reprocess node
+		// normalization as well, or the new frame uses stale normalized positions.
+		this.instance.scheduleRefresh();
 	}
 
 	setGraph(
@@ -484,7 +496,10 @@ export class SigmaRenderer {
 		);
 		this.hasFlowTitles = groups.some((group) => !!group.titleBandHeight);
 		if (this.hasFlowTitles) this.syncFlowTitleReference();
-		else if (hadFlowTitles) this.instance.setCustomBBox(null);
+		else if (hadFlowTitles) {
+			this.instance.setCustomBBox(null);
+			this.instance.scheduleRefresh();
+		}
 		this.groupOverlayLayer.setGroups(groups, callbacks);
 		this.diagnosticManualGroups = new Set(groups.map((group) => group.id));
 		this.syncGroupFocus();
@@ -770,6 +785,7 @@ export class SigmaRenderer {
 	}
 
 	fit(): void {
+		this.instance.resize();
 		if (this.spacingBoundsHeld) {
 			this.spacingBoundsHeld = false;
 			this.clearHeldBounds();
@@ -801,6 +817,7 @@ export class SigmaRenderer {
 	}
 
 	resize(): void {
+		this.instance.resize();
 		this.syncFlowTitleReference();
 		// Sigma's resize() updates canvas dimensions, which clears the drawing
 		// buffers. scheduleRefresh() coalesces resize events into one frame and

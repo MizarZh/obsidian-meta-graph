@@ -18,6 +18,82 @@ describe('label opacity', () => {
 });
 
 describe('SigmaRenderer refresh', () => {
+	it('updates Flow dimensions before bounds and reprocesses changed normalization', async () => {
+		const context = Object.assign(class {}, {
+			BOOL: 35670,
+			BYTE: 5120,
+			UNSIGNED_BYTE: 5121,
+			SHORT: 5122,
+			UNSIGNED_SHORT: 5123,
+			INT: 5124,
+			UNSIGNED_INT: 5125,
+			FLOAT: 5126,
+			TRIANGLES: 4,
+		});
+		vi.stubGlobal('WebGLRenderingContext', context);
+		vi.stubGlobal('WebGL2RenderingContext', context);
+		const { SigmaRenderer } =
+			await import('@/graph/renderers/sigma/sigma-renderer');
+		const renderer = Object.create(
+			SigmaRenderer.prototype,
+		) as SigmaRendererType;
+		const graph = new Graphology();
+		graph.addNode('a', { x: 100, y: 200 });
+		graph.addNode('b', { x: 300, y: 400 });
+		const calls: string[] = [];
+		let bounds: { x: number[]; y: number[] } | null = null;
+		const scheduleRefresh = vi.fn(() => {
+			calls.push('refresh');
+		});
+		Object.assign(renderer, {
+			graph,
+			hasFlowTitles: true,
+			flowTitleGroups: [],
+			instance: {
+				resize: () => {
+					calls.push('resize');
+				},
+				getDimensions: () => {
+					calls.push('dimensions');
+					return { width: 800, height: 600 };
+				},
+				getCustomBBox: () => bounds,
+				setCustomBBox: (value: typeof bounds) => {
+					bounds = value;
+					calls.push('bounds');
+				},
+				scheduleRefresh,
+				getCamera: () => ({
+					animatedReset: () => {
+						calls.push('fit');
+					},
+				}),
+			},
+		});
+		renderer.fit();
+		expect(calls).toEqual([
+			'resize',
+			'dimensions',
+			'bounds',
+			'refresh',
+			'fit',
+		]);
+		expect(bounds).not.toBeNull();
+		calls.length = 0;
+		renderer.resize();
+		expect(calls).toEqual(['resize', 'dimensions', 'refresh']);
+		graph.setNodeAttribute('b', 'x', 900);
+		calls.length = 0;
+		renderer.fit();
+		expect(calls).toEqual([
+			'resize',
+			'dimensions',
+			'bounds',
+			'refresh',
+			'fit',
+		]);
+	});
+
 	it('refreshes only changed selections and schedules rendering before focus', async () => {
 		const WebGLContext = Object.assign(class {}, {
 			BOOL: 0x8b56,
@@ -102,6 +178,7 @@ describe('SigmaRenderer refresh', () => {
 		const getBBox = vi.fn(() => originalBounds);
 		Object.assign(renderer, {
 			instance: {
+				resize: vi.fn(),
 				getBBox,
 				getCustomBBox: () => bounds,
 				setCustomBBox: (value: typeof bounds) => {
