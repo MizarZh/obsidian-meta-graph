@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-09-11
+
 ### Added
 
 - ForceAtlas layout now preserves edge visibility, including style-hidden edges and links to hidden nodes. Manual refresh entries are explicitly labeled Refresh and relayout; their existing forced-layout behavior is unchanged.
