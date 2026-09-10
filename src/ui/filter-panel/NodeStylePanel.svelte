@@ -376,6 +376,7 @@
 	title="Workspace default"
 	summary={`${defaultNodeStyle.size}px · ${defaultNodeStyle.shape} · ${Math.round(defaultNodeStyle.opacity * 100)}%`}
 	color={defaultNodeStyle.color}
+	nodeShape={defaultNodeStyle.shape}
 	open={editingRule === 'workspace-default'}
 	onOpen={() => (editingRule = 'workspace-default')}
 	onClose={() => (editingRule = '')}
@@ -442,6 +443,7 @@
 					title={`${section.scope === 'global' ? 'Global' : 'Chart'} note rule ${index + 1}`}
 					summary={`${nodeStyleFieldOptions.find((option) => option.value === rule.field)?.label ?? rule.field} ${rule.operator ?? ''} ${rule.field === 'group' ? (groups.find((group) => group.id === rule.value)?.name ?? rule.value) : rule.value} · ${rule.size}px · ${rule.shape ?? 'circle'}`}
 					color={rule.color}
+					nodeShape={rule.shape ?? 'circle'}
 					open={editingRule === `${section.scope}:${rule.id}`}
 					onOpen={() => (editingRule = `${section.scope}:${rule.id}`)}
 					onClose={() => (editingRule = '')}
