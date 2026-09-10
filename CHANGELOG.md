@@ -47,7 +47,7 @@ All notable changes to Meta Graph are documented here.
 
 - Curated selection no longer rebuilds file row data or reruns list filters. List focus starts without an extra animation-frame delay; Sigma node selection recomputes only the previous and next selected nodes and schedules rendering instead of synchronously refreshing the entire graph.
 
-- Workspace files now use row highlighting as the selection indicator without checkboxes. Click a row to toggle selection or Shift-click to select a range; inline actions remain independent.
+- Workspace files use row highlighting without checkboxes. Click selects a single row, Ctrl/Cmd-click toggles individual rows, Shift-click selects a visible range, and Ctrl/Cmd+Shift-click adds a range. Inline actions remain independent.
 
 - Removed the unused direct-parallel bend pipeline, old UI/shortcut/connection helpers and debounce scheduler. Connection previews now resolve all link visuals in one pass; Flow routes use only `flowRouteKind`. Simplified the internal Graphology constructor and shared renderer option projection, migrating regression tests to active APIs while retaining workspace-file migration and stale-render guards.
 

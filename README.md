@@ -118,8 +118,10 @@ settings to report them in the developer console.
 5. Use **Source → Query** for filter-driven charts, or **Source → Workspace**
    to manually add a fixed set of notes. Workspace source shows workspace files,
    including isolated notes, and existing metadata links between them.
-   Click a workspace file row to toggle selection; selected rows are highlighted.
-   `Shift`-click selects a range. Group, visibility, open, and remove controls
+   Click a workspace file row to select only that row. `Ctrl`/`Cmd`-click toggles
+   individual rows; `Shift`-click selects a range in the visible list, and
+   `Ctrl`/`Cmd`+`Shift`-click adds a range. Selected rows are highlighted.
+   Group, visibility, open, and remove controls
    act independently of row selection.
 6. Set workspace default note/link styles, then optionally add one chart
    override card. If no chart override exists, the chart inherits the workspace

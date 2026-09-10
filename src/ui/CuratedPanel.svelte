@@ -168,25 +168,38 @@
 		lastSelectedPath = path;
 	}
 
-	function selectFileRange(path: string): void {
-		const paths = curated.files.map((file) => file.path);
+	function selectFileRange(path: string, additive: boolean): void {
+		const paths = filteredSelectedFiles.map((file) => file.path);
 		const currentIndex = paths.indexOf(path);
 		const anchorIndex = lastSelectedPath
 			? paths.indexOf(lastSelectedPath)
 			: -1;
 		if (currentIndex < 0 || anchorIndex < 0) {
-			toggleSelected(path);
+			onSelectedPathsChange(
+				new Set(additive ? [...selected, path] : [path]),
+			);
+			lastSelectedPath = path;
 			return;
 		}
 		const [start, end] =
 			currentIndex < anchorIndex
 				? [currentIndex, anchorIndex]
 				: [anchorIndex, currentIndex];
-		const next = new Set(selected);
+		const next = new Set(additive ? selected : []);
 		for (const selectedPath of paths.slice(start, end + 1)) {
 			next.add(selectedPath);
 		}
 		onSelectedPathsChange(next);
+	}
+
+	function selectFile(path: string, event: MouseEvent | KeyboardEvent): void {
+		const additive = event.ctrlKey || event.metaKey;
+		if (event.shiftKey) selectFileRange(path, additive);
+		else if (additive) toggleSelected(path);
+		else {
+			onSelectedPathsChange(new Set([path]));
+			lastSelectedPath = path;
+		}
 	}
 
 	function handleFileClick(path: string, event: MouseEvent): void {
@@ -198,12 +211,9 @@
 		) {
 			return;
 		}
-		if (event.shiftKey) {
+		if (event.shiftKey || event.ctrlKey || event.metaKey)
 			event.preventDefault();
-			selectFileRange(path);
-			return;
-		}
-		toggleSelected(path);
+		selectFile(path, event);
 	}
 
 	function handleFileKeydown(path: string, event: KeyboardEvent): void {
@@ -216,8 +226,7 @@
 		}
 		if (event.key !== ' ') return;
 		event.preventDefault();
-		if (event.shiftKey) selectFileRange(path);
-		else toggleSelected(path);
+		selectFile(path, event);
 	}
 
 	function clearSelection(): void {
