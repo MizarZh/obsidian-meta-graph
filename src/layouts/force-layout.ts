@@ -50,9 +50,7 @@ export class ForceAtlasLayout implements LayoutEngine {
 				});
 			}
 		});
-		graph.forEachEdge((edge) =>
-			graph.setEdgeAttribute(edge, 'hidden', false),
-		);
+		// Layout owns positions, not visibility. Preserve style and endpoint hiding.
 
 		if (graph.order < 2) {
 			return;

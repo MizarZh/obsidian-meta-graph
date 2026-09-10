@@ -194,8 +194,10 @@ settings to report them in the developer console.
     springs; no direct neighbor shifts or extra return pull are applied.
     Both Sigma and G6 use the original ForceAtlas2 placement and D3 simulation.
     The Graph view
-    only runs its initial ForceAtlas placement once for a chart; later refreshes,
-    force setting changes, added notes, and added links keep existing positions.
+    runs ForceAtlas placement on first layout and when **Refresh and relayout**
+    is explicitly requested. That action refreshes data and recalculates positions
+    using current settings. Ordinary data refreshes, force setting changes, added
+    notes, and added links keep existing positions.
     New nodes are placed near positioned neighbors when possible, then Force
     layout can move them through the force field. `Ctrl`/`Cmd`-drag still creates
     links.
@@ -419,7 +421,7 @@ and renderer state are runtime-only.
 
 Flow charts use ELK layered layout. By default, adding or undoing connection
 links refreshes the visible edges without relaying out existing nodes. This
-keeps editing stable while you add multiple links. Select **Refresh** to run the
+keeps editing stable while you add multiple links. Select **Refresh and relayout** to run the
 Flow layout manually.
 
 Flow layout has two spacing controls. **Layer spacing** controls distance along

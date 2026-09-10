@@ -11,6 +11,52 @@ import {
 } from '@/layouts/force-layout';
 
 describe('ForceAtlasLayout', () => {
+	it.each([false, true])(
+		'preserves hidden edges with group layout=%s',
+		async (grouped) => {
+			const graph = new Graph<
+				RuntimeNodeAttributes,
+				RuntimeEdgeAttributes,
+				Record<string, never>
+			>({ multi: true, type: 'mixed' });
+			graph.addNode('A', node(0, 0));
+			graph.addNode('B', node(1, 1));
+			graph.addNode('C', { ...node(2, 0), hidden: true });
+			graph.addEdgeWithKey('visible', 'A', 'B', edge());
+			graph.addEdgeWithKey('style-hidden', 'A', 'B', {
+				...edge(),
+				hidden: true,
+				styleHidden: true,
+			});
+			graph.addEdgeWithKey('endpoint-hidden', 'A', 'C', {
+				...edge(),
+				hidden: true,
+				styleHidden: false,
+			});
+			await new ForceAtlasLayout(
+				1,
+				DEFAULT_GRAPH_FORCE_SETTINGS,
+				grouped
+					? new Map([
+							['A', 'group'],
+							['B', 'group'],
+						])
+					: new Map(),
+			).apply(graph);
+			expect(graph.getEdgeAttribute('visible', 'hidden')).toBe(false);
+			expect(graph.getEdgeAttributes('style-hidden')).toMatchObject({
+				hidden: true,
+				styleHidden: true,
+			});
+			expect(graph.getEdgeAttributes('endpoint-hidden')).toMatchObject({
+				hidden: true,
+				styleHidden: false,
+			});
+			expect(graph.getNodeAttribute('C', 'hidden')).toBe(true);
+			expect(graph.size).toBe(3);
+		},
+	);
+
 	it('unfixes cached nodes before applying graph spacing', async () => {
 		const graph = new Graph<
 			RuntimeNodeAttributes,

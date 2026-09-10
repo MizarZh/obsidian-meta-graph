@@ -6,6 +6,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- ForceAtlas layout now preserves edge visibility, including style-hidden edges and links to hidden nodes. Manual refresh entries are explicitly labeled Refresh and relayout; their existing forced-layout behavior is unchanged.
+
 - Fixed Sigma Flow's initial centering: custom group-title bounds now invalidate coordinate normalization, and resize/fit read current container dimensions before calculating bounds. No window resize is required to correct the view.
 
 - Sigma Graph force dragging stops inside the viewport with node-size-aware padding. Force motion holds the coordinate bounds to prevent repeated extent expansion; Free dragging and Ctrl connection gestures are unchanged.

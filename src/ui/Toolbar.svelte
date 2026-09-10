@@ -759,9 +759,9 @@
 		<ObsidianButton
 			class="knowledge-workspace-toolbar-refresh"
 			icon="refresh-cw"
-			text="Refresh"
-			ariaLabel="Refresh graph"
-			tooltip="Refresh graph"
+			text="Refresh and relayout"
+			ariaLabel="Refresh and relayout graph"
+			tooltip="Refresh data and recalculate layout"
 			onClick={onRefresh}
 		/>
 		{#if showDebugButton}

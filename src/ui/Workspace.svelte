@@ -858,7 +858,7 @@
 		);
 		menu.addItem((item) =>
 			item
-				.setTitle('Refresh')
+				.setTitle('Refresh and relayout')
 				.setIcon('refresh-cw')
 				.onClick(() => void controller.refresh(true)),
 		);
