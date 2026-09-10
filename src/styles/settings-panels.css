@@ -104,6 +104,13 @@
 	box-shadow: 0 2px var(--interactive-accent);
 }
 
+.knowledge-workspace-style-rule-line-preview {
+	flex: 0 0 40px;
+	width: 40px;
+	height: 16px;
+	pointer-events: none;
+}
+
 .knowledge-workspace-style-rule-swatch {
 	width: 12px;
 	height: 12px;

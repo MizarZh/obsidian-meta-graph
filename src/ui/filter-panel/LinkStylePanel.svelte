@@ -377,6 +377,7 @@
 	title="Workspace default"
 	summary={`${defaultLinkStyle.size}px · ${defaultLinkStyle.lineStyle}${defaultLinkStyle.hidden ? ' · Hidden' : ''}`}
 	color={defaultLinkStyle.color}
+	linePreview={defaultLinkStyle}
 	open={editingRule === 'workspace-default'}
 	onOpen={() => (editingRule = 'workspace-default')}
 	onClose={() => (editingRule = '')}
@@ -455,6 +456,7 @@
 					title={`${section.scope === 'global' ? 'Global' : 'Chart'} link rule ${index + 1}`}
 					summary={`${rule.field} ${rule.operator ?? ''} ${rule.value} · ${rule.size}px · ${rule.lineStyle}${rule.hidden ? ' · Hidden' : ''}`}
 					color={rule.color}
+					linePreview={rule}
 					open={editingRule === `${section.scope}:${rule.id}`}
 					onOpen={() => (editingRule = `${section.scope}:${rule.id}`)}
 					onClose={() => (editingRule = '')}

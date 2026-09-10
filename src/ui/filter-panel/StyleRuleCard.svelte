@@ -1,11 +1,13 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import type { LinkLineStyle } from '@/core/types';
 	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
 	import { placeStyleEditorInWorkspace } from '@/ui/filter/style-editor-position';
 	let {
 		title,
 		summary,
 		color,
+		linePreview,
 		open,
 		onOpen,
 		onClose,
@@ -21,6 +23,11 @@
 		title: string;
 		summary: string;
 		color: string;
+		linePreview?: {
+			lineStyle: LinkLineStyle;
+			size: number;
+			opacity?: number;
+		};
 		open: boolean;
 		onOpen: () => void;
 		onClose: () => void;
@@ -199,11 +206,41 @@
 			/>
 		</div>
 	{/if}
-	<span
-		class="knowledge-workspace-style-rule-swatch"
-		style:background={color}
-		aria-hidden="true"
-	></span>
+	{#if linePreview}
+		<svg
+			class="knowledge-workspace-style-rule-line-preview"
+			width="40"
+			height="16"
+			viewBox="0 0 40 16"
+			aria-hidden="true"
+		>
+			<line
+				x1="2"
+				y1="8"
+				x2="38"
+				y2="8"
+				stroke={color}
+				stroke-width={linePreview.size}
+				opacity={linePreview.opacity ?? 1}
+				stroke-linecap={linePreview.lineStyle === 'dotted'
+					? 'round'
+					: 'butt'}
+				stroke-dasharray={linePreview.lineStyle === 'dashed'
+					? '7 4'
+					: linePreview.lineStyle === 'dotted'
+						? '0 6'
+						: linePreview.lineStyle === 'dash-dot'
+							? '7 4 2 4'
+							: undefined}
+			/>
+		</svg>
+	{:else}
+		<span
+			class="knowledge-workspace-style-rule-swatch"
+			style:background={color}
+			aria-hidden="true"
+		></span>
+	{/if}
 	<div class="knowledge-workspace-style-rule-summary">
 		<strong>{title}</strong>
 		<span title={summary}>{summary}</span>

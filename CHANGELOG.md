@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Link style cards now preview line color, width, opacity, and pattern instead of a color dot, including Workspace default and Global/Chart rules.
+
 - Link Pattern controls now show solid, dashed, dotted, and dash-dot line previews, with accessible names and hover tooltips in all shared link style editors.
 
 - Node/link rule drag handles can transfer rules between Global and Chart sections. Drop on a section heading to append (including empty sections), or on a card to insert before/after it.
