@@ -69,7 +69,10 @@
 		openWorkspaceCreateStandaloneTemplateNote,
 		openWorkspaceCreateTemplateNote,
 	} from '@/ui/workspace/workspace-template-flow';
-	import { WorkspaceAutoSave } from '@/ui/workspace/autosave';
+	import {
+		WorkspaceAutoSave,
+		isWorkspaceInteractionOnlyChange,
+	} from '@/ui/workspace/autosave';
 	import { bindWorkspaceRendererEvents } from '@/ui/workspace/renderer-events';
 	import {
 		moveWorkspaceRuntimeGroupNodes,
@@ -155,7 +158,9 @@
 		readOnly?: boolean;
 		sourceVersion?: number;
 	} = $props();
-	let workspaceState: WorkspaceState = $state(getInitialState());
+	// Controller snapshots are replaced immutably. Deep proxies break the
+	// reference checks used by rendering and turn selection into graph scans.
+	let workspaceState: WorkspaceState = $state.raw(getInitialState());
 	let hoveredNodeId: string | undefined;
 	let workspaceRoot: HTMLDivElement;
 	let canvas: HTMLDivElement;
@@ -510,7 +515,10 @@
 		const unsubscribe = controller.subscribe((nextState) => {
 			const previousState = workspaceState;
 			workspaceState = nextState;
-			persistSession(nextState);
+			if (!isWorkspaceInteractionOnlyChange(nextState, previousState)) {
+				persistSession(nextState);
+				saver.schedule(nextState);
+			}
 			if (
 				shouldCloseSettingsPanelForChartSource(
 					settingsPanel,
@@ -519,7 +527,6 @@
 			) {
 				settingsPanel = undefined;
 			}
-			saver.schedule(nextState);
 			renderCoordinator.apply(nextState, previousState);
 		});
 
@@ -1375,6 +1382,15 @@
 		if (isEditableTarget(event.target)) {
 			return;
 		}
+		// Focusable rows/buttons receive browser focus themselves. Keyboard
+		// events already bubble to the workspace; do not blur and refocus them.
+		const focusTarget =
+			event.target instanceof Element
+				? event.target.closest('button, a[href], [tabindex]')
+				: null;
+		if (focusTarget && focusTarget !== workspaceRoot) return;
+		if (workspaceRoot?.ownerDocument.activeElement === workspaceRoot)
+			return;
 		workspaceRoot?.focus({ preventScroll: true });
 	}
 

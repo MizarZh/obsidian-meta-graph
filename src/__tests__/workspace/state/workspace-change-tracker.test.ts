@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
 	analyzeWorkspaceStateChanges,
 	createWorkspaceRenderBaseline,
@@ -16,6 +16,37 @@ import {
 } from '@/workspace/state/chart-settings';
 
 describe('workspace change tracker', () => {
+	it('does not scan projection nodes for an immutable selection update', () => {
+		const state = {
+			...createWorkspaceState(200),
+			projection: createTestProjection(),
+			nodeStyleRules: [
+				{
+					id: 'done',
+					field: 'metadata.status' as const,
+					value: 'done',
+					color: '#00ff00',
+					size: 10,
+				},
+			],
+		};
+		const baseline = createWorkspaceRenderBaseline(state);
+		const map = vi.spyOn(state.projection.nodes, 'map');
+		const some = vi.spyOn(state.projection.nodes, 'some');
+		const changes = analyzeWorkspaceStateChanges(
+			{ ...state, selectedNodeId: 'a.md' },
+			state,
+			baseline,
+		);
+		expect(changes).toMatchObject({
+			shouldRebuild: false,
+			styleRulesChanged: false,
+			forceLayout: false,
+		});
+		expect(map).not.toHaveBeenCalled();
+		expect(some).not.toHaveBeenCalled();
+	});
+
 	it('updates metadata-based styles even when graph topology is unchanged', () => {
 		const state = {
 			...createWorkspaceState(200),

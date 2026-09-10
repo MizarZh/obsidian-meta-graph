@@ -18,6 +18,65 @@ describe('label opacity', () => {
 });
 
 describe('SigmaRenderer refresh', () => {
+	it('refreshes only changed selections and schedules rendering before focus', async () => {
+		const WebGLContext = Object.assign(class {}, {
+			BOOL: 0x8b56,
+			BYTE: 0x1400,
+			UNSIGNED_BYTE: 0x1401,
+			SHORT: 0x1402,
+			UNSIGNED_SHORT: 0x1403,
+			INT: 0x1404,
+			UNSIGNED_INT: 0x1405,
+			FLOAT: 0x1406,
+			TRIANGLES: 0x0004,
+		});
+		vi.stubGlobal('WebGLRenderingContext', WebGLContext);
+		vi.stubGlobal('WebGL2RenderingContext', WebGLContext);
+		const { SigmaRenderer } =
+			await import('@/graph/renderers/sigma/sigma-renderer');
+		const renderer = Object.create(
+			SigmaRenderer.prototype,
+		) as SigmaRendererType;
+		const graph = new Graphology() as RuntimeGraph;
+		for (let i = 0; i < 1000; i++) graph.addNode(`node-${i}`);
+		const refresh = vi.fn();
+		const animate = vi.fn();
+		Object.assign(renderer, {
+			graph,
+			instance: {
+				refresh,
+				getNodeDisplayData: () => ({ x: 0.2, y: 0.7 }),
+				getCamera: () => ({ animate }),
+			},
+		});
+		renderer.setSelected('node-0');
+		expect(refresh).toHaveBeenLastCalledWith({
+			partialGraph: { nodes: ['node-0'], edges: [] },
+			skipIndexation: false,
+			schedule: true,
+		});
+		renderer.setSelected('node-999');
+		expect(refresh).toHaveBeenLastCalledWith({
+			partialGraph: { nodes: ['node-0', 'node-999'], edges: [] },
+			skipIndexation: false,
+			schedule: true,
+		});
+		renderer.focusNode('node-999');
+		expect(animate).toHaveBeenCalledOnce();
+		renderer.setSelected('node-999');
+		expect(refresh).toHaveBeenCalledTimes(2);
+		graph.dropNode('node-999');
+		renderer.setSelected(undefined);
+		expect(refresh).toHaveBeenCalledTimes(2);
+		renderer.setSelected('node-0');
+		renderer.setSelected(undefined);
+		expect(refresh).toHaveBeenLastCalledWith({
+			partialGraph: { nodes: ['node-0'], edges: [] },
+			skipIndexation: false,
+			schedule: true,
+		});
+	});
+
 	it('holds spacing bounds through repeated rebuilds and releases them on fit', async () => {
 		const WebGLContext = Object.assign(class {}, {
 			BOOL: 0x8b56,

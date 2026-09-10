@@ -559,8 +559,19 @@ export class SigmaRenderer {
 		if (this.selectedNodeId === nodeId) {
 			return;
 		}
+		const previousNodeId = this.selectedNodeId;
 		this.selectedNodeId = nodeId;
-		this.refresh();
+		const nodes = [previousNodeId, nodeId].filter(
+			(id): id is string => id !== undefined && this.graph.hasNode(id),
+		);
+		if (nodes.length === 0) return;
+		// Only the old and new selection need their reducer output recomputed.
+		// Size and zIndex change, so retain indexation but defer the render.
+		this.instance.refresh({
+			partialGraph: { nodes, edges: [] },
+			skipIndexation: false,
+			schedule: true,
+		});
 	}
 
 	setSelectedEdge(edgeId?: string): void {

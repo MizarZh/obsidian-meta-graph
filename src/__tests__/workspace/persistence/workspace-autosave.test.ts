@@ -1,10 +1,70 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MetaGraphDocument } from '@/core/types';
-import { WorkspaceAutoSave } from '@/ui/workspace/autosave';
+import {
+	WorkspaceAutoSave,
+	isWorkspaceInteractionOnlyChange,
+} from '@/ui/workspace/autosave';
 import { serializeMetaGraphState } from '@/workspace/meta-graph-model';
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('WorkspaceAutoSave', () => {
+	it('skips persistence only for interaction changes, including cleared selection', () => {
+		const state = createWorkspaceState(200);
+		const selected = { ...state, selectedNodeId: 'A.md' };
+		expect(isWorkspaceInteractionOnlyChange(selected, state)).toBe(true);
+		expect(isWorkspaceInteractionOnlyChange(state, selected)).toBe(true);
+		expect(
+			isWorkspaceInteractionOnlyChange(
+				{ ...selected, hoveredNodeId: 'B.md' },
+				selected,
+			),
+		).toBe(true);
+		expect(isWorkspaceInteractionOnlyChange(state, state)).toBe(false);
+		expect(
+			isWorkspaceInteractionOnlyChange(
+				{ ...selected, labelSize: state.labelSize + 1 },
+				state,
+			),
+		).toBe(false);
+		expect(
+			isWorkspaceInteractionOnlyChange(
+				{
+					...selected,
+					curated: { ...state.curated, files: [{ path: 'A.md' }] },
+				},
+				state,
+			),
+		).toBe(false);
+	});
+
+	it('selection clicks do not serialize documents or delay a pending save', async () => {
+		vi.useFakeTimers();
+		const state = createWorkspaceState(200);
+		const changed = { ...state, activeConnectionField: 'depends-on' };
+		const serialize = vi.fn(serializeMetaGraphState);
+		const onSave = vi.fn(async () => {});
+		const autoSave = new WorkspaceAutoSave(
+			onSave,
+			350,
+			timerHost(),
+			serialize,
+		);
+		autoSave.initialize(state);
+		autoSave.schedule(changed);
+		await vi.advanceTimersByTimeAsync(300);
+		const selected = { ...changed, selectedNodeId: 'A.md' };
+		if (!isWorkspaceInteractionOnlyChange(selected, changed))
+			autoSave.schedule(selected);
+		await vi.advanceTimersByTimeAsync(50);
+		expect(onSave).toHaveBeenCalledOnce();
+		expect(serialize).toHaveBeenCalledTimes(2);
+		const next = { ...selected, selectedNodeId: 'B.md' };
+		if (!isWorkspaceInteractionOnlyChange(next, selected))
+			autoSave.schedule(next);
+		await vi.advanceTimersByTimeAsync(350);
+		expect(serialize).toHaveBeenCalledTimes(2);
+	});
+
 	afterEach(() => {
 		vi.useRealTimers();
 	});

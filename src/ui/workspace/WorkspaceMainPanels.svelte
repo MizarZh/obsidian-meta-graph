@@ -122,7 +122,7 @@
 	function selectAndMaybeFocusNode(nodeId: string): void {
 		controller.selectNode(nodeId);
 		if (workspaceState.dock.focusOnSelect) {
-			window.requestAnimationFrame(() => onFocusNode(nodeId));
+			onFocusNode(nodeId);
 		}
 	}
 

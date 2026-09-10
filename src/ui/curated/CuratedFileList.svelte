@@ -115,10 +115,10 @@
 					selectedPaths.size > 1}
 				class:missing={file.missing}
 				class:hidden={file.hidden}
-				class:selected={file.selected}
+				class:selected={selectedPaths.has(file.path)}
 				data-curated-file-path={file.path}
 				role="button"
-				aria-pressed={file.selected}
+				aria-pressed={selectedPaths.has(file.path)}
 				tabindex="0"
 				aria-label={file.missing
 					? `${file.title} (file not found)`

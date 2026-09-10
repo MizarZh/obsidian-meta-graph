@@ -27,7 +27,6 @@ export interface CuratedFileEntry {
 	groupColor?: string;
 	missingGroup: boolean;
 	hidden: boolean;
-	selected: boolean;
 }
 
 export function createCuratedConditionDraft(): CuratedConditionDraft {
@@ -78,7 +77,6 @@ export function buildSelectedCuratedFiles(
 	manualLayout: ManualLayoutConfig,
 	groupsById: Map<string, ChartGroupDefinition>,
 	nodeColors: Map<string, string>,
-	selected: Set<string>,
 	resolvedGroupIds?: ReadonlyMap<string, string | undefined>,
 ): CuratedFileEntry[] {
 	return curated.files.map((file) => {
@@ -98,7 +96,6 @@ export function buildSelectedCuratedFiles(
 			groupColor: group?.color,
 			missingGroup: Boolean(groupId && !group),
 			hidden: Boolean(file.hidden),
-			selected: selected.has(file.path),
 		};
 	});
 }

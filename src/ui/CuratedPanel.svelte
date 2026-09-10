@@ -125,7 +125,6 @@
 			manualLayout,
 			groupsById,
 			nodeColors,
-			selected,
 			resolvedGroupIds,
 		),
 	);

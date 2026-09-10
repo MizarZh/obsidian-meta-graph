@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { DropdownComponent } from 'obsidian';
 	import { onMount } from 'svelte';
+	import { DropdownSync } from '@/ui/obsidian/dropdown-sync';
 
 	export interface DropdownOption {
 		value: string;
@@ -25,6 +26,7 @@
 
 	let containerEl: HTMLSpanElement;
 	let dropdown: DropdownComponent | undefined;
+	const sync = new DropdownSync();
 
 	onMount(() => {
 		dropdown = new DropdownComponent(containerEl);
@@ -41,18 +43,13 @@
 			return;
 		}
 
-		dropdown.selectEl.replaceChildren();
-		for (const option of options) {
-			dropdown.addOption(option.value, option.label);
-		}
-		dropdown.setValue(value);
-		dropdown.setDisabled(disabled);
-		dropdown.selectEl.className = className;
-		if (ariaLabel) {
-			dropdown.selectEl.setAttribute('aria-label', ariaLabel);
-		} else {
-			dropdown.selectEl.removeAttribute('aria-label');
-		}
+		sync.update(dropdown, {
+			options,
+			value,
+			disabled,
+			className,
+			ariaLabel,
+		});
 	});
 </script>
 

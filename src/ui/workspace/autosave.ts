@@ -1,6 +1,27 @@
 import type { MetaGraphDocument, WorkspaceState } from '@/core/types';
 import { serializeMetaGraphState } from '@/workspace/meta-graph-model';
 
+const INTERACTION_KEYS = new Set<keyof WorkspaceState>([
+	'selectedNodeId',
+	'selectedEdgeId',
+	'selectedGroupId',
+	'hoveredNodeId',
+]);
+
+export function isWorkspaceInteractionOnlyChange(
+	next: WorkspaceState,
+	previous: WorkspaceState,
+): boolean {
+	if (next === previous) return false;
+	const keys = new Set([
+		...Object.keys(previous),
+		...Object.keys(next),
+	] as Array<keyof WorkspaceState>);
+	return [...keys].every(
+		(key) => INTERACTION_KEYS.has(key) || next[key] === previous[key],
+	);
+}
+
 interface AutoSaveTimers {
 	setTimeout(
 		handler: () => void,
