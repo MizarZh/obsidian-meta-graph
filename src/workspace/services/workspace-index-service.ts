@@ -194,6 +194,7 @@ export class WorkspaceIndexService {
 		for (const record of records) {
 			applyRecordDelta(entry, record);
 		}
+		finalizeRecordBatch(entry, records);
 		// Do not acknowledge a newer invalidation, even for the same TFile.
 		if (revision === this.revision) {
 			for (const record of records) entry.dirtyFiles.delete(record.path);
@@ -250,12 +251,20 @@ function applyRecordDelta(
 	addRecordOwnership(entry, record);
 	incrementValues(entry.tagCounts, record.node.tags);
 	incrementValues(entry.domainCounts, record.node.domains);
+}
+
+function finalizeRecordBatch(
+	entry: WorkspaceIndexCacheEntry,
+	records: readonly MetadataIndexRecord[],
+): void {
+	if (records.length === 0) return;
+	const changedPaths = new Set(records.map((record) => record.path));
 	entry.snapshot.unresolvedLinks = entry.snapshot.unresolvedLinks
-		.filter((link) => normalizePath(link.sourcePath) !== record.path)
-		.concat(record.unresolvedLinks);
+		.filter((link) => !changedPaths.has(normalizePath(link.sourcePath)))
+		.concat(records.flatMap((record) => record.unresolvedLinks));
 	entry.snapshot.metadataSources = entry.snapshot.metadataSources
-		.filter((source) => normalizePath(source.path) !== record.path)
-		.concat(record.metadataSources);
+		.filter((source) => !changedPaths.has(normalizePath(source.path)))
+		.concat(records.flatMap((record) => record.metadataSources));
 	entry.snapshot.availableTags = [...entry.tagCounts.keys()].sort(
 		(left, right) => left.localeCompare(right),
 	);

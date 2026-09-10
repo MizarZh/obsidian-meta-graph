@@ -9,6 +9,100 @@ beforeAll(async () => {
 });
 
 describe('workspace index service', () => {
+	it.each([false, true])(
+		'finalizes a batch once and matches sequential updates (debug=%s)',
+		async (debug) => {
+			const files = ['A.md', 'B.md', 'C.md', 'Stable.md'].map(createFile);
+			const caches = new Map(
+				files.map((file) => [
+					file.path,
+					{
+						frontmatter: {
+							tags: ['shared', 'old'],
+							domain: ['common', 'old-domain'],
+							'leads-to': ['[[Old missing]]'],
+						},
+					},
+				]),
+			);
+			const { app } = createApp(
+				files,
+				(file) => caches.get(file.path) ?? null,
+			);
+			const batch = new WorkspaceIndexService(app);
+			const sequential = new WorkspaceIndexService(app);
+			batch.setLargeVaultMode('on');
+			sequential.setLargeVaultMode('on');
+			const snapshot = await batch.read(debug, ['leads-to']);
+			await sequential.read(debug, ['leads-to']);
+			const stableSource = snapshot.metadataSources.find(
+				(source) => source.path === 'Stable.md',
+			)!;
+			const stableLink = snapshot.unresolvedLinks.find(
+				(link) => link.sourcePath === 'Stable.md',
+			)!;
+			const readSourcePath = vi.fn(() => 'Stable.md');
+			const readLinkPath = vi.fn(() => 'Stable.md');
+			Object.defineProperty(stableSource, 'path', {
+				get: readSourcePath,
+			});
+			Object.defineProperty(stableLink, 'sourcePath', {
+				get: readLinkPath,
+			});
+			let tags = snapshot.availableTags;
+			let domains = snapshot.availableDomains;
+			const publishTags = vi.fn((value: string[]) => {
+				tags = value;
+			});
+			const publishDomains = vi.fn((value: string[]) => {
+				domains = value;
+			});
+			Object.defineProperty(snapshot, 'availableTags', {
+				get: () => tags,
+				set: publishTags,
+			});
+			Object.defineProperty(snapshot, 'availableDomains', {
+				get: () => domains,
+				set: publishDomains,
+			});
+			for (const file of files.slice(0, 3)) {
+				caches.set(file.path, {
+					frontmatter: {
+						tags: ['shared', file.path],
+						domain: ['common', file.path],
+						'leads-to':
+							file.path === 'A.md' ? [] : ['[[New missing]]'],
+					},
+				});
+				batch.invalidateFile(file);
+				sequential.invalidateFile(file);
+				await sequential.read(debug, ['leads-to']);
+			}
+			await batch.read(debug, ['leads-to']);
+			expect(readSourcePath).toHaveBeenCalledTimes(1);
+			expect(readLinkPath).toHaveBeenCalledTimes(1);
+			expect(publishTags).toHaveBeenCalledTimes(1);
+			expect(publishDomains).toHaveBeenCalledTimes(1);
+			expect(snapshot).toEqual(
+				await sequential.read(debug, ['leads-to']),
+			);
+			expect(snapshot.availableTags).toContain('old');
+			expect(snapshot.availableDomains).toContain('old-domain');
+			const stable = files[3]!;
+			caches.set(stable.path, {
+				frontmatter: { tags: [], domain: [], 'leads-to': [] },
+			});
+			batch.invalidateFile(stable);
+			await batch.read(debug, ['leads-to']);
+			expect(snapshot.availableTags).not.toContain('old');
+			expect(snapshot.availableTags).toContain('shared');
+			expect(snapshot.availableDomains).not.toContain('old-domain');
+			expect(snapshot.index.nodes.has('__unresolved__/Old missing')).toBe(
+				false,
+			);
+		},
+	);
+
 	it('shares a failed full build, then retries without invalidation', async () => {
 		const { app, getMarkdownFiles } = createApp();
 		const service = new WorkspaceIndexService(app);
