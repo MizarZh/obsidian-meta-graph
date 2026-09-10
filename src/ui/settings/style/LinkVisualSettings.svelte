@@ -8,6 +8,7 @@
 	import SegmentedSetting from '@/ui/settings/fields/SegmentedSetting.svelte';
 	import SliderSetting from '@/ui/settings/fields/SliderSetting.svelte';
 	import SettingGrid from '@/ui/settings/SettingGrid.svelte';
+	import type { SettingOption } from '@/ui/settings/types';
 
 	export type LinkVisualValue = Required<
 		Pick<
@@ -22,11 +23,31 @@
 	>;
 
 	export const LINK_LINE_STYLE_OPTIONS = [
-		{ value: 'solid', label: 'Solid' },
-		{ value: 'dashed', label: 'Dashed' },
-		{ value: 'dotted', label: 'Dotted' },
-		{ value: 'dash-dot', label: 'Dash-dot' },
-	] satisfies Array<{ value: LinkLineStyle; label: string }>;
+		{
+			value: 'solid',
+			label: 'Solid',
+			tooltip: 'Solid',
+			class: 'knowledge-workspace-pattern-solid',
+		},
+		{
+			value: 'dashed',
+			label: 'Dashed',
+			tooltip: 'Dashed',
+			class: 'knowledge-workspace-pattern-dashed',
+		},
+		{
+			value: 'dotted',
+			label: 'Dotted',
+			tooltip: 'Dotted',
+			class: 'knowledge-workspace-pattern-dotted',
+		},
+		{
+			value: 'dash-dot',
+			label: 'Dash-dot',
+			tooltip: 'Dash-dot',
+			class: 'knowledge-workspace-pattern-dash-dot',
+		},
+	] satisfies Array<SettingOption<LinkLineStyle>>;
 
 	export const LINK_ARROW_STYLE_OPTIONS = [
 		{ value: 'filled', label: 'Filled' },
@@ -91,6 +112,7 @@
 		/>
 		<SegmentedSetting
 			label="Pattern"
+			class="knowledge-workspace-pattern-options"
 			value={value.lineStyle}
 			options={LINK_LINE_STYLE_OPTIONS}
 			onChange={(lineStyle) => onPatch({ lineStyle })}

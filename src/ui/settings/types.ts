@@ -10,6 +10,7 @@ export interface SettingOption<T extends string | number> {
 	icon?: IconName;
 	ariaLabel?: string;
 	tooltip?: string;
+	class?: string;
 }
 
 export type NumericSettingFormatter = (value: number) => string;

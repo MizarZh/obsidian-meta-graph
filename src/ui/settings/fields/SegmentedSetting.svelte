@@ -35,6 +35,7 @@
 				icon={option.icon}
 				ariaLabel={option.ariaLabel ?? option.label}
 				tooltip={option.tooltip}
+				class={option.class}
 				{disabled}
 				onClick={() => onChange(option.value)}
 			/>

@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Link Pattern controls now show solid, dashed, dotted, and dash-dot line previews, with accessible names and hover tooltips in all shared link style editors.
+
 - Node/link rule drag handles can transfer rules between Global and Chart sections. Drop on a section heading to append (including empty sections), or on a card to insert before/after it.
 
 - Style rule ordering controls now live on the compact cards. Drag handles reorder rules within their Global/Chart section, with above/below drop indicators; workspace defaults remain unsortable.
