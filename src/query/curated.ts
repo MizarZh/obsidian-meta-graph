@@ -6,6 +6,7 @@ import type {
 	NodeId,
 } from '@/core/types';
 import { isPlainLinkEdge, isUnresolvedLinkEdge } from '@/core/edge-kind';
+import { getOutgoingEdgesInIndexOrder } from '@/core/knowledge-index';
 
 export class CuratedProjectionEngine {
 	project(
@@ -29,7 +30,7 @@ export class CuratedProjectionEngine {
 
 		const edges: KnowledgeEdge[] = [];
 		const contextIds = new Set<NodeId>();
-		for (const edge of index.edges.values()) {
+		for (const edge of getOutgoingEdgesInIndexOrder(index, primaryIds)) {
 			if (isUnresolvedLinkEdge(edge) && !options.showUnresolvedLinks) {
 				continue;
 			}

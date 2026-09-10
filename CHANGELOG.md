@@ -41,6 +41,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Rooted neighborhood and curated projections collect candidate edges from source adjacency instead of scanning all vault edges. Index insertion order, traversal limits, filters, parallel/self edges and unresolved context behavior are preserved. Global queries retain their existing full scan.
+
 - G6 now attempts same-frame queue submission for automatic D3 ticks without an additional renderer animation frame. Pointer updates, backpressure, latest-position coalescing and synchronized Group updates retain their existing behavior.
 
 - Compacted the Forces panel by moving guidance into hover tooltips and the Reset button into the section header; slider values and reset behavior are unchanged.

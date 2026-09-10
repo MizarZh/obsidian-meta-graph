@@ -8,6 +8,7 @@ import type {
 	NodeId,
 } from '@/core/types';
 import { edgeMatchesFilters, nodeMatchesFilters } from '@/query/filters';
+import { getOutgoingEdgesInIndexOrder } from '@/core/knowledge-index';
 
 interface QueueItem {
 	nodeId: NodeId;
@@ -74,7 +75,7 @@ export class GraphQueryEngine {
 			}
 		}
 
-		const edges = [...index.edges.values()].filter(
+		const edges = getOutgoingEdgesInIndexOrder(index, included).filter(
 			(edge) =>
 				included.has(edge.source) &&
 				included.has(edge.target) &&
