@@ -2,6 +2,10 @@
 	import type { App } from 'obsidian';
 	import SettingsSection from '@/ui/settings/SettingsSection.svelte';
 	import StyleRuleCard from '@/ui/filter-panel/StyleRuleCard.svelte';
+	import {
+		planStyleRuleDrop,
+		styleRuleDropZone,
+	} from '@/ui/filter/style-rule-drop';
 	import NodeVisualSettings, {
 		type NodeVisualValue,
 	} from '@/ui/settings/style/NodeVisualSettings.svelte';
@@ -31,7 +35,6 @@
 		createNodeStyleRule,
 		hasStyleOverride,
 		moveRule,
-		reorderRuleAtTarget,
 		patchRule,
 		removeRule,
 		type StyleRuleScope,
@@ -90,6 +93,27 @@
 
 	let editingRule = $state('');
 	const dragScopePrefix = createRuleId();
+	function dropStyleRule(
+		payload: string,
+		scope: StyleRuleScope,
+		targetId?: string,
+		after = true,
+	) {
+		const plan = planStyleRuleDrop(
+			getNodeRules('global'),
+			getNodeRules('current'),
+			payload,
+			scope,
+			targetId,
+			after,
+		);
+		if (!plan) return;
+		if (plan.transferred) onMoveNodeStyleRule(plan.id, scope);
+		updateNodeRules(scope, plan.rules);
+		ruleSectionsOpen[scope] = true;
+		if (editingRule === `${plan.sourceScope}:${plan.id}`)
+			editingRule = `${scope}:${plan.id}`;
+	}
 	let chartOverridesOpen = $state(true);
 	let unresolvedNodesOpen = $state(true);
 	let ruleSectionsOpen = $state<Record<StyleRuleScope, boolean>>({
@@ -395,122 +419,126 @@
 	{/if}
 </SettingsSection>
 {#each NODE_STYLE_SECTIONS as section}
-	<SettingsSection
-		title={section.title}
-		bind:open={ruleSectionsOpen[section.scope]}
+	<div
+		use:styleRuleDropZone={{
+			key: dragScopePrefix,
+			onDrop: (payload) => dropStyleRule(payload, section.scope),
+		}}
 	>
-		{#snippet actions()}
-			<ObsidianButton
-				class="knowledge-workspace-add-rule-button"
-				ariaLabel="Add note style rule"
-				icon="plus"
-				onClick={() => addNodeRule(section.scope)}
-			/>
-		{/snippet}
-		{#each getNodeRules(section.scope) as rule, index (rule.id)}
-			<StyleRuleCard
-				title={`${section.scope === 'global' ? 'Global' : 'Chart'} note rule ${index + 1}`}
-				summary={`${nodeStyleFieldOptions.find((option) => option.value === rule.field)?.label ?? rule.field} ${rule.operator ?? ''} ${rule.field === 'group' ? (groups.find((group) => group.id === rule.value)?.name ?? rule.value) : rule.value} · ${rule.size}px · ${rule.shape ?? 'circle'}`}
-				color={rule.color}
-				open={editingRule === `${section.scope}:${rule.id}`}
-				ruleId={rule.id}
-				dragScope={`${dragScopePrefix}:${section.scope}`}
-				canMoveUp={canMoveRule(
-					getNodeRules(section.scope),
-					rule.id,
-					-1,
-				)}
-				canMoveDown={canMoveRule(
-					getNodeRules(section.scope),
-					rule.id,
-					1,
-				)}
-				onMoveUp={() => moveNodeRule(section.scope, rule.id, -1)}
-				onMoveDown={() => moveNodeRule(section.scope, rule.id, 1)}
-				onDropRule={(sourceId, after) =>
-					updateNodeRules(
-						section.scope,
-						reorderRuleAtTarget(
-							getNodeRules(section.scope),
-							sourceId,
-							rule.id,
-							after,
-						),
+		<SettingsSection
+			title={section.title}
+			bind:open={ruleSectionsOpen[section.scope]}
+		>
+			{#snippet actions()}
+				<ObsidianButton
+					class="knowledge-workspace-add-rule-button"
+					ariaLabel="Add note style rule"
+					icon="plus"
+					onClick={() => addNodeRule(section.scope)}
+				/>
+			{/snippet}
+			{#each getNodeRules(section.scope) as rule, index (rule.id)}
+				<StyleRuleCard
+					title={`${section.scope === 'global' ? 'Global' : 'Chart'} note rule ${index + 1}`}
+					summary={`${nodeStyleFieldOptions.find((option) => option.value === rule.field)?.label ?? rule.field} ${rule.operator ?? ''} ${rule.field === 'group' ? (groups.find((group) => group.id === rule.value)?.name ?? rule.value) : rule.value} · ${rule.size}px · ${rule.shape ?? 'circle'}`}
+					color={rule.color}
+					open={editingRule === `${section.scope}:${rule.id}`}
+					onOpen={() => (editingRule = `${section.scope}:${rule.id}`)}
+					onClose={() => (editingRule = '')}
+					ruleId={`${section.scope}:${rule.id}`}
+					dragScope={dragScopePrefix}
+					canMoveUp={canMoveRule(
+						getNodeRules(section.scope),
+						rule.id,
+						-1,
 					)}
-				onOpen={() => (editingRule = `${section.scope}:${rule.id}`)}
-				onClose={() => (editingRule = '')}
-			>
-				<div class="knowledge-workspace-rule">
-					<NodeConditionRow
-						{app}
-						class="style-condition"
-						field={rule.field}
-						operator={rule.operator}
-						value={rule.value}
-						fieldOptions={nodeStyleFieldOptions}
-						getOperatorOptions={getNodeStyleOperatorOptionsForField}
-						getDefaultOperator={getDefaultNodeStyleOperatorForField}
-						getFieldType={getNodeStyleFieldTypeForField}
-						getValueOptions={getNodeStyleValueOptions}
-						onFieldChange={(value) =>
-							updateNodeRuleField(
-								section.scope,
-								rule.id,
-								value as NodeStyleField,
-							)}
-						onOperatorChange={(value) =>
-							updateNodeRule(section.scope, rule.id, {
-								operator: value,
-							})}
-						onValueChange={(value) =>
-							updateNodeRule(section.scope, rule.id, {
-								value,
-							})}
-					>
-						{#snippet actions()}
-							<div class="knowledge-workspace-style-rule-actions">
-								<ObsidianButton
-									class="knowledge-workspace-move-rule-button"
-									ariaLabel={section.scope === 'global'
-										? 'Move to chart note rules'
-										: 'Move to global note rules'}
-									tooltip={section.scope === 'global'
-										? 'Move to chart note rules'
-										: 'Move to global note rules'}
-									icon={section.scope === 'global'
-										? 'layout-dashboard'
-										: 'globe'}
-									onClick={() =>
-										moveNodeRuleToScope(
-											section.scope,
-											rule.id,
-										)}
-								/>
-								<ObsidianButton
-									class="knowledge-workspace-remove-rule-button"
-									ariaLabel="Remove note style rule"
-									icon="trash-2"
-									onClick={() =>
-										removeNodeRule(section.scope, rule.id)}
-								/>
-							</div>
-						{/snippet}
-					</NodeConditionRow>
-					<NodeVisualSettings
-						value={{
-							color: rule.color,
-							size: rule.size,
-							opacity: rule.opacity ?? 1,
-							shape: rule.shape ?? 'circle',
-						}}
-						commitKey={`node:${section.scope}:${rule.id}`}
-						onPatch={(patch) =>
-							updateNodeRule(section.scope, rule.id, patch)}
-					/>
-				</div>
-			</StyleRuleCard>
-		{/each}
-	</SettingsSection>
+					canMoveDown={canMoveRule(
+						getNodeRules(section.scope),
+						rule.id,
+						1,
+					)}
+					onMoveUp={() => moveNodeRule(section.scope, rule.id, -1)}
+					onMoveDown={() => moveNodeRule(section.scope, rule.id, 1)}
+					onDropRule={(payload, after) =>
+						dropStyleRule(payload, section.scope, rule.id, after)}
+				>
+					<div class="knowledge-workspace-rule">
+						<NodeConditionRow
+							{app}
+							class="style-condition"
+							field={rule.field}
+							operator={rule.operator}
+							value={rule.value}
+							fieldOptions={nodeStyleFieldOptions}
+							getOperatorOptions={getNodeStyleOperatorOptionsForField}
+							getDefaultOperator={getDefaultNodeStyleOperatorForField}
+							getFieldType={getNodeStyleFieldTypeForField}
+							getValueOptions={getNodeStyleValueOptions}
+							onFieldChange={(value) =>
+								updateNodeRuleField(
+									section.scope,
+									rule.id,
+									value as NodeStyleField,
+								)}
+							onOperatorChange={(value) =>
+								updateNodeRule(section.scope, rule.id, {
+									operator: value,
+								})}
+							onValueChange={(value) =>
+								updateNodeRule(section.scope, rule.id, {
+									value,
+								})}
+						>
+							{#snippet actions()}
+								<div
+									class="knowledge-workspace-style-rule-actions"
+								>
+									<ObsidianButton
+										class="knowledge-workspace-move-rule-button"
+										ariaLabel={section.scope === 'global'
+											? 'Move to chart note rules'
+											: 'Move to global note rules'}
+										tooltip={section.scope === 'global'
+											? 'Move to chart note rules'
+											: 'Move to global note rules'}
+										icon={section.scope === 'global'
+											? 'layout-dashboard'
+											: 'globe'}
+										onClick={() =>
+											moveNodeRuleToScope(
+												section.scope,
+												rule.id,
+											)}
+									/>
+									<ObsidianButton
+										class="knowledge-workspace-remove-rule-button"
+										ariaLabel="Remove note style rule"
+										icon="trash-2"
+										onClick={() =>
+											removeNodeRule(
+												section.scope,
+												rule.id,
+											)}
+									/>
+								</div>
+							{/snippet}
+						</NodeConditionRow>
+						<NodeVisualSettings
+							value={{
+								color: rule.color,
+								size: rule.size,
+								opacity: rule.opacity ?? 1,
+								shape: rule.shape ?? 'circle',
+							}}
+							commitKey={`node:${section.scope}:${rule.id}`}
+							onPatch={(patch) =>
+								updateNodeRule(section.scope, rule.id, patch)}
+						/>
+					</div>
+				</StyleRuleCard>
+			{/each}
+		</SettingsSection>
+	</div>
 {/each}
 {#if showUnresolvedLinks}
 	<SettingsSection title="Unresolved nodes" bind:open={unresolvedNodesOpen}>

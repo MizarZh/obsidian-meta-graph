@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Node/link rule drag handles can transfer rules between Global and Chart sections. Drop on a section heading to append (including empty sections), or on a card to insert before/after it.
+
 - Style rule ordering controls now live on the compact cards. Drag handles reorder rules within their Global/Chart section, with above/below drop indicators; workspace defaults remain unsortable.
 
 - Floating node/link rule editors keep field, operator, and value on one row, with ordering and rule actions above.

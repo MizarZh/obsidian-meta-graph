@@ -142,7 +142,9 @@ settings to report them in the developer console.
    summaries. Click a card to open one floating editor beside it. Changes apply live;
    the graph remains interactive. Close the editor with **×** or **Esc**;
    switching charts closes the editor. Use the card's arrows or drag handle to
-   reorder rules within a Global/Chart section. Other override sections remain inline.
+   reorder rules or transfer them between Global and Chart sections. Drop on a
+   section heading to append, including empty sections, or on a card to choose
+   an insertion position. Other override sections remain inline.
    Move note/link style rules between global and chart scopes with each rule's
    move action. Use **Copy chart styles** and **Paste chart styles** to transfer
    chart overrides and rules between charts.
