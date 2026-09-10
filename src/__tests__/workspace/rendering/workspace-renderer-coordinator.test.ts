@@ -26,6 +26,70 @@ vi.mock('@/graph/renderers/renderer-adapter', () => ({
 
 describe('WorkspaceRenderCoordinator', () => {
 	it.each(['sigma', 'g6'] as const)(
+		'keeps the %s renderer through repeated body edits',
+		(kind) => {
+			const state = createWorkspaceState(200);
+			state.renderer = kind;
+			state.projection = {
+				nodes: [
+					{
+						id: 'a.md',
+						path: 'a.md',
+						title: 'A',
+						folder: '',
+						tags: [],
+						domains: [],
+						modifiedTime: 100,
+					},
+				],
+				edges: [],
+				rootIds: new Set(),
+			};
+			const rebuild = vi.fn(async () => undefined);
+			const lifecycle = {
+				renderer: { capabilities: { kind } },
+				rebuild,
+				setSelection: vi.fn(),
+				setHovered: vi.fn(),
+			} as unknown as WorkspaceRendererLifecycle;
+			const coordinator = new WorkspaceRenderCoordinator({
+				window: {
+					requestAnimationFrame: vi.fn(() => 1),
+					cancelAnimationFrame: vi.fn(),
+				},
+				rendererLifecycle: lifecycle,
+				readCanvas: () => undefined,
+				readHoveredNodeId: () => undefined,
+				syncRendererGroups: vi.fn(),
+				setRendererError: vi.fn(),
+			});
+			coordinator.apply(state, state);
+			rebuild.mockClear();
+			let previous = state;
+			for (const modifiedTime of [200, 300]) {
+				const next = {
+					...previous,
+					projection: {
+						...state.projection,
+						nodes: state.projection.nodes.map((node) => ({
+							...node,
+							modifiedTime,
+						})),
+					},
+				};
+				coordinator.apply(next, previous);
+				previous = next;
+			}
+			expect(rebuild).not.toHaveBeenCalled();
+			coordinator.apply(
+				{ ...previous, layoutRevision: previous.layoutRevision + 1 },
+				previous,
+			);
+			expect(rebuild).toHaveBeenCalledOnce();
+		},
+	);
+
+	it.each(['sigma', 'g6'] as const)(
 		'preserves spacing through actual chart setters for %s',
 		(kind) => {
 			const document = createDefaultMetaGraphDocument(200, 1.5);

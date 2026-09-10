@@ -6,6 +6,8 @@ import {
 } from '@/ui/workspace/change-tracker';
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
 import type { GraphProjection } from '@/core/types';
+import { addEdge, addNode, createKnowledgeIndex } from '@/core/knowledge-index';
+import { GraphQueryEngine } from '@/query/neighborhood';
 import { setCuratedFilesHiddenActionInState } from '@/workspace/actions/curated-actions';
 import { createDefaultMetaGraphDocument } from '@/workspace/meta-graph-model';
 import {
@@ -14,6 +16,289 @@ import {
 } from '@/workspace/state/chart-settings';
 
 describe('workspace change tracker', () => {
+	it('updates metadata-based styles even when graph topology is unchanged', () => {
+		const state = {
+			...createWorkspaceState(200),
+			projection: createTestProjection(),
+			nodeStyleRules: [
+				{
+					id: 'done',
+					field: 'metadata.status' as const,
+					value: 'done',
+					color: '#00ff00',
+					size: 10,
+				},
+			],
+		};
+		const next = {
+			...state,
+			projection: {
+				...state.projection,
+				nodes: state.projection.nodes.map((node) => ({
+					...node,
+					metadata: { status: 'done' },
+					modifiedTime: 200,
+				})),
+			},
+		};
+		expect(
+			analyzeWorkspaceStateChanges(
+				next,
+				state,
+				createWorkspaceRenderBaseline(state),
+			),
+		).toMatchObject({
+			shouldRebuild: false,
+			fitAfterRender: false,
+			styleRulesChanged: true,
+		});
+	});
+
+	it('does not rebuild when time-group membership stays unchanged', () => {
+		const state = {
+			...createWorkspaceState(200),
+			projection: withTimes(createTestProjection(), 100),
+		};
+		state.grouping = {
+			overrides: {},
+			groups: [
+				{
+					id: 'dated',
+					name: 'Dated',
+					color: '#ff0000',
+					padding: 1,
+					mode: 'rule',
+					rule: {
+						id: 'root',
+						kind: 'group',
+						mode: 'all',
+						children: [
+							{
+								id: 'time',
+								kind: 'condition',
+								field: 'file.mtime',
+								operator: 'has-value',
+								value: '',
+							},
+						],
+					},
+				},
+			],
+		};
+		expect(
+			analyzeWorkspaceStateChanges(
+				{ ...state, projection: withTimes(state.projection, 200) },
+				state,
+				createWorkspaceRenderBaseline(state),
+			),
+		).toMatchObject({
+			shouldRebuild: false,
+			fitAfterRender: false,
+			forceLayout: false,
+		});
+	});
+
+	it('rebuilds when a time filter changes the visible projection', () => {
+		const index = createKnowledgeIndex();
+		const input = withTimes(createTestProjection(), 100);
+		input.nodes.forEach((node) => addNode(index, node));
+		input.edges.forEach((edge) => addEdge(index, edge));
+		const state = createWorkspaceState(200);
+		state.query = {
+			...state.query,
+			roots: [],
+			filterRoot: {
+				id: 'time',
+				kind: 'group',
+				mode: 'all',
+				children: [
+					{
+						id: 'before',
+						kind: 'condition',
+						field: 'file.mtime',
+						operator: 'is',
+						value: '100',
+					},
+				],
+			},
+		};
+		const engine = new GraphQueryEngine();
+		state.projection = engine.project(index, state.query);
+		const baseline = createWorkspaceRenderBaseline(state);
+		input.nodes.forEach((node) =>
+			addNode(index, { ...node, modifiedTime: 200 }),
+		);
+		const next = {
+			...state,
+			projection: engine.project(index, state.query),
+		};
+		expect(state.projection.edges).toHaveLength(1);
+		expect(next.projection.edges).toHaveLength(0);
+		expect(
+			analyzeWorkspaceStateChanges(next, state, baseline).shouldRebuild,
+		).toBe(true);
+	});
+
+	it.each([
+		'graph',
+		'graph-3d',
+		'cube',
+		'free',
+		'flow',
+		'arc',
+		'hierarchical-edge-bundling',
+	] as const)('keeps %s stable after a body-only edit', (mode) => {
+		const state = {
+			...createWorkspaceState(200),
+			mode,
+			projection: createTestProjection(),
+		};
+		const next = { ...state, projection: withTimes(state.projection, 200) };
+		expect(
+			analyzeWorkspaceStateChanges(
+				next,
+				state,
+				createWorkspaceRenderBaseline(state),
+			),
+		).toMatchObject({
+			shouldRebuild: false,
+			fitAfterRender: false,
+			forceLayout: false,
+			styleRulesChanged: false,
+		});
+	});
+
+	it.each(['arc', 'hierarchical-edge-bundling'] as const)(
+		'retains time sorting in %s',
+		(mode) => {
+			for (const nodeSort of ['created', 'modified'] as const) {
+				const state = {
+					...createWorkspaceState(200),
+					mode,
+					nodeSort,
+					projection: withTimes(createTestProjection(), 100),
+				};
+				const baseline = createWorkspaceRenderBaseline(state);
+				const next = {
+					...state,
+					projection: withTimes(state.projection, 200),
+				};
+				expect(
+					analyzeWorkspaceStateChanges(next, state, baseline)
+						.shouldRebuild,
+				).toBe(true);
+				const unrelated = {
+					...state,
+					projection: {
+						...state.projection,
+						nodes: state.projection.nodes.map((node) => ({
+							...node,
+							[nodeSort === 'created'
+								? 'modifiedTime'
+								: 'createdTime']: 300,
+						})),
+					},
+				};
+				expect(
+					analyzeWorkspaceStateChanges(unrelated, state, baseline)
+						.shouldRebuild,
+				).toBe(false);
+			}
+		},
+	);
+
+	it('ignores a retained time sort in Flow', () => {
+		const state = {
+			...createWorkspaceState(200),
+			mode: 'flow' as const,
+			nodeSort: 'modified' as const,
+			projection: createTestProjection(),
+		};
+		expect(
+			analyzeWorkspaceStateChanges(
+				{ ...state, projection: withTimes(state.projection, 200) },
+				state,
+				createWorkspaceRenderBaseline(state),
+			).shouldRebuild,
+		).toBe(false);
+	});
+
+	it.each(['globalNodeStyleRules', 'nodeStyleRules'] as const)(
+		'refreshes time-dependent %s without rebuilding',
+		(key) => {
+			const state = {
+				...createWorkspaceState(200),
+				projection: createTestProjection(),
+				[key]: [
+					{
+						id: 'recent',
+						field: 'file.mtime' as const,
+						value: '200',
+						color: '#ff0000',
+						size: 10,
+					},
+				],
+			};
+			expect(
+				analyzeWorkspaceStateChanges(
+					{ ...state, projection: withTimes(state.projection, 200) },
+					state,
+					createWorkspaceRenderBaseline(state),
+				),
+			).toMatchObject({
+				shouldRebuild: false,
+				fitAfterRender: false,
+				styleRulesChanged: true,
+			});
+		},
+	);
+
+	it('retains nested time-dependent group layout refresh', () => {
+		const state = {
+			...createWorkspaceState(200),
+			projection: createTestProjection(),
+		};
+		state.grouping = {
+			overrides: {},
+			groups: [
+				{
+					id: 'recent',
+					name: 'Recent',
+					color: '#ff0000',
+					padding: 1,
+					mode: 'rule',
+					rule: {
+						id: 'root',
+						kind: 'group',
+						mode: 'all',
+						children: [
+							{
+								id: 'nested',
+								kind: 'group',
+								mode: 'any',
+								children: [
+									{
+										id: 'time',
+										kind: 'condition',
+										field: 'file.mtime',
+										value: '200',
+									},
+								],
+							},
+						],
+					},
+				},
+			],
+		};
+		expect(
+			analyzeWorkspaceStateChanges(
+				{ ...state, projection: withTimes(state.projection, 200) },
+				state,
+				createWorkspaceRenderBaseline(state),
+			),
+		).toMatchObject({ shouldRebuild: true, forceLayout: true });
+	});
+
 	it.each([
 		[2, 1],
 		[1, 2],
@@ -507,6 +792,17 @@ describe('workspace change tracker', () => {
 		expect(changes.forceLayout).toBe(false);
 	});
 });
+
+function withTimes(projection: GraphProjection, time: number): GraphProjection {
+	return {
+		...projection,
+		nodes: projection.nodes.map((node) => ({
+			...node,
+			createdTime: time,
+			modifiedTime: time,
+		})),
+	};
+}
 
 function createTestProjection(): GraphProjection {
 	return {

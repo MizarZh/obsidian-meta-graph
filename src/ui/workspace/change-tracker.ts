@@ -1,12 +1,16 @@
 import type {
 	ChartGroupingConfig,
 	GraphProjection,
+	NodeStyleRule,
 	WorkspaceState,
 } from '@/core/types';
+import { matchesNodeCriterion } from '@/query/filters';
+import { resolveChartGroupOwnership } from '@/query/group-ownership';
 
 export interface WorkspaceRenderBaseline {
 	projection?: WorkspaceState['projection'];
 	projectionSignature?: string;
+	projectionGroupSignature?: string;
 	activeChartId?: string;
 	mode?: WorkspaceState['mode'];
 	renderer?: WorkspaceState['renderer'];
@@ -155,18 +159,23 @@ export function analyzeWorkspaceStateChanges(
 			nextState.projection,
 			baseline.projection,
 		) &&
-		readProjectionSignature(nextState.projection) !==
-			baseline.projectionSignature;
+		readProjectionSignature(nextState) !== baseline.projectionSignature;
 	const layoutRevisionChanged = baselineValueChanged(
 		nextState,
 		baseline,
 		'layoutRevision',
 	);
-	const styleRulesChanged = stateDiffersFromBaseline(
-		nextState,
-		baseline,
-		STYLE_RULE_KEYS,
-	);
+	const projectionGroupsChanged =
+		baseline.projectionGroupSignature !== undefined &&
+		nextState.projection?.nodes !== baseline.projection?.nodes &&
+		readProjectionGroupSignature(nextState) !==
+			baseline.projectionGroupSignature;
+	const styleRulesChanged =
+		projectionStyleMatchesChanged(
+			nextState.projection,
+			currentState.projection,
+			[...nextState.globalNodeStyleRules, ...nextState.nodeStyleRules],
+		) || stateDiffersFromBaseline(nextState, baseline, STYLE_RULE_KEYS);
 	const graphVisibilityChanged = projectionHiddenNodeIdsChanged(
 		nextState.projection,
 		currentState.projection,
@@ -303,6 +312,7 @@ export function analyzeWorkspaceStateChanges(
 		styleRulesChanged,
 		graphVisibilityChanged,
 		shouldRebuild:
+			projectionGroupsChanged ||
 			projectionChanged ||
 			(groupingChanged &&
 				(nextState.mode === 'graph' ||
@@ -316,6 +326,7 @@ export function analyzeWorkspaceStateChanges(
 				REBUILD_BASELINE_KEYS,
 			),
 		fitAfterRender:
+			(projectionGroupsChanged && nextState.mode !== 'cube') ||
 			activeChartChanged ||
 			modeChanged ||
 			rendererChanged ||
@@ -329,6 +340,7 @@ export function analyzeWorkspaceStateChanges(
 				nextState.mode !== 'cube' &&
 				!preserveViewportScale),
 		forceLayout:
+			projectionGroupsChanged ||
 			flowStyleChanged ||
 			flowDirectionChanged ||
 			arcDirectionChanged ||
@@ -442,7 +454,8 @@ export function createWorkspaceRenderBaseline(
 ): WorkspaceRenderBaseline {
 	return {
 		projection: state.projection,
-		projectionSignature: readProjectionSignature(state.projection),
+		projectionSignature: readProjectionSignature(state),
+		projectionGroupSignature: readProjectionGroupSignature(state),
 		activeChartId: state.activeChartId,
 		mode: state.mode,
 		renderer: state.renderer,
@@ -490,12 +503,14 @@ function syncBaselineValue<Key extends WorkspaceStateBaselineKey>(
 	baseline[key] = state[key];
 }
 
-function readProjectionSignature(
-	projection: GraphProjection | undefined,
-): string {
+function readProjectionSignature(state: WorkspaceState): string {
+	const projection = state.projection;
 	if (!projection) {
 		return '';
 	}
+	// Only Arc/HEB consume nodeSort. Other modes may retain it after switching.
+	const usesTimeSort =
+		state.mode === 'arc' || state.mode === 'hierarchical-edge-bundling';
 	const nodeParts = projection.nodes
 		.map((node) =>
 			[
@@ -505,8 +520,16 @@ function readProjectionSignature(
 				node.title,
 				node.folder,
 				node.noteType ?? '',
-				String(node.createdTime ?? ''),
-				String(node.modifiedTime ?? ''),
+				String(
+					usesTimeSort && state.nodeSort === 'created'
+						? (node.createdTime ?? '')
+						: '',
+				),
+				String(
+					usesTimeSort && state.nodeSort === 'modified'
+						? (node.modifiedTime ?? '')
+						: '',
+				),
 				...(node.domains ?? []),
 				...(node.tags ?? []),
 			].join('\u001f'),
@@ -541,4 +564,61 @@ function readProjectionSignature(
 		`p:${primaryParts.join('\u001e')}`,
 		`c:${contextParts.join('\u001e')}`,
 	].join('\u001d');
+}
+
+function readProjectionGroupSignature(state: WorkspaceState): string {
+	if (
+		!state.projection ||
+		!state.grouping.groups.some((group) => group.mode === 'rule')
+	)
+		return '';
+	const ownership = resolveChartGroupOwnership(
+		state.projection.nodes,
+		state.grouping,
+	);
+	return JSON.stringify(
+		[...ownership.byNode]
+			.map(([id, entry]) => [id, entry.groupId ?? null])
+			.sort(([a], [b]) => (a ?? '').localeCompare(b ?? '')),
+	);
+}
+
+function projectionStyleMatchesChanged(
+	next: GraphProjection | undefined,
+	previous: GraphProjection | undefined,
+	rules: NodeStyleRule[],
+): boolean {
+	if (
+		!next ||
+		!previous ||
+		next.nodes === previous.nodes ||
+		rules.length === 0
+	)
+		return false;
+	const previousNodes = new Map(
+		previous.nodes.map((node) => [node.id, node]),
+	);
+	return next.nodes.some((node) => {
+		const old = previousNodes.get(node.id);
+		return (
+			old !== undefined &&
+			rules.some(
+				(rule) =>
+					rule.field !== 'all' &&
+					rule.field !== 'group' &&
+					matchesNodeCriterion(
+						old,
+						rule.field,
+						rule.operator ?? 'is',
+						rule.value,
+					) !==
+						matchesNodeCriterion(
+							node,
+							rule.field,
+							rule.operator ?? 'is',
+							rule.value,
+						),
+			)
+		);
+	});
 }

@@ -49,6 +49,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Body-only note edits no longer rebuild or refit charts when only file timestamps change. Arc/HEB time sorting retains refreshes; rule-based group membership changes trigger layout, while node style match changes update incrementally. Query filters still reevaluate on metadata refresh.
+
 - Flow group capsule text now shares node-label size, bold/italic and scale-with-zoom settings, using the same resolved screen font size in Sigma/G6. Capsule backgrounds scale with the font, while header anchors stay fixed. Font edits update live without layout or group expansion.
 
 - Flow group capsules keep fixed graph-coordinate header anchors. Removed screen-space relocation and connector lines so zooming does not displace their centers.
