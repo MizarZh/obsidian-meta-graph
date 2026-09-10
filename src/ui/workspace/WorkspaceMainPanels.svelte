@@ -8,7 +8,11 @@
 		WorkspaceRightPanelTab,
 	} from '@/workspace/meta-graph-v2/types';
 	import ConnectionPanel from '@/ui/ConnectionPanel.svelte';
-	import CuratedPanel from '@/ui/CuratedPanel.svelte';
+	import NodeListPanel from '@/ui/nodes/NodeListPanel.svelte';
+	import { buildQueryNodeListEntries } from '@/ui/nodes/node-list-state';
+	import { buildSelectedCuratedFiles } from '@/ui/curated/curated-panel-state';
+	import { resolveChartGroupOwnership } from '@/query/group-ownership';
+	import { resolveCubeGroupId } from '@/workspace/state/manual-layout/cube-layout';
 	import DockGraphPanel from '@/ui/DockGraphPanel.svelte';
 	import type { DockDragPayload } from '@/ui/dock/types';
 	import type { CuratedConditionDraft } from '@/ui/curated/curated-panel-state';
@@ -213,6 +217,54 @@
 		).arrowSize;
 	});
 	const chartGroups = $derived(workspaceState.grouping.groups);
+	const listSource = $derived(workspaceState.chartSource);
+	const listCurated = $derived(workspaceState.curated);
+	const listProjection = $derived(workspaceState.projection);
+	const listGrouping = $derived(workspaceState.grouping);
+	const listManualLayout = $derived(workspaceState.manualLayout);
+	const listGroupRequired = $derived(workspaceState.mode === 'cube');
+	const listNodes = $derived(
+		listSource === 'curated' ? indexedNodes : (listProjection?.nodes ?? []),
+	);
+	const listNodesByPath = $derived(
+		new Map(listNodes.map((node) => [node.path, node])),
+	);
+	const listGroupsById = $derived(
+		new Map(chartGroups.map((group) => [group.id, group])),
+	);
+	const listGroupIds = $derived(
+		listGroupRequired
+			? new Map(
+					listNodes.map((node) => [
+						node.id,
+						resolveCubeGroupId(listGrouping, node.id),
+					]),
+				)
+			: new Map(
+					[
+						...resolveChartGroupOwnership(listNodes, listGrouping)
+							.byNode,
+					].map(([id, owner]) => [id, owner.groupId]),
+				),
+	);
+	const nodeListFiles = $derived(
+		listSource === 'curated'
+			? buildSelectedCuratedFiles(
+					listCurated,
+					listNodesByPath,
+					listManualLayout,
+					listGroupsById,
+					nodeColors,
+					listGroupIds,
+				)
+			: buildQueryNodeListEntries(
+					listProjection,
+					listManualLayout,
+					listGroupsById,
+					nodeColors,
+					listGroupIds,
+				),
+	);
 	const visibleNodes = $derived(workspaceState.projection?.nodes ?? []);
 	const indexedEdges = $derived.by(() => {
 		void workspaceState.projection;
@@ -241,14 +293,14 @@
 	);
 </script>
 
-{#if workspaceState.chartSource === 'curated'}
-	<CuratedPanel
+{#key `${workspaceState.activeChartId}:${listSource}`}
+	<NodeListPanel
 		{app}
+		source={listSource}
+		files={nodeListFiles}
 		curated={workspaceState.curated}
-		nodes={indexedNodes}
+		nodes={listNodes}
 		groups={chartGroups}
-		manualLayout={workspaceState.manualLayout}
-		grouping={workspaceState.grouping}
 		groupRequired={workspaceState.mode === 'cube'}
 		folders={workspaceState.availableFolders}
 		{nodeColors}
@@ -278,7 +330,7 @@
 		{onOpenNote}
 		onSelectNote={selectAndMaybeFocusNode}
 	/>
-{/if}
+{/key}
 {#if connectionDrag}
 	<svg class="knowledge-workspace-connection-preview" aria-hidden="true">
 		<defs>

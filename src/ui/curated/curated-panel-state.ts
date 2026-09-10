@@ -1,4 +1,5 @@
 import { createDefaultFilterRoot } from '@/ui/filter/filter-tree';
+import type { NodeListEntry } from '@/ui/nodes/node-list-state';
 import type {
 	ChartGroupDefinition,
 	CuratedWorkspaceConfig,
@@ -16,18 +17,7 @@ export interface CuratedConditionDraft {
 	resultSearch: string;
 }
 
-export interface CuratedFileEntry {
-	path: string;
-	title: string;
-	detail: string;
-	missing: boolean;
-	color?: string;
-	groupId: string;
-	groupName: string;
-	groupColor?: string;
-	missingGroup: boolean;
-	hidden: boolean;
-}
+export type CuratedFileEntry = NodeListEntry;
 
 export function createCuratedConditionDraft(): CuratedConditionDraft {
 	return {
@@ -86,6 +76,7 @@ export function buildSelectedCuratedFiles(
 			: manualLayout.nodes[file.path]?.groupId;
 		const group = groupId ? groupsById.get(groupId) : undefined;
 		return {
+			id: file.path,
 			path: file.path,
 			title: node?.title ?? formatFileTitle(file.path),
 			detail: file.path,

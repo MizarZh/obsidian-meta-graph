@@ -422,6 +422,42 @@
 	container: curated-panel / inline-size;
 }
 
+.knowledge-workspace-curated-panel .knowledge-workspace-curated-header.query {
+	grid-template-columns: minmax(0, 1fr) auto repeat(2, 32px);
+}
+
+.knowledge-workspace-curated-header h3 small {
+	display: block;
+	color: var(--text-muted);
+	font-size: var(--font-smallest);
+	font-weight: normal;
+}
+
+.knowledge-workspace-node-list-group {
+	display: flex;
+	grid-row: 1;
+	grid-column: 2;
+	align-items: center;
+	gap: 4px;
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: var(--text-muted);
+	font-size: var(--font-smallest);
+}
+
+.knowledge-workspace-node-list-group > span {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.knowledge-workspace-curated-file.query {
+	grid-template-columns: 10px minmax(0, 1fr) 26px;
+}
+
 .knowledge-workspace-curated-file {
 	grid-template-columns: 12px 10px minmax(0, 1fr) repeat(3, 26px);
 	column-gap: var(--knowledge-workspace-space-1);

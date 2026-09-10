@@ -118,11 +118,19 @@ settings to report them in the developer console.
 5. Use **Source → Query** for filter-driven charts, or **Source → Workspace**
    to manually add a fixed set of notes. Workspace source shows workspace files,
    including isolated notes, and existing metadata links between them.
-   Click a workspace file row to select only that row. `Ctrl`/`Cmd`-click toggles
+   Both sources share the **Nodes** panel. Query lists the current graph result;
+   Workspace lists saved members, including hidden and missing files. Panel
+   search only narrows the list and does not change the graph. Query supports
+   selection, navigation, and read-only group labels; adding, removing, hiding,
+   moving to groups, and manual ordering are Workspace-only list actions.
+   Click a node row to select only that row. `Ctrl`/`Cmd`-click toggles
    individual rows; `Shift`-click selects a range in the visible list, and
    `Ctrl`/`Cmd`+`Shift`-click adds a range. Selected rows are highlighted.
    Group, visibility, open, and remove controls
    act independently of row selection.
+   Selection is temporary: switching charts clears it, and Query refresh removes
+   selections that have left the result. Unresolved links can be located but
+   cannot be opened as existing notes.
 6. Set workspace default note/link styles, then optionally add one chart
    override card. If no chart override exists, the chart inherits the workspace
    default.
@@ -206,7 +214,7 @@ settings to report them in the developer console.
     **Graph** settings to control cube face transparency.
 19. Use **Details**, **Pinned notes**, and **Templates** in the right panel. Only
     one tab is shown at a time. Pinned notes use the same searchable, filterable
-    **Add notes** picker as Workspace files. Template editing opens in a modal;
+    **Add notes** picker as the Workspace Nodes panel. Template editing opens in a modal;
     drag a row to the graph or use its explicit **Create** and link buttons.
     Selecting a relationship keeps that metadata link prominent and lists other
     indexed links between the same notes separately. Selecting a Group shows its
@@ -223,9 +231,9 @@ settings to report them in the developer console.
     `1` resets zoom, `+` and `-` zoom, `Shift+R` refreshes and relayouts, and `?`
     toggles a side-by-side shortcut reference panel that remains visible while
     operating the graph. These actions are also available in Obsidian's command
-    palette, where users can assign custom hotkeys. In Workspace files, Pinned
-    notes, and Templates lists, `Enter` opens the focused note and `Space` toggles
-    selection.
+    palette, where users can assign custom hotkeys. In the Nodes panel, `Enter`
+    opens the focused note and `Space` selects it with the same Ctrl/Cmd/Shift
+    modifiers as clicking. In Pinned notes and Templates, `Space` toggles selection.
 23. Choose **Open notes in** under **Settings -> Meta Graph** to open notes in a
     new tab or a reused right split. Use the fold/unfold button in **Details** to show
     read-only note content below its metadata. **After creating a note** controls whether

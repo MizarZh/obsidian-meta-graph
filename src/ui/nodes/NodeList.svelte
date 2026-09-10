@@ -5,17 +5,19 @@
 		dragHandle,
 		dragHandleZone,
 		type DndEvent,
+		type Options,
 	} from 'svelte-dnd-action';
 	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
 	import ObsidianDropdown from '@/ui/obsidian/ObsidianDropdown.svelte';
 	import type { DropdownOption } from '@/ui/obsidian/ObsidianDropdown.svelte';
 	import { buildCuratedMultiDragOrder } from '@/ui/curated/curated-multi-drag';
-	import type { CuratedFileEntry } from '@/ui/curated/curated-panel-state';
+	import type { NodeListEntry } from '@/ui/nodes/node-list-state';
 
-	type CuratedDndEntry = CuratedFileEntry & { id: string };
+	type CuratedDndEntry = NodeListEntry;
 
 	let {
 		files,
+		editable = false,
 		selectedTitleCounts,
 		getGroupOptions,
 		selectedPaths,
@@ -29,7 +31,8 @@
 		onSetFileHidden,
 		onRemoveFile,
 	}: {
-		files: CuratedFileEntry[];
+		files: NodeListEntry[];
+		editable?: boolean;
 		selectedTitleCounts: Record<string, number>;
 		getGroupOptions: (currentGroupId: string) => DropdownOption[];
 		selectedPaths: Set<string>;
@@ -46,18 +49,18 @@
 
 	let dndFiles = $state<CuratedDndEntry[]>([]);
 	const filesByPath = $derived(
-		new Map(files.map((file) => [file.path, file] as const)),
+		new Map(files.map((file) => [file.id, file] as const)),
 	);
 
 	$effect(() => {
-		const currentPaths = untrack(() => dndFiles.map((file) => file.path));
+		const currentPaths = untrack(() => dndFiles.map((file) => file.id));
 		if (
 			files.length === currentPaths.length &&
-			files.every((file, index) => file.path === currentPaths[index])
+			files.every((file, index) => file.id === currentPaths[index])
 		) {
 			return;
 		}
-		dndFiles = files.map((file) => ({ ...file, id: file.path }));
+		dndFiles = files.map((file) => ({ ...file }));
 	});
 
 	function handleDndConsider(event: CustomEvent<DndEvent<CuratedDndEntry>>) {
@@ -65,7 +68,7 @@
 	}
 
 	function handleDndFinalize(event: CustomEvent<DndEvent<CuratedDndEntry>>) {
-		if (!reorderEnabled) {
+		if (!editable || !reorderEnabled) {
 			return;
 		}
 		const orderedPaths = files.map((file) => file.path);
@@ -87,18 +90,23 @@
 	function readRealItems(items: CuratedDndEntry[]): CuratedDndEntry[] {
 		return items.filter((item) => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 	}
+
+	// Query lists never register drag/drop listeners or participate in zones.
+	function sortable(node: HTMLElement, options: Options<CuratedDndEntry>) {
+		if (!editable) return;
+		return dragHandleZone(node, options);
+	}
 </script>
 
 {#if dndFiles.length === 0}
 	<div class="knowledge-workspace-curated-list">
-		<span class="knowledge-workspace-curated-empty">No workspace files</span
-		>
+		<span class="knowledge-workspace-curated-empty">No matching nodes</span>
 	</div>
 {:else}
 	<div
 		class="knowledge-workspace-curated-list"
-		aria-label="Workspace files"
-		use:dragHandleZone={{
+		aria-label="Nodes"
+		use:sortable={{
 			items: dndFiles,
 			flipDurationMs: 120,
 			type: 'meta-graph-curated-files',
@@ -108,33 +116,39 @@
 		onfinalize={handleDndFinalize}
 	>
 		{#each dndFiles as dndFile (dndFile.id)}
-			{@const file = filesByPath.get(dndFile.path) ?? dndFile}
+			{@const file = filesByPath.get(dndFile.id) ?? dndFile}
 			<div
 				class="knowledge-workspace-curated-file"
-				class:dragging-set={selectedPaths.has(file.path) &&
+				class:query={!editable}
+				class:dragging-set={editable &&
+					selectedPaths.has(file.id) &&
 					selectedPaths.size > 1}
 				class:missing={file.missing}
 				class:hidden={file.hidden}
-				class:selected={selectedPaths.has(file.path)}
-				data-curated-file-path={file.path}
+				class:selected={selectedPaths.has(file.id)}
+				data-curated-file-path={editable ? file.path : undefined}
 				role="button"
-				aria-pressed={selectedPaths.has(file.path)}
+				aria-pressed={selectedPaths.has(file.id)}
 				tabindex="0"
 				aria-label={file.missing
 					? `${file.title} (file not found)`
 					: file.title}
-				title={file.missing
-					? `File not found: ${file.path}`
-					: undefined}
-				onclick={(event) => onFileClick(file.path, event)}
-				onpointerdown={(event) => onPointerDown(file.path, event)}
-				onkeydown={(event) => onFileKeydown(file.path, event)}
+				title={file.unresolved
+					? `Unresolved link: ${file.path}`
+					: file.missing
+						? `File not found: ${file.path}`
+						: undefined}
+				onclick={(event) => onFileClick(file.id, event)}
+				onpointerdown={(event) => onPointerDown(file.id, event)}
+				onkeydown={(event) => onFileKeydown(file.id, event)}
 			>
-				<span
-					class="knowledge-workspace-drag-handle"
-					aria-label={`Drag ${file.title}`}
-					use:dragHandle
-				></span>
+				{#if editable}
+					<span
+						class="knowledge-workspace-drag-handle"
+						aria-label={`Drag ${file.title}`}
+						use:dragHandle
+					></span>
+				{/if}
 				<span
 					style={file.missing
 						? undefined
@@ -147,61 +161,81 @@
 							>{file.detail}</span
 						>
 					{/if}
-					<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-					<div
-						class="knowledge-workspace-curated-file-group"
-						class:missing={file.missingGroup}
-						role="group"
-						title={`Group: ${file.groupName}`}
-						onclick={(event) => event.stopPropagation()}
-						onkeydown={(event) => event.stopPropagation()}
-						onpointerdown={(event) => event.stopPropagation()}
-					>
+					{#if editable}
+						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+						<div
+							class="knowledge-workspace-curated-file-group"
+							class:missing={file.missingGroup}
+							role="group"
+							title={`Group: ${file.groupName}`}
+							onclick={(event) => event.stopPropagation()}
+							onkeydown={(event) => event.stopPropagation()}
+							onpointerdown={(event) => event.stopPropagation()}
+						>
+							<span
+								class="knowledge-workspace-curated-file-group-dot"
+								style={file.groupColor
+									? `background: ${file.groupColor}`
+									: undefined}
+								aria-hidden="true"
+							></span>
+							<ObsidianDropdown
+								class="knowledge-workspace-curated-group-select"
+								value={file.groupId}
+								options={getGroupOptions(file.groupId)}
+								ariaLabel={`Group for ${file.title}`}
+								onChange={(value) =>
+									onMoveFileToGroup(file.path, value)}
+							/>
+						</div>
+					{:else}
 						<span
-							class="knowledge-workspace-curated-file-group-dot"
-							style={file.groupColor
-								? `background: ${file.groupColor}`
-								: undefined}
-							aria-hidden="true"
-						></span>
-						<ObsidianDropdown
-							class="knowledge-workspace-curated-group-select"
-							value={file.groupId}
-							options={getGroupOptions(file.groupId)}
-							ariaLabel={`Group for ${file.title}`}
-							onChange={(value) =>
-								onMoveFileToGroup(file.path, value)}
-						/>
-					</div>
+							class="knowledge-workspace-node-list-group"
+							title={file.groupName}
+						>
+							<span
+								style:background={file.groupColor ??
+									'var(--text-faint)'}
+								aria-hidden="true"
+							></span>
+							{file.groupName}
+						</span>
+					{/if}
 				</div>
-				<ObsidianButton
-					ariaLabel={file.hidden
-						? `Show ${file.title}`
-						: `Hide ${file.title}`}
-					icon={file.hidden ? 'eye-off' : 'eye'}
-					tooltip={file.hidden ? 'Show in graph' : 'Hide from graph'}
-					onClick={(event) => {
-						event.stopPropagation();
-						onSetFileHidden(file.path, !file.hidden);
-					}}
-				/>
+				{#if editable}
+					<ObsidianButton
+						ariaLabel={file.hidden
+							? `Show ${file.title}`
+							: `Hide ${file.title}`}
+						icon={file.hidden ? 'eye-off' : 'eye'}
+						tooltip={file.hidden
+							? 'Show in graph'
+							: 'Hide from graph'}
+						onClick={(event) => {
+							event.stopPropagation();
+							onSetFileHidden(file.path, !file.hidden);
+						}}
+					/>
+				{/if}
 				<ObsidianButton
 					ariaLabel={`Open ${file.title}`}
 					icon="file-text"
-					disabled={file.missing}
+					disabled={file.missing || file.unresolved}
 					onClick={(event) => {
 						event.stopPropagation();
 						onOpenNote(file.path);
 					}}
 				/>
-				<ObsidianButton
-					ariaLabel={`Remove ${file.title}`}
-					icon="x"
-					onClick={(event) => {
-						event.stopPropagation();
-						onRemoveFile(file.path);
-					}}
-				/>
+				{#if editable}
+					<ObsidianButton
+						ariaLabel={`Remove ${file.title}`}
+						icon="x"
+						onClick={(event) => {
+							event.stopPropagation();
+							onRemoveFile(file.path);
+						}}
+					/>
+				{/if}
 			</div>
 		{/each}
 	</div>

@@ -223,7 +223,7 @@ export function normalizeCubeChartState(
 	};
 }
 
-function resolveCubeGroupId(
+export function resolveCubeGroupId(
 	grouping: ChartGroupingConfig,
 	nodeId: string,
 ): string {

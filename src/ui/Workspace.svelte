@@ -514,6 +514,12 @@
 
 		const unsubscribe = controller.subscribe((nextState) => {
 			const previousState = workspaceState;
+			if (
+				nextState.activeChartId !== previousState.activeChartId ||
+				nextState.chartSource !== previousState.chartSource
+			) {
+				curatedSelection = new Set();
+			}
 			workspaceState = nextState;
 			if (!isWorkspaceInteractionOnlyChange(nextState, previousState)) {
 				persistSession(nextState);
@@ -1449,9 +1455,6 @@
 		if (action === 'open-selected') {
 			return Boolean(workspaceState.selectedNodeId);
 		}
-		if (action === 'toggle-curated-panel') {
-			return workspaceState.chartSource === 'curated';
-		}
 		if (action === 'previous-view' || action === 'next-view') {
 			return workspaceState.charts.length > 1;
 		}
@@ -1607,20 +1610,15 @@
 			/>
 		{/if}
 		<main
-			class="knowledge-workspace-main"
+			class="knowledge-workspace-main curated-panel-visible"
 			aria-busy={graphLoading}
 			class:dock-node-dragging={Boolean(dockDrag)}
 			class:connection-collapsed={!connectionOpen}
-			class:curated-panel-visible={workspaceState.chartSource ===
-				'curated'}
 			style="--dock-panel-width: {dockOpen
 				? `${workspaceState.dock.dockWidth}px`
-				: '32px'}; --curated-panel-width: {workspaceState.chartSource ===
-				'curated' && curatedPanelOpen
+				: '32px'}; --curated-panel-width: {curatedPanelOpen
 				? `${workspaceState.dock.curatedPanelWidth}px`
-				: workspaceState.chartSource === 'curated'
-					? '32px'
-					: '0px'}; --connection-panel-height: {connectionOpen
+				: '32px'}; --connection-panel-height: {connectionOpen
 				? `${connectionPanelHeight}px`
 				: '0px'}"
 		>

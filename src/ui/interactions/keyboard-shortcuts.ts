@@ -96,7 +96,7 @@ export const WORKSPACE_ACTION_DEFINITIONS: readonly WorkspaceActionDefinition[] 
 		{ id: 'toggle-dock', label: 'Toggle right panel', group: 'Panels' },
 		{
 			id: 'toggle-curated-panel',
-			label: 'Toggle workspace files',
+			label: 'Toggle nodes panel',
 			group: 'Panels',
 		},
 		{
