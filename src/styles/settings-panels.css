@@ -1409,6 +1409,10 @@
 	align-items: start;
 }
 
+.knowledge-workspace-setting-row--row.knowledge-workspace-setting-row--described {
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
 .knowledge-workspace-setting-label {
 	display: grid;
 	gap: 2px;
@@ -1422,6 +1426,8 @@
 }
 
 .knowledge-workspace-setting-label > small {
+	white-space: normal;
+	overflow-wrap: anywhere;
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 	line-height: 1.25;
@@ -1654,7 +1660,7 @@
 
 .knowledge-workspace-slider-value {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 34px;
+	grid-template-columns: minmax(0, 1fr) minmax(34px, max-content);
 	gap: var(--size-4-2);
 	align-items: center;
 	min-width: 0;

@@ -1,4 +1,5 @@
 import { type NodeHoverDrawingFunction } from 'sigma/rendering';
+import { truncateLabel } from '@/graph/label-text';
 import type {
 	EdgeLabelDrawingFunction,
 	NodeLabelDrawingFunction,
@@ -24,8 +25,30 @@ export function createNodeLabelDrawer(
 	getLabelBackground: () => string,
 	getLabelStyle: () => 'normal' | 'italic',
 	textWidthCache: CanvasTextWidthCache,
+	getMaxWidth: () => number = () => 0,
 ): NodeLabelDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
 	return (context, data, settings) => {
+		data = {
+			...data,
+			label:
+				typeof data.label === 'string'
+					? truncateLabel(
+							data.label,
+							getMaxWidth() > 0
+								? getRenderedLabelSize(getMaxWidth())
+								: 0,
+							(text) =>
+								textWidthCache.measure(context, text, {
+									family: settings.labelFont,
+									weight: settings.labelWeight,
+									style: getLabelStyle(),
+									size: getRenderedLabelSize(
+										settings.labelSize,
+									),
+								}),
+						)
+					: data.label,
+		};
 		if (!data.label) {
 			return;
 		}
@@ -71,8 +94,30 @@ export function createNodeHoverDrawer(
 	getLabelBackground: () => string,
 	getLabelStyle: () => 'normal' | 'italic',
 	textWidthCache: CanvasTextWidthCache,
+	getMaxWidth: () => number = () => 0,
 ): NodeHoverDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
 	return (context, data, settings) => {
+		data = {
+			...data,
+			label:
+				typeof data.label === 'string'
+					? truncateLabel(
+							data.label,
+							getMaxWidth() > 0
+								? getRenderedLabelSize(getMaxWidth())
+								: 0,
+							(text) =>
+								textWidthCache.measure(context, text, {
+									family: settings.labelFont,
+									weight: settings.labelWeight,
+									style: getLabelStyle(),
+									size: getRenderedLabelSize(
+										settings.labelSize,
+									),
+								}),
+						)
+					: data.label,
+		};
 		if (data.hidden) return;
 		if (typeof data.label !== 'string') return;
 
@@ -119,9 +164,21 @@ export function createEdgeLabelDrawer(
 	getRenderedLabelSize: (baseSize: number) => number,
 	getOpacity: () => number,
 	textWidthCache: CanvasTextWidthCache,
+	getMaxWidth: () => number = () => 0,
 ): EdgeLabelDrawingFunction<RuntimeNodeAttributes, RuntimeEdgeAttributes> {
 	return (context, edgeData, sourceData, targetData, settings) => {
-		const label = edgeData.label;
+		const label = edgeData.label
+			? truncateLabel(
+					edgeData.label,
+					getMaxWidth() > 0 ? getRenderedLabelSize(getMaxWidth()) : 0,
+					(text) =>
+						textWidthCache.measure(context, text, {
+							family: settings.edgeLabelFont,
+							weight: settings.edgeLabelWeight,
+							size: getRenderedLabelSize(settings.edgeLabelSize),
+						}),
+				)
+			: edgeData.label;
 		if (!label) return;
 		const size = getRenderedLabelSize(settings.edgeLabelSize);
 		const font = {

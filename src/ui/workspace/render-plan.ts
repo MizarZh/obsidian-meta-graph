@@ -9,6 +9,7 @@ const DISPLAY_CHANGE_KEYS = [
 	'labelItalicChanged',
 	'labelPositionChanged',
 	'labelOffsetChanged',
+	'labelMaxWidthChanged',
 	'labelThemeChanged',
 	'labelDensityChanged',
 	'cubeFaceOpacityChanged',

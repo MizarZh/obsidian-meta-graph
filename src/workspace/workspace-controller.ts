@@ -65,6 +65,7 @@ import {
 	setLabelLightBackgroundOpacityInState,
 	setLabelLightTextColorInState,
 	setLabelOffsetInState,
+	setLabelMaxWidthInState,
 	setLabelPositionInState,
 	setLabelSizeInState,
 	setScaleLabelsWithZoomInState,
@@ -440,6 +441,10 @@ export class WorkspaceController {
 		this.setWorkspaceState(
 			setLabelPositionInState(this.state, labelPosition),
 		);
+	}
+
+	setLabelMaxWidth(value: number): void {
+		this.setWorkspaceState(setLabelMaxWidthInState(this.state, value));
 	}
 
 	setLabelOffset(labelOffset: number): void {

@@ -98,6 +98,8 @@
 			labelItalic={view.labels.labelItalic}
 			labelPosition={view.labels.labelPosition}
 			labelOffset={view.labels.labelOffset}
+			labelMaxWidth={view.labels.labelMaxWidth}
+			onLabelMaxWidth={actions.labels.setLabelMaxWidth}
 			labelLightTextColor={view.labels.labelLightTextColor}
 			labelLightBackgroundColor={view.labels.labelLightBackgroundColor}
 			labelLightBackgroundOpacity={view.labels

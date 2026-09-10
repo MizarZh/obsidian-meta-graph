@@ -116,6 +116,7 @@ export class Cube3DRenderer {
 	private resizeObserver: ResizeObserver;
 	private labelPosition: LabelPosition;
 	private labelOffset: number;
+	private labelMaxWidth = 0;
 	private labelBold: boolean;
 	private labelItalic: boolean;
 	private labelTheme: LabelThemeConfig;
@@ -152,6 +153,7 @@ export class Cube3DRenderer {
 		this.labelItalic = options.labelItalic;
 		this.labelPosition = options.labelPosition;
 		this.labelOffset = options.labelOffset;
+		this.labelMaxWidth = options.labelMaxWidth ?? 0;
 		this.labelTheme = {
 			labelLightTextColor: options.labelLightTextColor,
 			labelLightBackgroundColor: options.labelLightBackgroundColor,
@@ -308,6 +310,12 @@ export class Cube3DRenderer {
 
 	setLabelPosition(labelPosition: LabelPosition): void {
 		this.labelPosition = labelPosition;
+		this.rebuildGraphObjects();
+		this.scheduleRender();
+	}
+
+	setLabelMaxWidth(value: number): void {
+		this.labelMaxWidth = value;
 		this.rebuildGraphObjects();
 		this.scheduleRender();
 	}
@@ -1084,6 +1092,7 @@ export class Cube3DRenderer {
 		);
 		return createThreeTextSprite(this.three, {
 			text,
+			maxWidth: this.labelMaxWidth,
 			fontSize,
 			textColor: labelStyle.textColor,
 			backgroundColor: labelStyle.backgroundColor,

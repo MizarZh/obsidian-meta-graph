@@ -138,7 +138,12 @@ settings to report them in the developer console.
 7. Add filters and style rules for **All views** or **This view**. File
    filters support file name, path, folder, extension, tags, links, and
    frontmatter property presence.
-8. Rules can have an optional **Name** in their editor. Without a name, the card
+8. **Text -> Max text width** limits node/link text width in pixels, not characters.
+   `0` keeps full text (default). Text is measured using its font and size;
+   the `...` suffix fits inside the limit. Width is specified at 100% zoom
+   and scales with text. Original names and search remain unchanged;
+   changing this setting does not rerun layout.
+   Rules can have an optional **Name** in their editor. Without a name, the card
    title shows the matching condition including its operator (for example,
    **Source field is related**). Named rules keep that condition in the summary.
    Names are saved with rules and do not change matching or priority.

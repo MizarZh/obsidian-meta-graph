@@ -13,6 +13,7 @@ interface DisplayRenderer {
 	setLabelItalic(value: boolean): void;
 	setLabelPosition(value: WorkspaceState['labelPosition']): void;
 	setLabelOffset(value: number): void;
+	setLabelMaxWidth?(value: number): void;
 	setLabelTheme(
 		state: Pick<
 			WorkspaceState,
@@ -66,6 +67,8 @@ export function syncRendererDisplaySettings(
 	if (changes.labelPositionChanged) {
 		renderer?.setLabelPosition(state.labelPosition);
 	}
+	if (changes.labelMaxWidthChanged)
+		renderer?.setLabelMaxWidth?.(state.labelMaxWidth);
 	if (changes.labelOffsetChanged) {
 		renderer?.setLabelOffset(state.labelOffset);
 	}

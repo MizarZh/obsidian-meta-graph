@@ -7,6 +7,61 @@ import {
 } from '@/graph/renderers/g6/g6-label-controller';
 
 describe('G6 label controller', () => {
+	it('applies physical width constraints to node and edge labels without changing text', () => {
+		const label = { update: vi.fn(), setLocalScale: vi.fn() };
+		const attributes = { labelText: '金融市场投资' };
+		const controller = new G6LabelController(
+			{
+				graph: { on: vi.fn(), off: vi.fn() },
+				element: {
+					getElement: () => ({
+						attributes,
+						getShape: () => label,
+						getLabelStyle: (style: Record<string, unknown>) => ({
+							text: style.labelText,
+							wordWrap: style.labelWordWrap,
+							wordWrapWidth: style.labelMaxWidth,
+						}),
+					}),
+				},
+			} as unknown as RuntimeContext,
+			{
+				type: G6_LABEL_CONTROLLER_KEY,
+				snapshot: {
+					nodeIds: new Set(['node']),
+					edgeIds: new Set(['edge']),
+					nodeStyle: {},
+					edgeStyle: {},
+				},
+			},
+		);
+		const snapshot = {
+			nodeIds: new Set(['node']),
+			edgeIds: new Set(['edge']),
+			nodeStyle: {},
+			edgeStyle: {},
+		};
+		const limited = { labelWordWrap: true, labelMaxWidth: 120 };
+		controller.updateLabels({
+			...snapshot,
+			nodeStyle: limited,
+			edgeStyle: limited,
+		});
+		expect(label.update).toHaveBeenLastCalledWith({
+			text: '金融市场投资',
+			wordWrap: true,
+			wordWrapWidth: 120,
+		});
+		expect(label.update).toHaveBeenCalledTimes(2);
+		controller.updateLabels(snapshot);
+		expect(label.update).toHaveBeenLastCalledWith({
+			text: '金融市场投资',
+			wordWrap: undefined,
+			wordWrapWidth: undefined,
+		});
+		expect(attributes.labelText).toBe('金融市场投资');
+		controller.destroy();
+	});
 	it('retains translated node labels while updating edges, new labels, styles and zoom', () => {
 		const nodeLabel = { update: vi.fn(), setLocalScale: vi.fn() };
 		const edgeLabel = { update: vi.fn(), setLocalScale: vi.fn() };

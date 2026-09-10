@@ -81,6 +81,7 @@ export class Force3DRenderer {
 	private hoveredNeighborhood = new Set<string>();
 	private labelPosition: LabelPosition;
 	private labelOffset: number;
+	private labelMaxWidth = 0;
 	private labelBold: boolean;
 	private labelItalic: boolean;
 	private labelTheme: LabelThemeConfig;
@@ -150,6 +151,7 @@ export class Force3DRenderer {
 		this.palette = options.palette;
 		this.labelPosition = options.labelPosition;
 		this.labelOffset = options.labelOffset;
+		this.labelMaxWidth = options.labelMaxWidth ?? 0;
 		this.labelBold = options.labelBold;
 		this.labelItalic = options.labelItalic;
 		this.labelTheme = {
@@ -370,6 +372,11 @@ export class Force3DRenderer {
 	setLabelPosition(_labelPosition: LabelPosition): void {
 		this.labelPosition = _labelPosition;
 		this.scheduleVisualUpdate({ nodeLabelPositions: true });
+	}
+
+	setLabelMaxWidth(value: number): void {
+		this.labelMaxWidth = value;
+		this.scheduleVisualUpdate({ allLabelSprites: true });
 	}
 
 	setLabelOffset(labelOffset: number): void {
@@ -988,6 +995,7 @@ export class Force3DRenderer {
 		);
 		return createThreeTextSprite(this.three, {
 			text,
+			maxWidth: this.labelMaxWidth,
 			fontSize,
 			textColor: labelStyle.textColor,
 			backgroundColor: labelStyle.backgroundColor,

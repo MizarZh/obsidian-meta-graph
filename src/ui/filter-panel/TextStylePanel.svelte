@@ -42,6 +42,8 @@
 	let {
 		mode,
 		labelSize,
+		labelMaxWidth,
+		onLabelMaxWidth,
 		scaleLabelsWithZoom,
 		forceLabels,
 		arcLabelAngle,
@@ -74,6 +76,8 @@
 	}: {
 		mode: ViewMode;
 		labelSize: number;
+		labelMaxWidth: number;
+		onLabelMaxWidth: (value: number) => void;
 		scaleLabelsWithZoom: boolean;
 		forceLabels: boolean;
 		arcLabelAngle: ArcLabelAngle;
@@ -111,6 +115,17 @@
 
 <section>
 	<header><h3>Label settings</h3></header>
+	<SliderSetting
+		label="Max text width"
+		tooltip="Text width in pixels at 100% zoom, including ...; scales with text. Original names stay unchanged."
+		value={labelMaxWidth}
+		min={0}
+		max={600}
+		step={10}
+		format={(value) => (value === 0 ? 'Unlimited' : `${value}px`)}
+		onChange={onLabelMaxWidth}
+		onCommit={onLabelMaxWidth}
+	/>
 	<SliderSetting
 		label="Font size"
 		value={labelSize}

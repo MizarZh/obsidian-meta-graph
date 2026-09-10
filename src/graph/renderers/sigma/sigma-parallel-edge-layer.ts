@@ -1,3 +1,4 @@
+import { truncateLabel } from '@/graph/label-text';
 import Sigma from 'sigma';
 import type { FlowDirection } from '@/core/types';
 import type {
@@ -128,6 +129,7 @@ export class SigmaParallelEdgeLayer {
 		private readonly getState: () => ParallelEdgeLayerState,
 		private readonly getLabelOpacity: () => number,
 		private readonly textWidthCache: CanvasTextWidthCache,
+		private readonly getLabelMaxWidth: () => number = () => 0,
 	) {
 		sigma.createCanvasContext(LAYER_ID, {
 			style: { pointerEvents: 'none' },
@@ -875,8 +877,18 @@ export class SigmaParallelEdgeLayer {
 		this.context.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
 		this.context.textAlign = 'center';
 		this.context.textBaseline = 'middle';
+		const label = truncateLabel(
+			attributes.label,
+			this.getLabelMaxWidth(),
+			(text) =>
+				this.textWidthCache.measure(this.context, text, {
+					family: fontFamily,
+					weight: fontWeight,
+					size: fontSize,
+				}),
+		);
 		const width =
-			this.textWidthCache.measure(this.context, attributes.label, {
+			this.textWidthCache.measure(this.context, label, {
 				family: fontFamily,
 				weight: fontWeight,
 				size: fontSize,
@@ -890,7 +902,7 @@ export class SigmaParallelEdgeLayer {
 			fontSize + 4,
 		);
 		this.context.fillStyle = attributes.color;
-		this.context.fillText(attributes.label, 0, 0);
+		this.context.fillText(label, 0, 0);
 		this.context.restore();
 	}
 

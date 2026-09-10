@@ -130,6 +130,17 @@ export function setLabelPositionInState(
 	return setDisplayValue(state, 'labelPosition', labelPosition);
 }
 
+export function setLabelMaxWidthInState(
+	state: WorkspaceState,
+	value: number,
+): WorkspaceState {
+	return setDisplayValue(
+		state,
+		'labelMaxWidth',
+		Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0,
+	);
+}
+
 export function setLabelOffsetInState(
 	state: WorkspaceState,
 	labelOffset: number,

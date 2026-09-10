@@ -84,6 +84,7 @@ export interface PlanarRenderer {
 	setLabelItalic(labelItalic: boolean): void;
 	setLabelPosition(labelPosition: LabelPosition): void;
 	setLabelOffset(labelOffset: number): void;
+	setLabelMaxWidth(value: number): void;
 	setLabelTheme(labelTheme: LabelThemeConfig): void;
 	setLabelDensity(labelDensity: number): void;
 	setForceLabels(forceLabels: boolean): void;

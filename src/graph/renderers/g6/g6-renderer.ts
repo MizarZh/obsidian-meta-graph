@@ -875,6 +875,10 @@ export class G6Renderer implements PlanarRenderer {
 		this.displayStyle.labelOffset = labelOffset;
 		this.scheduleLabelSync();
 	}
+	setLabelMaxWidth(value: number): void {
+		this.displayStyle.labelMaxWidth = value;
+		this.scheduleLabelSync();
+	}
 	setLabelTheme(labelTheme: LabelThemeConfig): void {
 		this.displayStyle.labelTheme = { ...labelTheme };
 		this.scheduleLabelSync();
@@ -2177,6 +2181,7 @@ function createG6DisplayStyleOptions(
 		labelItalic: options.labelItalic,
 		labelPosition: options.labelPosition,
 		labelOffset: options.labelOffset,
+		labelMaxWidth: options.labelMaxWidth ?? 0,
 		labelTheme: {
 			labelLightTextColor: options.labelLightTextColor,
 			labelLightBackgroundColor: options.labelLightBackgroundColor,

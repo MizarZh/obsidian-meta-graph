@@ -30,6 +30,7 @@ type ActiveChartStateFields = Pick<
 	| 'labelItalic'
 	| 'labelPosition'
 	| 'labelOffset'
+	| 'labelMaxWidth'
 	| 'labelLightTextColor'
 	| 'labelLightBackgroundColor'
 	| 'labelLightBackgroundOpacity'
@@ -146,6 +147,7 @@ function createActiveChartStateFields(
 		labelItalic: chart.display.labelItalic,
 		labelPosition: chart.display.labelPosition,
 		labelOffset: chart.display.labelOffset,
+		labelMaxWidth: chart.display.labelMaxWidth,
 		labelLightTextColor: chart.display.labelLightTextColor,
 		labelLightBackgroundColor: chart.display.labelLightBackgroundColor,
 		labelLightBackgroundOpacity: chart.display.labelLightBackgroundOpacity,

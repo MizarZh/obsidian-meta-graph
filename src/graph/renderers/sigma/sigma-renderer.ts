@@ -107,6 +107,7 @@ export class SigmaRenderer {
 	private fadeDistance: number;
 	private labelPosition: LabelPosition;
 	private labelOffset: number;
+	private labelMaxWidth = 0;
 	private labelBold: boolean;
 	private labelItalic: boolean;
 	private labelTheme: LabelThemeConfig;
@@ -153,6 +154,7 @@ export class SigmaRenderer {
 		this.scaleLabelsWithZoom = scaleLabelsWithZoom;
 		this.labelPosition = labelPosition;
 		this.labelOffset = labelOffset;
+		this.labelMaxWidth = options.labelMaxWidth ?? 0;
 		this.labelBold = labelBold;
 		this.labelItalic = labelItalic;
 		this.labelTheme = {
@@ -222,6 +224,7 @@ export class SigmaRenderer {
 					() => this.getLabelBackground(),
 					() => this.getLabelStyle(),
 					this.textWidthCache,
+					() => this.labelMaxWidth,
 				),
 				defaultDrawNodeHover: createNodeHoverDrawer(
 					(baseSize) => this.getRenderedLabelSize(baseSize),
@@ -232,11 +235,13 @@ export class SigmaRenderer {
 					() => this.getLabelBackground(),
 					() => this.getLabelStyle(),
 					this.textWidthCache,
+					() => this.labelMaxWidth,
 				),
 				defaultDrawEdgeLabel: createEdgeLabelDrawer(
 					(baseSize) => this.getRenderedLabelSize(baseSize),
 					() => this.getCurrentLabelOpacity(),
 					this.textWidthCache,
+					() => this.labelMaxWidth,
 				),
 				renderEdgeLabels: true,
 				labelColor: { color: palette.label },
@@ -274,6 +279,7 @@ export class SigmaRenderer {
 			}),
 			() => this.getCurrentLabelOpacity(),
 			this.textWidthCache,
+			() => this.labelMaxWidth,
 		);
 		this.groupOverlayLayer = new GroupOverlayLayer(
 			this.instance,
@@ -664,6 +670,11 @@ export class SigmaRenderer {
 
 	setLabelPosition(labelPosition: LabelPosition): void {
 		this.labelPosition = labelPosition;
+		this.refresh();
+	}
+
+	setLabelMaxWidth(value: number): void {
+		this.labelMaxWidth = value;
 		this.refresh();
 	}
 

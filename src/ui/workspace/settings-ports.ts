@@ -74,6 +74,7 @@ export interface WorkspaceLabelSettingsView {
 	labelItalic: boolean;
 	labelPosition: LabelPosition;
 	labelOffset: number;
+	labelMaxWidth: number;
 	labelLightTextColor: string;
 	labelLightBackgroundColor: string;
 	labelLightBackgroundOpacity: number;
@@ -162,6 +163,7 @@ export interface WorkspaceLabelSettingsActions {
 	setLabelItalic(value: boolean): void;
 	setLabelPosition(value: LabelPosition): void;
 	setLabelOffset(value: number): void;
+	setLabelMaxWidth(value: number): void;
 	setLabelLightTextColor(value: string): void;
 	setLabelLightBackgroundColor(value: string): void;
 	setLabelLightBackgroundOpacity(value: number): void;
@@ -259,6 +261,7 @@ export function createWorkspaceSettingsView(
 			labelItalic: state.labelItalic,
 			labelPosition: state.labelPosition,
 			labelOffset: state.labelOffset,
+			labelMaxWidth: state.labelMaxWidth,
 			labelLightTextColor: state.labelLightTextColor,
 			labelLightBackgroundColor: state.labelLightBackgroundColor,
 			labelLightBackgroundOpacity: state.labelLightBackgroundOpacity,
@@ -367,6 +370,7 @@ export function createWorkspaceSettingsActions(
 			setLabelItalic: (value) => controller.setLabelItalic(value),
 			setLabelPosition: (value) => controller.setLabelPosition(value),
 			setLabelOffset: (value) => controller.setLabelOffset(value),
+			setLabelMaxWidth: (value) => controller.setLabelMaxWidth(value),
 			setLabelLightTextColor: (value) =>
 				controller.setLabelLightTextColor(value),
 			setLabelLightBackgroundColor: (value) =>

@@ -160,6 +160,7 @@ export interface ChartDisplayConfig {
 	labelItalic: boolean;
 	labelPosition: LabelPosition;
 	labelOffset: number;
+	labelMaxWidth: number;
 	labelLightTextColor: string;
 	labelLightBackgroundColor: string;
 	labelLightBackgroundOpacity: number;
@@ -263,6 +264,7 @@ export interface WorkspaceState {
 	labelItalic: boolean;
 	labelPosition: LabelPosition;
 	labelOffset: number;
+	labelMaxWidth: number;
 	labelLightTextColor: string;
 	labelLightBackgroundColor: string;
 	labelLightBackgroundOpacity: number;

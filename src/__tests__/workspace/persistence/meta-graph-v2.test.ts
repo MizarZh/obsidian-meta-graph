@@ -8,6 +8,7 @@ import {
 } from '@/workspace/meta-graph-v2/codec';
 import { createDefaultMetaGraphDocument } from '@/workspace/meta-graph-model';
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
+import { setLabelMaxWidthInState } from '@/workspace/state/chart-settings';
 import { updateWorkspaceReferencesInState } from '@/workspace/state/reference-walker';
 import {
 	applyWorkspaceSession,
@@ -16,6 +17,26 @@ import {
 } from '@/workspace/workspace-session';
 
 describe('Meta Graph v2 persistence', () => {
+	it('round-trips label length and defaults old charts to unlimited', () => {
+		const document = createDefaultMetaGraphDocument(200, 1.5);
+		const initial = createWorkspaceState(200, 1.5, document);
+		expect(initial.labelMaxWidth).toBe(0);
+		const state = setLabelMaxWidthInState(initial, 24);
+		const saved = serializeWorkspaceStateV2(
+			state,
+			createPersistenceContextFromV1(document),
+		);
+		const parsed = parsePersistedMetaGraphDocumentV2(saved, 200, 1.5);
+		expect(
+			createWorkspaceState(200, 1.5, parsed.document).labelMaxWidth,
+		).toBe(24);
+		expect(
+			parsed.document.charts.find(
+				(chart) => chart.id === state.activeChartId,
+			)?.display.labelMaxWidth,
+		).toBe(24);
+		expect(initial.labelMaxWidth).toBe(0);
+	});
 	it.each([
 		'graph',
 		'free',

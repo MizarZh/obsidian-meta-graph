@@ -21,6 +21,7 @@
 
 <div
 	title={tooltip}
+	class:knowledge-workspace-setting-row--described={Boolean(description)}
 	class={`knowledge-workspace-setting-row knowledge-workspace-setting-row--${layout} ${className}`.trim()}
 >
 	<div class="knowledge-workspace-setting-label">

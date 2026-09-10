@@ -831,6 +831,7 @@ function displayToV2(chart: MetaGraphChart): PersistedDisplayV2 {
 			display.labelPosition !== DEFAULT_LABEL_POSITION
 				? display.labelPosition
 				: undefined,
+		maxWidth: display.labelMaxWidth || undefined,
 		offset:
 			display.labelOffset !== DEFAULT_LABEL_OFFSET
 				? display.labelOffset
@@ -1223,6 +1224,7 @@ function v2ChartToLegacyRecord(
 			labelItalic: labels.italic,
 			labelPosition: labels.position,
 			labelOffset: labels.offset,
+			labelMaxWidth: labels.maxWidth,
 			labelLightTextColor: labels.lightTextColor,
 			labelLightBackgroundColor: labels.lightBackgroundColor,
 			labelLightBackgroundOpacity: labels.lightBackgroundOpacity,

@@ -48,6 +48,7 @@ export function createWorkspaceGraphRenderer(
 		labelItalic: state.labelItalic,
 		labelPosition: state.labelPosition,
 		labelOffset: state.labelOffset,
+		labelMaxWidth: state.labelMaxWidth,
 		labelLightTextColor: state.labelLightTextColor,
 		labelLightBackgroundColor: state.labelLightBackgroundColor,
 		labelLightBackgroundOpacity: state.labelLightBackgroundOpacity,

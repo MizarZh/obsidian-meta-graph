@@ -30,6 +30,7 @@ export const G6_INTERACTION_STATE = {
 } as const;
 
 export interface G6DisplayStyleOptions {
+	labelMaxWidth?: number;
 	labelSize: number;
 	labelBold: boolean;
 	labelItalic: boolean;
@@ -72,6 +73,13 @@ export function createG6LabelStyles(
 		labelFontSize * options.labelOffset * 0.5,
 	);
 	const sharedLabelStyle = {
+		labelWordWrap: (options.labelMaxWidth ?? 0) > 0,
+		labelMaxWidth:
+			(options.labelMaxWidth ?? 0) > 0
+				? options.labelMaxWidth! * visualScale.label
+				: '100%',
+		labelMaxLines: 1,
+		labelTextOverflow: '...',
 		labelFontSize,
 		labelFontWeight: options.labelBold
 			? ('bold' as const)

@@ -20,6 +20,7 @@ export interface RendererBaseOptions {
 	labelItalic: boolean;
 	labelPosition: LabelPosition;
 	labelOffset: number;
+	labelMaxWidth?: number;
 	labelLightTextColor: string;
 	labelLightBackgroundColor: string;
 	labelLightBackgroundOpacity: number;

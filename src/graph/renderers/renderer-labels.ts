@@ -1,4 +1,5 @@
 import type * as Three from 'three';
+import { truncateLabel } from '@/graph/label-text';
 import type { ThreeLabelResolution } from '@/core/types';
 
 export interface ThreeLabelRuntime {
@@ -8,6 +9,7 @@ export interface ThreeLabelRuntime {
 }
 
 export interface ThreeTextSpriteOptions {
+	maxWidth?: number;
 	text: string;
 	fontSize: number;
 	fontWeight?: 'normal' | 'bold';
@@ -48,9 +50,14 @@ export function createThreeTextSprite(
 	const fontWeight = options.fontWeight ?? 'normal';
 	const fontStyle = options.fontStyle ?? 'normal';
 	context.font = `${fontStyle} ${fontWeight} ${fontSize}px sans-serif`;
+	const text = truncateLabel(
+		options.text,
+		options.maxWidth ?? 0,
+		(value) => context.measureText(value).width,
+	);
 	const width = Math.max(
 		1,
-		Math.ceil(context.measureText(options.text).width + paddingX * 2),
+		Math.ceil(context.measureText(text).width + paddingX * 2),
 	);
 	const height = Math.max(1, Math.ceil(fontSize + paddingY * 2));
 	const pixelRatio = Math.max(
@@ -77,7 +84,7 @@ export function createThreeTextSprite(
 		context.fillRect(0, 0, width, height);
 	}
 	context.fillStyle = options.textColor;
-	context.fillText(options.text, paddingX, height / 2);
+	context.fillText(text, paddingX, height / 2);
 
 	const texture = new three.CanvasTexture(canvas);
 	texture.needsUpdate = true;

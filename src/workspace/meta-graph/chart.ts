@@ -1,4 +1,5 @@
 import { supportsPlanarRenderer } from '@/core/types';
+import { normalizeLabelMaxWidth } from '@/graph/label-text';
 import type {
 	ChartSource,
 	GlobalStyleConfig,
@@ -105,6 +106,7 @@ export function createDefaultChart(
 			labelItalic: DEFAULT_LABEL_ITALIC,
 			labelPosition: DEFAULT_LABEL_POSITION,
 			labelOffset: DEFAULT_LABEL_OFFSET,
+			labelMaxWidth: 0,
 			labelLightTextColor: DEFAULT_LABEL_LIGHT_TEXT_COLOR,
 			labelLightBackgroundColor: DEFAULT_LABEL_LIGHT_BACKGROUND_COLOR,
 			labelLightBackgroundOpacity: DEFAULT_LABEL_LIGHT_BACKGROUND_OPACITY,
@@ -241,6 +243,9 @@ export function normalizeChart(
 			labelPosition: readLabelPosition(
 				display.labelPosition,
 				fallback.display.labelPosition,
+			),
+			labelMaxWidth: normalizeLabelMaxWidth(
+				display.labelMaxWidth ?? fallback.display.labelMaxWidth,
 			),
 			labelOffset: readFiniteNumber(
 				display.labelOffset,

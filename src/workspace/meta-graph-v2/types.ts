@@ -178,6 +178,7 @@ export interface PersistedDisplayV2 {
 		italic?: boolean;
 		position?: LabelPosition;
 		offset?: number;
+		maxWidth?: number;
 		color?: string;
 		lightTextColor?: string;
 		lightBackgroundColor?: string;

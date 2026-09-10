@@ -3,6 +3,14 @@ import type { WorkspaceStateChanges } from '@/ui/workspace/change-tracker';
 import { createWorkspaceRenderPlan } from '@/ui/workspace/render-plan';
 
 describe('workspace render plan', () => {
+	it('updates label length without rebuilding or restarting layout', () => {
+		const plan = createWorkspaceRenderPlan(
+			changes({ labelMaxWidthChanged: true }),
+		);
+		expect(plan.syncDisplay).toBe(true);
+		expect(plan.rebuild).toBeUndefined();
+		expect(plan.restartForceLayout).toBe(false);
+	});
 	it('turns rebuild changes into one explicit rebuild action', () => {
 		const plan = createWorkspaceRenderPlan(
 			changes({

@@ -4,6 +4,12 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Removed the Max text width subtitle; usage details remain in its hover tooltip.
+
+- Setting rows with descriptions reserve space for their controls and wrap help text; the label-length setting uses a shorter description.
+
+- Text settings include a per-chart maximum node/link text width in pixels (0 = unlimited), replacing the character-count limit. Font-aware measurement includes `...` inside the width budget; the width scales with text. Original names and layout stay unchanged, with live updates in Sigma, G6, and 3D.
+
 - Node/link rule editors place the Name field and scope/delete actions on one compact row above the matching condition.
 
 - Node/link rules support optional saved names. Unnamed cards use their matching condition, including the operator, as the title; named cards retain the condition in their summary. Names do not affect matching or rule order.

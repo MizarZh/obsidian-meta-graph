@@ -73,6 +73,7 @@ function readRendererBaseOptions(
 		labelItalic: options.labelItalic,
 		labelPosition: options.labelPosition,
 		labelOffset: options.labelOffset,
+		labelMaxWidth: options.labelMaxWidth,
 		labelLightTextColor: options.labelLightTextColor,
 		labelLightBackgroundColor: options.labelLightBackgroundColor,
 		labelLightBackgroundOpacity: options.labelLightBackgroundOpacity,

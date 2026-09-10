@@ -52,6 +52,7 @@ export interface WorkspaceStateChanges {
 	labelItalicChanged: boolean;
 	labelPositionChanged: boolean;
 	labelOffsetChanged: boolean;
+	labelMaxWidthChanged?: boolean;
 	labelThemeChanged: boolean;
 	labelDensityChanged: boolean;
 	cubeFaceOpacityChanged: boolean;
@@ -259,6 +260,11 @@ export function analyzeWorkspaceStateChanges(
 			nextState,
 			currentState,
 			'labelOffset',
+		),
+		labelMaxWidthChanged: stateValueChanged(
+			nextState,
+			currentState,
+			'labelMaxWidth',
 		),
 		labelThemeChanged:
 			stateValueChanged(nextState, currentState, 'labelLightTextColor') ||
