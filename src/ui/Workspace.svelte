@@ -421,14 +421,31 @@
 		persistSession();
 	}
 
+	let autoSave: WorkspaceAutoSave<PersistedMetaGraphDocumentV2> | undefined;
+
+	function reportAutoSaveError(error: unknown): void {
+		new Notice(`Unable to save workspace: ${formatErrorMessage(error)}`);
+	}
+
+	export async function flushAutoSave(): Promise<void> {
+		try {
+			await autoSave?.flush();
+		} catch (error) {
+			reportAutoSaveError(error);
+			throw error;
+		}
+	}
+
 	onMount(() => {
-		const autoSave = new WorkspaceAutoSave(
+		const saver = new WorkspaceAutoSave(
 			onAutoSave,
 			350,
 			window,
 			serializeDocument,
+			reportAutoSaveError,
 		);
-		autoSave.initialize(controller.snapshot);
+		autoSave = saver;
+		saver.initialize(controller.snapshot);
 		const resizeObserver = new ResizeObserver((entries) => {
 			const entry = entries[0];
 			if (
@@ -502,14 +519,14 @@
 			) {
 				settingsPanel = undefined;
 			}
-			autoSave.schedule(nextState);
+			saver.schedule(nextState);
 			renderCoordinator.apply(nextState, previousState);
 		});
 
 		return () => {
 			graphLoadingCoordinator.dispose();
 			renderCoordinator.dispose();
-			autoSave.flush();
+			void saver.flush().catch(reportAutoSaveError);
 			unsubscribe();
 			resizeObserver.disconnect();
 			themeObserver.disconnect();

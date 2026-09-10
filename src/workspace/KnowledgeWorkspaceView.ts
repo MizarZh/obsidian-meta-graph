@@ -20,6 +20,7 @@ import type { WorkspaceActionId } from '@/ui/interactions/keyboard-shortcuts';
 
 type MountedWorkspace = Parameters<typeof import('svelte').unmount>[0] & {
 	syncHoverMode?: () => void;
+	flushAutoSave?: () => Promise<void>;
 };
 type MetaGraphDocumentModule = typeof import('@/workspace/meta-graph-document');
 
@@ -111,10 +112,16 @@ export class KnowledgeWorkspaceView extends TextFileView {
 	}
 
 	async onClose(): Promise<void> {
+		await this.component?.flushAutoSave?.();
 		this.renderRevision += 1;
 		this.rightSplitLeaf = undefined;
 		await this.unmountWorkspace();
 		this.contentEl.empty();
+	}
+
+	async onUnloadFile(file: TFile): Promise<void> {
+		await this.component?.flushAutoSave?.();
+		await super.onUnloadFile(file);
 	}
 
 	updateDisplaySettings(): void {
@@ -194,6 +201,7 @@ export class KnowledgeWorkspaceView extends TextFileView {
 			return;
 		}
 		this.sessionKey = sessionKey;
+		const workspaceFile = this.file;
 		this.controller = new WorkspaceController(
 			this.app,
 			this.plugin.workspaceIndex,
@@ -229,7 +237,11 @@ export class KnowledgeWorkspaceView extends TextFileView {
 				onSessionStateChange: (nextSession: WorkspaceSessionState) =>
 					this.persistSession(nextSession),
 				onAutoSave: (nextDocument: PersistedMetaGraphDocumentV2) =>
-					this.persistDocument(nextDocument, persistence),
+					this.persistDocument(
+						nextDocument,
+						persistence,
+						workspaceFile,
+					),
 				onWorkspaceActionsChange: (
 					host:
 						| {
@@ -270,13 +282,19 @@ export class KnowledgeWorkspaceView extends TextFileView {
 	private async persistDocument(
 		document: PersistedMetaGraphDocumentV2,
 		persistence: WorkspacePersistenceContext,
+		file: TFile | null,
 	): Promise<void> {
 		if (persistence.readOnly) {
 			return;
 		}
 		const metaGraphDocument = await this.loadMetaGraphDocumentModule();
+		if (!file || this.file !== file) {
+			throw new Error(
+				'The workspace file changed before saving completed.',
+			);
+		}
 		this.data = metaGraphDocument.stringifyMetaGraphDocument(document);
-		this.requestSave();
+		await this.save();
 	}
 
 	private persistSession(session: WorkspaceSessionState): void {

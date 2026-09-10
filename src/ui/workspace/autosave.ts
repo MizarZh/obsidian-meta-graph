@@ -13,6 +13,7 @@ export class WorkspaceAutoSave<DocumentType = MetaGraphDocument> {
 	private timer: ReturnType<typeof setTimeout> | undefined;
 	private pendingState: WorkspaceState | undefined;
 	private lastSavedFingerprint = '';
+	private inFlight: Promise<void> | undefined;
 
 	constructor(
 		private readonly onSave: (document: DocumentType) => Promise<void>,
@@ -23,6 +24,7 @@ export class WorkspaceAutoSave<DocumentType = MetaGraphDocument> {
 		) => DocumentType = serializeMetaGraphState as unknown as (
 			state: WorkspaceState,
 		) => DocumentType,
+		private readonly onError: (error: unknown) => void = () => undefined,
 	) {}
 
 	initialize(state: WorkspaceState): void {
@@ -33,13 +35,21 @@ export class WorkspaceAutoSave<DocumentType = MetaGraphDocument> {
 		this.pendingState = state;
 		this.clearTimer();
 		this.timer = this.timers.setTimeout(() => {
-			this.savePending();
+			void this.flush().catch(this.onError);
 		}, this.delayMs);
 	}
 
-	flush(): void {
+	flush(): Promise<void> {
 		this.clearTimer();
-		this.savePending();
+		if (this.inFlight) return this.inFlight.then(() => this.flush());
+		if (!this.pendingState) return Promise.resolve();
+		const task = this.savePending();
+		this.inFlight = task;
+		const clearInFlight = (): void => {
+			if (this.inFlight === task) this.inFlight = undefined;
+		};
+		void task.then(clearInFlight, clearInFlight);
+		return task;
 	}
 
 	private clearTimer(): void {
@@ -49,17 +59,23 @@ export class WorkspaceAutoSave<DocumentType = MetaGraphDocument> {
 		}
 	}
 
-	private savePending(): void {
-		const state = this.pendingState;
-		this.pendingState = undefined;
-		if (!state) {
-			return;
-		}
-		const document = this.serialize(state);
-		const fingerprint = this.fingerprint(document);
-		if (fingerprint !== this.lastSavedFingerprint) {
-			this.lastSavedFingerprint = fingerprint;
-			void this.onSave(document);
+	private async savePending(): Promise<void> {
+		while (this.pendingState) {
+			const state = this.pendingState;
+			this.pendingState = undefined;
+			this.clearTimer();
+			try {
+				const document = this.serialize(state);
+				const fingerprint = this.fingerprint(document);
+				if (fingerprint !== this.lastSavedFingerprint) {
+					await this.onSave(document);
+					this.lastSavedFingerprint = fingerprint;
+				}
+			} catch (error) {
+				// A newer edit takes precedence over the failed snapshot.
+				this.pendingState ??= state;
+				throw error;
+			}
 		}
 	}
 
