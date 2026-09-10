@@ -41,6 +41,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Workspace files now use row highlighting as the selection indicator without checkboxes. Click a row to toggle selection or Shift-click to select a range; inline actions remain independent.
+
 - Removed the unused direct-parallel bend pipeline, old UI/shortcut/connection helpers and debounce scheduler. Connection previews now resolve all link visuals in one pass; Flow routes use only `flowRouteKind`. Simplified the internal Graphology constructor and shared renderer option projection, migrating regression tests to active APIs while retaining workspace-file migration and stale-render guards.
 
 - Removed unused display/settings components, their private display CSS, unused exports and an unused renderer type import. Consolidated filter-tree operations, rule IDs, runtime link-style resolution, layout bend nodes, active-chart selection, layout hashes, set comparisons and shared Arc/radial geometry. Chart behavior, persisted formats and renderer-specific layout/label policies are unchanged.

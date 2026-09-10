@@ -20,7 +20,6 @@
 		getGroupOptions,
 		selectedPaths,
 		reorderEnabled = true,
-		onCheckboxClick,
 		onFileClick,
 		onFileKeydown,
 		onPointerDown,
@@ -35,7 +34,6 @@
 		getGroupOptions: (currentGroupId: string) => DropdownOption[];
 		selectedPaths: Set<string>;
 		reorderEnabled?: boolean;
-		onCheckboxClick: (path: string, event: MouseEvent) => void;
 		onFileClick: (path: string, event: MouseEvent) => void;
 		onFileKeydown: (path: string, event: KeyboardEvent) => void;
 		onPointerDown: (path: string, event: PointerEvent) => void;
@@ -120,6 +118,7 @@
 				class:selected={file.selected}
 				data-curated-file-path={file.path}
 				role="button"
+				aria-pressed={file.selected}
 				tabindex="0"
 				aria-label={file.missing
 					? `${file.title} (file not found)`
@@ -136,12 +135,6 @@
 					aria-label={`Drag ${file.title}`}
 					use:dragHandle
 				></span>
-				<input
-					type="checkbox"
-					aria-label={`Select ${file.title}`}
-					checked={file.selected}
-					onclick={(event) => onCheckboxClick(file.path, event)}
-				/>
 				<span
 					style={file.missing
 						? undefined

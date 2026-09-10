@@ -423,7 +423,7 @@
 }
 
 .knowledge-workspace-curated-file {
-	grid-template-columns: 12px 18px 10px minmax(0, 1fr) repeat(3, 26px);
+	grid-template-columns: 12px 10px minmax(0, 1fr) repeat(3, 26px);
 	column-gap: var(--knowledge-workspace-space-1);
 	min-height: 44px;
 	padding: 6px 4px;
@@ -533,7 +533,7 @@
 
 @container curated-panel (max-width: 300px) {
 	.knowledge-workspace-curated-file {
-		grid-template-columns: 10px 16px 8px minmax(0, 1fr) repeat(3, 24px);
+		grid-template-columns: 10px 8px minmax(0, 1fr) repeat(3, 24px);
 		column-gap: 3px;
 		padding-right: 2px;
 		padding-left: 2px;

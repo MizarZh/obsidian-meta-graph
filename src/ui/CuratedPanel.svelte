@@ -204,16 +204,7 @@
 			selectFileRange(path);
 			return;
 		}
-		if (event.ctrlKey || event.metaKey) {
-			event.preventDefault();
-			toggleSelected(path);
-		}
-	}
-
-	function handleFileCheckboxClick(path: string, event: MouseEvent): void {
-		event.stopPropagation();
-		if (event.shiftKey) selectFileRange(path);
-		else toggleSelected(path);
+		toggleSelected(path);
 	}
 
 	function handleFileKeydown(path: string, event: KeyboardEvent): void {
@@ -530,7 +521,6 @@
 			{getGroupOptions}
 			selectedPaths={selected}
 			reorderEnabled={!listSearchActive && filterCount === 0}
-			onCheckboxClick={handleFileCheckboxClick}
 			onFileClick={handleFileClick}
 			onFileKeydown={handleFileKeydown}
 			onPointerDown={handleFilePointerDown}
