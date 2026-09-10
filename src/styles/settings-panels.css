@@ -12,6 +12,157 @@
 	z-index: 19;
 }
 
+.knowledge-workspace-style-panel-close {
+	display: flex;
+	justify-content: flex-end;
+	padding: 6px 12px 0;
+}
+
+.knowledge-workspace-settings-popover.knowledge-workspace-style-settings {
+	display: flex;
+	flex-direction: column;
+}
+
+.knowledge-workspace-style-settings > .knowledge-workspace-filters {
+	min-height: 0;
+	max-height: none;
+}
+
+.knowledge-workspace-style-panel-close,
+.knowledge-workspace-style-editor-header {
+	flex-shrink: 0;
+}
+
+.knowledge-workspace-style-rule-card {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px;
+	margin-bottom: 6px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+}
+
+.knowledge-workspace-style-rule-card > .knowledge-workspace-obsidian-control {
+	display: block;
+	position: absolute;
+	inset: 0;
+}
+
+.knowledge-workspace-style-rule-card
+	button.knowledge-workspace-style-card-trigger {
+	width: 100%;
+	height: 100%;
+	opacity: 0;
+	cursor: pointer;
+}
+
+.knowledge-workspace-style-rule-card:hover,
+.knowledge-workspace-style-rule-card:focus-within {
+	background: var(--background-modifier-hover);
+	outline: 1px solid var(--interactive-accent);
+}
+
+.knowledge-workspace-style-rule-card.active {
+	border-color: var(--interactive-accent);
+	background: var(--background-modifier-hover);
+}
+
+.knowledge-workspace-style-card-order {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	flex: 0 0 auto;
+}
+
+.knowledge-workspace-style-card-order button {
+	width: 24px;
+	height: 26px;
+	padding: 0;
+}
+
+.knowledge-workspace-style-drag-handle {
+	cursor: grab;
+	padding: 4px;
+	color: var(--text-muted);
+	user-select: none;
+}
+
+.knowledge-workspace-style-rule-card.drop-before {
+	box-shadow: 0 -2px var(--interactive-accent);
+}
+.knowledge-workspace-style-rule-card.drop-after {
+	box-shadow: 0 2px var(--interactive-accent);
+}
+
+.knowledge-workspace-style-rule-swatch {
+	width: 12px;
+	height: 12px;
+	flex: 0 0 12px;
+	border-radius: 50%;
+}
+
+.knowledge-workspace-style-rule-summary {
+	display: grid;
+	gap: 3px;
+	flex: 1;
+	min-width: 0;
+	font-size: var(--font-ui-small);
+}
+
+.knowledge-workspace-style-rule-summary > span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--text-muted);
+}
+
+.knowledge-workspace-style-rule-summary > strong {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.knowledge-workspace {
+	position: relative;
+}
+
+.knowledge-workspace-style-editor {
+	position: absolute;
+	z-index: 25;
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-secondary);
+	box-shadow: var(--shadow-l);
+}
+
+.knowledge-workspace-style-editor-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 12px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.knowledge-workspace-style-editor-header small {
+	display: block;
+	margin-top: 4px;
+	color: var(--text-muted);
+}
+
+.knowledge-workspace-style-editor-content {
+	min-height: 0;
+	overflow: auto;
+	border-radius: 0 0 var(--radius-m) var(--radius-m);
+}
+
 .knowledge-workspace-settings-popover {
 	position: absolute;
 	top: var(--size-4-2);
@@ -1607,6 +1758,35 @@
 	display: flex;
 	justify-content: flex-end;
 	gap: 2px;
+}
+
+.knowledge-workspace-style-editor
+	.knowledge-workspace-rule-row.style-condition {
+	grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.7fr) minmax(0, 1fr);
+}
+
+.knowledge-workspace-style-editor
+	.style-condition
+	> .knowledge-workspace-move-rule-buttons {
+	grid-column: 1 / 3;
+	grid-row: 1;
+	justify-self: start;
+}
+
+.knowledge-workspace-style-editor
+	.style-condition
+	> .knowledge-workspace-style-rule-actions {
+	grid-column: 1 / -1;
+	grid-row: 1;
+	justify-self: end;
+}
+
+.knowledge-workspace-style-editor
+	.style-condition
+	> .knowledge-workspace-obsidian-control
+	> :is(input, select, button) {
+	min-width: 0;
+	width: 100%;
 }
 
 .knowledge-workspace-move-rule-button {

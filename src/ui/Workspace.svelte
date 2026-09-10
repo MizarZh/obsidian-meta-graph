@@ -1597,17 +1597,19 @@
 		class:knowledge-workspace-hidden={debugOpen}
 	>
 		{#if settingsPanel}
-			<WorkspaceSettingsPopover
-				{app}
-				view={settingsView}
-				actions={settingsActions}
-				{readOnly}
-				{settingsPanel}
-				{settingsPopoverLeft}
-				onClose={() => {
-					settingsPanel = undefined;
-				}}
-			/>
+			{#key workspaceState.activeChartId}
+				<WorkspaceSettingsPopover
+					{app}
+					view={settingsView}
+					actions={settingsActions}
+					{readOnly}
+					{settingsPanel}
+					{settingsPopoverLeft}
+					onClose={() => {
+						settingsPanel = undefined;
+					}}
+				/>
+			{/key}
 		{/if}
 		<main
 			class="knowledge-workspace-main curated-panel-visible"

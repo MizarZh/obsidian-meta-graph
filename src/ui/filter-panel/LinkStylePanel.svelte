@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
 	import SettingsSection from '@/ui/settings/SettingsSection.svelte';
+	import StyleRuleCard from '@/ui/filter-panel/StyleRuleCard.svelte';
 	import LinkVisualSettings, {
 		type LinkVisualValue,
 	} from '@/ui/settings/style/LinkVisualSettings.svelte';
@@ -29,6 +30,7 @@
 		createLinkStyleRule,
 		hasStyleOverride,
 		moveRule,
+		reorderRuleAtTarget,
 		patchRule,
 		removeRule,
 		type StyleRuleScope,
@@ -94,7 +96,8 @@
 		onMoveLinkStyleRule: (id: string, targetScope: StyleRuleScope) => void;
 	} = $props();
 
-	let workspaceDefaultOpen = $state(true);
+	let editingRule = $state('');
+	const dragScopePrefix = createRuleId();
 	let chartOverridesOpen = $state(true);
 	let plainLinksOpen = $state(true);
 	let unresolvedLinksOpen = $state(true);
@@ -102,7 +105,6 @@
 		global: true,
 		current: true,
 	});
-	let previousHadLinkOverride = $state<boolean | undefined>(undefined);
 	const metadataFieldOptions = $derived(
 		metadataFieldSuggestions.map((field) => ({
 			value: field,
@@ -111,23 +113,11 @@
 		})),
 	);
 
-	$effect(() => {
-		const hasOverride = hasStyleOverride(linkStyleOverrides);
-		if (previousHadLinkOverride === undefined) {
-			workspaceDefaultOpen = !hasOverride;
-		} else if (hasOverride && !previousHadLinkOverride) {
-			workspaceDefaultOpen = false;
-		} else if (!hasOverride && previousHadLinkOverride) {
-			workspaceDefaultOpen = true;
-		}
-		previousHadLinkOverride = hasOverride;
-	});
-
 	function addLinkRule(scope: 'global' | 'current'): void {
-		updateLinkRules(scope, [
-			...getLinkRules(scope),
-			createLinkStyleRule(createRuleId()),
-		]);
+		const rule = createLinkStyleRule(createRuleId());
+		updateLinkRules(scope, [...getLinkRules(scope), rule]);
+		ruleSectionsOpen[scope] = true;
+		editingRule = `${scope}:${rule.id}`;
 	}
 
 	function updateLinkRule(
@@ -199,13 +189,11 @@
 	}
 
 	function addLinkOverride(): void {
-		workspaceDefaultOpen = false;
 		chartOverridesOpen = true;
 		onLinkStyleOverrides({ ...defaultLinkStyle });
 	}
 
 	function clearLinkOverride(): void {
-		workspaceDefaultOpen = true;
 		onLinkStyleOverrides({});
 	}
 
@@ -361,7 +349,14 @@
 <section>
 	<header><h3>Link styles</h3></header>
 </section>
-<SettingsSection title="Workspace default" bind:open={workspaceDefaultOpen}>
+<StyleRuleCard
+	title="Workspace default"
+	summary={`${defaultLinkStyle.size}px · ${defaultLinkStyle.lineStyle}${defaultLinkStyle.hidden ? ' · Hidden' : ''}`}
+	color={defaultLinkStyle.color}
+	open={editingRule === 'workspace-default'}
+	onOpen={() => (editingRule = 'workspace-default')}
+	onClose={() => (editingRule = '')}
+>
 	<div class="knowledge-workspace-rule">
 		<LinkVisualSettings
 			value={defaultLinkStyle}
@@ -373,7 +368,7 @@
 			onPatch={updateDefaultLinkStyle}
 		/>
 	</div>
-</SettingsSection>
+</StyleRuleCard>
 <SettingsSection title="Chart overrides" bind:open={chartOverridesOpen}>
 	{#snippet actions()}
 		{#if !hasLinkOverride()}
@@ -425,131 +420,140 @@
 				onClick={() => addLinkRule(section.scope)}
 			/>
 		{/snippet}
-		{#each getLinkRules(section.scope) as rule (rule.id)}
-			<div class="knowledge-workspace-rule">
-				<div class="knowledge-workspace-rule-row style-condition">
-					<div class="knowledge-workspace-move-rule-buttons">
-						<ObsidianButton
-							icon="chevron-up"
-							ariaLabel="Move link style rule up"
-							disabled={!canMoveRule(
-								getLinkRules(section.scope),
-								rule.id,
-								-1,
-							)}
-							onClick={() =>
-								moveLinkRule(section.scope, rule.id, -1)}
+		{#each getLinkRules(section.scope) as rule, index (rule.id)}
+			<StyleRuleCard
+				title={`${section.scope === 'global' ? 'Global' : 'Chart'} link rule ${index + 1}`}
+				summary={`${rule.field} ${rule.operator ?? ''} ${rule.value} · ${rule.size}px · ${rule.lineStyle}${rule.hidden ? ' · Hidden' : ''}`}
+				color={rule.color}
+				open={editingRule === `${section.scope}:${rule.id}`}
+				ruleId={rule.id}
+				dragScope={`${dragScopePrefix}:${section.scope}`}
+				canMoveUp={canMoveRule(
+					getLinkRules(section.scope),
+					rule.id,
+					-1,
+				)}
+				canMoveDown={canMoveRule(
+					getLinkRules(section.scope),
+					rule.id,
+					1,
+				)}
+				onMoveUp={() => moveLinkRule(section.scope, rule.id, -1)}
+				onMoveDown={() => moveLinkRule(section.scope, rule.id, 1)}
+				onDropRule={(sourceId, after) =>
+					updateLinkRules(
+						section.scope,
+						reorderRuleAtTarget(
+							getLinkRules(section.scope),
+							sourceId,
+							rule.id,
+							after,
+						),
+					)}
+				onOpen={() => (editingRule = `${section.scope}:${rule.id}`)}
+				onClose={() => (editingRule = '')}
+			>
+				<div class="knowledge-workspace-rule">
+					<div class="knowledge-workspace-rule-row style-condition">
+						<PropertyPicker
+							value={getVisibleLinkRuleField(rule)}
+							options={LINK_STYLE_FIELD_OPTIONS}
+							onSelect={(value) =>
+								updateLinkRuleField(
+									section.scope,
+									rule.id,
+									value as LinkStyleField,
+								)}
 						/>
-						<ObsidianButton
-							icon="chevron-down"
-							ariaLabel="Move link style rule down"
-							disabled={!canMoveRule(
-								getLinkRules(section.scope),
-								rule.id,
-								1,
-							)}
-							onClick={() =>
-								moveLinkRule(section.scope, rule.id, 1)}
+						<ObsidianDropdown
+							value={getLinkRuleOperator(rule)}
+							options={LINK_STYLE_OPERATOR_OPTIONS}
+							onChange={(value) =>
+								updateLinkRule(section.scope, rule.id, {
+									field: getVisibleLinkRuleField(rule),
+									operator: value as NodeFilterOperator,
+								})}
 						/>
+						{#if shouldShowLinkRuleValue(rule)}
+							<ObsidianSuggestInput
+								{app}
+								type="text"
+								placeholder="Value"
+								value={rule.value}
+								options={getMetadataValueOptions(rule)}
+								showOnEmpty={true}
+								onInput={(value) =>
+									updateLinkRule(section.scope, rule.id, {
+										field: getVisibleLinkRuleField(rule),
+										value,
+									})}
+								onSelect={(option) =>
+									updateLinkRule(section.scope, rule.id, {
+										field: getVisibleLinkRuleField(rule),
+										value: option.value,
+									})}
+							/>
+						{:else}
+							<ObsidianTextInput
+								type="text"
+								placeholder=""
+								disabled={true}
+								value={rule.value}
+								onInput={(value) =>
+									updateLinkRule(section.scope, rule.id, {
+										field: getVisibleLinkRuleField(rule),
+										value,
+									})}
+							/>
+						{/if}
+						<div class="knowledge-workspace-style-rule-actions">
+							<ObsidianButton
+								class="knowledge-workspace-move-rule-button"
+								ariaLabel={section.scope === 'global'
+									? 'Move to chart link rules'
+									: 'Move to global link rules'}
+								tooltip={section.scope === 'global'
+									? 'Move to chart link rules'
+									: 'Move to global link rules'}
+								icon={section.scope === 'global'
+									? 'layout-dashboard'
+									: 'globe'}
+								onClick={() =>
+									moveLinkRuleToScope(section.scope, rule.id)}
+							/>
+							<ObsidianButton
+								class="knowledge-workspace-remove-rule-button"
+								ariaLabel="Remove link style rule"
+								icon="trash-2"
+								onClick={() =>
+									removeLinkRule(section.scope, rule.id)}
+							/>
+						</div>
 					</div>
-					<PropertyPicker
-						value={getVisibleLinkRuleField(rule)}
-						options={LINK_STYLE_FIELD_OPTIONS}
-						onSelect={(value) =>
-							updateLinkRuleField(
-								section.scope,
-								rule.id,
-								value as LinkStyleField,
-							)}
+					<LinkVisualSettings
+						value={{
+							color: rule.color,
+							size: rule.size,
+							opacity: rule.opacity ?? 1,
+							lineStyle: rule.lineStyle,
+							arrowStyle: rule.arrowStyle ?? 'filled',
+							arrowSize: rule.arrowSize ?? 1,
+						}}
+						commitKey={`link:${section.scope}:${rule.id}`}
+						onPatch={(patch) =>
+							updateLinkRule(section.scope, rule.id, patch)}
 					/>
-					<ObsidianDropdown
-						value={getLinkRuleOperator(rule)}
-						options={LINK_STYLE_OPERATOR_OPTIONS}
-						onChange={(value) =>
-							updateLinkRule(section.scope, rule.id, {
-								field: getVisibleLinkRuleField(rule),
-								operator: value as NodeFilterOperator,
-							})}
+					<LinkBehaviorSettings
+						value={{
+							label: rule.label,
+							showLabel: rule.showLabel,
+							hidden: rule.hidden,
+						}}
+						onPatch={(patch) =>
+							updateLinkRule(section.scope, rule.id, patch)}
 					/>
-					{#if shouldShowLinkRuleValue(rule)}
-						<ObsidianSuggestInput
-							{app}
-							type="text"
-							placeholder="Value"
-							value={rule.value}
-							options={getMetadataValueOptions(rule)}
-							showOnEmpty={true}
-							onInput={(value) =>
-								updateLinkRule(section.scope, rule.id, {
-									field: getVisibleLinkRuleField(rule),
-									value,
-								})}
-							onSelect={(option) =>
-								updateLinkRule(section.scope, rule.id, {
-									field: getVisibleLinkRuleField(rule),
-									value: option.value,
-								})}
-						/>
-					{:else}
-						<ObsidianTextInput
-							type="text"
-							placeholder=""
-							disabled={true}
-							value={rule.value}
-							onInput={(value) =>
-								updateLinkRule(section.scope, rule.id, {
-									field: getVisibleLinkRuleField(rule),
-									value,
-								})}
-						/>
-					{/if}
-					<div class="knowledge-workspace-style-rule-actions">
-						<ObsidianButton
-							class="knowledge-workspace-move-rule-button"
-							ariaLabel={section.scope === 'global'
-								? 'Move to chart link rules'
-								: 'Move to global link rules'}
-							tooltip={section.scope === 'global'
-								? 'Move to chart link rules'
-								: 'Move to global link rules'}
-							icon={section.scope === 'global'
-								? 'layout-dashboard'
-								: 'globe'}
-							onClick={() =>
-								moveLinkRuleToScope(section.scope, rule.id)}
-						/>
-						<ObsidianButton
-							class="knowledge-workspace-remove-rule-button"
-							ariaLabel="Remove link style rule"
-							icon="trash-2"
-							onClick={() =>
-								removeLinkRule(section.scope, rule.id)}
-						/>
-					</div>
 				</div>
-				<LinkVisualSettings
-					value={{
-						color: rule.color,
-						size: rule.size,
-						opacity: rule.opacity ?? 1,
-						lineStyle: rule.lineStyle,
-						arrowStyle: rule.arrowStyle ?? 'filled',
-						arrowSize: rule.arrowSize ?? 1,
-					}}
-					commitKey={`link:${section.scope}:${rule.id}`}
-					onPatch={(patch) =>
-						updateLinkRule(section.scope, rule.id, patch)}
-				/>
-				<LinkBehaviorSettings
-					value={{
-						label: rule.label,
-						showLabel: rule.showLabel,
-						hidden: rule.hidden,
-					}}
-					onPatch={(patch) =>
-						updateLinkRule(section.scope, rule.id, patch)}
-				/>
-			</div>
+			</StyleRuleCard>
 		{/each}
 	</SettingsSection>
 {/each}

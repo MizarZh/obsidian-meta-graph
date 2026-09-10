@@ -86,6 +86,21 @@ export function moveRule<T extends { id: string }>(
 	return next;
 }
 
+export function reorderRuleAtTarget<T extends { id: string }>(
+	rules: T[],
+	sourceId: string,
+	targetId: string,
+	after: boolean,
+): T[] {
+	if (sourceId === targetId) return rules;
+	const source = rules.find((rule) => rule.id === sourceId);
+	if (!source || !rules.some((rule) => rule.id === targetId)) return rules;
+	const next = rules.filter((rule) => rule.id !== sourceId);
+	const targetIndex = next.findIndex((rule) => rule.id === targetId);
+	next.splice(targetIndex + (after ? 1 : 0), 0, source);
+	return next.every((rule, index) => rule === rules[index]) ? rules : next;
+}
+
 export function activeNodeStyleValue(
 	overrides: DefaultNodeStyle,
 	defaultStyle: Required<DefaultNodeStyle>,

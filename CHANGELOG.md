@@ -4,6 +4,18 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Style rule ordering controls now live on the compact cards. Drag handles reorder rules within their Global/Chart section, with above/below drop indicators; workspace defaults remain unsortable.
+
+- Floating node/link rule editors keep field, operator, and value on one row, with ordering and rule actions above.
+
+- Fixed floating style editor offsets in shifted/scaled workspaces and prevented the full-card click target from squeezing rule summaries into narrow columns.
+
+- Style cards now open directly on click, including compact Workspace default cards for nodes and links. Floating editors align beside the clicked card rather than the settings panel header.
+
+### Added
+
+- Node and link style rules use compact summaries with one floating rule editor at a time. Style settings remain open while interacting with the graph; rule editors preserve live controls and adapt to available window space. Other override sections remain inline.
+
 ## [1.8.0] - 2026-09-11
 
 ### Added

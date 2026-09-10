@@ -138,7 +138,12 @@ settings to report them in the developer console.
 7. Add filters and style rules for **All views** or **This view**. File
    filters support file name, path, folder, extension, tags, links, and
    frontmatter property presence.
-8. Move note/link style rules between global and chart scopes with each rule's
+8. Note/link conditional style rules and Workspace default appear as compact
+   summaries. Click a card to open one floating editor beside it. Changes apply live;
+   the graph remains interactive. Close the editor with **×** or **Esc**;
+   switching charts closes the editor. Use the card's arrows or drag handle to
+   reorder rules within a Global/Chart section. Other override sections remain inline.
+   Move note/link style rules between global and chart scopes with each rule's
    move action. Use **Copy chart styles** and **Paste chart styles** to transfer
    chart overrides and rules between charts.
 9. Add link style rules by relation or source frontmatter field. Choose circle,
