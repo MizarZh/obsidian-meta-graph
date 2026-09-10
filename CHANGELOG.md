@@ -41,6 +41,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Renderer type guards now use each engine's explicit capability declaration without importing implementation classes. The factory loads only the selected engine and checks for stale creation requests before and after loading. The release remains a single bundled file.
+
 - Incremental index batches now filter diagnostic lists and sort available tags/domains once per batch instead of once per changed file, preserving diagnostic order, shared value counts and failed-read recovery.
 
 - Rooted neighborhood and curated projections collect candidate edges from source adjacency instead of scanning all vault edges. Index insertion order, traversal limits, filters, parallel/self edges and unresolved context behavior are preserved. Global queries retain their existing full scan.

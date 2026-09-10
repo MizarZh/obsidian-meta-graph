@@ -1,6 +1,3 @@
-import { Cube3DRenderer } from '@/graph/renderers/cube-3d/cube-3d-renderer';
-import { Force3DRenderer } from '@/graph/renderers/force-3d/force-3d-renderer';
-import { G6Renderer } from '@/graph/renderers/g6/g6-renderer';
 import type { GraphRenderer } from '@/graph/renderers/renderer-capabilities';
 import type {
 	Cube3DRendererOptions,
@@ -9,12 +6,15 @@ import type {
 	GraphRendererOptions,
 	SigmaRendererOptions,
 } from '@/graph/renderers/renderer-options';
-import { SigmaRenderer } from '@/graph/renderers/sigma/sigma-renderer';
 
 export async function createGraphRenderer(
 	options: GraphRendererOptions,
 ): Promise<GraphRenderer | undefined> {
+	if (options.isStale()) return undefined;
 	if (options.kind === 'force-3d') {
+		const { Force3DRenderer } =
+			await import('@/graph/renderers/force-3d/force-3d-renderer');
+		if (options.isStale()) return undefined;
 		const forceOptions: Force3DRendererOptions = {
 			graph: options.graph,
 			container: options.container,
@@ -41,6 +41,9 @@ export async function createGraphRenderer(
 	}
 
 	if (options.kind === 'cube-3d') {
+		const { Cube3DRenderer } =
+			await import('@/graph/renderers/cube-3d/cube-3d-renderer');
+		if (options.isStale()) return undefined;
 		const cubeOptions: Cube3DRendererOptions = {
 			graph: options.graph,
 			container: options.container,
@@ -71,6 +74,8 @@ export async function createGraphRenderer(
 	}
 
 	if (options.kind === 'g6') {
+		const { G6Renderer } = await import('@/graph/renderers/g6/g6-renderer');
+		if (options.isStale()) return undefined;
 		const g6Options: G6RendererOptions = {
 			graph: options.graph,
 			container: options.container,
@@ -97,6 +102,9 @@ export async function createGraphRenderer(
 		return G6Renderer.create(g6Options);
 	}
 
+	const { SigmaRenderer } =
+		await import('@/graph/renderers/sigma/sigma-renderer');
+	if (options.isStale()) return undefined;
 	const sigmaOptions: SigmaRendererOptions = {
 		parallelEdgeStyle: options.parallelEdgeStyle,
 		graph: options.graph,
