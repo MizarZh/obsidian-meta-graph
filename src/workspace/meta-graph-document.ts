@@ -1,5 +1,4 @@
 import { parseYaml, stringifyYaml } from 'obsidian';
-import type { MetaGraphDocument } from '@/core/types';
 import {
 	createDefaultMetaGraphDocumentV2,
 	createPersistenceContextFromV1,
@@ -40,14 +39,6 @@ export function isMetaGraphMarkdown(data: string): boolean {
 		readMetaGraphFrontmatter(data)[META_GRAPH_FRONTMATTER_KEY] ===
 		META_GRAPH_FRONTMATTER_VALUE
 	);
-}
-
-export function parseMetaGraphDocument(
-	data: string,
-	maxNodes: number,
-	fadeDistance: number,
-): MetaGraphDocument {
-	return parseMetaGraphWorkspace(data, maxNodes, fadeDistance).document;
 }
 
 export function parseMetaGraphWorkspace(

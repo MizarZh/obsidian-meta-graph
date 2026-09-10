@@ -8,8 +8,8 @@ import type {
 import { DEFAULT_GRAPH_QUERY } from '@/query/graph-query';
 import { normalizeTags } from '@/core/tags';
 import { cloneSerializable } from '@/workspace/state/persistence';
+import { createRuleId } from '@/core/rule-id';
 import {
-	createRuleId,
 	isRecord,
 	readBoolean,
 	readFilterField,

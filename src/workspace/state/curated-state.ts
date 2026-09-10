@@ -1,3 +1,4 @@
+import { getActiveChart } from '@/workspace/state/chart-selectors';
 import { normalizePath } from '@/core/knowledge-index';
 import type {
 	CuratedWorkspaceConfig,
@@ -358,12 +359,4 @@ function pruneGroupOverrides(
 		Object.keys(chart.grouping.overrides).length
 		? chart.grouping
 		: { ...chart.grouping, overrides };
-}
-
-function getActiveChart(state: WorkspaceState): MetaGraphChart {
-	const chart = state.charts.find((item) => item.id === state.activeChartId);
-	if (!chart) {
-		throw new Error('Active chart is missing from workspace state.');
-	}
-	return chart;
 }

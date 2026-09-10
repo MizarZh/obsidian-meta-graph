@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
 	import type { FlowRelationPlacement, FlowRelationRule } from '@/core/types';
-	import { createRuleId } from '@/ui/filter/filter-tree';
+	import { createRuleId } from '@/core/rule-id';
 	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
 	import ObsidianSuggestInput, {
 		type SuggestionOption,

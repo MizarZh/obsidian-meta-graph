@@ -239,10 +239,6 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 	return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-export function createRuleId(): string {
-	return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
 export function normalizeTextPath(value: string): string {
 	return value
 		.trim()

@@ -49,8 +49,6 @@ export type LayoutGroupGeometry =
 	| GraphGroupGeometry
 	| GroupMemberHaloGeometry;
 
-export type ResolvedGroupVisual = LayoutGroupGeometry;
-
 export function isGraphPointInLayoutGroup(
 	geometry: LayoutGroupGeometry,
 	point: { x: number; y: number },
@@ -99,4 +97,39 @@ export function normalizeLayoutGroupPadding(padding: number): number {
 export function scaleLayoutGroupPadding(padding: number): number {
 	const normalized = normalizeLayoutGroupPadding(padding);
 	return normalized === 0 ? 0 : normalized / (normalized + 0.68);
+}
+
+export function arcAxisPoint(
+	direction: ArcGroupGeometry['direction'],
+	axis: number,
+): { x: number; y: number } {
+	return direction === 'right' || direction === 'left'
+		? { x: 0, y: axis }
+		: { x: axis, y: 0 };
+}
+
+export function arcOppositeVector(direction: ArcGroupGeometry['direction']): {
+	x: number;
+	y: number;
+} {
+	switch (direction) {
+		case 'right':
+			return { x: -1, y: 0 };
+		case 'left':
+			return { x: 1, y: 0 };
+		case 'up':
+			return { x: 0, y: -1 };
+		case 'down':
+			return { x: 0, y: 1 };
+	}
+}
+
+export function radialPoint(
+	angle: number,
+	radius: number,
+): { x: number; y: number } {
+	return {
+		x: Math.cos(angle - Math.PI / 2) * radius,
+		y: Math.sin(angle - Math.PI / 2) * radius,
+	};
 }

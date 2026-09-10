@@ -269,7 +269,7 @@ export class DockCuratedDropController {
 function isCancelTarget(target: Element | null): boolean {
 	return Boolean(
 		target?.closest(
-			'.knowledge-workspace-dock-panel, .knowledge-workspace-curated-panel, .knowledge-workspace-display-controls, .knowledge-workspace-inspector, .knowledge-workspace-connection-panel, .workspace-tab-header-container, .view-header',
+			'.knowledge-workspace-dock-panel, .knowledge-workspace-curated-panel, .knowledge-workspace-inspector, .knowledge-workspace-connection-panel, .workspace-tab-header-container, .view-header',
 		),
 	);
 }

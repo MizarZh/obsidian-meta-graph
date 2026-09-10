@@ -1,3 +1,4 @@
+import { setsEqual } from '@/core/sets';
 import type { LinkObject, NodeObject } from '3d-force-graph';
 import type { LinkArrowStyle, NodeShape } from '@/core/types';
 import type {
@@ -337,16 +338,4 @@ function isVisibleForceLink(
 		visibleNodeIds.has(graph.source(edgeId)) &&
 		visibleNodeIds.has(graph.target(edgeId))
 	);
-}
-
-function setsEqual<T>(left: ReadonlySet<T>, right: ReadonlySet<T>): boolean {
-	if (left.size !== right.size) {
-		return false;
-	}
-	for (const value of left) {
-		if (!right.has(value)) {
-			return false;
-		}
-	}
-	return true;
 }

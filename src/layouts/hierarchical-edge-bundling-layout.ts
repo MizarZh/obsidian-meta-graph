@@ -1,3 +1,4 @@
+import { createBendNode } from '@/layouts/bend-node';
 import {
 	cluster,
 	hierarchy,
@@ -477,20 +478,4 @@ function smoothPoints(points: Point[]): Point[] {
 		smoothed = next.filter((point): point is Point => point !== undefined);
 	}
 	return smoothed;
-}
-
-function createBendNode(x: number, y: number) {
-	return {
-		label: '',
-		x,
-		y,
-		size: 0.01,
-		color: 'rgba(0, 0, 0, 0)',
-		path: '',
-		folder: '',
-		domains: [],
-		tags: [],
-		fixed: true,
-		isBend: true,
-	};
 }

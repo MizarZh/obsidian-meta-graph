@@ -1,10 +1,8 @@
 <script lang="ts">
+	import { createDefaultFilterRoot } from '@/ui/filter/filter-tree';
 	import type { App } from 'obsidian';
 	import type { KnowledgeNode } from '@/core/types';
-	import {
-		createConditionFilterRoot,
-		type CuratedConditionDraft,
-	} from '@/ui/curated/curated-panel-state';
+	import { type CuratedConditionDraft } from '@/ui/curated/curated-panel-state';
 	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
 	import WorkspaceModal from '@/ui/WorkspaceModal.svelte';
 	import NoteFilterEditor from '@/ui/notes/NoteFilterEditor.svelte';
@@ -42,7 +40,7 @@
 			onClick={() =>
 				onDraftChange({
 					...draft,
-					filterRoot: createConditionFilterRoot(),
+					filterRoot: createDefaultFilterRoot(),
 				})}
 		/>
 		<ObsidianButton text="Done" cta={true} onClick={onClose} />

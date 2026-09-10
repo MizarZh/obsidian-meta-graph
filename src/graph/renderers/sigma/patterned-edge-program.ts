@@ -9,10 +9,7 @@ import type {
 	RuntimeEdgeAttributes,
 	RuntimeNodeAttributes,
 } from '@/graph/model/graphology-adapter';
-import {
-	getCanonicalParallelLane,
-	getParallelLaneOffset,
-} from '@/graph/model/parallel-edges';
+import { getCanonicalParallelLane } from '@/graph/model/parallel-edges';
 import {
 	EDGE_ARROW_RATIOS,
 	EDGE_DASH_PATTERNS,
@@ -677,23 +674,3 @@ export {
 	DottedEdgeProgram,
 	SolidEdgeProgram,
 };
-
-export function getParallelOffset(
-	_sourceData: Pick<NodeDisplayData, 'x' | 'y' | 'size'>,
-	_targetData: Pick<NodeDisplayData, 'x' | 'y' | 'size'>,
-	data: {
-		size?: number;
-		logicalEdgeId?: string;
-		parallelLane?: number;
-		parallelCount?: number;
-		parallelDirection?: 1 | -1;
-	},
-): number {
-	// Edge labels are already in viewport pixels when Sigma calls the drawer;
-	// keep their center on the same fixed-size lane as the WebGL route.
-	const edge = data;
-	if (edge.logicalEdgeId || (edge.parallelCount ?? 1) <= 1) {
-		return 0;
-	}
-	return getParallelLaneOffset(edge, data.size);
-}

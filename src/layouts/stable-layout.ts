@@ -1,3 +1,4 @@
+import { setsEqual } from '@/core/sets';
 import type {
 	ArcDirection,
 	ArcLabelAngle,
@@ -408,12 +409,6 @@ function snapshotRuntimePositions(
 		}
 		graph.setNodeAttribute(nodeId, 'fixed', false);
 	});
-}
-
-function setsEqual(left: Set<string>, right: Set<string>): boolean {
-	return (
-		left.size === right.size && [...left].every((value) => right.has(value))
-	);
 }
 
 function createOrthogonalRouteMap(): OrthogonalRouteMap {

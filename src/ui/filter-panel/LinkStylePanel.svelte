@@ -20,7 +20,7 @@
 		LinkStyleRule,
 		NodeFilterOperator,
 	} from '@/core/types';
-	import { createRuleId } from '@/ui/filter/filter-tree';
+	import { createRuleId } from '@/core/rule-id';
 	import {
 		activeLinkLineStyle as resolveActiveLinkLineStyle,
 		activeLinkArrowStyle as resolveActiveLinkArrowStyle,

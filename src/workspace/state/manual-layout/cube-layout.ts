@@ -1,3 +1,4 @@
+import { hashString } from '@/core/hash';
 import type {
 	ChartGroup,
 	ChartGroupDefinition,
@@ -363,13 +364,4 @@ function clampPlacementToBounds(
 		x: Math.min(bounds.right, Math.max(bounds.left, placement.x)),
 		y: Math.min(bounds.top, Math.max(bounds.bottom, placement.y)),
 	};
-}
-
-function hashString(value: string): number {
-	let hash = 2166136261;
-	for (let index = 0; index < value.length; index += 1) {
-		hash ^= value.charCodeAt(index);
-		hash = Math.imul(hash, 16777619);
-	}
-	return (hash >>> 0) / 0xffffffff;
 }

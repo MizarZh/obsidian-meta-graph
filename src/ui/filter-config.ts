@@ -48,10 +48,6 @@ export const SYSTEM_FILTER_FIELD_OPTIONS = [
 	{ value: 'metadata-field', label: 'Property', icon: 'braces' },
 ] satisfies Array<{ value: NodeFilterField; label: string; icon: IconName }>;
 
-export const FILE_FILTER_FIELD_OPTIONS = SYSTEM_FILTER_FIELD_OPTIONS.map(
-	({ value, label }) => ({ value, label }),
-);
-
 const NODE_STYLE_GROUP_FIELD_OPTION = {
 	value: 'group',
 	label: 'Group',

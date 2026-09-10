@@ -124,7 +124,3 @@ export function shouldShowFilterValue(
 ): boolean {
 	return operator !== 'has-value' && operator !== 'empty';
 }
-
-export function createRuleId(): string {
-	return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}

@@ -1,10 +1,10 @@
 <script lang="ts">
+	import { createDefaultFilterRoot } from '@/ui/filter/filter-tree';
 	import type { App } from 'obsidian';
 	import type { KnowledgeNode, NodeFilterGroup } from '@/core/types';
 	import { nodeMatchesFilterGroup } from '@/query/filters';
 	import {
 		buildTitleIndex,
-		createConditionFilterRoot,
 		parseBatchInput,
 		type CuratedConditionDraft,
 	} from '@/ui/curated/curated-panel-state';
@@ -221,7 +221,7 @@
 					text="Clear filters"
 					onClick={() =>
 						updateDraft({
-							filterRoot: createConditionFilterRoot(),
+							filterRoot: createDefaultFilterRoot(),
 						})}
 				/>
 			</div>

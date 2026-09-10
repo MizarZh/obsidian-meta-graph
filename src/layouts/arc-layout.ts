@@ -1,3 +1,4 @@
+import { createBendNode } from '@/layouts/bend-node';
 import { scalePoint } from 'd3-scale';
 import type {
 	ArcDirection,
@@ -376,20 +377,4 @@ function createArcGroupGeometries(
 			},
 		];
 	});
-}
-
-function createBendNode(x: number, y: number) {
-	return {
-		label: '',
-		x,
-		y,
-		size: 0.01,
-		color: 'rgba(0, 0, 0, 0)',
-		path: '',
-		folder: '',
-		domains: [],
-		tags: [],
-		fixed: true,
-		isBend: true,
-	};
 }

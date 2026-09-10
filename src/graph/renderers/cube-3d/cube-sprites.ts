@@ -1,7 +1,5 @@
 import type * as Three from 'three';
 import type { LinkArrowStyle, NodeShape } from '@/core/types';
-import type { RuntimeNodeAttributes } from '@/graph/model/graphology-adapter';
-import { createThreeTextSprite } from '@/graph/renderers/renderer-labels';
 import type { ThreeModule } from '@/graph/renderers/cube-3d/cube-three';
 
 export function createCubeNodeSprite(
@@ -142,28 +140,4 @@ export function createCubeArrowTexture(
 		}
 	}
 	return new three.CanvasTexture(canvas);
-}
-
-export function createCubeTextSprite(
-	three: ThreeModule,
-	ownerDocument: Document,
-	text: string,
-	size: number,
-	attributes: RuntimeNodeAttributes,
-	textColor: string,
-	backgroundColor: string,
-): Three.Sprite {
-	const fontSize = Math.max(10, size);
-	const padding = Math.ceil(fontSize * 0.45);
-	return createThreeTextSprite(three, {
-		text,
-		fontSize,
-		textColor,
-		backgroundColor,
-		ownerDocument,
-		paddingX: padding,
-		paddingY: padding,
-		scale: attributes.isPrimary ? 1.1 : 1,
-		scaleMultiplier: 0.28,
-	});
 }

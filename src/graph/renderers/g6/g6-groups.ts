@@ -1,3 +1,8 @@
+import {
+	arcAxisPoint,
+	arcOppositeVector,
+	radialPoint,
+} from '@/layouts/group-geometry';
 import { GraphEvent } from '@antv/g6';
 import {
 	FlowTitleLayer,
@@ -1261,7 +1266,7 @@ export function createArcBandGraphShape(
 		geometry.direction,
 		(geometry.start + geometry.end) / 2,
 	);
-	const outward = arcOutwardVector(geometry.direction);
+	const outward = arcOppositeVector(geometry.direction);
 	const cross = scalePoint(outward, geometry.halfWidth);
 	return {
 		points: [
@@ -1298,38 +1303,6 @@ export function createRadialSectorGraphShape(
 		geometry.outerRadius - RADIAL_GROUP_LABEL_INSET,
 	);
 	return { points, label: radialPoint(middle, labelRadius) };
-}
-
-function radialPoint(angle: number, radius: number): { x: number; y: number } {
-	return {
-		x: Math.cos(angle - Math.PI / 2) * radius,
-		y: Math.sin(angle - Math.PI / 2) * radius,
-	};
-}
-
-function arcAxisPoint(
-	direction: ArcGroupGeometry['direction'],
-	axis: number,
-): { x: number; y: number } {
-	return direction === 'right' || direction === 'left'
-		? { x: 0, y: axis }
-		: { x: axis, y: 0 };
-}
-
-function arcOutwardVector(direction: ArcGroupGeometry['direction']): {
-	x: number;
-	y: number;
-} {
-	switch (direction) {
-		case 'right':
-			return { x: -1, y: 0 };
-		case 'left':
-			return { x: 1, y: 0 };
-		case 'up':
-			return { x: 0, y: -1 };
-		case 'down':
-			return { x: 0, y: 1 };
-	}
 }
 
 function addPoint(

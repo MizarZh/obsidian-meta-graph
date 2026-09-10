@@ -1,10 +1,10 @@
+import { createDefaultFilterRoot } from '@/ui/filter/filter-tree';
 import type {
 	ChartGroupDefinition,
 	CuratedWorkspaceConfig,
 	KnowledgeNode,
 	ManualLayoutConfig,
 	NodeFilterGroup,
-	NodeFilterItem,
 } from '@/core/types';
 import { nodeMatchesFilterGroup } from '@/query/filters';
 
@@ -15,13 +15,6 @@ export interface CuratedConditionDraft {
 	mode: ConditionalMode;
 	filterRoot: NodeFilterGroup;
 	resultSearch: string;
-}
-
-interface SuggestionOption {
-	value: string;
-	label: string;
-	detail?: string;
-	searchText?: string;
 }
 
 export interface CuratedFileEntry {
@@ -38,25 +31,12 @@ export interface CuratedFileEntry {
 	selected: boolean;
 }
 
-export function createConditionFilterRoot(): NodeFilterGroup {
-	return {
-		id: 'root',
-		kind: 'group',
-		mode: 'all',
-		children: [],
-	};
-}
-
 export function createCuratedConditionDraft(): CuratedConditionDraft {
 	return {
 		mode: 'add',
-		filterRoot: createConditionFilterRoot(),
+		filterRoot: createDefaultFilterRoot(),
 		resultSearch: '',
 	};
-}
-
-export function createRuleId(): string {
-	return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export function formatFileTitle(path: string): string {
@@ -122,31 +102,6 @@ export function buildSelectedCuratedFiles(
 			selected: selected.has(file.path),
 		};
 	});
-}
-
-export function buildFileOptions(
-	nodes: KnowledgeNode[],
-	workspaceFilePath: string | undefined,
-	selectedPaths: Set<string>,
-	availableTitleCounts: Record<string, number>,
-): SuggestionOption[] {
-	return nodes
-		.filter(
-			(node) =>
-				node.path !== workspaceFilePath &&
-				!selectedPaths.has(node.path),
-		)
-		.map((node) => ({
-			value: node.path,
-			label:
-				(availableTitleCounts[node.title] ?? 0) > 1
-					? `${node.folder}/${node.title}`
-					: node.title,
-			detail: node.path,
-			searchText: [node.title, node.path, ...(node.aliases ?? [])].join(
-				' ',
-			),
-		}));
 }
 
 export function resolveBatchLine(
@@ -220,22 +175,6 @@ export function getConditionalMatches(
 		);
 }
 
-export function filterConditionalMatches(
-	matches: KnowledgeNode[],
-	search: string,
-): KnowledgeNode[] {
-	const query = search.trim().toLocaleLowerCase();
-	if (!query) {
-		return matches;
-	}
-	return matches.filter((node) =>
-		[node.title, node.path, node.folder, ...(node.aliases ?? [])]
-			.join(' ')
-			.toLocaleLowerCase()
-			.includes(query),
-	);
-}
-
 export function canApplyConditionToPath(
 	path: string,
 	mode: ConditionalMode,
@@ -245,59 +184,6 @@ export function canApplyConditionToPath(
 		return !selectedPaths.has(path);
 	}
 	return selectedPaths.has(path);
-}
-
-export function updateFilterGroup(
-	root: NodeFilterGroup,
-	groupId: string,
-	update: (group: NodeFilterGroup) => NodeFilterGroup,
-): NodeFilterGroup {
-	if (root.id === groupId) {
-		return update(root);
-	}
-	return {
-		...root,
-		children: root.children.map((child) =>
-			child.kind === 'group'
-				? updateFilterGroup(child, groupId, update)
-				: child,
-		),
-	};
-}
-
-export function patchFilterItem(
-	item: NodeFilterItem,
-	itemId: string,
-	patch: Partial<NodeFilterItem>,
-): NodeFilterItem {
-	if (item.id === itemId) {
-		return { ...item, ...patch } as NodeFilterItem;
-	}
-	if (item.kind === 'group') {
-		return {
-			...item,
-			children: item.children.map((child) =>
-				patchFilterItem(child, itemId, patch),
-			),
-		};
-	}
-	return item;
-}
-
-export function removeFilterItemFromGroup(
-	group: NodeFilterGroup,
-	itemId: string,
-): NodeFilterGroup {
-	return {
-		...group,
-		children: group.children
-			.filter((child) => child.id !== itemId)
-			.map((child) =>
-				child.kind === 'group'
-					? removeFilterItemFromGroup(child, itemId)
-					: child,
-			),
-	};
 }
 
 export function readPointerPlacement(

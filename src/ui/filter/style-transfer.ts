@@ -1,5 +1,5 @@
 import type { ChartStyleConfig } from '@/core/types';
-import { createRuleId } from '@/ui/filter/filter-tree';
+import { createRuleId } from '@/core/rule-id';
 import { cloneSerializable } from '@/workspace/state/persistence';
 
 const CLIPBOARD_TYPE = 'meta-graph-chart-style';

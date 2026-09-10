@@ -573,13 +573,6 @@
 	padding: var(--knowledge-workspace-space-4);
 }
 
-.knowledge-workspace-display-controls {
-	border-color: var(--knowledge-workspace-border-subtle);
-	border-radius: var(--knowledge-workspace-radius-panel);
-	background: var(--background-primary);
-	box-shadow: var(--knowledge-workspace-shadow-float);
-}
-
 .knowledge-workspace-connection-panel {
 	min-height: 48px;
 	padding: var(--knowledge-workspace-space-2)

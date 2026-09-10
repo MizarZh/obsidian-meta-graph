@@ -1,10 +1,9 @@
+import { resolveRuntimeLinkStyle } from '@/graph/styles/runtime-link-style';
 import type {
 	GraphProjection,
-	KnowledgeEdge,
 	KnowledgeNode,
 	WorkspaceState,
 } from '@/core/types';
-import { isPlainLinkEdge, isUnresolvedLinkEdge } from '@/core/edge-kind';
 import {
 	getActiveDefaultLinkArrowSize,
 	getActiveDefaultLinkStyle,
@@ -32,7 +31,6 @@ import {
 import type { GraphPalette } from '@/graph/styles/graph-styles';
 import { resolveNodeStyleContexts } from '@/graph/styles/node-style-context';
 import {
-	resolveLinkVisualStyle,
 	resolveNodeStyle,
 	type NodeStyleContext,
 } from '@/graph/styles/style-rules';
@@ -47,11 +45,6 @@ export interface RuntimeVisibilityChanges {
 }
 
 const visibilityIndexes = new WeakMap<RuntimeGraph, RuntimeVisibilityIndex>();
-type ActiveLinkStyleWithArrow = ReturnType<typeof getActiveDefaultLinkStyle> & {
-	arrowStyle: ReturnType<typeof getActiveDefaultLinkArrowStyle>;
-	opacity: number;
-	arrowSize: number;
-};
 
 export function createWorkspaceRuntimeGraph(
 	projection: GraphProjection,
@@ -334,64 +327,5 @@ function resolveRuntimeNodeStyle(
 		size: isPrimary ? resolvedStyle.size * 1.2 : resolvedStyle.size,
 		opacity: resolvedStyle.opacity,
 		type: resolvedStyle.shape,
-	};
-}
-
-function resolveRuntimeLinkStyle(
-	edge: KnowledgeEdge,
-	linkRules: ReturnType<typeof getActiveLinkStyleRules>,
-	defaultLinkStyle: ActiveLinkStyleWithArrow,
-	plainLinkStyle: ActiveLinkStyleWithArrow,
-	unresolvedLinkStyle: ActiveLinkStyleWithArrow,
-	palette: GraphPalette,
-): {
-	color: string;
-	size: number;
-	hidden: boolean;
-	label: string;
-	forceLabel: boolean;
-	lineStyle: ActiveLinkStyleWithArrow['lineStyle'];
-	arrowStyle: 'filled' | 'chevron';
-	opacity: number;
-	arrowSize: number;
-} {
-	const specialStyle = isUnresolvedLinkEdge(edge)
-		? unresolvedLinkStyle
-		: isPlainLinkEdge(edge)
-			? plainLinkStyle
-			: undefined;
-	const resolvedStyle = specialStyle
-		? {
-				color: specialStyle.color,
-				size: specialStyle.size,
-				lineStyle: specialStyle.lineStyle,
-				label: '',
-				hidden: specialStyle.hidden,
-				arrowStyle: specialStyle.arrowStyle,
-				opacity: specialStyle.opacity,
-				arrowSize: specialStyle.arrowSize,
-			}
-		: resolveLinkVisualStyle(edge, linkRules, {
-				color: defaultLinkStyle.color || palette.edge,
-				size: defaultLinkStyle.size,
-				lineStyle: defaultLinkStyle.lineStyle,
-				label: defaultLinkStyle.showLabel
-					? defaultLinkStyle.label || edge.relation
-					: '',
-				hidden: defaultLinkStyle.hidden,
-				arrowStyle: defaultLinkStyle.arrowStyle,
-				opacity: defaultLinkStyle.opacity,
-				arrowSize: defaultLinkStyle.arrowSize,
-			});
-	return {
-		color: resolvedStyle.color,
-		size: resolvedStyle.size,
-		hidden: resolvedStyle.hidden,
-		label: resolvedStyle.label,
-		forceLabel: Boolean(resolvedStyle.label),
-		lineStyle: resolvedStyle.lineStyle,
-		arrowStyle: resolvedStyle.arrowStyle,
-		opacity: resolvedStyle.opacity,
-		arrowSize: resolvedStyle.arrowSize,
 	};
 }

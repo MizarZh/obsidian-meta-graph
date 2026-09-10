@@ -9,7 +9,6 @@ import {
 	isForceSimulationRenderer,
 	type ForceSimulationRenderer,
 	type GraphRenderer,
-	type PlanarRenderer,
 } from '@/graph/renderers/renderer-adapter';
 import { bindRendererEvents } from '@/graph/renderers/renderer-events-adapter';
 import type { D3ForceSimulation } from '@/layouts/d3-force-simulation';

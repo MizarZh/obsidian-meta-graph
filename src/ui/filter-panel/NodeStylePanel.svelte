@@ -23,7 +23,7 @@
 		NodeStyleField,
 		NodeStyleRule,
 	} from '@/core/types';
-	import { createRuleId } from '@/ui/filter/filter-tree';
+	import { createRuleId } from '@/core/rule-id';
 	import {
 		activeNodeStyleValue as resolveActiveNodeStyleValue,
 		canMoveRule,

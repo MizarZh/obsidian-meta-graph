@@ -1,3 +1,4 @@
+import { getActiveChart } from '@/workspace/state/chart-selectors';
 import type {
 	ArcDirection,
 	ArcLabelAngle,
@@ -405,14 +406,6 @@ function updateActiveChartLayout(
 		},
 		forceLayout,
 	);
-}
-
-function getActiveChart(state: WorkspaceState): MetaGraphChart {
-	const chart = state.charts.find((item) => item.id === state.activeChartId);
-	if (!chart) {
-		throw new Error('Active chart is missing from workspace state.');
-	}
-	return chart;
 }
 
 function normalizeSpacing(value: number): number {

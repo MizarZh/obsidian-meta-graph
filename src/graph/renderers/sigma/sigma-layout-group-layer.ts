@@ -1,3 +1,8 @@
+import {
+	arcAxisPoint,
+	arcOppositeVector,
+	radialPoint,
+} from '@/layouts/group-geometry';
 import Sigma from 'sigma';
 import type {
 	RuntimeEdgeAttributes,
@@ -555,35 +560,6 @@ export class LayoutGroupLayer {
 		this.canvas.style.height = `${height}px`;
 		this.context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 	}
-}
-
-function arcAxisPoint(
-	direction: ArcGroupGeometry['direction'],
-	axis: number,
-): Point {
-	return direction === 'right' || direction === 'left'
-		? { x: 0, y: axis }
-		: { x: axis, y: 0 };
-}
-
-function arcOppositeVector(direction: ArcGroupGeometry['direction']): Point {
-	switch (direction) {
-		case 'right':
-			return { x: -1, y: 0 };
-		case 'left':
-			return { x: 1, y: 0 };
-		case 'up':
-			return { x: 0, y: -1 };
-		case 'down':
-			return { x: 0, y: 1 };
-	}
-}
-
-function radialPoint(angle: number, radius: number): Point {
-	return {
-		x: Math.cos(angle - Math.PI / 2) * radius,
-		y: Math.sin(angle - Math.PI / 2) * radius,
-	};
 }
 
 function normalize(point: Point): Point {

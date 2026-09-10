@@ -1,3 +1,4 @@
+import { createBendNode } from '@/layouts/bend-node';
 import ELK, {
 	type ElkExtendedEdge,
 	type ElkNode,
@@ -1730,20 +1731,4 @@ function deduplicatePoints(points: ElkPoint[]): ElkPoint[] {
 			Math.abs(previous.y - point.y) > 0.001
 		);
 	});
-}
-
-function createBendNode(x: number, y: number) {
-	return {
-		label: '',
-		x,
-		y,
-		size: 0.01,
-		color: 'rgba(0, 0, 0, 0)',
-		path: '',
-		folder: '',
-		domains: [],
-		tags: [],
-		fixed: true,
-		isBend: true,
-	};
 }

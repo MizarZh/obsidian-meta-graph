@@ -15,10 +15,10 @@
 		NodeFilterGroup,
 		NodeFilterOperator,
 	} from '@/core/types';
+	import { createRuleId } from '@/core/rule-id';
 	import {
 		addFilterConditionToGroup,
 		addFilterGroupToGroup,
-		createRuleId,
 		getScopedFilterRoot,
 		patchFilterItem,
 		removeFilterItemFromGroup,

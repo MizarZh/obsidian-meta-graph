@@ -1,3 +1,4 @@
+import { setsEqual } from '@/core/sets';
 import type {
 	ChartGroupingConfig,
 	GraphProjection,
@@ -403,18 +404,6 @@ function projectionHiddenNodeIdsChanged(
 		nextProjection?.hiddenNodeIds ?? new Set<string>(),
 		currentProjection?.hiddenNodeIds ?? new Set<string>(),
 	);
-}
-
-function setsEqual<T>(left: ReadonlySet<T>, right: ReadonlySet<T>): boolean {
-	if (left.size !== right.size) {
-		return false;
-	}
-	for (const value of left) {
-		if (!right.has(value)) {
-			return false;
-		}
-	}
-	return true;
 }
 
 function stateValueChanged<Key extends WorkspaceStateKey>(

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { GraphProjection } from '@/core/types';
+import type { GraphProjection, KnowledgeEdge } from '@/core/types';
 import type { GraphPalette } from '@/graph/styles/graph-styles';
 import {
 	applyBundledFlowEdges,
@@ -39,6 +39,138 @@ const projection: GraphProjection = {
 };
 
 describe('workspace runtime graph', () => {
+	it.each([
+		{ kind: 'relation', directed: true },
+		{ kind: 'relation', directed: false },
+		{ kind: 'plain-link', directed: true },
+		{ kind: 'unresolved-link', directed: true },
+		{ semantic: false, directed: true },
+	] satisfies Partial<KnowledgeEdge>[])(
+		'keeps freshly built and incrementally updated edge styles identical: %j',
+		(edgeOptions) => {
+			const state = createWorkspaceState(200);
+			const styledProjection: GraphProjection = {
+				...projection,
+				nodes: [
+					...projection.nodes,
+					{
+						...projection.nodes[0]!,
+						id: 'B.md',
+						path: 'B.md',
+						title: 'B',
+					},
+				],
+				edges: [
+					{
+						id: 'edge',
+						source: 'A.md',
+						target: 'B.md',
+						relation: 'leads-to',
+						sourcePath: 'A.md',
+						sourceField: 'leads-to',
+						...edgeOptions,
+					},
+				],
+				hiddenNodeIds: new Set(['B.md']),
+			};
+			const graph = createWorkspaceRuntimeGraph(
+				styledProjection,
+				new Map(),
+				state,
+				palette,
+			);
+			const nextState = {
+				...state,
+				linkStyleOverrides: {
+					color: '#ff0000',
+					size: 4,
+					opacity: 0.3,
+					arrowSize: 2,
+					arrowStyle: 'chevron' as const,
+					showLabel: true,
+					label: '',
+				},
+				plainLinkStyleOverrides: {
+					color: '#00ff00',
+					size: 5,
+					opacity: 0.4,
+					arrowSize: 3,
+					lineStyle: 'dotted' as const,
+					hidden: true,
+				},
+				unresolvedLinkStyleOverrides: {
+					color: '#0000ff',
+					size: 6,
+					opacity: 0.5,
+					arrowSize: 4,
+					lineStyle: 'dash-dot' as const,
+				},
+				linkStyleRules: [
+					{
+						id: 'rule',
+						field: 'all' as const,
+						value: '',
+						color: '#abcdef',
+						size: 7,
+						opacity: 0.6,
+						arrowSize: 5,
+						arrowStyle: 'chevron' as const,
+						lineStyle: 'dashed' as const,
+						label: 'Next',
+						showLabel: true,
+						hidden: false,
+					},
+				],
+			};
+			const fresh = createWorkspaceRuntimeGraph(
+				styledProjection,
+				new Map(),
+				nextState,
+				palette,
+			);
+			syncWorkspaceRuntimeGraphStyles(
+				graph,
+				styledProjection,
+				nextState,
+				palette,
+			);
+			expect(graph.getEdgeAttributes('edge')).toEqual(
+				fresh.getEdgeAttributes('edge'),
+			);
+			const kind =
+				'kind' in edgeOptions ? edgeOptions.kind : 'plain-link';
+			expect(graph.getEdgeAttributes('edge')).toMatchObject({
+				color:
+					kind === 'relation'
+						? '#abcdef'
+						: kind === 'plain-link'
+							? '#00ff00'
+							: '#0000ff',
+				label: kind === 'relation' ? 'Next' : '',
+				forceLabel: kind === 'relation',
+				hidden: true,
+			});
+			// Default labels and blank-color palette fallback must agree too.
+			nextState.linkStyleRules = [];
+			nextState.linkStyleOverrides.color = '';
+			const defaults = createWorkspaceRuntimeGraph(
+				styledProjection,
+				new Map(),
+				nextState,
+				palette,
+			);
+			syncWorkspaceRuntimeGraphStyles(
+				graph,
+				styledProjection,
+				nextState,
+				palette,
+			);
+			expect(graph.getEdgeAttributes('edge')).toEqual(
+				defaults.getEdgeAttributes('edge'),
+			);
+		},
+	);
+
 	it('builds a runtime graph with active workspace styles and cached positions', () => {
 		const graph = createWorkspaceRuntimeGraph(
 			projection,

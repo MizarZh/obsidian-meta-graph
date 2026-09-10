@@ -1,3 +1,4 @@
+import { getActiveChart } from '@/workspace/state/chart-selectors';
 import { supportsPlanarRenderer } from '@/core/types';
 import type {
 	ChartSource,
@@ -260,14 +261,6 @@ export function deleteActiveChartInState(
 		},
 		nextActiveChart.id,
 	);
-}
-
-function getActiveChart(state: WorkspaceState): MetaGraphChart {
-	const chart = state.charts.find((item) => item.id === state.activeChartId);
-	if (!chart) {
-		throw new Error('Active chart is missing from workspace state.');
-	}
-	return chart;
 }
 
 function duplicateActiveChartState(state: WorkspaceState): WorkspaceState {

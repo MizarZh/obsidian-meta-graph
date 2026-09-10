@@ -41,6 +41,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Removed unused display/settings components, their private display CSS, unused exports and an unused renderer type import. Consolidated filter-tree operations, rule IDs, runtime link-style resolution, layout bend nodes, active-chart selection, layout hashes, set comparisons and shared Arc/radial geometry. Chart behavior, persisted formats and renderer-specific layout/label policies are unchanged.
+
 - Renderer type guards now use each engine's explicit capability declaration without importing implementation classes. The factory loads only the selected engine and checks for stale creation requests before and after loading. The release remains a single bundled file.
 
 - Incremental index batches now filter diagnostic lists and sort available tags/domains once per batch instead of once per changed file, preserving diagnostic order, shared value counts and failed-read recovery.

@@ -1,3 +1,4 @@
+import { getActiveChart } from '@/workspace/state/chart-selectors';
 import type {
 	ChartGroup,
 	ChartGroupDefinition,
@@ -620,12 +621,4 @@ function createDefaultGroupFrame(index: number): GroupFrame {
 		width: 3.2,
 		height: 2.2,
 	};
-}
-
-function getActiveChart(state: WorkspaceState): MetaGraphChart {
-	const chart = state.charts.find((item) => item.id === state.activeChartId);
-	if (!chart) {
-		throw new Error('Active chart is missing from workspace state.');
-	}
-	return chart;
 }

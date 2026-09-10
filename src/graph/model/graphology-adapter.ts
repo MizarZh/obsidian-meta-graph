@@ -1,3 +1,5 @@
+import { hashString } from '@/core/hash';
+import { resolveRuntimeLinkStyle } from '@/graph/styles/runtime-link-style';
 import Graph from 'graphology';
 import type {
 	GraphProjection,
@@ -13,10 +15,8 @@ import type {
 	DefaultLinkStyle,
 	DefaultNodeStyle,
 } from '@/core/types';
-import { isPlainLinkEdge, isUnresolvedLinkEdge } from '@/core/edge-kind';
 import type { GraphPalette } from '@/graph/styles/graph-styles';
 import {
-	resolveLinkVisualStyle,
 	resolveNodeStyle,
 	type NodeStyleContext,
 } from '@/graph/styles/style-rules';
@@ -235,34 +235,14 @@ export class GraphologyAdapter {
 		}
 
 		for (const edge of projection.edges) {
-			const specialStyle = isUnresolvedLinkEdge(edge)
-				? this.unresolvedLinkStyle
-				: isPlainLinkEdge(edge)
-					? this.plainLinkStyle
-					: undefined;
-			const resolvedStyle = specialStyle
-				? {
-						color: specialStyle.color,
-						size: specialStyle.size,
-						lineStyle: specialStyle.lineStyle,
-						label: '',
-						hidden: specialStyle.hidden,
-						arrowStyle: specialStyle.arrowStyle,
-						opacity: specialStyle.opacity,
-						arrowSize: specialStyle.arrowSize,
-					}
-				: resolveLinkVisualStyle(edge, this.linkStyleRules, {
-						color: this.defaultLinkStyle.color || this.palette.edge,
-						size: this.defaultLinkStyle.size,
-						lineStyle: this.defaultLinkStyle.lineStyle,
-						label: this.defaultLinkStyle.showLabel
-							? this.defaultLinkStyle.label || edge.relation
-							: '',
-						hidden: this.defaultLinkStyle.hidden,
-						arrowStyle: this.defaultLinkStyle.arrowStyle,
-						opacity: this.defaultLinkStyle.opacity,
-						arrowSize: this.defaultLinkStyle.arrowSize,
-					});
+			const resolvedStyle = resolveRuntimeLinkStyle(
+				edge,
+				this.linkStyleRules,
+				this.defaultLinkStyle,
+				this.plainLinkStyle,
+				this.unresolvedLinkStyle,
+				this.palette,
+			);
 			const attributes: RuntimeEdgeAttributes = {
 				relation: edge.relation,
 				sourcePath: edge.sourcePath,
@@ -455,13 +435,4 @@ function estimateNodeRadius(
 ): number {
 	const titleLength = index.titleLengthByNode.get(nodeId) ?? 8;
 	return 0.35 + Math.min(0.45, titleLength * 0.015);
-}
-
-function hashString(value: string): number {
-	let hash = 2166136261;
-	for (let index = 0; index < value.length; index += 1) {
-		hash ^= value.charCodeAt(index);
-		hash = Math.imul(hash, 16777619);
-	}
-	return (hash >>> 0) / 0xffffffff;
 }

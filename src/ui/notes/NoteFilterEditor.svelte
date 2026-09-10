@@ -21,12 +21,12 @@
 	} from '@/ui/filter-config';
 	import FilterGroup from '@/ui/FilterGroup.svelte';
 	import type { SuggestionOption } from '@/ui/obsidian/ObsidianSuggestInput.svelte';
+	import { createRuleId } from '@/core/rule-id';
 	import {
-		createRuleId,
 		patchFilterItem,
 		removeFilterItemFromGroup,
 		updateFilterGroup,
-	} from '@/ui/curated/curated-panel-state';
+	} from '@/ui/filter/filter-tree';
 
 	let {
 		app,

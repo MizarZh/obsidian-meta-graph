@@ -1366,7 +1366,7 @@
 		}
 		return Boolean(
 			target.closest(
-				'.knowledge-workspace-dock-panel, .knowledge-workspace-display-controls, .knowledge-workspace-inspector, .knowledge-workspace-connection-panel',
+				'.knowledge-workspace-dock-panel, .knowledge-workspace-inspector, .knowledge-workspace-connection-panel',
 			),
 		);
 	}

@@ -7,7 +7,6 @@ import type {
 	NodeStyleRule,
 } from '@/core/types';
 
-export type StyleRuleKind = 'node' | 'link';
 export type StyleRuleScope = 'global' | 'current';
 
 export function createNodeStyleRule(id: string): NodeStyleRule {
@@ -120,24 +119,6 @@ export function activeLinkArrowStyle(
 ): LinkArrowStyle {
 	return (activeLinkStyleValue(overrides, defaultStyle, 'arrowStyle') ??
 		'filled') as LinkArrowStyle;
-}
-
-export function activeLinkOpacity(
-	overrides: DefaultLinkStyle,
-	defaultStyle: Required<DefaultLinkStyle>,
-): number {
-	return Number(
-		activeLinkStyleValue(overrides, defaultStyle, 'opacity') ?? 1,
-	);
-}
-
-export function activeLinkArrowSize(
-	overrides: DefaultLinkStyle,
-	defaultStyle: Required<DefaultLinkStyle>,
-): number {
-	return Number(
-		activeLinkStyleValue(overrides, defaultStyle, 'arrowSize') ?? 1,
-	);
 }
 
 export function hasStyleOverride(
