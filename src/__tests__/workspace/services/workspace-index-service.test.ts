@@ -9,6 +9,88 @@ beforeAll(async () => {
 });
 
 describe('workspace index service', () => {
+	it('shares a failed full build, then retries without invalidation', async () => {
+		const { app, getMarkdownFiles } = createApp();
+		const service = new WorkspaceIndexService(app);
+		getMarkdownFiles.mockImplementationOnce(() => {
+			throw new Error('Metadata unavailable');
+		});
+		const failed = await Promise.allSettled([
+			service.read(false, []),
+			service.read(false, []),
+		]);
+		expect(failed.map((result) => result.status)).toEqual([
+			'rejected',
+			'rejected',
+		]);
+		expect(getMarkdownFiles).toHaveBeenCalledTimes(1);
+		const recovered = await service.read(false, []);
+		expect(await service.read(false, [])).toBe(recovered);
+		expect(getMarkdownFiles).toHaveBeenCalledTimes(2);
+		expect(service.getPerformanceSnapshot().fullBuildCount).toBe(1);
+	});
+
+	it('keeps a failed incremental batch dirty without publishing partial changes', async () => {
+		const files = [createFile('First.md'), createFile('Second.md')];
+		let tag = 'before';
+		let fail = false;
+		const readCache = vi.fn((file: TFile) => {
+			if (fail && file.path === 'Second.md')
+				throw new Error('Metadata unavailable');
+			return { frontmatter: { tags: [tag] } };
+		});
+		const { app, getMarkdownFiles } = createApp(files, readCache);
+		const service = new WorkspaceIndexService(app);
+		service.setLargeVaultMode('on');
+		const original = await service.read(false, []);
+		tag = 'after';
+		fail = true;
+		files.forEach((file) => service.invalidateFile(file));
+		await expect(service.read(false, [])).rejects.toThrow(
+			'Metadata unavailable',
+		);
+		expect(original.index.nodes.get('First.md')?.tags).toEqual(['before']);
+		expect(original.availableTags).toEqual(['before']);
+		expect(service.getPerformanceSnapshot().incrementalBuildCount).toBe(0);
+		fail = false;
+		readCache.mockClear();
+		const recovered = await service.read(false, []);
+		expect(recovered).toBe(original);
+		expect(recovered.availableTags).toEqual(['after']);
+		for (const file of files)
+			expect(recovered.index.nodes.get(file.path)?.tags).toEqual([
+				'after',
+			]);
+		expect(readCache).toHaveBeenCalledTimes(2);
+		await service.read(false, []);
+		expect(readCache).toHaveBeenCalledTimes(2);
+		expect(getMarkdownFiles).toHaveBeenCalledTimes(1);
+	});
+
+	it('does not lose a newer invalidation for the same file while indexing', async () => {
+		const file = createFile('Changed.md');
+		let tag = 'before';
+		let invalidateDuringRead = false;
+		const { app } = createApp([file], () => {
+			const cache = { frontmatter: { tags: [tag] } };
+			if (invalidateDuringRead) {
+				invalidateDuringRead = false;
+				tag = 'latest';
+				service.invalidateFile(file);
+			}
+			return cache;
+		});
+		const service = new WorkspaceIndexService(app);
+		service.setLargeVaultMode('on');
+		await service.read(false, []);
+		tag = 'intermediate';
+		invalidateDuringRead = true;
+		service.invalidateFile(file);
+		await service.read(false, []);
+		const latest = await service.read(false, []);
+		expect(latest.index.nodes.get(file.path)?.tags).toEqual(['latest']);
+	});
+
 	it('reuses cached snapshots until invalidated', async () => {
 		const { app, getMarkdownFiles } = createApp();
 		const service = new WorkspaceIndexService(app);

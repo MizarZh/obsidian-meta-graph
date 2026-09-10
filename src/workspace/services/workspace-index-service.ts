@@ -138,29 +138,19 @@ export class WorkspaceIndexService {
 		if (cached?.dirtyFiles.size === 0) {
 			return cached.snapshot;
 		}
-		if (cached) {
-			const rebuild = this.rebuildIncrementally(
-				cached,
-				debug,
-				connectionFields,
-			).finally(() => this.pending.delete(pendingKey));
-			this.pending.set(pendingKey, rebuild);
-			return rebuild;
-		}
-
-		const build = this.build(
-			pendingKey,
-			key,
-			debug,
-			connectionFields,
-			this.revision,
-		);
+		const work = cached
+			? this.rebuildIncrementally(cached, debug, connectionFields)
+			: this.build(key, debug, connectionFields, this.revision);
+		const build = work.finally(() => {
+			if (this.pending.get(pendingKey) === build) {
+				this.pending.delete(pendingKey);
+			}
+		});
 		this.pending.set(pendingKey, build);
 		return build;
 	}
 
 	private async build(
-		pendingKey: string,
 		key: string,
 		debug: boolean,
 		connectionFields: string[] | ConnectionFieldSpec[],
@@ -174,7 +164,6 @@ export class WorkspaceIndexService {
 			debug,
 			connectionFields,
 		);
-		this.pending.delete(pendingKey);
 		if (revision === this.revision) {
 			this.snapshots.set(key, createCacheEntry(result));
 		}
@@ -193,16 +182,21 @@ export class WorkspaceIndexService {
 		connectionFields: string[] | ConnectionFieldSpec[],
 	): Promise<WorkspaceIndexSnapshot> {
 		const startedAt = performance.now();
-		const changedFiles = [...entry.dirtyFiles.values()];
-		entry.dirtyFiles.clear();
 		const { MetadataIndexer } = await import('@/core/metadata-indexer');
+		const revision = this.revision;
+		const changedFiles = [...entry.dirtyFiles.values()];
 		const indexer = new MetadataIndexer(this.app, debug, connectionFields);
-		for (const file of changedFiles) {
-			const record: MetadataIndexRecord = indexer.buildFileRecord(
-				file,
-				entry.filePaths,
-			);
+		// Parse the entire batch before changing the shared snapshot. A failed
+		// read keeps every dirty file available for the next attempt.
+		const records = changedFiles.map((file) =>
+			indexer.buildFileRecord(file, entry.filePaths),
+		);
+		for (const record of records) {
 			applyRecordDelta(entry, record);
+		}
+		// Do not acknowledge a newer invalidation, even for the same TFile.
+		if (revision === this.revision) {
+			for (const record of records) entry.dirtyFiles.delete(record.path);
 		}
 		this.performance.incrementalBuildCount += 1;
 		this.performance.lastBuildKind = 'incremental';

@@ -49,6 +49,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Failed index builds now release their pending promise so later reads can retry without invalidation. Incremental indexing parses a complete batch before applying changes, retains dirty files on read failure, and preserves newer invalidations received during processing.
+
 - Autosave now waits for the host save before marking a document saved, serializes overlapping writes, and keeps the latest pending edits after failures for the next scheduled save or explicit flush. Save failures show a notice; file unload and close await pending saves, and stale callbacks cannot write into a different workspace file.
 
 - Body-only note edits no longer rebuild or refit charts when only file timestamps change. Arc/HEB time sorting retains refreshes; rule-based group membership changes trigger layout, while node style match changes update incrementally. Query filters still reevaluate on metadata refresh.
