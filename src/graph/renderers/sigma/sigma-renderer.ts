@@ -455,6 +455,8 @@ export class SigmaRenderer {
 
 	beginForceMotion(): void {
 		if (this.forceMotionActive) return;
+		// Keep viewport targets in a stable coordinate frame while physics moves nodes.
+		this.holdCurrentBounds();
 		this.forceMotionActive = true;
 		this.instance.refresh({
 			partialGraph: {

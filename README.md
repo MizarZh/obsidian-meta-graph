@@ -181,7 +181,10 @@ settings to report them in the developer console.
     notes so each note links to the other. Paired writes the selected source
     property on the source note and a distinct target property on the target
     note; both writes share one Undo operation.
-14. In Graph views, enable **Force layout** in **Graph** settings to drag nodes
+14. In Sigma Graph, force dragging stops inside the visible canvas with a
+    node-size-aware margin; the coordinate bounds stay fixed during motion.
+    Free dragging and Ctrl connection gestures are unchanged.
+    In Graph views, enable **Force layout** in **Graph** settings to drag nodes
     through the force-directed layout. Nearby nodes can move with the graph
     forces, and the layout keeps settling briefly after release. Use
     **Link distance** first to adjust spacing, **Center force** for compactness,

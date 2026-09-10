@@ -297,6 +297,23 @@ export function bindGraphEvents(
 				x: event.x + (draggedNodeViewportOffset?.x ?? 0),
 				y: event.y + (draggedNodeViewportOffset?.y ?? 0),
 			};
+			if (callbacks.enableForceLayout) {
+				const { width, height } = sigma.getDimensions();
+				const size = sigma
+					.getGraph()
+					.getNodeAttribute(draggedNodeId, 'size');
+				const padding = Math.max(12, sigma.scaleSize(size) + 4);
+				const insetX = Math.min(padding, width / 2);
+				const insetY = Math.min(padding, height / 2);
+				viewportPosition.x = Math.max(
+					insetX,
+					Math.min(width - insetX, viewportPosition.x),
+				);
+				viewportPosition.y = Math.max(
+					insetY,
+					Math.min(height - insetY, viewportPosition.y),
+				);
+			}
 			const position = sigma.viewportToGraph(viewportPosition);
 			callbacks.onNodeDrag?.(draggedNodeId, position, viewportPosition);
 			return;

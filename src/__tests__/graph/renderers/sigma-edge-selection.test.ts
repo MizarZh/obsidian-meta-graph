@@ -4,6 +4,58 @@ import { bindGraphEvents } from '@/graph/renderers/sigma/sigma-events';
 import type { SigmaRenderer } from '@/graph/renderers/sigma/sigma-renderer';
 
 describe('Sigma logical edge selection', () => {
+	it.each([true, false])('bounds only force dragging (force=%s)', (force) => {
+		class TestMouseEvent {
+			button = 0;
+			clientX = 50;
+			clientY = 50;
+			ctrlKey = false;
+			metaKey = false;
+			preventDefault = vi.fn();
+		}
+		vi.stubGlobal('MouseEvent', TestMouseEvent);
+		try {
+			const harness = createHarness();
+			const onNodeDrag = vi.fn();
+			bindGraphEvents(harness.renderer, {
+				...createCallbacks(),
+				enableForceLayout: force,
+				enableNodeDragging: true,
+				onNodeDrag,
+			});
+			harness.sigmaHandlers.get('downNode')!({
+				node: 'node-a',
+				event: {
+					original: new TestMouseEvent(),
+					preventSigmaDefault: vi.fn(),
+				},
+			});
+			const move = harness.mouseHandlers.get('mousemovebody')!;
+			move({ x: 1000, y: -100, preventSigmaDefault: vi.fn() });
+			const expected = force ? { x: 188, y: 12 } : { x: 1000, y: -100 };
+			expect(onNodeDrag).toHaveBeenLastCalledWith(
+				'node-a',
+				expected,
+				expected,
+			);
+			move({ x: -100, y: 1000, preventSigmaDefault: vi.fn() });
+			const opposite = force ? { x: 12, y: 88 } : { x: -100, y: 1000 };
+			expect(onNodeDrag).toHaveBeenLastCalledWith(
+				'node-a',
+				opposite,
+				opposite,
+			);
+			move({ x: 70, y: 60, preventSigmaDefault: vi.fn() });
+			expect(onNodeDrag).toHaveBeenLastCalledWith(
+				'node-a',
+				{ x: 70, y: 60 },
+				{ x: 70, y: 60 },
+			);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
 	it('routes Canvas edges and groups before treating a stage click as blank', () => {
 		const harness = createHarness();
 		const callbacks = createCallbacks();
@@ -185,11 +237,21 @@ function createHarness() {
 			}),
 			off: vi.fn(),
 		}),
-		getGraph: () => ({ getNodeAttribute: vi.fn() }),
+		getGraph: () => ({
+			getNodeAttribute: vi.fn((_id: string, key: string) =>
+				key === 'size' ? 8 : false,
+			),
+			getNodeAttributes: () => ({ x: 50, y: 50 }),
+		}),
+		getDimensions: () => ({ width: 200, height: 100 }),
+		scaleSize: (size: number) => size,
+		getContainer: () => ({
+			getBoundingClientRect: () => ({ left: 0, top: 0 }),
+		}),
 		getSetting: vi.fn(),
 		setSetting: vi.fn(),
-		viewportToGraph: vi.fn(),
-		graphToViewport: vi.fn(),
+		viewportToGraph: vi.fn((point) => point),
+		graphToViewport: vi.fn((point) => point),
 	};
 	const renderer = {
 		instance: sigma,

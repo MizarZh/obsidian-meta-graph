@@ -6,6 +6,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Sigma Graph force dragging stops inside the viewport with node-size-aware padding. Force motion holds the coordinate bounds to prevent repeated extent expansion; Free dragging and Ctrl connection gestures are unchanged.
+
 - Node list filter dialog uses an aligned, muted subtitle instead of an unpadded paragraph, reducing excess vertical space.
 
 - Query's Nodes sidebar now supports local node filtering and single/batch group assignment. List filters do not change graph queries or membership; grouping uses one batch state update and preserves Cube/Graph 3D restrictions.
