@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Node/link rule editors place the Name field and scope/delete actions on one compact row above the matching condition.
+
+- Node/link rules support optional saved names. Unnamed cards use their matching condition, including the operator, as the title; named cards retain the condition in their summary. Names do not affect matching or rule order.
+
 - Node style cards preview the configured shape and color for Workspace default and Global/Chart rules.
 
 - Link style cards now preview line color, width, opacity, and pattern instead of a color dot, including Workspace default and Global/Chart rules.

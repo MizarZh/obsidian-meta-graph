@@ -9,6 +9,7 @@ export type NodeShape =
 
 export interface NodeStyleRule {
 	id: string;
+	name?: string;
 	field: NodeStyleField;
 	operator?: NodeFilterOperator;
 	value: string;
@@ -20,6 +21,7 @@ export interface NodeStyleRule {
 
 export interface LinkStyleRule {
 	id: string;
+	name?: string;
 	field: LinkStyleField;
 	operator?: NodeFilterOperator;
 	value: string;

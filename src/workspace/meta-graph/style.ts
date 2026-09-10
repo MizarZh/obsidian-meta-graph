@@ -92,6 +92,9 @@ function normalizeNodeStyleRuleArray(value: unknown): NodeStyleRule[] {
 		const record: Record<string, unknown> = isRecord(rule) ? rule : {};
 		const shape = readOptionalNodeShape(record.shape);
 		const normalized = { ...record };
+		if (typeof record.name === 'string' && record.name.trim())
+			normalized.name = record.name.trim();
+		else delete normalized.name;
 		if (shape) {
 			normalized.shape = shape;
 		} else {
@@ -119,6 +122,9 @@ function normalizeLinkStyleRuleArray(value: unknown): LinkStyleRule[] {
 	return normalizeArray<LinkStyleRule>(value).map((rule) => {
 		const record: Record<string, unknown> = isRecord(rule) ? rule : {};
 		const normalized = { ...record };
+		if (typeof record.name === 'string' && record.name.trim())
+			normalized.name = record.name.trim();
+		else delete normalized.name;
 		if (record.lineStyle !== undefined) {
 			normalized.lineStyle = readLinkLineStyle(record.lineStyle, 'solid');
 		}

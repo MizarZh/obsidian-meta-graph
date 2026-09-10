@@ -1814,6 +1814,18 @@
 	gap: 2px;
 }
 
+.knowledge-workspace-style-rule-header {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: var(--size-4-2);
+	align-items: center;
+}
+
+.knowledge-workspace-style-rule-header > .knowledge-workspace-setting-row {
+	grid-template-columns: auto minmax(0, 1fr);
+	min-width: 0;
+}
+
 .knowledge-workspace-style-editor
 	.knowledge-workspace-rule-row.style-condition {
 	grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.7fr) minmax(0, 1fr);

@@ -138,7 +138,11 @@ settings to report them in the developer console.
 7. Add filters and style rules for **All views** or **This view**. File
    filters support file name, path, folder, extension, tags, links, and
    frontmatter property presence.
-8. Note/link conditional style rules and Workspace default appear as compact
+8. Rules can have an optional **Name** in their editor. Without a name, the card
+   title shows the matching condition including its operator (for example,
+   **Source field is related**). Named rules keep that condition in the summary.
+   Names are saved with rules and do not change matching or priority.
+   Note/link conditional style rules and Workspace default appear as compact
    summaries. Click a card to open one floating editor beside it. Changes apply live;
    the graph remains interactive. Close the editor with **×** or **Esc**;
    switching charts closes the editor. Use the card's arrows or drag handle to

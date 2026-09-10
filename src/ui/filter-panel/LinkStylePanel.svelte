@@ -2,6 +2,11 @@
 	import type { App } from 'obsidian';
 	import SettingsSection from '@/ui/settings/SettingsSection.svelte';
 	import StyleRuleCard from '@/ui/filter-panel/StyleRuleCard.svelte';
+	import TextSetting from '@/ui/settings/fields/TextSetting.svelte';
+	import {
+		styleRuleCondition,
+		styleRuleCaption,
+	} from '@/ui/filter/style-rule-caption';
 	import {
 		planStyleRuleDrop,
 		styleRuleDropZone,
@@ -451,10 +456,29 @@
 					onClick={() => addLinkRule(section.scope)}
 				/>
 			{/snippet}
-			{#each getLinkRules(section.scope) as rule, index (rule.id)}
+			{#each getLinkRules(section.scope) as rule (rule.id)}
+				{@const condition =
+					rule.field === 'all'
+						? 'All links'
+						: styleRuleCondition(
+								rule.field === 'source-field'
+									? 'Source field'
+									: 'Relation',
+								LINK_STYLE_OPERATOR_OPTIONS.find(
+									(option) =>
+										option.value ===
+										getLinkRuleOperator(rule),
+								)?.label ?? getLinkRuleOperator(rule),
+								rule.value,
+							)}
+				{@const caption = styleRuleCaption(
+					rule.name,
+					condition,
+					`${rule.size}px · ${Math.round((rule.opacity ?? 1) * 100)}%${rule.hidden ? ' · Hidden' : ''}`,
+				)}
 				<StyleRuleCard
-					title={`${section.scope === 'global' ? 'Global' : 'Chart'} link rule ${index + 1}`}
-					summary={`${rule.field} ${rule.operator ?? ''} ${rule.value} · ${rule.size}px · ${rule.lineStyle}${rule.hidden ? ' · Hidden' : ''}`}
+					title={caption.title}
+					summary={caption.summary}
 					color={rule.color}
 					linePreview={rule}
 					open={editingRule === `${section.scope}:${rule.id}`}
@@ -478,6 +502,43 @@
 						dropStyleRule(payload, section.scope, rule.id, after)}
 				>
 					<div class="knowledge-workspace-rule">
+						<div class="knowledge-workspace-style-rule-header">
+							<TextSetting
+								label="Name"
+								value={rule.name ?? ''}
+								placeholder={condition}
+								onChange={(name) =>
+									updateLinkRule(section.scope, rule.id, {
+										name: name.trim() || undefined,
+									})}
+							/>
+							<div class="knowledge-workspace-style-rule-actions">
+								<ObsidianButton
+									class="knowledge-workspace-move-rule-button"
+									ariaLabel={section.scope === 'global'
+										? 'Move to chart link rules'
+										: 'Move to global link rules'}
+									tooltip={section.scope === 'global'
+										? 'Move to chart link rules'
+										: 'Move to global link rules'}
+									icon={section.scope === 'global'
+										? 'layout-dashboard'
+										: 'globe'}
+									onClick={() =>
+										moveLinkRuleToScope(
+											section.scope,
+											rule.id,
+										)}
+								/>
+								<ObsidianButton
+									class="knowledge-workspace-remove-rule-button"
+									ariaLabel="Remove link style rule"
+									icon="trash-2"
+									onClick={() =>
+										removeLinkRule(section.scope, rule.id)}
+								/>
+							</div>
+						</div>
 						<div
 							class="knowledge-workspace-rule-row style-condition"
 						>
@@ -538,32 +599,6 @@
 										})}
 								/>
 							{/if}
-							<div class="knowledge-workspace-style-rule-actions">
-								<ObsidianButton
-									class="knowledge-workspace-move-rule-button"
-									ariaLabel={section.scope === 'global'
-										? 'Move to chart link rules'
-										: 'Move to global link rules'}
-									tooltip={section.scope === 'global'
-										? 'Move to chart link rules'
-										: 'Move to global link rules'}
-									icon={section.scope === 'global'
-										? 'layout-dashboard'
-										: 'globe'}
-									onClick={() =>
-										moveLinkRuleToScope(
-											section.scope,
-											rule.id,
-										)}
-								/>
-								<ObsidianButton
-									class="knowledge-workspace-remove-rule-button"
-									ariaLabel="Remove link style rule"
-									icon="trash-2"
-									onClick={() =>
-										removeLinkRule(section.scope, rule.id)}
-								/>
-							</div>
 						</div>
 						<LinkVisualSettings
 							value={{

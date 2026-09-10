@@ -263,7 +263,7 @@
 		</svg>
 	{/if}
 	<div class="knowledge-workspace-style-rule-summary">
-		<strong>{title}</strong>
+		<strong {title}>{title}</strong>
 		<span title={summary}>{summary}</span>
 	</div>
 	<ObsidianButton
