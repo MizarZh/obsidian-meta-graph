@@ -66,6 +66,80 @@ function options(
 }
 
 describe('renderer loading boundary', () => {
+	it.each(['sigma', 'g6', 'force-3d', 'cube-3d'] as const)(
+		'preserves common and engine-specific options for %s',
+		async (kind) => {
+			const { createGraphRenderer } =
+				await import('@/graph/renderers/renderer-factory');
+			const supplied: GraphRendererOptions = {
+				...options(kind),
+				fadeDistance: 0.5,
+				labelBold: true,
+				labelItalic: true,
+				labelPosition: 'left',
+				labelOffset: 2,
+				labelDensity: 0.3,
+				forceLabels: true,
+				labelLightTextColor: '#111111',
+				labelLightBackgroundColor: '#222222',
+				labelLightBackgroundOpacity: 0.4,
+				labelDarkTextColor: '#333333',
+				labelDarkBackgroundColor: '#444444',
+				labelDarkBackgroundOpacity: 0.6,
+				scaleLabelsWithZoom: true,
+				parallelEdgeStyle: 'curve',
+				edgeRoutes: new Map(),
+				manualLayout: { nodes: {}, groups: [] },
+				cubeFaceOpacity: 0.8,
+				cubeSize: 640,
+				cubeFreeCamera: true,
+				enableForceLayout: true,
+			};
+			await createGraphRenderer(supplied);
+			const baseKeys = [
+				'graph',
+				'container',
+				'palette',
+				'fadeDistance',
+				'labelSize',
+				'labelBold',
+				'labelItalic',
+				'labelPosition',
+				'labelOffset',
+				'labelLightTextColor',
+				'labelLightBackgroundColor',
+				'labelLightBackgroundOpacity',
+				'labelDarkTextColor',
+				'labelDarkBackgroundColor',
+				'labelDarkBackgroundOpacity',
+				'labelDensity',
+				'forceLabels',
+				'threeLabelResolution',
+				'isStale',
+			] as const;
+			const specificKeys = {
+				sigma: ['parallelEdgeStyle', 'scaleLabelsWithZoom'],
+				g6: ['edgeRoutes', 'scaleLabelsWithZoom'],
+				'force-3d': ['enableForceLayout'],
+				'cube-3d': [
+					'manualLayout',
+					'cubeFaceOpacity',
+					'cubeSize',
+					'cubeFreeCamera',
+					'enableForceLayout',
+				],
+			} as const;
+			expect(mocks.create).toHaveBeenCalledExactlyOnceWith(
+				kind,
+				Object.fromEntries(
+					[...baseKeys, ...specificKeys[kind]].map((key) => [
+						key,
+						supplied[key],
+					]),
+				),
+			);
+		},
+	);
 	it('imports the public adapter and checks capabilities without loading implementations', async () => {
 		const adapter = await import('@/graph/renderers/renderer-adapter');
 		for (const kind of ['sigma', 'g6', 'force-3d', 'cube-3d'] as const) {

@@ -63,13 +63,6 @@ export function getParallelLaneStep(lineWidth = 1): number {
 	return Math.max(3, Math.min(8, Math.max(width, 1.7) * 2.5));
 }
 
-export function getParallelLaneOffset(
-	attributes: ParallelEdgeRouteAttributes,
-	edgeSize = 1,
-): number {
-	return getCanonicalParallelLane(attributes) * getParallelLaneStep(edgeSize);
-}
-
 export function getParallelLane(
 	attributes: ParallelEdgeRouteAttributes,
 ): number {

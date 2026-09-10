@@ -71,48 +71,6 @@ export function resolveLinkVisualStyle(
 	);
 }
 
-export function resolveLinkArrowStyle(
-	edge: KnowledgeEdge,
-	rules: LinkStyleRule[],
-	defaultStyle: LinkArrowStyle = 'filled',
-): LinkArrowStyle {
-	return rules.reduce(
-		(style, rule) =>
-			matchesLinkRule(edge, rule) && isLinkArrowStyle(rule.arrowStyle)
-				? rule.arrowStyle
-				: style,
-		defaultStyle,
-	);
-}
-
-export function resolveLinkOpacity(
-	edge: KnowledgeEdge,
-	rules: LinkStyleRule[],
-	defaultStyle = 1,
-): number {
-	return rules.reduce(
-		(style, rule) =>
-			matchesLinkRule(edge, rule) && isLinkOpacity(rule.opacity)
-				? rule.opacity
-				: style,
-		clampLinkOpacity(defaultStyle),
-	);
-}
-
-export function resolveLinkArrowSize(
-	edge: KnowledgeEdge,
-	rules: LinkStyleRule[],
-	defaultStyle = 1,
-): number {
-	return rules.reduce(
-		(style, rule) =>
-			matchesLinkRule(edge, rule) && isLinkArrowSize(rule.arrowSize)
-				? rule.arrowSize
-				: style,
-		clampLinkArrowSize(defaultStyle),
-	);
-}
-
 export function isLinkArrowStyle(value: unknown): value is LinkArrowStyle {
 	return value === 'filled' || value === 'chevron';
 }
@@ -162,28 +120,6 @@ export function resolveNodeStyle(
 					}
 				: style,
 		{ ...defaults, opacity: clampNodeOpacity(defaults.opacity ?? 1) },
-	);
-}
-
-export function resolveLinkStyle(
-	edge: KnowledgeEdge,
-	rules: LinkStyleRule[],
-	defaults: LinkStyle,
-): LinkStyle {
-	return rules.reduce(
-		(style, rule) =>
-			matchesLinkRule(edge, rule)
-				? {
-						color: rule.color || style.color,
-						size: rule.size,
-						lineStyle: rule.lineStyle,
-						label: rule.showLabel
-							? rule.label.trim() || edge.relation
-							: '',
-						hidden: rule.hidden,
-					}
-				: style,
-		{ ...defaults },
 	);
 }
 

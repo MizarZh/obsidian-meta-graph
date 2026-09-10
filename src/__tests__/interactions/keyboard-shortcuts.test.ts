@@ -2,67 +2,55 @@ import { describe, expect, it } from 'vitest';
 import {
 	resolvePinnedFocusNodeId,
 	resolveWorkspaceShortcut,
-	shouldHandleConnectionUndoShortcut,
-	shouldHandleFindNoteShortcut,
 } from '@/ui/interactions/keyboard-shortcuts';
 
 describe('find note shortcut', () => {
 	it('handles Ctrl+F and Cmd+F', () => {
-		expect(shouldHandleFindNoteShortcut(findInput({ ctrlKey: true }))).toBe(
-			true,
+		expect(resolveWorkspaceShortcut(findInput({ ctrlKey: true }))).toBe(
+			'find-note',
 		);
-		expect(shouldHandleFindNoteShortcut(findInput({ metaKey: true }))).toBe(
-			true,
+		expect(resolveWorkspaceShortcut(findInput({ metaKey: true }))).toBe(
+			'find-note',
 		);
 	});
 
 	it('ignores other keys and modified shortcuts', () => {
 		expect(
-			shouldHandleFindNoteShortcut(
+			resolveWorkspaceShortcut(
 				findInput({ ctrlKey: true, altKey: true }),
 			),
-		).toBe(false);
+		).not.toBe('find-note');
 		expect(
-			shouldHandleFindNoteShortcut(
+			resolveWorkspaceShortcut(
 				findInput({ ctrlKey: true, shiftKey: true }),
 			),
-		).toBe(false);
+		).not.toBe('find-note');
 		expect(
-			shouldHandleFindNoteShortcut(
-				findInput({ ctrlKey: true, key: 'g' }),
-			),
-		).toBe(false);
+			resolveWorkspaceShortcut(findInput({ ctrlKey: true, key: 'g' })),
+		).not.toBe('find-note');
 	});
 });
 
 describe('connection undo shortcut', () => {
 	it('handles Ctrl+Z and Cmd+Z with pending undo entries', () => {
-		expect(
-			shouldHandleConnectionUndoShortcut(input({ ctrlKey: true })),
-		).toBe(true);
-		expect(
-			shouldHandleConnectionUndoShortcut(input({ metaKey: true })),
-		).toBe(true);
+		expect(resolveWorkspaceShortcut(input({ ctrlKey: true }))).toBe('undo');
+		expect(resolveWorkspaceShortcut(input({ metaKey: true }))).toBe('undo');
 	});
 
 	it('ignores modified, editable, or unavailable shortcut states', () => {
-		expect(
-			shouldHandleConnectionUndoShortcut(input({ altKey: true })),
-		).toBe(false);
-		expect(
-			shouldHandleConnectionUndoShortcut(input({ shiftKey: true })),
-		).toBe(false);
-		expect(
-			shouldHandleConnectionUndoShortcut(
-				input({ connectionUndoCount: 0 }),
-			),
-		).toBe(false);
-		expect(
-			shouldHandleConnectionUndoShortcut(input({ editableTarget: true })),
-		).toBe(false);
-		expect(shouldHandleConnectionUndoShortcut(input({ key: 'x' }))).toBe(
-			false,
+		expect(resolveWorkspaceShortcut(input({ altKey: true }))).not.toBe(
+			'undo',
 		);
+		expect(resolveWorkspaceShortcut(input({ shiftKey: true }))).not.toBe(
+			'undo',
+		);
+		expect(
+			resolveWorkspaceShortcut(input({ connectionUndoCount: 0 })),
+		).not.toBe('undo');
+		expect(
+			resolveWorkspaceShortcut(input({ editableTarget: true })),
+		).not.toBe('undo');
+		expect(resolveWorkspaceShortcut(input({ key: 'x' }))).not.toBe('undo');
 	});
 });
 
@@ -137,10 +125,8 @@ describe('workspace shortcuts', () => {
 });
 
 function input(
-	overrides: Partial<
-		Parameters<typeof shouldHandleConnectionUndoShortcut>[0]
-	>,
-): Parameters<typeof shouldHandleConnectionUndoShortcut>[0] {
+	overrides: Partial<Parameters<typeof resolveWorkspaceShortcut>[0]>,
+): Parameters<typeof resolveWorkspaceShortcut>[0] {
 	return {
 		key: 'z',
 		ctrlKey: false,
@@ -154,9 +140,10 @@ function input(
 }
 
 function findInput(
-	overrides: Partial<Parameters<typeof shouldHandleFindNoteShortcut>[0]>,
-): Parameters<typeof shouldHandleFindNoteShortcut>[0] {
+	overrides: Partial<Parameters<typeof resolveWorkspaceShortcut>[0]>,
+): Parameters<typeof resolveWorkspaceShortcut>[0] {
 	return {
+		...input({}),
 		key: 'f',
 		ctrlKey: false,
 		metaKey: false,

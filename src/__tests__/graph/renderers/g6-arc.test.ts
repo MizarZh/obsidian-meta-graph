@@ -109,6 +109,8 @@ describe('G6 Arc adapter', () => {
 function createGraph() {
 	return new GraphologyAdapter(
 		PALETTE,
+		undefined,
+		undefined,
 		[],
 		[
 			{

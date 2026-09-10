@@ -2044,13 +2044,7 @@ function collectFlowRouteIndex(
 ): Map<string, FlowRouteCandidate> {
 	const index = new Map<string, FlowRouteCandidate>();
 	graph.forEachEdge((runtimeEdgeId, attributes) => {
-		const kind =
-			attributes.flowRouteKind ??
-			(attributes.flowRouteRounded
-				? 'rounded'
-				: attributes.flowRouteOrthogonal
-					? 'orthogonal'
-					: undefined);
+		const kind = attributes.flowRouteKind;
 		if (attributes.hidden || !kind || !attributes.flowRoute?.length) {
 			return;
 		}

@@ -88,10 +88,6 @@ export interface RuntimeEdgeAttributes {
 	flowRouteKind?: FlowRouteKind;
 	/** Flow layout direction used to orient parallel Curve arrows. */
 	flowRouteDirection?: FlowDirection;
-	flowRouteOrthogonal?: boolean;
-	/** Legacy alias for flowRouteKind === 'rounded'. */
-	flowRouteRounded?: boolean;
-	parallelDirectRoute?: boolean;
 	parallelGroupKey?: string;
 	parallelLane?: number;
 	parallelCount?: number;
@@ -107,19 +103,27 @@ export type RuntimeGraph = Graph<
 >;
 
 export class GraphologyAdapter {
-	private readonly defaultNodeStyle: Required<DefaultNodeStyle>;
-	private readonly defaultLinkStyle: Required<DefaultLinkStyle>;
-	private readonly nodeStyleRules: NodeStyleRule[];
-	private readonly linkStyleRules: LinkStyleRule[];
-
 	constructor(
 		private readonly palette: GraphPalette,
-		defaultNodeStyleOrRules:
-			Required<DefaultNodeStyle> | NodeStyleRule[] = [],
-		defaultLinkStyleOrRules:
-			Required<DefaultLinkStyle> | LinkStyleRule[] = [],
-		nodeStyleRules: NodeStyleRule[] = [],
-		linkStyleRules: LinkStyleRule[] = [],
+		private readonly defaultNodeStyle: Required<DefaultNodeStyle> = {
+			color: palette.node,
+			size: 7,
+			opacity: 1,
+			shape: 'circle',
+		},
+		private readonly defaultLinkStyle: Required<DefaultLinkStyle> = {
+			color: palette.edge,
+			size: 1.5,
+			opacity: 1,
+			lineStyle: 'solid',
+			arrowStyle: 'filled',
+			arrowSize: 1,
+			label: '',
+			showLabel: false,
+			hidden: false,
+		},
+		private readonly nodeStyleRules: NodeStyleRule[] = [],
+		private readonly linkStyleRules: LinkStyleRule[] = [],
 		private readonly nodeStyleContexts: ReadonlyMap<
 			string,
 			NodeStyleContext
@@ -152,31 +156,7 @@ export class GraphologyAdapter {
 			showLabel: false,
 			hidden: false,
 		},
-	) {
-		const legacySignature = Array.isArray(defaultNodeStyleOrRules);
-		this.defaultNodeStyle = legacySignature
-			? { color: palette.node, size: 7, opacity: 1, shape: 'circle' }
-			: defaultNodeStyleOrRules;
-		this.defaultLinkStyle = Array.isArray(defaultLinkStyleOrRules)
-			? {
-					color: palette.edge,
-					size: 1.5,
-					opacity: 1,
-					lineStyle: 'solid',
-					arrowStyle: 'filled',
-					arrowSize: 1,
-					label: '',
-					showLabel: false,
-					hidden: false,
-				}
-			: defaultLinkStyleOrRules;
-		this.nodeStyleRules = legacySignature
-			? defaultNodeStyleOrRules
-			: nodeStyleRules;
-		this.linkStyleRules = Array.isArray(defaultLinkStyleOrRules)
-			? defaultLinkStyleOrRules
-			: linkStyleRules;
-	}
+	) {}
 
 	fromProjection(
 		projection: GraphProjection,

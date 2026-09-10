@@ -126,6 +126,8 @@ describe('G6 HEB adapter', () => {
 function createGraph() {
 	return new GraphologyAdapter(
 		PALETTE,
+		undefined,
+		undefined,
 		[],
 		[
 			{

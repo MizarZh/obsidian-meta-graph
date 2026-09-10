@@ -37,6 +37,8 @@ describe('ArcLayout', () => {
 	it('splits visible links into arc segments', async () => {
 		const graph = new GraphologyAdapter(
 			palette,
+			undefined,
+			undefined,
 			[],
 			[
 				{

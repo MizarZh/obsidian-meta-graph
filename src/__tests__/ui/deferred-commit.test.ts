@@ -1,21 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-	DeferredCommitScheduler,
-	ThrottledCommitScheduler,
-} from '@/ui/filter/deferred-commit';
+import { ThrottledCommitScheduler } from '@/ui/filter/deferred-commit';
 import { ColorCommitScheduler } from '@/ui/filter/color-commit';
 
 describe('commit schedulers', () => {
-	it('defers commits until the delay elapses', () => {
+	it('cancels pending throttled values when controls are disposed', () => {
 		const commit = vi.fn();
 		const timers = createTimerHost();
-		const scheduler = new DeferredCommitScheduler(timers.host, 180);
-
+		const scheduler = new ThrottledCommitScheduler(timers.host, 120);
 		scheduler.schedule('color', '#000000', '#111111', commit);
-		expect(commit).not.toHaveBeenCalled();
-
+		scheduler.schedule('color', '#111111', '#222222', commit);
+		scheduler.clearAll();
 		timers.runNext();
-		expect(commit).toHaveBeenCalledWith('#111111');
+		expect(commit).toHaveBeenCalledExactlyOnceWith('#111111');
 	});
 
 	it('throttles commits while preserving immediate first and final values', () => {

@@ -6,16 +6,25 @@ import type {
 	NodeStyleRule,
 } from '@/core/types';
 import {
-	resolveLinkArrowSize,
-	resolveLinkArrowStyle,
-	resolveLinkOpacity,
-	resolveLinkStyle,
 	resolveNodeStyle,
+	resolveLinkVisualStyle,
+	type LinkVisualStyle,
 } from '@/graph/styles/style-rules';
 import { resolveNodeStyleContext } from '@/graph/styles/node-style-context';
 import { normalizeMetaGraphDocument } from '@/workspace/meta-graph-model';
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
 import { readOptionalNodeShape } from '@/workspace/meta-graph/utils';
+
+const visualDefaults: LinkVisualStyle = {
+	color: '#888888',
+	size: 1.5,
+	lineStyle: 'solid',
+	label: '',
+	hidden: false,
+	arrowStyle: 'filled',
+	opacity: 1,
+	arrowSize: 1,
+};
 
 const node: KnowledgeNode = {
 	id: 'science/Star.md',
@@ -229,7 +238,7 @@ describe('style rules', () => {
 		).toEqual({ color: '#222222', size: 12, opacity: 1, shape: 'circle' });
 
 		expect(
-			resolveLinkStyle(
+			resolveLinkVisualStyle(
 				edge,
 				[
 					{
@@ -256,6 +265,7 @@ describe('style rules', () => {
 					},
 				],
 				{
+					...visualDefaults,
 					color: '#000000',
 					size: 1,
 					lineStyle: 'solid',
@@ -263,7 +273,7 @@ describe('style rules', () => {
 					hidden: false,
 				},
 			),
-		).toEqual({
+		).toMatchObject({
 			color: '#222222',
 			size: 3,
 			lineStyle: 'dashed',
@@ -447,14 +457,15 @@ describe('style rules', () => {
 			},
 		];
 		expect(
-			resolveLinkStyle(edge, rules, {
+			resolveLinkVisualStyle(edge, rules, {
+				...visualDefaults,
 				color: '#000000',
 				size: 1,
 				lineStyle: 'solid',
 				label: '',
 				hidden: false,
 			}),
-		).toEqual({
+		).toMatchObject({
 			color: '#444444',
 			size: 3,
 			lineStyle: 'dotted',
@@ -479,14 +490,15 @@ describe('style rules', () => {
 			},
 		];
 		expect(
-			resolveLinkStyle(edge, rules, {
+			resolveLinkVisualStyle(edge, rules, {
+				...visualDefaults,
 				color: '#000000',
 				size: 1,
 				lineStyle: 'solid',
 				label: '',
 				hidden: false,
 			}),
-		).toEqual({
+		).toMatchObject({
 			color: '#444444',
 			size: 3,
 			lineStyle: 'dotted',
@@ -510,10 +522,18 @@ describe('style rules', () => {
 		};
 		const legacyRule = { ...rule, arrowStyle: undefined };
 
-		expect(resolveLinkArrowStyle(edge, [legacyRule], 'chevron')).toBe(
-			'chevron',
-		);
-		expect(resolveLinkArrowStyle(edge, [rule], 'filled')).toBe('chevron');
+		expect(
+			resolveLinkVisualStyle(edge, [legacyRule], {
+				...visualDefaults,
+				arrowStyle: 'chevron',
+			}).arrowStyle,
+		).toBe('chevron');
+		expect(
+			resolveLinkVisualStyle(edge, [rule], {
+				...visualDefaults,
+				arrowStyle: 'filled',
+			}).arrowStyle,
+		).toBe('chevron');
 	});
 
 	it('resolves link opacity and arrow size from matching rules', () => {
@@ -531,8 +551,18 @@ describe('style rules', () => {
 			hidden: false,
 		};
 
-		expect(resolveLinkOpacity(edge, [rule], 1)).toBe(0.42);
-		expect(resolveLinkArrowSize(edge, [rule], 1)).toBe(1.8);
+		expect(
+			resolveLinkVisualStyle(edge, [rule], {
+				...visualDefaults,
+				opacity: 1,
+			}).opacity,
+		).toBe(0.42);
+		expect(
+			resolveLinkVisualStyle(edge, [rule], {
+				...visualDefaults,
+				arrowSize: 1,
+			}).arrowSize,
+		).toBe(1.8);
 	});
 
 	it('uses the same default link color for every relation', () => {
@@ -547,15 +577,23 @@ describe('style rules', () => {
 			label: '',
 			hidden: false,
 		};
-		expect(resolveLinkStyle(edge, [], defaults)).toEqual(defaults);
-		expect(resolveLinkStyle(prerequisiteEdge, [], defaults)).toEqual(
-			defaults,
-		);
+		expect(
+			resolveLinkVisualStyle(edge, [], {
+				...visualDefaults,
+				...defaults,
+			}),
+		).toMatchObject(defaults);
+		expect(
+			resolveLinkVisualStyle(prerequisiteEdge, [], {
+				...visualDefaults,
+				...defaults,
+			}),
+		).toMatchObject(defaults);
 	});
 
 	it('uses the relation as the visible label when custom text is empty', () => {
 		expect(
-			resolveLinkStyle(
+			resolveLinkVisualStyle(
 				edge,
 				[
 					{
@@ -571,6 +609,7 @@ describe('style rules', () => {
 					},
 				],
 				{
+					...visualDefaults,
 					color: '#888888',
 					size: 1,
 					lineStyle: 'solid',

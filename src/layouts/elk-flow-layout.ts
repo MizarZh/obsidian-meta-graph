@@ -957,11 +957,6 @@ function applyRoutedFlowEdges(
 						})),
 						flowRouteKind,
 						flowRouteDirection: direction,
-						...(flowRouteKind === 'orthogonal'
-							? { flowRouteOrthogonal: true }
-							: flowRouteKind === 'rounded'
-								? { flowRouteRounded: true }
-								: {}),
 					}
 				: {}),
 		};

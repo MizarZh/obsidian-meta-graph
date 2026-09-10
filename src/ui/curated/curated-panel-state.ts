@@ -6,7 +6,6 @@ import type {
 	ManualLayoutConfig,
 	NodeFilterGroup,
 } from '@/core/types';
-import { nodeMatchesFilterGroup } from '@/query/filters';
 
 export type ReorderPlacement = 'before' | 'after';
 export type ConditionalMode = 'add' | 'remove' | 'select';
@@ -153,37 +152,6 @@ export function parseBatchInput(
 		lineCount: lines.length,
 		skipped: lines.length - uniquePaths.length - unresolved.length,
 	};
-}
-
-export function getConditionalMatches(
-	nodes: KnowledgeNode[],
-	selectedPaths: Set<string>,
-	workspaceFilePath: string | undefined,
-	mode: ConditionalMode,
-	root: NodeFilterGroup,
-): KnowledgeNode[] {
-	const pool =
-		mode === 'add'
-			? nodes.filter((node) => node.path !== workspaceFilePath)
-			: nodes.filter((node) => selectedPaths.has(node.path));
-	return pool
-		.filter((node) => nodeMatchesFilterGroup(node, root))
-		.sort((first, second) =>
-			first.title.localeCompare(second.title, undefined, {
-				sensitivity: 'base',
-			}),
-		);
-}
-
-export function canApplyConditionToPath(
-	path: string,
-	mode: ConditionalMode,
-	selectedPaths: Set<string>,
-): boolean {
-	if (mode === 'add') {
-		return !selectedPaths.has(path);
-	}
-	return selectedPaths.has(path);
 }
 
 export function readPointerPlacement(

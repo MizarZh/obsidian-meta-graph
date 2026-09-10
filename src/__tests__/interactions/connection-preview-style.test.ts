@@ -7,6 +7,60 @@ import {
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('resolveConnectionPreviewStyle', () => {
+	it('resolves all visual properties together and preserves legacy rule fallbacks', () => {
+		const state = createWorkspaceState(200);
+		state.activeConnectionField = ' leads-to ';
+		state.defaultLinkStyle = {
+			...state.defaultLinkStyle,
+			arrowStyle: 'chevron',
+			opacity: 0.7,
+			arrowSize: 2,
+		};
+		state.linkStyleRules = [
+			{
+				id: 'field',
+				field: 'source-field',
+				value: 'leads-to',
+				color: '#abcdef',
+				size: 4,
+				lineStyle: 'dotted',
+				label: '  ',
+				showLabel: true,
+				hidden: false,
+			},
+		];
+		expect(resolveConnectionPreviewStyle(state, 'A.md', 'B.md')).toEqual({
+			color: '#abcdef',
+			size: 4,
+			lineStyle: 'dotted',
+			label: 'leads-to',
+			hidden: false,
+			arrowStyle: 'chevron',
+			opacity: 0.7,
+			arrowSize: 2,
+		});
+		state.linkStyleRules.push({
+			...state.linkStyleRules[0]!,
+			id: 'last',
+			color: '#123456',
+			size: 6,
+			arrowStyle: 'filled',
+			opacity: 0.25,
+			arrowSize: 1.5,
+			label: ' Next ',
+			hidden: true,
+		});
+		expect(resolveConnectionPreviewStyle(state, 'A.md', 'B.md')).toEqual({
+			color: '#123456',
+			size: 6,
+			lineStyle: 'dotted',
+			label: 'Next',
+			hidden: true,
+			arrowStyle: 'filled',
+			opacity: 0.25,
+			arrowSize: 1.5,
+		});
+	});
 	it('uses the active link defaults and matching field rules', () => {
 		const state: WorkspaceState = {
 			...createWorkspaceState(200),

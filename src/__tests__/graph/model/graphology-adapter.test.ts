@@ -173,9 +173,7 @@ describe('GraphologyAdapter positions', () => {
 		expect(graph.getEdgeAttribute('A-to-B__segment_3', 'type')).toBe(
 			'arrow',
 		);
-		expect(
-			graph.getEdgeAttribute('A-to-B__segment_1', 'flowRouteOrthogonal'),
-		).toBe(true);
+
 		expect(
 			graph.getEdgeAttribute('A-to-B__segment_1', 'flowRouteKind'),
 		).toBe('orthogonal');
@@ -224,15 +222,11 @@ describe('GraphologyAdapter positions', () => {
 		expect(graph.getEdgeAttribute(segmentIds.at(-1)!, 'type')).toBe(
 			'arrow',
 		);
-		expect(graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteRounded')).toBe(
-			true,
-		);
+
 		expect(graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteKind')).toBe(
 			'rounded',
 		);
-		expect(
-			graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteOrthogonal'),
-		).not.toBe(true);
+
 		const flowRoute = graph.getEdgeAttribute(segmentIds[0]!, 'flowRoute');
 		expect(flowRoute).toBeDefined();
 		const flowRoutePoints = flowRoute ?? [];
@@ -341,6 +335,8 @@ describe('GraphologyAdapter positions', () => {
 		};
 		const graph = new GraphologyAdapter(
 			palette,
+			undefined,
+			undefined,
 			[],
 			[
 				{
@@ -429,9 +425,7 @@ describe('GraphologyAdapter positions', () => {
 		expect(graph.getEdgeAttribute(segmentIds.at(-1)!, 'type')).toBe(
 			'arrow',
 		);
-		expect(graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteRounded')).toBe(
-			true,
-		);
+
 		expect(graph.getEdgeAttribute(segmentIds[0]!, 'flowRouteKind')).toBe(
 			'rounded',
 		);
@@ -656,6 +650,8 @@ describe('GraphologyAdapter positions', () => {
 		]);
 		const graph = new GraphologyAdapter(
 			palette,
+			undefined,
+			undefined,
 			[],
 			[
 				{
@@ -717,6 +713,8 @@ describe('GraphologyAdapter positions', () => {
 		};
 		const graph = new GraphologyAdapter(
 			palette,
+			undefined,
+			undefined,
 			[],
 			[
 				{

@@ -4,7 +4,6 @@ import type {
 	WorkspaceState,
 } from '@/core/types';
 import {
-	DEFAULT_CONNECTION_FIELD_MODE,
 	createConnectionFieldSpec,
 	normalizeConnectionFieldModes,
 	normalizeConnectionFields,
@@ -230,25 +229,6 @@ export function getActiveConnectionSpecInState(
 	state: WorkspaceState,
 ): ConnectionFieldSpec | undefined {
 	return getActiveConnectionSpec(state);
-}
-
-export function getActiveConnectionModeInState(
-	state: WorkspaceState,
-): ConnectionFieldMode {
-	return (
-		getActiveConnectionSpec(state)?.mode ?? DEFAULT_CONNECTION_FIELD_MODE
-	);
-}
-
-export function getConnectionModeForFieldInState(
-	state: WorkspaceState,
-	field: string,
-): ConnectionFieldMode {
-	const activeSpec = getActiveConnectionSpec(state);
-	if (activeSpec?.field === field) {
-		return activeSpec.mode;
-	}
-	return DEFAULT_CONNECTION_FIELD_MODE;
 }
 
 function removeConnectionFieldSpec(

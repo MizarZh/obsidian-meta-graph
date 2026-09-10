@@ -8,11 +8,8 @@ import {
 } from '@/graph/model/parallel-edges';
 import { GraphologyAdapter } from '@/graph/model/graphology-adapter';
 import {
-	applyParallelDirectEdges,
-	createParallelDirectRoute,
 	offsetParallelFlowRoute,
 	offsetParallelPolyline,
-	syncParallelDirectEdgeRoutes,
 } from '@/layouts/parallel-routes';
 import { applyOrthogonalFlowEdges } from '@/layouts/elk-flow-layout';
 import type {
@@ -226,6 +223,47 @@ describe('parallel edge lanes', () => {
 });
 
 describe('parallel edge visual metrics', () => {
+	it('recomputes Canvas routes after movement without changing logical graph topology', () => {
+		const graph: RuntimeGraph = new Graph({ multi: true, type: 'mixed' });
+		graph.addNode('A', { ...nodeAttributes(), x: 0, y: 0 });
+		graph.addNode('B', { ...nodeAttributes(), x: 100, y: 0 });
+		graph.addDirectedEdgeWithKey(
+			'first',
+			'A',
+			'B',
+			edgeAttributes('first'),
+		);
+		graph.addDirectedEdgeWithKey(
+			'second',
+			'A',
+			'B',
+			edgeAttributes('second'),
+		);
+		assignParallelEdgeLanes(graph);
+		const routeFor = (edgeId: string) =>
+			createParallelCanvasRoute(
+				graph.getNodeAttributes('A'),
+				graph.getNodeAttributes('B'),
+				7,
+				7,
+				getCanonicalParallelLane(graph.getEdgeAttributes(edgeId)) * 4,
+			);
+		const initial = routeFor('first');
+		expect(initial).toBeDefined();
+		expect(initial?.points).not.toEqual(routeFor('second')?.points);
+		const originalPoints = initial?.points.map((point) => ({ ...point }));
+		graph.mergeNodeAttributes('A', { x: 0, y: 20 });
+		const moved = routeFor('first');
+		expect(moved).toBeDefined();
+		expect(moved?.points).not.toEqual(initial?.points);
+		expect(initial?.points).toEqual(originalPoints);
+		const start = moved!.points[0]!;
+		const end = moved!.points.at(-1)!;
+		expect(Math.hypot(start.x, start.y - 20)).toBeCloseTo(7);
+		expect(Math.hypot(end.x - 100, end.y)).toBeCloseTo(7);
+		expect(graph.nodes()).toEqual(['A', 'B']);
+		expect(graph.edges()).toEqual(['first', 'second']);
+	});
 	it('matches Sigma physical full-width geometry across size and zoom ranges', () => {
 		for (const size of [0.5, 1, 2, 4]) {
 			for (const cameraRatio of [0.25, 0.5, 1, 2, 4]) {
@@ -585,66 +623,6 @@ describe('parallel route geometry', () => {
 			true,
 			true,
 		]);
-	});
-
-	it('routes direct parallel edges through compact hidden bends', () => {
-		const graph: RuntimeGraph = new Graph({ multi: true, type: 'mixed' });
-		graph.addNode('A', { ...nodeAttributes(), x: 0, y: 0 });
-		graph.addNode('B', { ...nodeAttributes(), x: 100, y: 0 });
-		graph.addDirectedEdgeWithKey(
-			'first',
-			'A',
-			'B',
-			edgeAttributes('first'),
-		);
-		graph.addDirectedEdgeWithKey(
-			'second',
-			'A',
-			'B',
-			edgeAttributes('second'),
-		);
-		assignParallelEdgeLanes(graph);
-
-		const expected = createParallelDirectRoute(
-			{ x: 0, y: 0 },
-			{ x: 100, y: 0 },
-			7,
-			7,
-			graph.getEdgeAttributes('first'),
-		);
-		applyParallelDirectEdges(graph);
-
-		expect(graph.hasEdge('first')).toBe(false);
-		expect(graph.order).toBe(6);
-		expect(graph.size).toBe(6);
-		expect(expected).toHaveLength(4);
-		const firstSegments = graph
-			.edges()
-			.filter((edge) => edge.startsWith('first__segment_'))
-			.sort();
-		expect(firstSegments).toHaveLength(3);
-		const firstBend = graph.target(firstSegments[0]!);
-		const secondBend = graph.source(firstSegments[2]!);
-		expect(graph.getNodeAttribute(firstBend, 'isBend')).toBe(true);
-		expect(graph.getNodeAttribute(secondBend, 'isBend')).toBe(true);
-		expect(graph.getNodeAttribute(firstBend, 'y')).toBe(
-			graph.getNodeAttribute(secondBend, 'y'),
-		);
-		expect(graph.getEdgeAttribute(firstSegments[1]!, 'type')).toBe('arrow');
-		expect(graph.getEdgeAttribute(firstSegments[1]!, 'label')).toBe('');
-
-		const initialBendY = graph.getNodeAttribute(firstBend, 'y');
-		graph.mergeNodeAttributes('A', { x: 0, y: 20 });
-		syncParallelDirectEdgeRoutes(graph);
-		const moved = createParallelDirectRoute(
-			{ x: 0, y: 20 },
-			{ x: 100, y: 0 },
-			7,
-			7,
-			graph.getEdgeAttributes(firstSegments[1]!),
-		);
-		expect(graph.getNodeAttribute(firstBend, 'y')).toBeCloseTo(moved[1]!.y);
-		expect(graph.getNodeAttribute(firstBend, 'y')).not.toBe(initialBendY);
 	});
 
 	it('adds orthogonal branches and leaves node endpoints unchanged', () => {

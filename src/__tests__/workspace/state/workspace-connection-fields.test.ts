@@ -1,14 +1,41 @@
 import { describe, expect, it } from 'vitest';
 import {
 	addConnectionFieldAndSelectInState,
-	getActiveConnectionModeInState,
-	getConnectionModeForFieldInState,
+	getActiveConnectionSpecInState,
 	setActiveConnectionFieldInState,
 	updateConnectionFieldInState,
 } from '@/workspace/state/connection-fields';
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('workspace connection fields', () => {
+	it('resolves the active spec by ID, then field, then first available spec', () => {
+		const state = addConnectionFieldAndSelectInState(
+			createWorkspaceState(100),
+			'supports',
+			'reverse',
+		).state;
+		const active = getActiveConnectionSpecInState(state);
+		expect(active).toMatchObject({ field: 'supports', mode: 'reverse' });
+		expect(
+			getActiveConnectionSpecInState({
+				...state,
+				activeConnectionFieldSpecId: 'missing',
+			}),
+		).toBe(active);
+		expect(
+			getActiveConnectionSpecInState({
+				...state,
+				activeConnectionFieldSpecId: 'missing',
+				activeConnectionField: 'missing',
+			}),
+		).toBe(state.connectionFieldSpecs[0]);
+		expect(
+			getActiveConnectionSpecInState({
+				...state,
+				connectionFieldSpecs: [],
+			}),
+		).toBeUndefined();
+	});
 	it('does not select metadata fields until they are added', () => {
 		const state = createWorkspaceState(100);
 
@@ -223,21 +250,6 @@ describe('workspace connection fields', () => {
 			'reverse',
 		).state;
 
-		expect(getActiveConnectionModeInState(state)).toBe('reverse');
-	});
-
-	it('uses default mode for inactive connection fields', () => {
-		const state = addConnectionFieldAndSelectInState(
-			createWorkspaceState(100),
-			'supports',
-			'reverse',
-		).state;
-
-		expect(getConnectionModeForFieldInState(state, 'supports')).toBe(
-			'reverse',
-		);
-		expect(getConnectionModeForFieldInState(state, 'blocks')).toBe(
-			'directed',
-		);
+		expect(getActiveConnectionSpecInState(state)?.mode).toBe('reverse');
 	});
 });

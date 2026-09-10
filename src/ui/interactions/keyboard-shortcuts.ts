@@ -131,30 +131,6 @@ export function resolvePinnedFocusNodeId(
 	return input.hoveredNodeId ?? input.selectedNodeId;
 }
 
-export interface ConnectionUndoShortcutInput extends WorkspaceShortcutInput {}
-
-export type FindNoteShortcutInput = Pick<
-	ConnectionUndoShortcutInput,
-	'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'shiftKey'
->;
-
-export function shouldHandleFindNoteShortcut(
-	input: FindNoteShortcutInput,
-): boolean {
-	return (
-		(input.ctrlKey || input.metaKey) &&
-		!input.altKey &&
-		!input.shiftKey &&
-		input.key.toLocaleLowerCase() === 'f'
-	);
-}
-
-export function shouldHandleConnectionUndoShortcut(
-	input: ConnectionUndoShortcutInput,
-): boolean {
-	return resolveWorkspaceShortcut(input) === 'undo';
-}
-
 export function resolveWorkspaceShortcut(
 	input: WorkspaceShortcutInput,
 ): WorkspaceActionId | undefined {

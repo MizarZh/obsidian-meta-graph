@@ -3,10 +3,8 @@ import type { KnowledgeNode } from '@/core/types';
 import {
 	findDockTemplateLabel,
 	findIndexedNodeTitle,
-	getDockNoteCandidates,
 	getDockNoteEntries,
 	getFilePathSuggestions,
-	getSelectedDockNodes,
 	getWorkspaceNodeColor,
 	getWorkspaceNodeColors,
 } from '@/ui/workspace/derived';
@@ -19,25 +17,6 @@ const nodes = [
 ];
 
 describe('workspace derived data', () => {
-	it('resolves selected dock notes by path and drops missing notes', () => {
-		expect(
-			getSelectedDockNodes(snapshot(), [
-				{ id: 'A.md', path: 'A.md' },
-				{ id: 'Missing.md', path: 'Missing.md' },
-			]),
-		).toEqual([nodes[1]]);
-	});
-
-	it('lists unselected dock candidates excluding workspace file and sorting by title', () => {
-		expect(
-			getDockNoteCandidates(
-				snapshot(),
-				[{ id: 'B.md', path: 'B.md' }],
-				'Workspace.md',
-			),
-		).toEqual([nodes[1]]);
-	});
-
 	it('sorts file path suggestions case-insensitively', () => {
 		expect(getFilePathSuggestions(snapshot())).toEqual([
 			'A.md',
