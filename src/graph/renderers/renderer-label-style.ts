@@ -18,7 +18,9 @@ export function resolveThreeLabelStyle(
 	palette: GraphPalette,
 	theme: LabelThemeConfig,
 ): ResolvedLabelStyle {
-	const lightBackground = isLightColor(palette.background ?? '#202020');
+	const lightBackground = isLightColor(
+		palette.labelThemeBackground ?? palette.background ?? '#202020',
+	);
 	return lightBackground
 		? {
 				textColor: theme.labelLightTextColor,

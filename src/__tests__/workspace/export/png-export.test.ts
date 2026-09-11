@@ -7,8 +7,45 @@ import {
 } from '@/graph/renderers/renderer-export';
 import Graph from 'graphology';
 import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
+import { resolveThreeLabelStyle } from '@/graph/renderers/renderer-label-style';
+import type { GraphPalette } from '@/graph/styles/graph-styles';
 
 describe('PNG export safety', () => {
+	it.each(['rgb(255, 255, 255)', 'rgb(32, 32, 32)'])(
+		'preserves source label colors and background opacity on transparent export surfaces: %s',
+		(background) => {
+			const palette: GraphPalette = {
+				background,
+				node: '#888',
+				selected: '#f00',
+				edge: '#888',
+				mutedNode: '#888',
+				mutedEdge: '#888',
+				label: '#000',
+				labelBackground: '#fff',
+			};
+			for (const opacity of [0, 0.4, 1]) {
+				const theme = {
+					labelLightTextColor: '#123456',
+					labelLightBackgroundColor: '#eeeeee',
+					labelLightBackgroundOpacity: opacity,
+					labelDarkTextColor: '#ffffff',
+					labelDarkBackgroundColor: '#222222',
+					labelDarkBackgroundOpacity: 0.8,
+				};
+				expect(
+					resolveThreeLabelStyle(
+						{
+							...palette,
+							background: 'transparent',
+							labelThemeBackground: background,
+						},
+						theme,
+					),
+				).toEqual(resolveThreeLabelStyle(palette, theme));
+			}
+		},
+	);
 	it('reads only real visible renderer nodes and preserves the live graph and route bends', () => {
 		const live: RuntimeGraph = new Graph();
 		const node = {

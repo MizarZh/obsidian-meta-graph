@@ -170,7 +170,12 @@ export async function createPngExport(input: {
 			copy = await createWorkspaceGraphRenderer({
 				graph,
 				container: scene,
-				palette: { ...palette, background: 'transparent' },
+				palette: {
+					...palette,
+					background: 'transparent',
+					// Transparency is a compositing detail, not a dark theme.
+					labelThemeBackground: palette.background,
+				},
 				state: { ...state, enableForceLayout: false },
 				isStale,
 				edgeRoutes: layout.edgeRoutes,

@@ -7,6 +7,8 @@ export interface GraphPalette {
 	label: string;
 	labelBackground: string;
 	background?: string;
+	/** Source background for label theme selection when the surface is transparent. */
+	labelThemeBackground?: string;
 }
 
 export function readGraphPalette(container: HTMLElement): GraphPalette {

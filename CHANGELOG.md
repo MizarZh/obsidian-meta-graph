@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Fixed PNG export changing light-theme labels into white text or dark label boxes. Transparent offscreen rendering now retains the source chart's label theme, including custom text colors and label background opacity, independently of the output background.
+
 - Added export v2: editable SVG for all five planar chart types with Sigma/G6, plus JSON, CSV, and Markdown entry exports for every chart type. Entry exports support filtered-chart or node/relationship/group selection scope, independent node/relationship inclusion, and optional metadata. Logical relationships exclude layout segments; CSV escapes spreadsheet formulas. All formats share collision-safe vault saving and cancellation.
 
 - Added PNG export from the chart toolbar, including read-only workspaces. Export the current view or the complete filtered planar graph at 1×/2×/3× resolution, with theme/white/transparent backgrounds and an optional legend. Graph 3D and Cube export the current camera. Images are saved in the vault root with collision-safe names; export preserves the live layout and camera, omits transient emphasis, checks image limits, and cancels stale renderer generations.
