@@ -52,7 +52,9 @@ export function createWorkspaceRenderPlan(
 
 	return {
 		syncDisplay: DISPLAY_CHANGE_KEYS.some((key) => changes[key]),
-		syncGroupsBeforeRuntime: changes.manualLayoutChanged,
+		syncGroupsBeforeRuntime:
+			changes.manualLayoutChanged ||
+			(changes.groupingChanged && !changes.shouldRebuild),
 		runtimeGraphSync,
 		syncStyleBaseline: runtimeGraphSync !== 'none',
 		applyForceLayoutToggle: changes.forceLayoutChanged,

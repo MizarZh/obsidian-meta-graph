@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Graph/Free group reordering skips graph reconstruction and relayout when definitions and resolved node ownership are unchanged; group overlays still synchronize. Rule-priority ownership changes and Flow/Arc/HEB ordering retain their existing rebuild behavior.
+
 - Group cards support drag-to-reorder with before/after drop indicators, applying each drop as one state update. Read-only and fixed system groups remain locked.
 
 - Group settings use compact cards with name, color, member count, and membership mode. Clicking a card opens one adjacent floating editor; ordering stays on the cards, with existing group permissions and settings preserved.

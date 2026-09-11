@@ -187,8 +187,11 @@ export function analyzeWorkspaceStateChanges(
 		baseline,
 		'grouping',
 	);
+	const groupingOrderOnly =
+		groupingChanged && isHarmlessGroupReorder(nextState, baseline);
 	const groupingRequiresLayout =
 		groupingChanged &&
+		!groupingOrderOnly &&
 		(nextState.mode !== 'graph' ||
 			graphGroupingMembershipChanged(
 				nextState.grouping,
@@ -322,6 +325,7 @@ export function analyzeWorkspaceStateChanges(
 			projectionGroupsChanged ||
 			projectionChanged ||
 			(groupingChanged &&
+				!groupingOrderOnly &&
 				(nextState.mode === 'graph' ||
 					nextState.mode === 'free' ||
 					nextState.mode === 'flow' ||
@@ -371,6 +375,43 @@ function hasSameProjectionTopologyReferences(
 		nextProjection.rootIds === baselineProjection.rootIds &&
 		nextProjection.primaryIds === baselineProjection.primaryIds &&
 		nextProjection.contextIds === baselineProjection.contextIds
+	);
+}
+
+/** Graph/Free do not use list order as a spatial layout input. */
+function isHarmlessGroupReorder(
+	state: WorkspaceState,
+	baseline: WorkspaceRenderBaseline,
+): boolean {
+	if (
+		(state.mode !== 'graph' && state.mode !== 'free') ||
+		!baseline.grouping ||
+		!state.projection
+	)
+		return false;
+	const previous = baseline.grouping;
+	const next = state.grouping;
+	if (next.groups.length !== previous.groups.length) return false;
+	const byId = new Map(previous.groups.map((group) => [group.id, group]));
+	if (
+		next.groups.some(
+			(group) =>
+				JSON.stringify(group) !== JSON.stringify(byId.get(group.id)),
+		)
+	)
+		return false;
+	const normalize = (grouping: ChartGroupingConfig) =>
+		JSON.stringify({
+			...grouping,
+			groups: [...grouping.groups].sort((a, b) =>
+				a.id.localeCompare(b.id),
+			),
+		});
+	if (normalize(next) !== normalize(previous)) return false;
+	const before = resolveChartGroupOwnership(state.projection.nodes, previous);
+	const after = resolveChartGroupOwnership(state.projection.nodes, next);
+	return [...after.byNode].every(
+		([id, entry]) => entry.groupId === before.byNode.get(id)?.groupId,
 	);
 }
 

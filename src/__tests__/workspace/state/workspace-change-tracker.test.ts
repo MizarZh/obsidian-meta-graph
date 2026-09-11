@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { createWorkspaceRenderPlan } from '@/ui/workspace/render-plan';
 import {
 	analyzeWorkspaceStateChanges,
 	createWorkspaceRenderBaseline,
@@ -16,6 +17,118 @@ import {
 } from '@/workspace/state/chart-settings';
 
 describe('workspace change tracker', () => {
+	it('skips harmless Graph/Free reorder but preserves spatial layout ordering', () => {
+		for (const mode of [
+			'graph',
+			'free',
+			'flow',
+			'arc',
+			'hierarchical-edge-bundling',
+		] as const) {
+			const state = {
+				...createWorkspaceState(200),
+				mode,
+				projection: createTestProjection(),
+			};
+			state.grouping = {
+				overrides: {},
+				groups: ['a', 'b'].map((id) => ({
+					id,
+					name: id,
+					color: '#123456',
+					padding: 1,
+					mode: 'manual' as const,
+				})),
+			};
+			const next = {
+				...state,
+				grouping: {
+					...state.grouping,
+					groups: [...state.grouping.groups].reverse(),
+				},
+			};
+			const changes = analyzeWorkspaceStateChanges(
+				next,
+				state,
+				createWorkspaceRenderBaseline(state),
+			);
+			const safe = mode === 'graph' || mode === 'free';
+			expect(changes.shouldRebuild).toBe(!safe);
+			expect(changes.forceLayout).toBe(!safe);
+			if (safe)
+				expect(createWorkspaceRenderPlan(changes)).toMatchObject({
+					rebuild: undefined,
+					syncGroupsBeforeRuntime: true,
+					runtimeGraphSync: 'none',
+				});
+			next.grouping.groups[0] = {
+				...next.grouping.groups[0]!,
+				padding: 2,
+			};
+			expect(
+				analyzeWorkspaceStateChanges(
+					next,
+					state,
+					createWorkspaceRenderBaseline(state),
+				).shouldRebuild,
+			).toBe(true);
+		}
+	});
+
+	it('retains rebuild when rule priority changes ownership, but skips it with explicit assignments', () => {
+		const state = {
+			...createWorkspaceState(200),
+			projection: withTimes(createTestProjection(), 100),
+		};
+		state.grouping = {
+			overrides: {},
+			groups: ['a', 'b'].map((id) => ({
+				id,
+				name: id,
+				color: '#123456',
+				padding: 1,
+				mode: 'rule' as const,
+				rule: {
+					id,
+					kind: 'group' as const,
+					mode: 'all' as const,
+					children: [
+						{
+							id: `${id}-time`,
+							kind: 'condition' as const,
+							field: 'file.mtime' as const,
+							operator: 'has-value' as const,
+							value: '',
+						},
+					],
+				},
+			})),
+		};
+		const check = () =>
+			analyzeWorkspaceStateChanges(
+				{
+					...state,
+					grouping: {
+						...state.grouping,
+						groups: [...state.grouping.groups].reverse(),
+					},
+				},
+				state,
+				createWorkspaceRenderBaseline(state),
+			);
+		expect(check()).toMatchObject({
+			shouldRebuild: true,
+			forceLayout: true,
+		});
+		state.grouping.overrides = Object.fromEntries(
+			state.projection.nodes.map((node) => [node.id, 'a']),
+		);
+		expect(check()).toMatchObject({
+			shouldRebuild: false,
+			forceLayout: false,
+		});
+	});
+
 	it('does not scan projection nodes for an immutable selection update', () => {
 		const state = {
 			...createWorkspaceState(200),
