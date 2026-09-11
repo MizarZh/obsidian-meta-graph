@@ -12,12 +12,6 @@
 	z-index: 19;
 }
 
-.knowledge-workspace-style-panel-close {
-	display: flex;
-	justify-content: flex-end;
-	padding: 6px 12px 0;
-}
-
 .knowledge-workspace-settings-popover.knowledge-workspace-style-settings {
 	display: flex;
 	flex-direction: column;
@@ -28,7 +22,6 @@
 	max-height: none;
 }
 
-.knowledge-workspace-style-panel-close,
 .knowledge-workspace-style-editor-header {
 	flex-shrink: 0;
 }

@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Group, Node, and Link settings now close when clicking outside both the settings panel and its floating editor. Removed the extra panel close button; the editor's close button still closes only the current entry.
+
 - Graph/Free group reordering skips graph reconstruction and relayout when definitions and resolved node ownership are unchanged; group overlays still synchronize. Rule-priority ownership changes and Flow/Arc/HEB ordering retain their existing rebuild behavior.
 
 - Group cards support drag-to-reorder with before/after drop indicators, applying each drop as one state update. Read-only and fixed system groups remain locked.
