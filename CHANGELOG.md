@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Grouped Legend and Timeline toggles on one row under an Overlays heading in Graph settings.
+
+- Removed the duplicate Renderer control from Graph settings. Renderer selection remains available in Configure view; saved renderer choices are unchanged.
+
 - Fixed Flow curves falling back to right-angle routes during timeline playback in Sigma. The layout route cache now retains hidden edges; visibility changes reuse the original routes without relayout or revealing hidden links.
 
 - Fixed empty dynamic Groups leaving overlapping titles at the origin during timeline playback. Sigma and G6 now omit their regions, titles, and hit targets until a member is visible again, without changing layout or saved Group data.

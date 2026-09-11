@@ -1441,6 +1441,17 @@
 	min-width: 0;
 }
 
+.knowledge-workspace-overlay-toggles {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-4);
+}
+
+.knowledge-workspace-overlay-toggles .knowledge-workspace-setting-row {
+	grid-template-columns: auto auto;
+	gap: var(--size-4-2);
+}
+
 .knowledge-workspace-setting-grid--compact {
 	gap: var(--size-4-2);
 }

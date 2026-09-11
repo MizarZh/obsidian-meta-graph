@@ -56,7 +56,6 @@
 		arcSpacing,
 		query,
 		onFlowEdgeStyle,
-		onRenderer,
 		onFlowDirection,
 		onFlowCornerRadius,
 		onFlowRelationRules,
@@ -112,7 +111,6 @@
 		arcSpacing: number;
 		query: GraphQuery;
 		onFlowEdgeStyle: (style: FlowEdgeStyle) => void;
-		onRenderer: (renderer: PlanarRendererKind) => void;
 		onFlowDirection: (direction: FlowDirection) => void;
 		onFlowCornerRadius: (radius: number) => void;
 		onFlowRelationRules: (rules: FlowRelationRule[]) => void;
@@ -135,14 +133,6 @@
 		onArcSpacing: (spacing: number) => void;
 		onChange: (patch: Partial<Omit<GraphQuery, 'roots'>>) => void;
 	} = $props();
-
-	const RENDERER_OPTIONS: Array<{
-		value: PlanarRendererKind;
-		label: string;
-	}> = [
-		{ value: 'sigma', label: 'Sigma' },
-		{ value: 'g6', label: 'G6' },
-	];
 
 	let queryOpen = $state(true);
 	let layoutOpen = $state(true);
@@ -298,26 +288,24 @@
 
 <section>
 	<header><h3>Graph settings</h3></header>
-	<ToggleSetting
-		label="Show legend"
-		value={showLegend}
-		onChange={onShowLegend}
-	/>
-	{#if supportsPlanarRenderer(mode)}
-		<ToggleSetting
-			label="Show timeline"
-			value={timelineEnabled}
-			onChange={onTimelineEnabled}
-		/>
-		<SettingsSection title="Renderer">
-			<SegmentedSetting
-				label="Renderer"
-				value={renderer}
-				options={RENDERER_OPTIONS}
-				onChange={onRenderer}
+	<SettingsSection title="Overlays">
+		<div class="knowledge-workspace-overlay-toggles">
+			<ToggleSetting
+				label="Legend"
+				ariaLabel="Show legend"
+				value={showLegend}
+				onChange={onShowLegend}
 			/>
-		</SettingsSection>
-	{/if}
+			{#if supportsPlanarRenderer(mode)}
+				<ToggleSetting
+					label="Timeline"
+					ariaLabel="Show timeline"
+					value={timelineEnabled}
+					onChange={onTimelineEnabled}
+				/>
+			{/if}
+		</div>
+	</SettingsSection>
 	{#if mode === 'graph' && renderer === 'sigma'}
 		<SettingsSection title="Edges">
 			<SegmentedSetting

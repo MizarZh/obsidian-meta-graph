@@ -67,7 +67,6 @@
 			arcSpacing={view.graph.arcSpacing}
 			query={view.graph.query}
 			onFlowEdgeStyle={actions.graph.setFlowEdgeStyle}
-			onRenderer={actions.graph.setRenderer}
 			onFlowDirection={actions.graph.setFlowDirection}
 			onFlowCornerRadius={actions.graph.setFlowCornerRadius}
 			onFlowRelationRules={actions.graph.setFlowRelationRules}
