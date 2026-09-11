@@ -10,6 +10,18 @@ import {
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
 
 describe('timeline playback', () => {
+	it('normalizes speed presets and includes speed in saved config identity', () => {
+		for (const speed of [0.25, 0.5, 1, 2, 4]) {
+			expect(normalizeTimeline({ speed }).speed).toBe(speed);
+		}
+		for (const speed of [undefined, null, 0, -1, Infinity, NaN, '2', 100]) {
+			expect(normalizeTimeline({ speed }).speed).toBe(1);
+		}
+		const config = normalizeTimeline({ current: 123, nodeCount: 2 });
+		const faster = normalizeTimeline({ ...config, speed: 2 });
+		expect(faster).toEqual({ ...config, speed: 2 });
+		expect(timelineConfigKey(faster)).not.toBe(timelineConfigKey(config));
+	});
 	it('keeps From/To fixed while the independent cursor advances and stops at To', () => {
 		const index = {
 			min: 100,

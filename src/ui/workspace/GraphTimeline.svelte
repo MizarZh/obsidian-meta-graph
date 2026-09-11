@@ -15,7 +15,6 @@
 	import ObsidianDropdown from '@/ui/obsidian/ObsidianDropdown.svelte';
 	import ObsidianSlider from '@/ui/obsidian/ObsidianSlider.svelte';
 	import TextSetting from '@/ui/settings/fields/TextSetting.svelte';
-	import ToggleSetting from '@/ui/settings/fields/ToggleSetting.svelte';
 	let {
 		config,
 		nodes,
@@ -33,7 +32,6 @@
 	} = $props();
 	let draft = $state<TimelineConfig>(normalizeTimeline());
 	let playing = $state(false);
-	let settingsOpen = $state(false);
 	let root: HTMLElement;
 	let lastConfigKey: string | undefined;
 	$effect(() => {
@@ -46,6 +44,7 @@
 	const index = $derived(indexTimeline(nodes, draft.field));
 	const range = $derived(timelineRange(draft, index));
 	const perNode = $derived(draft.step === 'node');
+	const playbackInterval = $derived(500 / draft.speed);
 	const nodeProgress = $derived(
 		timelineNodeProgress(draft, index, baseHiddenNodeIds),
 	);
@@ -65,11 +64,6 @@
 		const main =
 			root.closest<HTMLElement>('.knowledge-workspace') ??
 			root.parentElement!;
-		const owner = root.ownerDocument;
-		const outside = (event: PointerEvent) => {
-			if (!event.composedPath().includes(root)) settingsOpen = false;
-		};
-		owner.addEventListener('pointerdown', outside);
 		const resize = new ResizeObserver(() =>
 			main.style.setProperty(
 				'--timeline-height',
@@ -78,13 +72,13 @@
 		);
 		resize.observe(root);
 		return () => {
-			owner.removeEventListener('pointerdown', outside);
 			resize.disconnect();
 			main.style.removeProperty('--timeline-height');
 		};
 	});
 	$effect(() => {
 		if (!playing) return;
+		const interval = playbackInterval;
 		const timer = window.setInterval(() => {
 			if (perNode) {
 				seekNode(nodeProgress.count + 1);
@@ -106,11 +100,19 @@
 				playing = false;
 				save();
 			}
-		}, 500);
+		}, interval);
 		return () => window.clearInterval(timer);
 	});
 	function save(): void {
 		if (!readOnly) onCommit({ ...draft });
+	}
+	function changeSpeed(speed: string): void {
+		if (readOnly) return;
+		draft = normalizeTimeline({ ...draft, speed: Number(speed) });
+		// Acknowledge our own commit without pausing or resetting the cursor.
+		lastConfigKey = timelineConfigKey(draft);
+		onPreview(draft);
+		save();
 	}
 	function update(patch: Partial<TimelineConfig>, commit = true): void {
 		playing = false;
@@ -161,6 +163,7 @@
 		return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 	}
 	function progressDate(time: number): string {
+		if (!index.times.size) return 'End';
 		if (!perNode) return dateInput(time);
 		const clock = new Date(time).toLocaleTimeString(undefined, {
 			hour: '2-digit',
@@ -196,7 +199,7 @@
 			icon={playing ? 'pause' : 'play'}
 			ariaLabel={playing ? 'Pause timeline' : 'Play timeline'}
 			tooltip="Cumulative playback, not historical snapshots"
-			disabled={readOnly || index.times.size === 0 || playbackEmpty}
+			disabled={readOnly || playbackEmpty}
 			onClick={play}
 		/>
 		<ObsidianDropdown
@@ -229,19 +232,21 @@
 					current,
 				})}
 		/>
+		<ObsidianDropdown
+			value={String(draft.speed)}
+			options={[0.25, 0.5, 1, 2, 4].map((speed) => ({
+				value: String(speed), label: `${speed}×`,
+			}))}
+			ariaLabel="Playback speed"
+			disabled={readOnly}
+			onChange={changeSpeed}
+		/>
 		<ObsidianButton
 			icon="rotate-ccw"
 			ariaLabel="Reset timeline range"
 			tooltip="Reset to full range"
 			disabled={readOnly}
 			onClick={() => update({ start: null, end: null, current: null })}
-		/>
-		<ObsidianButton
-			icon="settings-2"
-			ariaLabel="Timeline settings"
-			tooltip="Timeline settings"
-			active={settingsOpen}
-			onClick={() => (settingsOpen = !settingsOpen)}
 		/>
 		{#if index.times.size}
 			<div class="knowledge-workspace-timeline-range">
@@ -266,7 +271,7 @@
 			</div>
 		{/if}
 	</div>
-	{#if index.times.size}
+	{#if index.times.size || (perNode && nodeProgress.ids.length)}
 		<div
 			class="knowledge-workspace-timeline-progress"
 			title="Current date within the fixed From/To range"
@@ -285,8 +290,12 @@
 				onCommit={() => save()}
 			/>
 			<time
-				datetime={new Date(current).toISOString()}
-				title={new Date(current).toLocaleString()}
+				datetime={index.times.size
+					? new Date(current).toISOString()
+					: undefined}
+				title={index.times.size
+					? new Date(current).toLocaleString()
+					: 'Nodes without timestamps are placed at the end'}
 				>{perNode
 					? `${nodeProgress.count} / ${nodeProgress.ids.length} · `
 					: ''}{progressDate(current)}</time
@@ -294,30 +303,5 @@
 		</div>
 	{:else}
 		<p>No valid dates in this field.</p>
-	{/if}
-	{#if settingsOpen}
-		<section
-			class="knowledge-workspace-timeline-settings"
-			aria-label="Timeline settings"
-		>
-			<header>
-				<strong>Timeline settings</strong><ObsidianButton
-					icon="x"
-					ariaLabel="Close timeline settings"
-					tooltip="Close timeline settings"
-					onClick={() => (settingsOpen = false)}
-				/>
-			</header>
-			<ToggleSetting
-				label="Include undated nodes"
-				value={draft.includeUndated}
-				disabled={readOnly}
-				onChange={(includeUndated) => update({ includeUndated })}
-			/>
-			<small
-				>{index.undated} undated nodes. Playback shows current notes, not
-				past versions.</small
-			>
-		</section>
 	{/if}
 </aside>

@@ -52,8 +52,8 @@ describe('timeline', () => {
 			end: null,
 			current: null,
 			nodeCount: null,
-			includeUndated: true,
 			step: 'day',
+			speed: 1,
 		});
 		expect(
 			normalizeTimeline({
@@ -121,6 +121,7 @@ describe('timeline', () => {
 		expect([...cursorPreview.projection!.hiddenNodeIds!].sort()).toEqual([
 			'a',
 			'c',
+			'undated',
 		]);
 		expect([...preview.projection!.hiddenNodeIds!].sort()).toEqual([
 			'a',
@@ -129,12 +130,6 @@ describe('timeline', () => {
 		expect([...state.projection!.hiddenNodeIds!]).toEqual(['a']);
 		expect(preview.projection!.nodes).toBe(state.projection!.nodes);
 		expect(preview.projection!.edges).toBe(state.projection!.edges);
-		expect(
-			[
-				...applyTimeline(state, { ...config, includeUndated: false })
-					.projection!.hiddenNodeIds!,
-			].sort(),
-		).toEqual(['a', 'c', 'undated']);
 		expect(applyTimeline(state)).toBe(state);
 		for (const mode of ['cube', 'graph-3d'] as const) {
 			const spatial = { ...state, mode };
@@ -198,7 +193,6 @@ describe('timeline', () => {
 			start: 100,
 			end: 200,
 			current: 150,
-			includeUndated: false,
 			step: 'month',
 		});
 		expect(setTimelineInState(state, {})).toBe(state);

@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Added per-chart timeline playback speed (0.25×–4×, default 1×). Date and Per node playback share the control; changing speed while playing preserves the cursor and continues playback.
+
+- Removed the timeline settings popup and undated-node toggle. Nodes without timestamps now appear at To in date playback, or individually after dated nodes in Per node mode; existing hidden nodes remain hidden. Old undated-toggle values are ignored.
+
 - Per node progress now displays the node's local date and time, including seconds, alongside the node count.
 
 - Per node playback sorts by the exact selected timestamp, then node display name for time ties; node IDs only break remaining name ties.

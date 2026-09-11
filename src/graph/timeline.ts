@@ -36,6 +36,8 @@ export function normalizeTimeline(value?: unknown): TimelineConfig {
 		);
 	return {
 		enabled: v.enabled === true,
+		speed: typeof v.speed === 'number' && [0.25, 0.5, 1, 2, 4].includes(v.speed)
+			? v.speed : 1,
 		field: v.field === 'modified' ? 'modified' : 'created',
 		start,
 		end,
@@ -49,7 +51,6 @@ export function normalizeTimeline(value?: unknown): TimelineConfig {
 				v.field === 'modified')
 				? v.nodeCount
 				: null,
-		includeUndated: v.includeUndated !== false,
 		step:
 			v.step === 'week' || v.step === 'month' || v.step === 'node'
 				? v.step
@@ -80,6 +81,7 @@ export interface TimelineIndex {
 	min: number;
 	max: number;
 	undated: number;
+	undatedIds?: readonly string[];
 }
 const cache = new WeakMap<
 	readonly KnowledgeNode[],
@@ -102,6 +104,7 @@ export function indexTimeline(
 	let min = Infinity,
 		max = -Infinity;
 	for (const node of nodes) {
+		names.set(node.id, node.title || node.fileName || node.id);
 		const value =
 			field === 'created'
 				? node.createdTime
@@ -115,7 +118,6 @@ export function indexTimeline(
 		)
 			continue;
 		times.set(node.id, value);
-		names.set(node.id, node.title || node.fileName || node.id);
 		min = Math.min(min, value);
 		max = Math.max(max, value);
 	}
@@ -125,6 +127,9 @@ export function indexTimeline(
 		min: times.size ? min : 0,
 		max: times.size ? max : 0,
 		undated: nodes.length - times.size,
+		undatedIds: nodes
+			.filter((node) => !times.has(node.id))
+			.map((node) => node.id),
 	};
 	fields.set(field, result);
 	return result;
@@ -174,6 +179,17 @@ export function timelineNodeProgress(
 				) ||
 				(a < b ? -1 : a > b ? 1 : 0),
 		);
+	// Missing files have no timestamp: append them after all dated entries.
+	const undated = [...(index.undatedIds ?? [])]
+		.filter((id) => !hidden?.has(id))
+		.sort(
+			(a, b) =>
+				timelineNameOrder.compare(
+					index.names?.get(a) ?? a,
+					index.names?.get(b) ?? b,
+				) || (a < b ? -1 : a > b ? 1 : 0),
+		);
+	entries.push(...undated.map((id): [string, number] => [id, end]));
 	const cursor = timelineCurrent(config, index);
 	const count = Math.min(
 		entries.length,
@@ -202,7 +218,7 @@ export function applyTimeline(
 	)
 		return state;
 	const index = indexTimeline(state.projection.nodes, config.field);
-	const [start] = timelineRange(config, index);
+	const [start, rangeEnd] = timelineRange(config, index);
 	const end = timelineCurrent(config, index);
 	const hiddenNodeIds = new Set(state.projection.hiddenNodeIds);
 	const nodeProgress =
@@ -219,10 +235,10 @@ export function applyTimeline(
 	for (const node of state.projection.nodes) {
 		const time = index.times.get(node.id);
 		if (
-			time === undefined
-				? !config.includeUndated
-				: revealed
-					? !revealed.has(node.id)
+			revealed
+				? !revealed.has(node.id)
+				: time === undefined
+					? end < rangeEnd
 					: time < start || time > end
 		)
 			hiddenNodeIds.add(node.id);
@@ -275,7 +291,7 @@ export function timelineConfigKey(config: TimelineConfig): string {
 		config.end,
 		config.current,
 		config.nodeCount,
-		config.includeUndated,
 		config.step,
+		config.speed,
 	]);
 }

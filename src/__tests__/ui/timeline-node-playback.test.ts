@@ -36,6 +36,31 @@ function stateWithTies() {
 	return { ...state, projection: state.projection };
 }
 describe('per-node timeline', () => {
+	it('plays an all-undated graph by name without fabricating file timestamps', () => {
+		const state = stateWithTies();
+		state.projection.nodes = state.projection.nodes.map((node) => ({
+			...node,
+			createdTime: undefined,
+		}));
+		const config = normalizeTimeline({
+			enabled: true,
+			step: 'node',
+			nodeCount: 1,
+		});
+		const index = indexTimeline(state.projection.nodes, 'created');
+		expect(index.times.size).toBe(0);
+		expect(timelineNodeProgress(config, index)).toMatchObject({
+			ids: ['a', 'b', 'c'],
+			count: 1,
+		});
+		expect(
+			[...applyTimeline(state, config).projection!.hiddenNodeIds!].sort(),
+		).toEqual(['b', 'c']);
+		expect(normalizeTimeline({ includeUndated: false })).not.toHaveProperty(
+			'includeUndated',
+		);
+	});
+
 	it.each(['created', 'modified'])(
 		'sorts %s time first, then names only for exact ties',
 		(field) => {
@@ -143,13 +168,24 @@ describe('per-node timeline', () => {
 			indexTimeline(projection.nodes, 'created'),
 			projection.hiddenNodeIds,
 		);
-		expect(progress).toEqual({ ids: ['b', 'c'], count: 1, current: 100 });
+		expect(progress).toEqual({
+			ids: ['b', 'c', 'undated'],
+			count: 1,
+			current: 100,
+		});
 		const view = applyTimeline({ ...state, projection }, config);
 		expect([...view.projection!.hiddenNodeIds!].sort()).toEqual([
 			'a',
 			'c',
 			'later',
+			'undated',
 		]);
+		const last = applyTimeline(
+			{ ...state, projection },
+			{ ...config, nodeCount: 3 },
+		);
+		expect(last.projection!.hiddenNodeIds!.has('undated')).toBe(false);
+		expect(last.projection!.hiddenNodeIds!.has('a')).toBe(true);
 	});
 	it('persists count separately from date so ties do not reappear on reopen', () => {
 		const document = createDefaultMetaGraphDocument(200, 1.5);

@@ -157,8 +157,8 @@ export interface TimelineConfig {
 	end: number | null;
 	current: number | null;
 	nodeCount: number | null;
-	includeUndated: boolean;
 	step: 'day' | 'week' | 'month' | 'node';
+	speed: number;
 }
 
 export interface ChartDisplayConfig {

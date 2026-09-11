@@ -12,21 +12,27 @@ fixed bounds. The Progress slider has its own current-date display and moves
 only within those bounds; cumulative visibility runs from From through this
 current date. Dragging pauses playback, previews the cursor, and releasing
 saves it. Playback updates the cursor, stops at To, and does not change From/To.
-The settings button opens **Include undated nodes**
-(on by default). Play advances the current date
-every half-second, by day, week, or month, skipping intervals with no
+Undated nodes (such as links to files not yet created) appear at To in date
+playback, and after all dated nodes in Per node playback. There is no separate
+undated-node option. Play advances the current date
+every half-second at 1×, by day, week, or month, skipping intervals with no
 new dated nodes. Starting when the cursor is at To
 restarts from From. Pause saves the current date; Reset
 restores the full range. Switching charts or closing the view stops playback
 and discards uncommitted playback previews. Each chart stores its own settings.
+
+Playback speed offers 0.25×, 0.5×, 1×, 2×, and 4× for both date and Per node
+playback. Speed changes take effect while playing without resetting progress,
+and are saved per chart. The default 1× advances two steps per second.
 
 Choose **Per node** in the playback step selector to reveal exactly one dated
 node per tick. Nodes are ordered by the selected file time, then by display name
 only for exactly equal timestamps. IDs break remaining name ties. From/To still
 bound the sequence; manually hidden nodes are
 excluded. Progress becomes an integer node-count slider and shows **count / total**
-beside the current node date. Nodes without timestamps remain governed by
-Include undated nodes and are not part of the playback sequence.
+beside the current node date. Nodes without timestamps are appended at the end,
+ordered by name, and also appear one per tick. Their placement at To is only a
+playback convention; no creation time is invented or written to the note.
 
 Filtering changes visibility only: it does not change Query/Curated membership,
 write notes, restart layout, or auto-fit. Existing hidden nodes and links stay
