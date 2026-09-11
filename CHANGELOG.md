@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Fixed the legend touching the right panel by accounting for the panel's own inset before adding the legend gap.
+
 - Added a collapsible canvas legend for default and Global/Chart node/link styles. Previews match style cards; custom rule names take priority, with matching conditions used as automatic names and hover details. Legend updates live without affecting the graph.
 
 - Node hover reveals full names despite the text-width limit. Local hover/pinned focus also reveals neighbor names; leaving focus restores truncation, using label-only updates.

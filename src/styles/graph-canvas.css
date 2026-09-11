@@ -55,7 +55,8 @@
 
 .knowledge-workspace-legend-position {
 	position: absolute;
-	right: calc(var(--dock-panel-width, 0px) + 12px);
+	/* The dock itself is inset from the canvas edge; add a separate legend gap. */
+	right: calc(var(--dock-panel-width, 0px) + var(--size-4-3) + 12px);
 	left: calc(var(--curated-panel-width, 0px) + 12px);
 	bottom: calc(var(--connection-panel-height, 0px) + 12px);
 	top: 12px;
