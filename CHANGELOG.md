@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Fixed Flow curves falling back to right-angle routes during timeline playback in Sigma. The layout route cache now retains hidden edges; visibility changes reuse the original routes without relayout or revealing hidden links.
+
 - Fixed empty dynamic Groups leaving overlapping titles at the origin during timeline playback. Sigma and G6 now omit their regions, titles, and hit targets until a member is visible again, without changing layout or saved Group data.
 
 - Separated timeline transport controls from settings: Jump to start, Play/Pause, and Jump to end now lead the toolbar. Replaced the ambiguous range-reset icon with standard skip controls that pause and save progress while preserving From/To.

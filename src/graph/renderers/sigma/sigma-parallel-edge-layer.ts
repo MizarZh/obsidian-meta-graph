@@ -2062,7 +2062,10 @@ function collectFlowRouteIndex(
 	const index = new Map<string, FlowRouteCandidate>();
 	graph.forEachEdge((runtimeEdgeId, attributes) => {
 		const kind = attributes.flowRouteKind;
-		if (attributes.hidden || !kind || !attributes.flowRoute?.length) {
+		// Layout routes outlive visibility changes. Timeline playback reuses this
+		// index, so hidden edges must retain their curve geometry as well.
+		// Actual drawing and picking still filter hidden edges separately.
+		if (!kind || !attributes.flowRoute?.length) {
 			return;
 		}
 		const logicalEdgeId = attributes.logicalEdgeId ?? runtimeEdgeId;
