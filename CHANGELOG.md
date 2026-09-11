@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Fixed graph content collapsing into a corner after returning from another Obsidian file tab. The canvas size observer now remembers zero-size hidden states, so returning to the same visible dimensions still restores and repaints the renderer without resetting the camera.
+- Fixed Sigma nodes remaining offscreen after drag simulation releases held bounds. Releasing bounds now reprocesses normalized coordinates before painting, without resetting the camera or rerunning layout; Flow spacing bounds remain held until fit or scene reset.
 - Fixed exported group titles: SVG now includes centered, group-colored capsule backgrounds and borders, with Flow title-band positioning and label scaling. PNG captures DOM capsule text with the loaded document font before image composition, preserving fractional widths and export resolution instead of reflowing titles into ellipses.
 
 - Fixed PNG export changing light-theme labels into white text or dark label boxes. Transparent offscreen rendering now retains the source chart's label theme, including custom text colors and label background opacity, independently of the output background.

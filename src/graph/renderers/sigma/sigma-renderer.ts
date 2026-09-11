@@ -890,6 +890,9 @@ export class SigmaRenderer {
 		if (this.spacingBoundsHeld) return;
 		if (this.instance.getCustomBBox()) {
 			this.instance.setCustomBBox(null);
+			// setCustomBBox only schedules paint; discard the old normalized
+			// coordinates before painting the newly unlocked frame.
+			this.instance.scheduleRefresh();
 		}
 	}
 

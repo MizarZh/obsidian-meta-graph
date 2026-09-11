@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Menu, Notice, TFile, type App } from 'obsidian';
 	import { onMount, untrack } from 'svelte';
+	import { createCanvasResizeHandler } from '@/ui/workspace/canvas-resize';
 	import type { NodeHoverMode } from '@/settings/settings';
 	import type {
 		ChartSource,
@@ -176,8 +177,6 @@
 	let canvas: HTMLDivElement;
 	let findNoteInput: HTMLInputElement | undefined;
 	let lastThemeSignature = '';
-	let lastCanvasWidth = 0;
-	let lastCanvasHeight = 0;
 	let debugOpen = $state(false);
 	let settingsPanel = $state<SettingsPanelMode | undefined>(undefined);
 	let settingsPopoverLeft = $state(0);
@@ -461,19 +460,11 @@
 		);
 		autoSave = saver;
 		saver.initialize(controller.snapshot);
+		const handleCanvasResize = createCanvasResizeHandler(() =>
+			rendererLifecycle.resize(),
+		);
 		const resizeObserver = new ResizeObserver((entries) => {
-			const entry = entries[0];
-			if (
-				entry &&
-				entry.contentRect.width > 0 &&
-				entry.contentRect.height > 0 &&
-				(entry.contentRect.width !== lastCanvasWidth ||
-					entry.contentRect.height !== lastCanvasHeight)
-			) {
-				lastCanvasWidth = entry.contentRect.width;
-				lastCanvasHeight = entry.contentRect.height;
-				rendererLifecycle.resize();
-			}
+			handleCanvasResize(entries[0]?.contentRect);
 		});
 		resizeObserver.observe(canvas);
 		lastThemeSignature = readThemeSignature(readWorkspaceDocument());
