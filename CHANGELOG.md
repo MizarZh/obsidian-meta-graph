@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Separated timeline transport controls from settings: Jump to start, Play/Pause, and Jump to end now lead the toolbar. Replaced the ambiguous range-reset icon with standard skip controls that pause and save progress while preserving From/To.
+
 - Added per-chart timeline playback speed (0.25×–4×, default 1×). Date and Per node playback share the control; changing speed while playing preserves the cursor and continues playback.
 
 - Removed the timeline settings popup and undated-node toggle. Nodes without timestamps now appear at To in date playback, or individually after dated nodes in Per node mode; existing hidden nodes remain hidden. Old undated-toggle values are ignored.

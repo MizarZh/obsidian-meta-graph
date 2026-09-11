@@ -17,8 +17,11 @@ playback, and after all dated nodes in Per node playback. There is no separate
 undated-node option. Play advances the current date
 every half-second at 1×, by day, week, or month, skipping intervals with no
 new dated nodes. Starting when the cursor is at To
-restarts from From. Pause saves the current date; Reset
-restores the full range. Switching charts or closing the view stops playback
+restarts from From. The toolbar starts with Jump to start, Play/Pause, and
+Jump to end, followed by playback settings and From/To. Both jump buttons pause
+and save progress without changing the range; in Per node mode they reveal zero
+or all eligible nodes. Pause saves the current date.
+Switching charts or closing the view stops playback
 and discards uncommitted playback previews. Each chart stores its own settings.
 
 Playback speed offers 0.25×, 0.5×, 1×, 2×, and 4× for both date and Per node

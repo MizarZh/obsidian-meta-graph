@@ -158,6 +158,13 @@
 				false,
 			);
 	}
+	function jumpToBoundary(end: boolean): void {
+		if (readOnly) return;
+		scrub(
+			perNode ? (end ? nodeProgress.ids.length : 0) : range[end ? 1 : 0],
+		);
+		save();
+	}
 	function dateInput(time: number): string {
 		const date = new Date(time);
 		return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -195,13 +202,33 @@
 	bind:this={root}
 >
 	<div class="knowledge-workspace-timeline-toolbar">
-		<ObsidianButton
-			icon={playing ? 'pause' : 'play'}
-			ariaLabel={playing ? 'Pause timeline' : 'Play timeline'}
-			tooltip="Cumulative playback, not historical snapshots"
-			disabled={readOnly || playbackEmpty}
-			onClick={play}
-		/>
+		<div
+			class="knowledge-workspace-timeline-transport"
+			role="group"
+			aria-label="Playback controls"
+		>
+			<ObsidianButton
+				icon="skip-back"
+				ariaLabel="Jump to start"
+				tooltip="Jump to start"
+				disabled={readOnly || playbackEmpty}
+				onClick={() => jumpToBoundary(false)}
+			/>
+			<ObsidianButton
+				icon={playing ? 'pause' : 'play'}
+				ariaLabel={playing ? 'Pause timeline' : 'Play timeline'}
+				tooltip="Cumulative playback, not historical snapshots"
+				disabled={readOnly || playbackEmpty}
+				onClick={play}
+			/>
+			<ObsidianButton
+				icon="skip-forward"
+				ariaLabel="Jump to end"
+				tooltip="Jump to end"
+				disabled={readOnly || playbackEmpty}
+				onClick={() => jumpToBoundary(true)}
+			/>
+		</div>
 		<ObsidianDropdown
 			value={draft.field}
 			options={fields}
@@ -235,18 +262,12 @@
 		<ObsidianDropdown
 			value={String(draft.speed)}
 			options={[0.25, 0.5, 1, 2, 4].map((speed) => ({
-				value: String(speed), label: `${speed}×`,
+				value: String(speed),
+				label: `${speed}×`,
 			}))}
 			ariaLabel="Playback speed"
 			disabled={readOnly}
 			onChange={changeSpeed}
-		/>
-		<ObsidianButton
-			icon="rotate-ccw"
-			ariaLabel="Reset timeline range"
-			tooltip="Reset to full range"
-			disabled={readOnly}
-			onClick={() => update({ start: null, end: null, current: null })}
 		/>
 		{#if index.times.size}
 			<div class="knowledge-workspace-timeline-range">
