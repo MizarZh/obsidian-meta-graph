@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Unified left Nodes and right dock panel shells: shared card border, radius, shadow, inset collapse controls, and header background. Nodes drag-target highlighting now applies to the complete card.
+
 - Enabled Timeline in Cube using the shared playback controls and existing visibility refresh. Face placement and manual positions remain stable; the renderer still rebuilds graph objects per visibility update, so playback performance needs real-world evaluation.
 
 - Enabled Timeline for Graph 3D with shared date/Per node playback, speed, range, and progress controls. Visibility updates use the existing 3D data synchronization and cached positions without workspace rebuilds or auto-fit; visible force simulation data changes may move the layout. Cube remains unsupported.
