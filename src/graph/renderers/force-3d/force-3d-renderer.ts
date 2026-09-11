@@ -935,6 +935,94 @@ export class Force3DRenderer {
 		}
 	}
 
+	async captureExport(
+		scale: number,
+		background?: string,
+	): Promise<HTMLCanvasElement> {
+		const { captureThreeScene } =
+			await import('@/graph/renderers/three-export');
+		if (!this.initialized || this.killed)
+			throw new Error('Graph is not ready');
+		const saved = [
+			this.selectedNodeId,
+			this.hoveredNodeId,
+			this.pinnedNodeId,
+		] as const;
+		const materials: Array<{
+			mesh: Three.Mesh;
+			original: Three.Material | Three.Material[];
+			temporary: Three.Material;
+		}> = [];
+		const focusedLabels =
+			this.labelMaxWidth > 0 && Boolean(saved[1] || saved[2]);
+		try {
+			this.selectedNodeId =
+				this.hoveredNodeId =
+				this.pinnedNodeId =
+					undefined;
+			this.updateHoveredNeighborhood();
+			this.refreshColorsWhenReady();
+			if (focusedLabels) this.updateLabelSprites();
+			// Force-graph batches accessor changes. Give this synchronous capture
+			// neutral link materials without waiting for (or advancing) simulation.
+			for (const link of this.instance.graphData().links) {
+				for (const [object, multiplier] of [
+					[link.__lineObj, 1],
+					[link.__arrowObj, 3],
+				] as const) {
+					const root = object as Three.Object3D | undefined;
+					const mesh = (
+						root?.children.length ? root.children[0] : root
+					) as Three.Mesh | undefined;
+					if (!mesh?.material || Array.isArray(mesh.material))
+						continue;
+					const temporary =
+						mesh.material.clone() as Three.MeshLambertMaterial;
+					if (!temporary.color) {
+						temporary.dispose();
+						continue;
+					}
+					temporary.color.set(link.color);
+					temporary.opacity = Math.min(
+						1,
+						this.instance.linkOpacity() *
+							multiplier *
+							clampOpacity(link.opacity ?? 1),
+					);
+					temporary.transparent = temporary.opacity < 1;
+					temporary.depthWrite = temporary.opacity >= 1;
+					materials.push({
+						mesh,
+						original: mesh.material,
+						temporary,
+					});
+					mesh.material = temporary;
+				}
+			}
+			const canvas = this.instance.renderer().domElement;
+			const { width, height } = canvas.getBoundingClientRect();
+			return captureThreeScene(
+				this.instance.scene(),
+				this.instance.camera(),
+				canvas.ownerDocument,
+				width,
+				height,
+				scale,
+				background,
+			);
+		} finally {
+			for (const { mesh, original, temporary } of materials) {
+				mesh.material = original;
+				temporary.dispose();
+			}
+			[this.selectedNodeId, this.hoveredNodeId, this.pinnedNodeId] =
+				saved;
+			this.updateHoveredNeighborhood();
+			this.refreshColorsWhenReady();
+			if (focusedLabels) this.updateLabelSprites();
+		}
+	}
+
 	private renderFrame(): void {
 		if (!this.initialized || this.killed) {
 			return;

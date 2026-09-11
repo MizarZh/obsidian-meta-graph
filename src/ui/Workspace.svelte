@@ -32,6 +32,15 @@
 	} from '@/layouts/stable-layout';
 	import type { WorkspaceController } from '@/workspace/workspace-controller';
 	import DebugPanel from '@/ui/DebugPanel.svelte';
+	import { ExportModal } from '@/ui/ExportModal';
+	import { createPngExport } from '@/workspace/export/png-export';
+	import { saveExport } from '@/workspace/export/export-file';
+	import {
+		createEntryDocument,
+		selectExportEntries,
+		serializeEntries,
+	} from '@/workspace/export/entry-export';
+	import { isPlanarRenderer } from '@/graph/renderers/renderer-adapter';
 	import type { DockDragPayload } from '@/ui/dock/types';
 	import type { DockPayloadGraphAction } from '@/ui/dock/connection';
 	import {
@@ -906,6 +915,107 @@
 		}
 	}
 
+	function openExport(): void {
+		const renderer = rendererLifecycle.renderer;
+		if (
+			(!renderer && !workspaceState.projection) ||
+			graphLoading ||
+			!canvas?.isConnected
+		) {
+			new Notice('Graph is not ready');
+			return;
+		}
+		const chartId = workspaceState.activeChartId;
+		const { width, height } = canvas.getBoundingClientRect();
+		const visibleEntries = workspaceState.projection
+			? selectExportEntries(
+					workspaceState.projection,
+					renderer?.runtimeGraph,
+				)
+			: undefined;
+		new ExportModal(app, {
+			name:
+				workspaceState.charts.find((chart) => chart.id === chartId)
+					?.name ?? 'Graph',
+			planar: supportsPlanarRenderer(workspaceState.mode),
+			width,
+			height,
+			showLegend: workspaceState.showLegend,
+			imageAvailable: Boolean(renderer),
+			hasSelection: Boolean(
+				workspaceState.selectedNodeId ||
+				workspaceState.selectedEdgeId ||
+				workspaceState.selectedGroupId,
+			),
+			nodeCount: visibleEntries?.nodes.length ?? 0,
+			edgeCount: visibleEntries?.edges.length ?? 0,
+			onExport: async (options, isCancelled) => {
+				if (graphLoading)
+					throw new Error(
+						'Graph is updating. Try again when it is ready.',
+					);
+				const generation = rendererLifecycle.generation;
+				const isStale = () =>
+					isCancelled() ||
+					!canvas?.isConnected ||
+					rendererLifecycle.renderer !== renderer ||
+					rendererLifecycle.generation !== generation ||
+					workspaceState.activeChartId !== chartId;
+				if (isStale()) throw new Error('Export cancelled');
+				if (
+					options.format === 'json' ||
+					options.format === 'csv' ||
+					options.format === 'md'
+				) {
+					const data = createEntryDocument(
+						workspaceState,
+						options,
+						renderer?.runtimeGraph,
+						createWorkspaceGroupByNode(workspaceState),
+					);
+					const blob = serializeEntries(
+						data,
+						options.format,
+						options.includeMetadata,
+					);
+					return saveExport(
+						app,
+						options.filename,
+						options.format,
+						blob,
+						isStale,
+					);
+				}
+				if (!renderer) throw new Error('Graph is not ready');
+				const input = {
+					renderer,
+					canvas,
+					state: workspaceState,
+					layout: getLayoutSnapshot(),
+					options,
+					isStale,
+					metadataFields: metadataFieldSuggestions,
+					metadataTypes: metadataFieldTypes,
+				};
+				let blob: Blob;
+				if (options.format === 'svg') {
+					if (!isPlanarRenderer(renderer))
+						throw new Error('SVG export requires a planar chart');
+					const { createSvgExport } =
+						await import('@/workspace/export/svg-export');
+					blob = await createSvgExport({ ...input, renderer });
+				} else blob = await createPngExport(input);
+				return saveExport(
+					app,
+					options.filename,
+					options.format,
+					blob,
+					isStale,
+				);
+			},
+		}).open();
+	}
+
 	function syncRendererGroups(): void {
 		const groupByNode = createWorkspaceGroupByNode(workspaceState);
 		syncWorkspaceRendererGroups(
@@ -1584,6 +1694,7 @@
 		onUndoConnection={undoLastConnection}
 		onRedoConnection={redoLastConnection}
 		onFit={() => rendererLifecycle.fit()}
+		onExport={openExport}
 		onRefresh={() => controller.refresh(true)}
 		{settingsPanel}
 		onSettingsPanel={openSettingsPanel}

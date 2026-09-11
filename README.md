@@ -5,6 +5,18 @@ stored in Obsidian note properties. A graph workspace is an ordinary Markdown
 file with `meta-graph: workspace` frontmatter and YAML chart settings in the
 body.
 
+## Export a chart
+
+Click **Export** in the chart toolbar and choose **PNG**, **SVG**, **JSON**, **CSV**, or **Markdown**. Files are saved in the vault root; existing files are preserved by adding a numeric suffix. Read-only workspaces also support export.
+
+- **Current view** preserves the current camera. **Complete graph** fits the current filtered graph, including groups and routed relationships. Graph 3D and Cube support the current view only.
+- Choose **1×**, **2×**, or **3×** resolution, a theme/white/transparent background, and whether to include the legend. The dialog shows the output pixel dimensions.
+- Export keeps the live layout and camera unchanged and omits selection, hover, connection previews, and workspace panels. It does not rerun layout or include filtered-out notes.
+- PNG images are limited to 8192 pixels per side and 16 megapixels. Complete-graph PNG export checks for clipped content; unusually wide labels may require a wider workspace or a smaller **Max text width** setting. Closing the dialog cancels pending generation. Switching charts or replacing the renderer also cancels it.
+- **SVG** supports Graph, Free, Flow, Arc, and HEB with either Sigma or G6. It exports editable vector shapes, routed relationships, groups, text, and an optional legend, without embedded bitmap images. Choose current view or complete graph; resolution settings apply only to PNG. SVG uses a separate vector drawing path, so label density and group styling can differ slightly from the live renderer; font appearance depends on the viewer. Use PNG for rendered-image fidelity.
+- **JSON**, **CSV**, and **Markdown** export nodes, relationships, or both from the filtered chart in every view mode. Choose **Selection** to export a selected node, a selected relationship with its endpoints, or a selected group's members and internal relationships. Hidden notes, layout bend nodes, and temporary edge segments are excluded; distinct parallel and reverse relationships remain separate.
+- Entry exports include note paths and relationship source fields, with optional note metadata (off by default), but never note body text. JSON preserves structured values; CSV uses a UTF-8 BOM and escapes spreadsheet formulas; Markdown produces a linked, readable list. The entry JSON schema is version 1, independent of workspace persistence versions.
+
 ## Metadata
 
 ### Sigma Graph parallel edges

@@ -49,6 +49,7 @@
 		onRedoConnection,
 		onFit,
 		onRefresh,
+		onExport,
 		settingsPanel,
 		onSettingsPanel,
 		showDebugButton,
@@ -85,6 +86,7 @@
 		onRedoConnection: () => void;
 		onFit: () => void;
 		onRefresh: () => void;
+		onExport: () => void;
 		settingsPanel: SettingsPanelMode | undefined;
 		onSettingsPanel: (panel: SettingsPanelMode, event: MouseEvent) => void;
 		showDebugButton: boolean;
@@ -763,6 +765,12 @@
 			ariaLabel="Refresh and relayout graph"
 			tooltip="Refresh data and recalculate layout"
 			onClick={onRefresh}
+		/>
+		<ObsidianButton
+			text="Export"
+			icon="download"
+			tooltip="Export images or entries"
+			onClick={onExport}
 		/>
 		{#if showDebugButton}
 			<ObsidianButton

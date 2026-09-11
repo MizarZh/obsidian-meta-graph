@@ -29,6 +29,11 @@ export interface ForceSimulationRenderer {
 
 /** Renderer-neutral contract shared by 2D graph implementations. */
 export interface PlanarRenderer {
+	/** Only called on disposable export instances. */
+	prepareExport?(
+		viewport: import('./renderer-export').ExportViewport,
+		scale: number,
+	): Promise<void>;
 	readonly capabilities: RendererCapabilities;
 	readonly runtimeGraph: RuntimeGraph;
 	setGraph(

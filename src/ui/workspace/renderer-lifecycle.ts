@@ -78,6 +78,10 @@ export class WorkspaceRendererLifecycle {
 		return this.currentRenderer;
 	}
 
+	get generation(): number {
+		return this.renderVersion;
+	}
+
 	resize(): void {
 		this.currentRenderer?.resize();
 	}

@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Added export v2: editable SVG for all five planar chart types with Sigma/G6, plus JSON, CSV, and Markdown entry exports for every chart type. Entry exports support filtered-chart or node/relationship/group selection scope, independent node/relationship inclusion, and optional metadata. Logical relationships exclude layout segments; CSV escapes spreadsheet formulas. All formats share collision-safe vault saving and cancellation.
+
+- Added PNG export from the chart toolbar, including read-only workspaces. Export the current view or the complete filtered planar graph at 1×/2×/3× resolution, with theme/white/transparent backgrounds and an optional legend. Graph 3D and Cube export the current camera. Images are saved in the vault root with collision-safe names; export preserves the live layout and camera, omits transient emphasis, checks image limits, and cancels stale renderer generations.
+
 - Added a per-chart Show legend toggle in Graph settings, enabled by default. Visibility is saved with the chart and updates without rebuilding or relaying out the graph.
 
 - Group, Node, and Link settings now close when clicking outside both the settings panel and its floating editor. Removed the extra panel close button; the editor's close button still closes only the current entry.

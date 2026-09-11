@@ -1,4 +1,6 @@
 import Sigma from 'sigma';
+import { setSigmaExportResolution } from './sigma-export-resolution';
+import type { ExportViewport } from '@/graph/renderers/renderer-export';
 import { flowTitleReferenceExtent } from '@/graph/renderers/flow-title-viewport';
 import {
 	PlanarPerformance,
@@ -807,6 +809,39 @@ export class SigmaRenderer {
 		}
 		this.syncFlowTitleReference();
 		void this.instance.getCamera().animatedReset({ duration: 350 });
+	}
+
+	async prepareExport(
+		viewport: ExportViewport,
+		scale: number,
+	): Promise<void> {
+		setSigmaExportResolution(this.instance, scale);
+		const camera = this.instance.getCamera();
+		camera.minRatio = null;
+		camera.maxRatio = null;
+		const origin = this.instance.graphToViewport(viewport.center);
+		const unit = this.instance.graphToViewport({
+			x: viewport.center.x + 1,
+			y: viewport.center.y,
+		});
+		camera.setState({
+			ratio:
+				camera.getState().ratio *
+				Math.hypot(unit.x - origin.x, unit.y - origin.y) *
+				viewport.unitsPerPixel,
+		});
+		const { width, height } = this.instance.getDimensions();
+		const projected = this.instance.graphToViewport(viewport.center);
+		const target = this.instance.viewportToFramedGraph(projected);
+		const middle = this.instance.viewportToFramedGraph({
+			x: width / 2,
+			y: height / 2,
+		});
+		camera.setState({
+			x: camera.getState().x + target.x - middle.x,
+			y: camera.getState().y + target.y - middle.y,
+		});
+		this.refresh();
 	}
 
 	zoomBy(factor: number): void {

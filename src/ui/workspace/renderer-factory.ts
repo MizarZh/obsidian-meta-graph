@@ -10,6 +10,7 @@ import {
 import { createCubeRendererManualLayout } from '@/workspace/state/manual-layout/cube-layout';
 
 export interface WorkspaceGraphRendererOptions {
+	exportPixelRatio?: number;
 	graph: RuntimeGraph;
 	container: HTMLElement;
 	palette: GraphPalette;
@@ -23,6 +24,7 @@ export function createWorkspaceGraphRenderer(
 ): Promise<GraphRenderer | undefined> {
 	const { graph, container, palette, state, isStale } = options;
 	return createGraphRenderer({
+		exportPixelRatio: options.exportPixelRatio,
 		graph,
 		container,
 		palette,

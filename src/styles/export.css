@@ -1,0 +1,35 @@
+.knowledge-workspace-export-dialog .setting-item-info {
+	flex: 1;
+}
+.knowledge-workspace-export-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 16px;
+}
+.knowledge-workspace-export-dialog [role='alert'] {
+	color: var(--text-error);
+}
+.knowledge-workspace-export-host .knowledge-workspace-legend-position {
+	inset: 16px;
+}
+.knowledge-workspace-export-host .knowledge-workspace-legend {
+	max-height: none;
+	transform-origin: bottom right;
+}
+
+.knowledge-workspace-export-scene {
+	position: absolute;
+	inset: 0;
+}
+
+.knowledge-workspace-svg-measure {
+	position: fixed;
+	left: -20000px;
+	top: 0;
+	visibility: hidden;
+}
+.knowledge-workspace-export-host .knowledge-workspace-legend-content {
+	max-height: none;
+	overflow: visible;
+}

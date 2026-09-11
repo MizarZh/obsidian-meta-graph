@@ -1030,6 +1030,42 @@ export class G6Renderer implements PlanarRenderer {
 			});
 	}
 
+	async prepareExport(
+		viewport: import('@/graph/renderers/renderer-export').ExportViewport,
+		_scale: number,
+	): Promise<void> {
+		if (!this.hasFitBaseline) this.fit();
+		await this.drawQueue;
+		this.instance.setZoomRange([0.000001, 1_000_000]);
+		const origin = this.graphToViewportPosition(viewport.center);
+		const unit = this.graphToViewportPosition({
+			x: viewport.center.x + 1,
+			y: viewport.center.y,
+		});
+		await this.instance.zoomTo(
+			this.instance.getZoom() /
+				(Math.hypot(unit.x - origin.x, unit.y - origin.y) *
+					viewport.unitsPerPixel),
+			false,
+		);
+		const point = this.graphToViewportPosition(viewport.center);
+		const center = this.instance.getCanvasCenter();
+		await this.instance.translateBy(
+			[center[0] - point.x, center[1] - point.y],
+			false,
+		);
+		this.syncCoordinateFrameVisuals();
+		this.syncLabelZoomScale();
+		await this.drawQueue;
+		await this.instance.draw();
+		this.groupLayer?.invalidateGeometry();
+		this.groupLayer?.update();
+		for (const layer of Object.values(
+			this.instance.getCanvas().getLayers(),
+		))
+			layer.render();
+	}
+
 	private captureViewportState(): PlanarViewportState | undefined {
 		if (!this.hasFitBaseline || this.killed || this.isStale())
 			return undefined;
@@ -2016,6 +2052,7 @@ export function createG6GraphOptions(
 	const labelStyles = createG6LabelStyles(options.palette, displayStyle);
 	return {
 		container: options.container,
+		devicePixelRatio: options.exportPixelRatio,
 		data: toG6Data(
 			options.graph,
 			undefined,

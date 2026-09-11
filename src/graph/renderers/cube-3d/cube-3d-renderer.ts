@@ -413,6 +413,53 @@ export class Cube3DRenderer {
 		this.scheduleRender();
 	}
 
+	async captureExport(
+		scale: number,
+		background?: string,
+	): Promise<HTMLCanvasElement> {
+		const { captureThreeScene } =
+			await import('@/graph/renderers/three-export');
+		if (this.killed) throw new Error('Graph is not ready');
+		const saved = [
+			this.selectedNodeId,
+			this.hoveredNodeId,
+			this.pinnedNodeId,
+			this.selectedGroupId,
+			this.hoveredGroupId,
+		] as const;
+		try {
+			this.selectedNodeId =
+				this.hoveredNodeId =
+				this.pinnedNodeId =
+					undefined;
+			this.selectedGroupId = this.hoveredGroupId = undefined;
+			this.updateHoveredNeighborhood();
+			this.buildFaces();
+			this.refreshNodeColors();
+			const { width, height } = this.container.getBoundingClientRect();
+			return captureThreeScene(
+				this.scene,
+				this.camera,
+				this.container.ownerDocument,
+				width,
+				height,
+				scale,
+				background,
+			);
+		} finally {
+			[
+				this.selectedNodeId,
+				this.hoveredNodeId,
+				this.pinnedNodeId,
+				this.selectedGroupId,
+				this.hoveredGroupId,
+			] = saved;
+			this.updateHoveredNeighborhood();
+			this.buildFaces();
+			this.refreshNodeColors();
+		}
+	}
+
 	resize(): void {
 		const { width, height } = this.container.getBoundingClientRect();
 		if (width <= 0 || height <= 0) {

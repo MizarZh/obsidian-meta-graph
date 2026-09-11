@@ -64,6 +64,7 @@ function readRendererBaseOptions(
 	options: GraphRendererOptions,
 ): RendererBaseOptions {
 	return {
+		exportPixelRatio: options.exportPixelRatio,
 		graph: options.graph,
 		container: options.container,
 		palette: options.palette,

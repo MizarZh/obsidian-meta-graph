@@ -10,6 +10,7 @@ import type { RendererKind } from '@/graph/renderers/renderer-capabilities';
 
 /** Settings shared by every renderer implementation. */
 export interface RendererBaseOptions {
+	exportPixelRatio?: number;
 	parallelEdgeStyle?: 'straight' | 'curve';
 	graph: RuntimeGraph;
 	container: HTMLElement;
