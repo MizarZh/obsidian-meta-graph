@@ -1,4 +1,5 @@
 import { supportsPlanarRenderer } from '@/core/types';
+import { normalizeTimeline } from '@/graph/timeline';
 import { normalizeLabelMaxWidth } from '@/graph/label-text';
 import type {
 	ChartSource,
@@ -119,6 +120,7 @@ export function createDefaultChart(
 			cubeSize: DEFAULT_CUBE_SIZE,
 			cubeFreeCamera: DEFAULT_CUBE_FREE_CAMERA,
 			showLegend: true,
+			timeline: normalizeTimeline(),
 			forceLabels: DEFAULT_FORCE_LABELS,
 			enableForceLayout: false,
 			showInspector: true,
@@ -311,6 +313,7 @@ export function normalizeChart(
 				display.cubeFreeCamera,
 				fallback.display.cubeFreeCamera,
 			),
+			timeline: normalizeTimeline(display.timeline),
 			showLegend: readBoolean(
 				display.showLegend,
 				fallback.display.showLegend,

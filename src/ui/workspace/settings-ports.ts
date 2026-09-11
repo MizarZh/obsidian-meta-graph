@@ -36,6 +36,7 @@ export interface WorkspaceSettingsSuggestions {
 }
 
 export interface WorkspaceGraphSettingsView {
+	timelineEnabled: boolean;
 	showLegend: boolean;
 	mode: ViewMode;
 	renderer: PlanarRendererKind;
@@ -128,6 +129,7 @@ type QueryPatch = Partial<Omit<GraphQuery, 'roots'>>;
 type StyleRuleScope = 'global' | 'current';
 
 export interface WorkspaceGraphSettingsActions {
+	setTimelineEnabled(value: boolean): void;
 	setShowLegend(value: boolean): void;
 	setRenderer(value: PlanarRendererKind): void;
 	setFlowEdgeStyle(value: FlowEdgeStyle): void;
@@ -226,6 +228,7 @@ export function createWorkspaceSettingsView(
 ): WorkspaceSettingsView {
 	return {
 		graph: {
+			timelineEnabled: state.timeline.enabled,
 			showLegend: state.showLegend,
 			mode: state.mode,
 			renderer: state.renderer,
@@ -328,6 +331,8 @@ export function createWorkspaceSettingsActions(
 		graph: {
 			setRenderer: (value) => controller.setActiveChartRenderer(value),
 			setShowLegend: (value) => controller.setShowLegend(value),
+			setTimelineEnabled: (value) =>
+				controller.setTimeline({ enabled: value }),
 			resetGraphForces: () => controller.resetGraphForces(),
 			setFlowEdgeStyle: (value) => controller.setFlowEdgeStyle(value),
 			setParallelEdgeStyle: (value) =>

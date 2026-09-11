@@ -103,6 +103,9 @@
 	import WorkspaceSettingsPopover from '@/ui/workspace/WorkspaceSettingsPopover.svelte';
 	import WorkspaceMainPanels from '@/ui/workspace/WorkspaceMainPanels.svelte';
 	import GraphLegend from '@/ui/workspace/GraphLegend.svelte';
+	import GraphTimeline from '@/ui/workspace/GraphTimeline.svelte';
+	import { applyTimeline, timelineConfigKey } from '@/graph/timeline';
+	import type { TimelineConfig } from '@/core/types';
 	import GraphLoadingOverlay from '@/ui/workspace/GraphLoadingOverlay.svelte';
 	import {
 		GraphLoadingCoordinator,
@@ -171,7 +174,29 @@
 	} = $props();
 	// Controller snapshots are replaced immutably. Deep proxies break the
 	// reference checks used by rendering and turn selection into graph scans.
-	let workspaceState: WorkspaceState = $state.raw(getInitialState());
+	const initialTimelineState = getInitialState();
+	let canonicalState = $state.raw(initialTimelineState);
+	let timelinePreview: TimelineConfig | undefined;
+	let workspaceState: WorkspaceState = $state.raw(
+		applyTimeline(initialTimelineState),
+	);
+
+	function previewTimeline(chartId: string, value?: TimelineConfig): void {
+		if (canonicalState.activeChartId !== chartId) return;
+		timelinePreview = value;
+		const previous = workspaceState;
+		workspaceState = applyTimeline(
+			canonicalState,
+			value ?? canonicalState.timeline,
+		);
+		renderCoordinator.apply(workspaceState, previous);
+	}
+
+	function commitTimeline(chartId: string, value: TimelineConfig): void {
+		if (canonicalState.activeChartId !== chartId || readOnly) return;
+		timelinePreview = undefined;
+		controller.setTimeline(value);
+	}
 	let hoveredNodeId: string | undefined;
 	let workspaceRoot: HTMLDivElement;
 	let canvas: HTMLDivElement;
@@ -233,6 +258,7 @@
 	const layoutSnapshots = new LayoutSnapshotStore();
 	const rendererLifecycle = new WorkspaceRendererLifecycle({
 		readState: () => workspaceState,
+		readLayoutProjection: () => canonicalState.projection,
 		readCanvas: () => canvas,
 		readLayoutSnapshot: () => getLayoutSnapshot(),
 		readContainerSize: () => readContainerSize(),
@@ -515,14 +541,29 @@
 
 		const unsubscribe = controller.subscribe((nextState) => {
 			const previousState = workspaceState;
+			const previousCanonical = canonicalState;
+			if (
+				nextState.activeChartId !== canonicalState.activeChartId ||
+				nextState.mode !== canonicalState.mode ||
+				nextState.chartSource !== canonicalState.chartSource ||
+				timelineConfigKey(nextState.timeline) !==
+					timelineConfigKey(canonicalState.timeline)
+			)
+				timelinePreview = undefined;
+			canonicalState = nextState;
 			if (
 				nextState.activeChartId !== previousState.activeChartId ||
 				nextState.chartSource !== previousState.chartSource
 			) {
 				curatedSelection = new Set();
 			}
-			workspaceState = nextState;
-			if (!isWorkspaceInteractionOnlyChange(nextState, previousState)) {
+			workspaceState = applyTimeline(
+				nextState,
+				timelinePreview ?? nextState.timeline,
+			);
+			if (
+				!isWorkspaceInteractionOnlyChange(nextState, previousCanonical)
+			) {
 				persistSession(nextState);
 				saver.schedule(nextState);
 			}
@@ -534,7 +575,7 @@
 			) {
 				settingsPanel = undefined;
 			}
-			renderCoordinator.apply(nextState, previousState);
+			renderCoordinator.apply(workspaceState, previousState);
 		});
 
 		return () => {
@@ -1719,6 +1760,8 @@
 			aria-busy={graphLoading}
 			class:dock-node-dragging={Boolean(dockDrag)}
 			class:connection-collapsed={!connectionOpen}
+			class:timeline-visible={workspaceState.timeline.enabled &&
+				supportsPlanarRenderer(workspaceState.mode)}
 			style="--dock-panel-width: {dockOpen
 				? `${workspaceState.dock.dockWidth}px`
 				: '32px'}; --curated-panel-width: {curatedPanelOpen
@@ -1728,6 +1771,20 @@
 				: '0px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+			{#if workspaceState.timeline.enabled && supportsPlanarRenderer(workspaceState.mode)}
+				{#key `${workspaceState.activeChartId}:${workspaceState.mode}:${workspaceState.chartSource}`}
+					{@const chartId = workspaceState.activeChartId}
+					<GraphTimeline
+						config={workspaceState.timeline}
+						baseHiddenNodeIds={canonicalState.projection
+							?.hiddenNodeIds}
+						nodes={workspaceState.projection?.nodes ?? []}
+						{readOnly}
+						onPreview={(value) => previewTimeline(chartId, value)}
+						onCommit={(value) => commitTimeline(chartId, value)}
+					/>
+				{/key}
+			{/if}
 			{#if workspaceState.showLegend}
 				<GraphLegend
 					state={workspaceState}

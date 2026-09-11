@@ -150,7 +150,19 @@ export interface ManualLayoutConfig {
 	groupFrames?: Record<string, GroupFrame>;
 }
 
+export interface TimelineConfig {
+	enabled: boolean;
+	field: 'created' | 'modified';
+	start: number | null;
+	end: number | null;
+	current: number | null;
+	nodeCount: number | null;
+	includeUndated: boolean;
+	step: 'day' | 'week' | 'month' | 'node';
+}
+
 export interface ChartDisplayConfig {
+	timeline: TimelineConfig;
 	showLegend: boolean;
 	parallelEdgeStyle?: 'straight' | 'curve';
 	fadeDistance: number;
@@ -280,6 +292,7 @@ export interface WorkspaceState {
 	enableForceLayout: boolean;
 	showLegend: boolean;
 	graphSpacing: number;
+	timeline: TimelineConfig;
 	graphCenterForce: number;
 	graphRepelForce: number;
 	graphLinkForce: number;

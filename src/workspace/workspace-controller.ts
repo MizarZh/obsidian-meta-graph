@@ -53,6 +53,7 @@ import {
 	setFlowSpacingInState,
 	setForceLabelsInState,
 	setShowLegendInState,
+	setTimelineInState,
 	setGraphForceSettingInState,
 	resetGraphForcesInState,
 	setGraphSpacingInState,
@@ -526,6 +527,10 @@ export class WorkspaceController {
 
 	setShowLegend(showLegend: boolean): void {
 		this.setWorkspaceState(setShowLegendInState(this.state, showLegend));
+	}
+
+	setTimeline(patch: Partial<import('@/core/types').TimelineConfig>): void {
+		this.setWorkspaceState(setTimelineInState(this.state, patch));
 	}
 
 	setEnableForceLayout(enableForceLayout: boolean): void {

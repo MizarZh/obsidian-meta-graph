@@ -1,4 +1,5 @@
 import { supportsPlanarRenderer } from '@/core/types';
+import { normalizeTimeline } from '@/graph/timeline';
 import type {
 	ChartLayoutConfig,
 	ConnectionFieldMode,
@@ -890,6 +891,10 @@ function displayToV2(chart: MetaGraphChart): PersistedDisplayV2 {
 	return {
 		fadeDistance: display.fadeDistance,
 		...(display.showLegend === false ? { showLegend: false } : {}),
+		...(JSON.stringify(display.timeline) !==
+		JSON.stringify(normalizeTimeline())
+			? { timeline: display.timeline }
+			: {}),
 		...(Object.keys(labels).length > 0 ? { labels } : {}),
 		...(chart.type === 'cube' && Object.keys(cube).length > 0
 			? { cube }
@@ -1218,6 +1223,7 @@ function v2ChartToLegacyRecord(
 		display: {
 			fadeDistance: display.fadeDistance ?? fadeDistance,
 			showLegend: display.showLegend,
+			timeline: display.timeline,
 			parallelEdgeStyle: readChartParallelEdgeStyle(value.extensions),
 			labelSize: labels.size,
 			scaleLabelsWithZoom: labels.scaleWithZoom,

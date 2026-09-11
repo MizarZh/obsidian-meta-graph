@@ -4,6 +4,24 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Per node progress now displays the node's local date and time, including seconds, alongside the node count.
+
+- Per node playback sorts by the exact selected timestamp, then node display name for time ties; node IDs only break remaining name ties.
+
+- Added Per node timeline playback. Each tick reveals one dated node within From/To, with stable ID tie-breaking for identical timestamps. The slider scrubs integer node counts and displays count plus date; hidden nodes are excluded and the independent node cursor is saved with the chart.
+
+- Moved timeline From/To dates onto the action toolbar; the progress slider and its current date remain on a separate row. Controls wrap only when space is limited.
+
+- Separated timeline From/To bounds from the saved current-date cursor. Progress displays its own date and scrubs only within the selected range; cumulative playback reveals nodes from From through the cursor, stops at To, and never changes either bound.
+
+- Added one timeline progress slider alongside From/To date controls. Scrubbing pauses playback and previews the To date while keeping From fixed; releasing saves the final range. Playback and date edits keep the slider synchronized.
+
+- Timeline playback skips empty date intervals and keeps playing when unrelated updates clone unchanged timeline settings, preventing long apparent stalls after the first node.
+
+- Timeline now uses two directly editable From/To date controls instead of sliders. Sources are limited to file creation/modification time; retired metadata sources fall back to creation time with a reset range.
+
+- Added an opt-in per-chart timeline for Sigma/G6 Graph, Free, Flow, Arc, and HEB. Choose creation/modification time or an ISO date property; preview a date range, include/exclude undated nodes, and play cumulatively by day/week/month. Timeline visibility is combined with existing hidden nodes/links through incremental renderer updates, without relayout or auto-fit. Range previews/playback do not save every frame; committed settings persist with each chart. Legend positioning accounts for the timeline. Graph 3D/Cube and historical snapshots are not included.
+
 - Fixed graph content collapsing into a corner after returning from another Obsidian file tab. The canvas size observer now remembers zero-size hidden states, so returning to the same visible dimensions still restores and repaints the renderer without resetting the camera.
 - Fixed Sigma nodes remaining offscreen after drag simulation releases held bounds. Releasing bounds now reprocesses normalized coordinates before painting, without resetting the camera or rerunning layout; Flow spacing bounds remain held until fit or scene reset.
 - Fixed exported group titles: SVG now includes centered, group-colored capsule backgrounds and borders, with Flow title-band positioning and label scaling. PNG captures DOM capsule text with the loaded document font before image composition, preserving fractional widths and export resolution instead of reflowing titles into ellipses.

@@ -25,6 +25,8 @@
 	let {
 		app,
 		showLegend,
+		timelineEnabled,
+		onTimelineEnabled,
 		onShowLegend,
 		mode,
 		renderer,
@@ -79,6 +81,8 @@
 	}: {
 		app: App;
 		showLegend: boolean;
+		timelineEnabled: boolean;
+		onTimelineEnabled: (value: boolean) => void;
 		onShowLegend: (value: boolean) => void;
 		mode: ViewMode;
 		renderer: PlanarRendererKind;
@@ -300,6 +304,11 @@
 		onChange={onShowLegend}
 	/>
 	{#if supportsPlanarRenderer(mode)}
+		<ToggleSetting
+			label="Show timeline"
+			value={timelineEnabled}
+			onChange={onTimelineEnabled}
+		/>
 		<SettingsSection title="Renderer">
 			<SegmentedSetting
 				label="Renderer"

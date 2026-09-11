@@ -1,4 +1,6 @@
 import { getActiveChart } from '@/workspace/state/chart-selectors';
+import { normalizeTimeline } from '@/graph/timeline';
+import type { TimelineConfig } from '@/core/types';
 import type {
 	ArcDirection,
 	ArcLabelAngle,
@@ -362,6 +364,16 @@ function applyGraphForceSettings(
 		graphReturnForce: layout.returnForce ?? state.graphReturnForce,
 		graphLinkDistance: layout.linkDistance ?? state.graphLinkDistance,
 	};
+}
+
+export function setTimelineInState(
+	state: WorkspaceState,
+	patch: Partial<TimelineConfig>,
+): WorkspaceState {
+	const timeline = normalizeTimeline({ ...state.timeline, ...patch });
+	return JSON.stringify(timeline) === JSON.stringify(state.timeline)
+		? state
+		: setDisplayValue(state, 'timeline', timeline);
 }
 
 function setDisplayValue<Key extends ChartDisplayKey>(

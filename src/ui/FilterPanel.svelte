@@ -34,6 +34,8 @@
 	{/if}
 	{#if panel === 'graph'}
 		<GraphSettingsPanel
+			timelineEnabled={view.graph.timelineEnabled}
+			onTimelineEnabled={actions.graph.setTimelineEnabled}
 			showLegend={view.graph.showLegend}
 			onShowLegend={actions.graph.setShowLegend}
 			{app}

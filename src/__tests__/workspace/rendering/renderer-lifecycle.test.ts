@@ -14,7 +14,10 @@ import { D3ForceSimulation } from '@/layouts/d3-force-simulation';
 import { serializeRuntimeGraph } from '@/graph/model/runtime-graph-debug';
 import { WorkspaceRendererLifecycle } from '@/ui/workspace/renderer-lifecycle';
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
-import { createWorkspaceRuntimeGraph } from '@/ui/workspace/runtime-graph';
+import {
+	createWorkspaceRuntimeGraph,
+	syncWorkspaceRuntimeGraphVisibility,
+} from '@/ui/workspace/runtime-graph';
 import { createWorkspaceGraphRenderer } from '@/ui/workspace/renderer-factory';
 
 vi.mock('@/graph/renderers/renderer-adapter', () => ({
@@ -79,6 +82,10 @@ vi.mock('@/layouts/d3-force-simulation', () => ({
 vi.mock('@/ui/workspace/runtime-graph', () => ({
 	createWorkspaceRuntimeGraph: vi.fn(),
 	prepareWorkspaceRuntimeGraphVisibilityIndex: vi.fn(),
+	syncWorkspaceRuntimeGraphVisibility: vi.fn(() => ({
+		nodeIds: [],
+		edgeIds: [],
+	})),
 }));
 
 vi.mock('@/ui/workspace/renderer-factory', () => ({
@@ -168,6 +175,60 @@ function createTestCanvas(): HTMLDivElement {
 }
 
 describe('WorkspaceRendererLifecycle', () => {
+	it('lays out the canonical projection and catches timeline changes during async creation', async () => {
+		vi.clearAllMocks();
+		const canonical = createState();
+		let state = {
+			...canonical,
+			timeline: { ...canonical.timeline, enabled: true },
+			projection: {
+				...canonical.projection!,
+				hiddenNodeIds: new Set(['a']),
+			},
+		};
+		const renderer = createRenderer();
+		vi.mocked(createWorkspaceRuntimeGraph).mockReturnValue({
+			nodes: () => ['a'],
+		} as never);
+		vi.mocked(createWorkspaceGraphRenderer).mockImplementationOnce(
+			async () => {
+				state = {
+					...state,
+					projection: {
+						...state.projection,
+						hiddenNodeIds: new Set(),
+					},
+				};
+				return renderer;
+			},
+		);
+		const lifecycle = new WorkspaceRendererLifecycle({
+			readState: () => state,
+			readLayoutProjection: () => canonical.projection,
+			readCanvas: () => createTestCanvas(),
+			readLayoutSnapshot: createLayoutSnapshot,
+			readContainerSize: () => ({ width: 800, height: 600 }),
+			waitForCanvasSize: async () => true,
+			bindEvents: () => vi.fn(),
+			syncRendererGroups: vi.fn(),
+			setRendererDebugState: vi.fn(),
+		});
+		await lifecycle.rebuild();
+		expect(vi.mocked(createWorkspaceRuntimeGraph).mock.calls[0]?.[0]).toBe(
+			canonical.projection,
+		);
+		expect(
+			vi.mocked(syncWorkspaceRuntimeGraphVisibility).mock.calls[0]?.[1]
+				.hiddenNodeIds,
+		).toEqual(new Set(['a']));
+		expect(
+			vi
+				.mocked(syncWorkspaceRuntimeGraphVisibility)
+				.mock.calls.at(-1)?.[1],
+		).toBe(state.projection);
+		lifecycle.dispose();
+	});
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.mocked(getModeCapabilities).mockReturnValue({

@@ -169,6 +169,7 @@ export interface PersistedGroupV2 {
 }
 
 export interface PersistedDisplayV2 {
+	timeline?: import('@/core/types').TimelineConfig;
 	showLegend?: boolean;
 	fadeDistance: number;
 	labels?: {

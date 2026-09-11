@@ -1,4 +1,8 @@
-import type { RendererDebugState, WorkspaceState } from '@/core/types';
+import type {
+	GraphProjection,
+	RendererDebugState,
+	WorkspaceState,
+} from '@/core/types';
 import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
 import { serializeRuntimeGraph } from '@/graph/model/runtime-graph-debug';
 import {
@@ -16,6 +20,7 @@ import {
 	isPlanarRenderer,
 	setRendererManualLayout,
 	setRendererPalette,
+	refreshRendererGraphVisibility,
 	type GraphRenderer,
 	type ForceSimulationRenderer,
 } from '@/graph/renderers/renderer-adapter';
@@ -31,11 +36,14 @@ import { createWorkspaceGraphRenderer } from '@/ui/workspace/renderer-factory';
 import {
 	createWorkspaceRuntimeGraph,
 	prepareWorkspaceRuntimeGraphVisibilityIndex,
+	syncWorkspaceRuntimeGraphVisibility,
 } from '@/ui/workspace/runtime-graph';
 import { createCubeRendererManualLayout } from '@/workspace/state/manual-layout/cube-layout';
 
 export interface WorkspaceRendererLifecycleOptions {
 	readState(): WorkspaceState;
+	/** Optional canonical projection, before view-only timeline filtering. */
+	readLayoutProjection?(): GraphProjection | undefined;
 	readCanvas(): HTMLDivElement | undefined;
 	readLayoutSnapshot(): LayoutSnapshot;
 	readContainerSize(): { width: number; height: number };
@@ -335,7 +343,7 @@ export class WorkspaceRendererLifecycle {
 		if (version !== this.renderVersion) return;
 		const runtimeGraphStartedAt = performance.now();
 		const graph = createWorkspaceRuntimeGraph(
-			state.projection,
+			this.options.readLayoutProjection?.() ?? state.projection,
 			positions,
 			state,
 			palette,
@@ -358,6 +366,7 @@ export class WorkspaceRendererLifecycle {
 		let progressiveFirstRender = false;
 		if (
 			!this.currentRenderer &&
+			!state.timeline.enabled &&
 			(this.options.isLargeVaultModeActive?.() ?? false) &&
 			graph.order >= 200
 		) {
@@ -453,6 +462,12 @@ export class WorkspaceRendererLifecycle {
 		);
 
 		const rendererKind = getRendererKindForMode(state.mode, state.renderer);
+		// Layout uses the complete graph; rendering uses the latest view range.
+		if (this.options.readLayoutProjection) {
+			const projection = this.options.readState().projection;
+			if (projection)
+				syncWorkspaceRuntimeGraphVisibility(graph, projection);
+		}
 		if (this.rendererRequiresReplacement(rendererKind, state.mode)) {
 			this.clearRenderer();
 		}
@@ -517,6 +532,21 @@ export class WorkspaceRendererLifecycle {
 			{ renderer: rendererKind, firstRender },
 		);
 
+		// A range may change while asynchronous renderer creation is pending.
+		if (this.options.readLayoutProjection) {
+			const projection = this.options.readState().projection;
+			if (projection) {
+				const changes = syncWorkspaceRuntimeGraphVisibility(
+					graph,
+					projection,
+				);
+				if (changes.nodeIds.length || changes.edgeIds.length)
+					refreshRendererGraphVisibility(
+						this.currentRenderer,
+						changes,
+					);
+			}
+		}
 		if (firstRender) this.currentRenderer.resize();
 		this.options.syncRendererGroups();
 		this.bindZoomLevel(this.currentRenderer);

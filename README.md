@@ -1,5 +1,42 @@
 # Meta Graph
 
+## Timeline
+
+Enable **Graph settings -> Show timeline** in a Sigma or G6 chart (Graph, Free,
+Flow, Arc, or HEB). The bottom bar selects creation time or modification time.
+Metadata properties do not participate. Missing file timestamps count as undated.
+
+Choose the From/To dates directly on the bar. Dates use local time; the To date
+includes the entire day when selected through the date control. From/To are
+fixed bounds. The Progress slider has its own current-date display and moves
+only within those bounds; cumulative visibility runs from From through this
+current date. Dragging pauses playback, previews the cursor, and releasing
+saves it. Playback updates the cursor, stops at To, and does not change From/To.
+The settings button opens **Include undated nodes**
+(on by default). Play advances the current date
+every half-second, by day, week, or month, skipping intervals with no
+new dated nodes. Starting when the cursor is at To
+restarts from From. Pause saves the current date; Reset
+restores the full range. Switching charts or closing the view stops playback
+and discards uncommitted playback previews. Each chart stores its own settings.
+
+Choose **Per node** in the playback step selector to reveal exactly one dated
+node per tick. Nodes are ordered by the selected file time, then by display name
+only for exactly equal timestamps. IDs break remaining name ties. From/To still
+bound the sequence; manually hidden nodes are
+excluded. Progress becomes an integer node-count slider and shows **count / total**
+beside the current node date. Nodes without timestamps remain governed by
+Include undated nodes and are not part of the playback sequence.
+
+Filtering changes visibility only: it does not change Query/Curated membership,
+write notes, restart layout, or auto-fit. Existing hidden nodes and links stay
+hidden. Positions and layout-owned group regions remain stable, so empty space
+can remain; dynamic Graph group outlines follow visible members. An already
+running force simulation is not paused by the timeline. This is **not historical
+replay**: modification time is the latest file timestamp, and links always
+represent current relationships. Graph 3D/Cube are not supported in this first
+version. Hiding the timeline disables its visibility filter.
+
 Meta Graph creates Markdown-backed graph workspaces from semantic relationships
 stored in Obsidian note properties. A graph workspace is an ordinary Markdown
 file with `meta-graph: workspace` frontmatter and YAML chart settings in the
