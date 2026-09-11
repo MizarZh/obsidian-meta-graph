@@ -145,7 +145,7 @@ export class GroupOverlayLayer {
 		let bestGroup: { id: string; area: number } | undefined;
 		for (const group of this.groups) {
 			const rect = this.readGroupViewportRect(group);
-			if (!isViewportPointInGroup(position, rect, group.shape)) {
+			if (!rect || !isViewportPointInGroup(position, rect, group.shape)) {
 				continue;
 			}
 			const area = rect.width * rect.height;
@@ -198,6 +198,8 @@ export class GroupOverlayLayer {
 			}
 			const element = this.getOrCreateGroupElement(group);
 			const rect = this.readGroupViewportRect(group);
+			element.style.display = rect ? '' : 'none';
+			if (!rect) continue;
 			element.classList.toggle('movable', group.movable !== false);
 			element.classList.toggle('resizable', group.resizable !== false);
 			element.classList.toggle('shape-circle', group.shape === 'circle');
@@ -252,7 +254,9 @@ export class GroupOverlayLayer {
 		this.elements.clear();
 	}
 
-	private readGroupViewportRect(group: GroupOverlayGroup): ViewportGroupRect {
+	private readGroupViewportRect(
+		group: GroupOverlayGroup,
+	): ViewportGroupRect | undefined {
 		if (group.dynamicNodeIds) {
 			return this.readDynamicGroupViewportRect(group);
 		}
@@ -282,7 +286,7 @@ export class GroupOverlayLayer {
 
 	private readDynamicGroupViewportRect(
 		group: GroupOverlayGroup,
-	): ViewportGroupRect {
+	): ViewportGroupRect | undefined {
 		const graph = this.getGraph();
 		const sizeScaler = this.sigma as unknown as {
 			scaleSize(size?: number): number;
@@ -307,7 +311,7 @@ export class GroupOverlayLayer {
 				];
 			});
 		if (!nodes?.length) {
-			return { left: 0, top: 0, width: 0, height: 0 };
+			return undefined;
 		}
 		const scaledPadding = scaleLayoutGroupPadding(group.padding) * 40;
 		const horizontalPadding = 12 + scaledPadding;
@@ -749,6 +753,8 @@ export class GroupOverlayLayer {
 			return;
 		}
 		const rect = this.readDynamicGroupViewportRect(group);
+		element.style.display = rect ? '' : 'none';
+		if (!rect) return;
 		element.style.left = `${rect.left}px`;
 		element.style.top = `${rect.top}px`;
 		element.style.width = `${rect.width}px`;

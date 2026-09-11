@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Fixed empty dynamic Groups leaving overlapping titles at the origin during timeline playback. Sigma and G6 now omit their regions, titles, and hit targets until a member is visible again, without changing layout or saved Group data.
+
 - Separated timeline transport controls from settings: Jump to start, Play/Pause, and Jump to end now lead the toolbar. Replaced the ambiguous range-reset icon with standard skip controls that pause and save progress while preserving From/To.
 
 - Added per-chart timeline playback speed (0.25×–4×, default 1×). Date and Per node playback share the control; changing speed while playing preserves the cursor and continues playback.

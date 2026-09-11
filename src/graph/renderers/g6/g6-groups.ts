@@ -455,6 +455,9 @@ export class G6GroupLayer {
 				: groupFrameToRect(
 						normalizeGroupFrameForShape(preview, preview.shape),
 					);
+			// Empty dynamic groups have no region, title, or hit target.
+			if (preview.dynamicNodeIds && rect.width === 0 && rect.height === 0)
+				continue;
 			this.groupFrames.set(group.id, rect);
 			this.regions.push({
 				groupId: group.id,
