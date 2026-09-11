@@ -9,6 +9,11 @@ import {
 import { createDefaultMetaGraphDocument } from '@/workspace/meta-graph-model';
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
 import { setLabelMaxWidthInState } from '@/workspace/state/chart-settings';
+import { setShowLegendInState } from '@/workspace/state/chart-settings';
+import {
+	analyzeWorkspaceStateChanges,
+	createWorkspaceRenderBaseline,
+} from '@/ui/workspace/change-tracker';
 import { updateWorkspaceReferencesInState } from '@/workspace/state/reference-walker';
 import {
 	applyWorkspaceSession,
@@ -17,6 +22,32 @@ import {
 } from '@/workspace/workspace-session';
 
 describe('Meta Graph v2 persistence', () => {
+	it('persists legend visibility without a graph rebuild and defaults old charts to visible', () => {
+		const document = createDefaultMetaGraphDocument(200, 1.5);
+		const initial = createWorkspaceState(200, 1.5, document);
+		expect(initial.showLegend).toBe(true);
+		const state = setShowLegendInState(initial, false);
+		expect(state.showLegend).toBe(false);
+		expect(setShowLegendInState(state, false)).toBe(state);
+		expect(
+			analyzeWorkspaceStateChanges(
+				state,
+				initial,
+				createWorkspaceRenderBaseline(initial),
+			),
+		).toMatchObject({ shouldRebuild: false, forceLayout: false });
+		for (const current of [state, setShowLegendInState(state, true)]) {
+			const saved = serializeWorkspaceStateV2(
+				current,
+				createPersistenceContextFromV1(document),
+			);
+			const parsed = parsePersistedMetaGraphDocumentV2(saved, 200, 1.5);
+			expect(
+				createWorkspaceState(200, 1.5, parsed.document).showLegend,
+			).toBe(current.showLegend);
+		}
+	});
+
 	it('round-trips label length and defaults old charts to unlimited', () => {
 		const document = createDefaultMetaGraphDocument(200, 1.5);
 		const initial = createWorkspaceState(200, 1.5, document);

@@ -52,6 +52,7 @@ import {
 	setFlowRelationRulesInState,
 	setFlowSpacingInState,
 	setForceLabelsInState,
+	setShowLegendInState,
 	setGraphForceSettingInState,
 	resetGraphForcesInState,
 	setGraphSpacingInState,
@@ -521,6 +522,10 @@ export class WorkspaceController {
 
 	setForceLabels(forceLabels: boolean): void {
 		this.setWorkspaceState(setForceLabelsInState(this.state, forceLabels));
+	}
+
+	setShowLegend(showLegend: boolean): void {
+		this.setWorkspaceState(setShowLegendInState(this.state, showLegend));
 	}
 
 	setEnableForceLayout(enableForceLayout: boolean): void {

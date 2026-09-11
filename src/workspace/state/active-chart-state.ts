@@ -43,6 +43,7 @@ type ActiveChartStateFields = Pick<
 	| 'cubeSize'
 	| 'cubeFreeCamera'
 	| 'forceLabels'
+	| 'showLegend'
 	| 'enableForceLayout'
 	| 'graphSpacing'
 	| 'graphCenterForce'
@@ -160,6 +161,7 @@ function createActiveChartStateFields(
 		cubeSize: chart.display.cubeSize,
 		cubeFreeCamera: chart.display.cubeFreeCamera,
 		forceLabels: chart.display.forceLabels,
+		showLegend: chart.display.showLegend,
 		enableForceLayout: chart.display.enableForceLayout,
 		graphSpacing: forceGraphType
 			? chart.layout.spacing

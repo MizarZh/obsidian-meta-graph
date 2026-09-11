@@ -34,6 +34,8 @@
 	{/if}
 	{#if panel === 'graph'}
 		<GraphSettingsPanel
+			showLegend={view.graph.showLegend}
+			onShowLegend={actions.graph.setShowLegend}
 			{app}
 			mode={view.graph.mode}
 			renderer={view.graph.renderer}

@@ -255,6 +255,13 @@ export function setForceLabelsInState(
 	return setDisplayValue(state, 'forceLabels', forceLabels);
 }
 
+export function setShowLegendInState(
+	state: WorkspaceState,
+	showLegend: boolean,
+): WorkspaceState {
+	return setDisplayValue(state, 'showLegend', showLegend);
+}
+
 export function setEnableForceLayoutInState(
 	state: WorkspaceState,
 	enableForceLayout: boolean,

@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Added a per-chart Show legend toggle in Graph settings, enabled by default. Visibility is saved with the chart and updates without rebuilding or relaying out the graph.
+
 - Group, Node, and Link settings now close when clicking outside both the settings panel and its floating editor. Removed the extra panel close button; the editor's close button still closes only the current entry.
 
 - Graph/Free group reordering skips graph reconstruction and relayout when definitions and resolved node ownership are unchanged; group overlays still synchronize. Rule-priority ownership changes and Flow/Arc/HEB ordering retain their existing rebuild behavior.

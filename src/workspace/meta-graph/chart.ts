@@ -118,6 +118,7 @@ export function createDefaultChart(
 			cubeFaceOpacity: DEFAULT_CUBE_FACE_OPACITY,
 			cubeSize: DEFAULT_CUBE_SIZE,
 			cubeFreeCamera: DEFAULT_CUBE_FREE_CAMERA,
+			showLegend: true,
 			forceLabels: DEFAULT_FORCE_LABELS,
 			enableForceLayout: false,
 			showInspector: true,
@@ -309,6 +310,10 @@ export function normalizeChart(
 			cubeFreeCamera: readBoolean(
 				display.cubeFreeCamera,
 				fallback.display.cubeFreeCamera,
+			),
+			showLegend: readBoolean(
+				display.showLegend,
+				fallback.display.showLegend,
 			),
 			forceLabels: readBoolean(
 				display.forceLabels,

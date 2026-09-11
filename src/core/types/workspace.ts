@@ -151,6 +151,7 @@ export interface ManualLayoutConfig {
 }
 
 export interface ChartDisplayConfig {
+	showLegend: boolean;
 	parallelEdgeStyle?: 'straight' | 'curve';
 	fadeDistance: number;
 	labelSize: number;
@@ -277,6 +278,7 @@ export interface WorkspaceState {
 	cubeFreeCamera: boolean;
 	forceLabels: boolean;
 	enableForceLayout: boolean;
+	showLegend: boolean;
 	graphSpacing: number;
 	graphCenterForce: number;
 	graphRepelForce: number;

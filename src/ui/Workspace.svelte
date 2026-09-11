@@ -1626,11 +1626,13 @@
 				: '0px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
-			<GraphLegend
-				state={workspaceState}
-				metadataFields={metadataFieldSuggestions}
-				metadataTypes={metadataFieldTypes}
-			/>
+			{#if workspaceState.showLegend}
+				<GraphLegend
+					state={workspaceState}
+					metadataFields={metadataFieldSuggestions}
+					metadataTypes={metadataFieldTypes}
+				/>
+			{/if}
 			{#if supportsPlanarRenderer(workspaceState.mode)}
 				<span
 					class="knowledge-workspace-renderer-indicator"

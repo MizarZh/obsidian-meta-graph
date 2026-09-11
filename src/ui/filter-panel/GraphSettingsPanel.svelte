@@ -24,6 +24,8 @@
 
 	let {
 		app,
+		showLegend,
+		onShowLegend,
 		mode,
 		renderer,
 		fadeDistance,
@@ -76,6 +78,8 @@
 		onChange,
 	}: {
 		app: App;
+		showLegend: boolean;
+		onShowLegend: (value: boolean) => void;
 		mode: ViewMode;
 		renderer: PlanarRendererKind;
 		fadeDistance: number;
@@ -290,6 +294,11 @@
 
 <section>
 	<header><h3>Graph settings</h3></header>
+	<ToggleSetting
+		label="Show legend"
+		value={showLegend}
+		onChange={onShowLegend}
+	/>
 	{#if supportsPlanarRenderer(mode)}
 		<SettingsSection title="Renderer">
 			<SegmentedSetting

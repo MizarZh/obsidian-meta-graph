@@ -169,6 +169,7 @@ export interface PersistedGroupV2 {
 }
 
 export interface PersistedDisplayV2 {
+	showLegend?: boolean;
 	fadeDistance: number;
 	labels?: {
 		size?: number;

@@ -36,6 +36,7 @@ export interface WorkspaceSettingsSuggestions {
 }
 
 export interface WorkspaceGraphSettingsView {
+	showLegend: boolean;
 	mode: ViewMode;
 	renderer: PlanarRendererKind;
 	fadeDistance: number;
@@ -127,6 +128,7 @@ type QueryPatch = Partial<Omit<GraphQuery, 'roots'>>;
 type StyleRuleScope = 'global' | 'current';
 
 export interface WorkspaceGraphSettingsActions {
+	setShowLegend(value: boolean): void;
 	setRenderer(value: PlanarRendererKind): void;
 	setFlowEdgeStyle(value: FlowEdgeStyle): void;
 	setParallelEdgeStyle(value: 'straight' | 'curve'): void;
@@ -224,6 +226,7 @@ export function createWorkspaceSettingsView(
 ): WorkspaceSettingsView {
 	return {
 		graph: {
+			showLegend: state.showLegend,
 			mode: state.mode,
 			renderer: state.renderer,
 			fadeDistance: state.fadeDistance,
@@ -324,6 +327,7 @@ export function createWorkspaceSettingsActions(
 	return {
 		graph: {
 			setRenderer: (value) => controller.setActiveChartRenderer(value),
+			setShowLegend: (value) => controller.setShowLegend(value),
 			resetGraphForces: () => controller.resetGraphForces(),
 			setFlowEdgeStyle: (value) => controller.setFlowEdgeStyle(value),
 			setParallelEdgeStyle: (value) =>
