@@ -18,6 +18,25 @@ function createGraph(nodeIds: string[]): RuntimeGraph {
 }
 
 describe('resolveCubeDisplayPositions', () => {
+	it('keeps face placement stable as timeline members hide and reappear', () => {
+		const graph = createGraph(['A', 'B', 'C']);
+		const readAttributes = graph.getNodeAttributes.bind(graph);
+		const hidden = new Set<string>();
+		graph.getNodeAttributes = (id) => ({
+			...readAttributes(id), hidden: hidden.has(String(id)),
+		});
+		const manual = {
+			nodes: { A: { x: 0.2, y: 0.3, groupId: 'cube-front' } },
+			groups: [],
+		};
+		const original = resolveCubeDisplayPositions(graph, manual);
+		for (const id of graph.nodes()) hidden.add(id);
+		expect(resolveCubeDisplayPositions(graph, manual)).toEqual(original);
+		hidden.delete('B');
+		expect(resolveCubeDisplayPositions(graph, manual)).toEqual(original);
+		hidden.clear();
+		expect(resolveCubeDisplayPositions(graph, manual)).toEqual(original);
+	});
 	it('keeps manual cube positions even when they overlap', () => {
 		const positions = resolveCubeDisplayPositions(createGraph(['A', 'B']), {
 			nodes: {

@@ -2,7 +2,7 @@
 
 ## Timeline
 
-Enable **Graph settings -> Overlays -> Timeline** in Graph 3D or a Sigma/G6 chart
+Enable **Graph settings -> Overlays -> Timeline** in Cube, Graph 3D, or a Sigma/G6 chart
 (Graph, Free, Flow, Arc, or HEB). The bottom bar selects creation time or modification time.
 Metadata properties do not participate. Missing file timestamps count as undated.
 
@@ -46,7 +46,10 @@ replay**: modification time is the latest file timestamp, and links always
 represent current relationships. Graph 3D uses the same playback controls;
 visibility updates reuse cached node positions but update the visible force
 simulation data, so newly revealed nodes can cause the layout to move.
-Cube is not supported. Hiding the timeline disables its visibility filter.
+Cube also supports the same controls and keeps its face assignments, manual
+positions, rotation, and camera. This initial Cube integration rebuilds node,
+label, and edge objects on visibility updates; high-speed playback on larger
+charts may be costly. Hiding the timeline disables its visibility filter.
 
 Meta Graph creates Markdown-backed graph workspaces from semantic relationships
 stored in Obsidian note properties. A graph workspace is an ordinary Markdown

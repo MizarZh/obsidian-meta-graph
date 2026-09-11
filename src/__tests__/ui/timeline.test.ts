@@ -196,14 +196,11 @@ describe('timeline', () => {
 		expect(preview.projection!.nodes).toBe(state.projection!.nodes);
 		expect(preview.projection!.edges).toBe(state.projection!.edges);
 		expect(applyTimeline(state)).toBe(state);
-		for (const mode of ['cube'] as const) {
-			const spatial = { ...state, mode };
-			expect(applyTimeline(spatial, config)).toBe(spatial);
-		}
 	});
 	it.each([
 		'graph',
 		'graph-3d',
+		'cube',
 		'free',
 		'flow',
 		'arc',

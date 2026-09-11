@@ -7,7 +7,7 @@ import type {
 } from '@/core/types';
 
 export function supportsTimeline(mode: ViewMode): boolean {
-	return supportsPlanarRenderer(mode) || mode === 'graph-3d';
+	return supportsPlanarRenderer(mode) || mode === 'graph-3d' || mode === 'cube';
 }
 
 export function normalizeTimeline(value?: unknown): TimelineConfig {
