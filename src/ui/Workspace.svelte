@@ -104,7 +104,11 @@
 	import WorkspaceMainPanels from '@/ui/workspace/WorkspaceMainPanels.svelte';
 	import GraphLegend from '@/ui/workspace/GraphLegend.svelte';
 	import GraphTimeline from '@/ui/workspace/GraphTimeline.svelte';
-	import { applyTimeline, timelineConfigKey } from '@/graph/timeline';
+	import {
+		applyTimeline,
+		timelineConfigKey,
+		supportsTimeline,
+	} from '@/graph/timeline';
 	import type { TimelineConfig } from '@/core/types';
 	import GraphLoadingOverlay from '@/ui/workspace/GraphLoadingOverlay.svelte';
 	import {
@@ -1761,7 +1765,7 @@
 			class:dock-node-dragging={Boolean(dockDrag)}
 			class:connection-collapsed={!connectionOpen}
 			class:timeline-visible={workspaceState.timeline.enabled &&
-				supportsPlanarRenderer(workspaceState.mode)}
+				supportsTimeline(workspaceState.mode)}
 			style="--dock-panel-width: {dockOpen
 				? `${workspaceState.dock.dockWidth}px`
 				: '32px'}; --curated-panel-width: {curatedPanelOpen
@@ -1771,7 +1775,7 @@
 				: '0px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
-			{#if workspaceState.timeline.enabled && supportsPlanarRenderer(workspaceState.mode)}
+			{#if workspaceState.timeline.enabled && supportsTimeline(workspaceState.mode)}
 				{#key `${workspaceState.activeChartId}:${workspaceState.mode}:${workspaceState.chartSource}`}
 					{@const chartId = workspaceState.activeChartId}
 					<GraphTimeline

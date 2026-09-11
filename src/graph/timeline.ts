@@ -2,8 +2,13 @@ import { supportsPlanarRenderer } from '@/core/types';
 import type {
 	KnowledgeNode,
 	TimelineConfig,
+	ViewMode,
 	WorkspaceState,
 } from '@/core/types';
+
+export function supportsTimeline(mode: ViewMode): boolean {
+	return supportsPlanarRenderer(mode) || mode === 'graph-3d';
+}
 
 export function normalizeTimeline(value?: unknown): TimelineConfig {
 	const v =
@@ -36,8 +41,11 @@ export function normalizeTimeline(value?: unknown): TimelineConfig {
 		);
 	return {
 		enabled: v.enabled === true,
-		speed: typeof v.speed === 'number' && [0.25, 0.5, 1, 2, 4].includes(v.speed)
-			? v.speed : 1,
+		speed:
+			typeof v.speed === 'number' &&
+			[0.25, 0.5, 1, 2, 4].includes(v.speed)
+				? v.speed
+				: 1,
 		field: v.field === 'modified' ? 'modified' : 'created',
 		start,
 		end,
@@ -211,11 +219,7 @@ export function applyTimeline(
 	state: WorkspaceState,
 	config = state.timeline,
 ): WorkspaceState {
-	if (
-		!config.enabled ||
-		!state.projection ||
-		!supportsPlanarRenderer(state.mode)
-	)
+	if (!config.enabled || !state.projection || !supportsTimeline(state.mode))
 		return state;
 	const index = indexTimeline(state.projection.nodes, config.field);
 	const [start, rangeEnd] = timelineRange(config, index);

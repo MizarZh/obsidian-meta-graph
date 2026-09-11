@@ -2,8 +2,8 @@
 
 ## Timeline
 
-Enable **Graph settings -> Show timeline** in a Sigma or G6 chart (Graph, Free,
-Flow, Arc, or HEB). The bottom bar selects creation time or modification time.
+Enable **Graph settings -> Overlays -> Timeline** in Graph 3D or a Sigma/G6 chart
+(Graph, Free, Flow, Arc, or HEB). The bottom bar selects creation time or modification time.
 Metadata properties do not participate. Missing file timestamps count as undated.
 
 Choose the From/To dates directly on the bar. Dates use local time; the To date
@@ -38,13 +38,15 @@ ordered by name, and also appear one per tick. Their placement at To is only a
 playback convention; no creation time is invented or written to the note.
 
 Filtering changes visibility only: it does not change Query/Curated membership,
-write notes, restart layout, or auto-fit. Existing hidden nodes and links stay
+write notes, or auto-fit. Planar charts do not restart layout. Existing hidden nodes and links stay
 hidden. Positions and layout-owned group regions remain stable, so empty space
 can remain; dynamic Graph group outlines follow visible members. An already
 running force simulation is not paused by the timeline. This is **not historical
 replay**: modification time is the latest file timestamp, and links always
-represent current relationships. Graph 3D/Cube are not supported in this first
-version. Hiding the timeline disables its visibility filter.
+represent current relationships. Graph 3D uses the same playback controls;
+visibility updates reuse cached node positions but update the visible force
+simulation data, so newly revealed nodes can cause the layout to move.
+Cube is not supported. Hiding the timeline disables its visibility filter.
 
 Meta Graph creates Markdown-backed graph workspaces from semantic relationships
 stored in Obsidian note properties. A graph workspace is an ordinary Markdown

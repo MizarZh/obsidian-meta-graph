@@ -9,7 +9,7 @@
 	import FlowRelationRules from '@/ui/filter-panel/FlowRelationRules.svelte';
 	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
 	import { MAX_FLOW_CORNER_RADIUS } from '@/workspace/meta-graph-model';
-	import { supportsPlanarRenderer } from '@/core/types';
+	import { supportsTimeline } from '@/graph/timeline';
 	import type {
 		ArcDirection,
 		FlowDirection,
@@ -296,7 +296,7 @@
 				value={showLegend}
 				onChange={onShowLegend}
 			/>
-			{#if supportsPlanarRenderer(mode)}
+			{#if supportsTimeline(mode)}
 				<ToggleSetting
 					label="Timeline"
 					ariaLabel="Show timeline"

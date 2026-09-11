@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Enabled Timeline for Graph 3D with shared date/Per node playback, speed, range, and progress controls. Visibility updates use the existing 3D data synchronization and cached positions without workspace rebuilds or auto-fit; visible force simulation data changes may move the layout. Cube remains unsupported.
+
 - Grouped Legend and Timeline toggles on one row under an Overlays heading in Graph settings.
 
 - Removed the duplicate Renderer control from Graph settings. Renderer selection remains available in Configure view; saved renderer choices are unchanged.

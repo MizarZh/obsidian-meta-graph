@@ -1,4 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import Graph from 'graphology';
+import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
+import {
+	toForce3DData,
+	syncForce3DDataStyles,
+} from '@/graph/renderers/force-3d/force-3d-data';
+import { syncWorkspaceRuntimeGraphVisibility } from '@/ui/workspace/runtime-graph';
 import type { GraphProjection, KnowledgeNode } from '@/core/types';
 import {
 	advanceTimeline,
@@ -44,6 +51,64 @@ function initial() {
 }
 
 describe('timeline', () => {
+	it('reveals 3D nodes and links incrementally and reuses cached spatial positions', () => {
+		const state = { ...initial(), mode: 'graph-3d' as const };
+		const graph = new Graph() as RuntimeGraph;
+		for (const node of nodes) {
+			graph.addNode(node.id, {
+				label: node.title,
+				path: node.path,
+				x: 0,
+				y: 0,
+				size: 5,
+				color: '#000',
+				folder: '',
+				tags: [],
+				domains: [],
+			});
+		}
+		graph.addEdgeWithKey('bc', 'b', 'c', {
+			relation: 'related',
+			forceLabel: false,
+			lineStyle: 'solid',
+			size: 1,
+			color: '#000',
+			label: '',
+			type: 'line',
+			hidden: false,
+		});
+		const seek = (nodeCount: number) => {
+			const next = applyTimeline(
+				state,
+				normalizeTimeline({
+					enabled: true,
+					step: 'node',
+					nodeCount,
+				}),
+			);
+			syncWorkspaceRuntimeGraphVisibility(graph, next.projection!);
+		};
+		seek(0);
+		const empty = toForce3DData(graph);
+		expect(empty).toEqual({ nodes: [], links: [] });
+		seek(1);
+		expect(syncForce3DDataStyles(graph, empty).nodeVisibilityChanged).toBe(
+			true,
+		);
+		const first = toForce3DData(graph);
+		expect(first.nodes.map((node) => node.id)).toEqual(['b']);
+		expect(first.links).toHaveLength(0);
+		Object.assign(first.nodes[0]!, { x: 10, y: 20, z: 30 });
+		const cache = new Map(first.nodes.map((node) => [node.id, node]));
+		seek(2);
+		const second = toForce3DData(graph, cache);
+		expect(second.nodes.map((node) => node.id)).toEqual(['b', 'c']);
+		expect(second.links.map((link) => link.id)).toEqual(['bc']);
+		expect(second.nodes[0]).toBe(first.nodes[0]);
+		expect(second.nodes[0]).toMatchObject({ x: 10, y: 20, z: 30 });
+		seek(0);
+		expect(toForce3DData(graph, cache)).toEqual({ nodes: [], links: [] });
+	});
 	it('normalizes old/malformed settings and reversed bounds', () => {
 		expect(normalizeTimeline()).toEqual({
 			enabled: false,
@@ -131,13 +196,14 @@ describe('timeline', () => {
 		expect(preview.projection!.nodes).toBe(state.projection!.nodes);
 		expect(preview.projection!.edges).toBe(state.projection!.edges);
 		expect(applyTimeline(state)).toBe(state);
-		for (const mode of ['cube', 'graph-3d'] as const) {
+		for (const mode of ['cube'] as const) {
 			const spatial = { ...state, mode };
 			expect(applyTimeline(spatial, config)).toBe(spatial);
 		}
 	});
 	it.each([
 		'graph',
+		'graph-3d',
 		'free',
 		'flow',
 		'arc',
