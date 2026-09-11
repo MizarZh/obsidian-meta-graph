@@ -27,7 +27,9 @@
 		onClose: () => void;
 	} = $props();
 	const stylePanel = $derived(
-		settingsPanel === 'note-style' || settingsPanel === 'link-style',
+		settingsPanel === 'note-style' ||
+			settingsPanel === 'link-style' ||
+			settingsPanel === 'groups',
 	);
 </script>
 

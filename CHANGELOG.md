@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Group cards support drag-to-reorder with before/after drop indicators, applying each drop as one state update. Read-only and fixed system groups remain locked.
+
+- Group settings use compact cards with name, color, member count, and membership mode. Clicking a card opens one adjacent floating editor; ordering stays on the cards, with existing group permissions and settings preserved.
+
 - Fixed the legend touching the right panel by accounting for the panel's own inset before adding the legend gap.
 
 - Added a collapsible canvas legend for default and Global/Chart node/link styles. Previews match style cards; custom rule names take priority, with matching conditions used as automatic names and hover details. Legend updates live without affecting the graph.

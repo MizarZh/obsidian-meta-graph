@@ -200,7 +200,7 @@ export interface WorkspaceGroupSettingsActions {
 	add(): void;
 	update(groupId: string, patch: Partial<ChartGroup>): void;
 	delete(groupId: string): void;
-	reorder(groupId: string, direction: -1 | 1): void;
+	reorder(groupId: string, offset: number): void;
 }
 
 export interface WorkspaceSettingsActions {

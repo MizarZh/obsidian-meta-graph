@@ -302,6 +302,28 @@ describe('workspace manual layout state', () => {
 		expect(nextState.grouping.overrides['A.md']).toBe(group.id);
 	});
 
+	it('moves groups across multiple positions in one update', () => {
+		let state = createWorkspaceState(100);
+		for (let i = 0; i < 4; i++) state = addGroupInState(state);
+		const ids = state.grouping.groups.map((group) => group.id);
+		const source = ids[0]!;
+		const moved = reorderGroupInState(state, source, 3);
+		expect(moved.grouping.groups.map((group) => group.id)).toEqual([
+			...ids.slice(1),
+			source,
+		]);
+		expect(
+			reorderGroupInState(moved, source, -3).grouping.groups.map(
+				(group) => group.id,
+			),
+		).toEqual(ids);
+		expect(moved.manualLayout).toEqual(state.manualLayout);
+		for (const offset of [0, -1, 4, 0.5, NaN, Infinity]) {
+			expect(reorderGroupInState(state, source, offset)).toBe(state);
+		}
+		expect(reorderGroupInState(state, 'missing', 1)).toBe(state);
+	});
+
 	it('reorders chart groups as their conflict priority', () => {
 		let state = addGroupInState(createWorkspaceState(100));
 		state = addGroupInState(state);

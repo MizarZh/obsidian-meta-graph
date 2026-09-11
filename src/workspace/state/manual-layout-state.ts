@@ -367,7 +367,7 @@ export function moveNodesToGroupInState(
 export function reorderGroupInState(
 	state: WorkspaceState,
 	groupId: string,
-	direction: -1 | 1,
+	offset: number,
 ): WorkspaceState {
 	const activeChart = getActiveChart(state);
 	if (activeChart.type === 'cube') {
@@ -376,8 +376,10 @@ export function reorderGroupInState(
 	const index = activeChart.grouping.groups.findIndex(
 		(group) => group.id === groupId,
 	);
-	const targetIndex = index + direction;
+	const targetIndex = index + offset;
 	if (
+		!Number.isInteger(offset) ||
+		offset === 0 ||
 		index < 0 ||
 		targetIndex < 0 ||
 		targetIndex >= activeChart.grouping.groups.length

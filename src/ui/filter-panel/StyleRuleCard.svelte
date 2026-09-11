@@ -187,12 +187,14 @@
 >
 	{#if onMoveUp && onMoveDown}
 		<div class="knowledge-workspace-style-card-order">
-			<span
-				class="knowledge-workspace-style-drag-handle"
-				draggable="true"
-				title="Drag to reorder rule"
-				aria-label="Drag to reorder rule">⠿</span
-			>
+			{#if ruleId && dragScope}
+				<span
+					class="knowledge-workspace-style-drag-handle"
+					draggable="true"
+					title="Drag to reorder"
+					aria-label={`Drag to reorder ${title}`}>⠿</span
+				>
+			{/if}
 			<ObsidianButton
 				icon="chevron-up"
 				ariaLabel={`Move ${title} up`}

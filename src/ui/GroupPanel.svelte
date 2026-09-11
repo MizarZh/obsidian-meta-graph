@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
 	import { onMount } from 'svelte';
+	import { createRuleId } from '@/core/rule-id';
+	import { reorderRuleAtTarget } from '@/ui/filter/filter-style-rules';
 	import type {
 		ChartGroup,
 		ChartGroupDefinition,
@@ -14,6 +16,7 @@
 	import { resolveChartGroupOwnership } from '@/query/group-ownership';
 	import { ThrottledCommitScheduler } from '@/ui/filter/deferred-commit';
 	import NoteFilterEditor from '@/ui/notes/NoteFilterEditor.svelte';
+	import StyleRuleCard from '@/ui/filter-panel/StyleRuleCard.svelte';
 	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
 	import ObsidianTextInput from '@/ui/obsidian/ObsidianTextInput.svelte';
 	import SettingGrid from '@/ui/settings/SettingGrid.svelte';
@@ -49,7 +52,7 @@
 		onAddGroup: () => void;
 		onUpdateGroup: (groupId: string, patch: Partial<ChartGroup>) => void;
 		onDeleteGroup: (groupId: string) => void;
-		onReorderGroup: (groupId: string, direction: -1 | 1) => void;
+		onReorderGroup: (groupId: string, offset: number) => void;
 	} = $props();
 
 	const MODE_OPTIONS = [
@@ -91,6 +94,48 @@
 	const PADDING_COMMIT_INTERVAL_MS = 120;
 	let paddingCommitScheduler: ThrottledCommitScheduler | undefined;
 	let paddingPreviews = $state<Record<string, number>>({});
+	let editingGroupId = $state('');
+	const dragScope = createRuleId();
+
+	function dropGroup(
+		sourceId: string,
+		targetId: string,
+		after: boolean,
+	): void {
+		if (disabled || !chartCapabilities.canReorder) return;
+		const ordered = reorderRuleAtTarget(groups, sourceId, targetId, after);
+		if (ordered === groups) return;
+		const offset =
+			ordered.findIndex((group) => group.id === sourceId) -
+			groups.findIndex((group) => group.id === sourceId);
+		if (offset) onReorderGroup(sourceId, offset);
+	}
+
+	function closeEditor(): void {
+		const group = groups.find((item) => item.id === editingGroupId);
+		if (group && paddingPreviews[group.id] !== undefined) {
+			commitPadding(group, readPadding(group));
+		}
+		editingGroupId = '';
+	}
+
+	function deleteGroup(groupId: string): void {
+		paddingCommitScheduler?.clear(paddingCommitKey(groupId));
+		delete paddingPreviews[groupId];
+		editingGroupId = '';
+		onDeleteGroup(groupId);
+	}
+
+	function groupSummary(group: ChartGroupDefinition): string {
+		const membership =
+			group.mode === 'rule'
+				? 'Rule-based'
+				: group.mode === 'system'
+					? 'System'
+					: 'Manual assignment';
+		const conflicts = conflictCounts.get(group.id) ?? 0;
+		return `${memberCounts.get(group.id) ?? 0} nodes · ${membership}${conflicts ? ` · ${conflicts} conflicts` : ''}`;
+	}
 
 	onMount(() => {
 		paddingCommitScheduler = new ThrottledCommitScheduler(
@@ -257,217 +302,241 @@
 			<div class="knowledge-workspace-group-list">
 				{#each groups as group, index (group.id)}
 					{@const geometry = groupFramesById.get(group.id)}
-					<article class="knowledge-workspace-group-card">
-						<header>
-							<label class="knowledge-workspace-group-name">
-								<span
-									class="knowledge-workspace-group-color-dot"
-									style:--knowledge-workspace-group-color={group.color}
-									aria-hidden="true"
-								></span>
-								<ObsidianTextInput
-									value={group.name}
-									ariaLabel="Group name"
-									disabled={identityDisabled}
-									onChange={(value) =>
-										onUpdateGroup(group.id, {
-											name: value,
-										})}
-								/>
-							</label>
-							{#if chartCapabilities.canReorder || chartCapabilities.canDelete}
-								<div class="knowledge-workspace-group-actions">
-									{#if chartCapabilities.canReorder}
-										<ObsidianButton
-											icon="arrow-up"
-											ariaLabel={`Move ${group.name} up`}
-											tooltip="Move up"
-											disabled={disabled || index === 0}
-											onClick={() =>
-												onReorderGroup(group.id, -1)}
-										/>
-										<ObsidianButton
-											icon="arrow-down"
-											ariaLabel={`Move ${group.name} down`}
-											tooltip="Move down"
-											disabled={disabled ||
-												index === groups.length - 1}
-											onClick={() =>
-												onReorderGroup(group.id, 1)}
-										/>
-									{/if}
-									{#if chartCapabilities.canDelete}
-										<ObsidianButton
-											icon="trash-2"
-											class="knowledge-workspace-group-delete"
-											ariaLabel={`Delete ${group.name}`}
-											tooltip="Delete group"
-											{disabled}
-											destructive={true}
-											onClick={() =>
-												onDeleteGroup(group.id)}
-										/>
-									{/if}
-								</div>
-							{/if}
-						</header>
-
-						<div class="knowledge-workspace-group-meta">
-							<span>{memberCounts.get(group.id) ?? 0} nodes</span>
-							<span
-								>{group.mode === 'rule'
-									? 'Rule-based'
-									: group.mode === 'system'
-										? 'System'
-										: 'Manual assignment'}</span
-							>
-							{#if (conflictCounts.get(group.id) ?? 0) > 0}
-								<span
-									>{conflictCounts.get(group.id)} conflicts</span
-								>
-							{/if}
-						</div>
-
-						<div class="knowledge-workspace-group-settings">
-							<SettingGrid
-								columns={1 +
-									Number(modeEditable) +
-									Number(shapeEditable)}
-								density="compact"
-								class="knowledge-workspace-group-primary-settings"
-							>
-								<ColorSetting
-									label="Color"
-									layout="stacked"
-									value={group.color}
-									commitKey={`group:${group.id}:color`}
-									ariaLabel={`${group.name} color`}
-									disabled={appearanceDisabled}
-									onChange={(color) =>
-										onUpdateGroup(group.id, { color })}
-								/>
-								{#if modeEditable}
-									<DropdownSetting
-										label="Membership"
-										layout="stacked"
-										value={manualModeAllowed
-											? group.mode
-											: 'rule'}
-										options={modeOptions}
-										{disabled}
+					<StyleRuleCard
+						ruleId={!disabled && chartCapabilities.canReorder
+							? group.id
+							: undefined}
+						{dragScope}
+						onDropRule={!disabled && chartCapabilities.canReorder
+							? (sourceId, after) =>
+									dropGroup(sourceId, group.id, after)
+							: undefined}
+						title={group.name || 'Unnamed group'}
+						summary={groupSummary(group)}
+						color={group.color}
+						nodeShape={group.shape === 'rectangle'
+							? 'square'
+							: 'circle'}
+						open={editingGroupId === group.id}
+						onOpen={() => {
+							closeEditor();
+							editingGroupId = group.id;
+						}}
+						onClose={closeEditor}
+						canMoveUp={!disabled && index > 0}
+						canMoveDown={!disabled && index < groups.length - 1}
+						onMoveUp={chartCapabilities.canReorder
+							? () => onReorderGroup(group.id, -1)
+							: undefined}
+						onMoveDown={chartCapabilities.canReorder
+							? () => onReorderGroup(group.id, 1)
+							: undefined}
+					>
+						<article
+							class="knowledge-workspace-group-card"
+							inert={disabled}
+						>
+							<header>
+								<label class="knowledge-workspace-group-name">
+									<span
+										class="knowledge-workspace-group-color-dot"
+										style:--knowledge-workspace-group-color={group.color}
+										aria-hidden="true"
+									></span>
+									<ObsidianTextInput
+										value={group.name}
+										ariaLabel="Group name"
+										disabled={identityDisabled}
 										onChange={(value) =>
-											updateMode(group, value)}
+											onUpdateGroup(group.id, {
+												name: value,
+											})}
 									/>
+								</label>
+								{#if chartCapabilities.canDelete}
+									<div
+										class="knowledge-workspace-group-actions"
+									>
+										{#if chartCapabilities.canDelete}
+											<ObsidianButton
+												icon="trash-2"
+												class="knowledge-workspace-group-delete"
+												ariaLabel={`Delete ${group.name}`}
+												tooltip="Delete group"
+												{disabled}
+												destructive={true}
+												onClick={() =>
+													deleteGroup(group.id)}
+											/>
+										{/if}
+									</div>
 								{/if}
-								{#if shapeEditable}
-									<SegmentedSetting
-										label="Shape"
-										value={group.shape ?? 'auto'}
-										options={SHAPE_OPTIONS}
-										disabled={appearanceDisabled}
-										onChange={(shape) =>
-											updateShape(group, shape)}
-									/>
+							</header>
+
+							<div class="knowledge-workspace-group-meta">
+								<span
+									>{memberCounts.get(group.id) ?? 0} nodes</span
+								>
+								<span
+									>{group.mode === 'rule'
+										? 'Rule-based'
+										: group.mode === 'system'
+											? 'System'
+											: 'Manual assignment'}</span
+								>
+								{#if (conflictCounts.get(group.id) ?? 0) > 0}
+									<span
+										>{conflictCounts.get(group.id)} conflicts</span
+									>
 								{/if}
-							</SettingGrid>
-							<SliderSetting
-								label="Padding"
-								value={readPadding(group)}
-								min={0}
-								max={5}
-								step={0.05}
-								format={formatPadding}
-								disabled={appearanceDisabled}
-								onChange={(value) =>
-									schedulePadding(group, value)}
-								onCommit={(value) =>
-									commitPadding(group, value)}
-							/>
-							{#if geometryEditable && geometry}
+							</div>
+
+							<div class="knowledge-workspace-group-settings">
 								<SettingGrid
-									columns={group.shape === 'circle' ? 3 : 4}
-									class="knowledge-workspace-group-geometry"
+									columns={1 +
+										Number(modeEditable) +
+										Number(shapeEditable)}
+									density="compact"
+									class="knowledge-workspace-group-primary-settings"
 								>
-									<TextSetting
-										label="X"
+									<ColorSetting
+										label="Color"
 										layout="stacked"
-										type="number"
-										value={geometry.x}
-										step="0.1"
-										{disabled}
-										onChange={(value) =>
-											updateNumber(group, 'x', value)}
+										value={group.color}
+										commitKey={`group:${group.id}:color`}
+										ariaLabel={`${group.name} color`}
+										disabled={appearanceDisabled}
+										onChange={(color) =>
+											onUpdateGroup(group.id, { color })}
 									/>
-									<TextSetting
-										label="Y"
-										layout="stacked"
-										type="number"
-										value={geometry.y}
-										step="0.1"
-										{disabled}
-										onChange={(value) =>
-											updateNumber(group, 'y', value)}
-									/>
-									{#if group.shape === 'circle'}
-										<TextSetting
-											label="Diameter"
+									{#if modeEditable}
+										<DropdownSetting
+											label="Membership"
 											layout="stacked"
-											type="number"
-											min="0.8"
-											step="0.1"
-											value={geometry.width}
+											value={manualModeAllowed
+												? group.mode
+												: 'rule'}
+											options={modeOptions}
 											{disabled}
 											onChange={(value) =>
-												updateDiameter(group, value)}
+												updateMode(group, value)}
 										/>
-									{:else}
-										<TextSetting
-											label="Width"
-											layout="stacked"
-											type="number"
-											min="0.8"
-											step="0.1"
-											value={geometry.width}
-											{disabled}
-											onChange={(value) =>
-												updateNumber(
-													group,
-													'width',
-													value,
-												)}
-										/>
-										<TextSetting
-											label="Height"
-											layout="stacked"
-											type="number"
-											min="0.6"
-											step="0.1"
-											value={geometry.height}
-											{disabled}
-											onChange={(value) =>
-												updateNumber(
-													group,
-													'height',
-													value,
-												)}
+									{/if}
+									{#if shapeEditable}
+										<SegmentedSetting
+											label="Shape"
+											value={group.shape ?? 'auto'}
+											options={SHAPE_OPTIONS}
+											disabled={appearanceDisabled}
+											onChange={(shape) =>
+												updateShape(group, shape)}
 										/>
 									{/if}
 								</SettingGrid>
-							{/if}
-						</div>
+								<SliderSetting
+									label="Padding"
+									value={readPadding(group)}
+									min={0}
+									max={5}
+									step={0.05}
+									format={formatPadding}
+									disabled={appearanceDisabled}
+									onChange={(value) =>
+										schedulePadding(group, value)}
+									onCommit={(value) =>
+										commitPadding(group, value)}
+								/>
+								{#if geometryEditable && geometry}
+									<SettingGrid
+										columns={group.shape === 'circle'
+											? 3
+											: 4}
+										class="knowledge-workspace-group-geometry"
+									>
+										<TextSetting
+											label="X"
+											layout="stacked"
+											type="number"
+											value={geometry.x}
+											step="0.1"
+											{disabled}
+											onChange={(value) =>
+												updateNumber(group, 'x', value)}
+										/>
+										<TextSetting
+											label="Y"
+											layout="stacked"
+											type="number"
+											value={geometry.y}
+											step="0.1"
+											{disabled}
+											onChange={(value) =>
+												updateNumber(group, 'y', value)}
+										/>
+										{#if group.shape === 'circle'}
+											<TextSetting
+												label="Diameter"
+												layout="stacked"
+												type="number"
+												min="0.8"
+												step="0.1"
+												value={geometry.width}
+												{disabled}
+												onChange={(value) =>
+													updateDiameter(
+														group,
+														value,
+													)}
+											/>
+										{:else}
+											<TextSetting
+												label="Width"
+												layout="stacked"
+												type="number"
+												min="0.8"
+												step="0.1"
+												value={geometry.width}
+												{disabled}
+												onChange={(value) =>
+													updateNumber(
+														group,
+														'width',
+														value,
+													)}
+											/>
+											<TextSetting
+												label="Height"
+												layout="stacked"
+												type="number"
+												min="0.6"
+												step="0.1"
+												value={geometry.height}
+												{disabled}
+												onChange={(value) =>
+													updateNumber(
+														group,
+														'height',
+														value,
+													)}
+											/>
+										{/if}
+									</SettingGrid>
+								{/if}
+							</div>
 
-						{#if group.mode === 'rule'}
-							<NoteFilterEditor
-								{app}
-								{nodes}
-								{folders}
-								filterRoot={group.rule ??
-									createEmptyRule(group.id)}
-								onChange={(rule) =>
-									onUpdateGroup(group.id, { rule })}
-							/>
-						{/if}
-					</article>
+							{#if group.mode === 'rule'}
+								<NoteFilterEditor
+									{app}
+									{nodes}
+									{folders}
+									filterRoot={group.rule ??
+										createEmptyRule(group.id)}
+									onChange={(rule) =>
+										onUpdateGroup(group.id, { rule })}
+								/>
+							{/if}
+						</article>
+					</StyleRuleCard>
 				{/each}
 			</div>
 		{/if}

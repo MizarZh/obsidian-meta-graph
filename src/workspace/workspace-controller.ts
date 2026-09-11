@@ -545,9 +545,9 @@ export class WorkspaceController {
 		);
 	}
 
-	reorderGroup(groupId: string, direction: -1 | 1): void {
+	reorderGroup(groupId: string, offset: number): void {
 		this.setWorkspaceState(
-			reorderGroupInState(this.state, groupId, direction),
+			reorderGroupInState(this.state, groupId, offset),
 		);
 	}
 
