@@ -91,7 +91,7 @@ export async function createSvgExport(input: {
 		project,
 		visualScale,
 		labelSize,
-		theme.textColor,
+		palette.background ?? '#ffffff',
 	);
 	for (const edge of logicalExportEdges(
 		graph,
@@ -397,7 +397,7 @@ function drawGroups(
 	project: Project,
 	scale: number,
 	labelSize: number,
-	textColor: string,
+	background: string,
 ): void {
 	const drawn = new Set<string>();
 	const frame = (
@@ -409,6 +409,8 @@ function drawGroups(
 		width: number,
 		height: number,
 		circle = false,
+		titleCenter?: GraphPosition,
+		flow = false,
 	) => {
 		if (drawn.has(id)) return;
 		drawn.add(id);
@@ -437,13 +439,32 @@ function drawGroups(
 				{ x, y, width, height, rx: 6, ...style },
 				group,
 			);
-		draw.text(name, x + 8, y + labelSize, labelSize, textColor, group);
+		draw.capsule(
+			name,
+			titleCenter ?? { x: x + width / 2, y: y + 12 },
+			color,
+			background,
+			group,
+			flow
+				? {
+						size: labelSize,
+						bold: state.labelBold,
+						italic: state.labelItalic,
+					}
+				: undefined,
+		);
 	};
 	const graphFrame = (
 		id: string,
 		name: string,
 		color: string,
-		rect: { x: number; y: number; width: number; height: number },
+		rect: {
+			x: number;
+			y: number;
+			width: number;
+			height: number;
+			titleBandHeight?: number;
+		},
 		circle = false,
 	) => {
 		const a = project(rect),
@@ -457,6 +478,13 @@ function drawGroups(
 			Math.abs(b.x - a.x),
 			Math.abs(b.y - a.y),
 			circle,
+			rect.titleBandHeight
+				? project({
+						x: rect.x + rect.width / 2,
+						y: rect.y + rect.height - rect.titleBandHeight / 2,
+					})
+				: undefined,
+			Boolean(rect.titleBandHeight),
 		);
 	};
 	if (state.mode === 'free')
@@ -527,12 +555,11 @@ function drawGroups(
 				group,
 			);
 			const point = points[32]!;
-			draw.text(
+			draw.capsule(
 				geometry.name,
-				point.x,
-				point.y,
-				labelSize,
-				textColor,
+				point,
+				geometry.color,
+				background,
 				group,
 			);
 		} else {

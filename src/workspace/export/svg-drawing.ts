@@ -6,6 +6,19 @@ import {
 	getRotatedNodeLabelBox,
 } from '@/graph/renderers/sigma/sigma-label-geometry';
 import type { ResolvedLabelStyle } from '@/graph/renderers/renderer-label-style';
+import {
+	GROUP_TITLE_FONT_SIZE,
+	GROUP_TITLE_FONT_WEIGHT,
+	GROUP_TITLE_HEIGHT,
+	GROUP_TITLE_HORIZONTAL_PADDING,
+	GROUP_TITLE_BACKGROUND_OPACITY,
+	GROUP_TITLE_STROKE_OPACITY,
+} from '@/graph/renderers/group-visual-style';
+import {
+	getFlowGroupTitleWidth,
+	FLOW_GROUP_TITLE_FONT_SIZE,
+	FLOW_GROUP_TITLE_HEIGHT,
+} from '@/layouts/flow-group-frame';
 
 const namespace = 'http://www.w3.org/2000/svg';
 
@@ -42,6 +55,59 @@ export class SvgDrawing {
 		this.context.fillStyle = '#000000';
 		this.context.fillStyle = value;
 		return this.context.fillStyle;
+	}
+
+	capsule(
+		name: string,
+		center: GraphPosition,
+		color: string,
+		background: string,
+		parent: Element,
+		flow?: { size: number; bold: boolean; italic: boolean },
+	): void {
+		const scale = flow ? flow.size / FLOW_GROUP_TITLE_FONT_SIZE : 1;
+		const size = flow ? FLOW_GROUP_TITLE_FONT_SIZE : GROUP_TITLE_FONT_SIZE;
+		const weight = flow ? (flow.bold ? 600 : 400) : GROUP_TITLE_FONT_WEIGHT;
+		const fontStyle = flow?.italic ? 'italic' : 'normal';
+		this.context.font = `${fontStyle} ${weight} ${size}px ${this.fontFamily}`;
+		const measured = this.context.measureText(name).width;
+		const width = flow
+			? getFlowGroupTitleWidth(name, measured)
+			: Math.min(220, measured + GROUP_TITLE_HORIZONTAL_PADDING + 2);
+		const height = flow ? FLOW_GROUP_TITLE_HEIGHT : GROUP_TITLE_HEIGHT + 2;
+		const label = truncateLabel(
+			name,
+			width - (flow ? 18 : GROUP_TITLE_HORIZONTAL_PADDING + 2),
+			(value) => this.context.measureText(value).width,
+		);
+		const group = this.element(
+			'g',
+			{
+				'data-group-title': name,
+				transform: `translate(${center.x} ${center.y}) scale(${scale})`,
+			},
+			parent,
+		);
+		this.element(
+			'rect',
+			{
+				x: -width / 2,
+				y: -height / 2,
+				width,
+				height,
+				rx: height / 2,
+				fill: this.color(background),
+				'fill-opacity': flow ? 1 : GROUP_TITLE_BACKGROUND_OPACITY,
+				stroke: this.color(color),
+				'stroke-opacity': flow ? 1 : GROUP_TITLE_STROKE_OPACITY,
+				'stroke-width': 1,
+			},
+			group,
+		);
+		const text = this.text(label, 0, 0, size, color, group);
+		text.setAttribute('text-anchor', 'middle');
+		text.setAttribute('font-weight', String(weight));
+		text.setAttribute('font-style', fontStyle);
 	}
 
 	text(

@@ -235,7 +235,10 @@ export async function createPngExport(input: {
 			if (copy && isPlanarRenderer(copy) && viewport)
 				await copy.prepareExport!(viewport, options.scale);
 			check();
-			const snapshot = snapshotElement(host) as HTMLElement;
+			const snapshot = snapshotElement(
+				host,
+				options.scale,
+			) as HTMLElement;
 			// Detached SVG content cannot resolve the workspace stylesheet.
 			// eslint-disable-next-line obsidianmd/no-static-styles-assignment -- Exported SVG requires inline positioning outside the Obsidian document.
 			snapshot.setCssProps({

@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Fixed exported group titles: SVG now includes centered, group-colored capsule backgrounds and borders, with Flow title-band positioning and label scaling. PNG captures DOM capsule text with the loaded document font before image composition, preserving fractional widths and export resolution instead of reflowing titles into ellipses.
+
 - Fixed PNG export changing light-theme labels into white text or dark label boxes. Transparent offscreen rendering now retains the source chart's label theme, including custom text colors and label background opacity, independently of the output background.
 
 - Added export v2: editable SVG for all five planar chart types with Sigma/G6, plus JSON, CSV, and Markdown entry exports for every chart type. Entry exports support filtered-chart or node/relationship/group selection scope, independent node/relationship inclusion, and optional metadata. Logical relationships exclude layout segments; CSV escapes spreadsheet formulas. All formats share collision-safe vault saving and cancellation.

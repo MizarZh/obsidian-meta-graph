@@ -2,6 +2,7 @@ import type {
 	GraphPosition,
 	RuntimeGraph,
 } from '@/graph/model/graphology-adapter';
+import { snapshotGroupCapsule } from './export-capsule';
 
 export function snapshotPlanarPositions(
 	graph: RuntimeGraph,
@@ -90,13 +91,19 @@ export function hasClippedExportContent(
  * SVG foreignObject preserves the renderer's DOM/SVG groups and stacking order.
  * Data URLs keep this self-contained: export never fetches remote resources.
  */
-export function snapshotElement(source: Element): Element {
+export function snapshotElement(source: Element, scale = 1): Element {
 	const document = source.ownerDocument;
 	const styles = document.defaultView!.getComputedStyle(source);
+	const capsule = source.matches(
+		'.knowledge-workspace-group-title, .knowledge-workspace-flow-title',
+	)
+		? snapshotGroupCapsule(source as HTMLElement, scale)
+		: undefined;
 	const target =
-		source.localName === 'canvas'
+		capsule ??
+		(source.localName === 'canvas'
 			? document.createElement('img')
-			: (source.cloneNode(false) as Element);
+			: (source.cloneNode(false) as Element));
 	if (source.localName === 'canvas') {
 		target.setAttribute(
 			'src',
@@ -114,7 +121,18 @@ export function snapshotElement(source: Element): Element {
 	}
 	inline.setProperty('animation', 'none');
 	inline.setProperty('transition', 'none');
-	if (source.localName !== 'canvas') {
+	if (capsule) {
+		// Pixels already include padding and border; retain only placement/transform.
+		inline.setProperty('box-sizing', 'border-box');
+		inline.setProperty('padding', '0');
+		inline.setProperty('border', '0');
+		inline.setProperty('background', 'transparent');
+		inline.setProperty('width', `${capsule.getAttribute('width')}px`);
+		inline.setProperty('height', `${capsule.getAttribute('height')}px`);
+		inline.setProperty('inline-size', `${capsule.getAttribute('width')}px`);
+		inline.setProperty('block-size', `${capsule.getAttribute('height')}px`);
+	}
+	if (!capsule && source.localName !== 'canvas') {
 		for (const child of Array.from(source.childNodes)) {
 			if (child.nodeType === 1) {
 				const element = child as Element;
@@ -124,7 +142,7 @@ export function snapshotElement(source: Element): Element {
 					)
 				)
 					continue;
-				target.appendChild(snapshotElement(element));
+				target.appendChild(snapshotElement(element, scale));
 			} else if (child.nodeType === 3)
 				target.appendChild(child.cloneNode());
 		}
