@@ -6,11 +6,11 @@ export interface ChartTypeDefinition {
 }
 
 export const CHART_TYPE_DEFINITIONS: Record<ViewMode, ChartTypeDefinition> = {
-	graph: { name: 'Graph', description: 'Force-directed graph' },
-	'graph-3d': { name: '3D graph', description: '3D force-directed graph' },
+	graph: { name: 'Network', description: 'Force-directed graph' },
+	'graph-3d': { name: '3D network', description: '3D force-directed graph' },
 	cube: { name: 'Cube', description: 'Cube graph' },
-	free: { name: 'Free', description: 'Free layout' },
-	flow: { name: 'Flow', description: 'Flow diagram' },
+	free: { name: 'Canvas', description: 'Manual layout' },
+	flow: { name: 'Flowchart', description: 'Flow diagram' },
 	arc: { name: 'Arc', description: 'Arc diagram' },
 	'hierarchical-edge-bundling': {
 		name: 'HEB',

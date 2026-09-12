@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Renamed chart types in the UI: Graph → Network, Flow → Flowchart, 3D graph → 3D network, and Free → Canvas. Other chart names, saved type identifiers, and existing chart titles are unchanged.
+
 - Added an automatic blank-document badge for existing notes without body content, including whitespace-only and properties-only notes. Empty status takes priority over related context; unresolved status retains its question mark.
 
 - Matched unresolved links’ default appearance to plain links while preserving their independent style controls and existing custom overrides. Unresolved nodes retain the `?` badge.

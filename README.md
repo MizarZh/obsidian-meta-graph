@@ -12,12 +12,12 @@ The minimap's own size stays fixed.
 Arrow keys pan the viewport while the minimap is focused. Click the
 Minimap heading to collapse it. It updates five times per second without layout
 work; timeline-hidden nodes retain their space but are not drawn or clickable.
-The toggle is saved per chart and defaults off. Graph 3D/Cube are not supported.
+The toggle is saved per chart and defaults off. 3D network/Cube are not supported.
 
 ## Timeline
 
-Enable **Graph settings -> Overlays -> Timeline** in Cube, Graph 3D, or a Sigma/G6 chart
-(Graph, Free, Flow, Arc, or HEB). The bottom bar selects creation time or modification time.
+Enable **Graph settings -> Overlays -> Timeline** in Cube, 3D network, or a Sigma/G6 chart
+(Network, Canvas, Flowchart, Arc, or HEB). The bottom bar selects creation time or modification time.
 Metadata properties do not participate. Missing file timestamps count as undated.
 
 Choose the From/To dates directly on the bar. Dates use local time; the To date
@@ -54,10 +54,10 @@ playback convention; no creation time is invented or written to the note.
 Filtering changes visibility only: it does not change Query/Curated membership,
 write notes, or auto-fit. Planar charts do not restart layout. Existing hidden nodes and links stay
 hidden. Positions and layout-owned group regions remain stable, so empty space
-can remain; dynamic Graph group outlines follow visible members. An already
+can remain; dynamic Network group outlines follow visible members. An already
 running force simulation is not paused by the timeline. This is **not historical
 replay**: modification time is the latest file timestamp, and links always
-represent current relationships. Graph 3D uses the same playback controls;
+represent current relationships. 3D network uses the same playback controls;
 visibility updates reuse cached node positions but update the visible force
 simulation data, so newly revealed nodes can cause the layout to move.
 Cube also supports the same controls and keeps its face assignments, manual
@@ -74,23 +74,23 @@ body.
 
 Click **Export** in the chart toolbar and choose **PNG**, **SVG**, **JSON**, **CSV**, or **Markdown**. Files are saved in the vault root; existing files are preserved by adding a numeric suffix. Read-only workspaces also support export.
 
-- **Current view** preserves the current camera. **Complete graph** fits the current filtered graph, including groups and routed relationships. Graph 3D and Cube support the current view only.
+- **Current view** preserves the current camera. **Complete graph** fits the current filtered graph, including groups and routed relationships. 3D network and Cube support the current view only.
 - Choose **1×**, **2×**, or **3×** resolution, a theme/white/transparent background, and whether to include the legend. The dialog shows the output pixel dimensions.
 - Export keeps the live layout and camera unchanged and omits selection, hover, connection previews, and workspace panels. It does not rerun layout or include filtered-out notes.
 - PNG images are limited to 8192 pixels per side and 16 megapixels. Complete-graph PNG export checks for clipped content; unusually wide labels may require a wider workspace or a smaller **Max text width** setting. Closing the dialog cancels pending generation. Switching charts or replacing the renderer also cancels it.
-- **SVG** supports Graph, Free, Flow, Arc, and HEB with either Sigma or G6. It exports editable vector shapes, routed relationships, groups, text, and an optional legend, without embedded bitmap images. Choose current view or complete graph; resolution settings apply only to PNG. SVG uses a separate vector drawing path, so label density and group styling can differ slightly from the live renderer; font appearance depends on the viewer. Use PNG for rendered-image fidelity.
+- **SVG** supports Network, Canvas, Flowchart, Arc, and HEB with either Sigma or G6. It exports editable vector shapes, routed relationships, groups, text, and an optional legend, without embedded bitmap images. Choose current view or complete graph; resolution settings apply only to PNG. SVG uses a separate vector drawing path, so label density and group styling can differ slightly from the live renderer; font appearance depends on the viewer. Use PNG for rendered-image fidelity.
 - **JSON**, **CSV**, and **Markdown** export nodes, relationships, or both from the filtered chart in every view mode. Choose **Selection** to export a selected node, a selected relationship with its endpoints, or a selected group's members and internal relationships. Hidden notes, layout bend nodes, and temporary edge segments are excluded; distinct parallel and reverse relationships remain separate.
 - Entry exports include note paths and relationship source fields, with optional note metadata (off by default), but never note body text. JSON preserves structured values; CSV uses a UTF-8 BOM and escapes spreadsheet formulas; Markdown produces a linked, readable list. The entry JSON schema is version 1, independent of workspace persistence versions.
 
 ## Metadata
 
-### Sigma Graph parallel edges
+### Sigma Network parallel edges
 
 In **Graph settings -> Edges -> Parallel edges**, choose **Straight** or
 **Curved** when the renderer is Sigma. This affects multiple relationships
 between the same two nodes, including reverse-direction links. The choice is
 saved per chart; existing charts default to Straight. Switching does not rerun
-the force layout. Single edges, G6, and layout-owned Flow/Arc/HEB routes are
+the force layout. Single edges, G6, and layout-owned Flowchart/Arc/HEB routes are
 unchanged. Curved edges retain arrows, labels, selection and hit testing.
 
 ### Performance diagnostics
@@ -185,9 +185,9 @@ settings to report them in the developer console.
 
 1. Enable **Meta Graph** in **Settings → Community plugins**.
 2. Run **Create graph** from the command palette.
-3. Add or select a chart in the graph toolbar. Graph, 3D graph, Cube, Free, Flow,
+3. Add or select a chart in the graph toolbar. Network, 3D network, Cube, Canvas, Flowchart,
    Arc, and HEB (hierarchical edge bundling) layouts each keep
-   their own source, query, layout, display, and style settings. Graph, Free, Flow, Arc, and HEB views can
+   their own source, query, layout, display, and style settings. Network, Canvas, Flowchart, Arc, and HEB views can
    use Sigma or G6; choose the renderer while creating/configuring the view or
    under **Graph settings → Renderer**. Existing and new views default to Sigma.
 4. Use the flat toolbar settings buttons to edit graph settings, filters, note
@@ -198,7 +198,7 @@ settings to report them in the developer console.
    Both sources share the **Nodes** panel. Query lists the current graph result;
    Workspace lists saved members, including hidden and missing files. Panel
    search and **Filter node list** only narrow the list and do not change the graph.
-   Both sources support single-node and batch group assignment (except Graph 3D;
+   Both sources support single-node and batch group assignment (except 3D network;
    Cube requires a group). Adding, removing, hiding, and manual ordering remain
    Workspace-only list actions.
    Click a node row to select only that row. `Ctrl`/`Cmd`-click toggles
@@ -255,18 +255,18 @@ settings to report them in the developer console.
 10. Use **Group** settings to add chart-local groups, set priority, colors,
     padding, and Manual assignment or Rule-based membership. Each note belongs to at most one
     group; an explicit assignment or Ungrouped override takes priority over
-    rules. Graph, Arc, Hierarchical edge bundling, Flow, Free, and Cube render
+    rules. Network, Arc, Hierarchical edge bundling, Flowchart, Canvas, and Cube render
     groups according to their layout. Every non-Cube layout uses the same colored
     member halo, faint region, horizontal title pill, and interaction states.
-    Graph regions follow their members automatically; Free frames keep editable
-    size and position; Flow, Arc, and HEB retain layout-specific region shapes.
-    Use **Shape** on Graph or Free groups to choose Auto, Circle, or Rectangle;
-    Auto uses circles in Graph and rectangles in Free. Free circles keep a square
+    Network regions follow their members automatically; Canvas frames keep editable
+    size and position; Flowchart, Arc, and HEB retain layout-specific region shapes.
+    Use **Shape** on Network or Canvas groups to choose Auto, Circle, or Rectangle;
+    Auto uses circles in Network and rectangles in Canvas. Canvas circles keep a square
     diameter while resizing. Groups are saved in the workspace file, not note
     frontmatter.
 11. Increase **Label density** in **Graph** settings when Sigma samples too few
     labels while zoomed out. Use **Label settings** for **Always show labels** and
-    the shared font controls. In 3D graph and Cube layouts, use **3D text clarity**
+    the shared font controls. In 3D network and Cube layouts, use **3D text clarity**
     there to increase label texture resolution; higher settings use more GPU
     memory. In Arc views, **Label angle** is also under **Label settings** and
     supports Auto, 0°, 45°, or 90°. Auto keeps Right/Left labels horizontal and
@@ -281,10 +281,10 @@ settings to report them in the developer console.
     notes so each note links to the other. Paired writes the selected source
     property on the source note and a distinct target property on the target
     note; both writes share one Undo operation.
-14. In Sigma Graph, force dragging stops inside the visible canvas with a
+14. In Sigma Network, force dragging stops inside the visible canvas with a
     node-size-aware margin; the coordinate bounds stay fixed during motion.
-    Free dragging and Ctrl connection gestures are unchanged.
-    In Graph views, enable **Force layout** in **Graph** settings to drag nodes
+    Canvas dragging and Ctrl connection gestures are unchanged.
+    In Network views, enable **Force layout** in **Graph** settings to drag nodes
     through the force-directed layout. Nearby nodes can move with the graph
     forces, and the layout keeps settling briefly after release. Use
     **Link distance** first to adjust spacing, **Center force** for compactness,
@@ -293,7 +293,7 @@ settings to report them in the developer console.
     while the pointer is held, and release cools smoothly. Neighbors move through
     springs; no direct neighbor shifts or extra return pull are applied.
     Both Sigma and G6 use the original ForceAtlas2 placement and D3 simulation.
-    The Graph view
+    The Network view
     runs ForceAtlas placement on first layout and when **Refresh and relayout**
     is explicitly requested. That action refreshes data and recalculates positions
     using current settings. Ordinary data refreshes, force setting changes, added
@@ -301,14 +301,14 @@ settings to report them in the developer console.
     New nodes are placed near positioned neighbors when possible, then Force
     layout can move them through the force field. `Ctrl`/`Cmd`-drag still creates
     links.
-15. In Free views, drag nodes directly to place them by hand. Free views do not
+15. In Canvas views, drag nodes directly to place them by hand. Canvas views do not
     run an automatic layout after the first placement, and dragged node
     positions are saved in the workspace file.
-16. Drag a group title to move the group. Graph pins its members while connected
+16. Drag a group title to move the group. Network pins its members while connected
     outside nodes continue simulating, then releases the members on drop;
-    Free saves the frame and member positions. In Free, use any edge
+    Canvas saves the frame and member positions. In Canvas, use any edge
     or corner handle to resize the region without changing membership.
-17. In Free, drag a node into any group frame to create an explicit assignment.
+17. In Canvas, drag a node into any group frame to create an explicit assignment.
     Drag it out over empty space to set an explicit **Ungrouped** override. Use
     **Automatic** in Details to return the note to rule-based ownership.
 18. In Cube views, each cube face is a locked System group. Cube keeps its
@@ -453,7 +453,7 @@ charts:
               return: 1
               linkDistance: 250
       groups:
-          # Manual mode is valid only for Graph and Free. Flow, Arc, and HEB
+          # Manual mode is valid only for Network and Canvas. Flowchart, Arc, and HEB
           # groups use Rule. Cube system groups omit mode.
           - id: concepts
             name: Concepts
@@ -517,14 +517,14 @@ chart, active connection, right-panel tab, panel widths and visibility, collapse
 states, and focus preference. Selection, hover, projections, layout revisions, undo,
 and renderer state are runtime-only.
 
-## Flow layout behavior
+## Flowchart layout behavior
 
-Flow charts use ELK layered layout. By default, adding or undoing connection
+Flowchart charts use ELK layered layout. By default, adding or undoing connection
 links refreshes the visible edges without relaying out existing nodes. This
 keeps editing stable while you add multiple links. Select **Refresh and relayout** to run the
-Flow layout manually.
+Flowchart layout manually.
 
-Flow layout has two spacing controls. **Layer spacing** controls distance along
+Flowchart layout has two spacing controls. **Layer spacing** controls distance along
 the flow direction. **Lane spacing** controls distance across parallel lanes.
 For left-to-right and right-to-left flows, layer spacing is horizontal and lane
 spacing is vertical.
@@ -542,12 +542,12 @@ hit testing. Off-screen routes are culled and route geometry is cached. Lane
 metadata remains runtime-only, so frontmatter and the semantic projection are
 unchanged.
 G6 renders each Curve, Orthogonal, and Bundled relationship as one logical
-Polyline using the route produced by the Flow layout; bend nodes and runtime
+Polyline using the route produced by the Flowchart layout; bend nodes and runtime
 segments are not added to the G6 element model. Straight relationships retain
 the native G6 line/parallel-edge representation. Selection, hover, focus,
 labels, arrows, and context menus continue to use the logical relationship ID.
-Edge-only Flow refreshes keep node positions while separating newly added
-links. Flow arrows stay on the final flow-axis segment instead of pointing
+Edge-only Flowchart refreshes keep node positions while separating newly added
+links. Flowchart arrows stay on the final flow-axis segment instead of pointing
 along a perpendicular endpoint branch.
 When **Orthogonal** or **Bundled** is selected, **Corner radius** controls how
 much each right-angle turn is softened. A value of `0` keeps sharp corners;
@@ -560,7 +560,7 @@ reserve different corridors. This can reduce repeated long routes in dense chart
 while keeping each connection traceable. Labels remain attached to each edge's
 target branch.
 
-Flow keeps normal ELK node sizes, with modest group padding and a 40-unit title
+Flowchart keeps normal ELK node sizes, with modest group padding and a 40-unit title
 band (80 for circles). Short group titles reserve their measured nominal width;
 node text does not inflate every layout node. Fit includes the complete node and
 group bounds without enforcing a physical zoom floor.
@@ -572,26 +572,26 @@ anchor stays fixed in the header. Font changes update live without rerunning
 layout or enlarging groups. There is no sidebar, relocation or connector line.
 Hover a shortened title for its full name.
 
-Flow groups participate in ELK layout as compound containers. Group rules and
+Flowchart groups participate in ELK layout as compound containers. Group rules and
 explicit assignments keep notes inside one colored container while preserving
-cross-group links. Changing group membership, priority, or padding reruns Flow
+cross-group links. Changing group membership, priority, or padding reruns Flowchart
 layout. Edge-only refreshes still preserve existing node positions and update
 the group bounds without forcing a new layout. G6 maps the same layout-owned
 container bounds through its viewport transform, including selection, hover,
 focus muting, dock highlighting, and member halos.
 
-Use **Graph settings → Flow details → Relation placement** to control layout by
+Use **Graph settings → Flowchart details → Relation placement** to control layout by
 metadata relation. **Default** follows the visible edge direction. **Before**
 and **After** place the linked note relative to the note that owns the metadata
 field. **Parallel** keeps connected notes in the same layer. These rules affect
 layout only; they do not change frontmatter, edge direction, or arrows.
 
-Enable **Relayout Flow after connecting nodes** in the plugin settings if you
-want Flow charts to rerun layout immediately after each new connection.
+Enable **Relayout Flowchart after connecting nodes** in the plugin settings if you
+want Flowchart charts to rerun layout immediately after each new connection.
 
 Style-only edits such as note/link colors, sizes, line style, labels, and
 hidden state do not run ELK layout. They update the existing runtime graph and
-refresh the renderer in place, including Flow routed edge segments.
+refresh the renderer in place, including Flowchart routed edge segments.
 
 ## Development
 

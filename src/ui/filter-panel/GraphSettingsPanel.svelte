@@ -543,7 +543,7 @@
 		</SettingsSection>
 	{/if}
 	{#if mode === 'flow'}
-		<SettingsSection title="Flow details" bind:open={flowDetailsOpen}>
+		<SettingsSection title="Flowchart details" bind:open={flowDetailsOpen}>
 			<SegmentedSetting
 				label="Direction"
 				value={flowDirection}

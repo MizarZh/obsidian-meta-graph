@@ -53,9 +53,9 @@ export class KnowledgeWorkspaceSettingsTab extends PluginSettingTab {
 					}),
 			);
 		new Setting(this.containerEl)
-			.setName('Relayout flow after connecting nodes')
+			.setName('Relayout Flowchart after connecting nodes')
 			.setDesc(
-				'Run the flow layout after creating a metadata link. Off keeps existing node positions until you refresh manually.',
+				'Run the Flowchart layout after creating a metadata link. Off keeps existing node positions until you refresh manually.',
 			)
 			.addToggle((toggle) =>
 				toggle

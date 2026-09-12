@@ -140,7 +140,7 @@ describe('workspace chart state', () => {
 		expect(result.state.charts.at(-1)).toEqual({
 			...state.charts[0],
 			id: 'knowledge-map-copy',
-			name: 'Graph copy',
+			name: 'Network copy',
 		});
 	});
 

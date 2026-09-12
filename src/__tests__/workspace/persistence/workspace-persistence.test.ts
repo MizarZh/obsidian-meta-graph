@@ -17,8 +17,8 @@ describe('workspace persistence', () => {
 		const document = createDefaultMetaGraphDocument(200, 2);
 
 		expect(document.charts.map((chart) => chart.name)).toEqual([
-			'Graph',
-			'Flow',
+			'Network',
+			'Flowchart',
 			'Arc',
 		]);
 	});

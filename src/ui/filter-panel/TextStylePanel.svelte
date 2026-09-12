@@ -147,7 +147,7 @@
 		<ToggleSetting
 			label="Always show labels"
 			description={mode === 'graph-3d'
-				? '3D graph always renders every visible label.'
+				? '3D network always renders every visible label.'
 				: ''}
 			value={mode === 'graph-3d' ? true : forceLabels}
 			disabled={mode === 'graph-3d'}
