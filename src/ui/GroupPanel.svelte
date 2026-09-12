@@ -67,7 +67,7 @@
 	);
 	const locked = $derived(mode === 'cube');
 	const disabled = $derived(readOnly || !chartCapabilities.available);
-	const manualModeAllowed = $derived(mode === 'graph' || mode === 'free');
+	const manualModeAllowed = $derived(mode !== 'cube' && mode !== 'graph-3d');
 	const modeEditable = $derived(mode !== 'cube');
 	const identityDisabled = $derived(
 		disabled || !chartCapabilities.canEditIdentity,

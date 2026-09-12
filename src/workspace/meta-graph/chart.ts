@@ -476,39 +476,13 @@ function normalizeGroupingModesForType(
 			overrides: grouping.overrides,
 		};
 	}
-	if (
-		type !== 'flow' &&
-		type !== 'arc' &&
-		type !== 'hierarchical-edge-bundling'
-	) {
-		let changed = false;
-		const groups = grouping.groups.map((group) => {
-			if (group.mode !== 'system') return group;
-			changed = true;
-			return { ...group, mode: 'manual' as const };
-		});
-		return changed ? { ...grouping, groups } : grouping;
-	}
 	let changed = false;
 	const groups = grouping.groups.map((group) => {
-		if (group.mode === 'rule') return group;
+		if (group.mode !== 'system') return group;
 		changed = true;
-		return {
-			...group,
-			mode: 'rule' as const,
-			rule: group.rule ?? createEmptyGroupRule(group.id),
-		};
+		return { ...group, mode: 'manual' as const };
 	});
 	return changed ? { ...grouping, groups } : grouping;
-}
-
-function createEmptyGroupRule(groupId: string) {
-	return {
-		id: `group-rule-${groupId}`,
-		kind: 'group' as const,
-		mode: 'all' as const,
-		children: [],
-	};
 }
 
 function createDefaultGroupFrame(index: number) {

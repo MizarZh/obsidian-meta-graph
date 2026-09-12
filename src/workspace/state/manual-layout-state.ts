@@ -192,25 +192,12 @@ export function updateGroupInState(
 	if (activeChart.type === 'cube' || activeChart.type === 'graph-3d') {
 		return state;
 	}
-	const manualModeAllowed = supportsManualGroupMode(activeChart.type);
 	const manual = activeChart.layout.manual ?? { nodes: {}, groups: [] };
 	const groupingGroups = activeChart.grouping.groups.map((group) => {
 		if (group.id !== groupId) {
 			return group;
 		}
-		return normalizeGroupDefinitionPatch(
-			group,
-			manualModeAllowed
-				? patch
-				: {
-						...patch,
-						mode: 'rule',
-						rule:
-							patch.rule ??
-							group.rule ??
-							createEmptyGroupRule(group.id),
-					},
-		);
+		return normalizeGroupDefinitionPatch(group, patch);
 	});
 	if (!groupingGroups.some((group) => group.id === groupId)) {
 		return state;

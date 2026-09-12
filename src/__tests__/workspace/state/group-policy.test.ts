@@ -20,6 +20,26 @@ describe('group capabilities', () => {
 		});
 	});
 
+	it.each(['flow', 'arc', 'hierarchical-edge-bundling'] as const)(
+		'supports manual membership with automatic %s geometry',
+		(mode) => {
+			expect(
+				resolveGroupCapabilities(mode, { mode: 'manual' }),
+			).toMatchObject({
+				membership: 'manual',
+				spatial: 'layout-region',
+				canAssignManually: true,
+				canEditRule: false,
+				canEditGeometry: false,
+				canMove: false,
+				canResize: false,
+			});
+			expect(
+				resolveGroupCapabilities(mode, { mode: 'rule' }).canEditRule,
+			).toBe(true);
+		},
+	);
+
 	it('keeps Cube groups fixed and Graph 3D unavailable', () => {
 		expect(resolveGroupCapabilities('cube')).toMatchObject({
 			membership: 'system',

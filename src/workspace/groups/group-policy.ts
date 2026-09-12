@@ -68,14 +68,14 @@ export function resolveGroupCapabilities(
 			canMove: options.forceLayoutEnabled !== true,
 		});
 	}
-	return capabilities('rule', 'layout-region', {
+	return capabilities(membership, 'layout-region', {
 		available: true,
 		canCreate: true,
 		canDelete: true,
 		canReorder: true,
 		canEditIdentity: true,
 		canEditAppearance: true,
-		canEditRule: true,
+		canEditRule: membership === 'rule',
 		canAssignManually: true,
 	});
 }
@@ -90,7 +90,7 @@ function resolveMembership(
 		mode === 'arc' ||
 		mode === 'hierarchical-edge-bundling'
 	) {
-		return 'rule';
+		return membership === 'manual' ? 'manual' : 'rule';
 	}
 	return membership === 'rule' ? 'rule' : 'manual';
 }

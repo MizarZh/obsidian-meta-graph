@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Allow Manual assignment groups in Flowchart, Arc, and Hierarchical edge bundling, including view switching and save/reload. Membership remains independent of automatic layout and respects Query filtering and rule-group ownership.
+
 - Arrange Group appearance settings in separate rows and use a Shape dropdown to prevent compressed and overlapping controls in narrow editors.
 
 - Override Obsidian's default button shadow on side-panel headings so their edges match the panel. Resize handles retain their original outside placement.

@@ -769,16 +769,7 @@ function readPersistedGroups(chart: MetaGraphChart): PersistedGroupV2[] {
 				)
 			: chart.grouping.groups;
 	return groups
-		.filter(
-			(group) =>
-				chart.type === 'graph' ||
-				chart.type === 'free' ||
-				chart.type === 'cube' ||
-				((chart.type === 'flow' ||
-					chart.type === 'arc' ||
-					chart.type === 'hierarchical-edge-bundling') &&
-					group.mode === 'rule'),
-		)
+		.filter(() => chart.type !== 'graph-3d')
 		.map((group) =>
 			groupToV2(group, manual?.groupFrames?.[group.id], chart.type),
 		);
@@ -1584,12 +1575,7 @@ function normalizePersistedNodes(
 			);
 		}
 		const hasGroup = Object.prototype.hasOwnProperty.call(rawNode, 'group');
-		if (
-			hasGroup &&
-			type !== 'graph' &&
-			type !== 'free' &&
-			type !== 'cube'
-		) {
+		if (hasGroup && type === 'graph-3d') {
 			throw new Error(
 				`Meta Graph v2 charts[${chartIndex}].nodes[${rawPath}].group is invalid for ${type}.`,
 			);
@@ -1720,20 +1706,12 @@ function validateGroupModes(
 			}
 			continue;
 		}
-		if (type === 'graph' || type === 'free') {
-			if (
-				rawGroup.mode !== undefined &&
-				rawGroup.mode !== 'manual' &&
-				rawGroup.mode !== 'rule'
-			) {
-				throw new Error(`Meta Graph v2 ${path}.mode is invalid.`);
-			}
-			continue;
-		}
-		if (rawGroup.mode !== 'rule') {
-			throw new Error(
-				`Meta Graph v2 ${path}.mode must be rule for ${type}.`,
-			);
+		if (
+			rawGroup.mode !== undefined &&
+			rawGroup.mode !== 'manual' &&
+			rawGroup.mode !== 'rule'
+		) {
+			throw new Error(`Meta Graph v2 ${path}.mode is invalid.`);
 		}
 	}
 }

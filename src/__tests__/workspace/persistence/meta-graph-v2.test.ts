@@ -427,7 +427,7 @@ describe('Meta Graph v2 persistence', () => {
 		).toEqual(saved);
 	});
 
-	it('migrates unsupported manual group modes to rule groups', () => {
+	it('preserves manual Flow groups during migration', () => {
 		const document = createDefaultMetaGraphDocument(200, 1.5);
 		const flow = document.charts.find((chart) => chart.type === 'flow');
 		if (!flow) throw new Error('Expected Flow chart.');
@@ -449,8 +449,7 @@ describe('Meta Graph v2 persistence', () => {
 
 		expect(savedFlow?.groups?.[0]).toMatchObject({
 			id: 'legacy-flow-group',
-			mode: 'rule',
-			rule: { kind: 'group', mode: 'all', children: [] },
+			mode: 'manual',
 		});
 	});
 
@@ -846,7 +845,7 @@ describe('Meta Graph v2 persistence', () => {
 				200,
 				1.5,
 			),
-		).toThrow('mode must be rule for flow');
+		).not.toThrow();
 
 		expect(() =>
 			parsePersistedMetaGraphDocumentV2(
@@ -889,7 +888,7 @@ describe('Meta Graph v2 persistence', () => {
 				200,
 				1.5,
 			),
-		).toThrow('group is invalid for arc');
+		).not.toThrow();
 	});
 
 	it('renames every typed file reference together', () => {

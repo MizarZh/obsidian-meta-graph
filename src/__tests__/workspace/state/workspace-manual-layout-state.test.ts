@@ -1,3 +1,10 @@
+import {
+	serializeWorkspaceStateV2,
+	createPersistenceContextFromV1,
+	parsePersistedMetaGraphDocumentV2,
+} from '@/workspace/meta-graph-v2/codec';
+import { serializeMetaGraphState } from '@/workspace/meta-graph-model';
+import { resolveChartGroupOwnership } from '@/query/group-ownership';
 import { describe, expect, it } from 'vitest';
 import {
 	addGroupInState,
@@ -20,6 +27,59 @@ import {
 import { createWorkspaceRenderPlan } from '@/ui/workspace/render-plan';
 
 describe('workspace manual layout state', () => {
+	it.each(['flow', 'arc', 'hierarchical-edge-bundling'] as const)(
+		'preserves manual %s membership through filtering, save/reload, and mode changes',
+		(mode) => {
+			let state = addGroupInState(
+				setActiveChartTypeInState(createWorkspaceState(100), mode)
+					.state,
+			);
+			const id = state.grouping.groups[0]!.id;
+			state = updateGroupInState(state, id, { mode: 'manual' });
+			state = moveNodesToGroupInState(state, ['A.md'], id);
+			expect(state.grouping.groups[0]?.mode).toBe('manual');
+			expect(state.grouping.overrides['A.md']).toBe(id);
+			expect(state.manualLayout.groupFrames?.[id]).toBeUndefined();
+			expect(moveGroupInState(state, id, { x: 1, y: 1 })).toBe(state);
+			const node = {
+				id: 'A.md',
+				path: 'A.md',
+				title: 'A',
+				tags: [],
+				domains: [],
+				folder: '',
+			};
+			expect(
+				resolveChartGroupOwnership(
+					[],
+					state.grouping,
+				).membersByGroup.get(id),
+			).toEqual([]);
+			expect(
+				resolveChartGroupOwnership([node], state.grouping).byNode.get(
+					node.id,
+				)?.groupId,
+			).toBe(id);
+			const saved = serializeWorkspaceStateV2(
+				state,
+				createPersistenceContextFromV1(serializeMetaGraphState(state)),
+			);
+			const parsed = parsePersistedMetaGraphDocumentV2(saved, 100, 1);
+			const restored = createWorkspaceState(100, 1, parsed.document);
+			expect(restored.grouping).toEqual({
+				...state.grouping,
+				groups: state.grouping.groups.map((group) => ({
+					...group,
+					rule: { ...group.rule, id: 'root' },
+				})),
+			});
+			const switched = setActiveChartTypeInState(restored, 'graph').state;
+			expect(
+				setActiveChartTypeInState(switched, mode).state.grouping,
+			).toEqual(restored.grouping);
+		},
+	);
+
 	it.each(['graph', 'free'] as const)(
 		'assigns Query nodes in %s without changing query or saved membership',
 		(mode) => {
@@ -276,7 +336,7 @@ describe('workspace manual layout state', () => {
 		expect(moveCuratedFilesToGroupInState(state, [])).toBe(state);
 	});
 
-	it('creates rule-only Arc groups and rejects unmatched node assignment', () => {
+	it('creates rule-based Arc groups by default and rejects unmatched node assignment', () => {
 		let state = setActiveChartTypeInState(
 			createWorkspaceState(100),
 			'arc',
@@ -313,7 +373,7 @@ describe('workspace manual layout state', () => {
 		expect(nextState.grouping).not.toBe(state.grouping);
 	});
 
-	it('preserves rule updates for rule-only Arc groups', () => {
+	it('preserves rule updates for Arc groups', () => {
 		let state = setActiveChartTypeInState(
 			createWorkspaceState(100),
 			'arc',
@@ -346,7 +406,7 @@ describe('workspace manual layout state', () => {
 		]);
 	});
 
-	it('creates rule-only Flow groups and rejects unmatched node assignment', () => {
+	it('creates rule-based Flow groups by default and rejects unmatched node assignment', () => {
 		let state = setActiveChartTypeInState(
 			createWorkspaceState(100),
 			'flow',

@@ -253,7 +253,8 @@ settings to report them in the developer console.
    dedicated Canvas layer. Short endpoint stubs and lanes only a few pixels
    apart keep paths, arrows, and labels distinct without widening the layout.
 10. Use **Group** settings to add chart-local groups, set priority, colors,
-    padding, and Manual assignment or Rule-based membership. Each note belongs to at most one
+    padding, and Manual assignment or Rule-based membership in Network, Canvas,
+    Flowchart, Arc, and Hierarchical edge bundling. Each note belongs to at most one
     group. Rule-based membership is authoritative. When several rules match,
     a manual choice between those matching groups resolves ownership. Nodes with
     no matching rules can move between Manual groups or become ungrouped.
