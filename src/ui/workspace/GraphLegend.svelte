@@ -29,10 +29,31 @@
 		/>
 		{#if open}
 			<div class="knowledge-workspace-legend-content">
-				{#if workspaceState.projection?.nodes.some((node) => node.kind === 'unresolved')}
+				{#if workspaceState.projection?.nodes.some((node) => node.kind === 'unresolved' || node.isEmpty)}
 					<section>
 						<h4>Node status</h4>
-						<ul><li>? · Unresolved note</li></ul>
+						<ul>
+							{#if workspaceState.projection?.nodes.some((node) => node.kind === 'unresolved')}
+								<li>? · Unresolved note</li>
+							{/if}
+							{#if workspaceState.projection?.nodes.some((node) => node.kind !== 'unresolved' && node.isEmpty)}
+								<li>
+									<svg
+										width="12"
+										height="12"
+										viewBox="0 0 12 12"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="1.25"
+										stroke-linejoin="round"
+										aria-hidden="true"
+										><path
+											d="M3 2h4l2 2v6H3V2M7 2v2h2"
+										/></svg
+									> Empty note
+								</li>
+							{/if}
+						</ul>
 					</section>
 				{/if}
 				{#if workspaceState.chartSource === 'query' && workspaceState.query.relationExpansion?.enabled && workspaceState.query.relationExpansion.showBadges !== false}

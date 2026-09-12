@@ -17,6 +17,45 @@ import {
 } from '@/workspace/state/chart-settings';
 
 describe('workspace change tracker', () => {
+	it('refreshes empty-note status without rebuilding or running layout', () => {
+		const state = {
+			...createWorkspaceState(200),
+			projection: createTestProjection(),
+		};
+		const next = {
+			...state,
+			projection: {
+				...state.projection,
+				nodes: state.projection.nodes.map((node) => ({
+					...node,
+					isEmpty: true,
+				})),
+			},
+		};
+		expect(
+			analyzeWorkspaceStateChanges(
+				next,
+				state,
+				createWorkspaceRenderBaseline(state),
+			),
+		).toMatchObject({
+			shouldRebuild: false,
+			forceLayout: false,
+			styleRulesChanged: true,
+		});
+		expect(
+			analyzeWorkspaceStateChanges(
+				state,
+				next,
+				createWorkspaceRenderBaseline(next),
+			),
+		).toMatchObject({
+			shouldRebuild: false,
+			forceLayout: false,
+			styleRulesChanged: true,
+		});
+	});
+
 	it('skips harmless Graph/Free reorder but preserves spatial layout ordering', () => {
 		for (const mode of [
 			'graph',

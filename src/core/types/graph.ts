@@ -8,6 +8,7 @@ export type KnowledgeEdgeKind = 'relation' | 'plain-link' | 'unresolved-link';
 export interface KnowledgeNode {
 	id: NodeId;
 	kind?: KnowledgeNodeKind;
+	isEmpty?: boolean;
 	path: string;
 	title: string;
 	fileName?: string;

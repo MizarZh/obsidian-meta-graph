@@ -8,7 +8,7 @@ export function getNodeBadgeIds(
 ): ReadonlySet<string> {
 	const ids = new Set(showContext ? projection?.contextIds : undefined);
 	for (const node of projection?.nodes ?? []) {
-		if (node.kind === 'unresolved') ids.add(node.id);
+		if (node.kind === 'unresolved' || node.isEmpty) ids.add(node.id);
 	}
 	return ids;
 }
@@ -16,7 +16,7 @@ export function getNodeBadgeIds(
 interface NodeBadgePosition {
 	x: number;
 	y: number;
-	kind: 'context' | 'unresolved';
+	kind: 'context' | 'unresolved' | 'empty';
 }
 
 export function collectContextBadgePositions(
@@ -47,7 +47,12 @@ export function collectContextBadgePositions(
 		result.push({
 			x,
 			y,
-			kind: node.kind === 'unresolved' ? 'unresolved' : 'context',
+			kind:
+				node.kind === 'unresolved'
+					? 'unresolved'
+					: node.isEmpty
+						? 'empty'
+						: 'context',
 		});
 	}
 	return result;
@@ -104,6 +109,20 @@ export function startContextBadges(
 			context.lineWidth = 1.25;
 			context.lineCap = 'round';
 			context.lineJoin = 'round';
+			if (kind === 'empty') {
+				context.beginPath();
+				context.moveTo(x - 3, y - 4);
+				context.lineTo(x + 1, y - 4);
+				context.lineTo(x + 3, y - 2);
+				context.lineTo(x + 3, y + 4);
+				context.lineTo(x - 3, y + 4);
+				context.lineTo(x - 3, y - 4);
+				context.moveTo(x + 1, y - 4);
+				context.lineTo(x + 1, y - 2);
+				context.lineTo(x + 3, y - 2);
+				context.stroke();
+				continue;
+			}
 			if (kind === 'unresolved') {
 				context.beginPath();
 				context.moveTo(x - 2, y - 2);

@@ -624,13 +624,7 @@ function projectionStyleMatchesChanged(
 	previous: GraphProjection | undefined,
 	rules: NodeStyleRule[],
 ): boolean {
-	if (
-		!next ||
-		!previous ||
-		next.nodes === previous.nodes ||
-		rules.length === 0
-	)
-		return false;
+	if (!next || !previous || next.nodes === previous.nodes) return false;
 	const previousNodes = new Map(
 		previous.nodes.map((node) => [node.id, node]),
 	);
@@ -638,23 +632,24 @@ function projectionStyleMatchesChanged(
 		const old = previousNodes.get(node.id);
 		return (
 			old !== undefined &&
-			rules.some(
-				(rule) =>
-					rule.field !== 'all' &&
-					rule.field !== 'group' &&
-					matchesNodeCriterion(
-						old,
-						rule.field,
-						rule.operator ?? 'is',
-						rule.value,
-					) !==
+			(old.isEmpty !== node.isEmpty ||
+				rules.some(
+					(rule) =>
+						rule.field !== 'all' &&
+						rule.field !== 'group' &&
 						matchesNodeCriterion(
-							node,
+							old,
 							rule.field,
 							rule.operator ?? 'is',
 							rule.value,
-						),
-			)
+						) !==
+							matchesNodeCriterion(
+								node,
+								rule.field,
+								rule.operator ?? 'is',
+								rule.value,
+							),
+				))
 		);
 	});
 }

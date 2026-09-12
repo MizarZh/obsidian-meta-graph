@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Added an automatic blank-document badge for existing notes without body content, including whitespace-only and properties-only notes. Empty status takes priority over related context; unresolved status retains its question mark.
+
 - Matched unresolved links’ default appearance to plain links while preserving their independent style controls and existing custom overrides. Unresolved nodes retain the `?` badge.
 
 - Added a `?` badge for unresolved nodes in query and curated charts, independent of related-context expansion. Unresolved status takes priority over the context badge, with a matching legend entry.

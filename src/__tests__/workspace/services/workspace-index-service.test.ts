@@ -9,6 +9,52 @@ beforeAll(async () => {
 });
 
 describe('workspace index service', () => {
+	it('detects empty notes and updates their status when body content changes', async () => {
+		const files = [
+			'Zero.md',
+			'Whitespace.md',
+			'Properties.md',
+			'Body.md',
+			'Unknown.md',
+		].map(createFile);
+		files[0]!.stat.size = 0;
+		const caches = new Map<string, Record<string, unknown> | null>([
+			['Zero.md', null],
+			['Whitespace.md', {}],
+			['Properties.md', { sections: [{ type: 'yaml' }] }],
+			[
+				'Body.md',
+				{ sections: [{ type: 'yaml' }, { type: 'paragraph' }] },
+			],
+			['Unknown.md', null],
+		]);
+		const { app } = createApp(
+			files,
+			(file) => caches.get(file.path) ?? null,
+		);
+		const service = new WorkspaceIndexService(app);
+		const initial = await service.read(false, []);
+		for (const path of ['Zero.md', 'Whitespace.md', 'Properties.md']) {
+			expect(initial.index.nodes.get(path)?.isEmpty).toBe(true);
+		}
+		expect(initial.index.nodes.get('Body.md')?.isEmpty).toBe(false);
+		expect(initial.index.nodes.get('Unknown.md')?.isEmpty).toBeUndefined();
+		caches.set('Properties.md', {
+			sections: [{ type: 'yaml' }, { type: 'heading' }],
+		});
+		service.invalidateFile(files[2]!);
+		expect(
+			(await service.read(false, [])).index.nodes.get('Properties.md')
+				?.isEmpty,
+		).toBe(false);
+		caches.set('Properties.md', { sections: [{ type: 'yaml' }] });
+		service.invalidateFile(files[2]!);
+		expect(
+			(await service.read(false, [])).index.nodes.get('Properties.md')
+				?.isEmpty,
+		).toBe(true);
+	});
+
 	it.each([false, true])(
 		'finalizes a batch once and matches sequential updates (debug=%s)',
 		async (debug) => {

@@ -132,6 +132,7 @@ export function syncWorkspaceRuntimeGraphStyles(
 		graph.mergeNodeAttributes(node.id, {
 			...style,
 			kind: node.kind,
+			isEmpty: node.isEmpty,
 			hidden: projection.hiddenNodeIds?.has(node.id) ?? false,
 		});
 	}

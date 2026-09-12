@@ -173,6 +173,14 @@ export class MetadataIndexer {
 			fileName: file.name,
 			extension: file.extension,
 			fileSize: file.stat.size,
+			// Cache sections exclude whitespace; YAML alone is not note body.
+			isEmpty:
+				file.stat.size === 0 ||
+				(cache
+					? !(cache.sections ?? []).some(
+							(section) => section.type !== 'yaml',
+						)
+					: undefined),
 			createdTime: file.stat.ctime,
 			modifiedTime: file.stat.mtime,
 			aliases,

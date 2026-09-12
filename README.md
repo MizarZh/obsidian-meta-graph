@@ -656,3 +656,5 @@ For example, filter for economics and expand `related` plus a custom mathematics
 Visible unresolved nodes display a `?` badge in query and curated charts. This status marker is independent of the related-context badge toggle and takes priority if both statuses apply.
 
 **Unresolved links** use the same default appearance as plain links. Both retain independent style settings; existing custom overrides continue to apply. The `?` node badge distinguishes unresolved destinations.
+
+Existing notes without body content show a blank-document badge, including notes containing only properties or whitespace. The badge updates with the metadata index when content changes and remains visible independently of context badges.

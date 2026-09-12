@@ -19,6 +19,58 @@ function renderer() {
 }
 
 describe('context badges', () => {
+	it('shows empty-note badges independently of context and clears them when filled', () => {
+		const current = renderer();
+		current.runtimeGraph.setNodeAttribute('context', 'isEmpty', true);
+		const node = {
+			id: 'context',
+			path: 'Empty.md',
+			title: 'Empty',
+			folder: '',
+			tags: [],
+			domains: [],
+			isEmpty: true,
+		};
+		const projection = {
+			nodes: [node],
+			edges: [],
+			rootIds: new Set<string>(),
+			contextIds: new Set(['context']),
+		};
+		expect(getNodeBadgeIds(projection, false)).toEqual(
+			new Set(['context']),
+		);
+		expect(
+			collectContextBadgePositions(
+				current,
+				getNodeBadgeIds(projection, true),
+				100,
+				100,
+			),
+		).toEqual([{ x: 60, y: 40, kind: 'empty' }]);
+		current.runtimeGraph.setNodeAttribute('context', 'kind', 'unresolved');
+		expect(
+			collectContextBadgePositions(
+				current,
+				getNodeBadgeIds(projection, true),
+				100,
+				100,
+			)[0]?.kind,
+		).toBe('unresolved');
+		node.isEmpty = false;
+		current.runtimeGraph.setNodeAttribute('context', 'kind', 'note');
+		current.runtimeGraph.setNodeAttribute('context', 'isEmpty', false);
+		expect(getNodeBadgeIds(projection, false).size).toBe(0);
+		expect(
+			collectContextBadgePositions(
+				current,
+				getNodeBadgeIds(projection, true),
+				100,
+				100,
+			)[0]?.kind,
+		).toBe('context');
+	});
+
 	it('shows unresolved badges without context expansion and prioritizes unresolved identity', () => {
 		const current = renderer();
 		current.runtimeGraph.setNodeAttribute('context', 'kind', 'unresolved');

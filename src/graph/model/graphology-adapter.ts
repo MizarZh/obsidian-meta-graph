@@ -32,6 +32,7 @@ export type FlowRouteKind = 'orthogonal' | 'rounded' | 'curve';
 export interface RuntimeNodeAttributes {
 	label: string;
 	kind?: KnowledgeNodeKind;
+	isEmpty?: boolean;
 	x: number;
 	y: number;
 	size: number;
@@ -192,6 +193,7 @@ export class GraphologyAdapter {
 			graph.addNode(node.id, {
 				label: node.title,
 				kind: node.kind,
+				isEmpty: node.isEmpty,
 				x: position.x,
 				y: position.y,
 				size: isPrimary
