@@ -39,6 +39,46 @@ const projection: GraphProjection = {
 };
 
 describe('workspace runtime graph', () => {
+	it('keeps added context dimmed through style-only updates without changing core size', () => {
+		const state = createWorkspaceState(200);
+		const expanded: GraphProjection = {
+			...projection,
+			nodes: [
+				...projection.nodes,
+				{ ...projection.nodes[0]!, id: 'B.md', path: 'B.md' },
+			],
+			contextIds: new Set(['B.md']),
+		};
+		const graph = createWorkspaceRuntimeGraph(
+			expanded,
+			new Map(),
+			state,
+			palette,
+		);
+		expect(graph.getNodeAttribute('A.md', 'label')).toBe('A');
+		expect(graph.getNodeAttribute('B.md', 'label')).toBe('[Context] A');
+		expect(expanded.nodes[1]?.title).toBe('A');
+		expect(graph.getNodeAttribute('B.md', 'opacity')).toBeCloseTo(
+			graph.getNodeAttribute('A.md', 'opacity')! * 0.6,
+		);
+		expect(graph.getNodeAttribute('B.md', 'size')).toBe(
+			graph.getNodeAttribute('A.md', 'size'),
+		);
+		const next = { ...state, nodeStyleOverrides: { opacity: 0.5 } };
+		syncWorkspaceRuntimeGraphStyles(graph, expanded, next, palette);
+		const fresh = createWorkspaceRuntimeGraph(
+			expanded,
+			new Map(),
+			next,
+			palette,
+		);
+		expect(graph.getNodeAttribute('B.md', 'label')).toBe('[Context] A');
+		expect(graph.getNodeAttribute('B.md', 'opacity')).toBeCloseTo(0.3);
+		expect(graph.getNodeAttribute('B.md', 'opacity')).toBe(
+			fresh.getNodeAttribute('B.md', 'opacity'),
+		);
+	});
+
 	it.each([
 		{ kind: 'relation', directed: true },
 		{ kind: 'relation', directed: false },

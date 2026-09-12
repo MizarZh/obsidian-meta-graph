@@ -644,3 +644,11 @@ positions before layout completes, yield between render stages, and run large
 ForceAtlas layouts in a Web Worker when the host supports workers. The Debug
 panel records index, projection, runtime graph, layout, renderer application,
 and total render timings.
+
+### Related context
+
+In a query chart, open **Filters -> Related context** below **This view** and enable it to include connected notes outside the current view's filter. Choose all configured relationship fields or search and select individual fields, then choose **Both**, **Outgoing**, or **Incoming**, and **1–3 layers**. All relationship fields shares one direction and layer setting. Selected fields shows a compact row with a direction dropdown and layer slider for each field; switching modes retains those choices. Layers count distance from the core, including paths that mix selected relationships. Direction follows graph arrows at each step; undirected relationships work both ways.
+
+For example, filter for economics and expand `related` plus a custom mathematics relationship to include surrounding knowledge. Fields must be configured as workspace connection fields and contain note relationships; ordinary metadata text values do not create connections. Plain and unresolved links are not used for expansion.
+
+**This view** filters select the core notes. Added notes can fail those filters, while **All views** filters remain a boundary. Put exclusions that must also apply to added notes in **All views**. Link filters and the chart's node limit still apply. Added nodes are dimmed and their graph labels start with `[Context]`; unmarked nodes are core matches. The legend explains this marker, and node Details shows Core match or Added context even when graph labels are hidden. The panel reports visible core and added counts. Expansion defaults to off; settings are saved per chart. Curated charts retain their explicit file selection.

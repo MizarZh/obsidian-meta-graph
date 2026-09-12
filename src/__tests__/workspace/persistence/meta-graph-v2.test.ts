@@ -22,6 +22,43 @@ import {
 } from '@/workspace/workspace-session';
 
 describe('Meta Graph v2 persistence', () => {
+	it('round-trips per-chart relationship expansion, including disabled field choices', () => {
+		for (const enabled of [true, false]) {
+			const document = createDefaultMetaGraphDocument(200, 1.5);
+			const expansion = {
+				enabled,
+				allFields: false,
+				fields: ['related', 'custom'],
+				fieldRules: [
+					{
+						field: 'related',
+						direction: 'outgoing' as const,
+						depth: 1,
+					},
+					{
+						field: 'custom',
+						direction: 'incoming' as const,
+						depth: 3,
+					},
+				],
+				direction: 'incoming' as const,
+				depth: 2,
+			};
+			document.charts[0]!.query.relationExpansion = expansion;
+			const saved = serializeWorkspaceStateV2(
+				createWorkspaceState(200, 1.5, document),
+				createPersistenceContextFromV1(document),
+			);
+			const parsed = parsePersistedMetaGraphDocumentV2(saved, 200, 1.5);
+			expect(parsed.document.charts[0]?.query.relationExpansion).toEqual(
+				expansion,
+			);
+			expect(
+				parsed.document.charts[1]?.query.relationExpansion,
+			).toBeUndefined();
+		}
+	});
+
 	it('persists legend visibility without a graph rebuild and defaults old charts to visible', () => {
 		const document = createDefaultMetaGraphDocument(200, 1.5);
 		const initial = createWorkspaceState(200, 1.5, document);

@@ -31,6 +31,16 @@ const initial = {
 };
 
 describe('dropdown synchronization', () => {
+	it('keeps the native dropdown class when applying and removing custom classes', () => {
+		const control = createControl();
+		const sync = new DropdownSync();
+		sync.update(control, initial);
+		expect(control.selectEl.className).toBe('dropdown group-select');
+		sync.update(control, { ...initial, className: '' });
+		expect(control.selectEl.className).toBe('dropdown');
+		expect(control.setValue).toHaveBeenCalledOnce();
+	});
+
 	it('does no option writes or width measurements for 150 unchanged row dropdowns', () => {
 		const rows = Array.from({ length: 150 }, () => ({
 			sync: new DropdownSync(),

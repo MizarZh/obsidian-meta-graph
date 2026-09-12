@@ -525,6 +525,10 @@ function chartExtensionsToV2(
 function contentToV2(chart: MetaGraphChart): PersistedChartContentV2 {
 	const defaults = createV2DefaultQuery();
 	const query: NonNullable<PersistedChartContentV2['query']> = {};
+	if (chart.query.relationExpansion)
+		query.relationExpansion = cloneSerializable(
+			chart.query.relationExpansion,
+		);
 	const roots = chart.query.roots.map(normalizeTextPath);
 	if (roots.length > 0) query.roots = roots;
 	const traversal: NonNullable<
@@ -1139,6 +1143,7 @@ function v2ChartToLegacyRecord(
 		),
 	);
 	const legacyQuery = {
+		relationExpansion: query.relationExpansion,
 		...createV2DefaultQuery(),
 		...(Array.isArray(query.roots)
 			? { roots: readStringArray(query.roots) }

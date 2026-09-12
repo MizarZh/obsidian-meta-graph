@@ -89,6 +89,9 @@ export interface WorkspaceLabelSettingsView {
 }
 
 export interface WorkspaceQuerySettingsView {
+	canExpand: boolean;
+	coreCount: number;
+	contextCount: number;
 	currentQuery: GraphQuery;
 	globalQuery: GraphQuery;
 }
@@ -281,6 +284,11 @@ export function createWorkspaceSettingsView(
 			arcLabelAngle: state.arcLabelAngle,
 		},
 		query: {
+			canExpand: state.chartSource !== 'curated',
+			coreCount:
+				(state.projection?.nodes.length ?? 0) -
+				(state.projection?.contextIds?.size ?? 0),
+			contextCount: state.projection?.contextIds?.size ?? 0,
 			currentQuery: state.query,
 			globalQuery: state.globalQuery,
 		},

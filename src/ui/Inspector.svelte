@@ -27,6 +27,7 @@
 		node,
 		nodes = [],
 		nodeColor,
+		origin,
 		mode = 'graph',
 		manualLayout = { nodes: {}, groups: [] },
 		grouping = { groups: [], overrides: {} },
@@ -43,6 +44,7 @@
 		node?: KnowledgeNode;
 		nodes?: KnowledgeNode[];
 		nodeColor?: string;
+		origin?: 'core' | 'context';
 		mode?: ViewMode;
 		manualLayout?: ManualLayoutConfig;
 		grouping?: ChartGroupingConfig;
@@ -242,6 +244,16 @@
 			</div>
 		</div>
 		<div class="knowledge-workspace-inspector-body">
+			{#if origin}
+				<strong class="knowledge-workspace-inspector-summary">
+					{origin === 'context' ? 'Added context' : 'Core match'}
+				</strong>
+				<span class="knowledge-workspace-inspector-summary">
+					{origin === 'context'
+						? 'Included by Related context in this view.'
+						: 'Included before related-context expansion.'}
+				</span>
+			{/if}
 			<span
 				class="knowledge-workspace-inspector-summary"
 				use:obsidianTooltip={node.path}>{node.path}</span

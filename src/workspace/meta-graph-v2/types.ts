@@ -15,6 +15,7 @@ import type {
 	LayoutSortDirection,
 	LinkStyleRule,
 	NodeFilterGroup,
+	RelationExpansion,
 	NodeStyleRule,
 	ThreeLabelResolution,
 } from '@/core/types';
@@ -103,6 +104,7 @@ export interface PersistedChartContentV2 {
 		limit?: number;
 		includeIsolated?: boolean;
 		filter?: NodeFilterGroup;
+		relationExpansion?: RelationExpansion;
 	};
 }
 

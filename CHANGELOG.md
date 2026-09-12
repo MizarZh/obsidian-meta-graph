@@ -4,6 +4,26 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Tightened relationship rows to a 4px gap and reduced padding, removing inherited section margins.
+
+- Compacted relationship expansion into wrapping single-row controls: direction dropdown, 1–3 layer slider with a visible value, and per-field removal.
+
+- Added per-relationship direction and layer controls in Selected fields, using individual cards with segmented choices. All relationship fields keeps shared controls. Both modes retain their settings, and older selections inherit their previous shared values.
+
+- Added 8px spacing between selected relationship fields and the field input.
+
+- Removed explanatory paragraphs from Related context settings, keeping controls, scope, and node counts.
+
+- Reused the node-shape segmented setting for related-context layers, making the selected depth visibly highlighted.
+
+- Fixed shared dropdowns losing their native Obsidian class. Select controls now retain visible input-style borders, a native arrow, and hover/focus/disabled states, including settings popovers.
+
+- Fixed selected relationship fields showing only a remove icon. Field chips now render their names separately from the remove button and wrap long names.
+
+- Made related-context membership explicit with a `[Context]` graph-label prefix, a legend key, and Core match/Added context status in node Details. The expansion panel now labels its scope as This view and explains that All views filters constrain both sets.
+
+- Added per-chart Related context controls below Filters: searchable relationship field selection, both/incoming/outgoing traversal, and 1–3 layers. Expands current-view matches beyond their filter using configured metadata relationships, keeps All views filters and node limits, shows core/added counts, dims added nodes, and persists choices in workspace files.
+
 - Minimap wheel zoom now anchors to the graph position under the pointer, preserving that point's main-viewport position instead of zooming around the view center. Supports Sigma and G6.
 
 - Added mouse-wheel/trackpad zoom over the Minimap. Zoom changes are batched per animation frame, preserve the main view center, and use the shared 25%–400% range without scrolling the surrounding UI.

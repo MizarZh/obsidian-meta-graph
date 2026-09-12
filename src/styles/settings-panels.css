@@ -2177,3 +2177,69 @@ input.knowledge-workspace-color-control:disabled {
 	padding-inline: 2px;
 	font-size: var(--font-ui-smaller);
 }
+
+.knowledge-workspace-relation-expansion header,
+.knowledge-workspace-expansion-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.knowledge-workspace-relation-expansion > * + * {
+	margin-top: 8px;
+}
+
+.knowledge-workspace-expansion-rules {
+	display: grid;
+	gap: 4px;
+	margin-bottom: 8px;
+}
+
+.knowledge-workspace-expansion-rules > .knowledge-workspace-expansion-rule {
+	margin: 0;	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
+	min-width: 0;
+	padding: 4px 8px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary-alt);
+}
+
+.knowledge-workspace-expansion-rule-name {
+	flex: 1 1 80px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.knowledge-workspace-expansion-controls {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.knowledge-workspace-expansion-depth {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.knowledge-workspace-expansion-depth > .knowledge-workspace-obsidian-control {
+	display: flex;
+	width: 72px;
+}
+
+.knowledge-workspace-expansion-depth input[type='range'] {
+	width: 100%;
+	min-width: 0;
+	margin: 0;
+}
+
+.knowledge-workspace-expansion-depth-value {
+	min-width: 1ch;
+	font-variant-numeric: tabular-nums;
+}

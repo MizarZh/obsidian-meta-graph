@@ -48,3 +48,33 @@
 .knowledge-workspace:focus {
 	outline: none;
 }
+
+/* Shared dropdowns must remain recognizable in panels portalled outside the workspace. */
+.knowledge-workspace-obsidian-control > select.dropdown {
+	appearance: auto;
+	min-height: 30px;
+	max-width: 100%;
+	padding: 4px 8px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background-color: var(--background-primary);
+	background-image: none;
+	color: var(--text-normal);
+	box-shadow: none;
+	cursor: pointer;
+}
+
+.knowledge-workspace-obsidian-control > select.dropdown:hover:not(:disabled) {
+	border-color: var(--background-modifier-border-hover);
+}
+
+.knowledge-workspace-obsidian-control > select.dropdown:focus-visible {
+	border-color: var(--interactive-accent);
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 1px;
+}
+
+.knowledge-workspace-obsidian-control > select.dropdown:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}

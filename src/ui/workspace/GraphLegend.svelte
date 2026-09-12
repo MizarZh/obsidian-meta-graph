@@ -29,6 +29,15 @@
 		/>
 		{#if open}
 			<div class="knowledge-workspace-legend-content">
+				{#if workspaceState.chartSource === 'query' && workspaceState.query.relationExpansion?.enabled}
+					<section>
+						<h4>Related context · This view</h4>
+						<ul>
+							<li>Unmarked: Core match</li>
+							<li>[Context]: Added context</li>
+						</ul>
+					</section>
+				{/if}
 				{#each [{ name: 'Nodes', entries: legend.nodes }, { name: 'Links', entries: legend.links }] as section}
 					<section>
 						<h4>{section.name}</h4>

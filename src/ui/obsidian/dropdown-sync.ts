@@ -39,7 +39,9 @@ export class DropdownSync {
 			control.setDisabled(state.disabled);
 		}
 		if (!previous || previous.className !== state.className) {
-			control.selectEl.className = state.className;
+			control.selectEl.className = ['dropdown', state.className]
+				.filter(Boolean)
+				.join(' ');
 		}
 		if (!previous || previous.ariaLabel !== state.ariaLabel) {
 			if (state.ariaLabel) {

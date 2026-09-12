@@ -31,6 +31,7 @@ export function normalizeQuery(
 		...cloneSerializable(record),
 		hiddenNodeRules,
 		filterRoot,
+		relationExpansion: normalizeRelationExpansion(record.relationExpansion),
 		tags: normalizeQueryTags(record.tags, fallback.tags),
 		maxNodes: readFiniteNumber(record.maxNodes, maxNodes),
 		showPlainLinks: readBoolean(
@@ -204,4 +205,66 @@ export function createDefaultGlobalQuery(maxNodes: number): GraphQuery {
 		relations: [],
 		maxNodes,
 	};
+}
+
+export function normalizeRelationExpansion(
+	value: unknown,
+): GraphQuery['relationExpansion'] {
+	if (!isRecord(value)) return undefined;
+	const normalized: NonNullable<GraphQuery['relationExpansion']> = {
+		enabled: value.enabled === true,
+		allFields: value.allFields !== false,
+		fields: Array.isArray(value.fields)
+			? [
+					...new Set(
+						value.fields
+							.filter(
+								(field): field is string =>
+									typeof field === 'string',
+							)
+							.map((field) => field.trim())
+							.filter(Boolean),
+					),
+				]
+			: [],
+		direction:
+			value.direction === 'incoming' || value.direction === 'outgoing'
+				? value.direction
+				: 'both',
+		depth: Math.max(
+			1,
+			Math.min(3, Math.floor(readFiniteNumber(value.depth, 1))),
+		),
+	};
+	if (Array.isArray(value.fieldRules)) {
+		const rules = new Map<
+			string,
+			NonNullable<typeof normalized.fieldRules>[number]
+		>();
+		for (const rule of value.fieldRules) {
+			if (!isRecord(rule) || typeof rule.field !== 'string') continue;
+			const field = rule.field.trim();
+			if (!normalized.fields.includes(field)) continue;
+			rules.set(field, {
+				field,
+				direction:
+					rule.direction === 'incoming' ||
+					rule.direction === 'outgoing' ||
+					rule.direction === 'both'
+						? rule.direction
+						: normalized.direction,
+				depth: Math.max(
+					1,
+					Math.min(
+						3,
+						Math.floor(
+							readFiniteNumber(rule.depth, normalized.depth),
+						),
+					),
+				),
+			});
+		}
+		normalized.fieldRules = [...rules.values()];
+	}
+	return normalized;
 }

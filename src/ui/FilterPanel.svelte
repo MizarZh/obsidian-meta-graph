@@ -5,6 +5,7 @@
 		WorkspaceSettingsActions,
 		WorkspaceSettingsView,
 	} from '@/ui/workspace/settings-ports';
+	import RelationExpansionPanel from '@/ui/filter-panel/RelationExpansionPanel.svelte';
 	import FilterRulesPanel from '@/ui/filter-panel/FilterRulesPanel.svelte';
 	import GraphSettingsPanel from '@/ui/filter-panel/GraphSettingsPanel.svelte';
 	import LinkStylePanel from '@/ui/filter-panel/LinkStylePanel.svelte';
@@ -148,6 +149,16 @@
 			onChange={actions.query.updateCurrent}
 			onGlobalChange={actions.query.updateGlobal}
 		/>
+		{#if view.query.canExpand}
+			<RelationExpansionPanel
+				{app}
+				query={view.query.currentQuery}
+				fields={view.suggestions.flowRelationFields}
+				coreCount={view.query.coreCount}
+				contextCount={view.query.contextCount}
+				onChange={actions.query.updateCurrent}
+			/>
+		{/if}
 	{:else if panel === 'note-style'}
 		<NodeStylePanel
 			{styleEditorRequest}

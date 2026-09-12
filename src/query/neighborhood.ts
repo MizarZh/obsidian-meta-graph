@@ -21,6 +21,9 @@ export class GraphQueryEngine {
 		query: GraphQuery,
 		globalQuery?: GraphQuery,
 	): GraphProjection {
+		if (query.relationExpansion?.enabled) {
+			return this.projectExpanded(index, query, globalQuery);
+		}
 		if (query.roots.length === 0) {
 			return this.projectGlobal(index, query, globalQuery);
 		}
@@ -94,6 +97,113 @@ export class GraphQueryEngine {
 		);
 
 		return { nodes, edges, rootIds: visibleRootIds };
+	}
+
+	private projectExpanded(
+		index: KnowledgeIndex,
+		query: GraphQuery,
+		globalQuery?: GraphQuery,
+	): GraphProjection {
+		const expansion = query.relationExpansion!;
+		const seedQuery = {
+			...query,
+			relationExpansion: undefined,
+			showIsolatedNodes: true,
+		};
+		const seeds = this.project(index, seedQuery, globalQuery);
+		const included = new Set(
+			seeds.nodes
+				.filter(
+					(node) =>
+						!globalQuery || nodeMatchesFilters(node, globalQuery),
+				)
+				.map((node) => node.id),
+		);
+		// Root neighborhoods normally omit isolated roots; they still seed expansion.
+		for (const root of query.roots) {
+			const node = index.nodes.get(root);
+			if (
+				included.size < query.maxNodes &&
+				node &&
+				(!globalQuery || nodeMatchesFilters(node, globalQuery))
+			)
+				included.add(root);
+		}
+		const coreIds = new Set(included);
+		const queue = [...included].map((nodeId) => ({ nodeId, depth: 0 }));
+		const traversalQuery = { ...query, direction: 'both' as const };
+		const rules = new Map(
+			expansion.fieldRules?.map((rule) => [rule.field, rule]),
+		);
+		const fields = new Set(expansion.fields);
+		const matchesExpansionEdge = (edge: KnowledgeEdge): boolean =>
+			(edge.kind === undefined || edge.kind === 'relation') &&
+			(expansion.allFields ||
+				fields.has(edge.sourceField) ||
+				fields.has(edge.relation)) &&
+			edgeMatchesFilters(edge, query, globalQuery);
+		for (
+			let cursor = 0;
+			cursor < queue.length && included.size < query.maxNodes;
+			cursor++
+		) {
+			const item = queue[cursor]!;
+
+			for (const { edge, neighbor } of this.getTraversableEdges(
+				index,
+				item.nodeId,
+				traversalQuery,
+			)) {
+				if (included.has(neighbor) || !matchesExpansionEdge(edge))
+					continue;
+				const rule = expansion.allFields
+					? expansion
+					: ((fields.has(edge.sourceField)
+							? rules.get(edge.sourceField)
+							: rules.get(edge.relation)) ?? expansion);
+				if (item.depth >= rule.depth) continue;
+				if (
+					edge.directed &&
+					((rule.direction === 'incoming' &&
+						edge.target !== item.nodeId) ||
+						(rule.direction === 'outgoing' &&
+							edge.source !== item.nodeId))
+				)
+					continue;
+				const node = index.nodes.get(neighbor);
+				// Shared filters define the boundary; current-view filters select seeds only.
+				if (
+					!node ||
+					(globalQuery && !nodeMatchesFilters(node, globalQuery))
+				)
+					continue;
+				included.add(neighbor);
+				queue.push({ nodeId: neighbor, depth: item.depth + 1 });
+				if (included.size >= query.maxNodes) break;
+			}
+		}
+		const edges = getOutgoingEdgesInIndexOrder(index, included).filter(
+			(edge) =>
+				included.has(edge.source) &&
+				included.has(edge.target) &&
+				((coreIds.has(edge.source) &&
+					coreIds.has(edge.target) &&
+					edgeMatchesFilters(edge, query, globalQuery)) ||
+					matchesExpansionEdge(edge)),
+		);
+		if (!query.showIsolatedNodes) {
+			const connected = new Set(
+				edges.flatMap((edge) => [edge.source, edge.target]),
+			);
+			for (const id of included)
+				if (!connected.has(id)) included.delete(id);
+		}
+		return {
+			nodes: [...included].map((id) => index.nodes.get(id)!),
+			edges,
+			rootIds: new Set(query.roots.filter((id) => included.has(id))),
+			contextIds: new Set([...included].filter((id) => !coreIds.has(id))),
+		};
 	}
 
 	private projectGlobal(

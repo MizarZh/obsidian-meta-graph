@@ -447,6 +447,14 @@
 	graphTargetTemplateId={graphConnectionTargetTemplateId}
 	{selectedNode}
 	{selectedNodeColor}
+	selectedNodeOrigin={workspaceState.chartSource === 'query' &&
+	workspaceState.query.relationExpansion?.enabled &&
+	selectedNode &&
+	workspaceState.projection?.nodes.some((node) => node.id === selectedNode.id)
+		? workspaceState.projection.contextIds?.has(selectedNode.id)
+			? 'context'
+			: 'core'
+		: undefined}
 	{selectedEdge}
 	{selectedGroup}
 	{indexedEdges}

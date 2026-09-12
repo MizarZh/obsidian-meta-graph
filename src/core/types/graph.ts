@@ -138,7 +138,23 @@ export interface NodeFilterGroup {
 
 export type NodeFilterItem = NodeFilterCondition | NodeFilterGroup;
 
+export interface RelationExpansionFieldRule {
+	field: string;
+	direction: DirectionMode;
+	depth: number;
+}
+
+export interface RelationExpansion {
+	fieldRules?: RelationExpansionFieldRule[];
+	enabled: boolean;
+	allFields: boolean;
+	fields: string[];
+	direction: DirectionMode;
+	depth: number;
+}
+
 export interface GraphQuery {
+	relationExpansion?: RelationExpansion;
 	roots: NodeId[];
 	folders: string[];
 	tags: string[];

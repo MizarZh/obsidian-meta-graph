@@ -55,6 +55,7 @@
 		graphTargetTemplateId,
 		selectedNode,
 		selectedNodeColor,
+		selectedNodeOrigin,
 		selectedEdge,
 		selectedGroup,
 		indexedEdges,
@@ -110,6 +111,7 @@
 		graphTargetTemplateId?: string;
 		selectedNode?: KnowledgeNode;
 		selectedNodeColor?: string;
+		selectedNodeOrigin?: 'core' | 'context';
 		selectedEdge?: KnowledgeEdge;
 		selectedGroup?: ChartGroupDefinition;
 		indexedEdges: KnowledgeEdge[];
@@ -264,6 +266,7 @@
 						node={selectedNode}
 						{nodes}
 						nodeColor={selectedNodeColor}
+						origin={selectedNodeOrigin}
 						{mode}
 						{manualLayout}
 						{grouping}
