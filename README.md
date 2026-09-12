@@ -195,7 +195,7 @@ settings to report them in the developer console.
 5. Use **Source → Query** for filter-driven charts, or **Source → Workspace**
    to manually add a fixed set of notes. Workspace source shows workspace files,
    including isolated notes, and existing metadata links between them.
-   Both sources share the **Nodes** panel. Query lists the current graph result;
+   Both sources share the **Node list** panel. Query lists the current graph result;
    Workspace lists saved members, including hidden and missing files. Panel
    search and **Filter node list** only narrow the list and do not change the graph.
    Both sources support single-node and batch group assignment (except 3D network;
@@ -320,7 +320,7 @@ settings to report them in the developer console.
     **Graph** settings to control cube face transparency.
 19. Use **Details**, **Pinned notes**, and **Templates** in the right panel. Only
     one tab is shown at a time. Pinned notes use the same searchable, filterable
-    **Add notes** picker as the Workspace Nodes panel. Template editing opens in a modal;
+    **Add notes** picker as the Workspace Node list panel. Template editing opens in a modal;
     drag a row to the graph or use its explicit **Create** and link buttons.
     Selecting a relationship keeps that metadata link prominent and lists other
     indexed links between the same notes separately. Selecting a Group shows its
@@ -337,7 +337,7 @@ settings to report them in the developer console.
     `1` resets zoom, `+` and `-` zoom, `Shift+R` refreshes and relayouts, and `?`
     toggles a side-by-side shortcut reference panel that remains visible while
     operating the graph. These actions are also available in Obsidian's command
-    palette, where users can assign custom hotkeys. In the Nodes panel, `Enter`
+    palette, where users can assign custom hotkeys. In the Node list panel, `Enter`
     opens the focused note and `Space` selects it with the same Ctrl/Cmd/Shift
     modifiers as clicking. In Pinned notes and Templates, `Space` toggles selection.
 23. Choose **Open notes in** under **Settings -> Meta Graph** to open notes in a
@@ -663,10 +663,21 @@ Sigma Flowchart parallel Curve edges taper their spacing near nodes and join out
 
 ### Trace paths and reachability
 
-Enable **Graph settings -> Overlays -> Trace** to show the compact Trace panel in the lower-right graph corner. The toggle is saved per chart and defaults off. Trace, Minimap, and Legend share one corner area with tabs, above Timeline when it is enabled. Switching tabs or collapsing Trace preserves the active highlight; a dot on the Trace tab indicates an active trace. Relationship fields, direction, and layers are directly visible in the panel. Choose a start node to begin. Clear an endpoint with its × button or by emptying its input. Click the active graph-pick button again or press Escape to cancel picking; otherwise Escape clears the trace. Use the Trace overlay toggle to hide the panel.
+Enable **Overlays -> Trace** to show the compact Trace panel in the lower-right graph corner. The toggle is saved per chart and defaults off. Trace, Minimap, and Legend can occupy any corner. Panels in the same corner share tabs; Timeline occupies the top or bottom, and corner panels leave space for it. Switching tabs or collapsing Trace preserves the active highlight; a dot on the Trace tab indicates an active trace. Relationship fields, direction, and layers are directly visible in the panel. Choose a start node to begin. Clear an endpoint with its × button or by emptying its input. Click the active graph-pick button again or press Escape to cancel picking; otherwise Escape clears the trace. Use the Trace overlay toggle to hide the panel.
 
 Right-click a node and choose **Trace upstream**, **Trace downstream**, or **Find shortest path from here**. The Trace panel offers **Reachability** and **Between nodes** modes. Search for start/end nodes or use their pick buttons to select them in the graph; temporary **A** and **B** badges identify the endpoints. While picking, an accent-colored prompt identifies the endpoint, the active pick button says **Cancel picking**, and the graph cursor becomes a crosshair. Selecting one node exits picking; use the prompt’s **Cancel** button or **Esc** to cancel. Swap endpoints to reverse a path search.
 
 Choose **All relationship fields** or **Selected fields** to trace metadata relationships. All fields share a direction; selected fields each use **Follow arrows**, **Against arrows**, or **Both**. Undirected fields always traverse both ways. Ordinary metadata values and body links are not relationship-field choices. Reachability offers a shared 1–10 layer limit or **All**; path mode finds one shortest path without that range limit.
 
 Tracing uses the current visible graph and does not expand filters. Nodes and links within the trace retain their original colors and styles; only elements outside the trace fade temporarily. While a trace result is active, Local hover and pinned-neighborhood focus cannot change that range. Individual nodes and links remain selectable; clearing Trace restores Local focus. Layout positions and saved styles remain intact. Clear the start node or press **Esc** outside graph picking to restore the normal appearance. Switching charts, refreshing the projection, or previewing the timeline clears the trace.
+
+
+### Overlay layout
+
+Open **Overlays** in the toolbar to set each panel’s visibility and position for the current view.
+
+- **Node list**, **Details**, **Pinned notes**, and **Templates** can each be placed on the left or right. Panels on the same side share tabs and a resize handle.
+- **Minimap**, **Legend**, and **Trace** can occupy any of the four corners. Panels in the same corner share tabs. Top panels expand downward; bottom panels expand upward.
+- **Timeline** can be placed at the top or bottom.
+
+Positions, visibility, and active tabs are saved per view. Hiding a panel preserves its contents and position. Existing workspaces retain Node list on the left, Details / Pinned notes / Templates on the right, small overlays at the bottom right, and Timeline at the bottom.

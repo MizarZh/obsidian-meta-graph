@@ -11,3 +11,5 @@
 @import '@/styles/timeline.css';
 @import '@/styles/minimap.css';
 @import '@/styles/trace.css';
+
+@import '@/styles/overlays.css';

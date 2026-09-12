@@ -7,6 +7,7 @@
 	} from '@/ui/workspace/settings-ports';
 	import RelationExpansionPanel from '@/ui/filter-panel/RelationExpansionPanel.svelte';
 	import FilterRulesPanel from '@/ui/filter-panel/FilterRulesPanel.svelte';
+	import OverlaySettingsPanel from '@/ui/filter-panel/OverlaySettingsPanel.svelte';
 	import GraphSettingsPanel from '@/ui/filter-panel/GraphSettingsPanel.svelte';
 	import LinkStylePanel from '@/ui/filter-panel/LinkStylePanel.svelte';
 	import NodeStylePanel from '@/ui/filter-panel/NodeStylePanel.svelte';
@@ -35,16 +36,10 @@
 			onPaste={actions.styles.setChart}
 		/>
 	{/if}
-	{#if panel === 'graph'}
+	{#if panel === 'overlays'}
+		<OverlaySettingsPanel view={view.graph} actions={actions.graph} />
+	{:else if panel === 'graph'}
 		<GraphSettingsPanel
-			timelineEnabled={view.graph.timelineEnabled}
-			onTimelineEnabled={actions.graph.setTimelineEnabled}
-			showLegend={view.graph.showLegend}
-			showMinimap={view.graph.showMinimap}
-			showTrace={view.graph.showTrace}
-			onShowMinimap={actions.graph.setShowMinimap}
-			onShowTrace={actions.graph.setShowTrace}
-			onShowLegend={actions.graph.setShowLegend}
 			{app}
 			mode={view.graph.mode}
 			renderer={view.graph.renderer}

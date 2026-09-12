@@ -26,6 +26,7 @@
 		{#if !embedded}
 			<ObsidianButton
 				text="Legend"
+				showLabelWithIcon
 				icon={open ? 'chevron-down' : 'chevron-up'}
 				ariaExpanded={open}
 				onClick={() => (open = !open)}

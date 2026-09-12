@@ -1,4 +1,15 @@
 <script lang="ts">
+	import {
+		CORNER_POSITIONS,
+		COLLAPSED_SIDE_WIDTH,
+		activeOverlayTab,
+		sidePanelsAt,
+	} from '@/workspace/meta-graph/overlay-layout';
+	import type {
+		CornerPosition,
+		CornerPanelId,
+		OverlayLayout,
+	} from '@/core/types/overlay';
 	import type { GraphTraceRequest } from '@/core/types';
 	import TraceBar from '@/ui/workspace/TraceBar.svelte';
 	import { traceVisibleGraph } from '@/ui/workspace/graph-trace';
@@ -208,8 +219,24 @@
 		Boolean(traceRequest) || workspaceState.showTrace,
 	);
 
-	let preferredCornerPanel = $state('trace');
-	let cornerCollapsed = $state(false);
+	let preferredCornerTabs = $state<
+		Partial<Record<CornerPosition, CornerPanelId>>
+	>({});
+	let collapsedCorners = $state<Partial<Record<CornerPosition, boolean>>>({});
+	const leftPanels = $derived(
+		sidePanelsAt(workspaceState.overlayLayout, 'left'),
+	);
+	const rightPanels = $derived(
+		sidePanelsAt(workspaceState.overlayLayout, 'right'),
+	);
+	function preferCorner(
+		id: CornerPanelId,
+		layout = workspaceState.overlayLayout,
+	): void {
+		const position = layout.positions[id] as CornerPosition;
+		preferredCornerTabs[position] = id;
+		collapsedCorners[position] = false;
+	}
 	const cornerPanels = $derived([
 		...(tracePanelVisible ? [{ id: 'trace', label: 'Trace' }] : []),
 		...(workspaceState.showMinimap &&
@@ -220,11 +247,6 @@
 			? [{ id: 'legend', label: 'Legend' }]
 			: []),
 	]);
-	const activeCornerPanel = $derived(
-		cornerPanels.some((panel) => panel.id === preferredCornerPanel)
-			? preferredCornerPanel
-			: cornerPanels[0]?.id,
-	);
 
 	function applyViewState(
 		state: WorkspaceState,
@@ -235,8 +257,7 @@
 
 	function setTrace(request?: GraphTraceRequest, autoPick = true): void {
 		if (request) {
-			preferredCornerPanel = 'trace';
-			cornerCollapsed = false;
+			preferCorner('trace');
 		}
 		traceRequest = request
 			? {
@@ -644,12 +665,16 @@
 		const unsubscribe = controller.subscribe((nextState) => {
 			const previousState = workspaceState;
 			const previousCanonical = canonicalState;
+			if (nextState.activeChartId !== canonicalState.activeChartId) {
+				preferredCornerTabs = {};
+				collapsedCorners = {};
+			}
 			if (nextState.showTrace && !canonicalState.showTrace)
-				preferredCornerPanel = 'trace';
+				preferCorner('trace', nextState.overlayLayout);
 			else if (nextState.showMinimap && !canonicalState.showMinimap)
-				preferredCornerPanel = 'minimap';
+				preferCorner('minimap', nextState.overlayLayout);
 			else if (nextState.showLegend && !canonicalState.showLegend)
-				preferredCornerPanel = 'legend';
+				preferCorner('legend', nextState.overlayLayout);
 			if (canonicalState.showTrace && !nextState.showTrace)
 				traceRequest = undefined;
 			if (
@@ -1128,7 +1153,15 @@
 
 	function showSelectionDetails(): void {
 		rightPanelTab = 'details';
-		dockOpen = true;
+		const layout = workspaceState.overlayLayout;
+		const side = layout.positions.details;
+		if (side === 'left') curatedPanelOpen = true;
+		else dockOpen = true;
+		controller.setOverlayLayout({
+			...layout,
+			hiddenPanels: layout.hiddenPanels.filter((id) => id !== 'details'),
+			activeTabs: { ...layout.activeTabs, [side]: 'details' },
+		});
 		persistSession();
 	}
 
@@ -1986,16 +2019,26 @@
 			class:minimap-visible={workspaceState.showMinimap &&
 				supportsPlanarRenderer(workspaceState.mode)}
 			class:connection-collapsed={!connectionOpen}
+			class:timeline-top={workspaceState.overlayLayout.positions
+				.timeline === 'top'}
 			class:trace-visible={tracePanelVisible && !graphLoading}
 			class:trace-picking={Boolean(traceRequest && tracePicking) &&
 				!graphLoading}
 			class:timeline-visible={workspaceState.timeline.enabled &&
 				supportsTimeline(workspaceState.mode)}
-			style="--dock-panel-width: {dockOpen
-				? `${workspaceState.dock.dockWidth}px`
-				: '32px'}; --curated-panel-width: {curatedPanelOpen
-				? `${workspaceState.dock.curatedPanelWidth}px`
-				: '32px'}; --connection-panel-height: {connectionOpen
+			style="--overlay-side-count: {Math.max(
+				1,
+				Number(Boolean(leftPanels.length)) +
+					Number(Boolean(rightPanels.length)),
+			)}; --dock-panel-width: {rightPanels.length
+				? dockOpen
+					? `calc(min(${workspaceState.dock.dockWidth}px, calc((100% - 64px) / var(--overlay-side-count))) + var(--size-4-3))`
+					: `calc(${COLLAPSED_SIDE_WIDTH}px + var(--size-4-3))`
+				: '0px'}; --curated-panel-width: {leftPanels.length
+				? curatedPanelOpen
+					? `calc(min(${workspaceState.dock.curatedPanelWidth}px, calc((100% - 64px) / var(--overlay-side-count))) + var(--size-4-3))`
+					: `calc(${COLLAPSED_SIDE_WIDTH}px + var(--size-4-3))`
+				: '0px'}; --connection-panel-height: {connectionOpen
 				? `${connectionPanelHeight}px`
 				: '0px'}"
 		>
@@ -2018,88 +2061,141 @@
 					</div>
 				</div>
 			{/if}
-			{#if cornerPanels.length && !graphLoading}
-				<aside
-					class="knowledge-workspace-corner-panels"
-					class:trace-active={activeCornerPanel === 'trace'}
-					aria-label="Graph overlays"
-				>
-					{#if !cornerCollapsed}
-						{#if activeCornerPanel === 'trace'}
-							<TraceBar
-								{app}
-								picking={tracePicking}
-								onPick={pickTraceEndpoint}
-								request={traceRequest ?? emptyTrace}
-								projection={workspaceState.projection}
-								result={traceRequest &&
-								rendererLifecycle.renderer &&
-								workspaceState.projection
-									? traceVisibleGraph(
-											rendererLifecycle.renderer
-												.runtimeGraph,
-											workspaceState.projection,
-											traceRequest,
-										)
-									: undefined}
-								onChange={(request) => setTrace(request, false)}
-							/>
-						{/if}
-						{#if activeCornerPanel === 'minimap'}
-							<GraphMinimap
-								embedded
-								readRenderer={() => rendererLifecycle.renderer}
-								readCanvas={() => canvas}
-							/>
-						{/if}
-						{#if activeCornerPanel === 'legend'}
-							<GraphLegend
-								embedded
-								state={workspaceState}
-								metadataFields={metadataFieldSuggestions}
-								metadataTypes={metadataFieldTypes}
-							/>
-						{/if}
-					{/if}
-					<div class="knowledge-workspace-corner-heading">
-						<ObsidianButton
-							text={cornerPanels.find(
-								(panel) => panel.id === activeCornerPanel,
-							)?.label ?? ''}
-							icon={cornerCollapsed
-								? 'chevron-up'
-								: 'chevron-down'}
-							ariaLabel={`${cornerCollapsed ? 'Expand' : 'Collapse'} ${activeCornerPanel}`}
-							ariaExpanded={!cornerCollapsed}
-							onClick={() => {
-								cornerCollapsed = !cornerCollapsed;
-								tracePicking = undefined;
-							}}
-						/>
-					</div>
-					<div
-						class="knowledge-workspace-corner-tabs knowledge-workspace-segmented knowledge-workspace-setting-segmented"
-						role="group"
-						aria-label="Choose overlay"
+			{#each CORNER_POSITIONS as position}
+				{@const panels = cornerPanels.filter(
+					(panel) =>
+						workspaceState.overlayLayout.positions[
+							panel.id as CornerPanelId
+						] === position,
+				)}
+				{@const preferred = preferredCornerTabs[position]}
+				{@const activeCornerPanel =
+					panels.find((panel) => panel.id === preferred)?.id ??
+					activeOverlayTab(
+						workspaceState.overlayLayout,
+						position,
+						panels.map((panel) => panel.id as CornerPanelId),
+					)}
+				{@const cornerCollapsed = collapsedCorners[position] ?? false}
+				{@const top = position.startsWith('top')}
+				{#if panels.length && !graphLoading}
+					<aside
+						class="knowledge-workspace-corner-panels"
+						data-position={position}
+						style:--corner-rows={cornerPanels.some((panel) => {
+							const other =
+								workspaceState.overlayLayout.positions[
+									panel.id as CornerPanelId
+								];
+							return (
+								other !== position &&
+								other.endsWith(
+									position.endsWith('left')
+										? 'left'
+										: 'right',
+								)
+							);
+						})
+							? 2
+							: 1}
+						class:trace-active={activeCornerPanel === 'trace'}
+						aria-label="Graph overlays"
 					>
-						{#each cornerPanels as panel (panel.id)}
+						{#if !cornerCollapsed}
+							{#if activeCornerPanel === 'trace'}
+								<TraceBar
+									{app}
+									picking={tracePicking}
+									onPick={pickTraceEndpoint}
+									request={traceRequest ?? emptyTrace}
+									projection={workspaceState.projection}
+									result={traceRequest &&
+									rendererLifecycle.renderer &&
+									workspaceState.projection
+										? traceVisibleGraph(
+												rendererLifecycle.renderer
+													.runtimeGraph,
+												workspaceState.projection,
+												traceRequest,
+											)
+										: undefined}
+									onChange={(request) =>
+										setTrace(request, false)}
+								/>
+							{/if}
+							{#if activeCornerPanel === 'minimap'}
+								<GraphMinimap
+									embedded
+									readRenderer={() =>
+										rendererLifecycle.renderer}
+									readCanvas={() => canvas}
+								/>
+							{/if}
+							{#if activeCornerPanel === 'legend'}
+								<GraphLegend
+									embedded
+									state={workspaceState}
+									metadataFields={metadataFieldSuggestions}
+									metadataTypes={metadataFieldTypes}
+								/>
+							{/if}
+						{/if}
+						<div class="knowledge-workspace-corner-heading">
 							<ObsidianButton
-								text={panel.label +
-									(panel.id === 'trace' &&
-									traceRequest?.source
-										? ' ·'
-										: '')}
-								active={activeCornerPanel === panel.id}
+								showLabelWithIcon
+								text={panels.find(
+									(panel) => panel.id === activeCornerPanel,
+								)?.label ?? ''}
+								icon={cornerCollapsed !== top
+									? 'chevron-up'
+									: 'chevron-down'}
+								ariaLabel={`${cornerCollapsed ? 'Expand' : 'Collapse'} ${activeCornerPanel}`}
+								ariaExpanded={!cornerCollapsed}
 								onClick={() => {
-									preferredCornerPanel = panel.id;
-									cornerCollapsed = false;
+									collapsedCorners[position] =
+										!cornerCollapsed;
 									tracePicking = undefined;
 								}}
 							/>
-						{/each}
-					</div>
-				</aside>
-			{/if}
+						</div>
+						{#if panels.length > 1}
+							<div
+								class="knowledge-workspace-corner-tabs knowledge-workspace-segmented knowledge-workspace-setting-segmented"
+								role="group"
+								aria-label="Choose overlay"
+							>
+								{#each panels as panel (panel.id)}
+									<ObsidianButton
+										text={panel.label +
+											(panel.id === 'trace' &&
+											traceRequest?.source
+												? ' ·'
+												: '')}
+										active={activeCornerPanel === panel.id}
+										onClick={() => {
+											preferCorner(
+												panel.id as CornerPanelId,
+											);
+											if (!readOnly)
+												controller.setOverlayLayout({
+													...workspaceState.overlayLayout,
+													activeTabs: {
+														...workspaceState
+															.overlayLayout
+															.activeTabs,
+														[position]:
+															panel.id as CornerPanelId,
+													},
+												});
+											tracePicking = undefined;
+										}}
+									/>
+								{/each}
+							</div>
+						{/if}
+					</aside>
+				{/if}
+			{/each}
 
 			{#if !graphLoading && nodeBadgeIds.size}
 				<ContextBadges

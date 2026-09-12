@@ -1,3 +1,4 @@
+import { createOverlayLayout } from '@/workspace/meta-graph/overlay-layout';
 import { supportsPlanarRenderer } from '@/core/types';
 import { normalizeTimeline } from '@/graph/timeline';
 import type {
@@ -897,6 +898,10 @@ function displayToV2(chart: MetaGraphChart): PersistedDisplayV2 {
 		...(display.showLegend === false ? { showLegend: false } : {}),
 		...(display.showMinimap ? { showMinimap: true } : {}),
 		...(display.showTrace ? { showTrace: true } : {}),
+		...(JSON.stringify(display.overlayLayout) !==
+		JSON.stringify(createOverlayLayout())
+			? { overlayLayout: display.overlayLayout }
+			: {}),
 		...(JSON.stringify(display.timeline) !==
 		JSON.stringify(normalizeTimeline())
 			? { timeline: display.timeline }
@@ -1232,6 +1237,7 @@ function v2ChartToLegacyRecord(
 			showLegend: display.showLegend,
 			showMinimap: display.showMinimap,
 			showTrace: display.showTrace,
+			overlayLayout: display.overlayLayout,
 			timeline: display.timeline,
 			parallelEdgeStyle: readChartParallelEdgeStyle(value.extensions),
 			labelSize: labels.size,

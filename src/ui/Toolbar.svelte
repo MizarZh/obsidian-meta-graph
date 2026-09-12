@@ -172,6 +172,7 @@
 		}>
 	>([
 		{ mode: 'graph', icon: 'sliders-horizontal', label: 'Graph' },
+		{ mode: 'overlays', icon: 'panels-top-left', label: 'Overlays' },
 		...(chartSource === 'query'
 			? [
 					{

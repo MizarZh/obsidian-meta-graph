@@ -4,6 +4,18 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Fixed collapsed side-panel controls to a 32px square with centered icons, removing inherited text-button padding and preventing clipping.
+
+- Collapsed left/right panels now use compact icon-only controls; expanded panel headings retain their names.
+
+- Limited explicit icon-plus-label rendering to panel fold controls and prevented repeated reactive updates from accumulating button labels or icons. Other buttons retain their previous rendering.
+
+- Renamed the Nodes panel to Node list. Fold controls now show the active panel name, including single-panel groups and collapsed side panels; fixed icon buttons replacing their text labels.
+
+- Restored floating side panels with inset margins, rounded corners, and shadows while retaining configurable placement and tab grouping. Collapsed side panels shrink to a compact floating control.
+
+- Added per-view Overlays settings for visibility and placement. Nodes, Details, Pinned notes, and Templates can independently occupy either sidebar and share tabs on the same side. Minimap, Legend, and Trace support all four corners with automatic tab grouping; Timeline supports top or bottom. Positions and active tabs persist, while older views keep their original arrangement.
+
 - Fixed Sigma translucent nodes, ordinary edges, and arrowheads washing out against light backgrounds. WebGL colors now use premultiplied alpha to match Canvas parallel edges, including feathered chevron arrowheads.
 
 - Active Trace results now take priority over Local hover and pinned-neighborhood focus across renderers. Individual selection remains available without revealing neighbors; clearing Trace restores Local focus automatically.

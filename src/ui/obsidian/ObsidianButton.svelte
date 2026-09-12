@@ -5,6 +5,7 @@
 	let {
 		text = '',
 		icon,
+		showLabelWithIcon = false,
 		disabled = false,
 		active = false,
 		cta = false,
@@ -19,6 +20,7 @@
 	}: {
 		text?: string;
 		icon?: IconName;
+		showLabelWithIcon?: boolean;
 		disabled?: boolean;
 		active?: boolean;
 		cta?: boolean;
@@ -66,9 +68,19 @@
 			return;
 		}
 
-		button.setButtonText(text);
-		if (icon) {
+		if (icon && showLabelWithIcon) {
+			// Rebuild the contents so reactive updates never accumulate labels/icons.
+			button.buttonEl.replaceChildren();
 			button.setIcon(icon);
+			if (text) {
+				const label =
+					button.buttonEl.ownerDocument.createElement('span');
+				label.textContent = text;
+				button.buttonEl.append(label);
+			}
+		} else {
+			button.setButtonText(text);
+			if (icon) button.setIcon(icon);
 		}
 		button.setDisabled(disabled);
 		button.buttonEl.className = className;

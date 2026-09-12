@@ -175,6 +175,7 @@ export interface PersistedDisplayV2 {
 	showLegend?: boolean;
 	showMinimap?: boolean;
 	showTrace?: boolean;
+	overlayLayout?: import('@/core/types/overlay').OverlayLayout;
 	fadeDistance: number;
 	labels?: {
 		size?: number;

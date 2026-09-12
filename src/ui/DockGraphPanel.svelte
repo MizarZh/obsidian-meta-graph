@@ -31,6 +31,7 @@
 	import GroupInspector from '@/ui/details/GroupInspector.svelte';
 
 	let {
+		embedded = false,
 		app,
 		templates,
 		notes,
@@ -87,6 +88,7 @@
 		focusOnSelect,
 		onToggleFocusOnSelect,
 	}: {
+		embedded?: boolean;
 		app: App;
 		templates: DockTemplateNode[];
 		notes: DockNoteEntry[];
@@ -219,45 +221,50 @@
 
 <aside
 	class="knowledge-workspace-dock-panel"
+	class:knowledge-workspace-panel-embedded={embedded}
 	class:knowledge-workspace-dock-panel-collapsed={!dockOpen}
-	style="width: {dockOpen ? `${dockWidth}px` : undefined}"
+	style="width: {!embedded && dockOpen ? `${dockWidth}px` : undefined}"
 >
-	<DockResizeHandle
-		width={dockWidth}
-		minWidth={260}
-		maxWidth={520}
-		ariaLabel="Resize right panel"
-		class="knowledge-workspace-dock-resize-handle"
-		readDelta={(startX, currentX) => startX - currentX}
-		onResize={onResizeDock}
-	/>
-	<ObsidianButton
-		class="knowledge-workspace-dock-toggle"
-		icon={dockOpen ? 'panel-right-close' : 'panel-right-open'}
-		ariaLabel={dockOpen ? 'Close right panel' : 'Open right panel'}
-		onClick={onToggleDock}
-	/>
+	{#if !embedded}
+		<DockResizeHandle
+			width={dockWidth}
+			minWidth={260}
+			maxWidth={520}
+			ariaLabel="Resize right panel"
+			class="knowledge-workspace-dock-resize-handle"
+			readDelta={(startX, currentX) => startX - currentX}
+			onResize={onResizeDock}
+		/>
+		<ObsidianButton
+			class="knowledge-workspace-dock-toggle"
+			icon={dockOpen ? 'panel-right-close' : 'panel-right-open'}
+			ariaLabel={dockOpen ? 'Close right panel' : 'Open right panel'}
+			onClick={onToggleDock}
+		/>
+	{/if}
 	{#if dockOpen}
-		<div class="knowledge-workspace-dock-tabs" role="tablist">
-			<ObsidianButton
-				text="Details"
-				active={activeTab === 'details'}
-				role="tab"
-				onClick={() => selectTab('details')}
-			/>
-			<ObsidianButton
-				text="Pinned notes"
-				active={activeTab === 'pinned'}
-				role="tab"
-				onClick={() => selectTab('pinned')}
-			/>
-			<ObsidianButton
-				text="Templates"
-				active={activeTab === 'templates'}
-				role="tab"
-				onClick={() => selectTab('templates')}
-			/>
-		</div>
+		{#if !embedded}
+			<div class="knowledge-workspace-dock-tabs" role="tablist">
+				<ObsidianButton
+					text="Details"
+					active={activeTab === 'details'}
+					role="tab"
+					onClick={() => selectTab('details')}
+				/>
+				<ObsidianButton
+					text="Pinned notes"
+					active={activeTab === 'pinned'}
+					role="tab"
+					onClick={() => selectTab('pinned')}
+				/>
+				<ObsidianButton
+					text="Templates"
+					active={activeTab === 'templates'}
+					role="tab"
+					onClick={() => selectTab('templates')}
+				/>
+			</div>
+		{/if}
 		{#if activeTab === 'details'}
 			<div class="knowledge-workspace-details-tab">
 				{#if selectedNode}

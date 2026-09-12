@@ -1,3 +1,4 @@
+import { normalizeOverlayLayout } from '@/workspace/meta-graph/overlay-layout';
 import { getActiveChart } from '@/workspace/state/chart-selectors';
 import { normalizeTimeline } from '@/graph/timeline';
 import type { TimelineConfig } from '@/core/types';
@@ -269,6 +270,17 @@ export function setShowMinimapInState(
 	value: boolean,
 ): WorkspaceState {
 	return setDisplayValue(state, 'showMinimap', value);
+}
+
+export function setOverlayLayoutInState(
+	state: WorkspaceState,
+	value: import('@/core/types/overlay').OverlayLayout,
+): WorkspaceState {
+	return setDisplayValue(
+		state,
+		'overlayLayout',
+		normalizeOverlayLayout(value),
+	);
 }
 
 export function setShowTraceInState(

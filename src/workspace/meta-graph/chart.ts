@@ -1,3 +1,4 @@
+import { createOverlayLayout, normalizeOverlayLayout } from './overlay-layout';
 import { supportsPlanarRenderer } from '@/core/types';
 import { normalizeTimeline } from '@/graph/timeline';
 import { normalizeLabelMaxWidth } from '@/graph/label-text';
@@ -122,6 +123,7 @@ export function createDefaultChart(
 			showLegend: true,
 			showMinimap: false,
 			showTrace: false,
+			overlayLayout: createOverlayLayout(),
 			timeline: normalizeTimeline(),
 			forceLabels: DEFAULT_FORCE_LABELS,
 			enableForceLayout: false,
@@ -318,6 +320,7 @@ export function normalizeChart(
 			timeline: normalizeTimeline(display.timeline),
 			showMinimap: readBoolean(display.showMinimap, false),
 			showTrace: readBoolean(display.showTrace, false),
+			overlayLayout: normalizeOverlayLayout(display.overlayLayout),
 			showLegend: readBoolean(
 				display.showLegend,
 				fallback.display.showLegend,

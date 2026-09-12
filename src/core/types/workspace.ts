@@ -1,3 +1,4 @@
+import type { OverlayLayout } from './overlay';
 import type { MetaGraphDock } from '@/core/types/dock';
 import type {
 	GraphProjection,
@@ -39,6 +40,7 @@ export interface CreateChartInput {
 export type ThreeLabelResolution = 'standard' | 'high' | 'ultra';
 export type SettingsPanelMode =
 	| 'graph'
+	| 'overlays'
 	| 'workspace'
 	| 'filters'
 	| 'groups'
@@ -167,6 +169,7 @@ export interface ChartDisplayConfig {
 	showLegend: boolean;
 	showMinimap: boolean;
 	showTrace: boolean;
+	overlayLayout: OverlayLayout;
 	parallelEdgeStyle?: 'straight' | 'curve';
 	fadeDistance: number;
 	labelSize: number;
@@ -296,6 +299,7 @@ export interface WorkspaceState {
 	showLegend: boolean;
 	showMinimap: boolean;
 	showTrace: boolean;
+	overlayLayout: OverlayLayout;
 	graphSpacing: number;
 	timeline: TimelineConfig;
 	graphCenterForce: number;

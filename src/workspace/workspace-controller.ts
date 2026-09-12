@@ -1,3 +1,4 @@
+import { setOverlayLayoutInState } from '@/workspace/state/chart-settings';
 import { TFile, type App } from 'obsidian';
 import type {
 	ArcDirection,
@@ -533,6 +534,12 @@ export class WorkspaceController {
 	setShowMinimap(value: boolean): void {
 		this.setWorkspaceState(setShowMinimapInState(this.state, value));
 	}
+	setOverlayLayout(
+		value: import('@/core/types/overlay').OverlayLayout,
+	): void {
+		this.setWorkspaceState(setOverlayLayoutInState(this.state, value));
+	}
+
 	setShowTrace(value: boolean): void {
 		this.setWorkspaceState(setShowTraceInState(this.state, value));
 	}

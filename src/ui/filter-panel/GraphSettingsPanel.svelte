@@ -25,14 +25,6 @@
 
 	let {
 		app,
-		showLegend,
-		showMinimap,
-		showTrace,
-		onShowMinimap,
-		onShowTrace,
-		timelineEnabled,
-		onTimelineEnabled,
-		onShowLegend,
 		mode,
 		renderer,
 		fadeDistance,
@@ -84,14 +76,6 @@
 		onChange,
 	}: {
 		app: App;
-		showLegend: boolean;
-		showMinimap: boolean;
-		showTrace: boolean;
-		onShowMinimap: (value: boolean) => void;
-		onShowTrace: (value: boolean) => void;
-		timelineEnabled: boolean;
-		onTimelineEnabled: (value: boolean) => void;
-		onShowLegend: (value: boolean) => void;
 		mode: ViewMode;
 		renderer: PlanarRendererKind;
 		fadeDistance: number;
@@ -297,37 +281,7 @@
 
 <section>
 	<header><h3>Graph settings</h3></header>
-	<SettingsSection title="Overlays">
-		<div class="knowledge-workspace-overlay-toggles">
-			{#if supportsPlanarRenderer(mode)}
-				<ToggleSetting
-					label="Minimap"
-					value={showMinimap}
-					onChange={onShowMinimap}
-				/>
-			{/if}
-			<ToggleSetting
-				label="Legend"
-				ariaLabel="Show legend"
-				value={showLegend}
-				onChange={onShowLegend}
-			/>
-			<ToggleSetting
-				label="Trace"
-				ariaLabel="Show trace panel"
-				value={showTrace}
-				onChange={onShowTrace}
-			/>
-			{#if supportsTimeline(mode)}
-				<ToggleSetting
-					label="Timeline"
-					ariaLabel="Show timeline"
-					value={timelineEnabled}
-					onChange={onTimelineEnabled}
-				/>
-			{/if}
-		</div>
-	</SettingsSection>
+
 	{#if mode === 'graph' && renderer === 'sigma'}
 		<SettingsSection title="Edges">
 			<SegmentedSetting

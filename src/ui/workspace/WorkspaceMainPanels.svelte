@@ -1,4 +1,10 @@
 <script lang="ts">
+	import OverlaySideGroup from './OverlaySideGroup.svelte';
+	import {
+		activeOverlayTab,
+		sidePanelsAt,
+	} from '@/workspace/meta-graph/overlay-layout';
+	import type { SidePosition, SidePanelId } from '@/core/types/overlay';
 	import type { App } from 'obsidian';
 	import type { KnowledgeNode, WorkspaceState } from '@/core/types';
 	import type { ConnectionDragState } from '@/graph/renderers/renderer-events';
@@ -122,6 +128,26 @@
 		onCuratedConditionDraftChange: (draft: CuratedConditionDraft) => void;
 		formatError: (error: unknown) => string;
 	} = $props();
+
+	let preferredSideTabs = $state<Partial<Record<SidePosition, SidePanelId>>>(
+		{},
+	);
+	const overlayChartId = $derived(workspaceState.activeChartId);
+	$effect(() => {
+		void overlayChartId;
+		preferredSideTabs = {};
+	});
+	function selectSideTab(position: SidePosition, id: SidePanelId): void {
+		if (readOnly) preferredSideTabs[position] = id;
+		else
+			controller.setOverlayLayout({
+				...workspaceState.overlayLayout,
+				activeTabs: {
+					...workspaceState.overlayLayout.activeTabs,
+					[position]: id,
+				},
+			});
+	}
 
 	function selectAndMaybeFocusNode(nodeId: string): void {
 		controller.selectNode(nodeId);
@@ -293,45 +319,81 @@
 	);
 </script>
 
-{#key `${workspaceState.activeChartId}:${listSource}`}
-	<NodeListPanel
-		groupEditable={workspaceState.mode !== 'graph-3d'}
-		{app}
-		source={listSource}
-		files={nodeListFiles}
-		curated={workspaceState.curated}
-		nodes={listNodes}
-		groups={chartGroups}
-		groupRequired={workspaceState.mode === 'cube'}
-		folders={workspaceState.availableFolders}
-		{nodeColors}
-		{workspaceFilePath}
-		panelOpen={curatedPanelOpen}
-		onTogglePanel={onToggleCuratedPanel}
-		panelWidth={workspaceState.dock.curatedPanelWidth}
-		onResizePanel={(width) => controller.setCuratedPanelWidth(width)}
-		focusOnSelect={workspaceState.dock.focusOnSelect}
-		onToggleFocusOnSelect={() =>
-			controller.setDockFocusOnSelect(!workspaceState.dock.focusOnSelect)}
-		dropTarget={graphConnectionTargetCurated}
-		selectedPaths={curatedSelection}
-		onSelectedPathsChange={onCuratedSelectionChange}
-		conditionDraft={curatedConditionDraft}
-		onConditionDraftChange={onCuratedConditionDraftChange}
-		onAddFiles={(paths, groupId) =>
-			controller.addCuratedFiles(paths, groupId)}
-		onRemoveFile={(path) => controller.removeCuratedFile(path)}
-		onRemoveFiles={(paths) => controller.removeCuratedFiles(paths)}
-		onSetFilesHidden={(paths, hidden) =>
-			controller.setCuratedFilesHidden(paths, hidden)}
-		onMoveFilesToGroup={(paths, groupId) =>
-			controller.moveNodesToGroup(paths, groupId)}
-		onClearFiles={() => controller.clearCuratedFiles()}
-		onReorderFiles={(paths) => controller.reorderCuratedFiles(paths)}
-		{onOpenNote}
-		onSelectNote={selectAndMaybeFocusNode}
-	/>
-{/key}
+{#snippet nodesPanel()}
+	{#key `${workspaceState.activeChartId}:${listSource}`}
+		<NodeListPanel
+			embedded
+			groupEditable={workspaceState.mode !== 'graph-3d'}
+			{app}
+			source={listSource}
+			files={nodeListFiles}
+			curated={workspaceState.curated}
+			nodes={listNodes}
+			groups={chartGroups}
+			groupRequired={workspaceState.mode === 'cube'}
+			folders={workspaceState.availableFolders}
+			{nodeColors}
+			{workspaceFilePath}
+			panelOpen={true}
+			onTogglePanel={onToggleCuratedPanel}
+			panelWidth={workspaceState.dock.curatedPanelWidth}
+			onResizePanel={(width) => controller.setCuratedPanelWidth(width)}
+			focusOnSelect={workspaceState.dock.focusOnSelect}
+			onToggleFocusOnSelect={() =>
+				controller.setDockFocusOnSelect(
+					!workspaceState.dock.focusOnSelect,
+				)}
+			dropTarget={graphConnectionTargetCurated}
+			selectedPaths={curatedSelection}
+			onSelectedPathsChange={onCuratedSelectionChange}
+			conditionDraft={curatedConditionDraft}
+			onConditionDraftChange={onCuratedConditionDraftChange}
+			onAddFiles={(paths, groupId) =>
+				controller.addCuratedFiles(paths, groupId)}
+			onRemoveFile={(path) => controller.removeCuratedFile(path)}
+			onRemoveFiles={(paths) => controller.removeCuratedFiles(paths)}
+			onSetFilesHidden={(paths, hidden) =>
+				controller.setCuratedFilesHidden(paths, hidden)}
+			onMoveFilesToGroup={(paths, groupId) =>
+				controller.moveNodesToGroup(paths, groupId)}
+			onClearFiles={() => controller.clearCuratedFiles()}
+			onReorderFiles={(paths) => controller.reorderCuratedFiles(paths)}
+			{onOpenNote}
+			onSelectNote={selectAndMaybeFocusNode}
+		/>
+	{/key}
+{/snippet}
+
+{#each ['left', 'right'] as side}
+	{@const position = side as SidePosition}
+	{@const panels = sidePanelsAt(workspaceState.overlayLayout, position)}
+	{@const active =
+		panels.find((id) => id === preferredSideTabs[position]) ??
+		activeOverlayTab(workspaceState.overlayLayout, position, panels)}
+	{#if active}
+		<OverlaySideGroup
+			side={position}
+			{panels}
+			{active}
+			open={side === 'left' ? curatedPanelOpen : dockOpen}
+			width={side === 'left'
+				? workspaceState.dock.curatedPanelWidth
+				: workspaceState.dock.dockWidth}
+			onSelect={(id) => selectSideTab(position, id)}
+			onToggle={side === 'left' ? onToggleCuratedPanel : onToggleDock}
+			onResize={(width) =>
+				side === 'left'
+					? controller.setCuratedPanelWidth(width)
+					: controller.setDockWidth(width)}
+		>
+			{#if active === 'nodes'}
+				{@render nodesPanel()}
+			{:else}
+				{@render dockPanel(active)}
+			{/if}
+		</OverlaySideGroup>
+	{/if}
+{/each}
 {#if connectionDrag}
 	<svg class="knowledge-workspace-connection-preview" aria-hidden="true">
 		<defs>
@@ -418,81 +480,89 @@
 		<span></span>
 	</div>
 {/if}
-<DockGraphPanel
-	{app}
-	templates={workspaceState.dock.templates}
-	notes={dockNoteEntries}
-	nodes={indexedNodes}
-	{visibleNodes}
-	groups={chartGroups}
-	folders={workspaceState.availableFolders}
-	{workspaceFilePath}
-	{nodeColors}
-	{dockOpen}
-	activeTab={rightPanelTab}
-	{onToggleDock}
-	{onRightPanelTabChange}
-	dockWidth={workspaceState.dock.dockWidth}
-	onResizeDock={(width) => controller.setDockWidth(width)}
-	activeConnectionField={workspaceState.activeConnectionField}
-	{activeConnectionMode}
-	draggingKey={dockDrag
-		? dockDrag.kind === 'template'
-			? `template:${dockDrag.templateId}`
-			: `note:${dockDrag.notePath}`
-		: undefined}
-	linking={Boolean(dockConnectionDrag)}
-	targetNodeId={dockTargetNodeId}
-	graphTargetNotePath={graphConnectionTargetNotePath}
-	graphTargetTemplateId={graphConnectionTargetTemplateId}
-	{selectedNode}
-	{selectedNodeColor}
-	selectedNodeOrigin={workspaceState.chartSource === 'query' &&
-	workspaceState.query.relationExpansion?.enabled &&
-	selectedNode &&
-	workspaceState.projection?.nodes.some((node) => node.id === selectedNode.id)
-		? workspaceState.projection.contextIds?.has(selectedNode.id)
-			? 'context'
-			: 'core'
-		: undefined}
-	{selectedEdge}
-	{selectedGroup}
-	{indexedEdges}
-	{visibleEdgeIds}
-	{readOnly}
-	{initialDetailsNoteContentExpanded}
-	{onDetailsNoteContentExpandedChange}
-	mode={workspaceState.mode}
-	manualLayout={workspaceState.manualLayout}
-	grouping={workspaceState.grouping}
-	onAddTemplate={(template) => controller.addDockTemplate(template)}
-	onUpdateTemplate={(templateId, template) =>
-		controller.updateDockTemplate(templateId, template)}
-	onRemoveTemplate={(templateId) => controller.removeDockTemplate(templateId)}
-	onAddNotes={(paths) => controller.addDockNotes(paths)}
-	onRemoveNote={(path) => controller.removeDockNote(path)}
-	onReorderTemplates={(templateIds) =>
-		controller.reorderDockTemplates(templateIds)}
-	onReorderNotes={(paths) => controller.reorderDockNotes(paths)}
-	{onLinkPointerDown}
-	{onCuratedPointerDown}
-	{onCreateTemplateNote}
-	{onOpenNote}
-	{onOpenMetadataLink}
-	onSetNodeGroup={(path, groupId) => controller.setNodeGroup(path, groupId)}
-	onConnectNode={(sourcePath, targetPath, field) => {
-		void controller
-			.connectNodes(sourcePath, targetPath, field)
-			.catch(reportError);
-	}}
-	onSelectNote={selectAndMaybeFocusNode}
-	onSelectEdge={(edgeId) => controller.selectEdge(edgeId)}
-	{onFocusNode}
-	{onEditGroup}
-	focusOnSelect={workspaceState.dock.focusOnSelect}
-	onToggleFocusOnSelect={() =>
-		controller.setDockFocusOnSelect(!workspaceState.dock.focusOnSelect)}
-/>
+{#snippet dockPanel(tab: WorkspaceRightPanelTab)}
+	<DockGraphPanel
+		embedded
+		{app}
+		templates={workspaceState.dock.templates}
+		notes={dockNoteEntries}
+		nodes={indexedNodes}
+		{visibleNodes}
+		groups={chartGroups}
+		folders={workspaceState.availableFolders}
+		{workspaceFilePath}
+		{nodeColors}
+		dockOpen={true}
+		activeTab={tab}
+		{onToggleDock}
+		{onRightPanelTabChange}
+		dockWidth={workspaceState.dock.dockWidth}
+		onResizeDock={(width) => controller.setDockWidth(width)}
+		activeConnectionField={workspaceState.activeConnectionField}
+		{activeConnectionMode}
+		draggingKey={dockDrag
+			? dockDrag.kind === 'template'
+				? `template:${dockDrag.templateId}`
+				: `note:${dockDrag.notePath}`
+			: undefined}
+		linking={Boolean(dockConnectionDrag)}
+		targetNodeId={dockTargetNodeId}
+		graphTargetNotePath={graphConnectionTargetNotePath}
+		graphTargetTemplateId={graphConnectionTargetTemplateId}
+		{selectedNode}
+		{selectedNodeColor}
+		selectedNodeOrigin={workspaceState.chartSource === 'query' &&
+		workspaceState.query.relationExpansion?.enabled &&
+		selectedNode &&
+		workspaceState.projection?.nodes.some(
+			(node) => node.id === selectedNode.id,
+		)
+			? workspaceState.projection.contextIds?.has(selectedNode.id)
+				? 'context'
+				: 'core'
+			: undefined}
+		{selectedEdge}
+		{selectedGroup}
+		{indexedEdges}
+		{visibleEdgeIds}
+		{readOnly}
+		{initialDetailsNoteContentExpanded}
+		{onDetailsNoteContentExpandedChange}
+		mode={workspaceState.mode}
+		manualLayout={workspaceState.manualLayout}
+		grouping={workspaceState.grouping}
+		onAddTemplate={(template) => controller.addDockTemplate(template)}
+		onUpdateTemplate={(templateId, template) =>
+			controller.updateDockTemplate(templateId, template)}
+		onRemoveTemplate={(templateId) =>
+			controller.removeDockTemplate(templateId)}
+		onAddNotes={(paths) => controller.addDockNotes(paths)}
+		onRemoveNote={(path) => controller.removeDockNote(path)}
+		onReorderTemplates={(templateIds) =>
+			controller.reorderDockTemplates(templateIds)}
+		onReorderNotes={(paths) => controller.reorderDockNotes(paths)}
+		{onLinkPointerDown}
+		{onCuratedPointerDown}
+		{onCreateTemplateNote}
+		{onOpenNote}
+		{onOpenMetadataLink}
+		onSetNodeGroup={(path, groupId) =>
+			controller.setNodeGroup(path, groupId)}
+		onConnectNode={(sourcePath, targetPath, field) => {
+			void controller
+				.connectNodes(sourcePath, targetPath, field)
+				.catch(reportError);
+		}}
+		onSelectNote={selectAndMaybeFocusNode}
+		onSelectEdge={(edgeId) => controller.selectEdge(edgeId)}
+		{onFocusNode}
+		{onEditGroup}
+		focusOnSelect={workspaceState.dock.focusOnSelect}
+		onToggleFocusOnSelect={() =>
+			controller.setDockFocusOnSelect(!workspaceState.dock.focusOnSelect)}
+	/>
+{/snippet}
+
 {#if atNodeLimit}
 	<section class="knowledge-workspace-notice">
 		<span

@@ -24,6 +24,7 @@
 	import ObsidianTextInput from '@/ui/obsidian/ObsidianTextInput.svelte';
 
 	let {
+		embedded = false,
 		app,
 		source,
 		files: selectedFiles,
@@ -56,6 +57,7 @@
 		onOpenNote,
 		onSelectNote,
 	}: {
+		embedded?: boolean;
 		app: App;
 		source: ChartSource;
 		files: NodeListEntry[];
@@ -329,30 +331,33 @@
 
 <aside
 	class="knowledge-workspace-curated-panel"
+	class:knowledge-workspace-panel-embedded={embedded}
 	class:knowledge-workspace-curated-panel-collapsed={!panelOpen}
 	class:target={dropTarget}
 	data-curated-drop-target={editable && panelOpen ? '' : undefined}
-	style={`width: ${panelWidth}px`}
+	style={embedded ? undefined : `width: ${panelWidth}px`}
 >
-	<div
-		class="knowledge-workspace-curated-resize-handle"
-		role="separator"
-		aria-label="Resize nodes"
-		onpointerdown={handleResizePointerDown}
-	></div>
-	<ObsidianButton
-		class="knowledge-workspace-curated-toggle"
-		icon={panelOpen ? 'panel-left-close' : 'panel-left-open'}
-		ariaLabel={panelOpen ? 'Close nodes' : 'Open nodes'}
-		tooltip={panelOpen ? 'Close nodes' : 'Open nodes'}
-		onClick={onTogglePanel}
-	/>
+	{#if !embedded}
+		<div
+			class="knowledge-workspace-curated-resize-handle"
+			role="separator"
+			aria-label="Resize node list"
+			onpointerdown={handleResizePointerDown}
+		></div>
+		<ObsidianButton
+			class="knowledge-workspace-curated-toggle"
+			icon={panelOpen ? 'panel-left-close' : 'panel-left-open'}
+			ariaLabel={panelOpen ? 'Close node list' : 'Open node list'}
+			tooltip={panelOpen ? 'Close node list' : 'Open node list'}
+			onClick={onTogglePanel}
+		/>
+	{/if}
 	<section aria-hidden={!panelOpen}>
 		<header
 			class="knowledge-workspace-curated-header"
 			class:query={!editable}
 		>
-			<h3>Nodes <small>{editable ? 'Workspace' : 'Query'}</small></h3>
+			<h3>Node list <small>{editable ? 'Workspace' : 'Query'}</small></h3>
 			<span
 				>{filteredSelectedFiles.length === selectedFiles.length
 					? selectedFiles.length
