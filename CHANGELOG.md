@@ -4,6 +4,16 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Disable the invisible Obsidian dropdown measuring element in the fixed-width configuration dialog, and limit scrolling to the content area vertically so the title cannot scroll sideways.
+
+- Give the configuration modal a dedicated centered container and stretch its content to the same width, preventing offset content and unused horizontal space.
+
+- Let configuration descriptions fill the dialog width with switches aligned right, and constrain the modal to the viewport with scrollable content.
+
+- Added short descriptions for Styles, Layout, Panels, and Groups (add) in the configuration transfer dialog.
+
+- Consolidated style copy/paste into Apply configuration in the view menu, with selective styles, compatible layout, panels, and additive groups. Added versioned JSON import/export for cross-workspace transfer while preserving target queries, node positions, and manual assignments.
+
 - Moved Node badges to the end of Graph settings.
 
 - Added per-view Node badges controls in Graph settings: visibility, relative size (25–200%), and four corner positions. Changes repaint badges immediately without rebuilding or relaying out the graph.

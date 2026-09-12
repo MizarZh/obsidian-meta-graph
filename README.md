@@ -239,8 +239,15 @@ settings to report them in the developer console.
    section heading to append, including empty sections, or on a card to choose
    an insertion position. Other override sections remain inline.
    Move note/link style rules between global and chart scopes with each rule's
-   move action. Use **Copy chart styles** and **Paste chart styles** to transfer
-   chart overrides and rules between charts.
+   move action. Open the view menu → **Apply configuration…** to reuse settings
+   from another view or import a configuration JSON file. Styles are selected by
+   default; optionally include layout (same view type only), panels, or groups.
+   Groups are added with unique names; existing manual assignments are preserved.
+   Query, note selection, and node positions are not transferred. Use **Duplicate
+   view** for a complete copy. The dialog's **Export** action saves selected
+   settings to a new JSON file in the vault root for transfer to another workspace.
+   Exported styles include workspace defaults and rules as local view settings;
+   importing never changes the destination workspace defaults.
 9. Add link style rules by relation or source frontmatter field. Choose circle,
    square, diamond, triangle, hexagon, or star note shapes in workspace
    defaults, chart overrides, and note style rules. Note and link colors, sizes,

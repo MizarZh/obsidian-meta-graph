@@ -1048,19 +1048,6 @@
 	white-space: nowrap;
 }
 
-.knowledge-workspace-style-transfer {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--size-4-2);
-	align-items: center;
-	margin-bottom: var(--size-4-4);
-}
-
-.knowledge-workspace-style-transfer-status {
-	color: var(--text-muted);
-	font-size: var(--font-ui-small);
-}
-
 .knowledge-workspace-add-rule-button,
 .knowledge-workspace-remove-rule-button {
 	display: grid;
@@ -2246,4 +2233,102 @@ input.knowledge-workspace-color-control:disabled {
 .knowledge-workspace-expansion-depth-value {
 	min-width: 1ch;
 	font-variant-numeric: tabular-nums;
+}
+
+.modal-container.knowledge-workspace-configuration-container {
+	position: fixed;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	min-width: 0;
+	padding: 16px;
+	margin: 0;
+	box-sizing: border-box;
+}
+.knowledge-workspace-configuration-container
+	> .modal.knowledge-workspace-configuration-modal {
+	position: relative;
+	inset: auto;
+	flex: 0 1 640px;
+	width: 640px;
+	min-width: 0;
+	max-width: 100%;
+	max-height: 100%;
+	margin: 0;
+	align-items: stretch;
+	box-sizing: border-box;
+	overflow: clip;
+}
+.knowledge-workspace-configuration-modal > .modal-content {
+	align-self: stretch;
+	width: 100%;
+	max-width: 100%;
+	min-width: 0;
+	min-height: 0;
+	margin-inline: 0;
+	box-sizing: border-box;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+.knowledge-workspace-configuration-dialog {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 12px;
+	width: 100%;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+.knowledge-workspace-configuration-dialog > *,
+.knowledge-workspace-configuration-parts > * {
+	min-width: 0;
+}
+.knowledge-workspace-configuration-parts .knowledge-workspace-setting-row {
+	grid-template-columns: minmax(0, 1fr) auto;
+}
+.knowledge-workspace-configuration-parts .knowledge-workspace-setting-control {
+	width: auto;
+	justify-self: end;
+}
+.knowledge-workspace-configuration-dialog p {
+	margin: 0;
+	color: var(--text-muted);
+}
+.knowledge-workspace-configuration-dialog [role='alert'] {
+	color: var(--text-error);
+}
+.knowledge-workspace-configuration-parts {
+	display: grid;
+	gap: 10px;
+	padding-block: 12px;
+	border-block: 1px solid var(--background-modifier-border);
+}
+.knowledge-workspace-configuration-dialog select.dropdown {
+	width: 100%;
+}
+/* Fixed-width controls do not need Obsidian's absolutely positioned measuring
+   select, whose invisible intrinsic width otherwise enlarges the modal scroll area. */
+.knowledge-workspace-configuration-dialog select.dropdown.is-measuring {
+	display: none;
+}
+.knowledge-workspace-configuration-dialog input,
+.knowledge-workspace-configuration-dialog select,
+.knowledge-workspace-configuration-dialog button {
+	min-width: 0;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+.knowledge-workspace-configuration-filename {
+	display: grid;
+	grid-template-columns: 86px minmax(0, 1fr);
+	align-items: center;
+	gap: 12px;
+}
+.knowledge-workspace-configuration-actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 8px;
 }

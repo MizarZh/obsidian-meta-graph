@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ViewConfigurationModal } from '@/ui/ViewConfigurationModal';
 	import {
 		getGroupMoveTargets,
 		canMoveNodeToGroup,
@@ -1984,6 +1985,19 @@
 		onSelectChart={switchActiveChart}
 		onCreateChart={(input) => controller.addChart(input)}
 		onDuplicateChart={() => controller.duplicateActiveChart()}
+		onApplyConfiguration={() => {
+			const targetId = workspaceState.activeChartId;
+			new ViewConfigurationModal(
+				app,
+				workspaceState,
+				(config, selection) =>
+					controller.applyViewConfiguration(
+						config,
+						selection,
+						targetId,
+					),
+			).open();
+		}}
 		onRenameChart={(name) => controller.setActiveChartName(name)}
 		onChartType={requestChartTypeChange}
 		onRenderer={(renderer) => controller.setActiveChartRenderer(renderer)}

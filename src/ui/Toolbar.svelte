@@ -32,6 +32,7 @@
 		onSelectChart,
 		onCreateChart,
 		onDuplicateChart,
+		onApplyConfiguration,
 		onRenameChart,
 		onChartType,
 		onRenderer,
@@ -69,6 +70,7 @@
 		onSelectChart: (id: string) => void | Promise<void>;
 		onCreateChart: (input: CreateChartInput) => void;
 		onDuplicateChart: () => void;
+		onApplyConfiguration: () => void;
 		onRenameChart: (name: string) => void;
 		onChartType: (mode: ViewMode) => void;
 		onRenderer: (renderer: PlanarRendererKind) => void;
@@ -635,6 +637,14 @@
 				</label>
 				{@render sourceSelector(chartSource, onChartSource)}
 				<div class="knowledge-workspace-view-actions">
+					<ObsidianButton
+						text="Apply configuration…"
+						disabled={readOnly}
+						onClick={() => {
+							closeConfig();
+							onApplyConfiguration();
+						}}
+					/>
 					<ObsidianButton
 						text="Duplicate view"
 						disabled={readOnly}

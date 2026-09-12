@@ -11,7 +11,6 @@
 	import GraphSettingsPanel from '@/ui/filter-panel/GraphSettingsPanel.svelte';
 	import LinkStylePanel from '@/ui/filter-panel/LinkStylePanel.svelte';
 	import NodeStylePanel from '@/ui/filter-panel/NodeStylePanel.svelte';
-	import StyleTransferControls from '@/ui/filter-panel/StyleTransferControls.svelte';
 	import TextStylePanel from '@/ui/filter-panel/TextStylePanel.svelte';
 
 	let {
@@ -30,12 +29,6 @@
 </script>
 
 <aside class="knowledge-workspace-filters">
-	{#if panel === 'note-style' || panel === 'link-style'}
-		<StyleTransferControls
-			style={view.styles.chart}
-			onPaste={actions.styles.setChart}
-		/>
-	{/if}
 	{#if panel === 'overlays'}
 		<OverlaySettingsPanel view={view.graph} actions={actions.graph} />
 	{:else if panel === 'graph'}

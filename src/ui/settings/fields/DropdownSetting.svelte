@@ -12,6 +12,7 @@
 		layout = 'row',
 		options,
 		disabled = false,
+		cssSized = false,
 		ariaLabel = label,
 		class: className = '',
 		onChange,
@@ -22,6 +23,7 @@
 		layout?: SettingLayout;
 		options: DropdownOption[];
 		disabled?: boolean;
+		cssSized?: boolean;
 		ariaLabel?: string;
 		class?: string;
 		onChange: (value: string) => void;
@@ -29,5 +31,12 @@
 </script>
 
 <SettingRow {label} {description} {layout} class={className}>
-	<ObsidianDropdown {value} {options} {disabled} {ariaLabel} {onChange} />
+	<ObsidianDropdown
+		{value}
+		{options}
+		{disabled}
+		{cssSized}
+		{ariaLabel}
+		{onChange}
+	/>
 </SettingRow>

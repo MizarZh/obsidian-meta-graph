@@ -1,4 +1,9 @@
 import {
+	applyViewConfigurationInState,
+	type ViewConfiguration,
+	type ConfigurationSelection,
+} from '@/workspace/configuration/view-configuration';
+import {
 	setNodeBadgesInState,
 	setOverlayLayoutInState,
 } from '@/workspace/state/chart-settings';
@@ -319,6 +324,21 @@ export class WorkspaceController {
 	addChart(input: CreateChartInput): void {
 		const result = addChartInState(this.state, input);
 		this.setWorkspaceState(result.state, result.runQuery);
+	}
+
+	applyViewConfiguration(
+		config: ViewConfiguration,
+		selection: ConfigurationSelection,
+		targetId: string,
+	): void {
+		this.setWorkspaceState(
+			applyViewConfigurationInState(
+				this.state,
+				config,
+				selection,
+				targetId,
+			),
+		);
 	}
 
 	duplicateActiveChart(): void {
