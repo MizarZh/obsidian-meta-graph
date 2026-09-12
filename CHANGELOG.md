@@ -4,6 +4,16 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Unified corner overlays with a full-width arrow/title row and an accent-highlighted segmented selector fixed at the bottom. Overlay content expands upward; collapsing or switching panels preserves trace highlights.
+
+- Moved Trace into a compact 330px corner panel with collapsed trace options and a collapsible summary. Trace, Minimap, and Legend now share a tabbed corner area above Timeline. Switching tabs or collapsing Trace preserves highlights; closing Trace clears them.
+
+- Added a per-chart Trace overlay toggle and a bottom trace panel that can be opened before choosing a node. Trace stacks above Timeline and moves the minimap/legend clear of both panels; trace queries and highlights remain transient.
+
+- Reworked Trace into a compact Reachability / Between nodes panel with searchable endpoints, graph picking, temporary A/B badges, metadata relationship-field selection, per-field arrow directions, and a shared reachability layer limit. Undirected fields traverse both ways; path mode still finds one shortest path.
+
+- Added transient upstream/downstream tracing and shortest-path highlighting from node context menus. Tracing respects directed edges and current-view visibility, handles cycles, and leaves layout and saved styles intact. Choose a path destination by clicking a node; use the trace bar or Escape to exit.
+
 - Automatically collapse Workspace default when chart note or link overrides are present. It remains manually expandable and reopens when overrides are removed.
 
 - Updated note and link Chart overrides to the current style preview cards and popover editors, matching Workspace default. Adding an override opens its editor; removing it restores inherited styles.

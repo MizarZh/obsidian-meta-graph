@@ -121,6 +121,7 @@ export function createDefaultChart(
 			cubeFreeCamera: DEFAULT_CUBE_FREE_CAMERA,
 			showLegend: true,
 			showMinimap: false,
+			showTrace: false,
 			timeline: normalizeTimeline(),
 			forceLabels: DEFAULT_FORCE_LABELS,
 			enableForceLayout: false,
@@ -316,6 +317,7 @@ export function normalizeChart(
 			),
 			timeline: normalizeTimeline(display.timeline),
 			showMinimap: readBoolean(display.showMinimap, false),
+			showTrace: readBoolean(display.showTrace, false),
 			showLegend: readBoolean(
 				display.showLegend,
 				fallback.display.showLegend,

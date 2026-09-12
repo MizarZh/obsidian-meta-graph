@@ -17,6 +17,32 @@ import {
 } from '@/workspace/state/chart-settings';
 
 describe('workspace change tracker', () => {
+	it('applies tracing as a style-only change and restores styles on exit', () => {
+		const state = {
+			...createWorkspaceState(200),
+			projection: createTestProjection(),
+		};
+		const next = {
+			...state,
+			trace: { mode: 'upstream' as const, source: 'a.md' },
+		};
+		for (const [before, after] of [
+			[state, next],
+			[next, state],
+		] as const) {
+			expect(
+				analyzeWorkspaceStateChanges(
+					after,
+					before,
+					createWorkspaceRenderBaseline(before),
+				),
+			).toMatchObject({
+				shouldRebuild: false,
+				forceLayout: false,
+				styleRulesChanged: true,
+			});
+		}
+	});
 	it('refreshes empty-note status without rebuilding or running layout', () => {
 		const state = {
 			...createWorkspaceState(200),

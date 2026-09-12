@@ -39,6 +39,36 @@ const projection: GraphProjection = {
 };
 
 describe('workspace runtime graph', () => {
+	it('restores trace fading exactly and respects style-hidden nodes', () => {
+		const state = createWorkspaceState(200);
+		const data = {
+			...projection,
+			nodes: [
+				...projection.nodes,
+				{ ...projection.nodes[0]!, id: 'B.md' },
+			],
+		};
+		const graph = createWorkspaceRuntimeGraph(
+			data,
+			new Map(),
+			state,
+			palette,
+		);
+		const original = { ...graph.getNodeAttributes('B.md') };
+		state.trace = { mode: 'downstream', source: 'A.md' };
+		syncWorkspaceRuntimeGraphStyles(graph, data, state, palette);
+		expect(graph.getNodeAttribute('A.md', 'color')).toBe(palette.selected);
+		expect(graph.getNodeAttribute('B.md', 'opacity')).toBeCloseTo(
+			(original.opacity ?? 1) * 0.18,
+		);
+		syncWorkspaceRuntimeGraphStyles(graph, data, state, palette);
+		expect(graph.getNodeAttribute('B.md', 'opacity')).toBeCloseTo(
+			(original.opacity ?? 1) * 0.18,
+		);
+		state.trace = undefined;
+		syncWorkspaceRuntimeGraphStyles(graph, data, state, palette);
+		expect(graph.getNodeAttributes('B.md')).toMatchObject(original);
+	});
 	it('matches link defaults while preserving independent style overrides', () => {
 		const state = createWorkspaceState(200);
 		const links: GraphProjection = {

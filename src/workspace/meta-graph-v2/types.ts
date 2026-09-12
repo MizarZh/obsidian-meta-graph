@@ -174,6 +174,7 @@ export interface PersistedDisplayV2 {
 	timeline?: import('@/core/types').TimelineConfig;
 	showLegend?: boolean;
 	showMinimap?: boolean;
+	showTrace?: boolean;
 	fadeDistance: number;
 	labels?: {
 		size?: number;

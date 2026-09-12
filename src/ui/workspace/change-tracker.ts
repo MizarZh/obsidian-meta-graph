@@ -9,6 +9,7 @@ import { matchesNodeCriterion } from '@/query/filters';
 import { resolveChartGroupOwnership } from '@/query/group-ownership';
 
 export interface WorkspaceRenderBaseline {
+	trace?: WorkspaceState['trace'];
 	projection?: WorkspaceState['projection'];
 	projectionSignature?: string;
 	projectionGroupSignature?: string;
@@ -88,6 +89,7 @@ const GRAPH_FORCE_SETTING_KEYS = [
 ] as const satisfies readonly WorkspaceStateKey[];
 
 const STYLE_RULE_KEYS = [
+	'trace',
 	'defaultNodeStyle',
 	'defaultLinkStyle',
 	'nodeStyleOverrides',
@@ -519,6 +521,7 @@ export function createWorkspaceRenderBaseline(
 		globalLinkStyleRules: state.globalLinkStyleRules,
 		nodeStyleRules: state.nodeStyleRules,
 		linkStyleRules: state.linkStyleRules,
+		trace: state.trace,
 	};
 }
 

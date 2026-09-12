@@ -1,3 +1,4 @@
+import { applyGraphTrace } from '@/ui/workspace/graph-trace';
 import { resolveRuntimeLinkStyle } from '@/graph/styles/runtime-link-style';
 import type {
 	GraphProjection,
@@ -52,7 +53,7 @@ export function createWorkspaceRuntimeGraph(
 	state: WorkspaceState,
 	palette: GraphPalette,
 ): RuntimeGraph {
-	return new GraphologyAdapter(
+	const graph = new GraphologyAdapter(
 		palette,
 		getActiveDefaultNodeStyle(state, palette.node),
 		{
@@ -78,6 +79,8 @@ export function createWorkspaceRuntimeGraph(
 			arrowSize: getActiveUnresolvedLinkArrowSize(state),
 		},
 	).fromProjection(projection, positions);
+	applyGraphTrace(graph, projection, state.trace, palette.selected);
+	return graph;
 }
 
 export function syncWorkspaceRuntimeGraphStyles(
@@ -207,6 +210,7 @@ export function syncWorkspaceRuntimeGraphStyles(
 			});
 		}
 	}
+	applyGraphTrace(graph, projection, state.trace, palette.selected);
 }
 
 export function prepareWorkspaceRuntimeGraphVisibilityIndex(

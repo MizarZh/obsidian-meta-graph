@@ -19,6 +19,53 @@ function renderer() {
 }
 
 describe('context badges', () => {
+	it('shows temporary A/B endpoint badges ahead of status badges', () => {
+		const current = renderer();
+		current.runtimeGraph.setNodeAttribute('context', 'kind', 'unresolved');
+		const request = {
+			mode: 'path' as const,
+			source: 'context',
+			target: 'other',
+		};
+		expect(getNodeBadgeIds(undefined, false, request)).toEqual(
+			new Set(['context', 'other']),
+		);
+		expect(
+			collectContextBadgePositions(
+				current,
+				new Set(['context']),
+				100,
+				100,
+				request,
+			)[0]?.kind,
+		).toBe('start');
+		expect(
+			collectContextBadgePositions(
+				current,
+				new Set(['context']),
+				100,
+				100,
+				{ ...request, source: 'other', target: 'context' },
+			)[0]?.kind,
+		).toBe('end');
+		expect(
+			collectContextBadgePositions(
+				current,
+				new Set(['context']),
+				100,
+				100,
+				{ ...request, target: 'context' },
+			)[0]?.kind,
+		).toBe('endpoints');
+		expect(
+			collectContextBadgePositions(
+				current,
+				new Set(['context']),
+				100,
+				100,
+			)[0]?.kind,
+		).toBe('unresolved');
+	});
 	it('shows empty-note badges independently of context and clears them when filled', () => {
 		const current = renderer();
 		current.runtimeGraph.setNodeAttribute('context', 'isEmpty', true);

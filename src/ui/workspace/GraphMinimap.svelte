@@ -8,9 +8,11 @@
 		minimapWheelZoom,
 	} from './minimap-geometry';
 	let {
+		embedded = false,
 		readRenderer,
 		readCanvas,
 	}: {
+		embedded?: boolean;
 		readRenderer: () => GraphRenderer | undefined;
 		readCanvas: () => HTMLElement | undefined;
 	} = $props();
@@ -273,11 +275,13 @@
 </script>
 
 <aside class="knowledge-workspace-minimap" aria-label="Minimap">
-	<ObsidianButton
-		text="Minimap"
-		ariaLabel={open ? 'Collapse minimap' : 'Expand minimap'}
-		onClick={() => (open = !open)}
-	/>
+	{#if !embedded}
+		<ObsidianButton
+			text="Minimap"
+			ariaLabel={open ? 'Collapse minimap' : 'Expand minimap'}
+			onClick={() => (open = !open)}
+		/>
+	{/if}
 	<canvas
 		bind:this={map}
 		hidden={!open}

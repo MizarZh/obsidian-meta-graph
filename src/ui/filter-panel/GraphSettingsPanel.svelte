@@ -27,7 +27,9 @@
 		app,
 		showLegend,
 		showMinimap,
+		showTrace,
 		onShowMinimap,
+		onShowTrace,
 		timelineEnabled,
 		onTimelineEnabled,
 		onShowLegend,
@@ -84,7 +86,9 @@
 		app: App;
 		showLegend: boolean;
 		showMinimap: boolean;
+		showTrace: boolean;
 		onShowMinimap: (value: boolean) => void;
+		onShowTrace: (value: boolean) => void;
 		timelineEnabled: boolean;
 		onTimelineEnabled: (value: boolean) => void;
 		onShowLegend: (value: boolean) => void;
@@ -307,6 +311,12 @@
 				ariaLabel="Show legend"
 				value={showLegend}
 				onChange={onShowLegend}
+			/>
+			<ToggleSetting
+				label="Trace"
+				ariaLabel="Show trace panel"
+				value={showTrace}
+				onChange={onShowTrace}
 			/>
 			{#if supportsTimeline(mode)}
 				<ToggleSetting

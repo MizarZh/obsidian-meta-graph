@@ -39,6 +39,7 @@ export interface WorkspaceGraphSettingsView {
 	timelineEnabled: boolean;
 	showLegend: boolean;
 	showMinimap: boolean;
+	showTrace: boolean;
 	mode: ViewMode;
 	renderer: PlanarRendererKind;
 	fadeDistance: number;
@@ -136,6 +137,7 @@ export interface WorkspaceGraphSettingsActions {
 	setTimelineEnabled(value: boolean): void;
 	setShowLegend(value: boolean): void;
 	setShowMinimap(value: boolean): void;
+	setShowTrace(value: boolean): void;
 	setRenderer(value: PlanarRendererKind): void;
 	setFlowEdgeStyle(value: FlowEdgeStyle): void;
 	setParallelEdgeStyle(value: 'straight' | 'curve'): void;
@@ -236,6 +238,7 @@ export function createWorkspaceSettingsView(
 			timelineEnabled: state.timeline.enabled,
 			showLegend: state.showLegend,
 			showMinimap: state.showMinimap,
+			showTrace: state.showTrace,
 			mode: state.mode,
 			renderer: state.renderer,
 			fadeDistance: state.fadeDistance,
@@ -343,6 +346,7 @@ export function createWorkspaceSettingsActions(
 			setRenderer: (value) => controller.setActiveChartRenderer(value),
 			setShowLegend: (value) => controller.setShowLegend(value),
 			setShowMinimap: (value) => controller.setShowMinimap(value),
+			setShowTrace: (value) => controller.setShowTrace(value),
 			setTimelineEnabled: (value) =>
 				controller.setTimeline({ enabled: value }),
 			resetGraphForces: () => controller.resetGraphForces(),

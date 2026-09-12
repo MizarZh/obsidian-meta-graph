@@ -1,6 +1,7 @@
 import type { MetaGraphDock } from '@/core/types/dock';
 import type {
 	GraphProjection,
+	GraphTraceRequest,
 	GraphQuery,
 	NodeFilterGroup,
 	NodeId,
@@ -165,6 +166,7 @@ export interface ChartDisplayConfig {
 	timeline: TimelineConfig;
 	showLegend: boolean;
 	showMinimap: boolean;
+	showTrace: boolean;
 	parallelEdgeStyle?: 'straight' | 'curve';
 	fadeDistance: number;
 	labelSize: number;
@@ -293,6 +295,7 @@ export interface WorkspaceState {
 	enableForceLayout: boolean;
 	showLegend: boolean;
 	showMinimap: boolean;
+	showTrace: boolean;
 	graphSpacing: number;
 	timeline: TimelineConfig;
 	graphCenterForce: number;
@@ -337,6 +340,8 @@ export interface WorkspaceState {
 	connectionRedoCount: number;
 	dock: MetaGraphDock;
 	projection?: GraphProjection;
+	/** Transient view-only tracing; never written to chart settings. */
+	trace?: GraphTraceRequest;
 	availableFolders: string[];
 	availableTags: string[];
 	availableDomains: string[];

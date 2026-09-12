@@ -271,6 +271,13 @@ export function setShowMinimapInState(
 	return setDisplayValue(state, 'showMinimap', value);
 }
 
+export function setShowTraceInState(
+	state: WorkspaceState,
+	value: boolean,
+): WorkspaceState {
+	return setDisplayValue(state, 'showTrace', value);
+}
+
 export function setEnableForceLayoutInState(
 	state: WorkspaceState,
 	enableForceLayout: boolean,

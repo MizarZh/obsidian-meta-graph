@@ -45,6 +45,7 @@ type ActiveChartStateFields = Pick<
 	| 'forceLabels'
 	| 'showLegend'
 	| 'showMinimap'
+	| 'showTrace'
 	| 'timeline'
 	| 'enableForceLayout'
 	| 'graphSpacing'
@@ -165,6 +166,7 @@ function createActiveChartStateFields(
 		forceLabels: chart.display.forceLabels,
 		showLegend: chart.display.showLegend,
 		showMinimap: chart.display.showMinimap,
+		showTrace: chart.display.showTrace,
 		timeline: chart.display.timeline,
 		enableForceLayout: chart.display.enableForceLayout,
 		graphSpacing: forceGraphType

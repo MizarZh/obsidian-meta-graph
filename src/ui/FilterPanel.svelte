@@ -41,7 +41,9 @@
 			onTimelineEnabled={actions.graph.setTimelineEnabled}
 			showLegend={view.graph.showLegend}
 			showMinimap={view.graph.showMinimap}
+			showTrace={view.graph.showTrace}
 			onShowMinimap={actions.graph.setShowMinimap}
+			onShowTrace={actions.graph.setShowTrace}
 			onShowLegend={actions.graph.setShowLegend}
 			{app}
 			mode={view.graph.mode}

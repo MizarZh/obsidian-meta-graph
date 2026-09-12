@@ -4,10 +4,12 @@
 	import StylePreview from '@/ui/settings/style/StylePreview.svelte';
 	import { buildGraphLegend } from '@/ui/workspace/graph-legend';
 	let {
+		embedded = false,
 		state: workspaceState,
 		metadataFields,
 		metadataTypes,
 	}: {
+		embedded?: boolean;
 		state: WorkspaceState;
 		metadataFields: string[];
 		metadataTypes: Record<string, string>;
@@ -20,13 +22,15 @@
 
 <div class="knowledge-workspace-legend-position">
 	<aside class="knowledge-workspace-legend" aria-label="Graph legend">
-		<ObsidianButton
-			text="Legend"
-			active={open}
-			ariaLabel={open ? 'Collapse legend' : 'Expand legend'}
-			tooltip="Configured styles; rules may overlap."
-			onClick={() => (open = !open)}
-		/>
+		{#if !embedded}
+			<ObsidianButton
+				text="Legend"
+				active={open}
+				ariaLabel={open ? 'Collapse legend' : 'Expand legend'}
+				tooltip="Configured styles; rules may overlap."
+				onClick={() => (open = !open)}
+			/>
+		{/if}
 		{#if open}
 			<div class="knowledge-workspace-legend-content">
 				{#if workspaceState.projection?.nodes.some((node) => node.kind === 'unresolved' || node.isEmpty)}

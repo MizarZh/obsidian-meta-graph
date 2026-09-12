@@ -1,4 +1,7 @@
 <script lang="ts">
+	import type { GraphTraceRequest } from '@/core/types';
+	import TraceBar from '@/ui/workspace/TraceBar.svelte';
+	import { traceVisibleGraph } from '@/ui/workspace/graph-trace';
 	import { Menu, Notice, TFile, type App } from 'obsidian';
 	import { onMount, untrack } from 'svelte';
 	import { createCanvasResizeHandler } from '@/ui/workspace/canvas-resize';
@@ -186,18 +189,109 @@
 	} = $props();
 	// Controller snapshots are replaced immutably. Deep proxies break the
 	// reference checks used by rendering and turn selection into graph scans.
+	let traceRequest = $state.raw<GraphTraceRequest | undefined>();
+	let tracePicking = $state<'source' | 'target' | undefined>();
+	let tracePanelDismissed = $state(false);
+	const emptyTrace: GraphTraceRequest = {
+		mode: 'downstream',
+		source: '',
+		allFields: true,
+		direction: 'outgoing',
+	};
 	const initialTimelineState = getInitialState();
 	let canonicalState = $state.raw(initialTimelineState);
 	let timelinePreview: TimelineConfig | undefined;
 	let workspaceState: WorkspaceState = $state.raw(
-		applyTimeline(initialTimelineState),
+		applyViewState(initialTimelineState),
 	);
+
+	const tracePanelVisible = $derived(
+		Boolean(traceRequest) ||
+			(workspaceState.showTrace && !tracePanelDismissed),
+	);
+
+	let preferredCornerPanel = $state('trace');
+	let cornerCollapsed = $state(false);
+	const cornerPanels = $derived([
+		...(tracePanelVisible ? [{ id: 'trace', label: 'Trace' }] : []),
+		...(workspaceState.showMinimap &&
+		supportsPlanarRenderer(workspaceState.mode)
+			? [{ id: 'minimap', label: 'Minimap' }]
+			: []),
+		...(workspaceState.showLegend
+			? [{ id: 'legend', label: 'Legend' }]
+			: []),
+	]);
+	const activeCornerPanel = $derived(
+		cornerPanels.some((panel) => panel.id === preferredCornerPanel)
+			? preferredCornerPanel
+			: cornerPanels[0]?.id,
+	);
+
+	function applyViewState(
+		state: WorkspaceState,
+		timeline = state.timeline,
+	): WorkspaceState {
+		return { ...applyTimeline(state, timeline), trace: traceRequest };
+	}
+
+	function setTrace(request?: GraphTraceRequest): void {
+		if (request) {
+			tracePanelDismissed = false;
+			preferredCornerPanel = 'trace';
+			cornerCollapsed = false;
+		}
+		traceRequest = request
+			? {
+					allFields: true,
+					direction:
+						request.mode === 'upstream' ? 'incoming' : 'outgoing',
+					...request,
+				}
+			: undefined;
+		tracePicking = !request
+			? undefined
+			: !request.source
+				? 'source'
+				: request.mode === 'path' && !request.target
+					? 'target'
+					: undefined;
+		rendererLifecycle.clearPinnedHover();
+		const previous = workspaceState;
+		workspaceState = applyViewState(
+			canonicalState,
+			timelinePreview ?? canonicalState.timeline,
+		);
+		renderCoordinator.apply(workspaceState, previous);
+	}
+
+	function closeTracePanel(): void {
+		setTrace(undefined);
+		tracePanelDismissed = true;
+		if (!readOnly && canonicalState.showTrace)
+			controller.setShowTrace(false);
+	}
+
+	function pickTraceEndpoint(endpoint: 'source' | 'target'): void {
+		if (!traceRequest) setTrace(emptyTrace);
+		tracePicking = endpoint;
+	}
+
+	function selectGraphNode(nodeId?: string): void {
+		if (nodeId && traceRequest && tracePicking) {
+			suppressNodeOpenUntil = Date.now() + 500;
+			setTrace({ ...traceRequest, [tracePicking]: nodeId });
+			return;
+		}
+		controller.selectNode(nodeId);
+	}
 
 	function previewTimeline(chartId: string, value?: TimelineConfig): void {
 		if (canonicalState.activeChartId !== chartId) return;
 		timelinePreview = value;
+		traceRequest = undefined;
 		const previous = workspaceState;
-		workspaceState = applyTimeline(
+		workspaceState = applyViewState(
 			canonicalState,
 			value ?? canonicalState.timeline,
 		);
@@ -556,6 +650,25 @@
 		const unsubscribe = controller.subscribe((nextState) => {
 			const previousState = workspaceState;
 			const previousCanonical = canonicalState;
+			if (nextState.showTrace && !canonicalState.showTrace)
+				preferredCornerPanel = 'trace';
+			else if (nextState.showMinimap && !canonicalState.showMinimap)
+				preferredCornerPanel = 'minimap';
+			else if (nextState.showLegend && !canonicalState.showLegend)
+				preferredCornerPanel = 'legend';
+			if (
+				nextState.activeChartId !== canonicalState.activeChartId ||
+				nextState.showTrace !== canonicalState.showTrace
+			)
+				tracePanelDismissed = false;
+			if (canonicalState.showTrace && !nextState.showTrace)
+				traceRequest = undefined;
+			if (
+				nextState.activeChartId !== canonicalState.activeChartId ||
+				nextState.mode !== canonicalState.mode ||
+				nextState.projection !== canonicalState.projection
+			)
+				traceRequest = undefined;
 			if (
 				nextState.activeChartId !== canonicalState.activeChartId ||
 				nextState.mode !== canonicalState.mode ||
@@ -571,7 +684,7 @@
 			) {
 				curatedSelection = new Set();
 			}
-			workspaceState = applyTimeline(
+			workspaceState = applyViewState(
 				nextState,
 				timelinePreview ?? nextState.timeline,
 			);
@@ -680,14 +793,16 @@
 			setActiveNodeDropGroupId: (groupId) => {
 				activeNodeDropGroupId = groupId;
 			},
-			onSelect: (nodeId?: string) => controller.selectNode(nodeId),
+			onSelect: selectGraphNode,
 			onSelectEdge: (edgeId) => controller.selectEdge(edgeId),
 			onSelectGroup: (groupId) => controller.selectGroup(groupId),
 			onHover: (nodeId?: string) => {
 				hoveredNodeId = nodeId;
 				rendererLifecycle.setHovered(nodeId);
 			},
-			onOpen: (nodeId) => void openNote(nodeId),
+			onOpen: (nodeId) => {
+				if (Date.now() >= suppressNodeOpenUntil) void openNote(nodeId);
+			},
 			onContextMenu: showGraphContextMenu,
 			onConnectionDrag: setGraphConnectionDrag,
 			onConnect: connectVisibleNodes,
@@ -730,6 +845,49 @@
 	}
 
 	function addNodeContextMenuItems(menu: Menu, nodeId: string): void {
+		for (const entry of [
+			{
+				mode: 'upstream',
+				title: 'Trace upstream',
+				icon: 'arrow-up-left',
+			},
+			{
+				mode: 'downstream',
+				title: 'Trace downstream',
+				icon: 'arrow-down-right',
+			},
+			{
+				mode: 'path',
+				title: 'Find shortest path from here',
+				icon: 'route',
+			},
+		] as const) {
+			menu.addItem((item) =>
+				item
+					.setTitle(entry.title)
+					.setIcon(entry.icon)
+					.onClick(() =>
+						setTrace({ mode: entry.mode, source: nodeId }),
+					),
+			);
+		}
+		if (traceRequest?.mode === 'path' && traceRequest.source !== nodeId) {
+			const source = traceRequest.source;
+			menu.addItem((item) =>
+				item
+					.setTitle('Find path to here')
+					.setIcon('flag')
+					.onClick(() =>
+						setTrace({
+							...traceRequest,
+							mode: 'path',
+							source,
+							target: nodeId,
+						}),
+					),
+			);
+		}
+		menu.addSeparator();
 		const node = workspaceState.projection?.nodes.find(
 			(item) => item.id === nodeId,
 		);
@@ -1187,6 +1345,7 @@
 			workspaceState.chartSource === 'query' &&
 				Boolean(workspaceState.query.relationExpansion?.enabled) &&
 				workspaceState.query.relationExpansion?.showBadges !== false,
+			traceRequest,
 		),
 	);
 
@@ -1745,7 +1904,8 @@
 				return Boolean(next);
 			}
 			case 'escape':
-				if (shortcutHelpOpen) shortcutHelpOpen = false;
+				if (traceRequest) setTrace(undefined);
+				else if (shortcutHelpOpen) shortcutHelpOpen = false;
 				else if (settingsPanel) settingsPanel = undefined;
 				else if (curatedSelection.size > 0)
 					curatedSelection = new Set();
@@ -1836,6 +1996,7 @@
 			class:minimap-visible={workspaceState.showMinimap &&
 				supportsPlanarRenderer(workspaceState.mode)}
 			class:connection-collapsed={!connectionOpen}
+			class:trace-visible={tracePanelVisible && !graphLoading}
 			class:timeline-visible={workspaceState.timeline.enabled &&
 				supportsTimeline(workspaceState.mode)}
 			style="--dock-panel-width: {dockOpen
@@ -1847,18 +2008,98 @@
 				: '0px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+			{#if cornerPanels.length && !graphLoading}
+				<aside
+					class="knowledge-workspace-corner-panels"
+					class:trace-active={activeCornerPanel === 'trace'}
+					aria-label="Graph overlays"
+				>
+					{#if !cornerCollapsed}
+						{#if activeCornerPanel === 'trace'}
+							<TraceBar
+								{app}
+								picking={tracePicking}
+								onPick={pickTraceEndpoint}
+								request={traceRequest ?? emptyTrace}
+								projection={workspaceState.projection}
+								result={traceRequest &&
+								rendererLifecycle.renderer &&
+								workspaceState.projection
+									? traceVisibleGraph(
+											rendererLifecycle.renderer
+												.runtimeGraph,
+											workspaceState.projection,
+											traceRequest,
+										)
+									: undefined}
+								onChange={setTrace}
+								onClose={closeTracePanel}
+							/>
+						{/if}
+						{#if activeCornerPanel === 'minimap'}
+							<GraphMinimap
+								embedded
+								readRenderer={() => rendererLifecycle.renderer}
+								readCanvas={() => canvas}
+							/>
+						{/if}
+						{#if activeCornerPanel === 'legend'}
+							<GraphLegend
+								embedded
+								state={workspaceState}
+								metadataFields={metadataFieldSuggestions}
+								metadataTypes={metadataFieldTypes}
+							/>
+						{/if}
+					{/if}
+					<div class="knowledge-workspace-corner-heading">
+						<ObsidianButton
+							text={cornerPanels.find(
+								(panel) => panel.id === activeCornerPanel,
+							)?.label ?? ''}
+							icon={cornerCollapsed
+								? 'chevron-up'
+								: 'chevron-down'}
+							ariaLabel={`${cornerCollapsed ? 'Expand' : 'Collapse'} ${activeCornerPanel}`}
+							ariaExpanded={!cornerCollapsed}
+							onClick={() => {
+								cornerCollapsed = !cornerCollapsed;
+								tracePicking = undefined;
+							}}
+						/>
+					</div>
+					<div
+						class="knowledge-workspace-corner-tabs knowledge-workspace-segmented knowledge-workspace-setting-segmented"
+						role="group"
+						aria-label="Choose overlay"
+					>
+						{#each cornerPanels as panel (panel.id)}
+							<ObsidianButton
+								text={panel.label +
+									(panel.id === 'trace' &&
+									traceRequest?.source
+										? ' ·'
+										: '')}
+								active={activeCornerPanel === panel.id}
+								onClick={() => {
+									preferredCornerPanel = panel.id;
+									cornerCollapsed = false;
+									tracePicking = undefined;
+								}}
+							/>
+						{/each}
+					</div>
+				</aside>
+			{/if}
+
 			{#if !graphLoading && nodeBadgeIds.size}
 				<ContextBadges
 					readRenderer={() => rendererLifecycle.renderer}
 					ids={nodeBadgeIds}
+					trace={traceRequest}
 				/>
 			{/if}
-			{#if workspaceState.showMinimap && supportsPlanarRenderer(workspaceState.mode)}
-				<GraphMinimap
-					readRenderer={() => rendererLifecycle.renderer}
-					readCanvas={() => canvas}
-				/>
-			{/if}
+
 			{#if workspaceState.timeline.enabled && supportsTimeline(workspaceState.mode)}
 				{#key `${workspaceState.activeChartId}:${workspaceState.mode}:${workspaceState.chartSource}`}
 					{@const chartId = workspaceState.activeChartId}
@@ -1873,13 +2114,7 @@
 					/>
 				{/key}
 			{/if}
-			{#if workspaceState.showLegend}
-				<GraphLegend
-					state={workspaceState}
-					metadataFields={metadataFieldSuggestions}
-					metadataTypes={metadataFieldTypes}
-				/>
-			{/if}
+
 			{#if supportsPlanarRenderer(workspaceState.mode)}
 				<span
 					class="knowledge-workspace-renderer-indicator"

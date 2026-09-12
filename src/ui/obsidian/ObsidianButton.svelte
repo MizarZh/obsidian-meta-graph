@@ -11,6 +11,7 @@
 		destructive = false,
 		tooltip,
 		ariaLabel,
+		ariaExpanded,
 		role,
 		class: className = '',
 		onClick,
@@ -24,6 +25,7 @@
 		destructive?: boolean;
 		tooltip?: string;
 		ariaLabel?: string;
+		ariaExpanded?: boolean;
 		role?: string;
 		class?: string;
 		onClick?: (event: MouseEvent) => void;
@@ -76,6 +78,10 @@
 		);
 		button.buttonEl.classList.toggle('active', active);
 		button.buttonEl.setAttribute('type', 'button');
+		if (ariaExpanded === undefined)
+			button.buttonEl.removeAttribute('aria-expanded');
+		else
+			button.buttonEl.setAttribute('aria-expanded', String(ariaExpanded));
 		if (ariaLabel) {
 			button.buttonEl.setAttribute('aria-label', ariaLabel);
 		} else {

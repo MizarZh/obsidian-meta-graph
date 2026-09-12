@@ -54,6 +54,7 @@ import {
 	setForceLabelsInState,
 	setShowLegendInState,
 	setShowMinimapInState,
+	setShowTraceInState,
 	setTimelineInState,
 	setGraphForceSettingInState,
 	resetGraphForcesInState,
@@ -531,6 +532,9 @@ export class WorkspaceController {
 	}
 	setShowMinimap(value: boolean): void {
 		this.setWorkspaceState(setShowMinimapInState(this.state, value));
+	}
+	setShowTrace(value: boolean): void {
+		this.setWorkspaceState(setShowTraceInState(this.state, value));
 	}
 
 	setTimeline(patch: Partial<import('@/core/types').TimelineConfig>): void {

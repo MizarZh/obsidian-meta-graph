@@ -660,3 +660,13 @@ Visible unresolved nodes display a `?` badge in query and curated charts. This s
 Existing notes without body content show a blank-document badge, including notes containing only properties or whitespace. The badge updates with the metadata index when content changes and remains visible independently of context badges.
 
 Sigma Flowchart parallel Curve edges taper their spacing near nodes and join outside node boundaries. Endpoint sampling adapts to screen-space curvature, with the same geometry used for drawing and hit testing.
+
+### Trace paths and reachability
+
+Enable **Graph settings -> Overlays -> Trace** to show the compact Trace panel in the lower-right graph corner. The toggle is saved per chart and defaults off. Trace, Minimap, and Legend share one corner area with tabs, above Timeline when it is enabled. Switching tabs or collapsing Trace preserves the active highlight; a dot on the Trace tab indicates an active trace. Relationship fields, direction, and layers are under **Trace options**, initially collapsed. Choose a start node in the panel to begin. Closing it hides the panel and clears the trace.
+
+Right-click a node and choose **Trace upstream**, **Trace downstream**, or **Find shortest path from here**. The Trace panel offers **Reachability** and **Between nodes** modes. Search for start/end nodes or use their pick buttons to select them in the graph; temporary **A** and **B** badges identify the endpoints. Swap endpoints to reverse a path search.
+
+Choose **All relationship fields** or **Selected fields** to trace metadata relationships. All fields share a direction; selected fields each use **Follow arrows**, **Against arrows**, or **Both**. Undirected fields always traverse both ways. Ordinary metadata values and body links are not relationship-field choices. Reachability offers a shared 1–10 layer limit or **All**; path mode finds one shortest path without that range limit.
+
+Tracing uses the current visible graph and does not expand filters. Highlighted nodes and links use the selection color; other elements fade temporarily. Layout positions and saved styles remain intact. Close the panel or press **Esc** to restore the normal appearance and badges. Switching charts, refreshing the projection, or previewing the timeline clears the trace.

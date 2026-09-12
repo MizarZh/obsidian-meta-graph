@@ -180,3 +180,13 @@ export interface GraphProjection {
 	contextIds?: Set<NodeId>;
 	hiddenNodeIds?: Set<NodeId>;
 }
+
+export interface GraphTraceRequest {
+	mode: 'upstream' | 'downstream' | 'path';
+	direction?: DirectionMode;
+	allFields?: boolean;
+	fieldRules?: { field: string; direction: DirectionMode }[];
+	maxDepth?: number;
+	source: string;
+	target?: string;
+}

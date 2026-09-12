@@ -1,22 +1,25 @@
-import type { GraphProjection } from '@/core/types';
+import type { GraphProjection, GraphTraceRequest } from '@/core/types';
 import type { GraphRenderer } from '@/graph/renderers/renderer-capabilities';
 import type { NodeBadgeAnchor } from '@/graph/renderers/renderer-node-badge';
 
 export function getNodeBadgeIds(
 	projection: GraphProjection | undefined,
 	showContext: boolean,
+	trace?: GraphTraceRequest,
 ): ReadonlySet<string> {
 	const ids = new Set(showContext ? projection?.contextIds : undefined);
 	for (const node of projection?.nodes ?? []) {
 		if (node.kind === 'unresolved' || node.isEmpty) ids.add(node.id);
 	}
+	if (trace?.source) ids.add(trace.source);
+	if (trace?.mode === 'path' && trace.target) ids.add(trace.target);
 	return ids;
 }
 
 interface NodeBadgePosition {
 	x: number;
 	y: number;
-	kind: 'context' | 'unresolved' | 'empty';
+	kind: 'context' | 'unresolved' | 'empty' | 'start' | 'end' | 'endpoints';
 }
 
 export function collectContextBadgePositions(
@@ -24,6 +27,7 @@ export function collectContextBadgePositions(
 	ids: ReadonlySet<string>,
 	width: number,
 	height: number,
+	trace?: GraphTraceRequest,
 ): NodeBadgePosition[] {
 	if (!renderer?.getNodeBadgeAnchor) return [];
 	const result: NodeBadgePosition[] = [];
@@ -48,11 +52,17 @@ export function collectContextBadgePositions(
 			x,
 			y,
 			kind:
-				node.kind === 'unresolved'
-					? 'unresolved'
-					: node.isEmpty
-						? 'empty'
-						: 'context',
+				trace?.source === id
+					? trace.mode === 'path' && trace.target === id
+						? 'endpoints'
+						: 'start'
+					: trace?.mode === 'path' && trace.target === id
+						? 'end'
+						: node.kind === 'unresolved'
+							? 'unresolved'
+							: node.isEmpty
+								? 'empty'
+								: 'context',
 		});
 	}
 	return result;
@@ -63,6 +73,7 @@ export function startContextBadges(
 	canvas: HTMLCanvasElement,
 	readRenderer: () => GraphRenderer | undefined,
 	readIds: () => ReadonlySet<string>,
+	readTrace: () => GraphTraceRequest | undefined = () => undefined,
 ): () => void {
 	const win = canvas.ownerDocument.defaultView;
 	const context = canvas.getContext('2d');
@@ -99,6 +110,7 @@ export function startContextBadges(
 			readIds(),
 			width,
 			height,
+			readTrace(),
 		);
 		for (const { x, y, kind } of positions) {
 			context.fillStyle = background;
@@ -109,6 +121,21 @@ export function startContextBadges(
 			context.lineWidth = 1.25;
 			context.lineCap = 'round';
 			context.lineJoin = 'round';
+			if (kind === 'start' || kind === 'end' || kind === 'endpoints') {
+				context.fillStyle = foreground;
+				context.font =
+					kind === 'endpoints'
+						? 'bold 7px sans-serif'
+						: 'bold 10px sans-serif';
+				context.textAlign = 'center';
+				context.textBaseline = 'middle';
+				context.fillText(
+					kind === 'start' ? 'A' : kind === 'end' ? 'B' : 'A/B',
+					x,
+					y,
+				);
+				continue;
+			}
 			if (kind === 'empty') {
 				context.beginPath();
 				context.moveTo(x - 3, y - 4);
