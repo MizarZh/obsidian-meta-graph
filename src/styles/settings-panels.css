@@ -326,10 +326,13 @@
 }
 
 .knowledge-workspace-group-primary-settings {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--size-4-1) var(--size-4-3);
-	align-items: center;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+}
+
+.knowledge-workspace-group-primary-settings select.dropdown {
+	width: 100%;
+	min-width: 0;
 }
 
 .knowledge-workspace-group-primary-settings > .knowledge-workspace-rule-label,
@@ -2198,7 +2201,8 @@ input.knowledge-workspace-color-control:disabled {
 }
 
 .knowledge-workspace-expansion-rules > .knowledge-workspace-expansion-rule {
-	margin: 0;	display: flex;
+	margin: 0;
+	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
 	gap: 6px;

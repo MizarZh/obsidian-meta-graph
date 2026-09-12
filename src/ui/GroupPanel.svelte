@@ -22,7 +22,6 @@
 	import SettingGrid from '@/ui/settings/SettingGrid.svelte';
 	import ColorSetting from '@/ui/settings/fields/ColorSetting.svelte';
 	import DropdownSetting from '@/ui/settings/fields/DropdownSetting.svelte';
-	import SegmentedSetting from '@/ui/settings/fields/SegmentedSetting.svelte';
 	import SliderSetting from '@/ui/settings/fields/SliderSetting.svelte';
 	import TextSetting from '@/ui/settings/fields/TextSetting.svelte';
 	import { resolveGroupCapabilities } from '@/workspace/groups/group-policy';
@@ -416,15 +415,13 @@
 
 							<div class="knowledge-workspace-group-settings">
 								<SettingGrid
-									columns={1 +
-										Number(modeEditable) +
-										Number(shapeEditable)}
+									columns={1}
 									density="compact"
 									class="knowledge-workspace-group-primary-settings"
 								>
 									<ColorSetting
 										label="Color"
-										layout="stacked"
+										layout="row"
 										value={group.color}
 										commitKey={`group:${group.id}:color`}
 										ariaLabel={`${group.name} color`}
@@ -435,7 +432,7 @@
 									{#if modeEditable}
 										<DropdownSetting
 											label="Membership"
-											layout="stacked"
+											layout="row"
 											value={manualModeAllowed
 												? group.mode
 												: 'rule'}
@@ -446,13 +443,16 @@
 										/>
 									{/if}
 									{#if shapeEditable}
-										<SegmentedSetting
+										<DropdownSetting
 											label="Shape"
 											value={group.shape ?? 'auto'}
 											options={SHAPE_OPTIONS}
 											disabled={appearanceDisabled}
 											onChange={(shape) =>
-												updateShape(group, shape)}
+												updateShape(
+													group,
+													shape as ChartGroupShape,
+												)}
 										/>
 									{/if}
 								</SettingGrid>

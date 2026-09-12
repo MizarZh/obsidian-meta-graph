@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Arrange Group appearance settings in separate rows and use a Shape dropdown to prevent compressed and overlapping controls in narrow editors.
+
 - Override Obsidian's default button shadow on side-panel headings so their edges match the panel. Resize handles retain their original outside placement.
 
 - Keep side-panel toggle icons at the same position when expanding or collapsing, including right-side panels.
