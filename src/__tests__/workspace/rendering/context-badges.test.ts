@@ -94,7 +94,7 @@ describe('context badges', () => {
 				100,
 				100,
 			),
-		).toEqual([{ x: 60, y: 40, kind: 'empty' }]);
+		).toEqual([{ x: 60, y: 40, scale: 1, kind: 'empty' }]);
 		current.runtimeGraph.setNodeAttribute('context', 'kind', 'unresolved');
 		expect(
 			collectContextBadgePositions(
@@ -150,7 +150,7 @@ describe('context badges', () => {
 				100,
 				100,
 			),
-		).toEqual([{ x: 60, y: 40, kind: 'unresolved' }]);
+		).toEqual([{ x: 60, y: 40, scale: 1, kind: 'unresolved' }]);
 		current.runtimeGraph.setNodeAttribute('context', 'hidden', true);
 		expect(
 			collectContextBadgePositions(
@@ -167,7 +167,7 @@ describe('context badges', () => {
 		const current = renderer();
 		const ids = new Set(['context', 'missing']);
 		expect(collectContextBadgePositions(current, ids, 100, 100)).toEqual([
-			{ x: 60, y: 40, kind: 'context' },
+			{ x: 60, y: 40, scale: 1, kind: 'context' },
 		]);
 		expect(
 			current.runtimeGraph.getNodeAttribute('context', 'opacity'),
@@ -191,6 +191,39 @@ describe('context badges', () => {
 		expect(collectContextBadgePositions(current, ids, 100, 100)).toEqual(
 			[],
 		);
+	});
+
+	it('scales badge size and offset with the rendered node footprint', () => {
+		const current = renderer();
+		for (const radius of [2, 4, 8, 16, 32]) {
+			vi.mocked(current.getNodeBadgeAnchor!).mockReturnValue({
+				x: 50,
+				y: 50,
+				radius,
+			});
+			const badge = collectContextBadgePositions(
+				current,
+				new Set(['context']),
+				200,
+				200,
+			)[0]!;
+			expect((badge.scale * 12) / radius).toBe(1.5);
+			expect((badge.x - 50) / radius).toBe(1.25);
+			expect((50 - badge.y) / radius).toBe(1.25);
+		}
+		vi.mocked(current.getNodeBadgeAnchor!).mockReturnValue({
+			x: 50,
+			y: 50,
+			radius: 0,
+		});
+		expect(
+			collectContextBadgePositions(
+				current,
+				new Set(['context']),
+				200,
+				200,
+			),
+		).toEqual([]);
 	});
 
 	it('draws immediately after renderer paint and detaches stale frame callbacks', () => {
@@ -245,6 +278,14 @@ describe('context badges', () => {
 		callbacks[0]!(0);
 		expect(canvas.width).toBe(200);
 		expect(canvas.height).toBe(160);
+		expect(context.setTransform).toHaveBeenLastCalledWith(
+			2,
+			0,
+			0,
+			2,
+			120,
+			80,
+		);
 		active = second;
 		callbacks[1]!(16);
 		expect(first.getNodeBadgeAnchor).toHaveBeenCalledOnce();

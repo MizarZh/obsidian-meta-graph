@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Scale node status and Trace endpoint badges with the rendered node size, including glyphs, backgrounds, strokes, and offsets across renderers.
+
 - Allow Manual assignment groups in Flowchart, Arc, and Hierarchical edge bundling, including view switching and save/reload. Membership remains independent of automatic layout and respects Query filtering and rule-group ownership.
 
 - Arrange Group appearance settings in separate rows and use a Shape dropdown to prevent compressed and overlapping controls in narrow editors.

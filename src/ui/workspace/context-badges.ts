@@ -17,6 +17,7 @@ export function getNodeBadgeIds(
 }
 
 interface NodeBadgePosition {
+	scale: number;
 	x: number;
 	y: number;
 	kind: 'context' | 'unresolved' | 'empty' | 'start' | 'end' | 'endpoints';
@@ -41,14 +42,25 @@ export function collectContextBadgePositions(
 			!anchor ||
 			!Number.isFinite(anchor.x) ||
 			!Number.isFinite(anchor.y) ||
-			!Number.isFinite(anchor.radius)
+			!Number.isFinite(anchor.radius) ||
+			anchor.radius <= 0
 		)
 			continue;
-		const offset = Math.max(0, anchor.radius) * 0.75 + 4;
+		// Preserve the original 12px badge at an 8px rendered node radius.
+		const scale = anchor.radius / 8;
+		const offset = anchor.radius * 0.75 + 4 * scale;
+		const halfSize = 6 * scale;
 		const x = anchor.x + offset,
 			y = anchor.y - offset;
-		if (x < -6 || y < -6 || x > width + 6 || y > height + 6) continue;
+		if (
+			x < -halfSize ||
+			y < -halfSize ||
+			x > width + halfSize ||
+			y > height + halfSize
+		)
+			continue;
 		result.push({
+			scale,
 			x,
 			y,
 			kind:
@@ -112,7 +124,18 @@ export function startContextBadges(
 			height,
 			readTrace(),
 		);
-		for (const { x, y, kind } of positions) {
+		for (const { x: anchorX, y: anchorY, scale, kind } of positions) {
+			// Scale glyph, background, stroke and text together in local coordinates.
+			context.setTransform(
+				ratio * scale,
+				0,
+				0,
+				ratio * scale,
+				ratio * anchorX,
+				ratio * anchorY,
+			);
+			const x = 0,
+				y = 0;
 			context.fillStyle = background;
 			context.strokeStyle = foreground;
 			context.beginPath();
@@ -217,6 +240,7 @@ export function startContextBadges(
 		stopped = true;
 		unsubscribe?.();
 		win.cancelAnimationFrame(frame);
+		context.setTransform(1, 0, 0, 1, 0, 0);
 		context.clearRect(0, 0, canvas.width, canvas.height);
 	};
 }
