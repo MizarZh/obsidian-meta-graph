@@ -37,7 +37,7 @@
 	let pending: { x: number; y: number } | undefined;
 	let pendingRenderer: GraphRenderer | undefined;
 	let drawnRenderer: GraphRenderer | undefined;
-	const width = 180,
+	let width = 180,
 		height = 120;
 	onMount(() => {
 		const win = map.ownerDocument.defaultView!;
@@ -50,6 +50,18 @@
 		});
 		const draw = () => {
 			if (!open || map.ownerDocument.hidden) return;
+			const rect = map.getBoundingClientRect();
+			if (rect.width <= 0 || rect.height <= 0) return;
+			if (rect.width !== width || rect.height !== height) {
+				// A drag's inverse transform belongs to the previous map size.
+				if (drag && map.hasPointerCapture(drag.id))
+					map.releasePointerCapture(drag.id);
+				drag = undefined;
+				if (panFrame !== undefined) win.cancelAnimationFrame(panFrame);
+				panFrame = undefined;
+				width = rect.width;
+				height = rect.height;
+			}
 			const nextHost = readCanvas();
 			if (nextHost !== host) {
 				observer.disconnect();
@@ -60,11 +72,20 @@
 			const context = map.getContext('2d');
 			if (!context) return;
 			const ratio = Math.min(win.devicePixelRatio || 1, 2);
-			if (map.width !== width * ratio || map.height !== height * ratio) {
-				map.width = width * ratio;
-				map.height = height * ratio;
+			const pixelWidth = Math.round(width * ratio),
+				pixelHeight = Math.round(height * ratio);
+			if (map.width !== pixelWidth || map.height !== pixelHeight) {
+				map.width = pixelWidth;
+				map.height = pixelHeight;
 			}
-			context.setTransform(ratio, 0, 0, ratio, 0, 0);
+			context.setTransform(
+				pixelWidth / width,
+				0,
+				0,
+				pixelHeight / height,
+				0,
+				0,
+			);
 			context.clearRect(0, 0, width, height);
 			transform = undefined;
 			viewport = [];
@@ -156,6 +177,8 @@
 			context.stroke();
 			viewport = corners;
 		};
+		const mapResize = new ResizeObserver(draw);
+		mapResize.observe(map);
 		redraw = draw;
 		draw();
 		const timer = win.setInterval(draw, 200);
@@ -205,6 +228,7 @@
 			drag = undefined;
 			redraw = () => {};
 			observer.disconnect();
+			mapResize.disconnect();
 		};
 	});
 	function pan(position: { x: number; y: number }) {
@@ -285,7 +309,9 @@
 	<canvas
 		bind:this={map}
 		hidden={!open}
-		style="width: 180px; height: 120px"
+		style={embedded
+			? 'display: block; width: 100%; height: auto; aspect-ratio: 3 / 2'
+			: 'width: 180px; height: 120px'}
 		role="button"
 		tabindex="0"
 		aria-label="Minimap: drag or click to pan, scroll to zoom; arrow keys move the viewport"

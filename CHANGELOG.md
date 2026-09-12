@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Made embedded Minimap fill the corner panel width at a 3:2 aspect ratio. Canvas resolution, drawing, and navigation mapping follow its actual dimensions on resize.
+
 - Added a shared Node status heading above the Empty note and Added context legend icons.
 
 - Simplified the Legend status explanations to Empty note and Added context icons, removing their section headings and Core match text. Existing Nodes / Links style legends remain intact.
