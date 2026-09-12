@@ -4,6 +4,16 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Made Trace graph picking explicit with an accent-colored endpoint prompt and Cancel action, an accent-colored Cancel picking button, and a crosshair cursor. Picking one node now exits the mode immediately.
+
+- Moved the Trace endpoint swap button between the A and B rows, using vertical arrows to match their order.
+
+- Visually grouped selected Trace relationship fields and their add control with a subtle background, border, and spacing below the relationship mode selector.
+
+- Trace now preserves original node and relationship colors and styles, fading only elements outside its range instead of recoloring traced elements with the selection color.
+
+- Added clear actions for Trace endpoints; emptying an endpoint input cancels its selection. Clearing endpoints no longer starts graph picking. Click an active pick button again or press Escape to cancel picking.
+
 - Removed the separate Close trace action and internal Trace options fold. Relationship fields, direction, and layers now appear directly in the Trace panel.
 
 - Made embedded Minimap fill the corner panel width at a 3:2 aspect ratio. Canvas resolution, drawing, and navigation mapping follow its actual dimensions on resize.

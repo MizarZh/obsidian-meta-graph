@@ -31,19 +31,17 @@ export function applyGraphTrace(
 	graph: RuntimeGraph,
 	projection: GraphProjection,
 	request: GraphTraceRequest | undefined,
-	color: string,
 ): void {
 	if (!request || (request.mode === 'path' && !request.target)) return;
 	const result = traceVisibleGraph(graph, projection, request);
 	if (!result.found) return;
 	graph.forEachNode((id, node) => {
 		if (node.isBend || node.hidden) return;
-		if (result.nodeIds.has(id)) node.color = color;
-		else node.opacity = (node.opacity ?? 1) * 0.18;
+		if (!result.nodeIds.has(id)) node.opacity = (node.opacity ?? 1) * 0.18;
 	});
 	graph.forEachEdge((id, edge) => {
 		if (edge.hidden) return;
-		if (result.edgeIds.has(edge.logicalEdgeId ?? id)) edge.color = color;
-		else edge.opacity = (edge.opacity ?? 1) * 0.18;
+		if (!result.edgeIds.has(edge.logicalEdgeId ?? id))
+			edge.opacity = (edge.opacity ?? 1) * 0.18;
 	});
 }

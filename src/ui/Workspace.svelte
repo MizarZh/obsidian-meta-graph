@@ -233,7 +233,7 @@
 		return { ...applyTimeline(state, timeline), trace: traceRequest };
 	}
 
-	function setTrace(request?: GraphTraceRequest): void {
+	function setTrace(request?: GraphTraceRequest, autoPick = true): void {
 		if (request) {
 			preferredCornerPanel = 'trace';
 			cornerCollapsed = false;
@@ -246,13 +246,14 @@
 					...request,
 				}
 			: undefined;
-		tracePicking = !request
-			? undefined
-			: !request.source
-				? 'source'
-				: request.mode === 'path' && !request.target
-					? 'target'
-					: undefined;
+		tracePicking =
+			!request || !autoPick
+				? undefined
+				: !request.source
+					? 'source'
+					: request.mode === 'path' && !request.target
+						? 'target'
+						: undefined;
 		rendererLifecycle.clearPinnedHover();
 		const previous = workspaceState;
 		workspaceState = applyViewState(
@@ -262,16 +263,19 @@
 		renderCoordinator.apply(workspaceState, previous);
 	}
 
-
 	function pickTraceEndpoint(endpoint: 'source' | 'target'): void {
-		if (!traceRequest) setTrace(emptyTrace);
+		if (tracePicking === endpoint) {
+			tracePicking = undefined;
+			return;
+		}
+		if (!traceRequest) setTrace(emptyTrace, false);
 		tracePicking = endpoint;
 	}
 
 	function selectGraphNode(nodeId?: string): void {
 		if (nodeId && traceRequest && tracePicking) {
 			suppressNodeOpenUntil = Date.now() + 500;
-			setTrace({ ...traceRequest, [tracePicking]: nodeId });
+			setTrace({ ...traceRequest, [tracePicking]: nodeId }, false);
 			return;
 		}
 		controller.selectNode(nodeId);
@@ -1890,7 +1894,8 @@
 				return Boolean(next);
 			}
 			case 'escape':
-				if (traceRequest) setTrace(undefined);
+				if (tracePicking) tracePicking = undefined;
+				else if (traceRequest) setTrace(undefined);
 				else if (shortcutHelpOpen) shortcutHelpOpen = false;
 				else if (settingsPanel) settingsPanel = undefined;
 				else if (curatedSelection.size > 0)
@@ -1983,6 +1988,8 @@
 				supportsPlanarRenderer(workspaceState.mode)}
 			class:connection-collapsed={!connectionOpen}
 			class:trace-visible={tracePanelVisible && !graphLoading}
+			class:trace-picking={Boolean(traceRequest && tracePicking) &&
+				!graphLoading}
 			class:timeline-visible={workspaceState.timeline.enabled &&
 				supportsTimeline(workspaceState.mode)}
 			style="--dock-panel-width: {dockOpen
@@ -1994,6 +2001,24 @@
 				: '0px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+			{#if traceRequest && tracePicking && !graphLoading}
+				<div class="knowledge-workspace-trace-picking-banner">
+					<div class="knowledge-workspace-trace-picking-prompt">
+						<span role="status"
+							>Selecting {tracePicking === 'source'
+								? 'start A'
+								: 'end B'} · Click a node</span
+						>
+						<ObsidianButton
+							text="Cancel"
+							icon="x"
+							ariaLabel="Cancel picking"
+							tooltip="Cancel picking (Esc)"
+							onClick={() => (tracePicking = undefined)}
+						/>
+					</div>
+				</div>
+			{/if}
 			{#if cornerPanels.length && !graphLoading}
 				<aside
 					class="knowledge-workspace-corner-panels"
@@ -2018,7 +2043,7 @@
 											traceRequest,
 										)
 									: undefined}
-								onChange={setTrace}
+								onChange={(request) => setTrace(request, false)}
 							/>
 						{/if}
 						{#if activeCornerPanel === 'minimap'}

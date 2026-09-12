@@ -79,7 +79,7 @@ export function createWorkspaceRuntimeGraph(
 			arrowSize: getActiveUnresolvedLinkArrowSize(state),
 		},
 	).fromProjection(projection, positions);
-	applyGraphTrace(graph, projection, state.trace, palette.selected);
+	applyGraphTrace(graph, projection, state.trace);
 	return graph;
 }
 
@@ -210,7 +210,7 @@ export function syncWorkspaceRuntimeGraphStyles(
 			});
 		}
 	}
-	applyGraphTrace(graph, projection, state.trace, palette.selected);
+	applyGraphTrace(graph, projection, state.trace);
 }
 
 export function prepareWorkspaceRuntimeGraphVisibilityIndex(

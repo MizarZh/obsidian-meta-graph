@@ -108,18 +108,50 @@
 			ariaLabel="Trace start node"
 			showOnEmpty
 			allowCustom={false}
-			onInput={(value) => (sourceText = value)}
+			onInput={(value) => {
+				sourceText = value;
+				if (!value.trim()) patch({ source: '' });
+			}}
 			onSelect={(option) => patch({ source: option.value })}
 		/>
+		{#if request.source}
+			<ObsidianButton
+				icon="x"
+				ariaLabel="Clear start node"
+				tooltip="Clear start node"
+				onClick={() => patch({ source: '' })}
+			/>
+		{/if}
 		<ObsidianButton
 			icon="mouse-pointer-2"
 			active={picking === 'source'}
-			ariaLabel="Pick start in graph"
-			tooltip="Pick start in graph"
+			text={picking === 'source' ? 'Cancel picking' : ''}
+			cta={picking === 'source'}
+			class="knowledge-workspace-trace-pick-button"
+			ariaLabel={picking === 'source'
+				? 'Cancel picking'
+				: 'Pick start in graph'}
+			tooltip={picking === 'source'
+				? 'Cancel picking'
+				: 'Pick start in graph'}
 			onClick={() => onPick('source')}
 		/>
 	</div>
 	{#if request.mode === 'path'}
+		<div class="knowledge-workspace-trace-swap">
+			<ObsidianButton
+				icon="arrow-up-down"
+				disabled={!request.target}
+				ariaLabel="Swap path endpoints"
+				tooltip="Swap endpoints"
+				onClick={() =>
+					request.target &&
+					patch({
+						source: request.target,
+						target: request.source,
+					})}
+			/>
+		</div>
 		<div class="knowledge-workspace-trace-row">
 			<span>B · End</span>
 			<ObsidianSuggestInput
@@ -130,27 +162,33 @@
 				ariaLabel="Trace end node"
 				showOnEmpty
 				allowCustom={false}
-				onInput={(value) => (targetText = value)}
+				onInput={(value) => {
+					targetText = value;
+					if (!value.trim()) patch({ target: undefined });
+				}}
 				onSelect={(option) => patch({ target: option.value })}
 			/>
+			{#if request.target}
+				<ObsidianButton
+					icon="x"
+					ariaLabel="Clear end node"
+					tooltip="Clear end node"
+					onClick={() => patch({ target: undefined })}
+				/>
+			{/if}
 			<ObsidianButton
 				icon="mouse-pointer-2"
 				active={picking === 'target'}
-				ariaLabel="Pick end in graph"
-				tooltip="Pick end in graph"
+				text={picking === 'target' ? 'Cancel picking' : ''}
+				cta={picking === 'target'}
+				class="knowledge-workspace-trace-pick-button"
+				ariaLabel={picking === 'target'
+					? 'Cancel picking'
+					: 'Pick end in graph'}
+				tooltip={picking === 'target'
+					? 'Cancel picking'
+					: 'Pick end in graph'}
 				onClick={() => onPick('target')}
-			/>
-			<ObsidianButton
-				icon="arrow-left-right"
-				disabled={!request.target}
-				ariaLabel="Swap path endpoints"
-				tooltip="Swap endpoints"
-				onClick={() =>
-					request.target &&
-					patch({
-						source: request.target,
-						target: request.source,
-					})}
 			/>
 		</div>
 	{/if}
@@ -175,15 +213,17 @@
 			/>
 		</div>
 	{:else}
-		<div class="knowledge-workspace-trace-fields">
+		<div
+			class="knowledge-workspace-trace-fields"
+			role="group"
+			aria-label="Selected relationship fields"
+		>
 			{#each rules as rule (rule.field)}
 				<div class="knowledge-workspace-trace-row">
 					<span title={rule.field}>{rule.field}</span>
 					<ObsidianDropdown
 						ariaLabel={`${rule.field}: Direction`}
-						value={undirected(rule.field)
-							? 'both'
-							: rule.direction}
+						value={undirected(rule.field) ? 'both' : rule.direction}
 						disabled={undirected(rule.field)}
 						options={directionOptions}
 						onChange={(value) =>
@@ -212,35 +252,35 @@
 					/>
 				</div>
 			{/each}
+			{#key rules.map((rule) => rule.field).join('|')}
+				<ObsidianSuggestInput
+					{app}
+					value=""
+					options={fields
+						.filter(
+							(field) =>
+								!rules.some((rule) => rule.field === field),
+						)
+						.map((field) => ({ value: field, label: field }))}
+					placeholder="Add relationship field…"
+					ariaLabel="Add trace relationship field"
+					showOnEmpty
+					allowCustom={false}
+					onSelect={(option) =>
+						patch({
+							fieldRules: [
+								...rules,
+								{
+									field: option.value,
+									direction: undirected(option.value)
+										? 'both'
+										: direction,
+								},
+							],
+						})}
+				/>
+			{/key}
 		</div>
-		{#key rules.map((rule) => rule.field).join('|')}
-			<ObsidianSuggestInput
-				{app}
-				value=""
-				options={fields
-					.filter(
-						(field) =>
-							!rules.some((rule) => rule.field === field),
-					)
-					.map((field) => ({ value: field, label: field }))}
-				placeholder="Add relationship field…"
-				ariaLabel="Add trace relationship field"
-				showOnEmpty
-				allowCustom={false}
-				onSelect={(option) =>
-					patch({
-						fieldRules: [
-							...rules,
-							{
-								field: option.value,
-								direction: undirected(option.value)
-									? 'both'
-									: direction,
-							},
-						],
-					})}
-			/>
-		{/key}
 	{/if}
 	{#if request.mode !== 'path'}
 		<div class="knowledge-workspace-trace-row">

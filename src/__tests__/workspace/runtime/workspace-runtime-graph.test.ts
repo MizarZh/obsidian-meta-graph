@@ -39,7 +39,7 @@ const projection: GraphProjection = {
 };
 
 describe('workspace runtime graph', () => {
-	it('restores trace fading exactly and respects style-hidden nodes', () => {
+	it('preserves traced styles and restores fading exactly', () => {
 		const state = createWorkspaceState(200);
 		const data = {
 			...projection,
@@ -55,9 +55,10 @@ describe('workspace runtime graph', () => {
 			palette,
 		);
 		const original = { ...graph.getNodeAttributes('B.md') };
+		const tracedOriginal = { ...graph.getNodeAttributes('A.md') };
 		state.trace = { mode: 'downstream', source: 'A.md' };
 		syncWorkspaceRuntimeGraphStyles(graph, data, state, palette);
-		expect(graph.getNodeAttribute('A.md', 'color')).toBe(palette.selected);
+		expect(graph.getNodeAttributes('A.md')).toMatchObject(tracedOriginal);
 		expect(graph.getNodeAttribute('B.md', 'opacity')).toBeCloseTo(
 			(original.opacity ?? 1) * 0.18,
 		);
@@ -68,6 +69,70 @@ describe('workspace runtime graph', () => {
 		state.trace = undefined;
 		syncWorkspaceRuntimeGraphStyles(graph, data, state, palette);
 		expect(graph.getNodeAttributes('B.md')).toMatchObject(original);
+	});
+	it('preserves distinct relationship styles during trace creation and refresh', () => {
+		const state = createWorkspaceState(200);
+		state.plainLinkStyleOverrides = {
+			color: '#123456',
+			size: 3,
+			opacity: 0.4,
+			lineStyle: 'dotted',
+		};
+		const data: GraphProjection = {
+			...projection,
+			nodes: [
+				...projection.nodes,
+				{ ...projection.nodes[0]!, id: 'B.md' },
+				{ ...projection.nodes[0]!, id: 'C.md' },
+			],
+			edges: [
+				{
+					id: 'relation',
+					source: 'A.md',
+					target: 'B.md',
+					kind: 'relation',
+					relation: 'related',
+					sourceField: 'related',
+					sourcePath: 'A.md',
+					directed: true,
+				},
+				{
+					id: 'plain',
+					source: 'B.md',
+					target: 'C.md',
+					kind: 'plain-link',
+					relation: 'link',
+					sourceField: 'body',
+					sourcePath: 'B.md',
+					directed: true,
+				},
+			],
+		};
+		const graph = createWorkspaceRuntimeGraph(
+			data,
+			new Map(),
+			state,
+			palette,
+		);
+		const original = data.edges.map((edge) => ({
+			...graph.getEdgeAttributes(edge.id),
+		}));
+		expect(original[0]!.color).not.toBe(original[1]!.color);
+		state.trace = { mode: 'downstream', source: 'A.md' };
+		syncWorkspaceRuntimeGraphStyles(graph, data, state, palette);
+		const rebuilt = createWorkspaceRuntimeGraph(
+			data,
+			new Map(),
+			state,
+			palette,
+		);
+		for (const result of [graph, rebuilt]) {
+			data.edges.forEach((edge, index) => {
+				expect(result.getEdgeAttributes(edge.id)).toMatchObject(
+					original[index]!,
+				);
+			});
+		}
 	});
 	it('matches link defaults while preserving independent style overrides', () => {
 		const state = createWorkspaceState(200);
