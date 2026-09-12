@@ -100,6 +100,11 @@
 	} = $props();
 
 	let editingRule = $state('');
+	let workspaceDefaultOpen = $state(true);
+	const hasChartOverride = $derived(hasNodeOverride());
+	$effect(() => {
+		workspaceDefaultOpen = !hasChartOverride;
+	});
 	let styleHeader: HTMLElement;
 	let handledRequest: typeof styleEditorRequest;
 	$effect(() => {
@@ -107,6 +112,7 @@
 		if (!request || request === handledRequest) return;
 		handledRequest = request;
 		editingRule = request.key;
+		if (request.key === 'workspace-default') workspaceDefaultOpen = true;
 		chartOverridesOpen = true;
 		ruleSectionsOpen = { global: true, current: true };
 		unresolvedNodesOpen = true;
@@ -267,10 +273,13 @@
 
 	function addNodeOverride(): void {
 		chartOverridesOpen = true;
+		workspaceDefaultOpen = false;
+		editingRule = 'chart-override';
 		onNodeStyleOverrides({ ...defaultNodeStyle });
 	}
 
 	function clearNodeOverride(): void {
+		if (editingRule === 'chart-override') editingRule = '';
 		onNodeStyleOverrides({});
 	}
 
@@ -407,23 +416,25 @@
 <section bind:this={styleHeader}>
 	<header><h3>Note styles</h3></header>
 </section>
-<StyleRuleCard
-	title="Workspace default"
-	summary={`${defaultNodeStyle.size}px · ${defaultNodeStyle.shape} · ${Math.round(defaultNodeStyle.opacity * 100)}%`}
-	color={defaultNodeStyle.color}
-	nodeShape={defaultNodeStyle.shape}
-	open={editingRule === 'workspace-default'}
-	onOpen={() => (editingRule = 'workspace-default')}
-	onClose={() => (editingRule = '')}
->
-	<div class="knowledge-workspace-rule">
-		<NodeVisualSettings
-			value={defaultNodeStyle}
-			commitKey="node:workspace-default"
-			onPatch={updateDefaultNodeStyle}
-		/>
-	</div>
-</StyleRuleCard>
+<SettingsSection title="Workspace default" bind:open={workspaceDefaultOpen}>
+	<StyleRuleCard
+		title="Workspace default"
+		summary={`${defaultNodeStyle.size}px · ${defaultNodeStyle.shape} · ${Math.round(defaultNodeStyle.opacity * 100)}%`}
+		color={defaultNodeStyle.color}
+		nodeShape={defaultNodeStyle.shape}
+		open={editingRule === 'workspace-default'}
+		onOpen={() => (editingRule = 'workspace-default')}
+		onClose={() => (editingRule = '')}
+	>
+		<div class="knowledge-workspace-rule">
+			<NodeVisualSettings
+				value={defaultNodeStyle}
+				commitKey="node:workspace-default"
+				onPatch={updateDefaultNodeStyle}
+			/>
+		</div>
+	</StyleRuleCard>
+</SettingsSection>
 <SettingsSection title="Chart overrides" bind:open={chartOverridesOpen}>
 	{#snippet actions()}
 		{#if !hasNodeOverride()}
@@ -436,22 +447,33 @@
 		{/if}
 	{/snippet}
 	{#if hasNodeOverride()}
-		<div class="knowledge-workspace-rule">
-			<div class="knowledge-workspace-rule-row override-heading">
-				<strong>This chart</strong>
-				<ObsidianButton
-					class="knowledge-workspace-remove-rule-button"
-					ariaLabel="Remove chart note override"
-					icon="trash-2"
-					onClick={clearNodeOverride}
+		{@const visual = activeNodeVisualValue()}
+		<StyleRuleCard
+			title="This chart"
+			summary={`${visual.size}px · ${visual.shape} · ${Math.round(visual.opacity * 100)}%`}
+			nodeShape={visual.shape}
+			color={visual.color}
+			open={editingRule === 'chart-override'}
+			onOpen={() => (editingRule = 'chart-override')}
+			onClose={() => (editingRule = '')}
+		>
+			<div class="knowledge-workspace-rule">
+				<div class="knowledge-workspace-style-rule-header">
+					<ObsidianButton
+						class="knowledge-workspace-remove-rule-button"
+						ariaLabel="Remove chart note override"
+						tooltip="Remove chart override"
+						icon="trash-2"
+						onClick={clearNodeOverride}
+					/>
+				</div>
+				<NodeVisualSettings
+					value={activeNodeVisualValue()}
+					commitKey="node:chart-override"
+					onPatch={updateNodeOverride}
 				/>
 			</div>
-			<NodeVisualSettings
-				value={activeNodeVisualValue()}
-				commitKey="node:chart-override"
-				onPatch={updateNodeOverride}
-			/>
-		</div>
+		</StyleRuleCard>
 	{/if}
 </SettingsSection>
 {#each NODE_STYLE_SECTIONS as section}

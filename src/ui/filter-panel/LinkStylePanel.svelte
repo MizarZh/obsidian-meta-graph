@@ -108,6 +108,11 @@
 	} = $props();
 
 	let editingRule = $state('');
+	let workspaceDefaultOpen = $state(true);
+	const hasChartOverride = $derived(hasLinkOverride());
+	$effect(() => {
+		workspaceDefaultOpen = !hasChartOverride;
+	});
 	let styleHeader: HTMLElement;
 	let handledRequest: typeof styleEditorRequest;
 	$effect(() => {
@@ -115,6 +120,7 @@
 		if (!request || request === handledRequest) return;
 		handledRequest = request;
 		editingRule = request.key;
+		if (request.key === 'workspace-default') workspaceDefaultOpen = true;
 		chartOverridesOpen = true;
 		ruleSectionsOpen = { global: true, current: true };
 		unresolvedLinksOpen = true;
@@ -250,10 +256,13 @@
 
 	function addLinkOverride(): void {
 		chartOverridesOpen = true;
+		workspaceDefaultOpen = false;
+		editingRule = 'chart-override';
 		onLinkStyleOverrides({ ...defaultLinkStyle });
 	}
 
 	function clearLinkOverride(): void {
+		if (editingRule === 'chart-override') editingRule = '';
 		onLinkStyleOverrides({});
 	}
 
@@ -409,27 +418,29 @@
 <section bind:this={styleHeader}>
 	<header><h3>Link styles</h3></header>
 </section>
-<StyleRuleCard
-	title="Workspace default"
-	summary={`${defaultLinkStyle.size}px · ${defaultLinkStyle.lineStyle}${defaultLinkStyle.hidden ? ' · Hidden' : ''}`}
-	color={defaultLinkStyle.color}
-	linePreview={defaultLinkStyle}
-	open={editingRule === 'workspace-default'}
-	onOpen={() => (editingRule = 'workspace-default')}
-	onClose={() => (editingRule = '')}
->
-	<div class="knowledge-workspace-rule">
-		<LinkVisualSettings
-			value={defaultLinkStyle}
-			commitKey="link:workspace-default"
-			onPatch={updateDefaultLinkStyle}
-		/>
-		<LinkBehaviorSettings
-			value={defaultLinkStyle}
-			onPatch={updateDefaultLinkStyle}
-		/>
-	</div>
-</StyleRuleCard>
+<SettingsSection title="Workspace default" bind:open={workspaceDefaultOpen}>
+	<StyleRuleCard
+		title="Workspace default"
+		summary={`${defaultLinkStyle.size}px · ${defaultLinkStyle.lineStyle}${defaultLinkStyle.hidden ? ' · Hidden' : ''}`}
+		color={defaultLinkStyle.color}
+		linePreview={defaultLinkStyle}
+		open={editingRule === 'workspace-default'}
+		onOpen={() => (editingRule = 'workspace-default')}
+		onClose={() => (editingRule = '')}
+	>
+		<div class="knowledge-workspace-rule">
+			<LinkVisualSettings
+				value={defaultLinkStyle}
+				commitKey="link:workspace-default"
+				onPatch={updateDefaultLinkStyle}
+			/>
+			<LinkBehaviorSettings
+				value={defaultLinkStyle}
+				onPatch={updateDefaultLinkStyle}
+			/>
+		</div>
+	</StyleRuleCard>
+</SettingsSection>
 <SettingsSection title="Chart overrides" bind:open={chartOverridesOpen}>
 	{#snippet actions()}
 		{#if !hasLinkOverride()}
@@ -442,30 +453,41 @@
 		{/if}
 	{/snippet}
 	{#if hasLinkOverride()}
-		<div class="knowledge-workspace-rule">
-			<div class="knowledge-workspace-rule-row override-heading">
-				<strong>This chart</strong>
-				<ObsidianButton
-					class="knowledge-workspace-remove-rule-button"
-					ariaLabel="Remove chart link override"
-					icon="trash-2"
-					onClick={clearLinkOverride}
+		{@const visual = activeLinkVisualValue()}
+		<StyleRuleCard
+			title="This chart"
+			summary={`${visual.size}px · ${visual.lineStyle}${activeLinkHidden() ? ' · Hidden' : ''}`}
+			linePreview={visual}
+			color={visual.color}
+			open={editingRule === 'chart-override'}
+			onOpen={() => (editingRule = 'chart-override')}
+			onClose={() => (editingRule = '')}
+		>
+			<div class="knowledge-workspace-rule">
+				<div class="knowledge-workspace-style-rule-header">
+					<ObsidianButton
+						class="knowledge-workspace-remove-rule-button"
+						ariaLabel="Remove chart link override"
+						tooltip="Remove chart override"
+						icon="trash-2"
+						onClick={clearLinkOverride}
+					/>
+				</div>
+				<LinkVisualSettings
+					value={activeLinkVisualValue()}
+					commitKey="link:chart-override"
+					onPatch={updateLinkOverride}
+				/>
+				<LinkBehaviorSettings
+					value={{
+						label: activeLinkLabel(),
+						showLabel: activeLinkShowLabel(),
+						hidden: activeLinkHidden(),
+					}}
+					onPatch={updateLinkOverride}
 				/>
 			</div>
-			<LinkVisualSettings
-				value={activeLinkVisualValue()}
-				commitKey="link:chart-override"
-				onPatch={updateLinkOverride}
-			/>
-			<LinkBehaviorSettings
-				value={{
-					label: activeLinkLabel(),
-					showLabel: activeLinkShowLabel(),
-					hidden: activeLinkHidden(),
-				}}
-				onPatch={updateLinkOverride}
-			/>
-		</div>
+		</StyleRuleCard>
 	{/if}
 </SettingsSection>
 {#each LINK_STYLE_SECTIONS as section}

@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Automatically collapse Workspace default when chart note or link overrides are present. It remains manually expandable and reopens when overrides are removed.
+
+- Updated note and link Chart overrides to the current style preview cards and popover editors, matching Workspace default. Adding an override opens its editor; removing it restores inherited styles.
+
 - Smoothed Sigma Flowchart parallel Curve edges with tapered lane spacing, endpoint joins outside node boundaries, and adaptive curve sampling shared by drawing and hit testing.
 
 - Renamed chart types in the UI: Graph → Network, Flow → Flowchart, 3D graph → 3D network, and Free → Canvas. Other chart names, saved type identifiers, and existing chart titles are unchanged.
