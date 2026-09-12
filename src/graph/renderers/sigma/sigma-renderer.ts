@@ -273,10 +273,14 @@ export class SigmaRenderer {
 			this.instance,
 			() => this.graph,
 			() => ({
-				activeHoverNodeId: this.getActiveHoverNodeId(),
+				activeHoverNodeId: this.graph.getAttribute('traceActive')
+					? undefined
+					: this.getActiveHoverNodeId(),
 				parallelEdgeStyle: this.parallelEdgeStyle,
 				localHover: this.hoverMode === 'local',
-				pinnedNodeId: this.pinnedNodeId,
+				pinnedNodeId: this.graph.getAttribute('traceActive')
+					? undefined
+					: this.pinnedNodeId,
 				forceMotionActive: this.forceMotionActive,
 				selectedEdgeId: this.selectedEdgeId,
 				hoveredEdgeId: this.hoveredEdgeId,
@@ -972,6 +976,7 @@ export class SigmaRenderer {
 		const instance = this.instance as
 			Sigma<RuntimeNodeAttributes, RuntimeEdgeAttributes> | undefined;
 		return {
+			traceActive: this.graph.getAttribute('traceActive'),
 			localHover: this.hoverMode === 'local',
 			activeHoverNodeId: this.getActiveHoverNodeId(),
 			pinnedNodeId: this.pinnedNodeId,
@@ -990,9 +995,10 @@ export class SigmaRenderer {
 	}
 
 	private syncGroupFocus(): void {
-		const activeNodeId =
-			this.pinnedNodeId ??
-			(this.hoverMode === 'local' ? this.hoveredNodeId : undefined);
+		const activeNodeId = this.graph.getAttribute('traceActive')
+			? undefined
+			: (this.pinnedNodeId ??
+				(this.hoverMode === 'local' ? this.hoveredNodeId : undefined));
 		this.groupOverlayLayer.setFocusedNode(activeNodeId);
 		this.layoutGroupLayer.setFocusedNode(activeNodeId);
 	}

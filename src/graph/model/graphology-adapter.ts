@@ -100,7 +100,7 @@ export interface RuntimeEdgeAttributes {
 export type RuntimeGraph = Graph<
 	RuntimeNodeAttributes,
 	RuntimeEdgeAttributes,
-	Record<string, never>
+	{ traceActive?: boolean }
 >;
 
 export class GraphologyAdapter {

@@ -1083,7 +1083,11 @@ export class Force3DRenderer {
 		if (node.id === this.selectedNodeId) {
 			return this.palette.selected;
 		}
-		if (activeHoverNodeId && !this.hoveredNeighborhood.has(node.id)) {
+		if (
+			!this.graph.getAttribute('traceActive') &&
+			activeHoverNodeId &&
+			!this.hoveredNeighborhood.has(node.id)
+		) {
 			return withAlpha(node.color, 0.18);
 		}
 		return node.color;
@@ -1092,7 +1096,11 @@ export class Force3DRenderer {
 	private getNodeOpacity(node: Force3DNode): number {
 		const styleOpacity = clampOpacity(node.opacity ?? 1);
 		const activeHoverNodeId = this.getActiveHoverNodeId();
-		if (activeHoverNodeId && !this.hoveredNeighborhood.has(node.id)) {
+		if (
+			!this.graph.getAttribute('traceActive') &&
+			activeHoverNodeId &&
+			!this.hoveredNeighborhood.has(node.id)
+		) {
 			return styleOpacity * 0.18;
 		}
 		return styleOpacity * 0.96;
@@ -1102,6 +1110,7 @@ export class Force3DRenderer {
 		const opacity = Math.max(0, Math.min(1, link.opacity ?? 1));
 		const activeHoverNodeId = this.getActiveHoverNodeId();
 		if (
+			!this.graph.getAttribute('traceActive') &&
 			activeHoverNodeId &&
 			(!this.hoveredNeighborhood.has(getLinkEndpointId(link.source)) ||
 				!this.hoveredNeighborhood.has(getLinkEndpointId(link.target)))

@@ -454,12 +454,18 @@ describe('G6 renderer', () => {
 
 	it('anchors requested zoom to the graph point converted into viewport space', async () => {
 		const fake = createFakeG6();
-		const renderer = await G6Renderer.create(createOptions(createRuntimeGraph()), () => fake.instance);
+		const renderer = await G6Renderer.create(
+			createOptions(createRuntimeGraph()),
+			() => fake.instance,
+		);
 		if (!renderer) throw new Error('Expected renderer');
 		const anchor = { x: 12, y: -20 };
 		const point = renderer.graphToViewportPosition(anchor);
 		renderer.setZoomLevel(200, anchor);
-		expect(fake.zoomTo.mock.calls.at(-1)?.slice(1)).toEqual([false, [point.x, point.y]]);
+		expect(fake.zoomTo.mock.calls.at(-1)?.slice(1)).toEqual([
+			false,
+			[point.x, point.y],
+		]);
 		renderer.kill();
 	});
 
@@ -1056,6 +1062,44 @@ describe('G6 renderer', () => {
 		await vi.waitFor(() => expect(fake.draw).toHaveBeenCalledTimes(3));
 		await Promise.resolve();
 		expect(fake.draw).toHaveBeenCalledTimes(3);
+	});
+
+	it('suspends Local focus during Trace and restores it without clearing selection', async () => {
+		const graph = createInteractiveGraph();
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(
+			createOptions(graph),
+			() => fake.instance,
+		);
+		if (!renderer) throw new Error('Expected renderer');
+		renderer.togglePinnedHover('A.md');
+		await vi.waitFor(() =>
+			expect(readLastStateMap(fake.setElementState)['B-C']).toContain(
+				G6_INTERACTION_STATE.focusHidden,
+			),
+		);
+		graph.setAttribute('traceActive', true);
+		renderer.refreshGraphStyles();
+		await vi.waitFor(() => {
+			const states = readLastStateMap(fake.setElementState);
+			expect(states['C.md']).toEqual([]);
+			expect(states['B-C']).toEqual([]);
+			expect(states['A-B']).toEqual([]);
+		});
+		renderer.setSelectedEdge('logical-B-C');
+		await vi.waitFor(() =>
+			expect(readLastStateMap(fake.setElementState)['B-C']).toEqual([
+				G6_INTERACTION_STATE.selected,
+			]),
+		);
+		graph.setAttribute('traceActive', false);
+		renderer.refreshGraphStyles();
+		await vi.waitFor(() => {
+			const states = readLastStateMap(fake.setElementState);
+			expect(states['C.md']).toContain(G6_INTERACTION_STATE.dimmed);
+			expect(states['B-C']).toContain(G6_INTERACTION_STATE.focusHidden);
+			expect(states['B-C']).toContain(G6_INTERACTION_STATE.selected);
+		});
 	});
 
 	it('maps selection and hover semantics to incremental G6 states', async () => {

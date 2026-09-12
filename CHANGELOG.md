@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Active Trace results now take priority over Local hover and pinned-neighborhood focus across renderers. Individual selection remains available without revealing neighbors; clearing Trace restores Local focus automatically.
+
 - Made Trace graph picking explicit with an accent-colored endpoint prompt and Cancel action, an accent-colored Cancel picking button, and a crosshair cursor. Picking one node now exits the mode immediately.
 
 - Moved the Trace endpoint swap button between the A and B rows, using vertical arrows to match their order.

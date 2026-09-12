@@ -301,6 +301,64 @@ describe('graph renderer helpers', () => {
 		});
 	});
 
+	it('keeps Trace fading authoritative over local and pinned Sigma focus', () => {
+		const node = { ...createNodeAttributes(), opacity: 0.18 };
+		const edge = { ...createEdgeAttributes(), opacity: 0.18 };
+		const state = {
+			traceActive: true,
+			localHover: true,
+			activeHoverNodeId: 'other',
+			pinnedNodeId: 'other',
+			hoveredNeighborhood: new Set(['other']),
+			forceLabels: false,
+		};
+		const base = {
+			...state,
+			traceActive: false,
+			activeHoverNodeId: undefined,
+			pinnedNodeId: undefined,
+		};
+		expect(reduceSigmaNode('A.md', node, state, palette)).toEqual(
+			reduceSigmaNode('A.md', node, base, palette),
+		);
+		expect(reduceSigmaEdge(edge, state, palette, ['A.md', 'B.md'])).toEqual(
+			reduceSigmaEdge(edge, base, palette, ['A.md', 'B.md']),
+		);
+		expect(
+			reduceSigmaEdge(
+				edge,
+				{ ...state, activeHoverNodeId: 'A.md' },
+				palette,
+				['A.md', 'B.md'],
+			).size,
+		).toBe(edge.size);
+		expect(
+			reduceSigmaNode(
+				'A.md',
+				node,
+				{ ...state, selectedNodeId: 'A.md' },
+				palette,
+			).highlighted,
+		).toBe(true);
+		expect(
+			reduceSigmaEdge(
+				edge,
+				{ ...state, selectedEdgeId: 'edge' },
+				palette,
+				['A.md', 'B.md'],
+				'edge',
+			).size,
+		).toBeGreaterThan(edge.size);
+		expect(
+			reduceSigmaNode(
+				'A.md',
+				node,
+				{ ...state, traceActive: false },
+				palette,
+			).color,
+		).not.toEqual(reduceSigmaNode('A.md', node, state, palette).color);
+	});
+
 	it('reduces Sigma node and edge hover display state', () => {
 		const node = createNodeAttributes();
 		const edge = createEdgeAttributes();

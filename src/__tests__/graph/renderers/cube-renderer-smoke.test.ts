@@ -417,6 +417,7 @@ function createGraph(nodeIds: string[]): RuntimeGraph {
 		nodes: () => [...nodeAttributes.keys()],
 		edges: () => [],
 		hasNode: (nodeId: string) => nodeAttributes.has(nodeId),
+		getAttribute: () => undefined,
 		getNodeAttributes: (nodeId: string) => nodeAttributes.get(nodeId),
 		getNodeAttribute: (nodeId: string, key: string) =>
 			(

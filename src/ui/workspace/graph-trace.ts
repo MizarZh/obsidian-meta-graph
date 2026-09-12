@@ -32,9 +32,11 @@ export function applyGraphTrace(
 	projection: GraphProjection,
 	request: GraphTraceRequest | undefined,
 ): void {
+	graph.setAttribute('traceActive', false);
 	if (!request || (request.mode === 'path' && !request.target)) return;
 	const result = traceVisibleGraph(graph, projection, request);
 	if (!result.found) return;
+	graph.setAttribute('traceActive', true);
 	graph.forEachNode((id, node) => {
 		if (node.isBend || node.hidden) return;
 		if (!result.nodeIds.has(id)) node.opacity = (node.opacity ?? 1) * 0.18;

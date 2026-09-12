@@ -279,6 +279,7 @@ describe('SigmaRenderer refresh', () => {
 			SigmaRenderer.prototype,
 		) as SigmaRendererType;
 		Object.assign(renderer, {
+			graph: { getAttribute: () => undefined },
 			instance: { refresh },
 			parallelEdgeLayer: { update },
 			hoverRefreshCoordinator: { synchronize: vi.fn() },

@@ -8,6 +8,7 @@ import { withAlpha } from '@/graph/styles/graph-styles';
 import { isCanvasParallelEdge } from '@/graph/renderers/sigma/sigma-parallel-edge-policy';
 
 export interface SigmaHoverState {
+	traceActive?: boolean;
 	localHover?: boolean;
 	activeHoverNodeId?: string;
 	pinnedNodeId?: string;
@@ -44,6 +45,7 @@ export function reduceSigmaNode(
 		};
 	}
 	if (
+		!state.traceActive &&
 		state.activeHoverNodeId &&
 		(state.localHover !== false || state.pinnedNodeId) &&
 		!state.hoveredNeighborhood.has(node)
@@ -98,6 +100,7 @@ export function reduceSigmaEdge(
 	data: RuntimeEdgeAttributes,
 	state: Pick<
 		SigmaHoverState,
+		| 'traceActive'
 		| 'activeHoverNodeId'
 		| 'localHover'
 		| 'pinnedNodeId'
@@ -137,7 +140,8 @@ export function reduceSigmaEdge(
 	}
 	if (
 		state.hoveredEdgeId &&
-		(!state.pinnedNodeId ||
+		(state.traceActive ||
+			!state.pinnedNodeId ||
 			isEdgeConnectedToNode(data, extremities, state.pinnedNodeId)) &&
 		(data.logicalEdgeId ?? runtimeEdgeId) === state.hoveredEdgeId
 	) {
@@ -150,7 +154,7 @@ export function reduceSigmaEdge(
 		};
 	}
 	const activeHoverNodeId = state.activeHoverNodeId;
-	if (!activeHoverNodeId) {
+	if (state.traceActive || !activeHoverNodeId) {
 		return {
 			...data,
 			...(opacity === 1 ? {} : { color }),

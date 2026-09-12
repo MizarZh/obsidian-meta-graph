@@ -254,7 +254,6 @@
 					: request.mode === 'path' && !request.target
 						? 'target'
 						: undefined;
-		rendererLifecycle.clearPinnedHover();
 		const previous = workspaceState;
 		workspaceState = applyViewState(
 			canonicalState,

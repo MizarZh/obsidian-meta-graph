@@ -1096,6 +1096,7 @@ export class Cube3DRenderer {
 	}
 
 	private getNodeOpacity(nodeId: string): number {
+		if (this.graph.getAttribute('traceActive')) return 0.96;
 		const activeHoverNodeId = this.pinnedNodeId ?? this.hoveredNodeId;
 		if (!activeHoverNodeId) {
 			return 0.96;

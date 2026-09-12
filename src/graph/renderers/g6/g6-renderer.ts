@@ -84,6 +84,7 @@ const MAX_VIEWPORT_NODE_LABELS = 400;
 const NODE_HOVER_LEAVE_GRACE_MS = 80;
 
 interface G6InteractionSnapshot {
+	traceActive?: boolean;
 	dimUnrelated?: boolean;
 	activeNodeId?: string;
 	pinnedNodeId?: string;
@@ -420,6 +421,9 @@ export class G6Renderer implements PlanarRenderer {
 
 	refreshGraphStyles(): void {
 		const previousLabelVisibility = this.readLabelVisibility();
+		const traceChanged =
+			this.appliedInteraction?.traceActive !==
+			Boolean(this.graph.getAttribute('traceActive'));
 		const changes = this.sceneCache.collectStyleChanges();
 		this.sceneCache.refreshLabelIndex();
 		this.labelVisibility = undefined;
@@ -449,9 +453,13 @@ export class G6Renderer implements PlanarRenderer {
 		if (patch.nodes.length > 0 || patch.edges.length > 0) {
 			this.instance.updateData(patch);
 		}
+		if (traceChanged) {
+			this.syncInteractionStates(true, true);
+			this.syncGroupFocus();
+		}
 		this.replaceLabelControllerSnapshot();
 		if (changes.nodeIds.length > 0) this.groupLayer?.invalidateGeometry();
-		if (patch.nodes.length > 0 || patch.edges.length > 0)
+		if (traceChanged || patch.nodes.length > 0 || patch.edges.length > 0)
 			this.scheduleDraw();
 	}
 
@@ -1390,7 +1398,11 @@ export class G6Renderer implements PlanarRenderer {
 		const active = this.getActiveHoverNodeId();
 		const fullLabelNodeIds = new Set<string>();
 		if (this.hoveredNodeId) fullLabelNodeIds.add(this.hoveredNodeId);
-		if (active && (this.pinnedNodeId || this.hoverMode === 'local')) {
+		if (
+			!this.graph.getAttribute('traceActive') &&
+			active &&
+			(this.pinnedNodeId || this.hoverMode === 'local')
+		) {
 			fullLabelNodeIds.add(active);
 			for (const id of this.sceneCache.neighborNodeIdsByNode.get(
 				active,
@@ -1605,7 +1617,11 @@ export class G6Renderer implements PlanarRenderer {
 				}),
 				() => this.resize(),
 			);
-			this.groupLayer.setFocusedNode(this.pinnedNodeId);
+			this.groupLayer.setFocusedNode(
+				this.graph.getAttribute('traceActive')
+					? undefined
+					: this.pinnedNodeId,
+			);
 		}
 		return this.groupLayer;
 	}
@@ -1647,10 +1663,14 @@ export class G6Renderer implements PlanarRenderer {
 	private syncInteractionStates(scheduleDraw = true, forceAll = false): void {
 		if (this.killed || this.isStale()) return;
 		const activeNodeId = this.getActiveHoverNodeId();
+		const traceActive = Boolean(this.graph.getAttribute('traceActive'));
 		const dimUnrelated = Boolean(
-			activeNodeId && (this.pinnedNodeId || this.hoverMode === 'local'),
+			!traceActive &&
+			activeNodeId &&
+			(this.pinnedNodeId || this.hoverMode === 'local'),
 		);
 		const nextInteraction: G6InteractionSnapshot = {
+			traceActive,
 			dimUnrelated,
 			activeNodeId,
 			pinnedNodeId: this.pinnedNodeId,
@@ -1700,6 +1720,7 @@ export class G6Renderer implements PlanarRenderer {
 			const states: State[] = [];
 			const logicalEdgeId = attributes.logicalEdgeId ?? edgeId;
 			const connected = Boolean(
+				!traceActive &&
 				activeNodeId &&
 				this.sceneCache.incidentEdgesByNode
 					.get(activeNodeId)
@@ -1874,7 +1895,11 @@ export class G6Renderer implements PlanarRenderer {
 	}
 
 	private syncGroupFocus(): void {
-		this.groupLayer?.setFocusedNode(this.pinnedNodeId);
+		this.groupLayer?.setFocusedNode(
+			this.graph.getAttribute('traceActive')
+				? undefined
+				: this.pinnedNodeId,
+		);
 	}
 
 	private addLogicalEdges(target: Set<string>, logicalEdgeId?: string): void {

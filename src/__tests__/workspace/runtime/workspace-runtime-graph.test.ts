@@ -56,8 +56,10 @@ describe('workspace runtime graph', () => {
 		);
 		const original = { ...graph.getNodeAttributes('B.md') };
 		const tracedOriginal = { ...graph.getNodeAttributes('A.md') };
+		expect(graph.getAttribute('traceActive')).toBe(false);
 		state.trace = { mode: 'downstream', source: 'A.md' };
 		syncWorkspaceRuntimeGraphStyles(graph, data, state, palette);
+		expect(graph.getAttribute('traceActive')).toBe(true);
 		expect(graph.getNodeAttributes('A.md')).toMatchObject(tracedOriginal);
 		expect(graph.getNodeAttribute('B.md', 'opacity')).toBeCloseTo(
 			(original.opacity ?? 1) * 0.18,
@@ -69,6 +71,10 @@ describe('workspace runtime graph', () => {
 		state.trace = undefined;
 		syncWorkspaceRuntimeGraphStyles(graph, data, state, palette);
 		expect(graph.getNodeAttributes('B.md')).toMatchObject(original);
+		expect(graph.getAttribute('traceActive')).toBe(false);
+		state.trace = { mode: 'path', source: 'A.md', target: 'B.md' };
+		syncWorkspaceRuntimeGraphStyles(graph, data, state, palette);
+		expect(graph.getAttribute('traceActive')).toBe(false);
 	});
 	it('preserves distinct relationship styles during trace creation and refresh', () => {
 		const state = createWorkspaceState(200);
