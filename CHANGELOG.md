@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Fixed Node list Group dropdown alignment by keeping the select within its compact frame and centered with its color dot.
+
 - Fixed collapsed side-panel controls to a 32px square with centered icons, removing inherited text-button padding and preventing clipping.
 
 - Collapsed left/right panels now use compact icon-only controls; expanded panel headings retain their names.

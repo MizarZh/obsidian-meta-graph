@@ -522,6 +522,7 @@
 	height: 26px;
 	min-height: 26px;
 	padding: 0 3px 0 6px;
+	box-sizing: border-box;
 	overflow: visible;
 	border: 1px solid var(--knowledge-workspace-border-subtle);
 	border-radius: var(--knowledge-workspace-radius-control);
@@ -546,12 +547,16 @@
 }
 
 .knowledge-workspace-curated-file-group
-	.knowledge-workspace-curated-group-select {
+	.knowledge-workspace-obsidian-control
+	> select.knowledge-workspace-curated-group-select {
 	width: 100%;
+	min-width: 0;
 	max-width: none;
 	height: 24px;
 	min-height: 24px;
-	padding: 2px 18px 2px 2px;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0 2px;
 	border: 0;
 	border-color: transparent;
 	border-radius: 0;
@@ -563,9 +568,11 @@
 }
 
 .knowledge-workspace-curated-file-group
-	.knowledge-workspace-curated-group-select:hover,
+	.knowledge-workspace-obsidian-control
+	> select.knowledge-workspace-curated-group-select:hover,
 .knowledge-workspace-curated-file-group
-	.knowledge-workspace-curated-group-select:focus-visible {
+	.knowledge-workspace-obsidian-control
+	> select.knowledge-workspace-curated-group-select:focus-visible {
 	border-color: transparent;
 	background: transparent;
 	color: var(--text-normal);
