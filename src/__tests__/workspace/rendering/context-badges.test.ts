@@ -1,0 +1,141 @@
+import { describe, expect, it, vi } from 'vitest';
+import Graph from 'graphology';
+import { PerspectiveCamera, Sprite, SpriteMaterial } from 'three';
+import type { GraphRenderer } from '@/graph/renderers/renderer-capabilities';
+import { projectSpriteBadge } from '@/graph/renderers/renderer-node-badge';
+import {
+	collectContextBadgePositions,
+	startContextBadges,
+} from '@/ui/workspace/context-badges';
+
+function renderer() {
+	const graph = new Graph();
+	graph.addNode('context', { x: 0, y: 0, size: 10, opacity: 0.2 });
+	return {
+		runtimeGraph: graph,
+		getNodeBadgeAnchor: vi.fn(() => ({ x: 50, y: 50, radius: 8 })),
+	} as unknown as GraphRenderer;
+}
+
+describe('context badges', () => {
+	it('follows the rendered footprint without changing node opacity, and skips invisible nodes', () => {
+		const current = renderer();
+		const ids = new Set(['context', 'missing']);
+		expect(collectContextBadgePositions(current, ids, 100, 100)).toEqual([
+			{ x: 60, y: 40 },
+		]);
+		expect(
+			current.runtimeGraph.getNodeAttribute('context', 'opacity'),
+		).toBe(0.2);
+		current.runtimeGraph.setNodeAttribute('context', 'hidden', true);
+		expect(collectContextBadgePositions(current, ids, 100, 100)).toEqual(
+			[],
+		);
+		current.runtimeGraph.setNodeAttribute('context', 'hidden', false);
+		current.runtimeGraph.setNodeAttribute('context', 'opacity', 0);
+		expect(collectContextBadgePositions(current, ids, 100, 100)).toEqual(
+			[],
+		);
+		current.runtimeGraph.setNodeAttribute('context', 'opacity', 1);
+		expect(collectContextBadgePositions(current, ids, 10, 10)).toEqual([]);
+		vi.mocked(current.getNodeBadgeAnchor!).mockReturnValue({
+			x: NaN,
+			y: 0,
+			radius: 2,
+		});
+		expect(collectContextBadgePositions(current, ids, 100, 100)).toEqual(
+			[],
+		);
+	});
+
+	it('draws immediately after renderer paint and detaches stale frame callbacks', () => {
+		const callbacks: FrameRequestCallback[] = [];
+		const context = Object.fromEntries(
+			[
+				'setTransform',
+				'clearRect',
+				'beginPath',
+				'roundRect',
+				'fill',
+				'stroke',
+				'moveTo',
+				'lineTo',
+				'bezierCurveTo',
+			].map((name) => [name, vi.fn()]),
+		);
+		const cancel = vi.fn();
+		const canvas = {
+			clientWidth: 100,
+			clientHeight: 80,
+			width: 0,
+			height: 0,
+			getContext: () => context,
+			ownerDocument: {
+				hidden: false,
+				defaultView: {
+					devicePixelRatio: 2,
+					performance: { now: () => 16 },
+					requestAnimationFrame: (callback: FrameRequestCallback) =>
+						callbacks.push(callback),
+					cancelAnimationFrame: cancel,
+					getComputedStyle: () => ({ getPropertyValue: () => '' }),
+				},
+			},
+		} as unknown as HTMLCanvasElement;
+		const first = renderer(),
+			second = renderer();
+		let onPaint: (() => void) | undefined;
+		const detach = vi.fn();
+		second.onNodeBadgeFrame = (listener) => {
+			onPaint = listener;
+			return detach;
+		};
+		let active: GraphRenderer | undefined = first;
+		const stop = startContextBadges(
+			canvas,
+			() => active,
+			() => new Set(['context']),
+		);
+		callbacks[0]!(0);
+		expect(canvas.width).toBe(200);
+		expect(canvas.height).toBe(160);
+		active = second;
+		callbacks[1]!(16);
+		expect(first.getNodeBadgeAnchor).toHaveBeenCalledOnce();
+		expect(second.getNodeBadgeAnchor).toHaveBeenCalledOnce();
+		callbacks[2]!(32);
+		expect(second.getNodeBadgeAnchor).toHaveBeenCalledOnce();
+		// No further animation frame is needed to catch the node's new rendered position.
+		onPaint!();
+		expect(second.getNodeBadgeAnchor).toHaveBeenCalledTimes(2);
+		active = undefined;
+		onPaint!();
+		expect(second.getNodeBadgeAnchor).toHaveBeenCalledTimes(2);
+		callbacks[3]!(48);
+		expect(detach).toHaveBeenCalledOnce();
+		expect(context.roundRect).toHaveBeenCalledTimes(3);
+		stop();
+		onPaint!();
+		expect(context.roundRect).toHaveBeenCalledTimes(3);
+		expect(cancel).toHaveBeenCalledWith(5);
+	});
+
+	it('projects 3D badges with camera zoom and rejects hidden or behind-camera sprites', () => {
+		const camera = new PerspectiveCamera(60, 1, 0.1, 100);
+		camera.position.z = 10;
+		const sprite = new Sprite(new SpriteMaterial());
+		sprite.scale.set(2, 2, 1);
+		const far = projectSpriteBadge(sprite, camera, 200, 200)!;
+		expect(far.x).toBeCloseTo(100);
+		expect(far.y).toBeCloseTo(100);
+		camera.position.z = 5;
+		expect(
+			projectSpriteBadge(sprite, camera, 200, 200)!.radius,
+		).toBeCloseTo(far.radius * 2);
+		sprite.position.z = 10;
+		expect(projectSpriteBadge(sprite, camera, 200, 200)).toBeUndefined();
+		sprite.position.z = 0;
+		sprite.visible = false;
+		expect(projectSpriteBadge(sprite, camera, 200, 200)).toBeUndefined();
+	});
+});

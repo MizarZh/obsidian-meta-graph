@@ -325,11 +325,7 @@ function resolveRuntimeNodeStyle(
 	return {
 		color: resolvedStyle.color,
 		size: isPrimary ? resolvedStyle.size * 1.2 : resolvedStyle.size,
-		opacity:
-			resolvedStyle.opacity *
-			(projection.contextIds?.has(node.id) && node.kind !== 'unresolved'
-				? 0.6
-				: 1),
+		opacity: resolvedStyle.opacity,
 		type: resolvedStyle.shape,
 	};
 }

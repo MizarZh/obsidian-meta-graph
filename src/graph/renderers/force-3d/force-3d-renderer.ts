@@ -1,3 +1,7 @@
+import {
+	projectSpriteBadge,
+	onSceneBadgeFrame,
+} from '@/graph/renderers/renderer-node-badge';
 import type { ForceGraph3DInstance } from '3d-force-graph';
 import type * as Three from 'three';
 import type { Object3D } from 'three';
@@ -500,6 +504,22 @@ export class Force3DRenderer {
 			this.getScreenPositionCache(),
 			position,
 			(node) => Math.max(14, node.size + 8),
+		);
+	}
+
+	onNodeBadgeFrame(listener: () => void): () => void {
+		return onSceneBadgeFrame(this.instance.scene(), listener);
+	}
+
+	getNodeBadgeAnchor(nodeId: string) {
+		if (this.killed) return undefined;
+		const sprite = this.nodeShapeSprites.get(nodeId);
+		if (!sprite || !this.findNode(nodeId)) return undefined;
+		return projectSpriteBadge(
+			sprite,
+			this.instance.camera(),
+			this.container.clientWidth,
+			this.container.clientHeight,
 		);
 	}
 

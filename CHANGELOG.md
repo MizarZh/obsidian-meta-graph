@@ -4,6 +4,12 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Replaced the context badge plus sign with a chain-link glyph and matching legend icon to avoid suggesting an expand action.
+
+- Synchronized context badges with renderer paint completion instead of an independent animation loop, reducing drag/zoom lag across Sigma, G6, Graph 3D, and Cube. Old scene listeners are removed on replacement and teardown.
+
+- Replaced `[Context]` label prefixes and automatic dimming with a small upper-right `+` badge for expanded nodes. Added a per-chart Show context badges toggle; badges track pan, zoom, and node movement across Sigma, G6, Graph 3D, and Cube without changing user styles or pointer interaction.
+
 - Tightened relationship rows to a 4px gap and reduced padding, removing inherited section margins.
 
 - Compacted relationship expansion into wrapping single-row controls: direction dropdown, 1–3 layer slider with a visible value, and per-field removal.

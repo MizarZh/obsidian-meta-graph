@@ -145,6 +145,7 @@ export interface RelationExpansionFieldRule {
 }
 
 export interface RelationExpansion {
+	showBadges?: boolean;
 	fieldRules?: RelationExpansionFieldRule[];
 	enabled: boolean;
 	allFields: boolean;

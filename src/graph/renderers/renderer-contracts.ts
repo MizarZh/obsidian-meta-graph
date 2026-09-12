@@ -29,6 +29,10 @@ export interface ForceSimulationRenderer {
 
 /** Renderer-neutral contract shared by 2D graph implementations. */
 export interface PlanarRenderer {
+	onNodeBadgeFrame?(listener: () => void): () => void;
+	getNodeBadgeAnchor?(
+		nodeId: string,
+	): import('./renderer-node-badge').NodeBadgeAnchor | undefined;
 	/** Only called on disposable export instances. */
 	prepareExport?(
 		viewport: import('./renderer-export').ExportViewport,

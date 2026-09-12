@@ -554,6 +554,20 @@ export class SigmaRenderer {
 		return this.instance.graphToViewport(position);
 	}
 
+	onNodeBadgeFrame(listener: () => void): () => void {
+		this.instance.on('afterRender', listener);
+		return () => this.instance.off('afterRender', listener);
+	}
+
+	getNodeBadgeAnchor(nodeId: string) {
+		const data = this.instance.getNodeDisplayData(nodeId);
+		if (!data || data.hidden) return undefined;
+		return {
+			...this.instance.framedGraphToViewport(data),
+			radius: this.instance.scaleSize(data.size),
+		};
+	}
+
 	getNodePosition(nodeId: string): GraphPosition | undefined {
 		if (!this.graph.hasNode(nodeId)) return undefined;
 		const { x, y } = this.graph.getNodeAttributes(nodeId);

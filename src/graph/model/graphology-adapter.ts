@@ -190,19 +190,14 @@ export class GraphologyAdapter {
 			const resolvedNodeStyle =
 				node.kind === 'unresolved' ? this.unresolvedNodeStyle : style;
 			graph.addNode(node.id, {
-				label:
-					isContext && node.kind !== 'unresolved'
-						? `[Context] ${node.title}`
-						: node.title,
+				label: node.title,
 				kind: node.kind,
 				x: position.x,
 				y: position.y,
 				size: isPrimary
 					? resolvedNodeStyle.size * 1.2
 					: resolvedNodeStyle.size,
-				opacity:
-					resolvedNodeStyle.opacity *
-					(isContext && node.kind !== 'unresolved' ? 0.6 : 1),
+				opacity: resolvedNodeStyle.opacity,
 				color: resolvedNodeStyle.color,
 				type: resolvedNodeStyle.shape,
 				path: node.path,

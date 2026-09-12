@@ -236,6 +236,8 @@ export function normalizeRelationExpansion(
 			Math.min(3, Math.floor(readFiniteNumber(value.depth, 1))),
 		),
 	};
+	if (typeof value.showBadges === 'boolean')
+		normalized.showBadges = value.showBadges;
 	if (Array.isArray(value.fieldRules)) {
 		const rules = new Map<
 			string,

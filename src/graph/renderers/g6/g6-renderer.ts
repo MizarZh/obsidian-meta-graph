@@ -509,6 +509,25 @@ export class G6Renderer implements PlanarRenderer {
 		return { x: point[0], y: point[1] };
 	}
 
+	onNodeBadgeFrame(listener: () => void): () => void {
+		const canvas = this.instance.getCanvas().getLayer('main');
+		canvas.addEventListener('afterrender', listener);
+		return () => canvas.removeEventListener('afterrender', listener);
+	}
+
+	getNodeBadgeAnchor(nodeId: string) {
+		if (this.killed || this.isStale() || !this.graph.hasNode(nodeId))
+			return undefined;
+		const attributes = this.graph.getNodeAttributes(nodeId);
+		if (attributes.hidden || attributes.isBend) return undefined;
+		return {
+			...this.graphToViewportPosition(attributes),
+			radius:
+				(attributes.size + (this.selectedNodeId === nodeId ? 2 : 0)) *
+				this.readNodeVisualScale(),
+		};
+	}
+
 	focusNode(nodeId: string): void {
 		if (!this.graph.hasNode(nodeId)) return;
 		const attributes = this.graph.getNodeAttributes(nodeId);
@@ -573,7 +592,9 @@ export class G6Renderer implements PlanarRenderer {
 			? this.graphToViewportPosition(anchor)
 			: undefined;
 		this.runViewportAction(() =>
-			origin ? this.instance.zoomTo(zoom, false, [origin.x, origin.y]) : this.instance.zoomTo(zoom, false),
+			origin
+				? this.instance.zoomTo(zoom, false, [origin.x, origin.y])
+				: this.instance.zoomTo(zoom, false),
 		);
 	}
 

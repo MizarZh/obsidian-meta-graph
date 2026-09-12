@@ -14,6 +14,7 @@
 		WorkspaceState,
 	} from '@/core/types';
 	import { supportsPlanarRenderer } from '@/core/types';
+	import ContextBadges from '@/ui/workspace/ContextBadges.svelte';
 	import GraphMinimap from '@/ui/workspace/GraphMinimap.svelte';
 	import type {
 		ConnectionPanelLayout,
@@ -1836,6 +1837,12 @@
 				: '0px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+			{#if !graphLoading && workspaceState.chartSource === 'query' && workspaceState.query.relationExpansion?.enabled && workspaceState.query.relationExpansion.showBadges !== false && workspaceState.projection?.contextIds?.size}
+				<ContextBadges
+					readRenderer={() => rendererLifecycle.renderer}
+					ids={workspaceState.projection.contextIds}
+				/>
+			{/if}
 			{#if workspaceState.showMinimap && supportsPlanarRenderer(workspaceState.mode)}
 				<GraphMinimap
 					readRenderer={() => rendererLifecycle.renderer}

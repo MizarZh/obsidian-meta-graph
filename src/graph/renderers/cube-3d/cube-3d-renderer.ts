@@ -1,3 +1,7 @@
+import {
+	projectSpriteBadge,
+	onSceneBadgeFrame,
+} from '@/graph/renderers/renderer-node-badge';
 import type * as Three from 'three';
 import type {
 	LabelPosition,
@@ -533,6 +537,22 @@ export class Cube3DRenderer {
 		return (
 			this.getObjectNodeId(intersects[0]?.object) ??
 			this.getNearestNodeAtViewportPosition(position)
+		);
+	}
+
+	onNodeBadgeFrame(listener: () => void): () => void {
+		return onSceneBadgeFrame(this.scene, listener);
+	}
+
+	getNodeBadgeAnchor(nodeId: string) {
+		if (this.killed) return undefined;
+		const node = this.nodeObjects.get(nodeId);
+		if (!node) return undefined;
+		return projectSpriteBadge(
+			node.mesh,
+			this.camera,
+			this.container.clientWidth,
+			this.container.clientHeight,
 		);
 	}
 

@@ -91,6 +91,14 @@
 	</header>
 	{#if expansion.enabled}
 		<div class="knowledge-workspace-expansion-row">
+			<span>Show context badges</span>
+			<ObsidianToggle
+				value={expansion.showBadges !== false}
+				ariaLabel="Show context badges"
+				onChange={(showBadges) => update({ showBadges })}
+			/>
+		</div>
+		<div class="knowledge-workspace-expansion-row">
 			<span>Relationship fields</span>
 			<ObsidianDropdown
 				value={expansion.allFields ? 'all' : 'selected'}

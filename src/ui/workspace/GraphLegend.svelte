@@ -29,12 +29,29 @@
 		/>
 		{#if open}
 			<div class="knowledge-workspace-legend-content">
-				{#if workspaceState.chartSource === 'query' && workspaceState.query.relationExpansion?.enabled}
+				{#if workspaceState.chartSource === 'query' && workspaceState.query.relationExpansion?.enabled && workspaceState.query.relationExpansion.showBadges !== false}
 					<section>
 						<h4>Related context · This view</h4>
 						<ul>
 							<li>Unmarked: Core match</li>
-							<li>[Context]: Added context</li>
+							<li>
+								<svg
+									width="12"
+									height="12"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2.5"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+								>
+									<path
+										d="M9 17H7a5 5 0 0 1 0-10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"
+									/>
+								</svg>
+								Added context
+							</li>
 						</ul>
 					</section>
 				{/if}
