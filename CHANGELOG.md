@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Override Obsidian's default button shadow on side-panel headings so their edges match the panel. Resize handles retain their original outside placement.
+
+- Keep side-panel toggle icons at the same position when expanding or collapsing, including right-side panels.
+
 - Avoid per-row synchronous width measurements when mounting Node list Group dropdowns. CSS-sized dropdowns now update native selection directly while retaining Obsidian controls and change handlers.
 
 - Show No group instead of a blank dropdown when no group destination is available, and disable the control.
