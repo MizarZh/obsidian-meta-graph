@@ -1,3 +1,4 @@
+import { premultiplySigmaVertexColors } from './sigma-alpha-programs';
 import { EdgeProgram, createEdgeCompoundProgram } from 'sigma/rendering';
 import type {
 	EdgeDisplayData,
@@ -112,7 +113,8 @@ function createLineProgram(fragmentShaderSource: string) {
 		getDefinition() {
 			return {
 				VERTICES: 6,
-				VERTEX_SHADER_SOURCE,
+				VERTEX_SHADER_SOURCE:
+					premultiplySigmaVertexColors(VERTEX_SHADER_SOURCE),
 				FRAGMENT_SHADER_SOURCE: fragmentShaderSource,
 				METHOD: WebGLRenderingContext.TRIANGLES,
 				UNIFORMS: [
@@ -435,7 +437,7 @@ void main(void) {
 	if (alpha < 0.01) {
 		discard;
 	}
-	gl_FragColor = vec4(v_color.rgb, v_color.a * alpha);
+	gl_FragColor = v_color * alpha;
 	#endif
 }
 `;
@@ -463,7 +465,9 @@ function createArrowHeadProgram(
 		getDefinition() {
 			return {
 				VERTICES: 3,
-				VERTEX_SHADER_SOURCE: ARROW_HEAD_VERTEX_SHADER_SOURCE,
+				VERTEX_SHADER_SOURCE: premultiplySigmaVertexColors(
+					ARROW_HEAD_VERTEX_SHADER_SOURCE,
+				),
 				FRAGMENT_SHADER_SOURCE: fragmentShaderSource,
 				METHOD: WebGLRenderingContext.TRIANGLES,
 				UNIFORMS: [

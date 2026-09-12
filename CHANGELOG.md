@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Fixed Sigma translucent nodes, ordinary edges, and arrowheads washing out against light backgrounds. WebGL colors now use premultiplied alpha to match Canvas parallel edges, including feathered chevron arrowheads.
+
 - Active Trace results now take priority over Local hover and pinned-neighborhood focus across renderers. Individual selection remains available without revealing neighbors; clearing Trace restores Local focus automatically.
 
 - Made Trace graph picking explicit with an accent-colored endpoint prompt and Cancel action, an accent-colored Cancel picking button, and a crosshair cursor. Picking one node now exits the mode immediately.

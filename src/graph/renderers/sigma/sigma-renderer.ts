@@ -6,7 +6,10 @@ import {
 	PlanarPerformance,
 	isPlanarPerformanceLoggingEnabled,
 } from '@/graph/renderers/planar-performance';
-import { EdgeRectangleProgram } from 'sigma/rendering';
+import {
+	AlphaEdgeRectangleProgram,
+	AlphaNodeCircleProgram,
+} from './sigma-alpha-programs';
 import type { LabelPosition } from '@/core/types';
 import {
 	type GraphPosition,
@@ -182,7 +185,7 @@ export class SigmaRenderer {
 				doubleClickZoomingRatio: 1,
 				defaultEdgeType: 'line',
 				edgeProgramClasses: {
-					line: EdgeRectangleProgram,
+					line: AlphaEdgeRectangleProgram,
 					arrow: ArrowEdgeProgram,
 					dashed: DashedEdgeProgram,
 					'dashed-arrow': DashedArrowEdgeProgram,
@@ -196,6 +199,7 @@ export class SigmaRenderer {
 					'dash-dot-chevron-arrow': DashDotChevronArrowEdgeProgram,
 				},
 				nodeProgramClasses: {
+					circle: AlphaNodeCircleProgram,
 					square: NodeSquareProgram,
 					diamond: NodeDiamondProgram,
 					triangle: NodeTriangleProgram,

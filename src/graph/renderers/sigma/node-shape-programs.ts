@@ -1,3 +1,4 @@
+import { premultiplySigmaVertexColors } from './sigma-alpha-programs';
 import { NodeProgram } from 'sigma/rendering';
 import type { NodeDisplayData, RenderParams } from 'sigma/types';
 import { floatColor } from 'sigma/utils';
@@ -210,7 +211,8 @@ function createNodePolygonDefinition(
 ) {
 	return {
 		VERTICES: 6,
-		VERTEX_SHADER_SOURCE,
+		VERTEX_SHADER_SOURCE:
+			premultiplySigmaVertexColors(VERTEX_SHADER_SOURCE),
 		FRAGMENT_SHADER_SOURCE: fragmentShaderSource,
 		METHOD: WebGLRenderingContext.TRIANGLES,
 		UNIFORMS: ['u_sizeRatio', 'u_correctionRatio', 'u_matrix'] as const,
