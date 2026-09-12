@@ -84,15 +84,7 @@ export const BUILT_IN_DEFAULT_PLAIN_LINK_STYLE: Required<DefaultLinkStyle> = {
 
 export const BUILT_IN_DEFAULT_UNRESOLVED_LINK_STYLE: Required<DefaultLinkStyle> =
 	{
-		color: '#d97706',
-		size: 1,
-		opacity: 1,
-		lineStyle: 'dotted',
-		arrowStyle: 'filled',
-		arrowSize: 1,
-		label: '',
-		showLabel: false,
-		hidden: false,
+		...BUILT_IN_DEFAULT_PLAIN_LINK_STYLE,
 	};
 
 export const DEFAULT_DOCK: MetaGraphDock = {

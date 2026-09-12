@@ -160,7 +160,7 @@ export function getActiveUnresolvedLinkStyle(
 	return {
 		color: state.unresolvedLinkStyleOverrides.color ?? fallbackColor,
 		size: state.unresolvedLinkStyleOverrides.size ?? 1,
-		lineStyle: state.unresolvedLinkStyleOverrides.lineStyle ?? 'dotted',
+		lineStyle: state.unresolvedLinkStyleOverrides.lineStyle ?? 'dashed',
 		label: '',
 		showLabel: false,
 		hidden: state.unresolvedLinkStyleOverrides.hidden ?? false,

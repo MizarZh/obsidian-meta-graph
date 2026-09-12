@@ -146,9 +146,9 @@ export class GraphologyAdapter {
 			shape: 'circle',
 		},
 		private readonly unresolvedLinkStyle: Required<DefaultLinkStyle> = {
-			color: '#d97706',
+			color: palette.mutedEdge,
 			size: 1,
-			lineStyle: 'dotted',
+			lineStyle: 'dashed',
 			arrowStyle: 'filled',
 			opacity: 1,
 			arrowSize: 1,

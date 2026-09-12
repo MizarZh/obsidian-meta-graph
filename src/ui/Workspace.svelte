@@ -14,6 +14,7 @@
 		WorkspaceState,
 	} from '@/core/types';
 	import { supportsPlanarRenderer } from '@/core/types';
+	import { getNodeBadgeIds } from '@/ui/workspace/context-badges';
 	import ContextBadges from '@/ui/workspace/ContextBadges.svelte';
 	import GraphMinimap from '@/ui/workspace/GraphMinimap.svelte';
 	import type {
@@ -1180,6 +1181,15 @@
 		);
 	}
 
+	const nodeBadgeIds = $derived(
+		getNodeBadgeIds(
+			workspaceState.projection,
+			workspaceState.chartSource === 'query' &&
+				Boolean(workspaceState.query.relationExpansion?.enabled) &&
+				workspaceState.query.relationExpansion?.showBadges !== false,
+		),
+	);
+
 	const selectedNode = $derived(
 		workspaceState.projection?.nodes.find(
 			(node) => node.id === workspaceState.selectedNodeId,
@@ -1837,10 +1847,10 @@
 				: '0px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
-			{#if !graphLoading && workspaceState.chartSource === 'query' && workspaceState.query.relationExpansion?.enabled && workspaceState.query.relationExpansion.showBadges !== false && workspaceState.projection?.contextIds?.size}
+			{#if !graphLoading && nodeBadgeIds.size}
 				<ContextBadges
 					readRenderer={() => rendererLifecycle.renderer}
-					ids={workspaceState.projection.contextIds}
+					ids={nodeBadgeIds}
 				/>
 			{/if}
 			{#if workspaceState.showMinimap && supportsPlanarRenderer(workspaceState.mode)}

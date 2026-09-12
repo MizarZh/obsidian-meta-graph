@@ -39,6 +39,85 @@ const projection: GraphProjection = {
 };
 
 describe('workspace runtime graph', () => {
+	it('matches link defaults while preserving independent style overrides', () => {
+		const state = createWorkspaceState(200);
+		const links: GraphProjection = {
+			...projection,
+			nodes: [
+				...projection.nodes,
+				{ ...projection.nodes[0]!, id: 'B.md' },
+				{ ...projection.nodes[0]!, id: 'missing', kind: 'unresolved' },
+			],
+			edges: [
+				{
+					id: 'plain',
+					source: 'A.md',
+					target: 'B.md',
+					kind: 'plain-link',
+					relation: 'link',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'body',
+				},
+				{
+					id: 'unresolved',
+					source: 'A.md',
+					target: 'missing',
+					kind: 'unresolved-link',
+					relation: 'link',
+					directed: true,
+					sourcePath: 'A.md',
+					sourceField: 'body',
+				},
+			],
+		};
+		const graph = createWorkspaceRuntimeGraph(
+			links,
+			new Map(),
+			state,
+			palette,
+		);
+		for (const key of [
+			'color',
+			'size',
+			'lineStyle',
+			'opacity',
+			'arrowStyle',
+			'arrowSize',
+		] as const) {
+			expect(graph.getEdgeAttribute('unresolved', key)).toEqual(
+				graph.getEdgeAttribute('plain', key),
+			);
+		}
+		state.plainLinkStyleOverrides = {
+			color: '#123456',
+			size: 3,
+			opacity: 0.4,
+			lineStyle: 'solid',
+		};
+		state.unresolvedLinkStyleOverrides = {
+			color: '#abcdef',
+			size: 2,
+			opacity: 0.7,
+			lineStyle: 'dotted',
+		};
+		syncWorkspaceRuntimeGraphStyles(graph, links, state, palette);
+		const rebuilt = createWorkspaceRuntimeGraph(
+			links,
+			new Map(),
+			state,
+			palette,
+		);
+		for (const result of [graph, rebuilt]) {
+			expect(result.getEdgeAttributes('plain')).toMatchObject(
+				state.plainLinkStyleOverrides,
+			);
+			expect(result.getEdgeAttributes('unresolved')).toMatchObject(
+				state.unresolvedLinkStyleOverrides,
+			);
+		}
+	});
+
 	it('preserves context titles, opacity, and size through style-only updates', () => {
 		const state = createWorkspaceState(200);
 		const expanded: GraphProjection = {

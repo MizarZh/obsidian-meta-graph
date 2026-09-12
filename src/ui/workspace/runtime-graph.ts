@@ -72,7 +72,7 @@ export function createWorkspaceRuntimeGraph(
 		},
 		getActiveUnresolvedNodeStyle(state, palette.mutedNode),
 		{
-			...getActiveUnresolvedLinkStyle(state, '#d97706'),
+			...getActiveUnresolvedLinkStyle(state, palette.mutedEdge),
 			arrowStyle: getActiveUnresolvedLinkArrowStyle(state),
 			opacity: getActiveUnresolvedLinkOpacity(state),
 			arrowSize: getActiveUnresolvedLinkArrowSize(state),
@@ -104,7 +104,7 @@ export function syncWorkspaceRuntimeGraphStyles(
 		palette.mutedNode,
 	);
 	const unresolvedLinkStyle = {
-		...getActiveUnresolvedLinkStyle(state, '#d97706'),
+		...getActiveUnresolvedLinkStyle(state, palette.mutedEdge),
 		arrowStyle: getActiveUnresolvedLinkArrowStyle(state),
 		opacity: getActiveUnresolvedLinkOpacity(state),
 		arrowSize: getActiveUnresolvedLinkArrowSize(state),

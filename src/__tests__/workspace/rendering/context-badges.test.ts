@@ -5,6 +5,7 @@ import type { GraphRenderer } from '@/graph/renderers/renderer-capabilities';
 import { projectSpriteBadge } from '@/graph/renderers/renderer-node-badge';
 import {
 	collectContextBadgePositions,
+	getNodeBadgeIds,
 	startContextBadges,
 } from '@/ui/workspace/context-badges';
 
@@ -18,11 +19,56 @@ function renderer() {
 }
 
 describe('context badges', () => {
+	it('shows unresolved badges without context expansion and prioritizes unresolved identity', () => {
+		const current = renderer();
+		current.runtimeGraph.setNodeAttribute('context', 'kind', 'unresolved');
+		const projection = {
+			nodes: [
+				{
+					id: 'context',
+					path: 'missing.md',
+					title: 'Missing',
+					kind: 'unresolved' as const,
+					folder: '',
+					tags: [],
+					domains: [],
+				},
+			],
+			edges: [],
+			rootIds: new Set<string>(),
+			contextIds: new Set(['context', 'extra']),
+		};
+		expect(getNodeBadgeIds(projection, false)).toEqual(
+			new Set(['context']),
+		);
+		expect(getNodeBadgeIds(projection, true)).toEqual(
+			new Set(['context', 'extra']),
+		);
+		expect(
+			collectContextBadgePositions(
+				current,
+				getNodeBadgeIds(projection, true),
+				100,
+				100,
+			),
+		).toEqual([{ x: 60, y: 40, kind: 'unresolved' }]);
+		current.runtimeGraph.setNodeAttribute('context', 'hidden', true);
+		expect(
+			collectContextBadgePositions(
+				current,
+				getNodeBadgeIds(projection, false),
+				100,
+				100,
+			),
+		).toEqual([]);
+		expect(getNodeBadgeIds(undefined, true).size).toBe(0);
+	});
+
 	it('follows the rendered footprint without changing node opacity, and skips invisible nodes', () => {
 		const current = renderer();
 		const ids = new Set(['context', 'missing']);
 		expect(collectContextBadgePositions(current, ids, 100, 100)).toEqual([
-			{ x: 60, y: 40 },
+			{ x: 60, y: 40, kind: 'context' },
 		]);
 		expect(
 			current.runtimeGraph.getNodeAttribute('context', 'opacity'),
@@ -91,10 +137,11 @@ describe('context badges', () => {
 			return detach;
 		};
 		let active: GraphRenderer | undefined = first;
+		const badgeIds = new Set(['context']);
 		const stop = startContextBadges(
 			canvas,
 			() => active,
-			() => new Set(['context']),
+			() => badgeIds,
 		);
 		callbacks[0]!(0);
 		expect(canvas.width).toBe(200);

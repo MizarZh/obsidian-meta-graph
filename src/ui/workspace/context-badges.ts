@@ -1,24 +1,36 @@
+import type { GraphProjection } from '@/core/types';
 import type { GraphRenderer } from '@/graph/renderers/renderer-capabilities';
 import type { NodeBadgeAnchor } from '@/graph/renderers/renderer-node-badge';
+
+export function getNodeBadgeIds(
+	projection: GraphProjection | undefined,
+	showContext: boolean,
+): ReadonlySet<string> {
+	const ids = new Set(showContext ? projection?.contextIds : undefined);
+	for (const node of projection?.nodes ?? []) {
+		if (node.kind === 'unresolved') ids.add(node.id);
+	}
+	return ids;
+}
+
+interface NodeBadgePosition {
+	x: number;
+	y: number;
+	kind: 'context' | 'unresolved';
+}
 
 export function collectContextBadgePositions(
 	renderer: GraphRenderer | undefined,
 	ids: ReadonlySet<string>,
 	width: number,
 	height: number,
-): Array<{ x: number; y: number }> {
+): NodeBadgePosition[] {
 	if (!renderer?.getNodeBadgeAnchor) return [];
-	const result: Array<{ x: number; y: number }> = [];
+	const result: NodeBadgePosition[] = [];
 	for (const id of ids) {
 		if (!renderer.runtimeGraph.hasNode(id)) continue;
 		const node = renderer.runtimeGraph.getNodeAttributes(id);
-		if (
-			node.hidden ||
-			node.isBend ||
-			node.kind === 'unresolved' ||
-			(node.opacity ?? 1) <= 0
-		)
-			continue;
+		if (node.hidden || node.isBend || (node.opacity ?? 1) <= 0) continue;
 		const anchor: NodeBadgeAnchor | undefined =
 			renderer.getNodeBadgeAnchor(id);
 		if (
@@ -32,7 +44,11 @@ export function collectContextBadgePositions(
 		const x = anchor.x + offset,
 			y = anchor.y - offset;
 		if (x < -6 || y < -6 || x > width + 6 || y > height + 6) continue;
-		result.push({ x, y });
+		result.push({
+			x,
+			y,
+			kind: node.kind === 'unresolved' ? 'unresolved' : 'context',
+		});
 	}
 	return result;
 }
@@ -53,6 +69,7 @@ export function startContextBadges(
 	let active: GraphRenderer | undefined;
 	let unsubscribe: (() => void) | undefined;
 	let stopped = false;
+	let previousIds: ReadonlySet<string> | undefined;
 	const draw = (time: number) => {
 		if (stopped || readRenderer() !== active) return;
 		const width = canvas.clientWidth,
@@ -78,7 +95,7 @@ export function startContextBadges(
 			width,
 			height,
 		);
-		for (const { x, y } of positions) {
+		for (const { x, y, kind } of positions) {
 			context.fillStyle = background;
 			context.strokeStyle = foreground;
 			context.beginPath();
@@ -87,6 +104,18 @@ export function startContextBadges(
 			context.lineWidth = 1.25;
 			context.lineCap = 'round';
 			context.lineJoin = 'round';
+			if (kind === 'unresolved') {
+				context.beginPath();
+				context.moveTo(x - 2, y - 2);
+				context.bezierCurveTo(x - 2, y - 5, x + 3, y - 5, x + 3, y - 2);
+				context.bezierCurveTo(x + 3, y, x, y, x, y + 1);
+				context.stroke();
+				context.beginPath();
+				context.moveTo(x, y + 3.5);
+				context.lineTo(x, y + 3.6);
+				context.stroke();
+				continue;
+			}
 			// The two open loops and center bar match the link-2 glyph.
 			context.beginPath();
 			context.moveTo(x - 1.5, y + 2.5);
@@ -119,6 +148,9 @@ export function startContextBadges(
 	const tick = (time: number) => {
 		frame = win.requestAnimationFrame(tick);
 		const next = readRenderer();
+		const ids = readIds();
+		const idsChanged = ids !== previousIds;
+		previousIds = ids;
 		if (next !== active) {
 			unsubscribe?.();
 			unsubscribe = undefined;
@@ -130,7 +162,7 @@ export function startContextBadges(
 				});
 			}
 			draw(time);
-		} else if (!unsubscribe) {
+		} else if (!unsubscribe || idsChanged) {
 			draw(time);
 		}
 	};

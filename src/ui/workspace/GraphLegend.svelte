@@ -29,6 +29,12 @@
 		/>
 		{#if open}
 			<div class="knowledge-workspace-legend-content">
+				{#if workspaceState.projection?.nodes.some((node) => node.kind === 'unresolved')}
+					<section>
+						<h4>Node status</h4>
+						<ul><li>? · Unresolved note</li></ul>
+					</section>
+				{/if}
 				{#if workspaceState.chartSource === 'query' && workspaceState.query.relationExpansion?.enabled && workspaceState.query.relationExpansion.showBadges !== false}
 					<section>
 						<h4>Related context · This view</h4>

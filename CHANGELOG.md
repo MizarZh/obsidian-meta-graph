@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Matched unresolved links’ default appearance to plain links while preserving their independent style controls and existing custom overrides. Unresolved nodes retain the `?` badge.
+
+- Added a `?` badge for unresolved nodes in query and curated charts, independent of related-context expansion. Unresolved status takes priority over the context badge, with a matching legend entry.
+
 - Replaced the context badge plus sign with a chain-link glyph and matching legend icon to avoid suggesting an expand action.
 
 - Synchronized context badges with renderer paint completion instead of an independent animation loop, reducing drag/zoom lag across Sigma, G6, Graph 3D, and Cube. Old scene listeners are removed on replacement and teardown.

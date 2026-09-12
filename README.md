@@ -652,3 +652,7 @@ In a query chart, open **Filters -> Related context** below **This view** and en
 For example, filter for economics and expand `related` plus a custom mathematics relationship to include surrounding knowledge. Fields must be configured as workspace connection fields and contain note relationships; ordinary metadata text values do not create connections. Plain and unresolved links are not used for expansion.
 
 **This view** filters select the core notes. Added notes can fail those filters, while **All views** filters remain a boundary. Put exclusions that must also apply to added notes in **All views**. Link filters and the chart's node limit still apply. Added nodes carry a small upper-right chain-link badge. Their names, colors, shapes, and opacity stay unchanged. Use **Show context badges** to hide the markers. The legend explains the badge, and node Details always shows Core match or Added context. The panel reports visible core and added counts. Expansion defaults to off; settings are saved per chart. Curated charts retain their explicit file selection.
+
+Visible unresolved nodes display a `?` badge in query and curated charts. This status marker is independent of the related-context badge toggle and takes priority if both statuses apply.
+
+**Unresolved links** use the same default appearance as plain links. Both retain independent style settings; existing custom overrides continue to apply. The `?` node badge distinguishes unresolved destinations.
