@@ -1111,7 +1111,11 @@ export function createParallelCanvasRouteFromPolyline(
 		resolvedRouteKind === 'curve' ? base : ensureEndpointAxis(base, axis);
 	if (normalized.length < 2) return undefined;
 	const shifted = smooth
-		? offsetSmoothPolyline(normalized, laneOffset)
+		? offsetSmoothPolyline(
+				normalized,
+				laneOffset,
+				resolvedRouteKind === 'curve',
+			)
 		: offsetOrthogonalPolyline(normalized, laneOffset);
 	const points =
 		resolvedRouteKind === 'curve'
@@ -1122,6 +1126,7 @@ export function createParallelCanvasRouteFromPolyline(
 					sourceRadius,
 					targetRadius,
 					axis,
+					laneOffset,
 				)
 			: clipRouteEndpoints(
 					shifted,
@@ -1150,12 +1155,11 @@ function clipCurveRouteEndpoints(
 	sourceRadius: number,
 	targetRadius: number,
 	axis: ViewportPoint,
+	laneOffset: number,
 ): ViewportPoint[] {
 	if (points.length < 2) return points.map((point) => ({ ...point }));
 	const shifted = points.map((point) => ({ ...point }));
-	const firstNext = shifted[1]!;
 	const lastIndex = shifted.length - 1;
-	const lastPrevious = shifted[lastIndex - 1]!;
 	const sourceTip = createDirectionalPort(
 		source,
 		Math.max(0, sourceRadius),
@@ -1168,30 +1172,63 @@ function clipCurveRouteEndpoints(
 		axis,
 		false,
 	);
-	if (shifted.length === 2) {
-		return deduplicateViewportPoints([sourceTip, targetTip]);
+	// Dense layout samples can still lie inside the node or behind its port.
+	// Join beyond the port so the replacement transition cannot hook backward.
+	let firstIndex = 1;
+	let lastJoinIndex = lastIndex - 1;
+	const clearance = 12;
+	while (
+		firstIndex < lastIndex &&
+		(shifted[firstIndex]!.x - sourceTip.x) * axis.x +
+			(shifted[firstIndex]!.y - sourceTip.y) * axis.y <
+			clearance
+	)
+		firstIndex++;
+	while (
+		lastJoinIndex > 0 &&
+		(targetTip.x - shifted[lastJoinIndex]!.x) * axis.x +
+			(targetTip.y - shifted[lastJoinIndex]!.y) * axis.y <
+			clearance
+	)
+		lastJoinIndex--;
+	if (firstIndex >= lastJoinIndex) {
+		const middle = {
+			x: (sourceTip.x + targetTip.x) / 2 - axis.y * laneOffset,
+			y: (sourceTip.y + targetTip.y) / 2 + axis.x * laneOffset,
+		};
+		const tangent =
+			normalizeVector({
+				x: targetTip.x - sourceTip.x,
+				y: targetTip.y - sourceTip.y,
+			}) ?? axis;
+		return deduplicateViewportPoints([
+			...createEndpointTransition(sourceTip, middle, axis, tangent),
+			...createEndpointTransition(middle, targetTip, tangent, axis),
+		]);
 	}
+	const firstNext = shifted[firstIndex]!;
+	const lastPrevious = shifted[lastJoinIndex]!;
 	const sourceTransition = createEndpointTransition(
 		sourceTip,
 		firstNext,
 		axis,
 		normalizeVector({
-			x: (shifted[2] ?? firstNext).x - firstNext.x,
-			y: (shifted[2] ?? firstNext).y - firstNext.y,
+			x: (shifted[firstIndex + 1] ?? firstNext).x - firstNext.x,
+			y: (shifted[firstIndex + 1] ?? firstNext).y - firstNext.y,
 		}) ?? axis,
 	);
 	const targetTransition = createEndpointTransition(
 		lastPrevious,
 		targetTip,
 		normalizeVector({
-			x: lastPrevious.x - (shifted[lastIndex - 2] ?? lastPrevious).x,
-			y: lastPrevious.y - (shifted[lastIndex - 2] ?? lastPrevious).y,
+			x: lastPrevious.x - (shifted[lastJoinIndex - 1] ?? lastPrevious).x,
+			y: lastPrevious.y - (shifted[lastJoinIndex - 1] ?? lastPrevious).y,
 		}) ?? axis,
 		axis,
 	);
 	return deduplicateViewportPoints([
 		...sourceTransition,
-		...shifted.slice(2, -2),
+		...shifted.slice(firstIndex + 1, lastJoinIndex),
 		...targetTransition,
 	]);
 }
@@ -1204,18 +1241,34 @@ function createEndpointTransition(
 ): ViewportPoint[] {
 	const distance = distanceBetweenViewport(start, end);
 	if (distance < 0.001) return [start, end];
-	const stub = Math.min(ENDPOINT_STUB_PX, distance / 2);
+	const stub = distance / 3;
 	const firstControl = add(start, scale(startTangent, stub));
 	const secondControl = add(end, scale(endTangent, -stub));
+	// Bound chord error in CSS pixels using the cubic's second derivative.
+	// Drawing, arrow trimming, and hit testing consume these same samples.
+	const curvature = Math.max(
+		Math.hypot(
+			start.x - 2 * firstControl.x + secondControl.x,
+			start.y - 2 * firstControl.y + secondControl.y,
+		),
+		Math.hypot(
+			firstControl.x - 2 * secondControl.x + end.x,
+			firstControl.y - 2 * secondControl.y + end.y,
+		),
+	);
+	const segments = Math.min(
+		128,
+		Math.max(8, Math.ceil(Math.sqrt((0.75 * curvature) / 0.2))),
+	);
 	const samples: ViewportPoint[] = [start];
-	for (let step = 1; step < 4; step += 1) {
+	for (let step = 1; step < segments; step += 1) {
 		samples.push(
 			cubicViewportPoint(
 				start,
 				firstControl,
 				secondControl,
 				end,
-				step / 4,
+				step / segments,
 			),
 		);
 	}
@@ -1253,11 +1306,21 @@ function cubicViewportPoint(
 function offsetSmoothPolyline(
 	points: readonly ViewportPoint[],
 	offset: number,
+	taperEndpoints = false,
 ): ViewportPoint[] {
 	const sourcePoints = deduplicateViewportPoints(points);
 	if (sourcePoints.length < 2 || Math.abs(offset) < 0.001) {
 		return sourcePoints.map((point) => ({ ...point }));
 	}
+	const distances = [0];
+	for (let i = 1; i < sourcePoints.length; i++) {
+		distances.push(
+			distances[i - 1]! +
+				distanceBetweenViewport(sourcePoints[i - 1]!, sourcePoints[i]!),
+		);
+	}
+	const total = distances.at(-1)!;
+	const taperLength = Math.min(total / 3, Math.max(24, Math.abs(offset) * 6));
 	return sourcePoints.map((point, index) => {
 		const previous = sourcePoints[index - 1];
 		const next = sourcePoints[index + 1];
@@ -1275,9 +1338,18 @@ function offsetSmoothPolyline(
 			: undefined;
 		const tangent = averageDirection(incoming, outgoing);
 		if (!tangent) return { ...point };
+		const t =
+			taperEndpoints && taperLength > 0
+				? Math.min(
+						1,
+						distances[index]! / taperLength,
+						(total - distances[index]!) / taperLength,
+					)
+				: 1;
+		const localOffset = offset * t * t * (3 - 2 * t);
 		return {
-			x: point.x - tangent.y * offset,
-			y: point.y + tangent.x * offset,
+			x: point.x - tangent.y * localOffset,
+			y: point.y + tangent.x * localOffset,
 		};
 	});
 }

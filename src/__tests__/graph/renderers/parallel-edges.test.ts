@@ -476,6 +476,64 @@ describe('parallel route geometry', () => {
 		).toBe(true);
 	});
 
+	it('clips dense curve samples outside nodes without endpoint backtracking', () => {
+		const base = Array.from({ length: 41 }, (_, i) => ({
+			x: i * 5,
+			y: 60 * (3 * (i / 40) ** 2 - 2 * (i / 40) ** 3),
+		}));
+		for (const lane of [-4, 4]) {
+			const route = createParallelCanvasRouteFromPolyline(
+				base,
+				base[0]!,
+				base.at(-1)!,
+				15,
+				15,
+				lane,
+				{ x: 1, y: 0 },
+				'curve',
+			)!;
+			expect(route.points[0]).toEqual({ x: 15, y: 0 });
+			expect(route.points.at(-1)).toEqual({ x: 185, y: 60 });
+			for (let i = 1; i < route.points.length; i++) {
+				expect(route.points[i]!.x).toBeGreaterThanOrEqual(
+					route.points[i - 1]!.x,
+				);
+			}
+			for (const point of route.points) {
+				expect(Math.hypot(point.x, point.y)).toBeGreaterThanOrEqual(15);
+				expect(
+					Math.hypot(point.x - 200, point.y - 60),
+				).toBeGreaterThanOrEqual(15);
+			}
+		}
+	});
+
+	it('keeps short opposite lanes distinct and uses finer sampling when enlarged', () => {
+		const create = (scale: number, lane: number) =>
+			createParallelCanvasRouteFromPolyline(
+				[
+					{ x: 0, y: 0 },
+					{ x: 20 * scale, y: 10 * scale },
+					{ x: 40 * scale, y: 20 * scale },
+				],
+				{ x: 0, y: 0 },
+				{ x: 40 * scale, y: 20 * scale },
+				8 * scale,
+				8 * scale,
+				lane * scale,
+				{ x: 1, y: 0 },
+				'curve',
+			)!;
+		const left = create(1, -4),
+			right = create(1, 4);
+		expect(left.points[0]).toEqual(right.points[0]);
+		expect(left.points.at(-1)).toEqual(right.points.at(-1));
+		expect(left.points).not.toEqual(right.points);
+		expect(create(20, 4).points.length).toBeGreaterThan(
+			right.points.length,
+		);
+	});
+
 	it('keeps vertical Flow directions axis-aligned too', () => {
 		const route = createParallelCanvasRoute(
 			{ x: 40, y: 20 },

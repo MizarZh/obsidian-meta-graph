@@ -658,3 +658,5 @@ Visible unresolved nodes display a `?` badge in query and curated charts. This s
 **Unresolved links** use the same default appearance as plain links. Both retain independent style settings; existing custom overrides continue to apply. The `?` node badge distinguishes unresolved destinations.
 
 Existing notes without body content show a blank-document badge, including notes containing only properties or whitespace. The badge updates with the metadata index when content changes and remains visible independently of context badges.
+
+Sigma Flowchart parallel Curve edges taper their spacing near nodes and join outside node boundaries. Endpoint sampling adapts to screen-space curvature, with the same geometry used for drawing and hit testing.

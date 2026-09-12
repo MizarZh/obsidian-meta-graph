@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Smoothed Sigma Flowchart parallel Curve edges with tapered lane spacing, endpoint joins outside node boundaries, and adaptive curve sampling shared by drawing and hit testing.
+
 - Renamed chart types in the UI: Graph → Network, Flow → Flowchart, 3D graph → 3D network, and Free → Canvas. Other chart names, saved type identifiers, and existing chart titles are unchanged.
 
 - Added an automatic blank-document badge for existing notes without body content, including whitespace-only and properties-only notes. Empty status takes priority over related context; unresolved status retains its question mark.
