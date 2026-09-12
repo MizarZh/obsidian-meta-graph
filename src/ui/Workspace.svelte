@@ -191,7 +191,6 @@
 	// reference checks used by rendering and turn selection into graph scans.
 	let traceRequest = $state.raw<GraphTraceRequest | undefined>();
 	let tracePicking = $state<'source' | 'target' | undefined>();
-	let tracePanelDismissed = $state(false);
 	const emptyTrace: GraphTraceRequest = {
 		mode: 'downstream',
 		source: '',
@@ -206,8 +205,7 @@
 	);
 
 	const tracePanelVisible = $derived(
-		Boolean(traceRequest) ||
-			(workspaceState.showTrace && !tracePanelDismissed),
+		Boolean(traceRequest) || workspaceState.showTrace,
 	);
 
 	let preferredCornerPanel = $state('trace');
@@ -237,7 +235,6 @@
 
 	function setTrace(request?: GraphTraceRequest): void {
 		if (request) {
-			tracePanelDismissed = false;
 			preferredCornerPanel = 'trace';
 			cornerCollapsed = false;
 		}
@@ -265,12 +262,6 @@
 		renderCoordinator.apply(workspaceState, previous);
 	}
 
-	function closeTracePanel(): void {
-		setTrace(undefined);
-		tracePanelDismissed = true;
-		if (!readOnly && canonicalState.showTrace)
-			controller.setShowTrace(false);
-	}
 
 	function pickTraceEndpoint(endpoint: 'source' | 'target'): void {
 		if (!traceRequest) setTrace(emptyTrace);
@@ -656,11 +647,6 @@
 				preferredCornerPanel = 'minimap';
 			else if (nextState.showLegend && !canonicalState.showLegend)
 				preferredCornerPanel = 'legend';
-			if (
-				nextState.activeChartId !== canonicalState.activeChartId ||
-				nextState.showTrace !== canonicalState.showTrace
-			)
-				tracePanelDismissed = false;
 			if (canonicalState.showTrace && !nextState.showTrace)
 				traceRequest = undefined;
 			if (
@@ -2033,7 +2019,6 @@
 										)
 									: undefined}
 								onChange={setTrace}
-								onClose={closeTracePanel}
 							/>
 						{/if}
 						{#if activeCornerPanel === 'minimap'}

@@ -19,7 +19,6 @@
 		picking,
 		onPick,
 		onChange,
-		onClose,
 	}: {
 		app: App;
 		request: GraphTraceRequest;
@@ -28,9 +27,7 @@
 		picking?: 'source' | 'target';
 		onPick: (endpoint: 'source' | 'target') => void;
 		onChange: (request: GraphTraceRequest) => void;
-		onClose: () => void;
 	} = $props();
-	let optionsOpen = $state(false);
 
 	const title = (id?: string) =>
 		projection?.nodes.find((node) => node.id === id)?.title ?? id ?? '';
@@ -157,121 +154,113 @@
 			/>
 		</div>
 	{/if}
-	<ObsidianButton
-		text="Trace options"
-		icon={optionsOpen ? 'chevron-down' : 'chevron-right'}
-		active={optionsOpen}
-		onClick={() => (optionsOpen = !optionsOpen)}
-	/>
-	{#if optionsOpen}
+	<div class="knowledge-workspace-trace-row">
+		<span>Relationships</span>
+		<ObsidianDropdown
+			value={request.allFields === false ? 'selected' : 'all'}
+			options={[
+				{ value: 'all', label: 'All relationship fields' },
+				{ value: 'selected', label: 'Selected fields' },
+			]}
+			onChange={(value) => patch({ allFields: value === 'all' })}
+		/>
+	</div>
+	{#if request.allFields !== false}
 		<div class="knowledge-workspace-trace-row">
-			<span>Relationships</span>
-			<ObsidianDropdown
-				value={request.allFields === false ? 'selected' : 'all'}
-				options={[
-					{ value: 'all', label: 'All relationship fields' },
-					{ value: 'selected', label: 'Selected fields' },
-				]}
-				onChange={(value) => patch({ allFields: value === 'all' })}
+			<span>Direction</span><ObsidianDropdown
+				value={direction}
+				options={directionOptions}
+				onChange={(value) =>
+					patch({ direction: value as DirectionMode })}
 			/>
 		</div>
-		{#if request.allFields !== false}
-			<div class="knowledge-workspace-trace-row">
-				<span>Direction</span><ObsidianDropdown
-					value={direction}
-					options={directionOptions}
-					onChange={(value) =>
-						patch({ direction: value as DirectionMode })}
-				/>
-			</div>
-		{:else}
-			<div class="knowledge-workspace-trace-fields">
-				{#each rules as rule (rule.field)}
-					<div class="knowledge-workspace-trace-row">
-						<span title={rule.field}>{rule.field}</span>
-						<ObsidianDropdown
-							ariaLabel={`${rule.field}: Direction`}
-							value={undirected(rule.field)
-								? 'both'
-								: rule.direction}
-							disabled={undirected(rule.field)}
-							options={directionOptions}
-							onChange={(value) =>
-								patch({
-									fieldRules: rules.map((item) =>
-										item.field === rule.field
-											? {
-													...item,
-													direction:
-														value as DirectionMode,
-												}
-											: item,
-									),
-								})}
-						/>
-						<ObsidianButton
-							icon="x"
-							ariaLabel={`Remove ${rule.field}`}
-							tooltip={`Remove ${rule.field}`}
-							onClick={() =>
-								patch({
-									fieldRules: rules.filter(
-										(item) => item.field !== rule.field,
-									),
-								})}
-						/>
-					</div>
-				{/each}
-			</div>
-			{#key rules.map((rule) => rule.field).join('|')}
-				<ObsidianSuggestInput
-					{app}
-					value=""
-					options={fields
-						.filter(
-							(field) =>
-								!rules.some((rule) => rule.field === field),
-						)
-						.map((field) => ({ value: field, label: field }))}
-					placeholder="Add relationship field…"
-					ariaLabel="Add trace relationship field"
-					showOnEmpty
-					allowCustom={false}
-					onSelect={(option) =>
-						patch({
-							fieldRules: [
-								...rules,
-								{
-									field: option.value,
-									direction: undirected(option.value)
-										? 'both'
-										: direction,
-								},
-							],
-						})}
-				/>
-			{/key}
-		{/if}
-		{#if request.mode !== 'path'}
-			<div class="knowledge-workspace-trace-row">
-				<span>Layers</span>
-				<ObsidianSlider
-					value={request.maxDepth ?? 3}
-					min={1}
-					max={10}
-					step={1}
-					disabled={request.maxDepth === undefined}
-					ariaLabel="Trace layers"
-					onChange={(maxDepth) => patch({ maxDepth })}
-				/>
-				<span>{request.maxDepth ?? 'All'}</span>
-				<ObsidianToggle
-					value={request.maxDepth === undefined}
-					ariaLabel="All layers"
-					onChange={(all) => patch({ maxDepth: all ? undefined : 3 })}
-				/>
-			</div>
-		{/if}
+	{:else}
+		<div class="knowledge-workspace-trace-fields">
+			{#each rules as rule (rule.field)}
+				<div class="knowledge-workspace-trace-row">
+					<span title={rule.field}>{rule.field}</span>
+					<ObsidianDropdown
+						ariaLabel={`${rule.field}: Direction`}
+						value={undirected(rule.field)
+							? 'both'
+							: rule.direction}
+						disabled={undirected(rule.field)}
+						options={directionOptions}
+						onChange={(value) =>
+							patch({
+								fieldRules: rules.map((item) =>
+									item.field === rule.field
+										? {
+												...item,
+												direction:
+													value as DirectionMode,
+											}
+										: item,
+								),
+							})}
+					/>
+					<ObsidianButton
+						icon="x"
+						ariaLabel={`Remove ${rule.field}`}
+						tooltip={`Remove ${rule.field}`}
+						onClick={() =>
+							patch({
+								fieldRules: rules.filter(
+									(item) => item.field !== rule.field,
+								),
+							})}
+					/>
+				</div>
+			{/each}
+		</div>
+		{#key rules.map((rule) => rule.field).join('|')}
+			<ObsidianSuggestInput
+				{app}
+				value=""
+				options={fields
+					.filter(
+						(field) =>
+							!rules.some((rule) => rule.field === field),
+					)
+					.map((field) => ({ value: field, label: field }))}
+				placeholder="Add relationship field…"
+				ariaLabel="Add trace relationship field"
+				showOnEmpty
+				allowCustom={false}
+				onSelect={(option) =>
+					patch({
+						fieldRules: [
+							...rules,
+							{
+								field: option.value,
+								direction: undirected(option.value)
+									? 'both'
+									: direction,
+							},
+						],
+					})}
+			/>
+		{/key}
+	{/if}
+	{#if request.mode !== 'path'}
+		<div class="knowledge-workspace-trace-row">
+			<span>Layers</span>
+			<ObsidianSlider
+				value={request.maxDepth ?? 3}
+				min={1}
+				max={10}
+				step={1}
+				disabled={request.maxDepth === undefined}
+				ariaLabel="Trace layers"
+				onChange={(maxDepth) => patch({ maxDepth })}
+			/>
+			<span>{request.maxDepth ?? 'All'}</span>
+			<ObsidianToggle
+				value={request.maxDepth === undefined}
+				ariaLabel="All layers"
+				onChange={(all) => patch({ maxDepth: all ? undefined : 3 })}
+			/>
+		</div>
 	{/if}
 	<div role="status">
 		{!request.source
@@ -286,5 +275,4 @@
 							? `${result.nodeIds.size} nodes · ${result.edgeIds.size} links`
 							: 'No path matches these relationships and directions in this view'}
 	</div>
-	<ObsidianButton text="Close trace" onClick={onClose} />
 </section>

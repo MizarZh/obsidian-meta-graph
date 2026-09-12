@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Removed the separate Close trace action and internal Trace options fold. Relationship fields, direction, and layers now appear directly in the Trace panel.
+
 - Made embedded Minimap fill the corner panel width at a 3:2 aspect ratio. Canvas resolution, drawing, and navigation mapping follow its actual dimensions on resize.
 
 - Added a shared Node status heading above the Empty note and Added context legend icons.

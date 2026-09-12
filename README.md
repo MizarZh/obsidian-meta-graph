@@ -663,7 +663,7 @@ Sigma Flowchart parallel Curve edges taper their spacing near nodes and join out
 
 ### Trace paths and reachability
 
-Enable **Graph settings -> Overlays -> Trace** to show the compact Trace panel in the lower-right graph corner. The toggle is saved per chart and defaults off. Trace, Minimap, and Legend share one corner area with tabs, above Timeline when it is enabled. Switching tabs or collapsing Trace preserves the active highlight; a dot on the Trace tab indicates an active trace. Relationship fields, direction, and layers are under **Trace options**, initially collapsed. Choose a start node in the panel to begin. Closing it hides the panel and clears the trace.
+Enable **Graph settings -> Overlays -> Trace** to show the compact Trace panel in the lower-right graph corner. The toggle is saved per chart and defaults off. Trace, Minimap, and Legend share one corner area with tabs, above Timeline when it is enabled. Switching tabs or collapsing Trace preserves the active highlight; a dot on the Trace tab indicates an active trace. Relationship fields, direction, and layers are directly visible in the panel. Choose a start node to begin. Press Escape to clear the trace; use the Trace overlay toggle to hide the panel.
 
 Right-click a node and choose **Trace upstream**, **Trace downstream**, or **Find shortest path from here**. The Trace panel offers **Reachability** and **Between nodes** modes. Search for start/end nodes or use their pick buttons to select them in the graph; temporary **A** and **B** badges identify the endpoints. Swap endpoints to reverse a path search.
 
