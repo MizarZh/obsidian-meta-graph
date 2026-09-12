@@ -737,6 +737,22 @@ export class SigmaRenderer {
 		);
 	}
 
+	centerViewport(position: GraphPosition): void {
+		const camera = this.instance.getCamera();
+		const { width, height } = this.instance.getDimensions();
+		const target = this.instance.viewportToFramedGraph(
+			this.instance.graphToViewport(position),
+		);
+		const middle = this.instance.viewportToFramedGraph({
+			x: width / 2,
+			y: height / 2,
+		});
+		camera.setState({
+			x: camera.x + target.x - middle.x,
+			y: camera.y + target.y - middle.y,
+		});
+	}
+
 	getNodeAtViewportPosition(position: {
 		x: number;
 		y: number;

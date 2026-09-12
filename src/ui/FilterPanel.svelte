@@ -37,6 +37,8 @@
 			timelineEnabled={view.graph.timelineEnabled}
 			onTimelineEnabled={actions.graph.setTimelineEnabled}
 			showLegend={view.graph.showLegend}
+			showMinimap={view.graph.showMinimap}
+			onShowMinimap={actions.graph.setShowMinimap}
 			onShowLegend={actions.graph.setShowLegend}
 			{app}
 			mode={view.graph.mode}

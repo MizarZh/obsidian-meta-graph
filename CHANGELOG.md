@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Changed Minimap navigation from node focus to viewport dragging. Drag the viewport frame with its grab offset preserved, click outside to recenter, or use arrow keys; Sigma/G6 retain zoom and layout.
+
+- Added an opt-in per-chart Minimap overlay for Sigma/G6 planar charts. Shows visible nodes, simplified logical links, and the viewport footprint; click to focus the nearest node. Refreshes at 5 Hz without relayout, retains hidden-node bounds during timeline playback, and supports collapse. Graph 3D/Cube are not included.
+
 - Unified left Nodes and right dock panel shells: shared card border, radius, shadow, inset collapse controls, and header background. Nodes drag-target highlighting now applies to the complete card.
 
 - Enabled Timeline in Cube using the shared playback controls and existing visibility refresh. Face placement and manual positions remain stable; the renderer still rebuilds graph objects per visibility update, so playback performance needs real-world evaluation.

@@ -14,6 +14,7 @@
 		WorkspaceState,
 	} from '@/core/types';
 	import { supportsPlanarRenderer } from '@/core/types';
+	import GraphMinimap from '@/ui/workspace/GraphMinimap.svelte';
 	import type {
 		ConnectionPanelLayout,
 		PersistedMetaGraphDocumentV2,
@@ -1763,6 +1764,7 @@
 			class="knowledge-workspace-main curated-panel-visible"
 			aria-busy={graphLoading}
 			class:dock-node-dragging={Boolean(dockDrag)}
+			class:minimap-visible={workspaceState.showMinimap && supportsPlanarRenderer(workspaceState.mode)}
 			class:connection-collapsed={!connectionOpen}
 			class:timeline-visible={workspaceState.timeline.enabled &&
 				supportsTimeline(workspaceState.mode)}
@@ -1775,6 +1777,12 @@
 				: '0px'}"
 		>
 			<div class="knowledge-workspace-canvas" bind:this={canvas}></div>
+			{#if workspaceState.showMinimap && supportsPlanarRenderer(workspaceState.mode)}
+				<GraphMinimap
+					readRenderer={() => rendererLifecycle.renderer}
+					readCanvas={() => canvas}
+				/>
+			{/if}
 			{#if workspaceState.timeline.enabled && supportsTimeline(workspaceState.mode)}
 				{#key `${workspaceState.activeChartId}:${workspaceState.mode}:${workspaceState.chartSource}`}
 					{@const chartId = workspaceState.activeChartId}

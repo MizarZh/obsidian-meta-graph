@@ -1,5 +1,16 @@
 # Meta Graph
 
+## Minimap
+
+Enable **Graph settings -> Overlays -> Minimap** for Sigma/G6 planar charts.
+The lower-left overview shows visible nodes, simplified straight links (up to
+4,000 logical relationships), and the current viewport. Drag the viewport frame
+to pan, or click outside it to center the view there, keeping zoom unchanged.
+Arrow keys pan the viewport while the minimap is focused. Click the
+Minimap heading to collapse it. It updates five times per second without layout
+work; timeline-hidden nodes retain their space but are not drawn or clickable.
+The toggle is saved per chart and defaults off. Graph 3D/Cube are not supported.
+
 ## Timeline
 
 Enable **Graph settings -> Overlays -> Timeline** in Cube, Graph 3D, or a Sigma/G6 chart

@@ -1896,6 +1896,17 @@ export class G6Renderer implements PlanarRenderer {
 		);
 	}
 
+	centerViewport(position: GraphPosition): void {
+		this.runViewportAction(async () => {
+			const target = this.graphToViewportPosition(position);
+			const center = this.instance.getCanvasCenter();
+			await this.instance.translateBy(
+				[center[0] - target.x, center[1] - target.y],
+				false,
+			);
+		});
+	}
+
 	private runViewportAction(action: () => Promise<void>): void {
 		if (this.killed || this.isStale()) return;
 		const viewportFrameVersion = this.viewportFrameVersion;

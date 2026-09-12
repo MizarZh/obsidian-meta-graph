@@ -53,6 +53,7 @@ import {
 	setFlowSpacingInState,
 	setForceLabelsInState,
 	setShowLegendInState,
+	setShowMinimapInState,
 	setTimelineInState,
 	setGraphForceSettingInState,
 	resetGraphForcesInState,
@@ -527,6 +528,9 @@ export class WorkspaceController {
 
 	setShowLegend(showLegend: boolean): void {
 		this.setWorkspaceState(setShowLegendInState(this.state, showLegend));
+	}
+	setShowMinimap(value: boolean): void {
+		this.setWorkspaceState(setShowMinimapInState(this.state, value));
 	}
 
 	setTimeline(patch: Partial<import('@/core/types').TimelineConfig>): void {

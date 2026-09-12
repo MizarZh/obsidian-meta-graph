@@ -10,6 +10,7 @@
 	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
 	import { MAX_FLOW_CORNER_RADIUS } from '@/workspace/meta-graph-model';
 	import { supportsTimeline } from '@/graph/timeline';
+	import { supportsPlanarRenderer } from '@/core/types';
 	import type {
 		ArcDirection,
 		FlowDirection,
@@ -25,6 +26,8 @@
 	let {
 		app,
 		showLegend,
+		showMinimap,
+		onShowMinimap,
 		timelineEnabled,
 		onTimelineEnabled,
 		onShowLegend,
@@ -80,6 +83,8 @@
 	}: {
 		app: App;
 		showLegend: boolean;
+		showMinimap: boolean;
+		onShowMinimap: (value: boolean) => void;
 		timelineEnabled: boolean;
 		onTimelineEnabled: (value: boolean) => void;
 		onShowLegend: (value: boolean) => void;
@@ -290,6 +295,13 @@
 	<header><h3>Graph settings</h3></header>
 	<SettingsSection title="Overlays">
 		<div class="knowledge-workspace-overlay-toggles">
+			{#if supportsPlanarRenderer(mode)}
+				<ToggleSetting
+					label="Minimap"
+					value={showMinimap}
+					onChange={onShowMinimap}
+				/>
+			{/if}
 			<ToggleSetting
 				label="Legend"
 				ariaLabel="Show legend"

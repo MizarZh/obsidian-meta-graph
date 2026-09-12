@@ -96,6 +96,7 @@ export interface PlanarRenderer {
 	togglePinnedHover(nodeId: string): void;
 	clearPinnedHover(): void;
 	focusNode(nodeId: string): void;
+	centerViewport(position: GraphPosition): void;
 	fit(): void;
 	zoomBy(factor: number): void;
 	getZoomLevel(): number;

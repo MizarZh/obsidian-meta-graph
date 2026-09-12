@@ -264,6 +264,13 @@ export function setShowLegendInState(
 	return setDisplayValue(state, 'showLegend', showLegend);
 }
 
+export function setShowMinimapInState(
+	state: WorkspaceState,
+	value: boolean,
+): WorkspaceState {
+	return setDisplayValue(state, 'showMinimap', value);
+}
+
 export function setEnableForceLayoutInState(
 	state: WorkspaceState,
 	enableForceLayout: boolean,

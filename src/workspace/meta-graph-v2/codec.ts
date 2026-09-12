@@ -891,6 +891,7 @@ function displayToV2(chart: MetaGraphChart): PersistedDisplayV2 {
 	return {
 		fadeDistance: display.fadeDistance,
 		...(display.showLegend === false ? { showLegend: false } : {}),
+		...(display.showMinimap ? { showMinimap: true } : {}),
 		...(JSON.stringify(display.timeline) !==
 		JSON.stringify(normalizeTimeline())
 			? { timeline: display.timeline }
@@ -1223,6 +1224,7 @@ function v2ChartToLegacyRecord(
 		display: {
 			fadeDistance: display.fadeDistance ?? fadeDistance,
 			showLegend: display.showLegend,
+			showMinimap: display.showMinimap,
 			timeline: display.timeline,
 			parallelEdgeStyle: readChartParallelEdgeStyle(value.extensions),
 			labelSize: labels.size,

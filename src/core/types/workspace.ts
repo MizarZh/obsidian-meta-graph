@@ -164,6 +164,7 @@ export interface TimelineConfig {
 export interface ChartDisplayConfig {
 	timeline: TimelineConfig;
 	showLegend: boolean;
+	showMinimap: boolean;
 	parallelEdgeStyle?: 'straight' | 'curve';
 	fadeDistance: number;
 	labelSize: number;
@@ -291,6 +292,7 @@ export interface WorkspaceState {
 	forceLabels: boolean;
 	enableForceLayout: boolean;
 	showLegend: boolean;
+	showMinimap: boolean;
 	graphSpacing: number;
 	timeline: TimelineConfig;
 	graphCenterForce: number;
