@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Added a shared Node status heading above the Empty note and Added context legend icons.
+
+- Simplified the Legend status explanations to Empty note and Added context icons, removing their section headings and Core match text. Existing Nodes / Links style legends remain intact.
+
 - Unified corner overlays with a full-width arrow/title row and an accent-highlighted segmented selector fixed at the bottom. Overlay content expands upward; collapsing or switching panels preserves trace highlights.
 
 - Moved Trace into a compact 330px corner panel with collapsed trace options and a collapsible summary. Trace, Minimap, and Legend now share a tabbed corner area above Timeline. Switching tabs or collapsing Trace preserves highlights; closing Trace clears them.

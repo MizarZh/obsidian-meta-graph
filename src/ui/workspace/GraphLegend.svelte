@@ -1,8 +1,9 @@
 <script lang="ts">
 	import type { WorkspaceState } from '@/core/types';
-	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
 	import StylePreview from '@/ui/settings/style/StylePreview.svelte';
 	import { buildGraphLegend } from '@/ui/workspace/graph-legend';
+	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
+	import { LEGEND_BADGES } from '@/ui/workspace/legend-badges';
 	let {
 		embedded = false,
 		state: workspaceState,
@@ -14,10 +15,10 @@
 		metadataFields: string[];
 		metadataTypes: Record<string, string>;
 	} = $props();
-	let open = $state(true);
 	const legend = $derived(
 		buildGraphLegend(workspaceState, metadataFields, metadataTypes),
 	);
+	let open = $state(true);
 </script>
 
 <div class="knowledge-workspace-legend-position">
@@ -25,67 +26,32 @@
 		{#if !embedded}
 			<ObsidianButton
 				text="Legend"
-				active={open}
-				ariaLabel={open ? 'Collapse legend' : 'Expand legend'}
-				tooltip="Configured styles; rules may overlap."
+				icon={open ? 'chevron-down' : 'chevron-up'}
+				ariaExpanded={open}
 				onClick={() => (open = !open)}
 			/>
 		{/if}
 		{#if open}
 			<div class="knowledge-workspace-legend-content">
-				{#if workspaceState.projection?.nodes.some((node) => node.kind === 'unresolved' || node.isEmpty)}
-					<section>
-						<h4>Node status</h4>
-						<ul>
-							{#if workspaceState.projection?.nodes.some((node) => node.kind === 'unresolved')}
-								<li>? · Unresolved note</li>
-							{/if}
-							{#if workspaceState.projection?.nodes.some((node) => node.kind !== 'unresolved' && node.isEmpty)}
-								<li>
-									<svg
-										width="12"
-										height="12"
-										viewBox="0 0 12 12"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="1.25"
-										stroke-linejoin="round"
-										aria-hidden="true"
-										><path
-											d="M3 2h4l2 2v6H3V2M7 2v2h2"
-										/></svg
-									> Empty note
-								</li>
-							{/if}
-						</ul>
-					</section>
-				{/if}
-				{#if workspaceState.chartSource === 'query' && workspaceState.query.relationExpansion?.enabled && workspaceState.query.relationExpansion.showBadges !== false}
-					<section>
-						<h4>Related context · This view</h4>
-						<ul>
-							<li>Unmarked: Core match</li>
-							<li>
-								<svg
-									width="12"
-									height="12"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2.5"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									aria-hidden="true"
-								>
-									<path
-										d="M9 17H7a5 5 0 0 1 0-10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"
-									/>
-								</svg>
-								Added context
-							</li>
-						</ul>
-					</section>
-				{/if}
+				<h4>Node status</h4>
+				<ul class="knowledge-workspace-legend-badges">
+					{#each LEGEND_BADGES as badge}
+						<li>
+							<svg
+								width="12"
+								height="12"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2.5"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"><path d={badge.path} /></svg
+							>
+							<span>{badge.label}</span>
+						</li>
+					{/each}
+				</ul>
 				{#each [{ name: 'Nodes', entries: legend.nodes }, { name: 'Links', entries: legend.links }] as section}
 					<section>
 						<h4>{section.name}</h4>
