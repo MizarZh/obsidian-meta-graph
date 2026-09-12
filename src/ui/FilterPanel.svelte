@@ -17,11 +17,13 @@
 		panel,
 		view,
 		actions,
+		styleEditorRequest,
 	}: {
 		app: App;
 		panel: SettingsPanelMode;
 		view: WorkspaceSettingsView;
 		actions: WorkspaceSettingsActions;
+		styleEditorRequest?: import('@/ui/workspace/current-style-target').StyleEditorRequest;
 	} = $props();
 </script>
 
@@ -148,6 +150,7 @@
 		/>
 	{:else if panel === 'note-style'}
 		<NodeStylePanel
+			{styleEditorRequest}
 			{app}
 			folders={view.suggestions.folders}
 			tags={view.suggestions.tags}
@@ -172,6 +175,7 @@
 		/>
 	{:else}
 		<LinkStylePanel
+			{styleEditorRequest}
 			{app}
 			metadataFieldSuggestions={view.suggestions.metadataFields}
 			defaultLinkStyle={view.styles.defaultLink}

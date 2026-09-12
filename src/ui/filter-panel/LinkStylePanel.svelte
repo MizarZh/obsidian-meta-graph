@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import type { App } from 'obsidian';
 	import SettingsSection from '@/ui/settings/SettingsSection.svelte';
 	import StyleRuleCard from '@/ui/filter-panel/StyleRuleCard.svelte';
@@ -68,6 +69,7 @@
 
 	let {
 		app,
+		styleEditorRequest,
 		metadataFieldSuggestions,
 		defaultLinkStyle,
 		globalLinkStyleRules,
@@ -86,6 +88,7 @@
 		onMoveLinkStyleRule,
 	}: {
 		app: App;
+		styleEditorRequest?: import('@/ui/workspace/current-style-target').StyleEditorRequest;
 		metadataFieldSuggestions: string[];
 		defaultLinkStyle: Required<DefaultLinkStyle>;
 		globalLinkStyleRules: LinkStyleRule[];
@@ -105,6 +108,34 @@
 	} = $props();
 
 	let editingRule = $state('');
+	let styleHeader: HTMLElement;
+	let handledRequest: typeof styleEditorRequest;
+	$effect(() => {
+		const request = styleEditorRequest;
+		if (!request || request === handledRequest) return;
+		handledRequest = request;
+		editingRule = request.key;
+		chartOverridesOpen = true;
+		ruleSectionsOpen = { global: true, current: true };
+		unresolvedLinksOpen = true;
+		plainLinksOpen = true;
+		let cancelled = false;
+		void tick().then(() => {
+			if (cancelled) return;
+			const root = styleHeader?.parentElement;
+			const target =
+				root?.querySelector(
+					'.knowledge-workspace-style-rule-card.active',
+				) ??
+				Array.from(root?.querySelectorAll('h4') ?? [])
+					.find((heading) => heading.textContent === request.key)
+					?.closest('section');
+			target?.scrollIntoView({ block: 'nearest' });
+		});
+		return () => {
+			cancelled = true;
+		};
+	});
 	const dragScopePrefix = createRuleId();
 	function dropStyleRule(
 		payload: string,
@@ -375,7 +406,7 @@
 	}
 </script>
 
-<section>
+<section bind:this={styleHeader}>
 	<header><h3>Link styles</h3></header>
 </section>
 <StyleRuleCard

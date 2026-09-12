@@ -4,6 +4,14 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Node context menus now offer explicit Open in split and Open in new tab actions, independent of the default note-opening preference. Direct node opening still follows the preference.
+
+- Renamed node/link style context actions to Edit node/link style settings and moved them to the bottom, separated from other actions like Edit group.
+
+- Added Edit current node/link style to graph context menus. Opens the last matching chart/global rule (using rendering precedence), falls back to chart overrides or workspace defaults, and routes unresolved objects/plain links to their dedicated settings. Editing changes the shared style, not only the clicked object.
+
+- Replaced Delete group in the main graph context menu with Edit group, which opens the matching group editor in toolbar settings. The Details edit shortcut now targets the selected group as well; deletion remains in group settings.
+
 - Changed Minimap navigation from node focus to viewport dragging. Drag the viewport frame with its grab offset preserved, click outside to recenter, or use arrow keys; Sigma/G6 retain zoom and layout.
 
 - Added an opt-in per-chart Minimap overlay for Sigma/G6 planar charts. Shows visible nodes, simplified logical links, and the viewport footprint; click to focus the nearest node. Refreshes at 5 Hz without relayout, retains hidden-node bounds during timeline playback, and supports collapse. Graph 3D/Cube are not included.

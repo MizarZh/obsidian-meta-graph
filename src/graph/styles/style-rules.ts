@@ -134,7 +134,7 @@ function isNodeShape(value: unknown): value is NodeShape {
 	);
 }
 
-function matchesNodeRule(
+export function matchesNodeRule(
 	node: KnowledgeNode,
 	rule: NodeStyleRule,
 	context: NodeStyleContext,
@@ -209,7 +209,10 @@ function matchesNodeGroup(
 	}
 }
 
-function matchesLinkRule(edge: KnowledgeEdge, rule: LinkStyleRule): boolean {
+export function matchesLinkRule(
+	edge: KnowledgeEdge,
+	rule: LinkStyleRule,
+): boolean {
 	if (rule.field === 'all') {
 		return true;
 	}

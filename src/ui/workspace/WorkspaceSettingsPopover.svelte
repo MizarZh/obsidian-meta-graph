@@ -15,6 +15,8 @@
 		readOnly = false,
 		settingsPanel,
 		settingsPopoverLeft,
+		groupEditorRequest,
+		styleEditorRequest,
 		onClose,
 	}: {
 		app: App;
@@ -23,6 +25,8 @@
 		readOnly?: boolean;
 		settingsPanel: SettingsPanelMode;
 		settingsPopoverLeft: number;
+		groupEditorRequest?: { groupId: string };
+		styleEditorRequest?: import('./current-style-target').StyleEditorRequest;
 		onClose: () => void;
 	} = $props();
 	const stylePanel = $derived(
@@ -49,6 +53,7 @@
 >
 	{#if settingsPanel === 'groups'}
 		<GroupPanel
+			{groupEditorRequest}
 			{app}
 			grouping={view.groups.grouping}
 			manualLayout={view.groups.manualLayout}
@@ -63,6 +68,12 @@
 			onReorderGroup={actions.groups.reorder}
 		/>
 	{:else}
-		<FilterPanel {app} panel={settingsPanel} {view} {actions} />
+		<FilterPanel
+			{app}
+			panel={settingsPanel}
+			{view}
+			{actions}
+			{styleEditorRequest}
+		/>
 	{/if}
 </div>

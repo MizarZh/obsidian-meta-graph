@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { App } from 'obsidian';
-	import { onMount } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import { createRuleId } from '@/core/rule-id';
 	import { reorderRuleAtTarget } from '@/ui/filter/filter-style-rules';
 	import type {
@@ -29,6 +29,7 @@
 
 	let {
 		app,
+		groupEditorRequest,
 		grouping,
 		manualLayout,
 		nodes,
@@ -42,6 +43,7 @@
 		onReorderGroup,
 	}: {
 		app: App;
+		groupEditorRequest?: { groupId: string };
 		grouping: ChartGroupingConfig;
 		manualLayout: ManualLayoutConfig;
 		nodes: KnowledgeNode[];
@@ -95,6 +97,26 @@
 	let paddingCommitScheduler: ThrottledCommitScheduler | undefined;
 	let paddingPreviews = $state<Record<string, number>>({});
 	let editingGroupId = $state('');
+	let root: HTMLElement;
+	let handledRequest: { groupId: string } | undefined;
+	$effect(() => {
+		const request = groupEditorRequest;
+		if (!request || request === handledRequest) return;
+		handledRequest = request;
+		if (!groups.some((group) => group.id === request.groupId)) return;
+		untrack(closeEditor);
+		editingGroupId = request.groupId;
+		let cancelled = false;
+		void tick().then(() => {
+			if (!cancelled)
+				root?.querySelector(
+					'.knowledge-workspace-style-rule-card.active',
+				)?.scrollIntoView({ block: 'nearest' });
+		});
+		return () => {
+			cancelled = true;
+		};
+	});
 	const dragScope = createRuleId();
 
 	function dropGroup(
@@ -274,6 +296,7 @@
 </script>
 
 <aside
+	bind:this={root}
 	class="knowledge-workspace-filters knowledge-workspace-groups"
 	class:knowledge-workspace-groups-disabled={disabled}
 >

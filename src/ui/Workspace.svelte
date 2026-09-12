@@ -102,6 +102,11 @@
 	import { DockGraphDragController } from '@/ui/workspace/dock-graph-drag';
 	import { GraphDockConnectionController } from '@/ui/workspace/graph-dock-connection';
 	import WorkspaceSettingsPopover from '@/ui/workspace/WorkspaceSettingsPopover.svelte';
+	import {
+		currentNodeStyleTarget,
+		currentLinkStyleTarget,
+		type StyleEditorRequest,
+	} from '@/ui/workspace/current-style-target';
 	import WorkspaceMainPanels from '@/ui/workspace/WorkspaceMainPanels.svelte';
 	import GraphLegend from '@/ui/workspace/GraphLegend.svelte';
 	import GraphTimeline from '@/ui/workspace/GraphTimeline.svelte';
@@ -209,6 +214,8 @@
 	let lastThemeSignature = '';
 	let debugOpen = $state(false);
 	let settingsPanel = $state<SettingsPanelMode | undefined>(undefined);
+	let groupEditorRequest = $state<{ groupId: string } | undefined>();
+	let styleEditorRequest = $state<StyleEditorRequest | undefined>();
 	let settingsPopoverLeft = $state(0);
 	let connectionDrag = $state<ConnectionDragState | undefined>(undefined);
 	let graphConnectionTargetNotePath = $state<string | undefined>(undefined);
@@ -721,11 +728,14 @@
 	}
 
 	function addNodeContextMenuItems(menu: Menu, nodeId: string): void {
+		const node = workspaceState.projection?.nodes.find(
+			(item) => item.id === nodeId,
+		);
 		menu.addItem((item) =>
 			item
-				.setTitle('Open')
-				.setIcon('file')
-				.onClick(() => void openNote(nodeId)),
+				.setTitle('Open in split')
+				.setIcon('panel-right')
+				.onClick(() => void onOpenNodeInRightSplit(nodeId)),
 		);
 		menu.addItem((item) =>
 			item
@@ -800,6 +810,23 @@
 						),
 				),
 		);
+		if (node) {
+			menu.addSeparator();
+			menu.addItem((item) =>
+				item
+					.setTitle('Edit node style settings')
+					.setIcon('palette')
+					.setDisabled(readOnly)
+					.onClick(() =>
+						openSettingsPanel(
+							'note-style',
+							undefined,
+							undefined,
+							currentNodeStyleTarget(workspaceState, node),
+						),
+					),
+			);
+		}
 	}
 
 	function addEdgeContextMenuItems(menu: Menu, edgeId: string): void {
@@ -856,6 +883,21 @@
 						),
 				),
 		);
+		menu.addSeparator();
+		menu.addItem((item) =>
+			item
+				.setTitle('Edit link style settings')
+				.setIcon('palette')
+				.setDisabled(readOnly)
+				.onClick(() =>
+					openSettingsPanel(
+						'link-style',
+						undefined,
+						undefined,
+						currentLinkStyleTarget(workspaceState, edge),
+					),
+				),
+		);
 	}
 
 	function addGroupContextMenuItems(menu: Menu, groupId: string): void {
@@ -878,14 +920,19 @@
 			workspaceState.mode,
 			group,
 		);
-		if (capabilities.canDelete) {
+		if (
+			group &&
+			(capabilities.canEditIdentity || capabilities.canEditAppearance)
+		) {
 			menu.addSeparator();
 			menu.addItem((item) =>
 				item
-					.setTitle('Delete group')
-					.setIcon('trash-2')
+					.setTitle('Edit group')
+					.setIcon('settings-2')
 					.setDisabled(readOnly)
-					.onClick(() => controller.deleteGroup(groupId)),
+					.onClick(() =>
+						openSettingsPanel('groups', undefined, groupId),
+					),
 			);
 		}
 	}
@@ -1236,21 +1283,30 @@
 
 	function openSettingsPanel(
 		panel: SettingsPanelMode,
-		event: MouseEvent,
+		event?: MouseEvent,
+		groupId?: string,
+		styleKey?: string,
 	): void {
 		const toolbarTarget =
-			panel === 'groups'
+			panel === 'groups' || styleKey
 				? workspaceRoot?.querySelector<HTMLElement>(
-						'.knowledge-workspace-settings-tab-groups',
+						`.knowledge-workspace-settings-tab-${panel}`,
 					)
 				: undefined;
-		const target = toolbarTarget ?? event.currentTarget;
+		const target = toolbarTarget ?? event?.currentTarget;
 		if (target instanceof HTMLElement && workspaceRoot) {
 			const targetRect = target.getBoundingClientRect();
 			const rootRect = workspaceRoot.getBoundingClientRect();
 			settingsPopoverLeft = targetRect.left - rootRect.left;
 		}
-		settingsPanel = settingsPanel === panel ? undefined : panel;
+		groupEditorRequest = groupId ? { groupId } : undefined;
+		styleEditorRequest = styleKey ? { key: styleKey } : undefined;
+		settingsPanel =
+			groupId || styleKey
+				? panel
+				: settingsPanel === panel
+					? undefined
+					: panel;
 	}
 
 	async function waitForCanvasSize(): Promise<boolean> {
@@ -1754,6 +1810,8 @@
 					{readOnly}
 					{settingsPanel}
 					{settingsPopoverLeft}
+					{groupEditorRequest}
+					{styleEditorRequest}
 					onClose={() => {
 						settingsPanel = undefined;
 					}}
@@ -1764,7 +1822,8 @@
 			class="knowledge-workspace-main curated-panel-visible"
 			aria-busy={graphLoading}
 			class:dock-node-dragging={Boolean(dockDrag)}
-			class:minimap-visible={workspaceState.showMinimap && supportsPlanarRenderer(workspaceState.mode)}
+			class:minimap-visible={workspaceState.showMinimap &&
+				supportsPlanarRenderer(workspaceState.mode)}
 			class:connection-collapsed={!connectionOpen}
 			class:timeline-visible={workspaceState.timeline.enabled &&
 				supportsTimeline(workspaceState.mode)}
@@ -1864,7 +1923,12 @@
 					onOpenNote={(nodeId) => void openNote(nodeId)}
 					onOpenMetadataLink={(linkText, sourcePath) =>
 						void openMetadataLink(linkText, sourcePath)}
-					onEditGroup={(event) => openSettingsPanel('groups', event)}
+					onEditGroup={(event) =>
+						openSettingsPanel(
+							'groups',
+							event,
+							workspaceState.selectedGroupId,
+						)}
 					onCuratedSelectionChange={(paths) => {
 						curatedSelection = paths;
 					}}
