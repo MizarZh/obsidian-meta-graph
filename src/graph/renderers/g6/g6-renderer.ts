@@ -565,11 +565,16 @@ export class G6Renderer implements PlanarRenderer {
 		return nativeZoomToPlanarLevel(this.instance.getZoom(), this.fitZoom);
 	}
 
-	setZoomLevel(level: number): void {
+	setZoomLevel(level: number, anchor?: GraphPosition): void {
 		if (!Number.isFinite(level)) return;
 		this.cancelWheelZoom();
 		const zoom = planarLevelToNativeZoom(level, this.fitZoom);
-		this.runViewportAction(() => this.instance.zoomTo(zoom, false));
+		const origin = anchor
+			? this.graphToViewportPosition(anchor)
+			: undefined;
+		this.runViewportAction(() =>
+			origin ? this.instance.zoomTo(zoom, false, [origin.x, origin.y]) : this.instance.zoomTo(zoom, false),
+		);
 	}
 
 	onZoomLevelChange(listener: (level: number) => void): () => void {

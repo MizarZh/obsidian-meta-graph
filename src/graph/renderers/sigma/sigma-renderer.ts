@@ -873,8 +873,23 @@ export class SigmaRenderer {
 		return 100 / this.instance.getCamera().getState().ratio;
 	}
 
-	setZoomLevel(level: number): void {
-		this.instance.getCamera().setState({ ratio: 100 / level });
+	setZoomLevel(level: number, anchor?: GraphPosition): void {
+		if (!Number.isFinite(level) || level <= 0) return;
+		const camera = this.instance.getCamera();
+		const ratio = 100 / Math.max(25, Math.min(400, level));
+		if (!anchor) {
+			camera.setState({ ratio });
+			return;
+		}
+		const target = this.instance.viewportToFramedGraph(
+			this.instance.graphToViewport(anchor),
+		);
+		const scale = ratio / camera.ratio;
+		camera.setState({
+			ratio,
+			x: target.x + (camera.x - target.x) * scale,
+			y: target.y + (camera.y - target.y) * scale,
+		});
 	}
 
 	onZoomLevelChange(listener: (level: number) => void): () => void {

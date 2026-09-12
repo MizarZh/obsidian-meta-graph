@@ -3,7 +3,10 @@
 	import type { GraphRenderer } from '@/graph/renderers/renderer-capabilities';
 	import { isPlanarRenderer } from '@/graph/renderers/renderer-instance';
 	import ObsidianButton from '@/ui/obsidian/ObsidianButton.svelte';
-	import { createMinimapTransform } from './minimap-geometry';
+	import {
+		createMinimapTransform,
+		minimapWheelZoom,
+	} from './minimap-geometry';
 	let {
 		readRenderer,
 		readCanvas,
@@ -154,8 +157,48 @@
 		redraw = draw;
 		draw();
 		const timer = win.setInterval(draw, 200);
+		let zoomFrame: number | undefined;
+		let zoomRenderer: GraphRenderer | undefined;
+		let zoomLevel: number | undefined;
+		let zoomAnchor: { x: number; y: number } | undefined;
+		const wheel = (event: WheelEvent) => {
+			event.preventDefault();
+			event.stopPropagation();
+			const renderer = readRenderer();
+			if (!open || !transform || !renderer || !isPlanarRenderer(renderer))
+				return;
+			const rect = map.getBoundingClientRect();
+			zoomAnchor = transform.invert({
+				x: ((event.clientX - rect.left) * width) / rect.width,
+				y: ((event.clientY - rect.top) * height) / rect.height,
+			});
+			if (renderer !== zoomRenderer) zoomLevel = undefined;
+			zoomRenderer = renderer;
+			zoomLevel = minimapWheelZoom(
+				zoomLevel ?? renderer.getZoomLevel(),
+				event.deltaY,
+				event.deltaMode,
+			);
+			if (zoomFrame !== undefined) return;
+			zoomFrame = win.requestAnimationFrame(() => {
+				zoomFrame = undefined;
+				if (
+					readRenderer() === zoomRenderer &&
+					zoomRenderer &&
+					isPlanarRenderer(zoomRenderer) &&
+					zoomLevel !== undefined
+				) {
+					zoomRenderer.setZoomLevel(zoomLevel, zoomAnchor);
+					draw();
+				}
+				zoomLevel = undefined;
+			});
+		};
+		map.addEventListener('wheel', wheel, { passive: false });
 		return () => {
 			win.clearInterval(timer);
+			map.removeEventListener('wheel', wheel);
+			if (zoomFrame !== undefined) win.cancelAnimationFrame(zoomFrame);
 			if (panFrame !== undefined) win.cancelAnimationFrame(panFrame);
 			drag = undefined;
 			redraw = () => {};
@@ -213,7 +256,10 @@
 	}
 	function move(event: PointerEvent) {
 		if (!drag || drag.id !== event.pointerId) return;
-		if (drag.renderer !== readRenderer()) { drag = undefined; return; }
+		if (drag.renderer !== readRenderer()) {
+			drag = undefined;
+			return;
+		}
 		const p = pointer(event);
 		pan(drag.invert({ x: p.x + drag.dx, y: p.y + drag.dy }));
 	}
@@ -238,7 +284,7 @@
 		style="width: 180px; height: 120px"
 		role="button"
 		tabindex="0"
-		aria-label="Minimap: drag the viewport or click to pan; arrow keys move the viewport"
+		aria-label="Minimap: drag or click to pan, scroll to zoom; arrow keys move the viewport"
 		onpointerdown={start}
 		onpointermove={move}
 		onpointerup={stop}

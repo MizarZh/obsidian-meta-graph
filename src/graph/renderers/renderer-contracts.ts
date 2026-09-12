@@ -100,7 +100,7 @@ export interface PlanarRenderer {
 	fit(): void;
 	zoomBy(factor: number): void;
 	getZoomLevel(): number;
-	setZoomLevel(level: number): void;
+	setZoomLevel(level: number, anchor?: GraphPosition): void;
 	onZoomLevelChange(listener: (level: number) => void): () => void;
 	resize(): void;
 	holdCurrentBounds(): void;

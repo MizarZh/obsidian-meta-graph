@@ -452,6 +452,17 @@ describe('G6 renderer', () => {
 		expect(fake.translateBy).toHaveBeenNthCalledWith(3, [100, -10], false);
 	});
 
+	it('anchors requested zoom to the graph point converted into viewport space', async () => {
+		const fake = createFakeG6();
+		const renderer = await G6Renderer.create(createOptions(createRuntimeGraph()), () => fake.instance);
+		if (!renderer) throw new Error('Expected renderer');
+		const anchor = { x: 12, y: -20 };
+		const point = renderer.graphToViewportPosition(anchor);
+		renderer.setZoomLevel(200, anchor);
+		expect(fake.zoomTo.mock.calls.at(-1)?.slice(1)).toEqual([false, [point.x, point.y]]);
+		renderer.kill();
+	});
+
 	it('coalesces continuous trackpad input into one direct camera step', async () => {
 		const graph = createRuntimeGraph();
 		const fake = createFakeG6();

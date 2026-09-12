@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Minimap wheel zoom now anchors to the graph position under the pointer, preserving that point's main-viewport position instead of zooming around the view center. Supports Sigma and G6.
+
+- Added mouse-wheel/trackpad zoom over the Minimap. Zoom changes are batched per animation frame, preserve the main view center, and use the shared 25%–400% range without scrolling the surrounding UI.
+
 - Node context menus now offer explicit Open in split and Open in new tab actions, independent of the default note-opening preference. Direct node opening still follows the preference.
 
 - Renamed node/link style context actions to Edit node/link style settings and moved them to the bottom, separated from other actions like Edit group.

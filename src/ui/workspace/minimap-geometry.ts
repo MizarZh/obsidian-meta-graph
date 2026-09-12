@@ -3,6 +3,12 @@ export interface MinimapPoint {
 	y: number;
 }
 
+export function minimapWheelZoom(level: number, deltaY: number, deltaMode: number): number {
+	if (!Number.isFinite(deltaY)) return level;
+	const pixels = deltaY * (deltaMode === 1 ? 16 : deltaMode === 2 ? 120 : 1);
+	return Math.max(25, Math.min(400, level * Math.exp(-Math.max(-500, Math.min(500, pixels)) * 0.002)));
+}
+
 export function createMinimapTransform(
 	points: readonly MinimapPoint[],
 	width: number,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createMinimapTransform } from '@/ui/workspace/minimap-geometry';
+import { createMinimapTransform, minimapWheelZoom } from '@/ui/workspace/minimap-geometry';
 import { createDefaultMetaGraphDocument } from '@/workspace/meta-graph-model';
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
 import { setShowMinimapInState } from '@/workspace/state/chart-settings';
@@ -7,6 +7,15 @@ import { analyzeWorkspaceStateChanges, createWorkspaceRenderBaseline } from '@/u
 import { createPersistenceContextFromV1, parsePersistedMetaGraphDocumentV2, serializeWorkspaceStateV2 } from '@/workspace/meta-graph-v2/codec';
 
 describe('minimap', () => {
+	it('zooms in/out, normalizes wheel units, and respects graph zoom limits', () => {
+		expect(minimapWheelZoom(100, -100, 0)).toBeGreaterThan(100);
+		expect(minimapWheelZoom(100, 100, 0)).toBeLessThan(100);
+		expect(minimapWheelZoom(100, 1, 1)).toBe(minimapWheelZoom(100, 16, 0));
+		expect(minimapWheelZoom(100, 1, 2)).toBe(minimapWheelZoom(100, 120, 0));
+		expect(minimapWheelZoom(400, -100, 0)).toBe(400);
+		expect(minimapWheelZoom(25, 100, 0)).toBe(25);
+		expect(minimapWheelZoom(100, NaN, 0)).toBe(100);
+	});
 	it('fits bounds with uniform scale and the shared upward graph Y axis', () => {
 		const project = createMinimapTransform([{x: -50, y: -25}, {x: 50, y: 25}], 180, 120)!;
 		expect(project({x: 0, y: 0})).toEqual({x: 90, y: 60});
