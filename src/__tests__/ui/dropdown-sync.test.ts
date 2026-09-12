@@ -31,6 +31,29 @@ const initial = {
 };
 
 describe('dropdown synchronization', () => {
+	it('never measures CSS-sized row controls on mount, value changes, or option changes', () => {
+		for (let row = 0; row < 150; row++) {
+			const control = createControl();
+			const sync = new DropdownSync();
+			const state = { ...initial, cssSized: true };
+			sync.update(control, state);
+			expect(control.selectEl.value).toBe('');
+			sync.update(control, { ...state, value: 'a' });
+			expect(control.selectEl.value).toBe('a');
+			sync.update(control, {
+				...state,
+				value: 'a',
+				options: [{ value: 'a', label: 'Renamed group' }],
+			});
+			expect(control.selectEl.value).toBe('a');
+			expect(control.setValue).not.toHaveBeenCalled();
+			expect(control.addOption).toHaveBeenLastCalledWith(
+				'a',
+				'Renamed group',
+			);
+		}
+	});
+
 	it('keeps the native dropdown class when applying and removing custom classes', () => {
 		const control = createControl();
 		const sync = new DropdownSync();

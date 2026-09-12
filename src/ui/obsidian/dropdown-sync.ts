@@ -1,4 +1,5 @@
 interface DropdownState {
+	cssSized?: boolean;
 	options: readonly { value: string; label: string }[];
 	value: string;
 	disabled: boolean;
@@ -13,7 +14,7 @@ interface DropdownControl {
 	setDisabled(disabled: boolean): unknown;
 }
 
-/** Obsidian setValue measures layout, so unchanged controls must be a no-op. */
+/** CSS-sized controls need no Obsidian width measurement, including on mount. */
 export class DropdownSync {
 	private previous?: DropdownState;
 
@@ -51,7 +52,8 @@ export class DropdownSync {
 			}
 		}
 		if (optionsChanged || control.selectEl.value !== state.value) {
-			control.setValue(state.value);
+			if (state.cssSized) control.selectEl.value = state.value;
+			else control.setValue(state.value);
 		}
 		this.previous = {
 			...state,

@@ -4,6 +4,8 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Avoid per-row synchronous width measurements when mounting Node list Group dropdowns. CSS-sized dropdowns now update native selection directly while retaining Obsidian controls and change handlers.
+
 - Show No group instead of a blank dropdown when no group destination is available, and disable the control.
 
 - Made rule-based membership authoritative. Move to group offers Manual groups for unmatched nodes and matching rule groups for conflicts, with shared valid destinations for batch moves. Empty move controls remain visible; incompatible saved overrides are cleaned on index refresh.

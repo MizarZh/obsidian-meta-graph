@@ -185,6 +185,7 @@
 								aria-hidden="true"
 							></span>
 							<ObsidianDropdown
+								cssSized
 								class="knowledge-workspace-curated-group-select"
 								value={file.groupId}
 								options={moveOptions.length

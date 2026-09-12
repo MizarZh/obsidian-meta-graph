@@ -12,6 +12,7 @@
 		value,
 		options,
 		disabled = false,
+		cssSized = false,
 		ariaLabel,
 		class: className = '',
 		onChange,
@@ -19,6 +20,7 @@
 		value: string;
 		options: DropdownOption[];
 		disabled?: boolean;
+		cssSized?: boolean;
 		ariaLabel?: string;
 		class?: string;
 		onChange: (value: string) => void;
@@ -47,6 +49,7 @@
 			options,
 			value,
 			disabled,
+			cssSized,
 			className,
 			ariaLabel,
 		});
