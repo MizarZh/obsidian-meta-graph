@@ -279,4 +279,5 @@ Important details:
 - `design.md` records current architecture, limitations, and planning notes.
 - Record every feature change in `CHANGELOG.md`.
 - When bumping the plugin version, update the corresponding release version and date in `CHANGELOG.md`.
+- Before releasing, trim the upcoming CHANGELOG section against the previous released tag: describe only the final user-visible differences between releases, not the development process. Merge repeated entries for the same feature; remove superseded designs, intermediate fixes, and reverted behavior. Check the final implementation and commit history so the release notes describe what actually ships. Preserve older published release sections.
 - Update docs when changing major behavior, especially connection editing, undo, metadata parsing, Flow layout policy, renderer refresh policy, or workspace/style persistence.

@@ -4,231 +4,37 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
-- Disable the invisible Obsidian dropdown measuring element in the fixed-width configuration dialog, and limit scrolling to the content area vertically so the title cannot scroll sideways.
-
-- Give the configuration modal a dedicated centered container and stretch its content to the same width, preventing offset content and unused horizontal space.
-
-- Let configuration descriptions fill the dialog width with switches aligned right, and constrain the modal to the viewport with scrollable content.
-
-- Added short descriptions for Styles, Layout, Panels, and Groups (add) in the configuration transfer dialog.
-
-- Consolidated style copy/paste into Apply configuration in the view menu, with selective styles, compatible layout, panels, and additive groups. Added versioned JSON import/export for cross-workspace transfer while preserving target queries, node positions, and manual assignments.
-
-- Moved Node badges to the end of Graph settings.
-
-- Added per-view Node badges controls in Graph settings: visibility, relative size (25–200%), and four corner positions. Changes repaint badges immediately without rebuilding or relaying out the graph.
-
-- Scale node status and Trace endpoint badges with the rendered node size, including glyphs, backgrounds, strokes, and offsets across renderers.
-
-- Allow Manual assignment groups in Flowchart, Arc, and Hierarchical edge bundling, including view switching and save/reload. Membership remains independent of automatic layout and respects Query filtering and rule-group ownership.
-
-- Arrange Group appearance settings in separate rows and use a Shape dropdown to prevent compressed and overlapping controls in narrow editors.
-
-- Override Obsidian's default button shadow on side-panel headings so their edges match the panel. Resize handles retain their original outside placement.
-
-- Keep side-panel toggle icons at the same position when expanding or collapsing, including right-side panels.
-
-- Avoid per-row synchronous width measurements when mounting Node list Group dropdowns. CSS-sized dropdowns now update native selection directly while retaining Obsidian controls and change handlers.
-
-- Show No group instead of a blank dropdown when no group destination is available, and disable the control.
-
-- Made rule-based membership authoritative. Move to group offers Manual groups for unmatched nodes and matching rule groups for conflicts, with shared valid destinations for batch moves. Empty move controls remain visible; incompatible saved overrides are cleaned on index refresh.
-
-- Fixed Node list Group dropdown alignment by keeping the select within its compact frame and centered with its color dot.
-
-- Fixed collapsed side-panel controls to a 32px square with centered icons, removing inherited text-button padding and preventing clipping.
-
-- Collapsed left/right panels now use compact icon-only controls; expanded panel headings retain their names.
-
-- Limited explicit icon-plus-label rendering to panel fold controls and prevented repeated reactive updates from accumulating button labels or icons. Other buttons retain their previous rendering.
-
-- Renamed the Nodes panel to Node list. Fold controls now show the active panel name, including single-panel groups and collapsed side panels; fixed icon buttons replacing their text labels.
-
-- Restored floating side panels with inset margins, rounded corners, and shadows while retaining configurable placement and tab grouping. Collapsed side panels shrink to a compact floating control.
-
-- Added per-view Overlays settings for visibility and placement. Nodes, Details, Pinned notes, and Templates can independently occupy either sidebar and share tabs on the same side. Minimap, Legend, and Trace support all four corners with automatic tab grouping; Timeline supports top or bottom. Positions and active tabs persist, while older views keep their original arrangement.
-
-- Fixed Sigma translucent nodes, ordinary edges, and arrowheads washing out against light backgrounds. WebGL colors now use premultiplied alpha to match Canvas parallel edges, including feathered chevron arrowheads.
-
-- Active Trace results now take priority over Local hover and pinned-neighborhood focus across renderers. Individual selection remains available without revealing neighbors; clearing Trace restores Local focus automatically.
-
-- Made Trace graph picking explicit with an accent-colored endpoint prompt and Cancel action, an accent-colored Cancel picking button, and a crosshair cursor. Picking one node now exits the mode immediately.
-
-- Moved the Trace endpoint swap button between the A and B rows, using vertical arrows to match their order.
-
-- Visually grouped selected Trace relationship fields and their add control with a subtle background, border, and spacing below the relationship mode selector.
-
-- Trace now preserves original node and relationship colors and styles, fading only elements outside its range instead of recoloring traced elements with the selection color.
-
-- Added clear actions for Trace endpoints; emptying an endpoint input cancels its selection. Clearing endpoints no longer starts graph picking. Click an active pick button again or press Escape to cancel picking.
-
-- Removed the separate Close trace action and internal Trace options fold. Relationship fields, direction, and layers now appear directly in the Trace panel.
-
-- Made embedded Minimap fill the corner panel width at a 3:2 aspect ratio. Canvas resolution, drawing, and navigation mapping follow its actual dimensions on resize.
-
-- Added a shared Node status heading above the Empty note and Added context legend icons.
-
-- Simplified the Legend status explanations to Empty note and Added context icons, removing their section headings and Core match text. Existing Nodes / Links style legends remain intact.
-
-- Unified corner overlays with a full-width arrow/title row and an accent-highlighted segmented selector fixed at the bottom. Overlay content expands upward; collapsing or switching panels preserves trace highlights.
-
-- Moved Trace into a compact 330px corner panel with collapsed trace options and a collapsible summary. Trace, Minimap, and Legend now share a tabbed corner area above Timeline. Switching tabs or collapsing Trace preserves highlights; closing Trace clears them.
-
-- Added a per-chart Trace overlay toggle and a bottom trace panel that can be opened before choosing a node. Trace stacks above Timeline and moves the minimap/legend clear of both panels; trace queries and highlights remain transient.
-
-- Reworked Trace into a compact Reachability / Between nodes panel with searchable endpoints, graph picking, temporary A/B badges, metadata relationship-field selection, per-field arrow directions, and a shared reachability layer limit. Undirected fields traverse both ways; path mode still finds one shortest path.
-
-- Added transient upstream/downstream tracing and shortest-path highlighting from node context menus. Tracing respects directed edges and current-view visibility, handles cycles, and leaves layout and saved styles intact. Choose a path destination by clicking a node; use the trace bar or Escape to exit.
-
-- Automatically collapse Workspace default when chart note or link overrides are present. It remains manually expandable and reopens when overrides are removed.
-
-- Updated note and link Chart overrides to the current style preview cards and popover editors, matching Workspace default. Adding an override opens its editor; removing it restores inherited styles.
-
-- Smoothed Sigma Flowchart parallel Curve edges with tapered lane spacing, endpoint joins outside node boundaries, and adaptive curve sampling shared by drawing and hit testing.
-
-- Renamed chart types in the UI: Graph → Network, Flow → Flowchart, 3D graph → 3D network, and Free → Canvas. Other chart names, saved type identifiers, and existing chart titles are unchanged.
-
-- Added an automatic blank-document badge for existing notes without body content, including whitespace-only and properties-only notes. Empty status takes priority over related context; unresolved status retains its question mark.
-
-- Matched unresolved links’ default appearance to plain links while preserving their independent style controls and existing custom overrides. Unresolved nodes retain the `?` badge.
-
-- Added a `?` badge for unresolved nodes in query and curated charts, independent of related-context expansion. Unresolved status takes priority over the context badge, with a matching legend entry.
-
-- Replaced the context badge plus sign with a chain-link glyph and matching legend icon to avoid suggesting an expand action.
-
-- Synchronized context badges with renderer paint completion instead of an independent animation loop, reducing drag/zoom lag across Sigma, G6, Graph 3D, and Cube. Old scene listeners are removed on replacement and teardown.
-
-- Replaced `[Context]` label prefixes and automatic dimming with a small upper-right `+` badge for expanded nodes. Added a per-chart Show context badges toggle; badges track pan, zoom, and node movement across Sigma, G6, Graph 3D, and Cube without changing user styles or pointer interaction.
-
-- Tightened relationship rows to a 4px gap and reduced padding, removing inherited section margins.
-
-- Compacted relationship expansion into wrapping single-row controls: direction dropdown, 1–3 layer slider with a visible value, and per-field removal.
-
-- Added per-relationship direction and layer controls in Selected fields, using individual cards with segmented choices. All relationship fields keeps shared controls. Both modes retain their settings, and older selections inherit their previous shared values.
-
-- Added 8px spacing between selected relationship fields and the field input.
-
-- Removed explanatory paragraphs from Related context settings, keeping controls, scope, and node counts.
-
-- Reused the node-shape segmented setting for related-context layers, making the selected depth visibly highlighted.
-
-- Fixed shared dropdowns losing their native Obsidian class. Select controls now retain visible input-style borders, a native arrow, and hover/focus/disabled states, including settings popovers.
-
-- Fixed selected relationship fields showing only a remove icon. Field chips now render their names separately from the remove button and wrap long names.
-
-- Made related-context membership explicit with a `[Context]` graph-label prefix, a legend key, and Core match/Added context status in node Details. The expansion panel now labels its scope as This view and explains that All views filters constrain both sets.
-
-- Added per-chart Related context controls below Filters: searchable relationship field selection, both/incoming/outgoing traversal, and 1–3 layers. Expands current-view matches beyond their filter using configured metadata relationships, keeps All views filters and node limits, shows core/added counts, dims added nodes, and persists choices in workspace files.
-
-- Minimap wheel zoom now anchors to the graph position under the pointer, preserving that point's main-viewport position instead of zooming around the view center. Supports Sigma and G6.
-
-- Added mouse-wheel/trackpad zoom over the Minimap. Zoom changes are batched per animation frame, preserve the main view center, and use the shared 25%–400% range without scrolling the surrounding UI.
-
-- Node context menus now offer explicit Open in split and Open in new tab actions, independent of the default note-opening preference. Direct node opening still follows the preference.
-
-- Renamed node/link style context actions to Edit node/link style settings and moved them to the bottom, separated from other actions like Edit group.
-
-- Added Edit current node/link style to graph context menus. Opens the last matching chart/global rule (using rendering precedence), falls back to chart overrides or workspace defaults, and routes unresolved objects/plain links to their dedicated settings. Editing changes the shared style, not only the clicked object.
-
-- Replaced Delete group in the main graph context menu with Edit group, which opens the matching group editor in toolbar settings. The Details edit shortcut now targets the selected group as well; deletion remains in group settings.
-
-- Changed Minimap navigation from node focus to viewport dragging. Drag the viewport frame with its grab offset preserved, click outside to recenter, or use arrow keys; Sigma/G6 retain zoom and layout.
-
-- Added an opt-in per-chart Minimap overlay for Sigma/G6 planar charts. Shows visible nodes, simplified logical links, and the viewport footprint; click to focus the nearest node. Refreshes at 5 Hz without relayout, retains hidden-node bounds during timeline playback, and supports collapse. Graph 3D/Cube are not included.
-
-- Unified left Nodes and right dock panel shells: shared card border, radius, shadow, inset collapse controls, and header background. Nodes drag-target highlighting now applies to the complete card.
-
-- Enabled Timeline in Cube using the shared playback controls and existing visibility refresh. Face placement and manual positions remain stable; the renderer still rebuilds graph objects per visibility update, so playback performance needs real-world evaluation.
-
-- Enabled Timeline for Graph 3D with shared date/Per node playback, speed, range, and progress controls. Visibility updates use the existing 3D data synchronization and cached positions without workspace rebuilds or auto-fit; visible force simulation data changes may move the layout. Cube remains unsupported.
-
-- Grouped Legend and Timeline toggles on one row under an Overlays heading in Graph settings.
-
-- Removed the duplicate Renderer control from Graph settings. Renderer selection remains available in Configure view; saved renderer choices are unchanged.
-
-- Fixed Flow curves falling back to right-angle routes during timeline playback in Sigma. The layout route cache now retains hidden edges; visibility changes reuse the original routes without relayout or revealing hidden links.
-
-- Fixed empty dynamic Groups leaving overlapping titles at the origin during timeline playback. Sigma and G6 now omit their regions, titles, and hit targets until a member is visible again, without changing layout or saved Group data.
-
-- Separated timeline transport controls from settings: Jump to start, Play/Pause, and Jump to end now lead the toolbar. Replaced the ambiguous range-reset icon with standard skip controls that pause and save progress while preserving From/To.
-
-- Added per-chart timeline playback speed (0.25×–4×, default 1×). Date and Per node playback share the control; changing speed while playing preserves the cursor and continues playback.
-
-- Removed the timeline settings popup and undated-node toggle. Nodes without timestamps now appear at To in date playback, or individually after dated nodes in Per node mode; existing hidden nodes remain hidden. Old undated-toggle values are ignored.
-
-- Per node progress now displays the node's local date and time, including seconds, alongside the node count.
-
-- Per node playback sorts by the exact selected timestamp, then node display name for time ties; node IDs only break remaining name ties.
-
-- Added Per node timeline playback. Each tick reveals one dated node within From/To, with stable ID tie-breaking for identical timestamps. The slider scrubs integer node counts and displays count plus date; hidden nodes are excluded and the independent node cursor is saved with the chart.
-
-- Moved timeline From/To dates onto the action toolbar; the progress slider and its current date remain on a separate row. Controls wrap only when space is limited.
-
-- Separated timeline From/To bounds from the saved current-date cursor. Progress displays its own date and scrubs only within the selected range; cumulative playback reveals nodes from From through the cursor, stops at To, and never changes either bound.
-
-- Added one timeline progress slider alongside From/To date controls. Scrubbing pauses playback and previews the To date while keeping From fixed; releasing saves the final range. Playback and date edits keep the slider synchronized.
-
-- Timeline playback skips empty date intervals and keeps playing when unrelated updates clone unchanged timeline settings, preventing long apparent stalls after the first node.
-
-- Timeline now uses two directly editable From/To date controls instead of sliders. Sources are limited to file creation/modification time; retired metadata sources fall back to creation time with a reset range.
-
-- Added an opt-in per-chart timeline for Sigma/G6 Graph, Free, Flow, Arc, and HEB. Choose creation/modification time or an ISO date property; preview a date range, include/exclude undated nodes, and play cumulatively by day/week/month. Timeline visibility is combined with existing hidden nodes/links through incremental renderer updates, without relayout or auto-fit. Range previews/playback do not save every frame; committed settings persist with each chart. Legend positioning accounts for the timeline. Graph 3D/Cube and historical snapshots are not included.
-
-- Fixed graph content collapsing into a corner after returning from another Obsidian file tab. The canvas size observer now remembers zero-size hidden states, so returning to the same visible dimensions still restores and repaints the renderer without resetting the camera.
-- Fixed Sigma nodes remaining offscreen after drag simulation releases held bounds. Releasing bounds now reprocesses normalized coordinates before painting, without resetting the camera or rerunning layout; Flow spacing bounds remain held until fit or scene reset.
-- Fixed exported group titles: SVG now includes centered, group-colored capsule backgrounds and borders, with Flow title-band positioning and label scaling. PNG captures DOM capsule text with the loaded document font before image composition, preserving fractional widths and export resolution instead of reflowing titles into ellipses.
-
-- Fixed PNG export changing light-theme labels into white text or dark label boxes. Transparent offscreen rendering now retains the source chart's label theme, including custom text colors and label background opacity, independently of the output background.
-
-- Added export v2: editable SVG for all five planar chart types with Sigma/G6, plus JSON, CSV, and Markdown entry exports for every chart type. Entry exports support filtered-chart or node/relationship/group selection scope, independent node/relationship inclusion, and optional metadata. Logical relationships exclude layout segments; CSV escapes spreadsheet formulas. All formats share collision-safe vault saving and cancellation.
-
-- Added PNG export from the chart toolbar, including read-only workspaces. Export the current view or the complete filtered planar graph at 1×/2×/3× resolution, with theme/white/transparent backgrounds and an optional legend. Graph 3D and Cube export the current camera. Images are saved in the vault root with collision-safe names; export preserves the live layout and camera, omits transient emphasis, checks image limits, and cancels stale renderer generations.
-
-- Added a per-chart Show legend toggle in Graph settings, enabled by default. Visibility is saved with the chart and updates without rebuilding or relaying out the graph.
-
-- Group, Node, and Link settings now close when clicking outside both the settings panel and its floating editor. Removed the extra panel close button; the editor's close button still closes only the current entry.
-
-- Graph/Free group reordering skips graph reconstruction and relayout when definitions and resolved node ownership are unchanged; group overlays still synchronize. Rule-priority ownership changes and Flow/Arc/HEB ordering retain their existing rebuild behavior.
-
-- Group cards support drag-to-reorder with before/after drop indicators, applying each drop as one state update. Read-only and fixed system groups remain locked.
-
-- Group settings use compact cards with name, color, member count, and membership mode. Clicking a card opens one adjacent floating editor; ordering stays on the cards, with existing group permissions and settings preserved.
-
-- Fixed the legend touching the right panel by accounting for the panel's own inset before adding the legend gap.
-
-- Added a collapsible canvas legend for default and Global/Chart node/link styles. Previews match style cards; custom rule names take priority, with matching conditions used as automatic names and hover details. Legend updates live without affecting the graph.
-
-- Node hover reveals full names despite the text-width limit. Local hover/pinned focus also reveals neighbor names; leaving focus restores truncation, using label-only updates.
-
-- Removed the Max text width subtitle; usage details remain in its hover tooltip.
-
-- Setting rows with descriptions reserve space for their controls and wrap help text; the label-length setting uses a shorter description.
-
-- Text settings include a per-chart maximum node/link text width in pixels (0 = unlimited), replacing the character-count limit. Font-aware measurement includes `...` inside the width budget; the width scales with text. Original names and layout stay unchanged, with live updates in Sigma, G6, and 3D.
-
-- Node/link rule editors place the Name field and scope/delete actions on one compact row above the matching condition.
-
-- Node/link rules support optional saved names. Unnamed cards use their matching condition, including the operator, as the title; named cards retain the condition in their summary. Names do not affect matching or rule order.
-
-- Node style cards preview the configured shape and color for Workspace default and Global/Chart rules.
-
-- Link style cards now preview line color, width, opacity, and pattern instead of a color dot, including Workspace default and Global/Chart rules.
-
-- Link Pattern controls now show solid, dashed, dotted, and dash-dot line previews, with accessible names and hover tooltips in all shared link style editors.
-
-- Node/link rule drag handles can transfer rules between Global and Chart sections. Drop on a section heading to append (including empty sections), or on a card to insert before/after it.
-
-- Style rule ordering controls now live on the compact cards. Drag handles reorder rules within their Global/Chart section, with above/below drop indicators; workspace defaults remain unsortable.
-
-- Floating node/link rule editors keep field, operator, and value on one row, with ordering and rule actions above.
-
-- Fixed floating style editor offsets in shifted/scaled workspaces and prevented the full-card click target from squeezing rule summaries into narrow columns.
-
-- Style cards now open directly on click, including compact Workspace default cards for nodes and links. Floating editors align beside the clicked card rather than the settings panel header.
+## [1.9.0] - 2026-09-13
 
 ### Added
 
-- Node and link style rules use compact summaries with one floating rule editor at a time. Style settings remain open while interacting with the graph; rule editors preserve live controls and adapt to available window space. Other override sections remain inline.
+- **Trace** explores reachability and one shortest path between nodes, with searchable endpoints, graph picking, metadata relationship filters, per-field directions, and a reachability layer limit. Results preserve original styles, fade unrelated elements, handle cycles, and take priority over Local focus until cleared.
+- **Related context** expands a view's matches through selected metadata relationships, with shared or per-field directions and 1–3 layers. Expansion respects All views filters and node limits and saves its settings per view.
+- **Overlays** settings control panel visibility and placement per view. Node list, Details, Pinned notes, and Templates can occupy either floating sidebar and share tabs. Legend, Minimap, and Trace can share tabs in any corner; Timeline can sit above or below the graph.
+- **Minimap** for Sigma/G6 planar views supports viewport dragging, click-to-recenter, keyboard navigation, and pointer-anchored wheel zoom without relayout.
+- **Legend** explains default and conditional node/link styles, plus Empty note and Added context status icons, and updates with style edits.
+- **Timeline** supports creation/modification dates, date-based or per-node playback, a saved progress cursor, and 0.25×–4× speed across planar, 3D network, and Cube views. Planar playback preserves layout; undated nodes appear at the end.
+- **Chart export** supports PNG snapshots, editable SVG for planar views, and JSON, CSV, or Markdown entry exports, with selection scope where available.
+- **Apply configuration** reuses styles, compatible layout settings, panel settings, and additional group definitions from another view or a JSON import. Export selected configuration to a new JSON file for another workspace; target queries, node positions, and manual assignments remain intact. Duplicate view remains the full-copy option.
+- **Node badges** identify unresolved nodes, empty notes, and added context. Per-view controls set visibility, relative size, and corner position; badges scale and move with rendered nodes.
+
+### Changed
+
+- Renamed Graph to **Network**, Flow to **Flowchart**, Graph 3D to **3D network**, Free to **Canvas**, and the Nodes panel to **Node list**. Saved chart type identifiers remain compatible.
+- Node/link style settings use named preview cards and floating live editors. Rules can be reordered or dragged between Global and Chart scopes. Chart overrides use the same editors and automatically collapse Workspace default while remaining independently editable.
+- Added a maximum text width setting; hovering or focusing nodes reveals full labels without changing saved names.
+- Group settings use compact reorderable cards and floating editors. Manual assignment is available in Flowchart, Arc, and Hierarchical edge bundling as well as Network and Canvas.
+- Rule-based group membership is authoritative. Move to group offers manual destinations for unmatched nodes and matching rule groups for conflicts; unavailable destinations show No group. Valid manual assignments survive query filtering.
+- Graph context menus can open notes in a split or new tab and open the applicable node, link, or group style editor.
+- Unresolved links use the same default appearance as plain links while retaining their separate settings and existing overrides.
+
+### Fixed
+
+- Reduced Node list opening work by avoiding per-row dropdown width measurements. Standardized dropdown borders, selected-field controls, panel headings, and collapsed icon alignment.
+- Corrected Sigma transparency for nodes, links, and arrowheads on light backgrounds, and smoothed parallel Flowchart curves.
+- Preserved Flowchart curve routes during Timeline playback and suppressed empty dynamic group overlays until their members return.
+- Restored graph sizing after switching back from another Obsidian tab and refreshed Sigma coordinates when drag simulation releases held bounds.
+- Corrected exported group titles and label colors in transparent PNG exports.
 
 ## [1.8.0] - 2026-09-11
 

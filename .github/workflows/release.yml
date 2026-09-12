@@ -36,9 +36,27 @@ jobs:
                   cp main.js manifest.json styles.css ${{ env.PLUGIN_NAME }}
                   zip -r ${{ env.PLUGIN_NAME }}-${{ github.ref_name }}.zip ${{ env.PLUGIN_NAME }}
 
+            - name: Extract release notes
+              run: |
+                  node --input-type=module <<'NODE'
+                  import { readFileSync, writeFileSync } from 'node:fs';
+                  const version = process.env.GITHUB_REF_NAME;
+                  const manifest = JSON.parse(readFileSync('manifest.json', 'utf8'));
+                  if (manifest.version !== version) throw new Error('Tag and manifest version differ');
+                  const lines = readFileSync('CHANGELOG.md', 'utf8').split('\n');
+                  const start = lines.findIndex(line => line.startsWith(`## [${version}] - `));
+                  if (start < 0) throw new Error(`Missing changelog for ${version}`);
+                  let end = start + 1;
+                  while (end < lines.length && !lines[end].startsWith('## ')) end++;
+                  const notes = lines.slice(start + 1, end).join('\n').trim();
+                  if (!notes) throw new Error('Release notes are empty');
+                  writeFileSync('release-notes.md', notes + '\n');
+                  NODE
+
             - name: Release with Notes
               uses: softprops/action-gh-release@v1
               with:
+                  body_path: release-notes.md
                   files: |
                       main.js
                       manifest.json
