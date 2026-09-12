@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Show No group instead of a blank dropdown when no group destination is available, and disable the control.
+
+- Made rule-based membership authoritative. Move to group offers Manual groups for unmatched nodes and matching rule groups for conflicts, with shared valid destinations for batch moves. Empty move controls remain visible; incompatible saved overrides are cleaned on index refresh.
+
 - Fixed Node list Group dropdown alignment by keeping the select within its compact frame and centered with its color dot.
 
 - Fixed collapsed side-panel controls to a 32px square with centered icons, removing inherited text-button padding and preventing clipping.

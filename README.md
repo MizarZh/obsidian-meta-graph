@@ -254,8 +254,12 @@ settings to report them in the developer console.
    apart keep paths, arrows, and labels distinct without widening the layout.
 10. Use **Group** settings to add chart-local groups, set priority, colors,
     padding, and Manual assignment or Rule-based membership. Each note belongs to at most one
-    group; an explicit assignment or Ungrouped override takes priority over
-    rules. Network, Arc, Hierarchical edge bundling, Flowchart, Canvas, and Cube render
+    group. Rule-based membership is authoritative. When several rules match,
+    a manual choice between those matching groups resolves ownership. Nodes with
+    no matching rules can move between Manual groups or become ungrouped.
+    Group controls show No group and are disabled when no destinations exist; batch moves list only
+    destinations valid for every selected node. Incompatible saved overrides
+    are removed when the index refreshes. Network, Arc, Hierarchical edge bundling, Flowchart, Canvas, and Cube render
     groups according to their layout. Every non-Cube layout uses the same colored
     member halo, faint region, horizontal title pill, and interaction states.
     Network regions follow their members automatically; Canvas frames keep editable
@@ -308,8 +312,9 @@ settings to report them in the developer console.
     outside nodes continue simulating, then releases the members on drop;
     Canvas saves the frame and member positions. In Canvas, use any edge
     or corner handle to resize the region without changing membership.
-17. In Canvas, drag a node into any group frame to create an explicit assignment.
-    Drag it out over empty space to set an explicit **Ungrouped** override. Use
+17. In Canvas, drag a node into an eligible group frame to assign it.
+    Rule-based nodes can only switch between overlapping matching groups;
+    nodes without matching rules can move into Manual groups or out into empty space. Use
     **Automatic** in Details to return the note to rule-based ownership.
 18. In Cube views, each cube face is a locked System group. Cube keeps its
     face-based colors instead of adding member halos. Select or right-click a face

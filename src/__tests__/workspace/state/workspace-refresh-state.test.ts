@@ -5,6 +5,11 @@ import {
 	applyWorkspaceProjectionToState,
 	projectWorkspaceState,
 } from '@/workspace/runtime/refresh-state';
+import {
+	addGroupInState,
+	updateGroupInState,
+	moveNodesToGroupInState,
+} from '@/workspace/state/manual-layout-state';
 import { addCuratedFileInState } from '@/workspace/actions/curated-actions';
 import { setActiveChartTypeInState } from '@/workspace/state/chart-state';
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
@@ -35,6 +40,33 @@ describe('workspace refresh state', () => {
 		expect(nextState.availableFolders).toEqual(['Folder']);
 		expect(nextState.availableTags).toEqual(['tag']);
 		expect(nextState.availableDomains).toEqual(['domain']);
+	});
+
+	it('removes stale rule overrides from persisted charts and active state on refresh', () => {
+		let state = addGroupInState(createWorkspaceState(100));
+		const groupId = state.grouping.groups[0]!.id;
+		state = moveNodesToGroupInState(state, ['A.md'], groupId);
+		state = updateGroupInState(state, groupId, {
+			mode: 'rule',
+			rule: { id: 'root', kind: 'group', mode: 'all', children: [] },
+		});
+		const next = applyWorkspaceIndexSnapshotToState(
+			state,
+			{
+				index: createIndex(['A.md']),
+				unresolvedLinks: [],
+				metadataSources: [],
+				availableFolders: [],
+				availableTags: [],
+				availableDomains: [],
+			},
+			false,
+		);
+		expect(next.grouping.overrides).toEqual({});
+		expect(
+			next.charts.find((chart) => chart.id === next.activeChartId)
+				?.grouping.overrides,
+		).toEqual({});
 	});
 
 	it('drops selection when projected nodes no longer contain it', () => {

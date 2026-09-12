@@ -426,8 +426,8 @@ describe('style rules', () => {
 				overrides: { [node.id]: 'manual-group' },
 			}),
 		).toEqual({
-			groupIds: ['manual-group'],
-			groupNames: ['Manual group'],
+			groupIds: ['rule-group'],
+			groupNames: ['Rule group'],
 		});
 	});
 

@@ -6,6 +6,10 @@
 		CuratedWorkspaceConfig,
 		KnowledgeNode,
 	} from '@/core/types';
+	import {
+		getGroupMoveTargets,
+		canMoveNodeToGroup,
+	} from '@/query/group-ownership';
 	import NodeList from '@/ui/nodes/NodeList.svelte';
 	import {
 		filterNodeListEntries as filterSelectedFiles,
@@ -104,7 +108,18 @@
 		...(groupRequired ? [] : [{ value: '', label: 'No group' }]),
 		...groups.map((group) => ({ value: group.id, label: group.name })),
 	]);
-	const groupOptions = $derived(addGroupOptions);
+	const selectedMoveOptions = $derived.by(() => {
+		const files = selectedFiles.filter((file) => selected.has(file.id));
+		const first = files[0];
+		if (!first) return [];
+		return getGroupOptions(first).filter((option) =>
+			files.every((file) =>
+				getGroupOptions(file).some(
+					(candidate) => candidate.value === option.value,
+				),
+			),
+		);
+	});
 	const groupsById = $derived(
 		new Map(groups.map((group) => [group.id, group])),
 	);
@@ -253,6 +268,8 @@
 	}
 
 	function moveSelectedToGroup(groupId: string): void {
+		if (!selectedMoveOptions.some((option) => option.value === groupId))
+			return;
 		const paths = selectedFiles
 			.map((file) => file.id)
 			.filter((path) => selected.has(path));
@@ -263,16 +280,32 @@
 	}
 
 	function moveFileToGroup(path: string, groupId: string): void {
+		const file = selectedFiles.find((file) => file.id === path);
+		if (
+			!file ||
+			!getGroupOptions(file).some((option) => option.value === groupId)
+		)
+			return;
 		onMoveFilesToGroup([path], groupId || undefined);
 	}
 
-	function getGroupOptions(currentGroupId: string) {
-		return currentGroupId && !groupsById.has(currentGroupId)
-			? [
-					...groupOptions,
-					{ value: currentGroupId, label: 'Missing group' },
-				]
-			: groupOptions;
+	function getGroupOptions(file: NodeListEntry) {
+		const node = nodesById.get(file.id);
+		const targets = getGroupMoveTargets(node, groups);
+		if (targets.length === 0) return [];
+		return [
+			...(!groupRequired && canMoveNodeToGroup(node, groups, null)
+				? [{ value: '', label: 'No group' }]
+				: []),
+			...targets.map((group) => ({ value: group.id, label: group.name })),
+		];
+	}
+
+	function canMoveFile(file: NodeListEntry): boolean {
+		return (
+			groupsById.get(file.groupId)?.mode !== 'rule' ||
+			getGroupOptions(file).length > 1
+		);
 	}
 
 	function clearAll(): void {
@@ -450,15 +483,21 @@
 					{selectedCount} selected
 				</span>
 				{#if groupEditable}
-					<label class="knowledge-workspace-curated-selection-group">
+					<label
+						class="knowledge-workspace-curated-selection-group"
+						title={selectedMoveOptions.length === 0
+							? 'No shared destination; rule-based nodes can only move between matching rules'
+							: undefined}
+					>
 						<span>Group</span>
 						<ObsidianDropdown
 							value="__move__"
 							options={[
 								{ value: '__move__', label: 'Move to group' },
-								...groupOptions,
+								...selectedMoveOptions,
 							]}
 							ariaLabel="Move selected to group"
+							disabled={selectedMoveOptions.length === 0}
 							onChange={(value) => {
 								if (value !== '__move__') {
 									moveSelectedToGroup(value);
@@ -509,6 +548,7 @@
 			files={filteredSelectedFiles}
 			selectedTitleCounts={filteredSelectedTitleCounts}
 			{getGroupOptions}
+			{canMoveFile}
 			selectedPaths={selected}
 			reorderEnabled={editable && !listSearchActive && filterCount === 0}
 			onFileClick={handleFileClick}

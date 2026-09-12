@@ -20,13 +20,7 @@ import {
 import { createWorkspaceRenderPlan } from '@/ui/workspace/render-plan';
 
 describe('workspace manual layout state', () => {
-	it.each([
-		'graph',
-		'free',
-		'flow',
-		'arc',
-		'hierarchical-edge-bundling',
-	] as const)(
+	it.each(['graph', 'free'] as const)(
 		'assigns Query nodes in %s without changing query or saved membership',
 		(mode) => {
 			const state = addGroupInState(
@@ -46,6 +40,73 @@ describe('workspace manual layout state', () => {
 			for (const id of ids)
 				expect(ungrouped.grouping.overrides[id]).toBeNull();
 			expect(moveNodesToGroupInState(state, [], groupId)).toBe(state);
+		},
+	);
+
+	it.each([
+		'graph',
+		'free',
+		'flow',
+		'arc',
+		'hierarchical-edge-bundling',
+	] as const)(
+		'restricts %s moves to matching conflict groups and rejects mixed batches atomically',
+		(mode) => {
+			let state = addGroupInState(
+				setActiveChartTypeInState(createWorkspaceState(100), mode)
+					.state,
+			);
+			const first = state.grouping.groups[0]!.id;
+			const rule = {
+				id: 'root',
+				kind: 'group' as const,
+				mode: 'all' as const,
+				children: [
+					{
+						id: 'tag',
+						kind: 'condition' as const,
+						field: 'file.tags' as const,
+						operator: 'is' as const,
+						value: 'research',
+					},
+				],
+			};
+			state = updateGroupInState(state, first, { mode: 'rule', rule });
+			state = addGroupInState(state);
+			const second = state.grouping.groups[1]!.id;
+			state = updateGroupInState(state, second, { mode: 'rule', rule });
+			const a = {
+				id: 'A.md',
+				path: 'A.md',
+				title: 'A',
+				folder: '',
+				tags: ['research'],
+				domains: [],
+			};
+			const b = { ...a, id: 'B.md', path: 'B.md', tags: [] };
+			state = {
+				...state,
+				projection: {
+					nodes: [a, b],
+					edges: [],
+					rootIds: new Set<string>(),
+				},
+			};
+			expect(moveNodesToGroupInState(state, [a.id, b.id], second)).toBe(
+				state,
+			);
+			expect(setNodeGroupInState(state, a.id, null)).toBe(state);
+			const next = moveNodesToGroupInState(state, [a.id], second);
+			expect(next.grouping.overrides[a.id]).toBe(second);
+			expect(next.query).toEqual(state.query);
+			expect(next.curated).toEqual(state.curated);
+			const reset = setNodeGroupInState(next, a.id, undefined);
+			expect(reset.grouping.overrides[a.id]).toBeUndefined();
+			const dragged = setManualNodePositionInState(next, a.id, {
+				x: 10,
+				y: 20,
+			});
+			expect(dragged.grouping.overrides[a.id]).toBe(second);
 		},
 	);
 
@@ -215,7 +276,7 @@ describe('workspace manual layout state', () => {
 		expect(moveCuratedFilesToGroupInState(state, [])).toBe(state);
 	});
 
-	it('creates rule-only Arc groups and allows explicit node assignment', () => {
+	it('creates rule-only Arc groups and rejects unmatched node assignment', () => {
 		let state = setActiveChartTypeInState(
 			createWorkspaceState(100),
 			'arc',
@@ -229,7 +290,7 @@ describe('workspace manual layout state', () => {
 		expect(group.rule).toBeDefined();
 
 		const nextState = setNodeGroupInState(state, 'A.md', group.id);
-		expect(nextState.grouping.overrides['A.md']).toBe(group.id);
+		expect(nextState).toBe(state);
 	});
 
 	it('updates Arc padding only in canonical grouping', () => {
@@ -285,7 +346,7 @@ describe('workspace manual layout state', () => {
 		]);
 	});
 
-	it('creates rule-only Flow groups and allows explicit node assignment', () => {
+	it('creates rule-only Flow groups and rejects unmatched node assignment', () => {
 		let state = setActiveChartTypeInState(
 			createWorkspaceState(100),
 			'flow',
@@ -299,7 +360,7 @@ describe('workspace manual layout state', () => {
 		expect(group.rule).toBeDefined();
 
 		const nextState = setNodeGroupInState(state, 'A.md', group.id);
-		expect(nextState.grouping.overrides['A.md']).toBe(group.id);
+		expect(nextState).toBe(state);
 	});
 
 	it('moves groups across multiple positions in one update', () => {

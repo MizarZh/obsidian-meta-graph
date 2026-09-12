@@ -5,7 +5,12 @@ import type {
 	KnowledgeNode,
 	NodeFilterGroup,
 } from '@/core/types';
-import { resolveChartGroupOwnership } from '@/query/group-ownership';
+import {
+	getGroupMoveTargets,
+	canMoveNodeToGroup,
+	cleanGroupingOverrides,
+	resolveChartGroupOwnership,
+} from '@/query/group-ownership';
 
 describe('chart group ownership', () => {
 	it('uses group order for overlapping rules and reports the conflict', () => {
@@ -34,32 +39,76 @@ describe('chart group ownership', () => {
 		]);
 	});
 
-	it('lets explicit groups and ungrouped overrides win over rules', () => {
-		const grouping = createGrouping(
-			[manualGroup('manual'), ruleGroup('research', tagRule('research'))],
-			{
-				'A.md': 'manual',
-				'B.md': null,
-			},
-		);
-		const result = resolveChartGroupOwnership(
-			[node('A.md', ['research']), node('B.md', ['research'])],
-			grouping,
-		);
-
+	it('rejects incompatible overrides and preserves matching conflict choices', () => {
+		const groups = [
+			manualGroup('manual'),
+			ruleGroup('research', tagRule('research')),
+			ruleGroup('projects', folderRule('Projects')),
+		];
+		const nodes = [
+			node('A.md', ['research']),
+			node('B.md', ['research']),
+			node('C.md'),
+			node('Projects/D.md', ['research']),
+			node('E.md'),
+		];
+		const grouping = createGrouping(groups, {
+			'A.md': 'manual',
+			'B.md': null,
+			'C.md': 'research',
+			'Projects/D.md': 'projects',
+			'E.md': 'manual',
+		});
+		const result = resolveChartGroupOwnership(nodes, grouping);
 		expect(result.byNode.get('A.md')).toMatchObject({
-			groupId: 'manual',
-			source: 'override',
-			matchedGroupIds: ['research'],
-			conflictingGroupIds: ['manual', 'research'],
+			groupId: 'research',
+			source: 'rule',
 		});
-		expect(result.byNode.get('B.md')).toEqual({
-			nodeId: 'B.md',
-			source: 'override',
-			matchedGroupIds: ['research'],
-			conflictingGroupIds: ['research'],
+		expect(result.byNode.get('B.md')).toMatchObject({
+			groupId: 'research',
+			source: 'rule',
 		});
-		expect(result.ungroupedNodeIds).toEqual(['B.md']);
+		expect(result.byNode.get('C.md')?.groupId).toBeUndefined();
+		expect(result.byNode.get('Projects/D.md')).toMatchObject({
+			groupId: 'projects',
+			source: 'override',
+		});
+		const cleaned = cleanGroupingOverrides(
+			grouping,
+			new Map(nodes.map((n) => [n.id, n])),
+		);
+		expect(cleaned.overrides).toEqual({
+			'Projects/D.md': 'projects',
+			'E.md': 'manual',
+		});
+		expect(
+			cleanGroupingOverrides(
+				cleaned,
+				new Map(nodes.map((n) => [n.id, n])),
+			),
+		).toBe(cleaned);
+	});
+
+	it('offers manual groups or only overlapping matching rules', () => {
+		const groups = [
+			manualGroup('manual'),
+			ruleGroup('research', tagRule('research')),
+			ruleGroup('projects', folderRule('Projects')),
+		];
+		const single = node('A.md', ['research']);
+		const conflict = node('Projects/A.md', ['research']);
+		expect(getGroupMoveTargets(single, groups)).toEqual([]);
+		expect(getGroupMoveTargets(conflict, groups).map((g) => g.id)).toEqual([
+			'research',
+			'projects',
+		]);
+		expect(
+			getGroupMoveTargets(node('B.md'), groups).map((g) => g.id),
+		).toEqual(['manual']);
+		expect(getGroupMoveTargets(node('B.md'), groups.slice(1))).toEqual([]);
+		expect(canMoveNodeToGroup(single, groups, null)).toBe(false);
+		expect(canMoveNodeToGroup(conflict, groups, 'manual')).toBe(false);
+		expect(canMoveNodeToGroup(conflict, groups, 'projects')).toBe(true);
 	});
 
 	it('treats empty rules as matching no nodes', () => {

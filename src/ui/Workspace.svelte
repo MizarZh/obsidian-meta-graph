@@ -1,5 +1,9 @@
 <script lang="ts">
 	import {
+		getGroupMoveTargets,
+		canMoveNodeToGroup,
+	} from '@/query/group-ownership';
+	import {
 		CORNER_POSITIONS,
 		COLLAPSED_SIDE_WIDTH,
 		activeOverlayTab,
@@ -932,7 +936,12 @@
 
 		const capabilities = resolveGroupCapabilities(workspaceState.mode);
 		const groups = capabilities.canAssignManually
-			? workspaceState.grouping.groups
+			? getGroupMoveTargets(
+					workspaceState.projection?.nodes.find(
+						(node) => node.id === nodeId,
+					),
+					workspaceState.grouping.groups,
+				)
 			: [];
 		if (groups.length > 0) {
 			menu.addSeparator();
@@ -950,7 +959,17 @@
 						),
 				);
 			}
-			if (workspaceState.mode !== 'cube' && currentGroupId) {
+			if (
+				workspaceState.mode !== 'cube' &&
+				currentGroupId &&
+				canMoveNodeToGroup(
+					workspaceState.projection?.nodes.find(
+						(node) => node.id === nodeId,
+					),
+					workspaceState.grouping.groups,
+					null,
+				)
+			) {
 				menu.addItem((item) =>
 					item
 						.setTitle('Remove from group')

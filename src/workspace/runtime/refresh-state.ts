@@ -1,3 +1,4 @@
+import { cleanGroupingOverrides } from '@/query/group-ownership';
 import type {
 	GraphProjection,
 	KnowledgeIndex,
@@ -17,7 +18,13 @@ export function applyWorkspaceIndexSnapshotToState(
 	const charts = pruneMissingCuratedFiles(
 		state.charts,
 		new Set(indexSnapshot.index.nodes.keys()),
-	);
+	).map((chart) => {
+		const grouping = cleanGroupingOverrides(
+			chart.grouping,
+			indexSnapshot.index.nodes,
+		);
+		return grouping === chart.grouping ? chart : { ...chart, grouping };
+	});
 	const activeChart = charts.find(
 		(chart) => chart.id === state.activeChartId,
 	);
@@ -25,6 +32,7 @@ export function applyWorkspaceIndexSnapshotToState(
 		...state,
 		charts,
 		curated: activeChart?.curated ?? state.curated,
+		grouping: activeChart?.grouping ?? state.grouping,
 		layoutRevision: state.layoutRevision + (forceLayout ? 1 : 0),
 		availableFolders: indexSnapshot.availableFolders,
 		availableTags: indexSnapshot.availableTags,

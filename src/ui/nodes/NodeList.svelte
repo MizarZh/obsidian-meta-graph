@@ -21,6 +21,7 @@
 		groupEditable = true,
 		selectedTitleCounts,
 		getGroupOptions,
+		canMoveFile,
 		selectedPaths,
 		reorderEnabled = true,
 		onFileClick,
@@ -36,7 +37,8 @@
 		editable?: boolean;
 		groupEditable?: boolean;
 		selectedTitleCounts: Record<string, number>;
-		getGroupOptions: (currentGroupId: string) => DropdownOption[];
+		getGroupOptions: (file: NodeListEntry) => DropdownOption[];
+		canMoveFile: (file: NodeListEntry) => boolean;
 		selectedPaths: Set<string>;
 		reorderEnabled?: boolean;
 		onFileClick: (path: string, event: MouseEvent) => void;
@@ -119,6 +121,7 @@
 	>
 		{#each dndFiles as dndFile (dndFile.id)}
 			{@const file = filesByPath.get(dndFile.id) ?? dndFile}
+			{@const moveOptions = getGroupOptions(file)}
 			<div
 				class="knowledge-workspace-curated-file"
 				class:query={!editable}
@@ -163,7 +166,7 @@
 							>{file.detail}</span
 						>
 					{/if}
-					{#if groupEditable}
+					{#if groupEditable && canMoveFile(file)}
 						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 						<div
 							class="knowledge-workspace-curated-file-group"
@@ -184,7 +187,17 @@
 							<ObsidianDropdown
 								class="knowledge-workspace-curated-group-select"
 								value={file.groupId}
-								options={getGroupOptions(file.groupId)}
+								options={moveOptions.length
+									? moveOptions
+									: [
+											{
+												value: file.groupId,
+												label:
+													file.groupName ||
+													'No group',
+											},
+										]}
+								disabled={moveOptions.length === 0}
 								ariaLabel={`Group for ${file.title}`}
 								onChange={(value) =>
 									onMoveFileToGroup(file.id, value)}

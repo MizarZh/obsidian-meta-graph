@@ -8,7 +8,10 @@ import type {
 	WorkspaceState,
 } from '@/core/types';
 import { normalizeGroupFrameForShape } from '@/layouts/group-shape';
-import { resolveChartGroupOwnership } from '@/query/group-ownership';
+import {
+	canMoveNodeToGroup,
+	resolveChartGroupOwnership,
+} from '@/query/group-ownership';
 import {
 	createUniqueDefaultGroup,
 	findManualPlacement,
@@ -32,9 +35,17 @@ export function setManualNodePositionInState(
 	const previous = manual.nodes[nodeId];
 	const nextPlacement = { x: position.x, y: position.y };
 	const grouping =
-		activeChart.type === 'graph' ||
-		activeChart.type === 'free' ||
-		activeChart.type === 'cube'
+		(activeChart.type === 'graph' ||
+			activeChart.type === 'free' ||
+			activeChart.type === 'cube') &&
+		canMoveNodeToGroup(
+			state.projection?.nodes.find((node) => node.id === nodeId),
+			activeChart.grouping.groups,
+			groupId ??
+				(activeChart.type === 'cube'
+					? (activeChart.grouping.overrides[nodeId] ?? null)
+					: null),
+		)
 			? assignGroupingOverrides(
 					activeChart.grouping,
 					[nodeId],
@@ -74,6 +85,15 @@ export function setNodeGroupInState(
 	if (activeChart.type === 'graph-3d') {
 		return state;
 	}
+	if (
+		groupId !== undefined &&
+		!canMoveNodeToGroup(
+			state.projection?.nodes.find((node) => node.id === nodeId),
+			activeChart.grouping.groups,
+			groupId,
+		)
+	)
+		return state;
 	if (activeChart.type === 'cube' && !groupId) {
 		return state;
 	}
@@ -317,6 +337,17 @@ export function moveNodesToGroupInState(
 	if (activeChart.type === 'graph-3d') {
 		return state;
 	}
+	if (
+		paths.some(
+			(id) =>
+				!canMoveNodeToGroup(
+					state.projection?.nodes.find((node) => node.id === id),
+					activeChart.grouping.groups,
+					groupId ?? null,
+				),
+		)
+	)
+		return state;
 	if (activeChart.type !== 'free' && activeChart.type !== 'cube') {
 		const grouping = assignGroupingOverrides(
 			activeChart.grouping,

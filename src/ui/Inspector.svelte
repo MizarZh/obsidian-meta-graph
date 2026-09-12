@@ -8,7 +8,11 @@
 		ViewMode,
 	} from '@/core/types';
 	import { normalizeTags } from '@/core/tags';
-	import { resolveChartGroupOwnership } from '@/query/group-ownership';
+	import {
+		getGroupMoveTargets,
+		canMoveNodeToGroup,
+		resolveChartGroupOwnership,
+	} from '@/query/group-ownership';
 	import { resolveGroupCapabilities } from '@/workspace/groups/group-policy';
 	import {
 		getConnectionDirectionIcon,
@@ -86,13 +90,17 @@
 		resolveGroupCapabilities(mode).canAssignManually,
 	);
 	const groupRequired = $derived(mode === 'cube');
-	const assignmentGroups = $derived(grouping.groups);
+	const assignmentGroups = $derived(
+		getGroupMoveTargets(node, grouping.groups),
+	);
 	const automaticOwner = $derived.by(() => {
 		if (!node || groupRequired) {
 			return undefined;
 		}
-		return resolveChartGroupOwnership([node], grouping).byNode.get(node.id)
-			?.groupId;
+		return resolveChartGroupOwnership([node], {
+			...grouping,
+			overrides: {},
+		}).byNode.get(node.id)?.groupId;
 	});
 	const groupOptions = $derived.by(() => {
 		const options = assignmentGroups.map((group) => ({
@@ -105,10 +113,12 @@
 					{
 						value: AUTOMATIC_GROUP,
 						label: automaticOwner
-							? `Automatic (${assignmentGroups.find((group) => group.id === automaticOwner)?.name ?? automaticOwner})`
+							? `Automatic (${grouping.groups.find((group) => group.id === automaticOwner)?.name ?? automaticOwner})`
 							: 'Automatic',
 					},
-					{ value: UNGROUPED_GROUP, label: 'Ungrouped' },
+					...(canMoveNodeToGroup(node, grouping.groups, null)
+						? [{ value: UNGROUPED_GROUP, label: 'Ungrouped' }]
+						: []),
 					...options,
 				];
 	});
@@ -268,24 +278,40 @@
 					>Domains: {node.domains.join(', ')}</span
 				>
 			{/if}
-			{#if canAssignGroup && assignmentGroups.length > 0}
+			{#if canAssignGroup}
 				<hr />
 				<label class="knowledge-workspace-inspector-control">
 					<span>Group</span>
-					<ObsidianDropdown
-						value={selectedGroupValue}
-						options={groupOptions}
-						ariaLabel="Node group"
-						onChange={(groupId) =>
-							onSetNodeGroup(
-								node.path,
-								groupId === AUTOMATIC_GROUP
-									? undefined
-									: groupId === UNGROUPED_GROUP
-										? null
-										: groupId,
-							)}
-					/>
+					{#if assignmentGroups.length === 0 && automaticOwner}
+						<span
+							>{grouping.groups.find(
+								(group) => group.id === automaticOwner,
+							)?.name}</span
+						>
+					{:else}
+						<ObsidianDropdown
+							value={selectedGroupValue}
+							options={assignmentGroups.length
+								? groupOptions
+								: [
+										{
+											value: selectedGroupValue,
+											label: 'No group',
+										},
+									]}
+							disabled={assignmentGroups.length === 0}
+							ariaLabel="Node group"
+							onChange={(groupId) =>
+								onSetNodeGroup(
+									node.path,
+									groupId === AUTOMATIC_GROUP
+										? undefined
+										: groupId === UNGROUPED_GROUP
+											? null
+											: groupId,
+								)}
+						/>
+					{/if}
 				</label>
 			{/if}
 			{#if noteOptions.length > 0 && activeConnectionField}

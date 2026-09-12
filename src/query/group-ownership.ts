@@ -48,10 +48,15 @@ export function resolveChartGroupOwnership(
 		);
 		const override = grouping.overrides[node.id];
 		const validOverride =
-			typeof override === 'string' && groupsById.has(override)
+			typeof override === 'string' &&
+			groupsById.has(override) &&
+			(matchedGroupIds.length > 0
+				? matchedGroupIds.includes(override)
+				: groupsById.get(override)?.mode !== 'rule')
 				? override
 				: undefined;
-		const explicitUngrouped = hasOverride && override === null;
+		const explicitUngrouped =
+			hasOverride && override === null && matchedGroupIds.length === 0;
 		const groupId = explicitUngrouped
 			? undefined
 			: (validOverride ?? matchedGroupIds[0]);
@@ -115,4 +120,51 @@ function groupRuleMatchesNode(
 		group.rule !== undefined &&
 		nodeMatchesFilterGroup(node, group.rule)
 	);
+}
+
+/** Manual destinations, or matching rules when membership is ambiguous. */
+export function getGroupMoveTargets(
+	node: KnowledgeNode | undefined,
+	groups: ChartGroupingConfig['groups'],
+): ChartGroupingConfig['groups'] {
+	const matches = node
+		? groups.filter((group) => groupRuleMatchesNode(node, group))
+		: [];
+	return matches.length > 0
+		? matches.length > 1
+			? matches
+			: []
+		: groups.filter((group) => group.mode !== 'rule');
+}
+
+export function canMoveNodeToGroup(
+	node: KnowledgeNode | undefined,
+	groups: ChartGroupingConfig['groups'],
+	groupId: string | null,
+): boolean {
+	if (groupId === null)
+		return (
+			!node || !groups.some((group) => groupRuleMatchesNode(node, group))
+		);
+	return getGroupMoveTargets(node, groups).some(
+		(group) => group.id === groupId,
+	);
+}
+
+/** Drop incompatible saved assignments; preserve valid rule conflict choices. */
+export function cleanGroupingOverrides(
+	grouping: ChartGroupingConfig,
+	nodes: ReadonlyMap<string, KnowledgeNode>,
+): ChartGroupingConfig {
+	const overrides = { ...grouping.overrides };
+	let changed = false;
+	for (const [id, target] of Object.entries(overrides)) {
+		const node = nodes.get(id);
+		if (!node) continue;
+		if (!canMoveNodeToGroup(node, grouping.groups, target)) {
+			delete overrides[id];
+			changed = true;
+		}
+	}
+	return changed ? { ...grouping, overrides } : grouping;
 }
