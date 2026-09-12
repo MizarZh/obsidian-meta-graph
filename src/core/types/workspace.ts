@@ -2,6 +2,7 @@ import type { OverlayLayout } from './overlay';
 import type { MetaGraphDock } from '@/core/types/dock';
 import type {
 	GraphProjection,
+	NodeBadgeSettings,
 	GraphTraceRequest,
 	GraphQuery,
 	NodeFilterGroup,
@@ -166,6 +167,7 @@ export interface TimelineConfig {
 
 export interface ChartDisplayConfig {
 	timeline: TimelineConfig;
+	nodeBadges: NodeBadgeSettings;
 	showLegend: boolean;
 	showMinimap: boolean;
 	showTrace: boolean;
@@ -296,6 +298,7 @@ export interface WorkspaceState {
 	cubeFreeCamera: boolean;
 	forceLabels: boolean;
 	enableForceLayout: boolean;
+	nodeBadges: NodeBadgeSettings;
 	showLegend: boolean;
 	showMinimap: boolean;
 	showTrace: boolean;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { GraphTraceRequest } from '@/core/types';
+	import type { GraphTraceRequest, NodeBadgeSettings } from '@/core/types';
 	import type { GraphRenderer } from '@/graph/renderers/renderer-capabilities';
 	import { startContextBadges } from '@/ui/workspace/context-badges';
 
@@ -8,10 +8,12 @@
 		readRenderer,
 		ids,
 		trace,
+		settings,
 	}: {
 		readRenderer: () => GraphRenderer | undefined;
 		ids: ReadonlySet<string>;
 		trace?: GraphTraceRequest;
+		settings: NodeBadgeSettings;
 	} = $props();
 	let canvas: HTMLCanvasElement;
 	onMount(() =>
@@ -20,6 +22,7 @@
 			readRenderer,
 			() => ids,
 			() => trace,
+			() => settings,
 		),
 	);
 </script>

@@ -1,3 +1,4 @@
+import { normalizeNodeBadges } from '@/workspace/meta-graph/node-badges';
 import { normalizeOverlayLayout } from '@/workspace/meta-graph/overlay-layout';
 import { getActiveChart } from '@/workspace/state/chart-selectors';
 import { normalizeTimeline } from '@/graph/timeline';
@@ -256,6 +257,16 @@ export function setForceLabelsInState(
 	forceLabels: boolean,
 ): WorkspaceState {
 	return setDisplayValue(state, 'forceLabels', forceLabels);
+}
+
+export function setNodeBadgesInState(
+	state: WorkspaceState,
+	value: import('@/core/types').NodeBadgeSettings,
+): WorkspaceState {
+	const normalized = normalizeNodeBadges(value);
+	if (JSON.stringify(normalized) === JSON.stringify(state.nodeBadges))
+		return state;
+	return setDisplayValue(state, 'nodeBadges', normalized);
 }
 
 export function setShowLegendInState(

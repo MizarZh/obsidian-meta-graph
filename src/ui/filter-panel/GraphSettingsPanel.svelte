@@ -13,6 +13,7 @@
 	import { supportsPlanarRenderer } from '@/core/types';
 	import type {
 		ArcDirection,
+		NodeBadgeSettings,
 		FlowDirection,
 		FlowEdgeStyle,
 		FlowRelationRule,
@@ -25,6 +26,8 @@
 
 	let {
 		app,
+		nodeBadges,
+		onNodeBadges,
 		mode,
 		renderer,
 		fadeDistance,
@@ -76,6 +79,8 @@
 		onChange,
 	}: {
 		app: App;
+		nodeBadges: NodeBadgeSettings;
+		onNodeBadges: (value: NodeBadgeSettings) => void;
 		mode: ViewMode;
 		renderer: PlanarRendererKind;
 		fadeDistance: number;
@@ -550,4 +555,37 @@
 			/>
 		</SettingsSection>
 	{/if}
+	<SettingsSection title="Node badges">
+		<ToggleSetting
+			label="Show"
+			value={nodeBadges.enabled}
+			onChange={(enabled) => onNodeBadges({ ...nodeBadges, enabled })}
+		/>
+		<SliderSetting
+			label="Size"
+			value={nodeBadges.scale}
+			min={0.25}
+			max={2}
+			step={0.05}
+			format={(value) => `${Math.round(value * 100)}%`}
+			disabled={!nodeBadges.enabled}
+			onChange={(scale) => onNodeBadges({ ...nodeBadges, scale })}
+		/>
+		<DropdownSetting
+			label="Position"
+			value={nodeBadges.position}
+			options={[
+				{ value: 'top-right', label: 'Top right' },
+				{ value: 'top-left', label: 'Top left' },
+				{ value: 'bottom-right', label: 'Bottom right' },
+				{ value: 'bottom-left', label: 'Bottom left' },
+			]}
+			disabled={!nodeBadges.enabled}
+			onChange={(position) =>
+				onNodeBadges({
+					...nodeBadges,
+					position: position as NodeBadgeSettings['position'],
+				})}
+		/>
+	</SettingsSection>
 </section>

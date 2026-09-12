@@ -190,3 +190,9 @@ export interface GraphTraceRequest {
 	source: string;
 	target?: string;
 }
+
+export interface NodeBadgeSettings {
+	enabled: boolean;
+	scale: number;
+	position: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+}

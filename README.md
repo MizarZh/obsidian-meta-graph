@@ -687,3 +687,5 @@ Open **Overlays** in the toolbar to set each panel’s visibility and position f
 - **Timeline** can be placed at the top or bottom.
 
 Positions, visibility, and active tabs are saved per view. Hiding a panel preserves its contents and position. Existing workspaces retain Node list on the left, Details / Pinned notes / Templates on the right, small overlays at the bottom right, and Timeline at the bottom.
+
+Graph settings → Node badges controls visibility, relative size (25–200%), and corner position for status and Trace endpoint badges. Settings are saved per view; badges continue to scale with nodes and zoom.

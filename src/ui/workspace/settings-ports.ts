@@ -37,6 +37,7 @@ export interface WorkspaceSettingsSuggestions {
 
 export interface WorkspaceGraphSettingsView {
 	timelineEnabled: boolean;
+	nodeBadges: import('@/core/types').NodeBadgeSettings;
 	showLegend: boolean;
 	showMinimap: boolean;
 	showTrace: boolean;
@@ -136,6 +137,7 @@ type StyleRuleScope = 'global' | 'current';
 
 export interface WorkspaceGraphSettingsActions {
 	setTimelineEnabled(value: boolean): void;
+	setNodeBadges(value: import('@/core/types').NodeBadgeSettings): void;
 	setShowLegend(value: boolean): void;
 	setShowMinimap(value: boolean): void;
 	setShowTrace(value: boolean): void;
@@ -238,6 +240,7 @@ export function createWorkspaceSettingsView(
 	return {
 		graph: {
 			timelineEnabled: state.timeline.enabled,
+			nodeBadges: state.nodeBadges,
 			showLegend: state.showLegend,
 			showMinimap: state.showMinimap,
 			showTrace: state.showTrace,
@@ -347,6 +350,7 @@ export function createWorkspaceSettingsActions(
 	return {
 		graph: {
 			setRenderer: (value) => controller.setActiveChartRenderer(value),
+			setNodeBadges: (value) => controller.setNodeBadges(value),
 			setShowLegend: (value) => controller.setShowLegend(value),
 			setShowMinimap: (value) => controller.setShowMinimap(value),
 			setShowTrace: (value) => controller.setShowTrace(value),

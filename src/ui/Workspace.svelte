@@ -2218,6 +2218,7 @@
 
 			{#if !graphLoading && nodeBadgeIds.size}
 				<ContextBadges
+					settings={workspaceState.nodeBadges}
 					readRenderer={() => rendererLifecycle.renderer}
 					ids={nodeBadgeIds}
 					trace={traceRequest}

@@ -1,3 +1,4 @@
+import { normalizeNodeBadges } from '@/workspace/meta-graph/node-badges';
 import { createOverlayLayout, normalizeOverlayLayout } from './overlay-layout';
 import { supportsPlanarRenderer } from '@/core/types';
 import { normalizeTimeline } from '@/graph/timeline';
@@ -120,6 +121,7 @@ export function createDefaultChart(
 			cubeFaceOpacity: DEFAULT_CUBE_FACE_OPACITY,
 			cubeSize: DEFAULT_CUBE_SIZE,
 			cubeFreeCamera: DEFAULT_CUBE_FREE_CAMERA,
+			nodeBadges: normalizeNodeBadges(undefined),
 			showLegend: true,
 			showMinimap: false,
 			showTrace: false,
@@ -318,6 +320,7 @@ export function normalizeChart(
 				fallback.display.cubeFreeCamera,
 			),
 			timeline: normalizeTimeline(display.timeline),
+			nodeBadges: normalizeNodeBadges(display.nodeBadges),
 			showMinimap: readBoolean(display.showMinimap, false),
 			showTrace: readBoolean(display.showTrace, false),
 			overlayLayout: normalizeOverlayLayout(display.overlayLayout),

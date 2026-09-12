@@ -1,3 +1,4 @@
+import { DEFAULT_NODE_BADGES } from '@/workspace/meta-graph/node-badges';
 import { createOverlayLayout } from '@/workspace/meta-graph/overlay-layout';
 import { supportsPlanarRenderer } from '@/core/types';
 import { normalizeTimeline } from '@/graph/timeline';
@@ -886,6 +887,10 @@ function displayToV2(chart: MetaGraphChart): PersistedDisplayV2 {
 	});
 	return {
 		fadeDistance: display.fadeDistance,
+		...(JSON.stringify(display.nodeBadges) !==
+		JSON.stringify(DEFAULT_NODE_BADGES)
+			? { nodeBadges: display.nodeBadges }
+			: {}),
 		...(display.showLegend === false ? { showLegend: false } : {}),
 		...(display.showMinimap ? { showMinimap: true } : {}),
 		...(display.showTrace ? { showTrace: true } : {}),
@@ -1225,6 +1230,7 @@ function v2ChartToLegacyRecord(
 		},
 		display: {
 			fadeDistance: display.fadeDistance ?? fadeDistance,
+			nodeBadges: display.nodeBadges,
 			showLegend: display.showLegend,
 			showMinimap: display.showMinimap,
 			showTrace: display.showTrace,

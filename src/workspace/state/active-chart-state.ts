@@ -43,6 +43,7 @@ type ActiveChartStateFields = Pick<
 	| 'cubeSize'
 	| 'cubeFreeCamera'
 	| 'forceLabels'
+	| 'nodeBadges'
 	| 'showLegend'
 	| 'showMinimap'
 	| 'showTrace'
@@ -165,6 +166,7 @@ function createActiveChartStateFields(
 		cubeSize: chart.display.cubeSize,
 		cubeFreeCamera: chart.display.cubeFreeCamera,
 		forceLabels: chart.display.forceLabels,
+		nodeBadges: chart.display.nodeBadges,
 		showLegend: chart.display.showLegend,
 		showMinimap: chart.display.showMinimap,
 		showTrace: chart.display.showTrace,

@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+- Moved Node badges to the end of Graph settings.
+
+- Added per-view Node badges controls in Graph settings: visibility, relative size (25–200%), and four corner positions. Changes repaint badges immediately without rebuilding or relaying out the graph.
+
 - Scale node status and Trace endpoint badges with the rendered node size, including glyphs, backgrounds, strokes, and offsets across renderers.
 
 - Allow Manual assignment groups in Flowchart, Arc, and Hierarchical edge bundling, including view switching and save/reload. Membership remains independent of automatic layout and respects Query filtering and rule-group ownership.

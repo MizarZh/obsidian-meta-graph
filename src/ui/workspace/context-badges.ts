@@ -1,4 +1,9 @@
-import type { GraphProjection, GraphTraceRequest } from '@/core/types';
+import { DEFAULT_NODE_BADGES } from '@/workspace/meta-graph/node-badges';
+import type {
+	GraphProjection,
+	GraphTraceRequest,
+	NodeBadgeSettings,
+} from '@/core/types';
 import type { GraphRenderer } from '@/graph/renderers/renderer-capabilities';
 import type { NodeBadgeAnchor } from '@/graph/renderers/renderer-node-badge';
 
@@ -29,8 +34,9 @@ export function collectContextBadgePositions(
 	width: number,
 	height: number,
 	trace?: GraphTraceRequest,
+	settings: NodeBadgeSettings = DEFAULT_NODE_BADGES,
 ): NodeBadgePosition[] {
-	if (!renderer?.getNodeBadgeAnchor) return [];
+	if (!settings.enabled || !renderer?.getNodeBadgeAnchor) return [];
 	const result: NodeBadgePosition[] = [];
 	for (const id of ids) {
 		if (!renderer.runtimeGraph.hasNode(id)) continue;
@@ -47,11 +53,15 @@ export function collectContextBadgePositions(
 		)
 			continue;
 		// Preserve the original 12px badge at an 8px rendered node radius.
-		const scale = anchor.radius / 8;
+		const scale = (anchor.radius / 8) * settings.scale;
 		const offset = anchor.radius * 0.75 + 4 * scale;
 		const halfSize = 6 * scale;
-		const x = anchor.x + offset,
-			y = anchor.y - offset;
+		const x =
+				anchor.x +
+				(settings.position.endsWith('right') ? offset : -offset),
+			y =
+				anchor.y +
+				(settings.position.startsWith('bottom') ? offset : -offset);
 		if (
 			x < -halfSize ||
 			y < -halfSize ||
@@ -86,6 +96,7 @@ export function startContextBadges(
 	readRenderer: () => GraphRenderer | undefined,
 	readIds: () => ReadonlySet<string>,
 	readTrace: () => GraphTraceRequest | undefined = () => undefined,
+	readSettings: () => NodeBadgeSettings = () => DEFAULT_NODE_BADGES,
 ): () => void {
 	const win = canvas.ownerDocument.defaultView;
 	const context = canvas.getContext('2d');
@@ -98,6 +109,7 @@ export function startContextBadges(
 	let unsubscribe: (() => void) | undefined;
 	let stopped = false;
 	let previousIds: ReadonlySet<string> | undefined;
+	let previousSettings: NodeBadgeSettings | undefined;
 	const draw = (time: number) => {
 		if (stopped || readRenderer() !== active) return;
 		const width = canvas.clientWidth,
@@ -123,6 +135,7 @@ export function startContextBadges(
 			width,
 			height,
 			readTrace(),
+			readSettings(),
 		);
 		for (const { x: anchorX, y: anchorY, scale, kind } of positions) {
 			// Scale glyph, background, stroke and text together in local coordinates.
@@ -219,6 +232,9 @@ export function startContextBadges(
 		const next = readRenderer();
 		const ids = readIds();
 		const idsChanged = ids !== previousIds;
+		const settings = readSettings();
+		const settingsChanged = settings !== previousSettings;
+		previousSettings = settings;
 		previousIds = ids;
 		if (next !== active) {
 			unsubscribe?.();
@@ -231,7 +247,7 @@ export function startContextBadges(
 				});
 			}
 			draw(time);
-		} else if (!unsubscribe || idsChanged) {
+		} else if (!unsubscribe || idsChanged || settingsChanged) {
 			draw(time);
 		}
 	};

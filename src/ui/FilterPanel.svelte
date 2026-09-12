@@ -40,6 +40,8 @@
 		<OverlaySettingsPanel view={view.graph} actions={actions.graph} />
 	{:else if panel === 'graph'}
 		<GraphSettingsPanel
+			nodeBadges={view.graph.nodeBadges}
+			onNodeBadges={actions.graph.setNodeBadges}
 			{app}
 			mode={view.graph.mode}
 			renderer={view.graph.renderer}

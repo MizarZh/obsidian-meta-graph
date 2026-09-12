@@ -1,3 +1,4 @@
+import { DEFAULT_NODE_BADGES } from '@/workspace/meta-graph/node-badges';
 import { describe, expect, it, vi } from 'vitest';
 import Graph from 'graphology';
 import { PerspectiveCamera, Sprite, SpriteMaterial } from 'three';
@@ -222,6 +223,38 @@ describe('context badges', () => {
 				new Set(['context']),
 				200,
 				200,
+			),
+		).toEqual([]);
+	});
+
+	it('applies relative sizing, each corner, and badge visibility', () => {
+		const current = renderer();
+		for (const position of [
+			'top-right',
+			'top-left',
+			'bottom-right',
+			'bottom-left',
+		] as const) {
+			const badge = collectContextBadgePositions(
+				current,
+				new Set(['context']),
+				200,
+				200,
+				undefined,
+				{ ...DEFAULT_NODE_BADGES, position, scale: 2 },
+			)[0]!;
+			expect(badge.scale).toBe(2);
+			expect(badge.x).toBe(position.endsWith('right') ? 64 : 36);
+			expect(badge.y).toBe(position.startsWith('bottom') ? 64 : 36);
+		}
+		expect(
+			collectContextBadgePositions(
+				current,
+				new Set(['context']),
+				200,
+				200,
+				undefined,
+				{ ...DEFAULT_NODE_BADGES, enabled: false },
 			),
 		).toEqual([]);
 	});

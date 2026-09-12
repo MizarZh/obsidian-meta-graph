@@ -172,6 +172,7 @@ export interface PersistedGroupV2 {
 
 export interface PersistedDisplayV2 {
 	timeline?: import('@/core/types').TimelineConfig;
+	nodeBadges?: import('@/core/types').NodeBadgeSettings;
 	showLegend?: boolean;
 	showMinimap?: boolean;
 	showTrace?: boolean;

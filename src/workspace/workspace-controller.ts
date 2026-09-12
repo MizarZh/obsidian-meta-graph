@@ -1,4 +1,7 @@
-import { setOverlayLayoutInState } from '@/workspace/state/chart-settings';
+import {
+	setNodeBadgesInState,
+	setOverlayLayoutInState,
+} from '@/workspace/state/chart-settings';
 import { TFile, type App } from 'obsidian';
 import type {
 	ArcDirection,
@@ -526,6 +529,10 @@ export class WorkspaceController {
 
 	setForceLabels(forceLabels: boolean): void {
 		this.setWorkspaceState(setForceLabelsInState(this.state, forceLabels));
+	}
+
+	setNodeBadges(value: import('@/core/types').NodeBadgeSettings): void {
+		this.setWorkspaceState(setNodeBadgesInState(this.state, value));
 	}
 
 	setShowLegend(showLegend: boolean): void {
