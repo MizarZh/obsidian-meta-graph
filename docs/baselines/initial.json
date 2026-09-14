@@ -1,0 +1,1234 @@
+{
+	"schema": 1,
+	"bundle": {
+		"schema": 1,
+		"environment": {
+			"createdAt": "2026-09-14T04:08:55.383Z",
+			"commit": "7d2bd93318a8505aa508520d71cf6cb69dda982b",
+			"dirty": true,
+			"node": "v22.23.1",
+			"platform": "linux",
+			"arch": "x64",
+			"cpu": "AMD Ryzen 7 6800H with Radeon Graphics",
+			"lockfileSha256": "3d44405fbac924bb5eb559f5b02bd405e77994d4615ee7643887f15b1c95c7db"
+		},
+		"build": {
+			"format": "cjs",
+			"target": "es2021",
+			"minify": true,
+			"sourcemap": false
+		},
+		"bytes": 5793933,
+		"gzipBytes": 1665909,
+		"unattributedBytes": 4232,
+		"packages": [
+			{
+				"name": "elkjs",
+				"bytes": 1483139,
+				"roots": ["node_modules/.pnpm/elkjs@0.11.1/node_modules/elkjs"]
+			},
+			{
+				"name": "three",
+				"bytes": 1384785,
+				"roots": ["node_modules/.pnpm/three@0.185.0/node_modules/three"]
+			},
+			{
+				"name": "(project)",
+				"bytes": 881187,
+				"roots": []
+			},
+			{
+				"name": "@antv/g6",
+				"bytes": 319033,
+				"roots": [
+					"node_modules/.pnpm/@antv+g6@5.1.1/node_modules/@antv/g6"
+				]
+			},
+			{
+				"name": "@antv/g-lite",
+				"bytes": 225469,
+				"roots": [
+					"node_modules/.pnpm/@antv+g-lite@2.7.0/node_modules/@antv/g-lite"
+				]
+			},
+			{
+				"name": "html2canvas",
+				"bytes": 209743,
+				"roots": [
+					"node_modules/.pnpm/html2canvas@1.4.1/node_modules/html2canvas"
+				]
+			},
+			{
+				"name": "@antv/component",
+				"bytes": 163134,
+				"roots": [
+					"node_modules/.pnpm/@antv+component@2.1.11/node_modules/@antv/component"
+				]
+			},
+			{
+				"name": "@antv/layout",
+				"bytes": 117008,
+				"roots": [
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout"
+				]
+			},
+			{
+				"name": "sigma",
+				"bytes": 97553,
+				"roots": [
+					"node_modules/.pnpm/sigma@3.0.3_graphology-types@0.24.8/node_modules/sigma"
+				]
+			},
+			{
+				"name": "svelte",
+				"bytes": 76071,
+				"roots": [
+					"node_modules/.pnpm/svelte@5.56.3_@typescript-eslint+types@8.61.1/node_modules/svelte"
+				]
+			},
+			{
+				"name": "ml-matrix",
+				"bytes": 72691,
+				"roots": [
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/ml-matrix"
+				]
+			},
+			{
+				"name": "graphology",
+				"bytes": 61569,
+				"roots": [
+					"node_modules/.pnpm/graphology@0.26.0_graphology-types@0.24.8/node_modules/graphology"
+				]
+			},
+			{
+				"name": "lodash",
+				"bytes": 54909,
+				"roots": [
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/lodash"
+				]
+			},
+			{
+				"name": "gl-matrix",
+				"bytes": 42116,
+				"roots": [
+					"node_modules/.pnpm/gl-matrix@3.4.4/node_modules/gl-matrix"
+				]
+			},
+			{
+				"name": "@antv/g-canvas",
+				"bytes": 38721,
+				"roots": [
+					"node_modules/.pnpm/@antv+g-canvas@2.2.0/node_modules/@antv/g-canvas"
+				]
+			},
+			{
+				"name": "svelte-dnd-action",
+				"bytes": 37701,
+				"roots": [
+					"node_modules/.pnpm/svelte-dnd-action@0.9.70_svelte@5.56.3_@typescript-eslint+types@8.61.1_/node_modules/svelte-dnd-action"
+				]
+			},
+			{
+				"name": "@antv/g",
+				"bytes": 36888,
+				"roots": [
+					"node_modules/.pnpm/@antv+g@6.3.1/node_modules/@antv/g"
+				]
+			},
+			{
+				"name": "@antv/util",
+				"bytes": 32702,
+				"roots": [
+					"node_modules/.pnpm/@antv+util@3.3.11/node_modules/@antv/util",
+					"node_modules/.pnpm/@antv+util@2.0.17/node_modules/@antv/util",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/@antv/util"
+				]
+			},
+			{
+				"name": "dagre",
+				"bytes": 31984,
+				"roots": [
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/dagre"
+				]
+			},
+			{
+				"name": "three-forcegraph",
+				"bytes": 27954,
+				"roots": [
+					"node_modules/.pnpm/three-forcegraph@1.43.4_three@0.185.0/node_modules/three-forcegraph"
+				]
+			},
+			{
+				"name": "ngraph.forcelayout",
+				"bytes": 24540,
+				"roots": [
+					"node_modules/.pnpm/ngraph.forcelayout@3.3.1/node_modules/ngraph.forcelayout"
+				]
+			},
+			{
+				"name": "bubblesets-js",
+				"bytes": 22945,
+				"roots": [
+					"node_modules/.pnpm/bubblesets-js@2.3.4/node_modules/bubblesets-js"
+				]
+			},
+			{
+				"name": "@antv/algorithm",
+				"bytes": 21961,
+				"roots": [
+					"node_modules/.pnpm/@antv+algorithm@0.1.26/node_modules/@antv/algorithm"
+				]
+			},
+			{
+				"name": "d3-force-3d",
+				"bytes": 18222,
+				"roots": [
+					"node_modules/.pnpm/d3-force-3d@3.0.6/node_modules/d3-force-3d",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/d3-force-3d"
+				]
+			},
+			{
+				"name": "graphology-layout-forceatlas2",
+				"bytes": 17382,
+				"roots": [
+					"node_modules/.pnpm/graphology-layout-forceatlas2@0.10.1_graphology-types@0.24.8/node_modules/graphology-layout-forceatlas2"
+				]
+			},
+			{
+				"name": "svg-path-parser",
+				"bytes": 16064,
+				"roots": [
+					"node_modules/.pnpm/svg-path-parser@1.1.0/node_modules/svg-path-parser"
+				]
+			},
+			{
+				"name": "tinycolor2",
+				"bytes": 15568,
+				"roots": [
+					"node_modules/.pnpm/tinycolor2@1.6.0/node_modules/tinycolor2"
+				]
+			},
+			{
+				"name": "d3-force",
+				"bytes": 15096,
+				"roots": [
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/d3-force",
+					"node_modules/.pnpm/d3-force@3.0.0/node_modules/d3-force"
+				]
+			},
+			{
+				"name": "d3-octree",
+				"bytes": 14993,
+				"roots": [
+					"node_modules/.pnpm/d3-octree@1.1.0/node_modules/d3-octree",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/d3-octree"
+				]
+			},
+			{
+				"name": "@antv/graphlib",
+				"bytes": 14616,
+				"roots": [
+					"node_modules/.pnpm/@antv+graphlib@2.0.4/node_modules/@antv/graphlib"
+				]
+			},
+			{
+				"name": "graphlib",
+				"bytes": 14564,
+				"roots": [
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/graphlib"
+				]
+			},
+			{
+				"name": "d3-selection",
+				"bytes": 14120,
+				"roots": [
+					"node_modules/.pnpm/d3-selection@3.0.0/node_modules/d3-selection"
+				]
+			},
+			{
+				"name": "three-render-objects",
+				"bytes": 14056,
+				"roots": [
+					"node_modules/.pnpm/three-render-objects@1.42.0_three@0.185.0/node_modules/three-render-objects"
+				]
+			},
+			{
+				"name": "@babel/runtime",
+				"bytes": 12749,
+				"roots": [
+					"node_modules/.pnpm/@babel+runtime@7.29.7/node_modules/@babel/runtime"
+				]
+			},
+			{
+				"name": "@tweenjs/tween.js",
+				"bytes": 12683,
+				"roots": [
+					"node_modules/.pnpm/@tweenjs+tween.js@25.0.0/node_modules/@tweenjs/tween.js"
+				]
+			},
+			{
+				"name": "3d-force-graph",
+				"bytes": 11514,
+				"roots": [
+					"node_modules/.pnpm/3d-force-graph@1.80.0/node_modules/3d-force-graph"
+				]
+			},
+			{
+				"name": "polished",
+				"bytes": 11469,
+				"roots": [
+					"node_modules/.pnpm/polished@4.3.1/node_modules/polished"
+				]
+			},
+			{
+				"name": "preact",
+				"bytes": 11170,
+				"roots": [
+					"node_modules/.pnpm/preact@10.29.3/node_modules/preact"
+				]
+			},
+			{
+				"name": "d3-quadtree",
+				"bytes": 10788,
+				"roots": [
+					"node_modules/.pnpm/d3-quadtree@3.0.1/node_modules/d3-quadtree",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/d3-quadtree"
+				]
+			},
+			{
+				"name": "@antv/hierarchy",
+				"bytes": 9837,
+				"roots": [
+					"node_modules/.pnpm/@antv+hierarchy@0.7.1/node_modules/@antv/hierarchy"
+				]
+			},
+			{
+				"name": "@antv/scale",
+				"bytes": 9214,
+				"roots": [
+					"node_modules/.pnpm/@antv+scale@0.4.16/node_modules/@antv/scale"
+				]
+			},
+			{
+				"name": "d3-binarytree",
+				"bytes": 8295,
+				"roots": [
+					"node_modules/.pnpm/d3-binarytree@1.0.2/node_modules/d3-binarytree",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/d3-binarytree"
+				]
+			},
+			{
+				"name": "@antv/expr",
+				"bytes": 7816,
+				"roots": [
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/@antv/expr"
+				]
+			},
+			{
+				"name": "float-tooltip",
+				"bytes": 5296,
+				"roots": [
+					"node_modules/.pnpm/float-tooltip@1.7.5/node_modules/float-tooltip"
+				]
+			},
+			{
+				"name": "comlink",
+				"bytes": 4210,
+				"roots": [
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/comlink"
+				]
+			},
+			{
+				"name": "data-bind-mapper",
+				"bytes": 3872,
+				"roots": [
+					"node_modules/.pnpm/data-bind-mapper@1.0.3/node_modules/data-bind-mapper"
+				]
+			},
+			{
+				"name": "d3-hierarchy",
+				"bytes": 3729,
+				"roots": [
+					"node_modules/.pnpm/d3-hierarchy@3.1.2/node_modules/d3-hierarchy"
+				]
+			},
+			{
+				"name": "ngraph.graph",
+				"bytes": 3615,
+				"roots": [
+					"node_modules/.pnpm/ngraph.graph@20.1.2/node_modules/ngraph.graph"
+				]
+			},
+			{
+				"name": "color-name",
+				"bytes": 3446,
+				"roots": [
+					"node_modules/.pnpm/color-name@1.1.4/node_modules/color-name"
+				]
+			},
+			{
+				"name": "@antv/g-math",
+				"bytes": 3402,
+				"roots": [
+					"node_modules/.pnpm/@antv+g-math@3.1.0/node_modules/@antv/g-math"
+				]
+			},
+			{
+				"name": "color-string",
+				"bytes": 3334,
+				"roots": [
+					"node_modules/.pnpm/color-string@1.9.1/node_modules/color-string"
+				]
+			},
+			{
+				"name": "d3-dispatch",
+				"bytes": 3181,
+				"roots": [
+					"node_modules/.pnpm/d3-dispatch@3.0.1/node_modules/d3-dispatch",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/d3-dispatch"
+				]
+			},
+			{
+				"name": "lodash-es",
+				"bytes": 2956,
+				"roots": [
+					"node_modules/.pnpm/lodash-es@4.18.1/node_modules/lodash-es"
+				]
+			},
+			{
+				"name": "tslib",
+				"bytes": 2943,
+				"roots": [
+					"node_modules/.pnpm/tslib@2.8.1/node_modules/tslib",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/tslib"
+				]
+			},
+			{
+				"name": "kapsule",
+				"bytes": 2931,
+				"roots": [
+					"node_modules/.pnpm/kapsule@1.16.3/node_modules/kapsule"
+				]
+			},
+			{
+				"name": "eventemitter3",
+				"bytes": 2914,
+				"roots": [
+					"node_modules/.pnpm/eventemitter3@5.0.4/node_modules/eventemitter3"
+				]
+			},
+			{
+				"name": "d3-timer",
+				"bytes": 2901,
+				"roots": [
+					"node_modules/.pnpm/d3-timer@3.0.1/node_modules/d3-timer",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/d3-timer"
+				]
+			},
+			{
+				"name": "@antv/g-plugin-dragndrop",
+				"bytes": 2633,
+				"roots": [
+					"node_modules/.pnpm/@antv+g-plugin-dragndrop@2.1.1/node_modules/@antv/g-plugin-dragndrop"
+				]
+			},
+			{
+				"name": "d3-scale",
+				"bytes": 2054,
+				"roots": [
+					"node_modules/.pnpm/d3-scale@4.0.2/node_modules/d3-scale"
+				]
+			},
+			{
+				"name": "ngraph.events",
+				"bytes": 1948,
+				"roots": [
+					"node_modules/.pnpm/ngraph.events@1.4.0/node_modules/ngraph.events"
+				]
+			},
+			{
+				"name": "graphology-utils",
+				"bytes": 1904,
+				"roots": [
+					"node_modules/.pnpm/graphology-utils@2.5.2_graphology-types@0.24.8/node_modules/graphology-utils"
+				]
+			},
+			{
+				"name": "@antv/event-emitter",
+				"bytes": 1774,
+				"roots": [
+					"node_modules/.pnpm/@antv+event-emitter@0.1.3/node_modules/@antv/event-emitter",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/@antv/event-emitter"
+				]
+			},
+			{
+				"name": "ngraph.random",
+				"bytes": 1460,
+				"roots": [
+					"node_modules/.pnpm/ngraph.random@1.2.0/node_modules/ngraph.random"
+				]
+			},
+			{
+				"name": "ml-array-rescale",
+				"bytes": 784,
+				"roots": [
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/ml-array-rescale"
+				]
+			},
+			{
+				"name": "internmap",
+				"bytes": 660,
+				"roots": [
+					"node_modules/.pnpm/internmap@2.0.3/node_modules/internmap"
+				]
+			},
+			{
+				"name": "d3-array",
+				"bytes": 629,
+				"roots": [
+					"node_modules/.pnpm/d3-array@3.2.4/node_modules/d3-array"
+				]
+			},
+			{
+				"name": "ml-array-max",
+				"bytes": 605,
+				"roots": [
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/ml-array-max"
+				]
+			},
+			{
+				"name": "ml-array-min",
+				"bytes": 605,
+				"roots": [
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/ml-array-min"
+				]
+			},
+			{
+				"name": "clsx",
+				"bytes": 384,
+				"roots": ["node_modules/.pnpm/clsx@2.1.1/node_modules/clsx"]
+			},
+			{
+				"name": "simple-swizzle",
+				"bytes": 300,
+				"roots": [
+					"node_modules/.pnpm/simple-swizzle@0.2.4/node_modules/simple-swizzle"
+				]
+			},
+			{
+				"name": "d3-scale-chromatic",
+				"bytes": 252,
+				"roots": [
+					"node_modules/.pnpm/d3-scale-chromatic@3.1.0/node_modules/d3-scale-chromatic"
+				]
+			},
+			{
+				"name": "is-arrayish",
+				"bytes": 242,
+				"roots": [
+					"node_modules/.pnpm/is-arrayish@0.3.4/node_modules/is-arrayish"
+				]
+			},
+			{
+				"name": "ngraph.merge",
+				"bytes": 237,
+				"roots": [
+					"node_modules/.pnpm/ngraph.merge@1.0.0/node_modules/ngraph.merge"
+				]
+			},
+			{
+				"name": "esm-env",
+				"bytes": 178,
+				"roots": [
+					"node_modules/.pnpm/esm-env@1.2.2/node_modules/esm-env"
+				]
+			},
+			{
+				"name": "is-any-array",
+				"bytes": 171,
+				"roots": [
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/is-any-array"
+				]
+			},
+			{
+				"name": "accessor-fn",
+				"bytes": 132,
+				"roots": [
+					"node_modules/.pnpm/accessor-fn@1.5.3/node_modules/accessor-fn"
+				]
+			}
+		],
+		"multiplePackageRoots": [
+			{
+				"name": "@antv/util",
+				"bytes": 32702,
+				"roots": [
+					"node_modules/.pnpm/@antv+util@3.3.11/node_modules/@antv/util",
+					"node_modules/.pnpm/@antv+util@2.0.17/node_modules/@antv/util",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/@antv/util"
+				]
+			},
+			{
+				"name": "d3-force-3d",
+				"bytes": 18222,
+				"roots": [
+					"node_modules/.pnpm/d3-force-3d@3.0.6/node_modules/d3-force-3d",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/d3-force-3d"
+				]
+			},
+			{
+				"name": "d3-force",
+				"bytes": 15096,
+				"roots": [
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/d3-force",
+					"node_modules/.pnpm/d3-force@3.0.0/node_modules/d3-force"
+				]
+			},
+			{
+				"name": "d3-octree",
+				"bytes": 14993,
+				"roots": [
+					"node_modules/.pnpm/d3-octree@1.1.0/node_modules/d3-octree",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/d3-octree"
+				]
+			},
+			{
+				"name": "d3-quadtree",
+				"bytes": 10788,
+				"roots": [
+					"node_modules/.pnpm/d3-quadtree@3.0.1/node_modules/d3-quadtree",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/d3-quadtree"
+				]
+			},
+			{
+				"name": "d3-binarytree",
+				"bytes": 8295,
+				"roots": [
+					"node_modules/.pnpm/d3-binarytree@1.0.2/node_modules/d3-binarytree",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/d3-binarytree"
+				]
+			},
+			{
+				"name": "d3-dispatch",
+				"bytes": 3181,
+				"roots": [
+					"node_modules/.pnpm/d3-dispatch@3.0.1/node_modules/d3-dispatch",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/d3-dispatch"
+				]
+			},
+			{
+				"name": "tslib",
+				"bytes": 2943,
+				"roots": [
+					"node_modules/.pnpm/tslib@2.8.1/node_modules/tslib",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/tslib"
+				]
+			},
+			{
+				"name": "d3-timer",
+				"bytes": 2901,
+				"roots": [
+					"node_modules/.pnpm/d3-timer@3.0.1/node_modules/d3-timer",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/d3-timer"
+				]
+			},
+			{
+				"name": "@antv/event-emitter",
+				"bytes": 1774,
+				"roots": [
+					"node_modules/.pnpm/@antv+event-emitter@0.1.3/node_modules/@antv/event-emitter",
+					"node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/@antv/event-emitter"
+				]
+			}
+		],
+		"topInputs": [
+			{
+				"path": "node_modules/.pnpm/elkjs@0.11.1/node_modules/elkjs/lib/elk.bundled.js",
+				"bytes": 1483139
+			},
+			{
+				"path": "node_modules/.pnpm/three@0.185.0/node_modules/three/build/three.webgpu.js",
+				"bytes": 577436
+			},
+			{
+				"path": "node_modules/.pnpm/three@0.185.0/node_modules/three/build/three.core.js",
+				"bytes": 378165
+			},
+			{
+				"path": "node_modules/.pnpm/three@0.185.0/node_modules/three/build/three.module.js",
+				"bytes": 362184
+			},
+			{
+				"path": "node_modules/.pnpm/@antv+g-lite@2.7.0/node_modules/@antv/g-lite/dist/index.esm.js",
+				"bytes": 225469
+			},
+			{
+				"path": "node_modules/.pnpm/html2canvas@1.4.1/node_modules/html2canvas/dist/html2canvas.js",
+				"bytes": 209743
+			},
+			{
+				"path": "node_modules/.pnpm/@antv+layout@2.0.0/node_modules/@antv/layout/lib/node_modules/ml-matrix/matrix2.js",
+				"bytes": 72577
+			},
+			{
+				"path": "node_modules/.pnpm/graphology@0.26.0_graphology-types@0.24.8/node_modules/graphology/dist/graphology.mjs",
+				"bytes": 61569
+			},
+			{
+				"path": "node_modules/.pnpm/sigma@3.0.3_graphology-types@0.24.8/node_modules/sigma/dist/sigma.esm.js",
+				"bytes": 53329
+			},
+			{
+				"path": "node_modules/.pnpm/@antv+g-canvas@2.2.0/node_modules/@antv/g-canvas/dist/index.esm.js",
+				"bytes": 38721
+			},
+			{
+				"path": "node_modules/.pnpm/svelte-dnd-action@0.9.70_svelte@5.56.3_@typescript-eslint+types@8.61.1_/node_modules/svelte-dnd-action/dist/index.mjs",
+				"bytes": 37701
+			},
+			{
+				"path": "node_modules/.pnpm/@antv+g@6.3.1/node_modules/@antv/g/dist/index.esm.js",
+				"bytes": 36888
+			},
+			{
+				"path": "src/graph/renderers/g6/g6-renderer.ts",
+				"bytes": 36389
+			},
+			{
+				"path": "src/ui/Workspace.svelte",
+				"bytes": 35066
+			},
+			{
+				"path": "node_modules/.pnpm/three-forcegraph@1.43.4_three@0.185.0/node_modules/three-forcegraph/dist/three-forcegraph.mjs",
+				"bytes": 27954
+			},
+			{
+				"path": "src/workspace/meta-graph-v2/codec.ts",
+				"bytes": 26329
+			},
+			{
+				"path": "node_modules/.pnpm/sigma@3.0.3_graphology-types@0.24.8/node_modules/sigma/dist/index-fad77a13.esm.js",
+				"bytes": 26197
+			},
+			{
+				"path": "src/graph/renderers/sigma/sigma-parallel-edge-layer.ts",
+				"bytes": 23180
+			},
+			{
+				"path": "node_modules/.pnpm/bubblesets-js@2.3.4/node_modules/bubblesets-js/build/index.js",
+				"bytes": 22945
+			},
+			{
+				"path": "src/graph/renderers/cube-3d/cube-3d-renderer.ts",
+				"bytes": 22878
+			},
+			{
+				"path": "node_modules/.pnpm/three@0.185.0/node_modules/three/examples/jsm/controls/OrbitControls.js",
+				"bytes": 19815
+			},
+			{
+				"path": "src/graph/renderers/force-3d/force-3d-renderer.ts",
+				"bytes": 19422
+			},
+			{
+				"path": "src/graph/renderers/g6/g6-groups.ts",
+				"bytes": 18927
+			},
+			{
+				"path": "node_modules/.pnpm/gl-matrix@3.4.4/node_modules/gl-matrix/esm/mat4.js",
+				"bytes": 16686
+			},
+			{
+				"path": "src/graph/renderers/sigma/sigma-renderer.ts",
+				"bytes": 16311
+			},
+			{
+				"path": "node_modules/.pnpm/@antv+g6@5.1.1/node_modules/@antv/g6/esm/runtime/graph.js",
+				"bytes": 16231
+			},
+			{
+				"path": "node_modules/.pnpm/svg-path-parser@1.1.0/node_modules/svg-path-parser/parser.js",
+				"bytes": 15623
+			},
+			{
+				"path": "node_modules/.pnpm/tinycolor2@1.6.0/node_modules/tinycolor2/esm/tinycolor.js",
+				"bytes": 15568
+			},
+			{
+				"path": "src/layouts/elk-flow-layout.ts",
+				"bytes": 14531
+			},
+			{
+				"path": "node_modules/.pnpm/three-render-objects@1.42.0_three@0.185.0/node_modules/three-render-objects/dist/three-render-objects.mjs",
+				"bytes": 14056
+			}
+		]
+	},
+	"performanceRuns": [
+		{
+			"schema": 1,
+			"environment": {
+				"createdAt": "2026-09-14T04:08:56.579Z",
+				"commit": "7d2bd93318a8505aa508520d71cf6cb69dda982b",
+				"dirty": true,
+				"node": "v22.23.1",
+				"platform": "linux",
+				"arch": "x64",
+				"cpu": "AMD Ryzen 7 6800H with Radeon Graphics",
+				"lockfileSha256": "3d44405fbac924bb5eb559f5b02bd405e77994d4615ee7643887f15b1c95c7db"
+			},
+			"fixture": "deterministic-ring-v1: directed offsets 1,7,31; fixed positions; no conditional style rules",
+			"warmup": 10,
+			"samples": 40,
+			"units": "milliseconds",
+			"scope": "Node CPU microbenchmarks; excludes Obsidian, DOM, GPU, indexing and layout execution",
+			"results": [
+				{
+					"operation": "classify-style",
+					"nodes": 200,
+					"edges": 600,
+					"samples": 40,
+					"p50Ms": 0.5395310000000109,
+					"p95Ms": 0.8797329999999874,
+					"maxMs": 1.744169999999997
+				},
+				{
+					"operation": "classify-copied-topology",
+					"nodes": 200,
+					"edges": 600,
+					"samples": 40,
+					"p50Ms": 0.3076550000000111,
+					"p95Ms": 0.672930000000008,
+					"maxMs": 0.7737119999999891
+				},
+				{
+					"operation": "capture-render-baseline",
+					"nodes": 200,
+					"edges": 600,
+					"samples": 40,
+					"p50Ms": 0.26442300000002206,
+					"p95Ms": 0.5010479999999689,
+					"maxMs": 0.6117479999999773
+				},
+				{
+					"operation": "create-runtime-graph",
+					"nodes": 200,
+					"edges": 600,
+					"samples": 40,
+					"p50Ms": 1.8098209999999995,
+					"p95Ms": 5.135429999999985,
+					"maxMs": 15.42779900000005
+				},
+				{
+					"operation": "sync-runtime-styles",
+					"nodes": 200,
+					"edges": 600,
+					"samples": 40,
+					"p50Ms": 0.7456349999999929,
+					"p95Ms": 1.2501760000000104,
+					"maxMs": 3.149883999999986
+				},
+				{
+					"operation": "classify-style",
+					"nodes": 1000,
+					"edges": 3000,
+					"samples": 40,
+					"p50Ms": 0.47080700000003617,
+					"p95Ms": 1.1379399999999578,
+					"maxMs": 1.2649119999999812
+				},
+				{
+					"operation": "classify-copied-topology",
+					"nodes": 1000,
+					"edges": 3000,
+					"samples": 40,
+					"p50Ms": 2.1030190000000175,
+					"p95Ms": 3.1975869999999986,
+					"maxMs": 3.302141000000006
+				},
+				{
+					"operation": "capture-render-baseline",
+					"nodes": 1000,
+					"edges": 3000,
+					"samples": 40,
+					"p50Ms": 2.0333870000000616,
+					"p95Ms": 3.1924880000000257,
+					"maxMs": 4.052734999999984
+				},
+				{
+					"operation": "create-runtime-graph",
+					"nodes": 1000,
+					"edges": 3000,
+					"samples": 40,
+					"p50Ms": 8.545965000000024,
+					"p95Ms": 10.686629000000039,
+					"maxMs": 44.281510000000026
+				},
+				{
+					"operation": "sync-runtime-styles",
+					"nodes": 1000,
+					"edges": 3000,
+					"samples": 40,
+					"p50Ms": 2.1486959999999726,
+					"p95Ms": 2.617478000000119,
+					"maxMs": 3.1171979999999166
+				},
+				{
+					"operation": "classify-style",
+					"nodes": 5000,
+					"edges": 15000,
+					"samples": 40,
+					"p50Ms": 7.058674999999994,
+					"p95Ms": 9.36723999999981,
+					"maxMs": 218.56720399999995
+				},
+				{
+					"operation": "classify-copied-topology",
+					"nodes": 5000,
+					"edges": 15000,
+					"samples": 40,
+					"p50Ms": 12.069993999999951,
+					"p95Ms": 13.08529099999987,
+					"maxMs": 13.92926400000033
+				},
+				{
+					"operation": "capture-render-baseline",
+					"nodes": 5000,
+					"edges": 15000,
+					"samples": 40,
+					"p50Ms": 10.829177000000072,
+					"p95Ms": 11.771348999999645,
+					"maxMs": 12.088922000000366
+				},
+				{
+					"operation": "create-runtime-graph",
+					"nodes": 5000,
+					"edges": 15000,
+					"samples": 40,
+					"p50Ms": 73.61748100000023,
+					"p95Ms": 243.74434999999994,
+					"maxMs": 431.40057200000047
+				},
+				{
+					"operation": "sync-runtime-styles",
+					"nodes": 5000,
+					"edges": 15000,
+					"samples": 40,
+					"p50Ms": 17.398747000001094,
+					"p95Ms": 20.79265999999916,
+					"maxMs": 216.66281700000036
+				}
+			]
+		},
+		{
+			"schema": 1,
+			"environment": {
+				"createdAt": "2026-09-14T04:10:44.378Z",
+				"commit": "7d2bd93318a8505aa508520d71cf6cb69dda982b",
+				"dirty": true,
+				"node": "v22.23.1",
+				"platform": "linux",
+				"arch": "x64",
+				"cpu": "AMD Ryzen 7 6800H with Radeon Graphics",
+				"lockfileSha256": "3d44405fbac924bb5eb559f5b02bd405e77994d4615ee7643887f15b1c95c7db"
+			},
+			"fixture": "deterministic-ring-v1: directed offsets 1,7,31; fixed positions; no conditional style rules",
+			"warmup": 10,
+			"samples": 40,
+			"units": "milliseconds",
+			"scope": "Node CPU microbenchmarks; excludes Obsidian, DOM, GPU, indexing and layout execution",
+			"results": [
+				{
+					"operation": "classify-style",
+					"nodes": 200,
+					"edges": 600,
+					"samples": 40,
+					"p50Ms": 0.5235380000000305,
+					"p95Ms": 1.0755009999999743,
+					"maxMs": 1.1957680000000437
+				},
+				{
+					"operation": "classify-copied-topology",
+					"nodes": 200,
+					"edges": 600,
+					"samples": 40,
+					"p50Ms": 0.3285380000000373,
+					"p95Ms": 0.5704709999999977,
+					"maxMs": 0.7401879999999892
+				},
+				{
+					"operation": "capture-render-baseline",
+					"nodes": 200,
+					"edges": 600,
+					"samples": 40,
+					"p50Ms": 0.2692419999999629,
+					"p95Ms": 0.5977100000000064,
+					"maxMs": 0.7748290000000111
+				},
+				{
+					"operation": "create-runtime-graph",
+					"nodes": 200,
+					"edges": 600,
+					"samples": 40,
+					"p50Ms": 1.5678879999999822,
+					"p95Ms": 3.8251190000000292,
+					"maxMs": 14.421162999999979
+				},
+				{
+					"operation": "sync-runtime-styles",
+					"nodes": 200,
+					"edges": 600,
+					"samples": 40,
+					"p50Ms": 0.6561679999999797,
+					"p95Ms": 1.213158999999962,
+					"maxMs": 3.186341999999968
+				},
+				{
+					"operation": "classify-style",
+					"nodes": 1000,
+					"edges": 3000,
+					"samples": 40,
+					"p50Ms": 0.6333300000000008,
+					"p95Ms": 1.0877219999999852,
+					"maxMs": 1.3465590000000702
+				},
+				{
+					"operation": "classify-copied-topology",
+					"nodes": 1000,
+					"edges": 3000,
+					"samples": 40,
+					"p50Ms": 2.018020999999976,
+					"p95Ms": 3.1776820000000043,
+					"maxMs": 3.802071000000069
+				},
+				{
+					"operation": "capture-render-baseline",
+					"nodes": 1000,
+					"edges": 3000,
+					"samples": 40,
+					"p50Ms": 1.9272970000000669,
+					"p95Ms": 3.154354000000012,
+					"maxMs": 3.181314000000043
+				},
+				{
+					"operation": "create-runtime-graph",
+					"nodes": 1000,
+					"edges": 3000,
+					"samples": 40,
+					"p50Ms": 8.711910999999873,
+					"p95Ms": 12.346290999999951,
+					"maxMs": 61.37700200000006
+				},
+				{
+					"operation": "sync-runtime-styles",
+					"nodes": 1000,
+					"edges": 3000,
+					"samples": 40,
+					"p50Ms": 2.1659470000001875,
+					"p95Ms": 2.739700999999968,
+					"maxMs": 2.912770000000137
+				},
+				{
+					"operation": "classify-style",
+					"nodes": 5000,
+					"edges": 15000,
+					"samples": 40,
+					"p50Ms": 6.936591000000135,
+					"p95Ms": 8.713377000000037,
+					"maxMs": 224.256623
+				},
+				{
+					"operation": "classify-copied-topology",
+					"nodes": 5000,
+					"edges": 15000,
+					"samples": 40,
+					"p50Ms": 11.63082600000007,
+					"p95Ms": 12.42625999999973,
+					"maxMs": 12.452450999999655
+				},
+				{
+					"operation": "capture-render-baseline",
+					"nodes": 5000,
+					"edges": 15000,
+					"samples": 40,
+					"p50Ms": 10.29488399999991,
+					"p95Ms": 10.904536999999891,
+					"maxMs": 12.074464999999691
+				},
+				{
+					"operation": "create-runtime-graph",
+					"nodes": 5000,
+					"edges": 15000,
+					"samples": 40,
+					"p50Ms": 71.81555200000003,
+					"p95Ms": 265.7134339999993,
+					"maxMs": 412.6345940000001
+				},
+				{
+					"operation": "sync-runtime-styles",
+					"nodes": 5000,
+					"edges": 15000,
+					"samples": 40,
+					"p50Ms": 16.69920699999966,
+					"p95Ms": 18.488844999999856,
+					"maxMs": 20.678257999999914
+				}
+			]
+		},
+		{
+			"schema": 1,
+			"environment": {
+				"createdAt": "2026-09-14T04:11:04.207Z",
+				"commit": "7d2bd93318a8505aa508520d71cf6cb69dda982b",
+				"dirty": true,
+				"node": "v22.23.1",
+				"platform": "linux",
+				"arch": "x64",
+				"cpu": "AMD Ryzen 7 6800H with Radeon Graphics",
+				"lockfileSha256": "3d44405fbac924bb5eb559f5b02bd405e77994d4615ee7643887f15b1c95c7db"
+			},
+			"fixture": "deterministic-ring-v1: directed offsets 1,7,31; fixed positions; no conditional style rules",
+			"warmup": 10,
+			"samples": 40,
+			"units": "milliseconds",
+			"scope": "Node CPU microbenchmarks; excludes Obsidian, DOM, GPU, indexing and layout execution",
+			"results": [
+				{
+					"operation": "classify-style",
+					"nodes": 200,
+					"edges": 600,
+					"samples": 40,
+					"p50Ms": 0.5353410000000167,
+					"p95Ms": 0.9941339999999741,
+					"maxMs": 1.2223079999999982
+				},
+				{
+					"operation": "classify-copied-topology",
+					"nodes": 200,
+					"edges": 600,
+					"samples": 40,
+					"p50Ms": 0.31205499999998665,
+					"p95Ms": 0.8208560000000489,
+					"maxMs": 1.2042900000000145
+				},
+				{
+					"operation": "capture-render-baseline",
+					"nodes": 200,
+					"edges": 600,
+					"samples": 40,
+					"p50Ms": 0.2554829999999697,
+					"p95Ms": 0.4904329999999959,
+					"maxMs": 1.2271279999999933
+				},
+				{
+					"operation": "create-runtime-graph",
+					"nodes": 200,
+					"edges": 600,
+					"samples": 40,
+					"p50Ms": 1.5180909999999699,
+					"p95Ms": 3.760724000000039,
+					"maxMs": 13.216593999999986
+				},
+				{
+					"operation": "sync-runtime-styles",
+					"nodes": 200,
+					"edges": 600,
+					"samples": 40,
+					"p50Ms": 0.6131450000000314,
+					"p95Ms": 1.275529000000006,
+					"maxMs": 2.2923619999999687
+				},
+				{
+					"operation": "classify-style",
+					"nodes": 1000,
+					"edges": 3000,
+					"samples": 40,
+					"p50Ms": 0.5131309999999303,
+					"p95Ms": 1.1552599999999984,
+					"maxMs": 1.2253819999999678
+				},
+				{
+					"operation": "classify-copied-topology",
+					"nodes": 1000,
+					"edges": 3000,
+					"samples": 40,
+					"p50Ms": 1.8700260000000526,
+					"p95Ms": 2.860108999999966,
+					"maxMs": 3.0584609999999657
+				},
+				{
+					"operation": "capture-render-baseline",
+					"nodes": 1000,
+					"edges": 3000,
+					"samples": 40,
+					"p50Ms": 1.680892999999969,
+					"p95Ms": 2.9087200000000166,
+					"maxMs": 3.4739530000000514
+				},
+				{
+					"operation": "create-runtime-graph",
+					"nodes": 1000,
+					"edges": 3000,
+					"samples": 40,
+					"p50Ms": 8.918084000000135,
+					"p95Ms": 10.859908000000019,
+					"maxMs": 87.79161199999999
+				},
+				{
+					"operation": "sync-runtime-styles",
+					"nodes": 1000,
+					"edges": 3000,
+					"samples": 40,
+					"p50Ms": 2.2151159999998526,
+					"p95Ms": 3.0918450000001485,
+					"maxMs": 4.03995400000008
+				},
+				{
+					"operation": "classify-style",
+					"nodes": 5000,
+					"edges": 15000,
+					"samples": 40,
+					"p50Ms": 6.976540000000114,
+					"p95Ms": 8.983036999999968,
+					"maxMs": 11.179855000000089
+				},
+				{
+					"operation": "classify-copied-topology",
+					"nodes": 5000,
+					"edges": 15000,
+					"samples": 40,
+					"p50Ms": 11.733214999999745,
+					"p95Ms": 13.473892999999862,
+					"maxMs": 13.78678600000012
+				},
+				{
+					"operation": "capture-render-baseline",
+					"nodes": 5000,
+					"edges": 15000,
+					"samples": 40,
+					"p50Ms": 10.617137000000184,
+					"p95Ms": 11.391966000000139,
+					"maxMs": 11.755634999999984
+				},
+				{
+					"operation": "create-runtime-graph",
+					"nodes": 5000,
+					"edges": 15000,
+					"samples": 40,
+					"p50Ms": 71.77462400000059,
+					"p95Ms": 301.02370900000005,
+					"maxMs": 434.965948
+				},
+				{
+					"operation": "sync-runtime-styles",
+					"nodes": 5000,
+					"edges": 15000,
+					"samples": 40,
+					"p50Ms": 16.310256000000663,
+					"p95Ms": 18.041714000000866,
+					"maxMs": 18.501485999999204
+				}
+			]
+		}
+	]
+}

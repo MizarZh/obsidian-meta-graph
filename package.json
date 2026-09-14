@@ -8,6 +8,9 @@
 	"scripts": {
 		"dev": "node scripts/dev.mjs",
 		"build:css": "node scripts/build-css.mjs",
+		"baseline:bundle": "node esbuild.config.mjs analyze",
+		"baseline:performance": "node scripts/baseline/performance.mjs",
+		"baseline": "pnpm baseline:bundle && pnpm baseline:performance",
 		"typecheck": "tsc -noEmit -skipLibCheck && svelte-check --tsconfig ./tsconfig.json",
 		"build": "pnpm typecheck && pnpm build:css && node esbuild.config.mjs production",
 		"test": "vitest run",
