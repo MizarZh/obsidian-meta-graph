@@ -1,3 +1,4 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
 import { describe, expect, it } from 'vitest';
 import type { MetaGraphChart, WorkspaceState } from '@/core/types';
 import {
@@ -20,7 +21,7 @@ function getActiveChart(state: WorkspaceState): MetaGraphChart {
 }
 
 describe('workspace style state', () => {
-	it('writes normalized style rules to state and active chart style', () => {
+	it('writes normalized rules to the active chart style', () => {
 		const state = createWorkspaceState(100, 1.5);
 		const nextState = setNodeStyleRulesInState(state, [
 			{
@@ -40,7 +41,7 @@ describe('workspace style state', () => {
 			},
 		]);
 
-		expect(nextState.nodeStyleRules).toEqual([
+		expect(getActiveChartStyle(nextState).nodeRules).toEqual([
 			{
 				id: 'tag-rule',
 				field: 'tag',
@@ -51,7 +52,7 @@ describe('workspace style state', () => {
 			},
 		]);
 		expect(getActiveChart(nextState).style.nodeRules).toEqual(
-			nextState.nodeStyleRules,
+			getActiveChartStyle(nextState).nodeRules,
 		);
 	});
 
@@ -119,9 +120,12 @@ describe('workspace style state', () => {
 			'current',
 		);
 		expect(movedToChart.globalNodeStyleRules).toEqual([]);
-		expect(movedToChart.nodeStyleRules).toEqual([chartRule, globalRule]);
+		expect(getActiveChartStyle(movedToChart).nodeRules).toEqual([
+			chartRule,
+			globalRule,
+		]);
 		expect(getActiveChart(movedToChart).style.nodeRules).toEqual(
-			movedToChart.nodeStyleRules,
+			getActiveChartStyle(movedToChart).nodeRules,
 		);
 
 		const movedToGlobal = moveNodeStyleRuleToScopeInState(
@@ -130,7 +134,9 @@ describe('workspace style state', () => {
 			'global',
 		);
 		expect(movedToGlobal.globalNodeStyleRules).toEqual([globalRule]);
-		expect(movedToGlobal.nodeStyleRules).toEqual([chartRule]);
+		expect(getActiveChartStyle(movedToGlobal).nodeRules).toEqual([
+			chartRule,
+		]);
 	});
 
 	it('moves link rules between global and chart scopes', () => {
@@ -157,7 +163,9 @@ describe('workspace style state', () => {
 			'current',
 		);
 		expect(movedToChart.globalLinkStyleRules).toEqual([]);
-		expect(movedToChart.linkStyleRules).toEqual([globalRule]);
+		expect(getActiveChartStyle(movedToChart).linkRules).toEqual([
+			globalRule,
+		]);
 
 		const movedToGlobal = moveLinkStyleRuleToScopeInState(
 			movedToChart,
@@ -165,6 +173,6 @@ describe('workspace style state', () => {
 			'global',
 		);
 		expect(movedToGlobal.globalLinkStyleRules).toEqual([globalRule]);
-		expect(movedToGlobal.linkStyleRules).toEqual([]);
+		expect(getActiveChartStyle(movedToGlobal).linkRules).toEqual([]);
 	});
 });

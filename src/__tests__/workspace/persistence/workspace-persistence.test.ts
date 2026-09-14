@@ -1,3 +1,4 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
 import { describe, expect, it } from 'vitest';
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
 import { cloneSerializable } from '@/workspace/state/persistence';
@@ -110,7 +111,7 @@ describe('workspace persistence', () => {
 		const restored = createWorkspaceState(300, 1.5, document);
 		const saved = serializeMetaGraphState(restored);
 
-		expect(restored.plainLinkStyleOverrides).toEqual({
+		expect(getActiveChartStyle(restored).plainLinkOverrides).toEqual({
 			color: '#123456',
 			size: 3,
 			lineStyle: 'dotted',
@@ -141,7 +142,7 @@ describe('workspace persistence', () => {
 		const restored = createWorkspaceState(300, 1.5, document);
 		const saved = serializeMetaGraphState(restored);
 
-		expect(restored.unresolvedLinkStyleOverrides).toEqual({
+		expect(getActiveChartStyle(restored).unresolvedLinkOverrides).toEqual({
 			color: '#d97706',
 			size: 2,
 			lineStyle: 'dotted',
@@ -170,7 +171,7 @@ describe('workspace persistence', () => {
 		const restored = createWorkspaceState(300, 1.5, document);
 		const saved = serializeMetaGraphState(restored);
 
-		expect(restored.unresolvedNodeStyleOverrides).toEqual({
+		expect(getActiveChartStyle(restored).unresolvedNodeOverrides).toEqual({
 			color: '#abcdef',
 			size: 5,
 		});

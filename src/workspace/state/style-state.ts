@@ -1,3 +1,4 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
 import { getActiveChart } from '@/workspace/state/chart-selectors';
 import type {
 	ChartStyleConfig,
@@ -161,7 +162,7 @@ export function moveNodeStyleRuleToScopeInState(
 ): WorkspaceState {
 	const sourceRules =
 		targetScope === 'global'
-			? state.nodeStyleRules
+			? getActiveChartStyle(state).nodeRules
 			: state.globalNodeStyleRules;
 	const rule = sourceRules.find((item) => item.id === id);
 	if (!rule) {
@@ -171,7 +172,7 @@ export function moveNodeStyleRuleToScopeInState(
 	const nextTargetRules = [
 		...(targetScope === 'global'
 			? state.globalNodeStyleRules
-			: state.nodeStyleRules),
+			: getActiveChartStyle(state).nodeRules),
 		rule,
 	];
 	if (targetScope === 'global') {
@@ -189,7 +190,7 @@ export function moveLinkStyleRuleToScopeInState(
 ): WorkspaceState {
 	const sourceRules =
 		targetScope === 'global'
-			? state.linkStyleRules
+			? getActiveChartStyle(state).linkRules
 			: state.globalLinkStyleRules;
 	const rule = sourceRules.find((item) => item.id === id);
 	if (!rule) {
@@ -199,7 +200,7 @@ export function moveLinkStyleRuleToScopeInState(
 	const nextTargetRules = [
 		...(targetScope === 'global'
 			? state.globalLinkStyleRules
-			: state.linkStyleRules),
+			: getActiveChartStyle(state).linkRules),
 		rule,
 	];
 	if (targetScope === 'global') {

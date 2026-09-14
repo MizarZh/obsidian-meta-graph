@@ -1,3 +1,5 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
+import { withChartStyle } from '@/__tests__/fixtures/chart-style';
 import { describe, expect, it } from 'vitest';
 import type { WorkspaceState } from '@/core/types';
 import {
@@ -16,7 +18,7 @@ describe('resolveConnectionPreviewStyle', () => {
 			opacity: 0.7,
 			arrowSize: 2,
 		};
-		state.linkStyleRules = [
+		getActiveChartStyle(state).linkRules = [
 			{
 				id: 'field',
 				field: 'source-field',
@@ -39,8 +41,8 @@ describe('resolveConnectionPreviewStyle', () => {
 			opacity: 0.7,
 			arrowSize: 2,
 		});
-		state.linkStyleRules.push({
-			...state.linkStyleRules[0]!,
+		getActiveChartStyle(state).linkRules.push({
+			...getActiveChartStyle(state).linkRules[0]!,
 			id: 'last',
 			color: '#123456',
 			size: 6,
@@ -62,34 +64,38 @@ describe('resolveConnectionPreviewStyle', () => {
 		});
 	});
 	it('uses the active link defaults and matching field rules', () => {
-		const state: WorkspaceState = {
-			...createWorkspaceState(200),
-			activeConnectionField: 'leads-to',
-			defaultLinkStyle: {
-				color: '#111111',
-				size: 2,
-				lineStyle: 'solid',
-				arrowStyle: 'filled',
-				opacity: 1,
-				arrowSize: 1,
-				label: '',
-				showLabel: false,
-				hidden: false,
-			},
-			linkStyleRules: [
-				{
-					id: 'active-field',
-					field: 'source-field',
-					value: 'leads-to',
-					color: '#abcdef',
-					size: 4,
-					lineStyle: 'dashed',
+		const state: WorkspaceState = withChartStyle(
+			{
+				...createWorkspaceState(200),
+				activeConnectionField: 'leads-to',
+				defaultLinkStyle: {
+					color: '#111111',
+					size: 2,
+					lineStyle: 'solid',
+					arrowStyle: 'filled',
+					opacity: 1,
+					arrowSize: 1,
 					label: '',
 					showLabel: false,
 					hidden: false,
 				},
-			],
-		};
+			},
+			{
+				linkRules: [
+					{
+						id: 'active-field',
+						field: 'source-field',
+						value: 'leads-to',
+						color: '#abcdef',
+						size: 4,
+						lineStyle: 'dashed',
+						label: '',
+						showLabel: false,
+						hidden: false,
+					},
+				],
+			},
+		);
 
 		expect(
 			resolveConnectionPreviewStyle(state, 'a.md', 'b.md'),

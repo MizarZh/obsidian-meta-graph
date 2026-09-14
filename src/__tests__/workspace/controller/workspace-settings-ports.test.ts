@@ -1,3 +1,4 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
 import { describe, expect, it, vi } from 'vitest';
 import {
 	createWorkspaceSettingsActions,
@@ -25,7 +26,10 @@ describe('workspace settings ports', () => {
 		expect(view.labels.labelSize).toBe(state.labelSize);
 		expect(view.query.currentQuery).toBe(state.query);
 		expect(view.query.globalQuery).toBe(state.globalQuery);
-		expect(view.styles.chart.nodeOverrides).toBe(state.nodeStyleOverrides);
+		expect(view.styles.chart).toBe(getActiveChartStyle(state));
+		expect(view.styles.chart.nodeOverrides).toBe(
+			getActiveChartStyle(state).nodeOverrides,
+		);
 		expect(view.suggestions.flowRelationFields).toEqual([
 			'related',
 			'leads-to',

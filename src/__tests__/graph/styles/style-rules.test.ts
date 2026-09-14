@@ -1,3 +1,4 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
 import { describe, expect, it } from 'vitest';
 import type {
 	KnowledgeEdge,
@@ -66,10 +67,10 @@ describe('style rules', () => {
 			showLabel: false,
 			hidden: false,
 		});
-		expect(state.nodeStyleOverrides).toEqual({});
-		expect(state.linkStyleOverrides).toEqual({});
-		expect(state.nodeStyleRules).toEqual([]);
-		expect(state.linkStyleRules).toEqual([]);
+		expect(getActiveChartStyle(state).nodeOverrides).toEqual({});
+		expect(getActiveChartStyle(state).linkOverrides).toEqual({});
+		expect(getActiveChartStyle(state).nodeRules).toEqual([]);
+		expect(getActiveChartStyle(state).linkRules).toEqual([]);
 		expect(state.charts.map((chart) => chart.type)).toEqual([
 			'graph',
 			'flow',
@@ -208,9 +209,11 @@ describe('style rules', () => {
 			opacity: 1,
 			shape: 'circle',
 		});
-		expect(state.nodeStyleOverrides).toEqual({ color: '#222222' });
-		expect(state.nodeStyleRules).toHaveLength(1);
-		expect(state.nodeStyleRules[0]?.field).toBe('tag');
+		expect(getActiveChartStyle(state).nodeOverrides).toEqual({
+			color: '#222222',
+		});
+		expect(getActiveChartStyle(state).nodeRules).toHaveLength(1);
+		expect(getActiveChartStyle(state).nodeRules[0]?.field).toBe('tag');
 	});
 
 	it('uses all rules as the base style layer', () => {

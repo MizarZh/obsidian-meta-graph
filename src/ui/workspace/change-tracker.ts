@@ -1,7 +1,9 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
 import { setsEqual } from '@/core/sets';
 import type {
 	ChartGroupingConfig,
 	GraphProjection,
+	ChartStyleConfig,
 	NodeStyleRule,
 	WorkspaceState,
 } from '@/core/types';
@@ -9,6 +11,7 @@ import { matchesNodeCriterion } from '@/query/filters';
 import { resolveChartGroupOwnership } from '@/query/group-ownership';
 
 export interface WorkspaceRenderBaseline {
+	chartStyle?: ChartStyleConfig;
 	trace?: WorkspaceState['trace'];
 	projection?: WorkspaceState['projection'];
 	projectionSignature?: string;
@@ -31,15 +34,8 @@ export interface WorkspaceRenderBaseline {
 	layoutRevision?: number;
 	defaultNodeStyle?: WorkspaceState['defaultNodeStyle'];
 	defaultLinkStyle?: WorkspaceState['defaultLinkStyle'];
-	nodeStyleOverrides?: WorkspaceState['nodeStyleOverrides'];
-	unresolvedNodeStyleOverrides?: WorkspaceState['unresolvedNodeStyleOverrides'];
-	linkStyleOverrides?: WorkspaceState['linkStyleOverrides'];
-	plainLinkStyleOverrides?: WorkspaceState['plainLinkStyleOverrides'];
-	unresolvedLinkStyleOverrides?: WorkspaceState['unresolvedLinkStyleOverrides'];
 	globalNodeStyleRules?: WorkspaceState['globalNodeStyleRules'];
 	globalLinkStyleRules?: WorkspaceState['globalLinkStyleRules'];
-	nodeStyleRules?: WorkspaceState['nodeStyleRules'];
-	linkStyleRules?: WorkspaceState['linkStyleRules'];
 }
 
 export interface WorkspaceStateChanges {
@@ -92,15 +88,8 @@ const STYLE_RULE_KEYS = [
 	'trace',
 	'defaultNodeStyle',
 	'defaultLinkStyle',
-	'nodeStyleOverrides',
-	'unresolvedNodeStyleOverrides',
-	'linkStyleOverrides',
-	'plainLinkStyleOverrides',
-	'unresolvedLinkStyleOverrides',
 	'globalNodeStyleRules',
 	'globalLinkStyleRules',
-	'nodeStyleRules',
-	'linkStyleRules',
 ] as const satisfies readonly WorkspaceStateBaselineKey[];
 
 const REBUILD_BASELINE_KEYS = [
@@ -178,8 +167,13 @@ export function analyzeWorkspaceStateChanges(
 		projectionStyleMatchesChanged(
 			nextState.projection,
 			currentState.projection,
-			[...nextState.globalNodeStyleRules, ...nextState.nodeStyleRules],
-		) || stateDiffersFromBaseline(nextState, baseline, STYLE_RULE_KEYS);
+			[
+				...nextState.globalNodeStyleRules,
+				...getActiveChartStyle(nextState).nodeRules,
+			],
+		) ||
+		getActiveChartStyle(nextState) !== baseline.chartStyle ||
+		stateDiffersFromBaseline(nextState, baseline, STYLE_RULE_KEYS);
 	const graphVisibilityChanged = projectionHiddenNodeIdsChanged(
 		nextState.projection,
 		currentState.projection,
@@ -491,6 +485,7 @@ export function createWorkspaceRenderBaseline(
 	state: WorkspaceState,
 ): WorkspaceRenderBaseline {
 	return {
+		chartStyle: getActiveChartStyle(state),
 		projection: state.projection,
 		projectionSignature: readProjectionSignature(state),
 		projectionGroupSignature: readProjectionGroupSignature(state),
@@ -512,15 +507,8 @@ export function createWorkspaceRenderBaseline(
 		layoutRevision: state.layoutRevision,
 		defaultNodeStyle: state.defaultNodeStyle,
 		defaultLinkStyle: state.defaultLinkStyle,
-		nodeStyleOverrides: state.nodeStyleOverrides,
-		unresolvedNodeStyleOverrides: state.unresolvedNodeStyleOverrides,
-		linkStyleOverrides: state.linkStyleOverrides,
-		plainLinkStyleOverrides: state.plainLinkStyleOverrides,
-		unresolvedLinkStyleOverrides: state.unresolvedLinkStyleOverrides,
 		globalNodeStyleRules: state.globalNodeStyleRules,
 		globalLinkStyleRules: state.globalLinkStyleRules,
-		nodeStyleRules: state.nodeStyleRules,
-		linkStyleRules: state.linkStyleRules,
 		trace: state.trace,
 	};
 }
@@ -529,6 +517,7 @@ export function syncWorkspaceRenderBaselineStyles(
 	baseline: WorkspaceRenderBaseline,
 	state: WorkspaceState,
 ): void {
+	baseline.chartStyle = getActiveChartStyle(state);
 	for (const key of STYLE_RULE_KEYS) {
 		syncBaselineValue(baseline, state, key);
 	}

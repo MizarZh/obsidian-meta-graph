@@ -1,3 +1,4 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
 import { describe, expect, it } from 'vitest';
 import {
 	addCuratedFileInState,
@@ -150,7 +151,9 @@ describe('workspace curated actions', () => {
 		expect(hidden.state.layoutRevision).toBe(state.layoutRevision);
 		expect(hidden.state.grouping).toBe(state.grouping);
 		expect(hidden.state.manualLayout).toBe(state.manualLayout);
-		expect(hidden.state.nodeStyleRules).toBe(state.nodeStyleRules);
+		expect(getActiveChartStyle(hidden.state).nodeRules).toBe(
+			getActiveChartStyle(state).nodeRules,
+		);
 		expect(hidden.state.projection?.hiddenNodeIds).toEqual(
 			new Set(['B.md']),
 		);

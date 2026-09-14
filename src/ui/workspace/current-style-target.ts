@@ -1,3 +1,4 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
 import type {
 	KnowledgeNode,
 	KnowledgeEdge,
@@ -15,17 +16,18 @@ export function currentNodeStyleTarget(
 	state: WorkspaceState,
 	node: KnowledgeNode,
 ): string {
+	const chartStyle = getActiveChartStyle(state);
 	if (node.kind === 'unresolved') return 'Unresolved nodes';
 	const context = resolveNodeStyleContext(node, state.grouping);
 	for (const [scope, rules] of [
-		['current', state.nodeStyleRules],
+		['current', chartStyle.nodeRules],
 		['global', state.globalNodeStyleRules],
 	] as const) {
 		for (const rule of [...rules].reverse())
 			if (matchesNodeRule(node, rule, context))
 				return `${scope}:${rule.id}`;
 	}
-	return Object.values(state.nodeStyleOverrides).some(
+	return Object.values(chartStyle.nodeOverrides).some(
 		(value) => value !== undefined,
 	)
 		? 'Chart overrides'
@@ -36,16 +38,17 @@ export function currentLinkStyleTarget(
 	state: WorkspaceState,
 	edge: KnowledgeEdge,
 ): string {
+	const chartStyle = getActiveChartStyle(state);
 	if (isUnresolvedLinkEdge(edge)) return 'Unresolved links';
 	if (isPlainLinkEdge(edge)) return 'Plain links';
 	for (const [scope, rules] of [
-		['current', state.linkStyleRules],
+		['current', chartStyle.linkRules],
 		['global', state.globalLinkStyleRules],
 	] as const) {
 		for (const rule of [...rules].reverse())
 			if (matchesLinkRule(edge, rule)) return `${scope}:${rule.id}`;
 	}
-	return Object.values(state.linkStyleOverrides).some(
+	return Object.values(chartStyle.linkOverrides).some(
 		(value) => value !== undefined,
 	)
 		? 'Chart overrides'

@@ -1,3 +1,5 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
+import { withChartStyle } from '@/__tests__/fixtures/chart-style';
 import { describe, expect, it, vi } from 'vitest';
 import type { GraphProjection, KnowledgeEdge } from '@/core/types';
 import type { GraphPalette } from '@/graph/styles/graph-styles';
@@ -78,7 +80,7 @@ describe('workspace runtime graph', () => {
 	});
 	it('preserves distinct relationship styles during trace creation and refresh', () => {
 		const state = createWorkspaceState(200);
-		state.plainLinkStyleOverrides = {
+		getActiveChartStyle(state).plainLinkOverrides = {
 			color: '#123456',
 			size: 3,
 			opacity: 0.4,
@@ -190,13 +192,13 @@ describe('workspace runtime graph', () => {
 				graph.getEdgeAttribute('plain', key),
 			);
 		}
-		state.plainLinkStyleOverrides = {
+		getActiveChartStyle(state).plainLinkOverrides = {
 			color: '#123456',
 			size: 3,
 			opacity: 0.4,
 			lineStyle: 'solid',
 		};
-		state.unresolvedLinkStyleOverrides = {
+		getActiveChartStyle(state).unresolvedLinkOverrides = {
 			color: '#abcdef',
 			size: 2,
 			opacity: 0.7,
@@ -211,10 +213,10 @@ describe('workspace runtime graph', () => {
 		);
 		for (const result of [graph, rebuilt]) {
 			expect(result.getEdgeAttributes('plain')).toMatchObject(
-				state.plainLinkStyleOverrides,
+				getActiveChartStyle(state).plainLinkOverrides,
 			);
 			expect(result.getEdgeAttributes('unresolved')).toMatchObject(
-				state.unresolvedLinkStyleOverrides,
+				getActiveChartStyle(state).unresolvedLinkOverrides,
 			);
 		}
 	});
@@ -244,7 +246,10 @@ describe('workspace runtime graph', () => {
 		expect(graph.getNodeAttribute('B.md', 'size')).toBe(
 			graph.getNodeAttribute('A.md', 'size'),
 		);
-		const next = { ...state, nodeStyleOverrides: { opacity: 0.5 } };
+		const next = withChartStyle(
+			{ ...state },
+			{ nodeOverrides: { opacity: 0.5 } },
+		);
 		syncWorkspaceRuntimeGraphStyles(graph, expanded, next, palette);
 		const fresh = createWorkspaceRuntimeGraph(
 			expanded,
@@ -299,49 +304,51 @@ describe('workspace runtime graph', () => {
 				state,
 				palette,
 			);
-			const nextState = {
-				...state,
-				linkStyleOverrides: {
-					color: '#ff0000',
-					size: 4,
-					opacity: 0.3,
-					arrowSize: 2,
-					arrowStyle: 'chevron' as const,
-					showLabel: true,
-					label: '',
-				},
-				plainLinkStyleOverrides: {
-					color: '#00ff00',
-					size: 5,
-					opacity: 0.4,
-					arrowSize: 3,
-					lineStyle: 'dotted' as const,
-					hidden: true,
-				},
-				unresolvedLinkStyleOverrides: {
-					color: '#0000ff',
-					size: 6,
-					opacity: 0.5,
-					arrowSize: 4,
-					lineStyle: 'dash-dot' as const,
-				},
-				linkStyleRules: [
-					{
-						id: 'rule',
-						field: 'all' as const,
-						value: '',
-						color: '#abcdef',
-						size: 7,
-						opacity: 0.6,
-						arrowSize: 5,
+			const nextState = withChartStyle(
+				{ ...state },
+				{
+					linkOverrides: {
+						color: '#ff0000',
+						size: 4,
+						opacity: 0.3,
+						arrowSize: 2,
 						arrowStyle: 'chevron' as const,
-						lineStyle: 'dashed' as const,
-						label: 'Next',
 						showLabel: true,
-						hidden: false,
+						label: '',
 					},
-				],
-			};
+					plainLinkOverrides: {
+						color: '#00ff00',
+						size: 5,
+						opacity: 0.4,
+						arrowSize: 3,
+						lineStyle: 'dotted' as const,
+						hidden: true,
+					},
+					unresolvedLinkOverrides: {
+						color: '#0000ff',
+						size: 6,
+						opacity: 0.5,
+						arrowSize: 4,
+						lineStyle: 'dash-dot' as const,
+					},
+					linkRules: [
+						{
+							id: 'rule',
+							field: 'all' as const,
+							value: '',
+							color: '#abcdef',
+							size: 7,
+							opacity: 0.6,
+							arrowSize: 5,
+							arrowStyle: 'chevron' as const,
+							lineStyle: 'dashed' as const,
+							label: 'Next',
+							showLabel: true,
+							hidden: false,
+						},
+					],
+				},
+			);
 			const fresh = createWorkspaceRuntimeGraph(
 				styledProjection,
 				new Map(),
@@ -371,8 +378,8 @@ describe('workspace runtime graph', () => {
 				hidden: true,
 			});
 			// Default labels and blank-color palette fallback must agree too.
-			nextState.linkStyleRules = [];
-			nextState.linkStyleOverrides.color = '';
+			getActiveChartStyle(nextState).linkRules = [];
+			getActiveChartStyle(nextState).linkOverrides.color = '';
 			const defaults = createWorkspaceRuntimeGraph(
 				styledProjection,
 				new Map(),
@@ -416,19 +423,21 @@ describe('workspace runtime graph', () => {
 			state,
 			palette,
 		);
-		const nextState = {
-			...state,
-			nodeStyleRules: [
-				{
-					id: 'shape',
-					field: 'all' as const,
-					value: '',
-					color: '#7c6ff0',
-					size: 7,
-					shape: 'diamond' as const,
-				},
-			],
-		};
+		const nextState = withChartStyle(
+			{ ...state },
+			{
+				nodeRules: [
+					{
+						id: 'shape',
+						field: 'all' as const,
+						value: '',
+						color: '#7c6ff0',
+						size: 7,
+						shape: 'diamond' as const,
+					},
+				],
+			},
+		);
 
 		syncWorkspaceRuntimeGraphStyles(graph, projection, nextState, palette);
 
@@ -468,32 +477,34 @@ describe('workspace runtime graph', () => {
 			state,
 			palette,
 		);
-		const nextState = {
-			...state,
-			nodeStyleRules: [
-				{
-					id: 'node',
-					field: 'file.basename',
-					operator: 'is',
-					value: 'A',
-					color: '#ff0000',
-					size: 11,
-				},
-			],
-			linkStyleRules: [
-				{
-					id: 'link',
-					field: 'relation',
-					value: 'leads-to',
-					color: '#00ff00',
-					size: 3,
-					lineStyle: 'dashed',
-					label: 'Next',
-					showLabel: true,
-					hidden: false,
-				},
-			],
-		} satisfies typeof state;
+		const nextState = withChartStyle(
+			{ ...state },
+			{
+				nodeRules: [
+					{
+						id: 'node',
+						field: 'file.basename',
+						operator: 'is',
+						value: 'A',
+						color: '#ff0000',
+						size: 11,
+					},
+				],
+				linkRules: [
+					{
+						id: 'link',
+						field: 'relation',
+						value: 'leads-to',
+						color: '#00ff00',
+						size: 3,
+						lineStyle: 'dashed',
+						label: 'Next',
+						showLabel: true,
+						hidden: false,
+					},
+				],
+			},
+		) satisfies typeof state;
 
 		syncWorkspaceRuntimeGraphStyles(
 			graph,
@@ -578,22 +589,24 @@ describe('workspace runtime graph', () => {
 		syncWorkspaceRuntimeGraphStyles(
 			graph,
 			bundledProjection,
-			{
-				...state,
-				linkStyleRules: [
-					{
-						id: 'label',
-						field: 'relation',
-						value: 'leads-to',
-						color: '#333333',
-						size: 1.5,
-						lineStyle: 'solid',
-						label: 'Leads to',
-						showLabel: true,
-						hidden: false,
-					},
-				],
-			},
+			withChartStyle(
+				{ ...state },
+				{
+					linkRules: [
+						{
+							id: 'label',
+							field: 'relation',
+							value: 'leads-to',
+							color: '#333333',
+							size: 1.5,
+							lineStyle: 'solid',
+							label: 'Leads to',
+							showLabel: true,
+							hidden: false,
+						},
+					],
+				},
+			),
 			palette,
 		);
 
@@ -668,13 +681,15 @@ describe('workspace runtime graph', () => {
 		const styleHiddenGraph = createWorkspaceRuntimeGraph(
 			styledProjection,
 			new Map(),
-			{
-				...state,
-				linkStyleOverrides: {
-					...state.linkStyleOverrides,
-					hidden: true,
+			withChartStyle(
+				{ ...state },
+				{
+					linkOverrides: {
+						...getActiveChartStyle(state).linkOverrides,
+						hidden: true,
+					},
 				},
-			},
+			),
 			palette,
 		);
 		syncWorkspaceRuntimeGraphVisibility(styleHiddenGraph, styledProjection);
@@ -713,14 +728,16 @@ describe('workspace runtime graph', () => {
 		const graph = createWorkspaceRuntimeGraph(
 			plainProjection,
 			new Map(),
-			{
-				...createWorkspaceState(200),
-				plainLinkStyleOverrides: {
-					color: '#123456',
-					size: 4,
-					lineStyle: 'dotted',
+			withChartStyle(
+				{ ...createWorkspaceState(200) },
+				{
+					plainLinkOverrides: {
+						color: '#123456',
+						size: 4,
+						lineStyle: 'dotted',
+					},
 				},
-			},
+			),
 			palette,
 		);
 
@@ -768,18 +785,20 @@ describe('workspace runtime graph', () => {
 		const graph = createWorkspaceRuntimeGraph(
 			unresolvedProjection,
 			new Map(),
-			{
-				...createWorkspaceState(200),
-				unresolvedNodeStyleOverrides: {
-					color: '#abcdef',
-					size: 5,
+			withChartStyle(
+				{ ...createWorkspaceState(200) },
+				{
+					unresolvedNodeOverrides: {
+						color: '#abcdef',
+						size: 5,
+					},
+					unresolvedLinkOverrides: {
+						color: '#d97706',
+						size: 2,
+						lineStyle: 'dotted',
+					},
 				},
-				unresolvedLinkStyleOverrides: {
-					color: '#d97706',
-					size: 2,
-					lineStyle: 'dotted',
-				},
-			},
+			),
 			palette,
 		);
 

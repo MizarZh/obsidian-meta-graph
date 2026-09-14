@@ -1,3 +1,4 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
 import { describe, expect, it } from 'vitest';
 import type { MetaGraphChart, WorkspaceState } from '@/core/types';
 import {
@@ -44,8 +45,12 @@ describe('workspace chart settings', () => {
 		expect(nextChart.display.labelSize).toBe(state.labelSize + 1);
 		expect(nextState.grouping).toBe(state.grouping);
 		expect(nextState.manualLayout).toBe(state.manualLayout);
-		expect(nextState.nodeStyleRules).toBe(state.nodeStyleRules);
-		expect(nextState.linkStyleRules).toBe(state.linkStyleRules);
+		expect(getActiveChartStyle(nextState).nodeRules).toBe(
+			getActiveChartStyle(state).nodeRules,
+		);
+		expect(getActiveChartStyle(nextState).linkRules).toBe(
+			getActiveChartStyle(state).linkRules,
+		);
 		expect(nextChart.layout).toBe(activeChart.layout);
 		expect(nextChart.style).toBe(activeChart.style);
 		expect(nextState.layoutRevision).toBe(state.layoutRevision);

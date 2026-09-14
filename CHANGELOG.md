@@ -10,6 +10,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Changed
 
+- Consolidated chart-local styles in the chart configuration. Style edits retain unrelated graph state and continue to update rendering without rebuilding or relayout; saved workspace formats are unchanged.
+
 - Extracted workspace context menus, export orchestration, and command handling into dedicated modules while preserving interaction and export cancellation behavior.
 
 ## [1.9.0] - 2026-09-13

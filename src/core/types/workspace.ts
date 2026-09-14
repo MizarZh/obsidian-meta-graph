@@ -331,13 +331,6 @@ export interface WorkspaceState {
 	defaultLinkStyle: Required<DefaultLinkStyle>;
 	globalNodeStyleRules: NodeStyleRule[];
 	globalLinkStyleRules: LinkStyleRule[];
-	nodeStyleOverrides: DefaultNodeStyle;
-	unresolvedNodeStyleOverrides: DefaultNodeStyle;
-	linkStyleOverrides: DefaultLinkStyle;
-	plainLinkStyleOverrides: DefaultLinkStyle;
-	unresolvedLinkStyleOverrides: DefaultLinkStyle;
-	nodeStyleRules: NodeStyleRule[];
-	linkStyleRules: LinkStyleRule[];
 	connectionFields: string[];
 	connectionFieldSpecs: ConnectionFieldSpec[];
 	connectionFieldModes: Record<string, ConnectionFieldMode>;

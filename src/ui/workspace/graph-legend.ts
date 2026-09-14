@@ -1,3 +1,4 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
 import type {
 	DefaultLinkStyle,
 	DefaultNodeStyle,
@@ -27,13 +28,11 @@ type LegendState = Pick<
 	WorkspaceState,
 	| 'defaultNodeStyle'
 	| 'defaultLinkStyle'
-	| 'nodeStyleOverrides'
-	| 'linkStyleOverrides'
 	| 'globalNodeStyleRules'
 	| 'globalLinkStyleRules'
-	| 'nodeStyleRules'
-	| 'linkStyleRules'
 	| 'grouping'
+	| 'charts'
+	| 'activeChartId'
 >;
 
 function mergeStyle<T extends object>(base: T, overrides: Partial<T>): T {
@@ -53,8 +52,9 @@ export function buildGraphLegend(
 	metadataFields: string[] = [],
 	metadataTypes: Record<string, string> = {},
 ): { nodes: LegendEntry[]; links: LegendEntry[] } {
-	const node = mergeStyle(state.defaultNodeStyle, state.nodeStyleOverrides);
-	const line = mergeStyle(state.defaultLinkStyle, state.linkStyleOverrides);
+	const chartStyle = getActiveChartStyle(state);
+	const node = mergeStyle(state.defaultNodeStyle, chartStyle.nodeOverrides);
+	const line = mergeStyle(state.defaultLinkStyle, chartStyle.linkOverrides);
 	const nodes: LegendEntry[] = [
 		{
 			id: 'default-node',
@@ -77,7 +77,7 @@ export function buildGraphLegend(
 	for (const scope of ['Global', 'Chart'] as const) {
 		for (const rule of scope === 'Global'
 			? state.globalNodeStyleRules
-			: state.nodeStyleRules) {
+			: chartStyle.nodeRules) {
 			const operator =
 				rule.operator ??
 				getDefaultNodeStyleOperator(rule.field, metadataTypes);
@@ -113,7 +113,7 @@ export function buildGraphLegend(
 		}
 		for (const rule of scope === 'Global'
 			? state.globalLinkStyleRules
-			: state.linkStyleRules) {
+			: chartStyle.linkRules) {
 			const operator = rule.operator ?? 'is';
 			const condition =
 				rule.field === 'all'

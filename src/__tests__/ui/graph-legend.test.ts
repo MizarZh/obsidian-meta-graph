@@ -1,3 +1,4 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
 import { describe, expect, it } from 'vitest';
 import { buildGraphLegend } from '@/ui/workspace/graph-legend';
 import { createWorkspaceState } from '@/workspace/state/workspace-state';
@@ -9,8 +10,14 @@ import {
 describe('graph legend', () => {
 	it('reflects current chart overrides without changing workspace defaults', () => {
 		const state = createWorkspaceState(200, 1.5);
-		state.nodeStyleOverrides = { shape: 'diamond', color: '#123456' };
-		state.linkStyleOverrides = { lineStyle: 'dashed', size: 3 };
+		getActiveChartStyle(state).nodeOverrides = {
+			shape: 'diamond',
+			color: '#123456',
+		};
+		getActiveChartStyle(state).linkOverrides = {
+			lineStyle: 'dashed',
+			size: 3,
+		};
 		const legend = buildGraphLegend(state);
 		expect(legend.nodes[0]?.node).toMatchObject({
 			shape: 'diamond',
@@ -41,7 +48,7 @@ describe('graph legend', () => {
 				value: 'prerequisite',
 			},
 		];
-		state.linkStyleRules = [
+		getActiveChartStyle(state).linkRules = [
 			{
 				...createLinkStyleRule('a'),
 				name: 'Prerequisite',
@@ -67,7 +74,7 @@ describe('graph legend', () => {
 	});
 	it('does not discard false and zero style overrides', () => {
 		const state = createWorkspaceState(200, 1.5);
-		state.linkStyleOverrides = {
+		getActiveChartStyle(state).linkOverrides = {
 			opacity: 0,
 			hidden: false,
 			color: undefined,

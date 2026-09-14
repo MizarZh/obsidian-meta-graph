@@ -13,6 +13,19 @@ export function updateActiveChartState(
 	if (!activeChart) {
 		throw new Error('Active chart is missing from workspace state.');
 	}
+	if (patch.style !== undefined && Object.keys(patch).length === 1) {
+		const nextChart = {
+			...activeChart,
+			style: cloneSerializable(patch.style),
+		};
+		return {
+			...state,
+			charts: state.charts.map((chart) =>
+				chart.id === nextChart.id ? nextChart : chart,
+			),
+			layoutRevision: state.layoutRevision + (forceLayout ? 1 : 0),
+		};
+	}
 	if (patch.curated !== undefined && Object.keys(patch).length === 1) {
 		const curated = patch.curated;
 		const nextChart = { ...activeChart, curated };
@@ -25,14 +38,21 @@ export function updateActiveChartState(
 			layoutRevision: state.layoutRevision + (forceLayout ? 1 : 0),
 		};
 	}
-	const nextChart = cloneSerializable({
-		...activeChart,
-		...patch,
-		query: patch.query ?? activeChart.query,
-		layout: patch.layout ?? activeChart.layout,
-		display: patch.display ?? activeChart.display,
-		style: patch.style ?? activeChart.style,
-	});
+	const { style: currentStyle, ...chartSettings } = activeChart;
+	const { style: nextStyle, ...settingsPatch } = patch;
+	const nextChart = {
+		...cloneSerializable({
+			...chartSettings,
+			...settingsPatch,
+			query: patch.query ?? activeChart.query,
+			layout: patch.layout ?? activeChart.layout,
+			display: patch.display ?? activeChart.display,
+		}),
+		style:
+			nextStyle === undefined
+				? currentStyle
+				: cloneSerializable(nextStyle),
+	};
 	return {
 		...state,
 		charts: state.charts.map((chart) =>

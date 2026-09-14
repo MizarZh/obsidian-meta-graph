@@ -1,3 +1,5 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
+import { withChartStyle } from '@/__tests__/fixtures/chart-style';
 import { describe, expect, it, vi } from 'vitest';
 import { createWorkspaceRenderPlan } from '@/ui/workspace/render-plan';
 import {
@@ -195,19 +197,23 @@ describe('workspace change tracker', () => {
 	});
 
 	it('does not scan projection nodes for an immutable selection update', () => {
-		const state = {
-			...createWorkspaceState(200),
-			projection: createTestProjection(),
-			nodeStyleRules: [
-				{
-					id: 'done',
-					field: 'metadata.status' as const,
-					value: 'done',
-					color: '#00ff00',
-					size: 10,
-				},
-			],
-		};
+		const state = withChartStyle(
+			{
+				...createWorkspaceState(200),
+				projection: createTestProjection(),
+			},
+			{
+				nodeRules: [
+					{
+						id: 'done',
+						field: 'metadata.status' as const,
+						value: 'done',
+						color: '#00ff00',
+						size: 10,
+					},
+				],
+			},
+		);
 		const baseline = createWorkspaceRenderBaseline(state);
 		const map = vi.spyOn(state.projection.nodes, 'map');
 		const some = vi.spyOn(state.projection.nodes, 'some');
@@ -226,19 +232,23 @@ describe('workspace change tracker', () => {
 	});
 
 	it('updates metadata-based styles even when graph topology is unchanged', () => {
-		const state = {
-			...createWorkspaceState(200),
-			projection: createTestProjection(),
-			nodeStyleRules: [
-				{
-					id: 'done',
-					field: 'metadata.status' as const,
-					value: 'done',
-					color: '#00ff00',
-					size: 10,
-				},
-			],
-		};
+		const state = withChartStyle(
+			{
+				...createWorkspaceState(200),
+				projection: createTestProjection(),
+			},
+			{
+				nodeRules: [
+					{
+						id: 'done',
+						field: 'metadata.status' as const,
+						value: 'done',
+						color: '#00ff00',
+						size: 10,
+					},
+				],
+			},
+		);
 		const next = {
 			...state,
 			projection: {
@@ -432,22 +442,27 @@ describe('workspace change tracker', () => {
 		).toBe(false);
 	});
 
-	it.each(['globalNodeStyleRules', 'nodeStyleRules'] as const)(
+	it.each(['global', 'chart'] as const)(
 		'refreshes time-dependent %s without rebuilding',
 		(key) => {
-			const state = {
+			const rules = [
+				{
+					id: 'recent',
+					field: 'file.mtime' as const,
+					value: '200',
+					color: '#ff0000',
+					size: 10,
+				},
+			];
+			const base = {
 				...createWorkspaceState(200),
 				projection: createTestProjection(),
-				[key]: [
-					{
-						id: 'recent',
-						field: 'file.mtime' as const,
-						value: '200',
-						color: '#ff0000',
-						size: 10,
-					},
-				],
 			};
+			const state =
+				key === 'global'
+					? { ...base, globalNodeStyleRules: rules }
+					: withChartStyle(base, { nodeRules: rules });
+
 			expect(
 				analyzeWorkspaceStateChanges(
 					{ ...state, projection: withTimes(state.projection, 200) },
@@ -551,7 +566,14 @@ describe('workspace change tracker', () => {
 			});
 			expect(
 				analyzeWorkspaceStateChanges(
-					{ ...next, activeChartId: 'other' },
+					{
+						...next,
+						activeChartId: 'other',
+						charts: [
+							...next.charts,
+							{ ...next.charts[0]!, id: 'other' },
+						],
+					},
 					state,
 					baseline,
 				),
@@ -722,19 +744,21 @@ describe('workspace change tracker', () => {
 
 	it('detects style-only updates without rebuild', () => {
 		const state = createWorkspaceState(200);
-		const nextState = {
-			...state,
-			nodeStyleRules: [
-				{
-					id: 'red',
-					field: 'file.basename',
-					operator: 'contains',
-					value: 'A',
-					color: '#ff0000',
-					size: 12,
-				},
-			],
-		} satisfies typeof state;
+		const nextState = withChartStyle(
+			{ ...state },
+			{
+				nodeRules: [
+					{
+						id: 'red',
+						field: 'file.basename',
+						operator: 'contains',
+						value: 'A',
+						color: '#ff0000',
+						size: 12,
+					},
+				],
+			},
+		) satisfies typeof state;
 
 		const changes = analyzeWorkspaceStateChanges(
 			nextState,
@@ -927,8 +951,11 @@ describe('workspace change tracker', () => {
 					color: '#00ff00',
 				},
 			},
-			{ ...state, nodeStyleOverrides: { color: '#ff0000' } },
-			{ ...state, linkStyleOverrides: { size: 3 } },
+			withChartStyle(
+				{ ...state },
+				{ nodeOverrides: { color: '#ff0000' } },
+			),
+			withChartStyle({ ...state }, { linkOverrides: { size: 3 } }),
 		]) {
 			const changes = analyzeWorkspaceStateChanges(
 				nextState,
@@ -944,30 +971,36 @@ describe('workspace change tracker', () => {
 	it('syncs style fields into the render baseline', () => {
 		const state = createWorkspaceState(200);
 		const baseline = createWorkspaceRenderBaseline(state);
-		const nextState = {
-			...state,
-			defaultNodeStyle: {
-				color: '#ff0000',
-				size: 7,
-				opacity: 1,
-				shape: 'circle' as const,
-			},
-			nodeStyleRules: [
-				{
-					id: 'important',
-					field: 'file.basename',
-					operator: 'contains',
-					value: 'Important',
+		const nextState = withChartStyle(
+			{
+				...state,
+				defaultNodeStyle: {
 					color: '#ff0000',
-					size: 12,
+					size: 7,
+					opacity: 1,
+					shape: 'circle' as const,
 				},
-			],
-		} satisfies typeof state;
+			},
+			{
+				nodeRules: [
+					{
+						id: 'important',
+						field: 'file.basename',
+						operator: 'contains',
+						value: 'Important',
+						color: '#ff0000',
+						size: 12,
+					},
+				],
+			},
+		) satisfies typeof state;
 
 		syncWorkspaceRenderBaselineStyles(baseline, nextState);
 
 		expect(baseline.defaultNodeStyle).toBe(nextState.defaultNodeStyle);
-		expect(baseline.nodeStyleRules).toBe(nextState.nodeStyleRules);
+		expect(baseline.chartStyle?.nodeRules).toBe(
+			getActiveChartStyle(nextState).nodeRules,
+		);
 		expect(baseline.activeChartId).toBe(state.activeChartId);
 	});
 

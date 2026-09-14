@@ -1,3 +1,4 @@
+import { withChartStyle } from '@/__tests__/fixtures/chart-style';
 import { describe, expect, it } from 'vitest';
 import {
 	getActiveDefaultLinkStyle,
@@ -41,51 +42,59 @@ describe('active style composition', () => {
 		};
 
 		expect(
-			getActiveNodeStyleRules({
-				globalNodeStyleRules: [globalNodeRule],
-				nodeStyleRules: [nodeRule],
-			}),
+			getActiveNodeStyleRules(
+				withChartStyle(
+					{ globalNodeStyleRules: [globalNodeRule] },
+					{ nodeRules: [nodeRule] },
+				),
+			),
 		).toEqual([globalNodeRule, nodeRule]);
 		expect(
-			getActiveLinkStyleRules({
-				globalLinkStyleRules: [globalLinkRule],
-				linkStyleRules: [linkRule],
-			}),
+			getActiveLinkStyleRules(
+				withChartStyle(
+					{ globalLinkStyleRules: [globalLinkRule] },
+					{ linkRules: [linkRule] },
+				),
+			),
 		).toEqual([globalLinkRule, linkRule]);
 	});
 
 	it('applies overrides before defaults and fallback colors', () => {
 		expect(
 			getActiveDefaultNodeStyle(
-				{
-					nodeStyleOverrides: { color: '#override' },
-					defaultNodeStyle: {
-						color: '#default',
-						size: 6,
-						opacity: 1,
-						shape: 'circle',
+				withChartStyle(
+					{
+						defaultNodeStyle: {
+							color: '#default',
+							size: 6,
+							opacity: 1,
+							shape: 'circle',
+						},
 					},
-				},
+					{ nodeOverrides: { color: '#override' } },
+				),
 				'#fallback',
 			),
 		).toEqual({ color: '#override', size: 6, opacity: 1, shape: 'circle' });
 
 		expect(
 			getActiveDefaultLinkStyle(
-				{
-					linkStyleOverrides: { size: 3, hidden: true },
-					defaultLinkStyle: {
-						color: '#default',
-						size: 1,
-						lineStyle: 'solid',
-						arrowStyle: 'filled',
-						opacity: 1,
-						arrowSize: 1,
-						label: '',
-						showLabel: false,
-						hidden: false,
+				withChartStyle(
+					{
+						defaultLinkStyle: {
+							color: '#default',
+							size: 1,
+							lineStyle: 'solid',
+							arrowStyle: 'filled',
+							opacity: 1,
+							arrowSize: 1,
+							label: '',
+							showLabel: false,
+							hidden: false,
+						},
 					},
-				},
+					{ linkOverrides: { size: 3, hidden: true } },
+				),
 				'#fallback',
 			),
 		).toEqual({

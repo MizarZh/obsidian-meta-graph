@@ -1,3 +1,4 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
 import type {
 	DefaultLinkStyle,
 	DefaultNodeStyle,
@@ -17,134 +18,167 @@ type ActiveLinkStyle = Omit<
 >;
 
 export function getActiveNodeStyleRules(
-	state: Pick<WorkspaceState, 'globalNodeStyleRules' | 'nodeStyleRules'>,
+	state: Pick<
+		WorkspaceState,
+		'globalNodeStyleRules' | 'charts' | 'activeChartId'
+	>,
 ): NodeStyleRule[] {
-	return [...state.globalNodeStyleRules, ...state.nodeStyleRules];
+	const chartStyle = getActiveChartStyle(state);
+	return [...state.globalNodeStyleRules, ...chartStyle.nodeRules];
 }
 
 export function getActiveLinkStyleRules(
-	state: Pick<WorkspaceState, 'globalLinkStyleRules' | 'linkStyleRules'>,
+	state: Pick<
+		WorkspaceState,
+		'globalLinkStyleRules' | 'charts' | 'activeChartId'
+	>,
 ): LinkStyleRule[] {
-	return [...state.globalLinkStyleRules, ...state.linkStyleRules];
+	const chartStyle = getActiveChartStyle(state);
+	return [...state.globalLinkStyleRules, ...chartStyle.linkRules];
 }
 
 export function getActiveDefaultNodeStyle(
-	state: Pick<WorkspaceState, 'nodeStyleOverrides' | 'defaultNodeStyle'>,
+	state: Pick<
+		WorkspaceState,
+		'charts' | 'activeChartId' | 'defaultNodeStyle'
+	>,
 	fallbackColor: string,
 ): Required<DefaultNodeStyle> {
+	const chartStyle = getActiveChartStyle(state);
 	return {
 		color:
-			state.nodeStyleOverrides.color ??
+			chartStyle.nodeOverrides.color ??
 			state.defaultNodeStyle.color ??
 			fallbackColor,
-		size: state.nodeStyleOverrides.size ?? state.defaultNodeStyle.size,
+		size: chartStyle.nodeOverrides.size ?? state.defaultNodeStyle.size,
 		opacity: clampNodeOpacity(
-			state.nodeStyleOverrides.opacity ??
+			chartStyle.nodeOverrides.opacity ??
 				state.defaultNodeStyle.opacity ??
 				BUILT_IN_DEFAULT_NODE_STYLE.opacity,
 		),
 		shape:
-			state.nodeStyleOverrides.shape ??
+			chartStyle.nodeOverrides.shape ??
 			state.defaultNodeStyle.shape ??
 			BUILT_IN_DEFAULT_NODE_STYLE.shape,
 	};
 }
 
 export function getActiveDefaultLinkStyle(
-	state: Pick<WorkspaceState, 'linkStyleOverrides' | 'defaultLinkStyle'>,
+	state: Pick<
+		WorkspaceState,
+		'charts' | 'activeChartId' | 'defaultLinkStyle'
+	>,
 	fallbackColor: string,
 ): ActiveLinkStyle {
+	const chartStyle = getActiveChartStyle(state);
 	return {
 		color:
-			state.linkStyleOverrides.color ??
+			chartStyle.linkOverrides.color ??
 			state.defaultLinkStyle.color ??
 			fallbackColor,
-		size: state.linkStyleOverrides.size ?? state.defaultLinkStyle.size,
+		size: chartStyle.linkOverrides.size ?? state.defaultLinkStyle.size,
 		lineStyle:
-			state.linkStyleOverrides.lineStyle ??
+			chartStyle.linkOverrides.lineStyle ??
 			state.defaultLinkStyle.lineStyle,
-		label: state.linkStyleOverrides.label ?? state.defaultLinkStyle.label,
+		label: chartStyle.linkOverrides.label ?? state.defaultLinkStyle.label,
 		showLabel:
-			state.linkStyleOverrides.showLabel ??
+			chartStyle.linkOverrides.showLabel ??
 			state.defaultLinkStyle.showLabel,
 		hidden:
-			state.linkStyleOverrides.hidden ?? state.defaultLinkStyle.hidden,
+			chartStyle.linkOverrides.hidden ?? state.defaultLinkStyle.hidden,
 	};
 }
 
 export function getActiveDefaultLinkArrowStyle(
-	state: Pick<WorkspaceState, 'linkStyleOverrides' | 'defaultLinkStyle'>,
+	state: Pick<
+		WorkspaceState,
+		'charts' | 'activeChartId' | 'defaultLinkStyle'
+	>,
 ): LinkArrowStyle {
+	const chartStyle = getActiveChartStyle(state);
 	return (
-		state.linkStyleOverrides.arrowStyle ??
+		chartStyle.linkOverrides.arrowStyle ??
 		state.defaultLinkStyle.arrowStyle ??
 		'filled'
 	);
 }
 
 export function getActiveDefaultLinkOpacity(
-	state: Pick<WorkspaceState, 'linkStyleOverrides' | 'defaultLinkStyle'>,
+	state: Pick<
+		WorkspaceState,
+		'charts' | 'activeChartId' | 'defaultLinkStyle'
+	>,
 ): number {
+	const chartStyle = getActiveChartStyle(state);
 	return (
-		state.linkStyleOverrides.opacity ?? state.defaultLinkStyle.opacity ?? 1
+		chartStyle.linkOverrides.opacity ?? state.defaultLinkStyle.opacity ?? 1
 	);
 }
 
 export function getActiveDefaultLinkArrowSize(
-	state: Pick<WorkspaceState, 'linkStyleOverrides' | 'defaultLinkStyle'>,
+	state: Pick<
+		WorkspaceState,
+		'charts' | 'activeChartId' | 'defaultLinkStyle'
+	>,
 ): number {
+	const chartStyle = getActiveChartStyle(state);
 	return (
-		state.linkStyleOverrides.arrowSize ??
+		chartStyle.linkOverrides.arrowSize ??
 		state.defaultLinkStyle.arrowSize ??
 		1
 	);
 }
 
 export function getActivePlainLinkArrowStyle(
-	state: Pick<WorkspaceState, 'plainLinkStyleOverrides'>,
+	state: Pick<WorkspaceState, 'charts' | 'activeChartId'>,
 ): LinkArrowStyle {
-	return state.plainLinkStyleOverrides.arrowStyle ?? 'filled';
+	const chartStyle = getActiveChartStyle(state);
+	return chartStyle.plainLinkOverrides.arrowStyle ?? 'filled';
 }
 
 export function getActivePlainLinkOpacity(
-	state: Pick<WorkspaceState, 'plainLinkStyleOverrides'>,
+	state: Pick<WorkspaceState, 'charts' | 'activeChartId'>,
 ): number {
-	return state.plainLinkStyleOverrides.opacity ?? 1;
+	const chartStyle = getActiveChartStyle(state);
+	return chartStyle.plainLinkOverrides.opacity ?? 1;
 }
 
 export function getActivePlainLinkArrowSize(
-	state: Pick<WorkspaceState, 'plainLinkStyleOverrides'>,
+	state: Pick<WorkspaceState, 'charts' | 'activeChartId'>,
 ): number {
-	return state.plainLinkStyleOverrides.arrowSize ?? 1;
+	const chartStyle = getActiveChartStyle(state);
+	return chartStyle.plainLinkOverrides.arrowSize ?? 1;
 }
 
 export function getActivePlainLinkStyle(
-	state: Pick<WorkspaceState, 'plainLinkStyleOverrides'>,
+	state: Pick<WorkspaceState, 'charts' | 'activeChartId'>,
 	fallbackColor: string,
 ): ActiveLinkStyle {
+	const chartStyle = getActiveChartStyle(state);
 	return {
-		color: state.plainLinkStyleOverrides.color ?? fallbackColor,
-		size: state.plainLinkStyleOverrides.size ?? 1,
-		lineStyle: state.plainLinkStyleOverrides.lineStyle ?? 'dashed',
+		color: chartStyle.plainLinkOverrides.color ?? fallbackColor,
+		size: chartStyle.plainLinkOverrides.size ?? 1,
+		lineStyle: chartStyle.plainLinkOverrides.lineStyle ?? 'dashed',
 		label: '',
 		showLabel: false,
-		hidden: state.plainLinkStyleOverrides.hidden ?? false,
+		hidden: chartStyle.plainLinkOverrides.hidden ?? false,
 	};
 }
 
 export function getActiveUnresolvedNodeStyle(
-	state: Pick<WorkspaceState, 'unresolvedNodeStyleOverrides'>,
+	state: Pick<WorkspaceState, 'charts' | 'activeChartId'>,
 	fallbackColor: string,
 ): Required<DefaultNodeStyle> {
+	const chartStyle = getActiveChartStyle(state);
 	return {
-		color: state.unresolvedNodeStyleOverrides.color ?? fallbackColor,
-		size: state.unresolvedNodeStyleOverrides.size ?? 6,
+		color: chartStyle.unresolvedNodeOverrides.color ?? fallbackColor,
+		size: chartStyle.unresolvedNodeOverrides.size ?? 6,
 		opacity: clampNodeOpacity(
-			state.unresolvedNodeStyleOverrides.opacity ??
+			chartStyle.unresolvedNodeOverrides.opacity ??
 				BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE.opacity,
 		),
 		shape:
-			state.unresolvedNodeStyleOverrides.shape ??
+			chartStyle.unresolvedNodeOverrides.shape ??
 			BUILT_IN_DEFAULT_UNRESOLVED_NODE_STYLE.shape,
 	};
 }
@@ -154,33 +188,37 @@ function clampNodeOpacity(value: number): number {
 }
 
 export function getActiveUnresolvedLinkStyle(
-	state: Pick<WorkspaceState, 'unresolvedLinkStyleOverrides'>,
+	state: Pick<WorkspaceState, 'charts' | 'activeChartId'>,
 	fallbackColor: string,
 ): ActiveLinkStyle {
+	const chartStyle = getActiveChartStyle(state);
 	return {
-		color: state.unresolvedLinkStyleOverrides.color ?? fallbackColor,
-		size: state.unresolvedLinkStyleOverrides.size ?? 1,
-		lineStyle: state.unresolvedLinkStyleOverrides.lineStyle ?? 'dashed',
+		color: chartStyle.unresolvedLinkOverrides.color ?? fallbackColor,
+		size: chartStyle.unresolvedLinkOverrides.size ?? 1,
+		lineStyle: chartStyle.unresolvedLinkOverrides.lineStyle ?? 'dashed',
 		label: '',
 		showLabel: false,
-		hidden: state.unresolvedLinkStyleOverrides.hidden ?? false,
+		hidden: chartStyle.unresolvedLinkOverrides.hidden ?? false,
 	};
 }
 
 export function getActiveUnresolvedLinkArrowStyle(
-	state: Pick<WorkspaceState, 'unresolvedLinkStyleOverrides'>,
+	state: Pick<WorkspaceState, 'charts' | 'activeChartId'>,
 ): LinkArrowStyle {
-	return state.unresolvedLinkStyleOverrides.arrowStyle ?? 'filled';
+	const chartStyle = getActiveChartStyle(state);
+	return chartStyle.unresolvedLinkOverrides.arrowStyle ?? 'filled';
 }
 
 export function getActiveUnresolvedLinkOpacity(
-	state: Pick<WorkspaceState, 'unresolvedLinkStyleOverrides'>,
+	state: Pick<WorkspaceState, 'charts' | 'activeChartId'>,
 ): number {
-	return state.unresolvedLinkStyleOverrides.opacity ?? 1;
+	const chartStyle = getActiveChartStyle(state);
+	return chartStyle.unresolvedLinkOverrides.opacity ?? 1;
 }
 
 export function getActiveUnresolvedLinkArrowSize(
-	state: Pick<WorkspaceState, 'unresolvedLinkStyleOverrides'>,
+	state: Pick<WorkspaceState, 'charts' | 'activeChartId'>,
 ): number {
-	return state.unresolvedLinkStyleOverrides.arrowSize ?? 1;
+	const chartStyle = getActiveChartStyle(state);
+	return chartStyle.unresolvedLinkOverrides.arrowSize ?? 1;
 }

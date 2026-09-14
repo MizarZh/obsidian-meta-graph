@@ -1,3 +1,4 @@
+import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
 import type {
 	ArcDirection,
 	ArcLabelAngle,
@@ -237,6 +238,7 @@ export function createWorkspaceSettingsView(
 	state: WorkspaceState,
 	suggestionInput: WorkspaceSettingsSuggestionInput,
 ): WorkspaceSettingsView {
+	const chartStyle = getActiveChartStyle(state);
 	return {
 		graph: {
 			timelineEnabled: state.timeline.enabled,
@@ -302,26 +304,18 @@ export function createWorkspaceSettingsView(
 			globalQuery: state.globalQuery,
 		},
 		styles: {
-			chart: {
-				nodeOverrides: state.nodeStyleOverrides,
-				unresolvedNodeOverrides: state.unresolvedNodeStyleOverrides,
-				linkOverrides: state.linkStyleOverrides,
-				plainLinkOverrides: state.plainLinkStyleOverrides,
-				unresolvedLinkOverrides: state.unresolvedLinkStyleOverrides,
-				nodeRules: state.nodeStyleRules,
-				linkRules: state.linkStyleRules,
-			},
+			chart: chartStyle,
 			defaultNode: state.defaultNodeStyle,
 			defaultLink: state.defaultLinkStyle,
 			globalNodeRules: state.globalNodeStyleRules,
-			nodeOverrides: state.nodeStyleOverrides,
-			unresolvedNodeOverrides: state.unresolvedNodeStyleOverrides,
-			nodeRules: state.nodeStyleRules,
+			nodeOverrides: chartStyle.nodeOverrides,
+			unresolvedNodeOverrides: chartStyle.unresolvedNodeOverrides,
+			nodeRules: chartStyle.nodeRules,
 			globalLinkRules: state.globalLinkStyleRules,
-			linkOverrides: state.linkStyleOverrides,
-			plainLinkOverrides: state.plainLinkStyleOverrides,
-			unresolvedLinkOverrides: state.unresolvedLinkStyleOverrides,
-			linkRules: state.linkStyleRules,
+			linkOverrides: chartStyle.linkOverrides,
+			plainLinkOverrides: chartStyle.plainLinkOverrides,
+			unresolvedLinkOverrides: chartStyle.unresolvedLinkOverrides,
+			linkRules: chartStyle.linkRules,
 		},
 		suggestions: {
 			folders: state.availableFolders,

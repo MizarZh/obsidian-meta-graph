@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
+
 	import { createWorkspaceContextMenu } from '@/ui/workspace/context-menu';
 	import { createWorkspaceExport } from '@/ui/workspace/export-actions';
 	import {
@@ -968,9 +970,9 @@
 			indexedNodes,
 			defaultColor,
 			workspaceState.defaultNodeStyle,
-			workspaceState.nodeStyleOverrides,
+			getActiveChartStyle(workspaceState).nodeOverrides,
 			workspaceState.globalNodeStyleRules,
-			workspaceState.nodeStyleRules,
+			getActiveChartStyle(workspaceState).nodeRules,
 			workspaceState.grouping,
 		];
 		if (
