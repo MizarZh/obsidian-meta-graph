@@ -8,6 +8,10 @@ All notable changes to Meta Graph are documented here.
 
 - Developer bundle and CPU baseline commands, with dependency contribution reports, deterministic graph fixtures, environment metadata, and an Obsidian runtime measurement protocol.
 
+### Changed
+
+- Extracted workspace context menus, export orchestration, and command handling into dedicated modules while preserving interaction and export cancellation behavior.
+
 ## [1.9.0] - 2026-09-13
 
 ### Added

@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { ViewConfigurationModal } from '@/ui/ViewConfigurationModal';
+	import { createWorkspaceContextMenu } from '@/ui/workspace/context-menu';
+	import { createWorkspaceExport } from '@/ui/workspace/export-actions';
 	import {
-		getGroupMoveTargets,
-		canMoveNodeToGroup,
-	} from '@/query/group-ownership';
+		createWorkspaceCommands,
+		isEditableTarget,
+	} from '@/ui/workspace/commands';
+	import { ViewConfigurationModal } from '@/ui/ViewConfigurationModal';
 	import {
 		CORNER_POSITIONS,
 		COLLAPSED_SIDE_WIDTH,
@@ -18,7 +20,7 @@
 	import type { GraphTraceRequest } from '@/core/types';
 	import TraceBar from '@/ui/workspace/TraceBar.svelte';
 	import { traceVisibleGraph } from '@/ui/workspace/graph-trace';
-	import { Menu, Notice, TFile, type App } from 'obsidian';
+	import { Notice, type App } from 'obsidian';
 	import { onMount, untrack } from 'svelte';
 	import { createCanvasResizeHandler } from '@/ui/workspace/canvas-resize';
 	import type { NodeHoverMode } from '@/settings/settings';
@@ -44,10 +46,7 @@
 	} from '@/workspace/meta-graph-v2/types';
 	import { createWorkspaceSessionState } from '@/workspace/workspace-session';
 	import { formatError as formatErrorMessage } from '@/core/errors';
-	import type {
-		ConnectionDragState,
-		GraphContextMenuTarget,
-	} from '@/graph/renderers/renderer-events';
+	import type { ConnectionDragState } from '@/graph/renderers/renderer-events';
 	import type { GraphRenderer } from '@/graph/renderers/renderer-adapter';
 	import {
 		LayoutSnapshotStore,
@@ -55,15 +54,6 @@
 	} from '@/layouts/stable-layout';
 	import type { WorkspaceController } from '@/workspace/workspace-controller';
 	import DebugPanel from '@/ui/DebugPanel.svelte';
-	import { ExportModal } from '@/ui/ExportModal';
-	import { createPngExport } from '@/workspace/export/png-export';
-	import { saveExport } from '@/workspace/export/export-file';
-	import {
-		createEntryDocument,
-		selectExportEntries,
-		serializeEntries,
-	} from '@/workspace/export/entry-export';
-	import { isPlanarRenderer } from '@/graph/renderers/renderer-adapter';
 	import type { DockDragPayload } from '@/ui/dock/types';
 	import type { DockPayloadGraphAction } from '@/ui/dock/connection';
 	import {
@@ -77,8 +67,6 @@
 	} from '@/ui/interactions/graph-connection-drop';
 	import {
 		WORKSPACE_ACTION_DEFINITIONS,
-		resolvePinnedFocusNodeId,
-		resolveWorkspaceShortcut,
 		type WorkspaceActionId,
 	} from '@/ui/interactions/keyboard-shortcuts';
 	import {
@@ -123,11 +111,7 @@
 	import { DockGraphDragController } from '@/ui/workspace/dock-graph-drag';
 	import { GraphDockConnectionController } from '@/ui/workspace/graph-dock-connection';
 	import WorkspaceSettingsPopover from '@/ui/workspace/WorkspaceSettingsPopover.svelte';
-	import {
-		currentNodeStyleTarget,
-		currentLinkStyleTarget,
-		type StyleEditorRequest,
-	} from '@/ui/workspace/current-style-target';
+	import { type StyleEditorRequest } from '@/ui/workspace/current-style-target';
 	import WorkspaceMainPanels from '@/ui/workspace/WorkspaceMainPanels.svelte';
 	import GraphLegend from '@/ui/workspace/GraphLegend.svelte';
 	import GraphTimeline from '@/ui/workspace/GraphTimeline.svelte';
@@ -150,7 +134,6 @@
 		getChartSourceSwitchWarning,
 		getChartTypeSwitchWarning,
 	} from '@/workspace/state/switch-warnings';
-	import { resolveGroupCapabilities } from '@/workspace/groups/group-policy';
 
 	import { ConfirmDeleteViewModal } from '@/ui/ConfirmDeleteWorkspaceModal';
 	import { SwitchModeWarningModal } from '@/ui/SwitchModeWarningModal';
@@ -839,338 +822,6 @@
 		await controller.openNode(nodeId);
 	}
 
-	async function openNoteInNewTab(nodeId: string): Promise<void> {
-		const file = app.vault.getAbstractFileByPath(nodeId);
-		if (file instanceof TFile) {
-			await app.workspace.getLeaf('tab').openFile(file);
-		}
-	}
-
-	function showGraphContextMenu(
-		target: GraphContextMenuTarget,
-		event: MouseEvent,
-	): void {
-		const menu = new Menu();
-		if (target.kind === 'node') {
-			addNodeContextMenuItems(menu, target.nodeId);
-		} else if (target.kind === 'edge') {
-			addEdgeContextMenuItems(menu, target.edgeId);
-		} else if (target.kind === 'group') {
-			addGroupContextMenuItems(menu, target.groupId);
-		} else {
-			addStageContextMenuItems(menu);
-		}
-		menu.showAtMouseEvent(event);
-	}
-
-	function addNodeContextMenuItems(menu: Menu, nodeId: string): void {
-		for (const entry of [
-			{
-				mode: 'upstream',
-				title: 'Trace upstream',
-				icon: 'arrow-up-left',
-			},
-			{
-				mode: 'downstream',
-				title: 'Trace downstream',
-				icon: 'arrow-down-right',
-			},
-			{
-				mode: 'path',
-				title: 'Find shortest path from here',
-				icon: 'route',
-			},
-		] as const) {
-			menu.addItem((item) =>
-				item
-					.setTitle(entry.title)
-					.setIcon(entry.icon)
-					.onClick(() =>
-						setTrace({ mode: entry.mode, source: nodeId }),
-					),
-			);
-		}
-		if (traceRequest?.mode === 'path' && traceRequest.source !== nodeId) {
-			const source = traceRequest.source;
-			menu.addItem((item) =>
-				item
-					.setTitle('Find path to here')
-					.setIcon('flag')
-					.onClick(() =>
-						setTrace({
-							...traceRequest,
-							mode: 'path',
-							source,
-							target: nodeId,
-						}),
-					),
-			);
-		}
-		menu.addSeparator();
-		const node = workspaceState.projection?.nodes.find(
-			(item) => item.id === nodeId,
-		);
-		menu.addItem((item) =>
-			item
-				.setTitle('Open in split')
-				.setIcon('panel-right')
-				.onClick(() => void onOpenNodeInRightSplit(nodeId)),
-		);
-		menu.addItem((item) =>
-			item
-				.setTitle('Open in new tab')
-				.setIcon('file-plus')
-				.onClick(() => void openNoteInNewTab(nodeId)),
-		);
-		menu.addItem((item) =>
-			item
-				.setTitle('Focus relationships')
-				.setIcon('pin')
-				.onClick(() => rendererLifecycle.togglePinnedHover(nodeId)),
-		);
-		menu.addItem((item) =>
-			item
-				.setTitle('Show details')
-				.setIcon('panel-right')
-				.onClick(showSelectionDetails),
-		);
-
-		const capabilities = resolveGroupCapabilities(workspaceState.mode);
-		const groups = capabilities.canAssignManually
-			? getGroupMoveTargets(
-					workspaceState.projection?.nodes.find(
-						(node) => node.id === nodeId,
-					),
-					workspaceState.grouping.groups,
-				)
-			: [];
-		if (groups.length > 0) {
-			menu.addSeparator();
-			const currentGroupId =
-				createWorkspaceGroupByNode(workspaceState).get(nodeId);
-			for (const group of groups) {
-				menu.addItem((item) =>
-					item
-						.setTitle(`Move to group: ${group.name}`)
-						.setIcon('folder-input')
-						.setChecked(currentGroupId === group.id)
-						.setDisabled(readOnly || currentGroupId === group.id)
-						.onClick(() =>
-							controller.setNodeGroup(nodeId, group.id),
-						),
-				);
-			}
-			if (
-				workspaceState.mode !== 'cube' &&
-				currentGroupId &&
-				canMoveNodeToGroup(
-					workspaceState.projection?.nodes.find(
-						(node) => node.id === nodeId,
-					),
-					workspaceState.grouping.groups,
-					null,
-				)
-			) {
-				menu.addItem((item) =>
-					item
-						.setTitle('Remove from group')
-						.setIcon('folder-minus')
-						.setDisabled(readOnly)
-						.onClick(() => controller.setNodeGroup(nodeId, null)),
-				);
-			}
-		}
-
-		menu.addSeparator();
-		if (workspaceState.chartSource === 'curated') {
-			menu.addItem((item) =>
-				item
-					.setTitle('Hide note')
-					.setIcon('eye-off')
-					.setDisabled(readOnly)
-					.onClick(() =>
-						controller.setCuratedFilesHidden([nodeId], true),
-					),
-			);
-		}
-		menu.addItem((item) =>
-			item
-				.setTitle('Copy wiki link')
-				.setIcon('copy')
-				.onClick(
-					() =>
-						void copyContextText(
-							`[[${nodeId.replace(/\.md$/i, '')}]]`,
-						),
-				),
-		);
-		if (node) {
-			menu.addSeparator();
-			menu.addItem((item) =>
-				item
-					.setTitle('Edit node style settings')
-					.setIcon('palette')
-					.setDisabled(readOnly)
-					.onClick(() =>
-						openSettingsPanel(
-							'note-style',
-							undefined,
-							undefined,
-							currentNodeStyleTarget(workspaceState, node),
-						),
-					),
-			);
-		}
-	}
-
-	function addEdgeContextMenuItems(menu: Menu, edgeId: string): void {
-		const edge = workspaceState.projection?.edges.find(
-			(item) => item.id === edgeId,
-		);
-		menu.addItem((item) =>
-			item
-				.setTitle('Show details')
-				.setIcon('panel-right')
-				.onClick(showSelectionDetails),
-		);
-		if (!edge) return;
-		const sourceTitle = getContextNodeTitle(edge.source);
-		const targetTitle = getContextNodeTitle(edge.target);
-		menu.addSeparator();
-		menu.addItem((item) =>
-			item
-				.setTitle(`Open source: ${sourceTitle}`)
-				.setIcon('file-input')
-				.onClick(() => void openNote(edge.source)),
-		);
-		menu.addItem((item) =>
-			item
-				.setTitle(`Open target: ${targetTitle}`)
-				.setIcon('file-output')
-				.onClick(() => void openNote(edge.target)),
-		);
-		menu.addItem((item) =>
-			item
-				.setTitle(`Focus source: ${sourceTitle}`)
-				.setIcon('pin')
-				.onClick(() =>
-					rendererLifecycle.togglePinnedHover(edge.source),
-				),
-		);
-		menu.addItem((item) =>
-			item
-				.setTitle(`Focus target: ${targetTitle}`)
-				.setIcon('pin')
-				.onClick(() =>
-					rendererLifecycle.togglePinnedHover(edge.target),
-				),
-		);
-		menu.addSeparator();
-		menu.addItem((item) =>
-			item
-				.setTitle('Copy relationship')
-				.setIcon('copy')
-				.onClick(
-					() =>
-						void copyContextText(
-							`${sourceTitle} ${edge.directed ? `—[${edge.relation}]→` : `—[${edge.relation}]—`} ${targetTitle}`,
-						),
-				),
-		);
-		menu.addSeparator();
-		menu.addItem((item) =>
-			item
-				.setTitle('Edit link style settings')
-				.setIcon('palette')
-				.setDisabled(readOnly)
-				.onClick(() =>
-					openSettingsPanel(
-						'link-style',
-						undefined,
-						undefined,
-						currentLinkStyleTarget(workspaceState, edge),
-					),
-				),
-		);
-	}
-
-	function addGroupContextMenuItems(menu: Menu, groupId: string): void {
-		const group = workspaceState.grouping.groups.find(
-			(item) => item.id === groupId,
-		);
-		menu.addItem((item) =>
-			item
-				.setTitle(group?.name ?? 'Group')
-				.setIcon('group')
-				.setIsLabel(true),
-		);
-		menu.addItem((item) =>
-			item
-				.setTitle('Show details')
-				.setIcon('panel-right')
-				.onClick(showSelectionDetails),
-		);
-		const capabilities = resolveGroupCapabilities(
-			workspaceState.mode,
-			group,
-		);
-		if (
-			group &&
-			(capabilities.canEditIdentity || capabilities.canEditAppearance)
-		) {
-			menu.addSeparator();
-			menu.addItem((item) =>
-				item
-					.setTitle('Edit group')
-					.setIcon('settings-2')
-					.setDisabled(readOnly)
-					.onClick(() =>
-						openSettingsPanel('groups', undefined, groupId),
-					),
-			);
-		}
-	}
-
-	function addStageContextMenuItems(menu: Menu): void {
-		menu.addItem((item) =>
-			item
-				.setTitle('Fit graph')
-				.setIcon('maximize')
-				.onClick(() => rendererLifecycle.fit()),
-		);
-		menu.addItem((item) =>
-			item
-				.setTitle('Reset zoom')
-				.setIcon('scan')
-				.onClick(() => rendererLifecycle.setZoomLevel(100)),
-		);
-		menu.addItem((item) =>
-			item
-				.setTitle('Refresh and relayout')
-				.setIcon('refresh-cw')
-				.onClick(() => void controller.refresh(true)),
-		);
-		menu.addSeparator();
-		menu.addItem((item) =>
-			item
-				.setTitle('Clear selection and focus')
-				.setIcon('circle-off')
-				.onClick(() => {
-					rendererLifecycle.clearPinnedHover();
-					controller.selectNode(undefined);
-				}),
-		);
-		if (resolveGroupCapabilities(workspaceState.mode).canCreate) {
-			menu.addItem((item) =>
-				item
-					.setTitle('Add group')
-					.setIcon('folder-plus')
-					.setDisabled(readOnly)
-					.onClick(() => controller.addGroup()),
-			);
-		}
-	}
-
 	function showSelectionDetails(): void {
 		rightPanelTab = 'details';
 		const layout = workspaceState.overlayLayout;
@@ -1183,123 +834,6 @@
 			activeTabs: { ...layout.activeTabs, [side]: 'details' },
 		});
 		persistSession();
-	}
-
-	function getContextNodeTitle(nodeId: string): string {
-		return (
-			workspaceState.projection?.nodes.find((node) => node.id === nodeId)
-				?.title ?? nodeId
-		);
-	}
-
-	async function copyContextText(value: string): Promise<void> {
-		try {
-			await navigator.clipboard.writeText(value);
-			new Notice('Copied to clipboard');
-		} catch {
-			new Notice('Unable to copy to clipboard');
-		}
-	}
-
-	function openExport(): void {
-		const renderer = rendererLifecycle.renderer;
-		if (
-			(!renderer && !workspaceState.projection) ||
-			graphLoading ||
-			!canvas?.isConnected
-		) {
-			new Notice('Graph is not ready');
-			return;
-		}
-		const chartId = workspaceState.activeChartId;
-		const { width, height } = canvas.getBoundingClientRect();
-		const visibleEntries = workspaceState.projection
-			? selectExportEntries(
-					workspaceState.projection,
-					renderer?.runtimeGraph,
-				)
-			: undefined;
-		new ExportModal(app, {
-			name:
-				workspaceState.charts.find((chart) => chart.id === chartId)
-					?.name ?? 'Graph',
-			planar: supportsPlanarRenderer(workspaceState.mode),
-			width,
-			height,
-			showLegend: workspaceState.showLegend,
-			imageAvailable: Boolean(renderer),
-			hasSelection: Boolean(
-				workspaceState.selectedNodeId ||
-				workspaceState.selectedEdgeId ||
-				workspaceState.selectedGroupId,
-			),
-			nodeCount: visibleEntries?.nodes.length ?? 0,
-			edgeCount: visibleEntries?.edges.length ?? 0,
-			onExport: async (options, isCancelled) => {
-				if (graphLoading)
-					throw new Error(
-						'Graph is updating. Try again when it is ready.',
-					);
-				const generation = rendererLifecycle.generation;
-				const isStale = () =>
-					isCancelled() ||
-					!canvas?.isConnected ||
-					rendererLifecycle.renderer !== renderer ||
-					rendererLifecycle.generation !== generation ||
-					workspaceState.activeChartId !== chartId;
-				if (isStale()) throw new Error('Export cancelled');
-				if (
-					options.format === 'json' ||
-					options.format === 'csv' ||
-					options.format === 'md'
-				) {
-					const data = createEntryDocument(
-						workspaceState,
-						options,
-						renderer?.runtimeGraph,
-						createWorkspaceGroupByNode(workspaceState),
-					);
-					const blob = serializeEntries(
-						data,
-						options.format,
-						options.includeMetadata,
-					);
-					return saveExport(
-						app,
-						options.filename,
-						options.format,
-						blob,
-						isStale,
-					);
-				}
-				if (!renderer) throw new Error('Graph is not ready');
-				const input = {
-					renderer,
-					canvas,
-					state: workspaceState,
-					layout: getLayoutSnapshot(),
-					options,
-					isStale,
-					metadataFields: metadataFieldSuggestions,
-					metadataTypes: metadataFieldTypes,
-				};
-				let blob: Blob;
-				if (options.format === 'svg') {
-					if (!isPlanarRenderer(renderer))
-						throw new Error('SVG export requires a planar chart');
-					const { createSvgExport } =
-						await import('@/workspace/export/svg-export');
-					blob = await createSvgExport({ ...input, renderer });
-				} else blob = await createPngExport(input);
-				return saveExport(
-					app,
-					options.filename,
-					options.format,
-					blob,
-					isStale,
-				);
-			},
-		}).open();
 	}
 
 	function syncRendererGroups(): void {
@@ -1816,136 +1350,84 @@
 		workspaceRoot?.focus({ preventScroll: true });
 	}
 
-	function handleWorkspaceKeydown(event: KeyboardEvent): void {
-		if (event.defaultPrevented) return;
-		const action = resolveWorkspaceShortcut({
-			key: event.key,
-			ctrlKey: event.ctrlKey,
-			metaKey: event.metaKey,
-			altKey: event.altKey,
-			shiftKey: event.shiftKey,
-			connectionUndoCount: workspaceState.connectionUndoCount,
-			connectionRedoCount: workspaceState.connectionRedoCount,
-			editableTarget: isEditableTarget(event.target),
-			selectedNodeId: workspaceState.selectedNodeId,
-			hoveredNodeId,
-		});
-		if (!action || !executeWorkspaceAction(action)) return;
-		event.preventDefault();
-		event.stopPropagation();
-	}
-
-	function undoLastConnection(): void {
-		if (workspaceState.connectionUndoCount === 0) return;
-		void controller.undoLastConnection().catch((error: unknown) =>
-			controller.setRendererDebugState({
-				status: 'error',
-				error: formatError(error),
-			}),
-		);
-	}
-
-	function redoLastConnection(): void {
-		if (workspaceState.connectionRedoCount === 0) return;
-		void controller.redoLastConnection().catch((error: unknown) =>
-			controller.setRendererDebugState({
-				status: 'error',
-				error: formatError(error),
-			}),
-		);
-	}
-
-	function focusFindNoteInput(): boolean {
-		if (!findNoteInput) return false;
-		findNoteInput.focus({ preventScroll: true });
-		findNoteInput.select();
-		return true;
-	}
-
-	function canExecuteWorkspaceAction(action: WorkspaceActionId): boolean {
-		if (action === 'find-note') return Boolean(findNoteInput);
-		if (action === 'undo')
-			return !readOnly && workspaceState.connectionUndoCount > 0;
-		if (action === 'redo')
-			return !readOnly && workspaceState.connectionRedoCount > 0;
-		if (action === 'open-selected') {
-			return Boolean(workspaceState.selectedNodeId);
-		}
-		if (action === 'previous-view' || action === 'next-view') {
-			return workspaceState.charts.length > 1;
-		}
-		return true;
-	}
-
-	function executeWorkspaceAction(action: WorkspaceActionId): boolean {
-		if (!canExecuteWorkspaceAction(action)) return false;
-		switch (action) {
-			case 'find-note':
-				return focusFindNoteInput();
-			case 'undo':
-				undoLastConnection();
-				return true;
-			case 'redo':
-				redoLastConnection();
-				return true;
-			case 'open-selected':
-				void openNote(workspaceState.selectedNodeId!);
-				return true;
-			case 'toggle-pinned-focus':
-				{
-					const nodeId = resolvePinnedFocusNodeId({
-						selectedNodeId: workspaceState.selectedNodeId,
-						hoveredNodeId,
-					});
-					if (nodeId) {
-						rendererLifecycle.togglePinnedHover(nodeId);
-					} else {
-						rendererLifecycle.clearPinnedHover();
-					}
-				}
-				return true;
-			case 'fit-graph':
-				rendererLifecycle.fit();
-				return true;
-			case 'reset-zoom':
-				rendererLifecycle.setZoomLevel(100);
-				return true;
-			case 'zoom-in':
-				rendererLifecycle.zoomIn();
-				return true;
-			case 'zoom-out':
-				rendererLifecycle.zoomOut();
-				return true;
-			case 'refresh-graph':
-				void controller.refresh(true);
-				return true;
-			case 'show-shortcuts':
+	const showGraphContextMenu = createWorkspaceContextMenu({
+		get app() {
+			return app;
+		},
+		get state() {
+			return workspaceState;
+		},
+		get readOnly() {
+			return readOnly;
+		},
+		get trace() {
+			return traceRequest;
+		},
+		get controller() {
+			return controller;
+		},
+		viewport: rendererLifecycle,
+		openNote,
+		openInSplit: (nodeId) => onOpenNodeInRightSplit(nodeId),
+		showDetails: showSelectionDetails,
+		openSettingsPanel,
+		setTrace,
+	});
+	const openExport = createWorkspaceExport({
+		get app() {
+			return app;
+		},
+		get state() {
+			return workspaceState;
+		},
+		get canvas() {
+			return canvas;
+		},
+		get loading() {
+			return graphLoading;
+		},
+		get metadataFields() {
+			return metadataFieldSuggestions;
+		},
+		get metadataTypes() {
+			return metadataFieldTypes;
+		},
+		lifecycle: rendererLifecycle,
+		getLayoutSnapshot,
+	});
+	const {
+		canExecute: canExecuteWorkspaceAction,
+		execute: executeWorkspaceAction,
+		handleKeydown: handleWorkspaceKeydown,
+		undo: undoLastConnection,
+		redo: redoLastConnection,
+	} = createWorkspaceCommands({
+		get state() {
+			return workspaceState;
+		},
+		get readOnly() {
+			return readOnly;
+		},
+		get findNoteInput() {
+			return findNoteInput;
+		},
+		get hoveredNodeId() {
+			return hoveredNodeId;
+		},
+		get controller() {
+			return controller;
+		},
+		viewport: rendererLifecycle,
+		openNote,
+		switchActiveChart,
+		panels: {
+			toggleDock,
+			toggleCuratedPanel,
+			toggleConnection,
+			toggleShortcutHelp: () => {
 				shortcutHelpOpen = !shortcutHelpOpen;
-				return true;
-			case 'toggle-dock':
-				toggleDock();
-				return true;
-			case 'toggle-curated-panel':
-				toggleCuratedPanel();
-				return true;
-			case 'toggle-connection-panel':
-				toggleConnection();
-				return true;
-			case 'previous-view':
-			case 'next-view': {
-				const index = workspaceState.charts.findIndex(
-					(chart) => chart.id === workspaceState.activeChartId,
-				);
-				const delta = action === 'previous-view' ? -1 : 1;
-				const next =
-					workspaceState.charts[
-						(index + delta + workspaceState.charts.length) %
-							workspaceState.charts.length
-					];
-				if (next) void switchActiveChart(next.id);
-				return Boolean(next);
-			}
-			case 'escape':
+			},
+			dismissContext: () => {
 				if (tracePicking) tracePicking = undefined;
 				else if (traceRequest) setTrace(undefined);
 				else if (shortcutHelpOpen) shortcutHelpOpen = false;
@@ -1956,20 +1438,9 @@
 					rendererLifecycle.clearPinnedHover();
 					controller.selectNode(undefined);
 				}
-				return true;
-		}
-	}
-
-	function isEditableTarget(target: EventTarget | null): boolean {
-		if (!(target instanceof HTMLElement)) {
-			return false;
-		}
-		return Boolean(
-			target.closest(
-				'input, textarea, select, button, [contenteditable="true"]',
-			),
-		);
-	}
+			},
+		},
+	});
 </script>
 
 <div class="knowledge-workspace" bind:this={workspaceRoot} tabindex="-1">
