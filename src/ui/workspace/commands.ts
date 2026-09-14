@@ -142,7 +142,7 @@ export function createWorkspaceCommands(context: WorkspaceCommandContext) {
 				context.viewport.zoomOut();
 				return true;
 			case 'refresh-graph':
-				void context.controller.refresh(true);
+				void context.controller.refresh(false);
 				return true;
 			case 'show-shortcuts':
 				context.panels.toggleShortcutHelp();

@@ -40,6 +40,7 @@ export interface WorkspaceContextMenuContext {
 	openNote(nodeId: string): Promise<void>;
 	openInSplit(nodeId: string): Promise<void>;
 	showDetails(): void;
+	recalculateLayout(): Promise<void>;
 	openSettingsPanel(
 		panel: SettingsPanelMode,
 		event?: MouseEvent,
@@ -364,9 +365,15 @@ export function createWorkspaceContextMenu(
 		);
 		menu.addItem((item) =>
 			item
-				.setTitle('Refresh and relayout')
+				.setTitle('Refresh nodes')
 				.setIcon('refresh-cw')
-				.onClick(() => void context.controller.refresh(true)),
+				.onClick(() => void context.controller.refresh(false)),
+		);
+		menu.addItem((item) =>
+			item
+				.setTitle('Recalculate layout')
+				.setIcon('layout-dashboard')
+				.onClick(() => void context.recalculateLayout()),
 		);
 		menu.addSeparator();
 		menu.addItem((item) =>

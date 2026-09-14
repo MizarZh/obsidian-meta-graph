@@ -65,7 +65,7 @@ export const WORKSPACE_ACTION_DEFINITIONS: readonly WorkspaceActionDefinition[] 
 		},
 		{
 			id: 'refresh-graph',
-			label: 'Refresh and relayout graph',
+			label: 'Refresh nodes',
 			shortcut: 'Shift+R',
 			group: 'Navigation',
 		},

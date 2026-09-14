@@ -72,6 +72,7 @@ function setup() {
 		openNote: vi.fn().mockResolvedValue(undefined),
 		openInSplit: vi.fn().mockResolvedValue(undefined),
 		showDetails: vi.fn(),
+		recalculateLayout: vi.fn().mockResolvedValue(undefined),
 		openSettingsPanel: vi.fn(),
 		setTrace: vi.fn(),
 	} satisfies WorkspaceContextMenuContext;
@@ -83,6 +84,17 @@ beforeEach(() => {
 	captured.items = [];
 });
 describe('workspace context menus', () => {
+	it('separates data refresh from explicit layout recalculation', () => {
+		const { context, show } = setup();
+		show({ kind: 'stage' }, {} as MouseEvent);
+		item('Refresh nodes').click();
+		expect(context.controller.refresh).toHaveBeenCalledWith(false);
+		expect(context.recalculateLayout).not.toHaveBeenCalled();
+		context.controller.refresh.mockClear();
+		item('Recalculate layout').click();
+		expect(context.recalculateLayout).toHaveBeenCalledOnce();
+		expect(context.controller.refresh).not.toHaveBeenCalled();
+	});
 	it('routes stage navigation and preserves clear-selection behavior', () => {
 		const { context, show } = setup();
 		show({ kind: 'stage' }, {} as MouseEvent);

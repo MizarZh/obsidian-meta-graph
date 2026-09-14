@@ -24,6 +24,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Split Refresh nodes from Recalculate layout in the toolbar and canvas menu. Shift+R refreshes data without forcing layout; explicit recalculation starts interactive ELK without previous geometry hints.
+
 - Flow can now select experimental **ELK fully interactive**, preserving the default ELK option. Edits use the previous automatic layout from the current session; only the algorithm choice is saved.
 
 - Network can now select experimental **Multilevel stress** per chart in Sigma/G6, alongside the default ForceAtlas2 and its Stable switch. Refreshes recompute the initial layout without saving dragged coordinates.

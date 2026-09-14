@@ -111,7 +111,7 @@ Enable **Graph settings -> Layout -> Stable** to keep ForceAtlas2's full-graph
 layout while using fixed initial conditions. Node IDs determine seed coordinates;
 nodes and edges are sorted, and every solve runs exactly 250 iterations. The same
 graph IDs, structure, Groups, and settings produce repeatable initial coordinates.
-**Refresh and relayout** recomputes those coordinates after temporary force dragging.
+**Recalculate layout** recomputes those coordinates after temporary force dragging.
 Only the switch is saved, not the current layout.
 
 This mode works with Sigma and G6 and defaults to off. Graph rebuilds recompute
@@ -358,8 +358,8 @@ settings to report them in the developer console.
     springs; no direct neighbor shifts or extra return pull are applied.
     Both Sigma and G6 use the selected Network layout and D3 simulation.
     With the default ForceAtlas2 algorithm and Stable disabled, the Network view
-    runs ForceAtlas placement on first layout and when **Refresh and relayout**
-    is explicitly requested. That action refreshes data and recalculates positions
+    runs ForceAtlas placement on first layout and when **Recalculate layout**
+    is explicitly requested. That action recalculates positions for the current graph
     using current settings. Ordinary data refreshes, force setting changes, added
     notes, and added links keep existing positions.
     New nodes are placed near positioned neighbors when possible, then Force
@@ -399,7 +399,7 @@ settings to report them in the developer console.
     `Ctrl+Shift+Z` / `Cmd+Shift+Z` (or `Ctrl+Y` / `Cmd+Y`) redoes connection edits
     from the current session. New connection edits clear redo history.
 22. Keyboard graph controls: `Ctrl+F` / `Cmd+F` finds a note, `0` fits the graph,
-    `1` resets zoom, `+` and `-` zoom, `Shift+R` refreshes and relayouts, and `?`
+    `1` resets zoom, `+` and `-` zoom, `Shift+R` refreshes notes and links, and `?`
     toggles a side-by-side shortcut reference panel that remains visible while
     operating the graph. These actions are also available in Obsidian's command
     palette, where users can assign custom hotkeys. In the Node list panel, `Enter`
@@ -586,7 +586,7 @@ and renderer state are runtime-only.
 
 Flowchart charts use ELK layered layout. By default, adding or undoing connection
 links refreshes the visible edges without relaying out existing nodes. This
-keeps editing stable while you add multiple links. Select **Refresh and relayout** to run the
+keeps editing stable while you add multiple links. Select **Recalculate layout** to run the
 Flowchart layout manually.
 
 Flowchart layout has two spacing controls. **Layer spacing** controls distance along
@@ -753,3 +753,5 @@ Graph settings → Node badges controls visibility, relative size (25–200%), a
 Run `pnpm baseline` to generate production JS size/dependency reports and deterministic
 CPU measurements. See [baseline instructions](docs/baselines/README.md) for scope,
 comparison rules, recorded results, and the Obsidian runtime measurement protocol.
+
+**Refresh nodes** reloads notes and links without forcing a full layout; changed data follows the selected algorithm's normal incremental behavior. **Recalculate layout** recomputes the current graph without reloading notes. In ELK fully interactive mode, it discards previous automatic geometry and starts a fresh layout. Both actions are available in the toolbar and blank-canvas context menu. Canvas manual positions remain saved.

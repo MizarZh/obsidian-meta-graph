@@ -365,7 +365,7 @@
 			{#if networkLayout === 'force-atlas'}
 				<ToggleSetting
 					label="Stable"
-					description="Experimental. Start ForceAtlas2 from fixed initial conditions. Refresh and relayout resets dragging; graph edits may still move clusters."
+					description="Experimental. Start ForceAtlas2 from fixed initial conditions. Recalculate layout resets dragging; graph edits may still move clusters."
 					value={stableLayout}
 					onChange={onStableLayout}
 				/>

@@ -1098,6 +1098,18 @@
 		return { width, height };
 	}
 
+	async function recalculateLayout(): Promise<void> {
+		getLayoutSnapshot().flowInteractiveHistory = undefined;
+		try {
+			await rendererLifecycle.rebuild(true, true);
+		} catch (error) {
+			controller.setRendererDebugState({
+				status: 'error',
+				error: formatError(error),
+			});
+		}
+	}
+
 	function getLayoutSnapshot(): LayoutSnapshot {
 		return layoutSnapshots.get({
 			activeChartId: workspaceState.activeChartId,
@@ -1369,6 +1381,7 @@
 			return controller;
 		},
 		viewport: rendererLifecycle,
+		recalculateLayout,
 		openNote,
 		openInSplit: (nodeId) => onOpenNodeInRightSplit(nodeId),
 		showDetails: showSelectionDetails,
@@ -1488,7 +1501,8 @@
 		onRedoConnection={redoLastConnection}
 		onFit={() => rendererLifecycle.fit()}
 		onExport={openExport}
-		onRefresh={() => controller.refresh(true)}
+		onRefresh={() => controller.refresh(false)}
+		onRelayout={recalculateLayout}
 		{settingsPanel}
 		onSettingsPanel={openSettingsPanel}
 		{showDebugButton}
@@ -1848,7 +1862,7 @@
 	{#if debugOpen}
 		<DebugPanel
 			snapshot={debugSnapshot}
-			onRefresh={() => controller.refresh(true)}
+			onRefresh={() => controller.refresh(false)}
 		/>
 	{/if}
 	{#if readOnly}

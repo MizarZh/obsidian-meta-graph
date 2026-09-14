@@ -50,6 +50,7 @@
 		onRedoConnection,
 		onFit,
 		onRefresh,
+		onRelayout,
 		onExport,
 		settingsPanel,
 		onSettingsPanel,
@@ -88,6 +89,7 @@
 		onRedoConnection: () => void;
 		onFit: () => void;
 		onRefresh: () => void;
+		onRelayout: () => void;
 		onExport: () => void;
 		settingsPanel: SettingsPanelMode | undefined;
 		onSettingsPanel: (panel: SettingsPanelMode, event: MouseEvent) => void;
@@ -772,10 +774,17 @@
 		<ObsidianButton
 			class="knowledge-workspace-toolbar-refresh"
 			icon="refresh-cw"
-			text="Refresh and relayout"
-			ariaLabel="Refresh and relayout graph"
-			tooltip="Refresh data and recalculate layout"
+			text="Refresh nodes"
+			ariaLabel="Refresh nodes"
+			tooltip="Refresh notes and links without forcing a new layout"
 			onClick={onRefresh}
+		/>
+		<ObsidianButton
+			icon="layout-dashboard"
+			text="Recalculate layout"
+			ariaLabel="Recalculate layout"
+			tooltip="Recalculate the current graph without previous automatic layout hints"
+			onClick={onRelayout}
 		/>
 		<ObsidianButton
 			text="Export"

@@ -39,6 +39,11 @@ function setup() {
 }
 afterEach(() => vi.unstubAllGlobals());
 describe('workspace command host', () => {
+	it('refreshes data without forcing layout through the refresh shortcut action', () => {
+		const { context, commands } = setup();
+		expect(commands.execute('refresh-graph')).toBe(true);
+		expect(context.controller.refresh).toHaveBeenCalledWith(false);
+	});
 	it('reads replacement state for availability, selection and view cycling', () => {
 		const { context, commands } = setup();
 		expect(commands.canExecute('open-selected')).toBe(false);

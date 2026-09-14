@@ -37,7 +37,7 @@
 		<div class="knowledge-workspace-debug-actions">
 			<ObsidianButton
 				icon="refresh-cw"
-				text="Refresh and relayout"
+				text="Refresh nodes"
 				onClick={onRefresh}
 			/>
 			<ObsidianButton
