@@ -6,6 +6,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Multilevel stress now separates Group frames after spacing refinement, preserving internal node spacing and preventing the compacting pass from pushing Groups back together.
+
 - Fully interactive Flow restores the last automatic geometry when layout inputs are unchanged, preventing drift on repeated refreshes. Group coordinate hints now exclude container padding so it is not applied twice.
 
 - Fully interactive Flow now retains automatic edge paths as well as node positions, avoiding excessive staircase bends on long edges in Curve and Orthogonal modes.
@@ -25,6 +27,8 @@ All notable changes to Meta Graph are documented here.
 - Developer bundle and CPU baseline commands, with dependency contribution reports, deterministic graph fixtures, environment metadata, and an Obsidian runtime measurement protocol.
 
 ### Changed
+
+- Multilevel stress now separates crowded nodes, compresses long peripheral tails, and packs disconnected subgraphs more compactly so sparse outskirts occupy less of the viewport. Initial placement remains deterministic.
 
 - Consolidated chart-local styles in the chart configuration. Style edits retain unrelated graph state and continue to update rendering without rebuilding or relayout; saved workspace formats are unchanged.
 

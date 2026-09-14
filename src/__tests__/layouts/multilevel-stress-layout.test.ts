@@ -1,3 +1,4 @@
+import { separateStressGroups } from '@/layouts/stress-group-separation';
 import Graph from 'graphology';
 import { describe, expect, it } from 'vitest';
 import type {
@@ -41,9 +42,145 @@ const positions = (graph: RuntimeGraph) =>
 			return [x, y];
 		});
 describe('Multilevel stress', () => {
+	it('reduces satellite area while giving a dense core more visible spacing', async () => {
+		const graph = make();
+		graph.clear();
+		const core = Array.from({ length: 20 }, (_, i) => `core-${i}`);
+		const tail = Array.from({ length: 12 }, (_, i) => `tail-${i}`);
+		const islands = Array.from({ length: 12 }, (_, i) => `island-${i}`);
+		for (const id of [...core, ...tail, ...islands])
+			graph.addNode(id, node(0, 0));
+		for (let i = 0; i < core.length; i++)
+			for (let j = i + 1; j < core.length; j++)
+				graph.addEdge(core[i]!, core[j]!, edge());
+		graph.addEdge(core[0]!, tail[0]!, edge());
+		for (let i = 1; i < tail.length; i++)
+			graph.addEdge(tail[i - 1]!, tail[i]!, edge());
+		for (let i = 0; i < islands.length; i += 2)
+			graph.addEdge(islands[i]!, islands[i + 1]!, edge());
+		const original = graph.copy();
+		await new MultilevelStressLayout(
+			1,
+			100,
+			new Map(),
+			undefined,
+			undefined,
+			{ refine: false },
+		).apply(original);
+		await new MultilevelStressLayout(1, 100).apply(graph);
+		const metrics = (g: RuntimeGraph) => {
+			const points = positions(g),
+				xs = points.map((p) => p[0]!),
+				ys = points.map((p) => p[1]!);
+			const width = Math.max(...xs) - Math.min(...xs),
+				height = Math.max(...ys) - Math.min(...ys);
+			const near = core
+				.map((id) => {
+					const p = g.getNodeAttributes(id);
+					return Math.min(
+						...core
+							.filter((other) => other !== id)
+							.map((other) => {
+								const q = g.getNodeAttributes(other);
+								return Math.hypot(p.x - q.x, p.y - q.y);
+							}),
+					);
+				})
+				.sort((a, b) => a - b);
+			return {
+				area: width * height,
+				visibleGap: near[10]! / Math.max(width, height),
+			};
+		};
+		const before = metrics(original),
+			after = metrics(graph);
+		expect(after.area).toBeLessThan(before.area);
+		expect(after.visibleGap).toBeGreaterThan(before.visibleGap * 1.3);
+		expect(graph.order).toBe(original.order);
+		expect(graph.size).toBe(original.size);
+	});
+	it('separates final Group frames without shrinking their internal geometry', () => {
+		const graph = make();
+		graph.clear();
+		const groups = new Map<string, string>();
+		for (const group of ['rectangle', 'circle', 'third'])
+			for (const [i, [x, y]] of [
+				[-2, -1],
+				[2, -1],
+				[-2, 1],
+				[2, 1],
+			].entries()) {
+				const id = `${group}-${i}`;
+				graph.addNode(id, node(x!, y!));
+				groups.set(id, group);
+			}
+		graph.addNode('outside', node(0, 0));
+		graph.addEdge('rectangle-0', 'circle-0', edge());
+		const before = graph.copy();
+		separateStressGroups(graph, groups, [], 1);
+		const centers = ['rectangle', 'circle', 'third'].map((group) => {
+			const first = graph.getNodeAttributes(`${group}-0`),
+				opposite = graph.getNodeAttributes(`${group}-3`);
+			expect(opposite.x - first.x).toBeCloseTo(4, 10);
+			expect(opposite.y - first.y).toBeCloseTo(2, 10);
+			return {
+				x: (first.x + opposite.x) / 2,
+				y: (first.y + opposite.y) / 2,
+			};
+		});
+		for (let i = 0; i < centers.length; i++)
+			for (let j = i + 1; j < centers.length; j++) {
+				// Circle encloses the padded rectangle; stronger than member-only avoidance.
+				expect(
+					Math.hypot(
+						centers[i]!.x - centers[j]!.x,
+						centers[i]!.y - centers[j]!.y,
+					),
+				).toBeGreaterThan(2 * Math.hypot(2.4, 1.4));
+			}
+		const outside = graph.getNodeAttributes('outside');
+		for (const center of centers)
+			expect(
+				Math.hypot(outside.x - center.x, outside.y - center.y),
+			).toBeGreaterThan(Math.hypot(2.4, 1.4));
+		separateStressGroups(before, new Map([...groups].reverse()), [], 1);
+		expect(positions(graph)).toEqual(positions(before));
+		expect(graph.size).toBe(1);
+	});
+	it('keeps connected Groups separate after complete stress spacing refinement', async () => {
+		const graph = make();
+		const groups = new Map([
+			['a', 'one'],
+			['b', 'one'],
+			['c', 'two'],
+			['d', 'two'],
+		]);
+		await new MultilevelStressLayout(1, 100, groups).apply(graph);
+		const groupBounds = (ids: string[]) => {
+			const xs = ids.map((id) => graph.getNodeAttribute(id, 'x')),
+				ys = ids.map((id) => graph.getNodeAttribute(id, 'y'));
+			const width = Math.max(...xs) - Math.min(...xs),
+				height = Math.max(...ys) - Math.min(...ys);
+			return {
+				x: (Math.min(...xs) + Math.max(...xs)) / 2,
+				y: (Math.min(...ys) + Math.max(...ys)) / 2,
+				r: Math.hypot(width / 2 + 0.4, height / 2 + 0.4),
+			};
+		};
+		const a = groupBounds(['a', 'b']),
+			b = groupBounds(['c', 'd']);
+		expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(a.r + b.r);
+	});
 	it('matches the Python prototype including an isolated Unicode node', async () => {
 		const graph = make();
-		await new MultilevelStressLayout(1, 100).apply(graph);
+		await new MultilevelStressLayout(
+			1,
+			100,
+			new Map(),
+			undefined,
+			undefined,
+			{ refine: false },
+		).apply(graph);
 		// Independently computed using experiment.py candidate(..., 'multilevel-stress').
 		const expected = [
 			[-2.7263428191879346, 0.4054370301846914],

@@ -1,3 +1,5 @@
+import { separateStressGroups } from '@/layouts/stress-group-separation';
+import { refineStressSpacing } from '@/layouts/stress-spacing';
 import type { RuntimeGraph } from '@/graph/model/graphology-adapter';
 import type { LayoutEngine } from '@/layouts/layout-engine';
 import { compactGraphGroups } from '@/layouts/graph-group-layout';
@@ -10,6 +12,7 @@ const matrix = (n: number): Matrix =>
 /** Browser port of the research multilevel-stress candidate: one greedy
  * coarsening, 180 coarse iterations, then 180 fine iterations anchored at 0.3.
  * All-pairs distances ignore direction, parallel edges and self loops.
+ * Deterministic spacing refinement compacts satellites and opens dense cores.
  * O(n²) storage and O(n³) factorization; no previous geometry is read.
  */
 export class MultilevelStressLayout implements LayoutEngine {
@@ -21,6 +24,10 @@ export class MultilevelStressLayout implements LayoutEngine {
 		private readonly isStale: () => boolean = () => false,
 		private readonly yieldControl: () => Promise<void> = () =>
 			Promise.resolve(),
+		private readonly options: {
+			refine?: boolean;
+			groups?: readonly import('@/core/types').ChartGroupDefinition[];
+		} = {},
 	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
@@ -146,6 +153,24 @@ export class MultilevelStressLayout implements LayoutEngine {
 			this.spacing,
 			this.linkDistance,
 		);
+		if (
+			this.options.refine !== false &&
+			!(await refineStressSpacing(
+				working,
+				ids,
+				this.groupByNode,
+				scale,
+				() => this.checkpoint(),
+			))
+		)
+			return;
+		if (this.options.refine !== false)
+			separateStressGroups(
+				working,
+				this.groupByNode,
+				this.options.groups ?? [],
+				scale,
+			);
 		if (this.isStale()) return;
 		ids.forEach((id) => {
 			const { x, y } = working.getNodeAttributes(id);

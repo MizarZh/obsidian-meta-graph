@@ -95,7 +95,11 @@ Choose **Graph settings -> Layout -> Algorithm**:
   dragging. Only the algorithm choice is saved; no baseline coordinates are saved.
 
 Multilevel stress treats links as undirected, collapses parallel relationships for
-layout, and retains the plugin's Group compaction. Link distance controls initial
+layout, and retains the plugin's Group compaction. A deterministic spacing pass
+separates nearby nodes, compresses long peripheral tails and packs disconnected
+subgraphs by translation. Explicit Groups stay together during packing. This
+reduces wasted peripheral space but is not a guarantee against long-label overlap.
+Link distance controls initial
 scale; force controls still affect temporary D3 interaction. Coarsening can change
 when links change, so cluster stability is not guaranteed. Its all-pairs solver
 uses quadratic memory and cubic factorization time; large graphs take longer,

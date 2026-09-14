@@ -388,6 +388,7 @@ async function applyGraphLayout({
 			options.groupByNode,
 			options.isStale,
 			options.yieldControl,
+			{ groups: options.groups },
 		).apply(graph);
 		if (options.isStale?.()) return;
 	} else if (options.stableLayout || firstLayout || options.forceLayout) {
