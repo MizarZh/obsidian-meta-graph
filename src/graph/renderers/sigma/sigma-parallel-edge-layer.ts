@@ -1125,8 +1125,6 @@ export function createParallelCanvasRouteFromPolyline(
 					target,
 					sourceRadius,
 					targetRadius,
-					axis,
-					laneOffset,
 				)
 			: clipRouteEndpoints(
 					shifted,
@@ -1136,166 +1134,66 @@ export function createParallelCanvasRouteFromPolyline(
 					targetRadius,
 					axis,
 				);
+	if (points.length < 2) return undefined;
+	const last = points.at(-1)!;
+	const previous = points.at(-2)!;
 	return {
 		points,
-		arrowDirection: axis,
+		arrowDirection:
+			resolvedRouteKind === 'curve'
+				? (normalizeVector({
+						x: last.x - previous.x,
+						y: last.y - previous.y,
+					}) ?? axis)
+				: axis,
 		bounds: boundsOf(points),
 	};
 }
 
-/**
- * Clips a Curve route to node circles while keeping a short flow-axis tangent
- * at each endpoint. Cubic transitions remove the right-angle hook caused
- * by inserting an axis-aligned elbow into the sampled curve.
- */
+/** Trim the existing curve at node circles; never replace its interior. */
 function clipCurveRouteEndpoints(
 	points: readonly ViewportPoint[],
 	source: ViewportPoint,
 	target: ViewportPoint,
 	sourceRadius: number,
 	targetRadius: number,
-	axis: ViewportPoint,
-	laneOffset: number,
 ): ViewportPoint[] {
-	if (points.length < 2) return points.map((point) => ({ ...point }));
-	const shifted = points.map((point) => ({ ...point }));
-	const lastIndex = shifted.length - 1;
-	const sourceTip = createDirectionalPort(
-		source,
-		Math.max(0, sourceRadius),
-		axis,
-		true,
-	);
-	const targetTip = createDirectionalPort(
+	const fromSource = trimCurveAtCircle(points, source, sourceRadius);
+	return trimCurveAtCircle(
+		fromSource.reverse(),
 		target,
-		Math.max(0, targetRadius),
-		axis,
-		false,
+		targetRadius,
+	).reverse();
+}
+
+function trimCurveAtCircle(
+	points: readonly ViewportPoint[],
+	center: ViewportPoint,
+	radius: number,
+): ViewportPoint[] {
+	if (radius <= 0) return points.map((point) => ({ ...point }));
+	const outside = points.findIndex(
+		(point) => distanceBetweenViewport(point, center) >= radius,
 	);
-	// Dense layout samples can still lie inside the node or behind its port.
-	// Join beyond the port so the replacement transition cannot hook backward.
-	let firstIndex = 1;
-	let lastJoinIndex = lastIndex - 1;
-	const clearance = 12;
-	while (
-		firstIndex < lastIndex &&
-		(shifted[firstIndex]!.x - sourceTip.x) * axis.x +
-			(shifted[firstIndex]!.y - sourceTip.y) * axis.y <
-			clearance
-	)
-		firstIndex++;
-	while (
-		lastJoinIndex > 0 &&
-		(targetTip.x - shifted[lastJoinIndex]!.x) * axis.x +
-			(targetTip.y - shifted[lastJoinIndex]!.y) * axis.y <
-			clearance
-	)
-		lastJoinIndex--;
-	if (firstIndex >= lastJoinIndex) {
-		const middle = {
-			x: (sourceTip.x + targetTip.x) / 2 - axis.y * laneOffset,
-			y: (sourceTip.y + targetTip.y) / 2 + axis.x * laneOffset,
-		};
-		const tangent =
-			normalizeVector({
-				x: targetTip.x - sourceTip.x,
-				y: targetTip.y - sourceTip.y,
-			}) ?? axis;
-		return deduplicateViewportPoints([
-			...createEndpointTransition(sourceTip, middle, axis, tangent),
-			...createEndpointTransition(middle, targetTip, tangent, axis),
-		]);
-	}
-	const firstNext = shifted[firstIndex]!;
-	const lastPrevious = shifted[lastJoinIndex]!;
-	const sourceTransition = createEndpointTransition(
-		sourceTip,
-		firstNext,
-		axis,
-		normalizeVector({
-			x: (shifted[firstIndex + 1] ?? firstNext).x - firstNext.x,
-			y: (shifted[firstIndex + 1] ?? firstNext).y - firstNext.y,
-		}) ?? axis,
-	);
-	const targetTransition = createEndpointTransition(
-		lastPrevious,
-		targetTip,
-		normalizeVector({
-			x: lastPrevious.x - (shifted[lastJoinIndex - 1] ?? lastPrevious).x,
-			y: lastPrevious.y - (shifted[lastJoinIndex - 1] ?? lastPrevious).y,
-		}) ?? axis,
-		axis,
+	if (outside < 0) return [];
+	if (outside === 0) return points.map((point) => ({ ...point }));
+	const start = points[outside - 1]!;
+	const end = points[outside]!;
+	const dx = end.x - start.x;
+	const dy = end.y - start.y;
+	const sx = start.x - center.x;
+	const sy = start.y - center.y;
+	const a = dx * dx + dy * dy;
+	const b = 2 * (sx * dx + sy * dy);
+	const c = sx * sx + sy * sy - radius * radius;
+	const t = Math.max(
+		0,
+		Math.min(1, (-b + Math.sqrt(Math.max(0, b * b - 4 * a * c))) / (2 * a)),
 	);
 	return deduplicateViewportPoints([
-		...sourceTransition,
-		...shifted.slice(firstIndex + 1, lastJoinIndex),
-		...targetTransition,
+		{ x: start.x + dx * t, y: start.y + dy * t },
+		...points.slice(outside),
 	]);
-}
-
-function createEndpointTransition(
-	start: ViewportPoint,
-	end: ViewportPoint,
-	startTangent: ViewportPoint,
-	endTangent: ViewportPoint,
-): ViewportPoint[] {
-	const distance = distanceBetweenViewport(start, end);
-	if (distance < 0.001) return [start, end];
-	const stub = distance / 3;
-	const firstControl = add(start, scale(startTangent, stub));
-	const secondControl = add(end, scale(endTangent, -stub));
-	// Bound chord error in CSS pixels using the cubic's second derivative.
-	// Drawing, arrow trimming, and hit testing consume these same samples.
-	const curvature = Math.max(
-		Math.hypot(
-			start.x - 2 * firstControl.x + secondControl.x,
-			start.y - 2 * firstControl.y + secondControl.y,
-		),
-		Math.hypot(
-			firstControl.x - 2 * secondControl.x + end.x,
-			firstControl.y - 2 * secondControl.y + end.y,
-		),
-	);
-	const segments = Math.min(
-		128,
-		Math.max(8, Math.ceil(Math.sqrt((0.75 * curvature) / 0.2))),
-	);
-	const samples: ViewportPoint[] = [start];
-	for (let step = 1; step < segments; step += 1) {
-		samples.push(
-			cubicViewportPoint(
-				start,
-				firstControl,
-				secondControl,
-				end,
-				step / segments,
-			),
-		);
-	}
-	samples.push(end);
-	return samples;
-}
-
-function cubicViewportPoint(
-	start: ViewportPoint,
-	firstControl: ViewportPoint,
-	secondControl: ViewportPoint,
-	end: ViewportPoint,
-	t: number,
-): ViewportPoint {
-	const inverse = 1 - t;
-	return {
-		x:
-			inverse * inverse * inverse * start.x +
-			3 * inverse * inverse * t * firstControl.x +
-			3 * inverse * t * t * secondControl.x +
-			t * t * t * end.x,
-		y:
-			inverse * inverse * inverse * start.y +
-			3 * inverse * inverse * t * firstControl.y +
-			3 * inverse * t * t * secondControl.y +
-			t * t * t * end.y,
-	};
 }
 
 /**
@@ -1320,7 +1218,8 @@ function offsetSmoothPolyline(
 		);
 	}
 	const total = distances.at(-1)!;
-	const taperLength = Math.min(total / 3, Math.max(24, Math.abs(offset) * 6));
+	// Relative to the route, so zoom never changes the taper region.
+	const taperLength = total / 3;
 	return sourcePoints.map((point, index) => {
 		const previous = sourcePoints[index - 1];
 		const next = sourcePoints[index + 1];

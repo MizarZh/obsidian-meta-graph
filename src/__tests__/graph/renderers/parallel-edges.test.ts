@@ -444,7 +444,7 @@ describe('parallel route geometry', () => {
 		expect(route?.arrowDirection).toEqual({ x: 1, y: 0 });
 	});
 
-	it('keeps Curve parallel endpoints smooth and flow-axis aligned', () => {
+	it('clips Curve parallel endpoints on the route with tangent arrows', () => {
 		const route = createParallelCanvasRouteFromPolyline(
 			[
 				{ x: 20, y: 40 },
@@ -463,9 +463,24 @@ describe('parallel route geometry', () => {
 		);
 
 		expect(route).toBeDefined();
-		expect(route?.arrowDirection).toEqual({ x: 1, y: 0 });
-		expect(route?.points[0]?.y).toBeCloseTo(40);
-		expect(route?.points.at(-1)?.y).toBeCloseTo(100);
+		expect(
+			Math.hypot(route!.points[0]!.x - 20, route!.points[0]!.y - 40),
+		).toBeCloseTo(10);
+		expect(
+			Math.hypot(
+				route!.points.at(-1)!.x - 220,
+				route!.points.at(-1)!.y - 100,
+			),
+		).toBeCloseTo(12);
+		const end = route!.points.at(-1)!;
+		const previous = route!.points.at(-2)!;
+		const length = Math.hypot(end.x - previous.x, end.y - previous.y);
+		expect(route!.arrowDirection.x).toBeCloseTo(
+			(end.x - previous.x) / length,
+		);
+		expect(route!.arrowDirection.y).toBeCloseTo(
+			(end.y - previous.y) / length,
+		);
 		expect(
 			route!.points.some(
 				(point, index) =>
@@ -492,46 +507,120 @@ describe('parallel route geometry', () => {
 				{ x: 1, y: 0 },
 				'curve',
 			)!;
-			expect(route.points[0]).toEqual({ x: 15, y: 0 });
-			expect(route.points.at(-1)).toEqual({ x: 185, y: 60 });
+			expect(
+				Math.hypot(route.points[0]!.x, route.points[0]!.y),
+			).toBeCloseTo(15);
+			expect(
+				Math.hypot(
+					route.points.at(-1)!.x - 200,
+					route.points.at(-1)!.y - 60,
+				),
+			).toBeCloseTo(15);
 			for (let i = 1; i < route.points.length; i++) {
 				expect(route.points[i]!.x).toBeGreaterThanOrEqual(
 					route.points[i - 1]!.x,
 				);
 			}
 			for (const point of route.points) {
-				expect(Math.hypot(point.x, point.y)).toBeGreaterThanOrEqual(15);
+				expect(Math.hypot(point.x, point.y)).toBeGreaterThanOrEqual(
+					15 - 1e-9,
+				);
 				expect(
 					Math.hypot(point.x - 200, point.y - 60),
-				).toBeGreaterThanOrEqual(15);
+				).toBeGreaterThanOrEqual(15 - 1e-9);
 			}
 		}
 	});
 
-	it('keeps short opposite lanes distinct and uses finer sampling when enlarged', () => {
-		const create = (scale: number, lane: number) =>
-			createParallelCanvasRouteFromPolyline(
-				[
-					{ x: 0, y: 0 },
-					{ x: 20 * scale, y: 10 * scale },
-					{ x: 40 * scale, y: 20 * scale },
-				],
+	it('preserves short and sparse curve geometry across zoom levels', () => {
+		for (const base of [
+			[
 				{ x: 0, y: 0 },
-				{ x: 40 * scale, y: 20 * scale },
-				8 * scale,
-				8 * scale,
-				lane * scale,
+				{ x: 20, y: 10 },
+				{ x: 40, y: 20 },
+			],
+			[
+				{ x: 0, y: 0 },
+				{ x: 20, y: 2 },
+				{ x: 40, y: 30 },
+				{ x: 60, y: 70 },
+				{ x: 80, y: 98 },
+				{ x: 100, y: 100 },
+			],
+		]) {
+			for (const lane of [-4, 0, 4]) {
+				const create = (zoom: number) => {
+					const points = base.map((p) => ({
+						x: p.x * zoom,
+						y: p.y * zoom,
+					}));
+					return createParallelCanvasRouteFromPolyline(
+						points,
+						points[0]!,
+						points.at(-1)!,
+						5 * zoom,
+						5 * zoom,
+						lane * zoom,
+						{ x: 1, y: 0 },
+						'curve',
+					)!;
+				};
+				const reference = create(1);
+				for (const zoom of [0.25, 0.5, 0.99, 1.01, 2, 4]) {
+					const route = create(zoom);
+					expect(route.points).toHaveLength(reference.points.length);
+					route.points.forEach((point, i) => {
+						expect(point.x / zoom).toBeCloseTo(
+							reference.points[i]!.x,
+						);
+						expect(point.y / zoom).toBeCloseTo(
+							reference.points[i]!.y,
+						);
+					});
+				}
+			}
+		}
+	});
+
+	it('retains the curve interior when screen-sized nodes cover more samples', () => {
+		const base = Array.from({ length: 41 }, (_, i) => ({
+			x: i * 5,
+			y: 60 * (3 * (i / 40) ** 2 - 2 * (i / 40) ** 3),
+		}));
+		for (const zoom of [0.25, 0.5, 1, 2, 4]) {
+			const points = base.map((p) => ({ x: p.x * zoom, y: p.y * zoom }));
+			const route = createParallelCanvasRouteFromPolyline(
+				points,
+				points[0]!,
+				points.at(-1)!,
+				8,
+				8,
+				0,
 				{ x: 1, y: 0 },
 				'curve',
 			)!;
-		const left = create(1, -4),
-			right = create(1, 4);
-		expect(left.points[0]).toEqual(right.points[0]);
-		expect(left.points.at(-1)).toEqual(right.points.at(-1));
-		expect(left.points).not.toEqual(right.points);
-		expect(create(20, 4).points.length).toBeGreaterThan(
-			right.points.length,
-		);
+			for (const point of route.points)
+				expect(distanceToPolyline(point, points)).toBeLessThan(1e-8);
+			expect(route.points).toContainEqual(points[20]);
+		}
+	});
+
+	it('omits curves entirely covered by a node', () => {
+		expect(
+			createParallelCanvasRouteFromPolyline(
+				[
+					{ x: 0, y: 0 },
+					{ x: 10, y: 5 },
+				],
+				{ x: 0, y: 0 },
+				{ x: 10, y: 5 },
+				20,
+				20,
+				0,
+				{ x: 1, y: 0 },
+				'curve',
+			),
+		).toBeUndefined();
 	});
 
 	it('keeps vertical Flow directions axis-aligned too', () => {

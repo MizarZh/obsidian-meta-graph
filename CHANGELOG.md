@@ -6,6 +6,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Sigma parallel Flow curves retain their interior paths across zoom changes; node clipping no longer replaces curves at screen-pixel thresholds, and arrows follow the clipped path tangent.
+
 - Multilevel stress now separates Group frames after spacing refinement, preserving internal node spacing and preventing the compacting pass from pushing Groups back together.
 
 - Fully interactive Flow restores the last automatic geometry when layout inputs are unchanged, preventing drift on repeated refreshes. Group coordinate hints now exclude container padding so it is not applied twice.
