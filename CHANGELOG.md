@@ -4,43 +4,24 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
-### Fixed
-
-- Sparse long Flow curves now reach their full parallel lane separation between endpoint transitions instead of remaining nearly coincident.
-
-- Increased screen-space parallel lane separation so thin and thick links remain distinguishable across zoom levels.
-
-- Sigma parallel Flow curves retain their interior paths across zoom changes; node clipping no longer replaces curves at screen-pixel thresholds, and arrows follow the clipped path tangent.
-
-- Multilevel stress now separates Group frames after spacing refinement, preserving internal node spacing and preventing the compacting pass from pushing Groups back together.
-
-- Fully interactive Flow restores the last automatic geometry when layout inputs are unchanged, preventing drift on repeated refreshes. Group coordinate hints now exclude container padding so it is not applied twice.
-
-- Fully interactive Flow now retains automatic edge paths as well as node positions, avoiding excessive staircase bends on long edges in Curve and Orthogonal modes.
-
-- Fixed 3D network link patterns: dashed, dotted, and dash-dot styles now render on straight and curved links and update without restarting layout.
-
-- Removed Three.js color warnings when hovering nodes in 3D network views while preserving neighborhood fading.
+## [1.9.1] - 2026-09-15
 
 ### Added
 
-- Split Refresh nodes from Recalculate layout in the toolbar and canvas menu. Shift+R refreshes data without forcing layout; explicit recalculation starts interactive ELK without previous geometry hints.
-
-- Flow can now select experimental **ELK fully interactive**, preserving the default ELK option. Edits use the previous automatic layout from the current session; only the algorithm choice is saved.
-
-- Network can now select experimental **Multilevel stress** per chart in Sigma/G6, alongside the default ForceAtlas2 and its Stable switch. Refreshes recompute the initial layout without saving dragged coordinates.
-
-- Experimental **Stable** switch for Network (Sigma/G6): retain ForceAtlas2 with ID-based initial coordinates, sorted inputs, and fixed iterations. Refresh and relayout resets temporary dragging without saving positions.
-
-- Developer bundle and CPU baseline commands, with dependency contribution reports, deterministic graph fixtures, environment metadata, and an Obsidian runtime measurement protocol.
+- Network offers experimental **Multilevel stress** alongside ForceAtlas2 in Sigma/G6, with deterministic placement, improved spacing for crowded cores and sparse outskirts, and Group separation.
+- Network's experimental **Stable** switch gives ForceAtlas2 fixed initial conditions. Recalculate layout resets temporary dragging; graph edits can still move clusters.
+- Flowchart offers experimental **ELK fully interactive**, using the session's previous automatic node and edge geometry to preserve layout continuity. Unchanged inputs reuse the automatic result without refresh drift; only the algorithm choice is saved.
+- Split **Refresh nodes** from **Recalculate layout** in the toolbar and canvas menu. Shift+R refreshes notes and links without forcing layout. Recalculate layout uses the current graph and clears previous interactive ELK geometry hints.
 
 ### Changed
 
-- Multilevel stress now separates crowded nodes, compresses long peripheral tails, and packs disconnected subgraphs more compactly so sparse outskirts occupy less of the viewport. Initial placement remains deterministic.
+- Consolidated chart-local styles in chart configuration while preserving saved workspace compatibility and responsive style updates without relayout.
 
-- Consolidated chart-local styles in the chart configuration. Style edits retain unrelated graph state and continue to update rendering without rebuilding or relayout; saved workspace formats are unchanged.
+### Fixed
 
-- Extracted workspace context menus, export orchestration, and command handling into dedicated modules while preserving interaction and export cancellation behavior.
+- Sigma parallel Flowchart curves preserve their interior paths across zoom changes, follow the path tangent at arrowheads, and remain more distinguishable on long sparse spans and at different line widths.
+- 3D network dashed, dotted, and dash-dot links render on straight and curved paths and update without restarting layout.
+- Removed Three.js color warnings when hovering nodes in 3D network views while preserving neighborhood fading.
 
 ## [1.9.0] - 2026-09-13
 
