@@ -1206,7 +1206,11 @@ function offsetSmoothPolyline(
 	offset: number,
 	taperEndpoints = false,
 ): ViewportPoint[] {
-	const sourcePoints = deduplicateViewportPoints(points);
+	const originalPoints = deduplicateViewportPoints(points);
+	const sourcePoints =
+		taperEndpoints && Math.abs(offset) >= 0.001
+			? sampleCurveOffsetSpans(originalPoints)
+			: originalPoints;
 	if (sourcePoints.length < 2 || Math.abs(offset) < 0.001) {
 		return sourcePoints.map((point) => ({ ...point }));
 	}
@@ -1251,6 +1255,47 @@ function offsetSmoothPolyline(
 			y: point.y + tangent.x * localOffset,
 		};
 	});
+}
+
+/**
+ * Keep every layout vertex and add a bounded set of arc-length samples.
+ * Sparse long spans otherwise interpolate between two near-zero endpoint
+ * offsets and never reach the intended lane separation. Relative samples keep
+ * the offset geometry independent of camera zoom.
+ */
+function sampleCurveOffsetSpans(
+	points: readonly ViewportPoint[],
+): ViewportPoint[] {
+	if (points.length < 2) return [...points];
+	const lengths = points
+		.slice(1)
+		.map((point, i) => distanceBetweenViewport(points[i]!, point));
+	const total = lengths.reduce((sum, length) => sum + length, 0);
+	if (total < 0.001) return [...points];
+	const result: ViewportPoint[] = [points[0]!];
+	let travelled = 0;
+	let sample = 1;
+	const count = 24;
+	for (let i = 0; i < lengths.length; i++) {
+		const length = lengths[i]!;
+		const endDistance = travelled + length;
+		while (sample < count && (total * sample) / count < endDistance) {
+			const distance = (total * sample) / count;
+			if (distance > travelled && length > 0) {
+				result.push(
+					interpolateViewport(
+						points[i]!,
+						points[i + 1]!,
+						(distance - travelled) / length,
+					),
+				);
+			}
+			sample++;
+		}
+		result.push(points[i + 1]!);
+		travelled = endDistance;
+	}
+	return deduplicateViewportPoints(result);
 }
 
 function normalizeVector(vector: ViewportPoint): ViewportPoint | undefined {

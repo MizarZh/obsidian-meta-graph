@@ -291,6 +291,35 @@ describe('parallel edge visual metrics', () => {
 		}
 	});
 
+	it('leaves readable clearance between mixed-width lanes at every zoom', () => {
+		for (const zoom of [0.25, 0.5, 1, 2, 4]) {
+			for (const sizes of [
+				[1, 1],
+				[1, 3],
+				[4, 12],
+			]) {
+				const metrics = sizes.map((edgeSize) =>
+					resolveEdgeVisualMetrics({
+						edgeSize,
+						scaleSize: (size) =>
+							size / planarZoomToSizeRatio(1 / zoom),
+						minEdgeThickness: 1.7,
+					}),
+				);
+				const centerDistance =
+					(metrics[0]!.laneStep + metrics[1]!.laneStep) / 2;
+				const inkWidth =
+					(metrics[0]!.nominalLineWidth +
+						metrics[1]!.nominalLineWidth) /
+					2;
+				expect(centerDistance).toBeGreaterThanOrEqual(8);
+				expect(centerDistance - inkWidth).toBeGreaterThanOrEqual(
+					6 - 1e-9,
+				);
+			}
+		}
+	});
+
 	it('matches Sigma feathered ink coverage across pixel ratios', () => {
 		for (const pixelRatio of [1, 1.5, 2, 3]) {
 			const metrics = resolveEdgeVisualMetrics({
@@ -309,7 +338,7 @@ describe('parallel edge visual metrics', () => {
 			// Arrow and lane geometry remain based on nominal width.
 			expect(metrics.arrowLength).toBe(5);
 			expect(metrics.arrowHalfWidth).toBe(2);
-			expect(metrics.laneStep).toBe(5);
+			expect(metrics.laneStep).toBe(8);
 		}
 	});
 
@@ -327,7 +356,7 @@ describe('parallel edge visual metrics', () => {
 		expect(metrics.arrowLength).toBe(4.25);
 		expect(metrics.arrowHalfWidth).toBe(1.7);
 		expect(metrics.dashPattern).toEqual([5, 3.5]);
-		expect(metrics.laneStep).toBe(4.25);
+		expect(metrics.laneStep).toBe(8);
 		expect(metrics.hitWidth).toBe(6);
 	});
 
@@ -347,7 +376,7 @@ describe('parallel edge visual metrics', () => {
 		expect(metrics.arrowHalfWidth).toBe(1.7);
 	});
 
-	it('clamps lane growth while keeping hit width independent', () => {
+	it('keeps thick lanes separated while keeping hit width independent', () => {
 		const metrics = resolveEdgeVisualMetrics({
 			edgeSize: 8,
 			arrowSize: 1,
@@ -361,7 +390,7 @@ describe('parallel edge visual metrics', () => {
 		expect(metrics.arrowLength).toBe(9);
 		expect(metrics.arrowHalfWidth).toBe(5.5);
 		expect(metrics.dashPattern).toEqual([]);
-		expect(metrics.laneStep).toBe(8);
+		expect(metrics.laneStep).toBe(10);
 		expect(metrics.hitWidth).toBe(6);
 	});
 });
@@ -602,6 +631,48 @@ describe('parallel route geometry', () => {
 			for (const point of route.points)
 				expect(distanceToPolyline(point, points)).toBeLessThan(1e-8);
 			expect(route.points).toContainEqual(points[20]);
+		}
+	});
+
+	it('separates sparse long diagonal lanes through their middle at every zoom', () => {
+		const base = [
+			{ x: 0, y: 0 },
+			{ x: 5, y: 0 },
+			{ x: 995, y: 990 },
+			{ x: 1000, y: 990 },
+		];
+		for (const zoom of [0.25, 0.5, 1, 2, 4]) {
+			const points = base.map((p) => ({ x: p.x * zoom, y: p.y * zoom }));
+			const left = createParallelCanvasRouteFromPolyline(
+				points,
+				points[0]!,
+				points.at(-1)!,
+				8,
+				8,
+				-4,
+				{ x: 1, y: 0 },
+				'curve',
+			)!;
+			const reversed = [...points].reverse();
+			const right = createParallelCanvasRouteFromPolyline(
+				reversed,
+				reversed[0]!,
+				reversed.at(-1)!,
+				8,
+				8,
+				-4,
+				{ x: -1, y: 0 },
+				'curve',
+			)!;
+			const middle = { x: 500 * zoom, y: 495 * zoom };
+			expect(distanceToPolyline(middle, left.points)).toBeCloseTo(4);
+			expect(distanceToPolyline(middle, right.points)).toBeCloseTo(4);
+			const interior = left.points.filter(
+				(p) => p.x > 400 * zoom && p.x < 600 * zoom,
+			);
+			expect(interior.length).toBeGreaterThan(0);
+			for (const point of interior)
+				expect(distanceToPolyline(point, right.points)).toBeCloseTo(8);
 		}
 	});
 

@@ -6,6 +6,10 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Sparse long Flow curves now reach their full parallel lane separation between endpoint transitions instead of remaining nearly coincident.
+
+- Increased screen-space parallel lane separation so thin and thick links remain distinguishable across zoom levels.
+
 - Sigma parallel Flow curves retain their interior paths across zoom changes; node clipping no longer replaces curves at screen-pixel thresholds, and arrows follow the clipped path tangent.
 
 - Multilevel stress now separates Group frames after spacing refinement, preserving internal node spacing and preventing the compacting pass from pushing Groups back together.
