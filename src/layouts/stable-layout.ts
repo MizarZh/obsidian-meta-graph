@@ -57,6 +57,7 @@ export interface LayoutSnapshotKeyOptions {
 }
 
 export interface StableLayoutOptions {
+	stableLayout?: boolean;
 	mode: ViewMode;
 	forceLayout: boolean;
 	graphSpacing: number;
@@ -365,13 +366,14 @@ async function applyGraphLayout({
 	firstLayout,
 	currentEdgeIds,
 }: StableLayoutContext): Promise<void> {
-	if (firstLayout || options.forceLayout) {
+	if (options.stableLayout || firstLayout || options.forceLayout) {
 		await new ForceAtlasLayout(
 			options.graphSpacing,
 			options.graphForceSettings,
 			options.groupByNode,
 			options.useLayoutWorker,
 			options.isStale,
+			{ stable: options.stableLayout },
 		).apply(graph);
 		if (options.isStale?.()) return;
 	}

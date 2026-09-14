@@ -21,3 +21,11 @@ export function getWorkspaceGraphForceSettings(
 		linkDistance: state.graphLinkDistance,
 	};
 }
+
+export function isStableNetworkEnabled(state: WorkspaceState): boolean {
+	return (
+		state.mode === 'graph' &&
+		state.charts.find((chart) => chart.id === state.activeChartId)?.layout
+			.stableLayout === true
+	);
+}

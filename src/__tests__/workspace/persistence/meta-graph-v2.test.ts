@@ -22,6 +22,23 @@ import {
 } from '@/workspace/workspace-session';
 
 describe('Meta Graph v2 persistence', () => {
+	it('round-trips Stable through the extension without saving coordinates', () => {
+		for (const enabled of [true, false]) {
+			const document = createDefaultMetaGraphDocument(200, 1.5);
+			document.charts[0]!.layout.stableLayout = enabled;
+			const saved = serializeWorkspaceStateV2(
+				createWorkspaceState(200, 1.5, document),
+				createPersistenceContextFromV1(document),
+			);
+			const parsed = parsePersistedMetaGraphDocumentV2(saved, 200, 1.5);
+			expect(parsed.document.charts[0]!.layout.stableLayout).toBe(
+				enabled ? true : undefined,
+			);
+			expect(
+				parsed.document.charts[0]!.layout.manual?.nodes ?? {},
+			).toEqual({});
+		}
+	});
 	it('round-trips per-chart relationship expansion, including disabled field choices', () => {
 		for (const enabled of [true, false]) {
 			const document = createDefaultMetaGraphDocument(200, 1.5);

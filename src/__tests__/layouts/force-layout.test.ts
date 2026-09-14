@@ -1,3 +1,4 @@
+import { createDeterministicForceGraph } from '@/layouts/deterministic-force-graph';
 import Graph from 'graphology';
 import { describe, expect, it } from 'vitest';
 import type {
@@ -11,6 +12,79 @@ import {
 } from '@/layouts/force-layout';
 
 describe('ForceAtlasLayout', () => {
+	it('reproduces stable positions across input order, dragging and worker preference', async () => {
+		const make = (reverse: boolean): RuntimeGraph => {
+			const graph = new Graph<
+				RuntimeNodeAttributes,
+				RuntimeEdgeAttributes
+			>({ multi: true });
+			const ids = Array.from({ length: 90 }, (_, i) => `note-${i}`);
+			for (const id of reverse ? [...ids].reverse() : ids)
+				graph.addNode(id, node(reverse ? 999 : 0, reverse ? -42 : 1));
+			const indices = Array.from({ length: 89 }, (_, i) => i);
+			for (const i of reverse ? indices.reverse() : indices)
+				graph.addEdgeWithKey(`edge-${i}`, ids[i]!, ids[i + 1]!, edge());
+			return graph;
+		};
+		const graph = make(false),
+			reversed = make(true);
+		const positions = (g: RuntimeGraph) =>
+			g
+				.nodes()
+				.sort()
+				.map((id) => {
+					const { x, y } = g.getNodeAttributes(id);
+					return [id, x, y];
+				});
+		const groups = new Map([
+			['note-0', 'g'],
+			['note-1', 'g'],
+			['note-2', 'g'],
+		]);
+		const solve = (g: RuntimeGraph, worker = false) =>
+			new ForceAtlasLayout(
+				1,
+				DEFAULT_GRAPH_FORCE_SETTINGS,
+				groups,
+				worker,
+				undefined,
+				{ stable: true },
+			).apply(g);
+		await solve(graph);
+		const baseline = positions(graph);
+		await solve(reversed, true);
+		expect(positions(reversed)).toEqual(baseline);
+		graph.forEachNode((id) =>
+			graph.mergeNodeAttributes(id, { x: 1000, y: -500, fixed: true }),
+		);
+		await solve(graph);
+		expect(positions(graph)).toEqual(baseline);
+		expect(graph.size).toBe(89);
+	});
+
+	it('keeps existing seeds when adding nodes and leaves stale results unpublished', async () => {
+		const graph = new Graph<RuntimeNodeAttributes, RuntimeEdgeAttributes>({
+			multi: true,
+		});
+		graph.addNode('b', node(5, 6));
+		graph.addNode('c', node(7, 8));
+		const seed =
+			createDeterministicForceGraph(graph).getNodeAttributes('b');
+		graph.addNode('a', node(9, 10));
+		expect(
+			createDeterministicForceGraph(graph).getNodeAttributes('b'),
+		).toEqual(seed);
+		await new ForceAtlasLayout(
+			1,
+			DEFAULT_GRAPH_FORCE_SETTINGS,
+			undefined,
+			false,
+			() => true,
+			{ stable: true },
+		).apply(graph);
+		expect(graph.getNodeAttributes('b')).toEqual(node(5, 6));
+	});
+
 	it.each([false, true])(
 		'preserves hidden edges with group layout=%s',
 		async (grouped) => {

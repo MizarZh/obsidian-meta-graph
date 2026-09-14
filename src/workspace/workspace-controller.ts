@@ -66,6 +66,7 @@ import {
 	setShowTraceInState,
 	setTimelineInState,
 	setGraphForceSettingInState,
+	setStableLayoutInState,
 	resetGraphForcesInState,
 	setGraphSpacingInState,
 	setLabelBoldInState,
@@ -573,6 +574,10 @@ export class WorkspaceController {
 
 	setTimeline(patch: Partial<import('@/core/types').TimelineConfig>): void {
 		this.setWorkspaceState(setTimelineInState(this.state, patch));
+	}
+
+	setStableLayout(value: boolean): void {
+		this.setWorkspaceState(setStableLayoutInState(this.state, value));
 	}
 
 	setEnableForceLayout(enableForceLayout: boolean): void {

@@ -1,3 +1,4 @@
+import { createDeterministicForceGraph } from '@/layouts/deterministic-force-graph';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import ForceAtlas2LayoutSupervisor from 'graphology-layout-forceatlas2/worker';
 import type {
@@ -35,9 +36,35 @@ export class ForceAtlasLayout implements LayoutEngine {
 		private readonly groupByNode: ReadonlyMap<string, string> = new Map(),
 		private readonly useWorker = false,
 		private readonly isStale: () => boolean = () => false,
+		private readonly options: {
+			stable?: boolean;
+			iterations?: number;
+		} = {},
 	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
+		if (this.options.stable) {
+			const working = createDeterministicForceGraph(graph);
+			const groups = new Map(
+				[...this.groupByNode].sort(([a], [b]) =>
+					a < b ? -1 : a > b ? 1 : 0,
+				),
+			);
+			// One fixed synchronous solve avoids worker timing and fallback histories.
+			await new ForceAtlasLayout(
+				this.spacing,
+				this.forceSettings,
+				groups,
+				false,
+				this.isStale,
+				{ iterations: 250 },
+			).apply(working);
+			if (this.isStale()) return;
+			working.forEachNode((id, { x, y }) =>
+				graph.mergeNodeAttributes(id, { x, y, fixed: false }),
+			);
+			return;
+		}
 		graph.forEachNode((node, attributes) => {
 			graph.setNodeAttribute(node, 'fixed', false);
 			if (
@@ -57,7 +84,8 @@ export class ForceAtlasLayout implements LayoutEngine {
 		}
 
 		const layoutGraph = createForceAtlasGroupGraph(graph, this.groupByNode);
-		const iterations = graph.order < 50 ? 150 : 250;
+		const iterations =
+			this.options.iterations ?? (graph.order < 50 ? 150 : 250);
 		const settings = getForceAtlasSettings(
 			layoutGraph,
 			this.spacing,

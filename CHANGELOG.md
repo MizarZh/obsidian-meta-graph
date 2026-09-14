@@ -12,6 +12,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Added
 
+- Experimental **Stable** switch for Network (Sigma/G6): retain ForceAtlas2 with ID-based initial coordinates, sorted inputs, and fixed iterations. Refresh and relayout resets temporary dragging without saving positions.
+
 - Developer bundle and CPU baseline commands, with dependency contribution reports, deterministic graph fixtures, environment metadata, and an Obsidian runtime measurement protocol.
 
 ### Changed

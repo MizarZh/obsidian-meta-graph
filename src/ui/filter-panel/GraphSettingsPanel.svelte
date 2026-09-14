@@ -37,6 +37,8 @@
 		onParallelEdgeStyle,
 		cubeSize,
 		cubeFreeCamera,
+		stableLayout,
+		onStableLayout,
 		enableForceLayout,
 		flowEdgeStyle,
 		flowDirection,
@@ -90,6 +92,8 @@
 		onParallelEdgeStyle: (value: 'straight' | 'curve') => void;
 		cubeSize: number;
 		cubeFreeCamera: boolean;
+		stableLayout: boolean;
+		onStableLayout: (value: boolean) => void;
 		enableForceLayout: boolean;
 		flowEdgeStyle: FlowEdgeStyle;
 		flowDirection: FlowDirection;
@@ -333,6 +337,12 @@
 	</SettingsSection>
 	{#if settingsVisibility.graphLayout}
 		<SettingsSection title="Layout" bind:open={layoutOpen}>
+			<ToggleSetting
+				label="Stable"
+				description="Experimental. Start ForceAtlas2 from fixed initial conditions. Refresh and relayout resets dragging; graph edits may still move clusters."
+				value={stableLayout}
+				onChange={onStableLayout}
+			/>
 			<ToggleSetting
 				label="Force layout"
 				value={enableForceLayout}

@@ -39,6 +39,10 @@ export function normalizeLayout(
 	const spacing = readFiniteNumber(record.spacing, fallback.spacing);
 	return {
 		engine: readLayoutEngine(type),
+		...(type === 'graph' &&
+		(record.stableLayout ?? fallback.stableLayout) === true
+			? { stableLayout: true }
+			: {}),
 		spacing,
 		layerSpacing: readFiniteNumber(
 			record.layerSpacing,

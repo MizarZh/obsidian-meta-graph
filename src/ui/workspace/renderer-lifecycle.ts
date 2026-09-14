@@ -31,7 +31,10 @@ import {
 	type LayoutSnapshot,
 } from '@/layouts/stable-layout';
 import { createChartGroupByNode } from '@/query/group-ownership';
-import { getWorkspaceGraphForceSettings } from '@/ui/workspace/graph-settings';
+import {
+	isStableNetworkEnabled,
+	getWorkspaceGraphForceSettings,
+} from '@/ui/workspace/graph-settings';
 import { createWorkspaceGraphRenderer } from '@/ui/workspace/renderer-factory';
 import {
 	createWorkspaceRuntimeGraph,
@@ -424,6 +427,7 @@ export class WorkspaceRendererLifecycle {
 		}
 		await applyStableRuntimeLayout(graph, layoutSnapshot, newNodeIds, {
 			mode: state.mode,
+			stableLayout: isStableNetworkEnabled(state),
 			forceLayout,
 			graphSpacing: state.graphSpacing,
 			graphForceSettings: getWorkspaceGraphForceSettings(state),

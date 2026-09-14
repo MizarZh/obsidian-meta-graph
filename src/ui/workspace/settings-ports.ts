@@ -1,3 +1,4 @@
+import { isStableNetworkEnabled } from '@/ui/workspace/graph-settings';
 import { getActiveChartStyle } from '@/workspace/state/chart-selectors';
 import type {
 	ArcDirection,
@@ -51,6 +52,7 @@ export interface WorkspaceGraphSettingsView {
 	parallelEdgeStyle?: 'straight' | 'curve';
 	cubeSize: number;
 	cubeFreeCamera: boolean;
+	stableLayout: boolean;
 	enableForceLayout: boolean;
 	flowEdgeStyle: FlowEdgeStyle;
 	flowDirection: FlowDirection;
@@ -157,6 +159,7 @@ export interface WorkspaceGraphSettingsActions {
 	setCubeFaceOpacity(value: number): void;
 	setCubeSize(value: number): void;
 	setCubeFreeCamera(value: boolean): void;
+	setStableLayout(value: boolean): void;
 	setEnableForceLayout(value: boolean): void;
 	setGraphCenterForce(value: number): void;
 	setGraphRepelForce(value: number): void;
@@ -255,6 +258,7 @@ export function createWorkspaceSettingsView(
 			parallelEdgeStyle: state.parallelEdgeStyle ?? 'straight',
 			cubeSize: state.cubeSize,
 			cubeFreeCamera: state.cubeFreeCamera,
+			stableLayout: isStableNetworkEnabled(state),
 			enableForceLayout: state.enableForceLayout,
 			flowEdgeStyle: state.flowEdgeStyle,
 			flowDirection: state.flowDirection,
@@ -369,6 +373,7 @@ export function createWorkspaceSettingsActions(
 			setCubeFaceOpacity: (value) => controller.setCubeFaceOpacity(value),
 			setCubeSize: (value) => controller.setCubeSize(value),
 			setCubeFreeCamera: (value) => controller.setCubeFreeCamera(value),
+			setStableLayout: (value) => controller.setStableLayout(value),
 			setEnableForceLayout: (value) =>
 				controller.setEnableForceLayout(value),
 			setGraphCenterForce: (value) =>

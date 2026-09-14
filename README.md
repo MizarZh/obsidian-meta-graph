@@ -84,6 +84,20 @@ Click **Export** in the chart toolbar and choose **PNG**, **SVG**, **JSON**, **C
 
 ## Metadata
 
+### Stable Network layout (experimental)
+
+Enable **Graph settings -> Layout -> Stable** to keep ForceAtlas2's full-graph
+layout while using fixed initial conditions. Node IDs determine seed coordinates;
+nodes and edges are sorted, and every solve runs exactly 250 iterations. The same
+graph IDs, structure, Groups, and settings produce repeatable initial coordinates.
+**Refresh and relayout** recomputes those coordinates after temporary force dragging.
+Only the switch is saved, not the current layout.
+
+This mode works with Sigma and G6 and defaults to off. Graph rebuilds recompute
+from the same seeds. Adding nodes does not reseed existing nodes, but ForceAtlas2
+can still move clusters as the graph changes. Stable currently uses a synchronous
+solve, including in large-vault mode; large graphs may briefly pause the UI.
+
 ### Sigma Network parallel edges
 
 In **Graph settings -> Edges -> Parallel edges**, choose **Straight** or

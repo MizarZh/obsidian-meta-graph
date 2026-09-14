@@ -86,6 +86,7 @@ export interface ConnectionFieldSpec {
 }
 
 export interface ChartLayoutConfig {
+	stableLayout?: boolean;
 	engine:
 		| 'force-atlas'
 		| 'force-3d'

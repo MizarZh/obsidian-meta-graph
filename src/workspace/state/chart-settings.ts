@@ -368,6 +368,18 @@ export function setArcSpacingInState(
 	return setLayoutSpacingInState(state, arcSpacing, true);
 }
 
+export function setStableLayoutInState(
+	state: WorkspaceState,
+	value: boolean,
+): WorkspaceState {
+	if (
+		state.mode !== 'graph' ||
+		Boolean(getActiveChart(state).layout.stableLayout) === value
+	)
+		return state;
+	return updateActiveChartLayout(state, { stableLayout: value }, true);
+}
+
 export function setGraphForceSettingInState(
 	state: WorkspaceState,
 	key: GraphForceSettingKey,

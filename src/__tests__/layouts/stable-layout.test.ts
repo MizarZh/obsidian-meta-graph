@@ -58,6 +58,41 @@ const bundledProjection: GraphProjection = {
 };
 
 describe('stable layout orchestration', () => {
+	it('restores the Stable ForceAtlas2 baseline despite dragged snapshot positions', async () => {
+		const graph = new GraphologyAdapter(palette).fromProjection(
+			bundledProjection,
+			new Map(),
+		);
+		const snapshot = createLayoutSnapshot();
+		const solve = (forceLayout: boolean) =>
+			applyStableLayout(graph, snapshot, [], {
+				mode: 'graph',
+				stableLayout: true,
+				forceLayout,
+				graphSpacing: 1,
+				graphForceSettings: DEFAULT_GRAPH_FORCE_SETTINGS,
+				flowEdgeStyle: 'straight',
+				flowDirection: 'LR',
+				flowLayerSpacing: 1,
+				flowLaneSpacing: 1,
+				arcSpacing: 1,
+				arcDirection: 'right',
+				arcLabelAngle: 'auto',
+				nodeSort: 'name',
+				nodeSortDirection: 'asc',
+			});
+		await solve(false);
+		const baseline = new Map(snapshot.positions);
+		for (const forceLayout of [true, false]) {
+			graph.forEachNode((id) => {
+				graph.mergeNodeAttributes(id, { x: 900, y: -200 });
+				snapshot.positions.set(id, { x: 900, y: -200 });
+			});
+			await solve(forceLayout);
+			expect(snapshot.positions).toEqual(baseline);
+		}
+	});
+
 	it('keys layout snapshots by mode-specific layout inputs', () => {
 		expect(
 			getLayoutSnapshotKey({

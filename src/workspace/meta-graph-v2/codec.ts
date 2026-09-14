@@ -509,6 +509,9 @@ function chartExtensionsToV2(
 	const namespace = isRecord(extensions[META_GRAPH_EXTENSION_KEY])
 		? cloneSerializable(extensions[META_GRAPH_EXTENSION_KEY])
 		: {};
+	delete namespace.stableLayout;
+	if (chart.type === 'graph' && chart.layout.stableLayout)
+		namespace.stableLayout = true;
 	delete namespace.renderer;
 	delete namespace.parallelEdgeStyle;
 	if (chart.display.parallelEdgeStyle === 'curve')
@@ -1205,6 +1208,8 @@ function v2ChartToLegacyRecord(
 		},
 		layout: {
 			engine: layoutEngineForType(type),
+			stableLayout:
+				type === 'graph' && readStableLayout(value.extensions),
 			spacing: layout.spacing,
 			centerForce: forces.center,
 			repelForce: forces.repel,
@@ -1291,6 +1296,12 @@ function readChartParallelEdgeStyle(extensions: unknown): 'straight' | 'curve' {
 	return isRecord(namespace) && namespace.parallelEdgeStyle === 'curve'
 		? 'curve'
 		: 'straight';
+}
+
+function readStableLayout(extensions: unknown): boolean {
+	if (!isRecord(extensions)) return false;
+	const namespace = extensions[META_GRAPH_EXTENSION_KEY];
+	return isRecord(namespace) && namespace.stableLayout === true;
 }
 
 function readChartRenderer(extensions: unknown): MetaGraphChart['renderer'] {
