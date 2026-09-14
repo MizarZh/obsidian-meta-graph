@@ -32,6 +32,8 @@ import {
 } from '@/layouts/stable-layout';
 import { createChartGroupByNode } from '@/query/group-ownership';
 import {
+	getNetworkLayout,
+	getFlowLayout,
 	isStableNetworkEnabled,
 	getWorkspaceGraphForceSettings,
 } from '@/ui/workspace/graph-settings';
@@ -428,6 +430,15 @@ export class WorkspaceRendererLifecycle {
 		await applyStableRuntimeLayout(graph, layoutSnapshot, newNodeIds, {
 			mode: state.mode,
 			stableLayout: isStableNetworkEnabled(state),
+			networkLayout: getNetworkLayout(state),
+			flowLayout: getFlowLayout(state),
+			yieldControl: () =>
+				new Promise<void>((resolve) =>
+					(canvas?.ownerDocument.defaultView ?? window).setTimeout(
+						resolve,
+						0,
+					),
+				),
 			forceLayout,
 			graphSpacing: state.graphSpacing,
 			graphForceSettings: getWorkspaceGraphForceSettings(state),

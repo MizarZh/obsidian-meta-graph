@@ -85,7 +85,13 @@ export interface ConnectionFieldSpec {
 	reverseField?: string;
 }
 
+export type NetworkLayoutKind = 'force-atlas' | 'multilevel-stress';
+
+export type FlowLayoutKind = 'elk' | 'elk-interactive';
+
 export interface ChartLayoutConfig {
+	flowLayout?: FlowLayoutKind;
+	networkLayout?: NetworkLayoutKind;
 	stableLayout?: boolean;
 	engine:
 		| 'force-atlas'

@@ -6,11 +6,19 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Fully interactive Flow restores the last automatic geometry when layout inputs are unchanged, preventing drift on repeated refreshes. Group coordinate hints now exclude container padding so it is not applied twice.
+
+- Fully interactive Flow now retains automatic edge paths as well as node positions, avoiding excessive staircase bends on long edges in Curve and Orthogonal modes.
+
 - Fixed 3D network link patterns: dashed, dotted, and dash-dot styles now render on straight and curved links and update without restarting layout.
 
 - Removed Three.js color warnings when hovering nodes in 3D network views while preserving neighborhood fading.
 
 ### Added
+
+- Flow can now select experimental **ELK fully interactive**, preserving the default ELK option. Edits use the previous automatic layout from the current session; only the algorithm choice is saved.
+
+- Network can now select experimental **Multilevel stress** per chart in Sigma/G6, alongside the default ForceAtlas2 and its Stable switch. Refreshes recompute the initial layout without saving dragged coordinates.
 
 - Experimental **Stable** switch for Network (Sigma/G6): retain ForceAtlas2 with ID-based initial coordinates, sorted inputs, and fixed iterations. Refresh and relayout resets temporary dragging without saving positions.
 

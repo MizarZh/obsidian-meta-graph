@@ -368,6 +368,30 @@ export function setArcSpacingInState(
 	return setLayoutSpacingInState(state, arcSpacing, true);
 }
 
+export function setFlowLayoutInState(
+	state: WorkspaceState,
+	value: import('@/core/types').FlowLayoutKind,
+): WorkspaceState {
+	if (
+		state.mode !== 'flow' ||
+		(getActiveChart(state).layout.flowLayout ?? 'elk') === value
+	)
+		return state;
+	return updateActiveChartLayout(state, { flowLayout: value }, true);
+}
+
+export function setNetworkLayoutInState(
+	state: WorkspaceState,
+	value: import('@/core/types').NetworkLayoutKind,
+): WorkspaceState {
+	if (
+		state.mode !== 'graph' ||
+		(getActiveChart(state).layout.networkLayout ?? 'force-atlas') === value
+	)
+		return state;
+	return updateActiveChartLayout(state, { networkLayout: value }, true);
+}
+
 export function setStableLayoutInState(
 	state: WorkspaceState,
 	value: boolean,

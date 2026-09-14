@@ -67,6 +67,8 @@ import {
 	setTimelineInState,
 	setGraphForceSettingInState,
 	setStableLayoutInState,
+	setNetworkLayoutInState,
+	setFlowLayoutInState,
 	resetGraphForcesInState,
 	setGraphSpacingInState,
 	setLabelBoldInState,
@@ -574,6 +576,14 @@ export class WorkspaceController {
 
 	setTimeline(patch: Partial<import('@/core/types').TimelineConfig>): void {
 		this.setWorkspaceState(setTimelineInState(this.state, patch));
+	}
+
+	setFlowLayout(value: import('@/core/types').FlowLayoutKind): void {
+		this.setWorkspaceState(setFlowLayoutInState(this.state, value));
+	}
+
+	setNetworkLayout(value: import('@/core/types').NetworkLayoutKind): void {
+		this.setWorkspaceState(setNetworkLayoutInState(this.state, value));
 	}
 
 	setStableLayout(value: boolean): void {

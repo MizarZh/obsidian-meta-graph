@@ -1,3 +1,4 @@
+import { MultilevelStressLayout } from '@/layouts/multilevel-stress-layout';
 import { setsEqual } from '@/core/sets';
 import type {
 	ArcDirection,
@@ -40,6 +41,7 @@ import { HierarchicalEdgeBundlingLayout } from '@/layouts/hierarchical-edge-bund
 import type { PlanarLayoutGeometry } from '@/layouts/planar-geometry';
 
 export interface LayoutSnapshot extends PlanarLayoutGeometry {
+	flowInteractiveHistory?: import('@/layouts/elk-flow-interactive').FlowInteractiveHistory;
 	positions: Map<string, GraphPosition>;
 	edgeIds: Set<string>;
 	orthogonalRoutes: OrthogonalRouteMap;
@@ -57,6 +59,9 @@ export interface LayoutSnapshotKeyOptions {
 }
 
 export interface StableLayoutOptions {
+	flowLayout?: import('@/core/types').FlowLayoutKind;
+	networkLayout?: import('@/core/types').NetworkLayoutKind;
+	yieldControl?: () => Promise<void>;
 	stableLayout?: boolean;
 	mode: ViewMode;
 	forceLayout: boolean;
@@ -238,7 +243,8 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 		currentEdgeIds,
 	} = context;
 	const flowEdgesChanged = !setsEqual(currentEdgeIds, snapshot.edgeIds);
-	const needsFlowLayout = options.forceLayout || firstLayout;
+	const interactive = options.flowLayout === 'elk-interactive';
+	const needsFlowLayout = options.forceLayout || firstLayout || interactive;
 
 	if (needsFlowLayout) {
 		const layout = new ElkFlowLayout(
@@ -252,9 +258,17 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 			options.flowCornerRadius ?? 0,
 			options.flowNodeFootprints,
 			options.flowTitleTextWidths,
+			{
+				interactive,
+				previous: interactive
+					? snapshot.flowInteractiveHistory
+					: undefined,
+				isStale: options.isStale,
+			},
 		);
 		await layout.apply(graph);
 		if (options.isStale?.()) return;
+		snapshot.flowInteractiveHistory = layout.getInteractiveHistory();
 		snapshot.flowRelationConflictCount = layout.getConflictCount();
 		snapshot.groupGeometries = layout.getGroupGeometries();
 		snapshot.edgeIds = currentEdgeIds;
@@ -281,6 +295,7 @@ async function applyFlowLayout(context: StableLayoutContext): Promise<void> {
 			snapshot.orthogonalRoutes = createOrthogonalRouteMap();
 		}
 	} else {
+		snapshot.flowInteractiveHistory = undefined;
 		placeNewFlowNodes(graph, snapshot.positions, newNodeIds, {
 			flowDirection: options.flowDirection,
 			flowLayerSpacing: options.flowLayerSpacing,
@@ -366,7 +381,16 @@ async function applyGraphLayout({
 	firstLayout,
 	currentEdgeIds,
 }: StableLayoutContext): Promise<void> {
-	if (options.stableLayout || firstLayout || options.forceLayout) {
+	if (options.networkLayout === 'multilevel-stress') {
+		await new MultilevelStressLayout(
+			options.graphSpacing,
+			options.graphForceSettings.linkDistance,
+			options.groupByNode,
+			options.isStale,
+			options.yieldControl,
+		).apply(graph);
+		if (options.isStale?.()) return;
+	} else if (options.stableLayout || firstLayout || options.forceLayout) {
 		await new ForceAtlasLayout(
 			options.graphSpacing,
 			options.graphForceSettings,

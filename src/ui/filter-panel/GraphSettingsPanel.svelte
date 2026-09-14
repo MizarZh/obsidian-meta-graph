@@ -37,6 +37,10 @@
 		onParallelEdgeStyle,
 		cubeSize,
 		cubeFreeCamera,
+		flowLayout,
+		onFlowLayout,
+		networkLayout,
+		onNetworkLayout,
 		stableLayout,
 		onStableLayout,
 		enableForceLayout,
@@ -92,6 +96,12 @@
 		onParallelEdgeStyle: (value: 'straight' | 'curve') => void;
 		cubeSize: number;
 		cubeFreeCamera: boolean;
+		flowLayout: import('@/core/types').FlowLayoutKind;
+		onFlowLayout: (value: import('@/core/types').FlowLayoutKind) => void;
+		networkLayout: import('@/core/types').NetworkLayoutKind;
+		onNetworkLayout: (
+			value: import('@/core/types').NetworkLayoutKind,
+		) => void;
 		stableLayout: boolean;
 		onStableLayout: (value: boolean) => void;
 		enableForceLayout: boolean;
@@ -337,12 +347,29 @@
 	</SettingsSection>
 	{#if settingsVisibility.graphLayout}
 		<SettingsSection title="Layout" bind:open={layoutOpen}>
-			<ToggleSetting
-				label="Stable"
-				description="Experimental. Start ForceAtlas2 from fixed initial conditions. Refresh and relayout resets dragging; graph edits may still move clusters."
-				value={stableLayout}
-				onChange={onStableLayout}
+			<DropdownSetting
+				label="Algorithm"
+				description={networkLayout === 'multilevel-stress'
+					? 'Experimental. Repeatable initial layout without saved positions. Large graphs take longer; edits may still move clusters.'
+					: ''}
+				value={networkLayout}
+				options={[
+					{ value: 'force-atlas', label: 'ForceAtlas2' },
+					{ value: 'multilevel-stress', label: 'Multilevel stress' },
+				]}
+				onChange={(value) =>
+					onNetworkLayout(
+						value === 'multilevel-stress' ? value : 'force-atlas',
+					)}
 			/>
+			{#if networkLayout === 'force-atlas'}
+				<ToggleSetting
+					label="Stable"
+					description="Experimental. Start ForceAtlas2 from fixed initial conditions. Refresh and relayout resets dragging; graph edits may still move clusters."
+					value={stableLayout}
+					onChange={onStableLayout}
+				/>
+			{/if}
 			<ToggleSetting
 				label="Force layout"
 				value={enableForceLayout}
@@ -415,6 +442,22 @@
 	{/if}
 	{#if settingsVisibility.flowLayout}
 		<SettingsSection title="Layout" bind:open={layoutOpen}>
+			<DropdownSetting
+				label="Algorithm"
+				value={flowLayout}
+				options={[
+					{ value: 'elk', label: 'ELK' },
+					{
+						value: 'elk-interactive',
+						label: 'ELK fully interactive',
+					},
+				]}
+				description={flowLayout === 'elk-interactive'
+					? 'Experimental. Edits relayout using the previous automatic layout from this session. Reopening starts fresh; dragging is not saved as a layout reference.'
+					: ''}
+				onChange={(value) =>
+					onFlowLayout(value === 'elk-interactive' ? value : 'elk')}
+			/>
 			<SliderSetting
 				label="Layer spacing"
 				value={flowLayerSpacing}

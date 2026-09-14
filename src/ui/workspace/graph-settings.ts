@@ -22,6 +22,26 @@ export function getWorkspaceGraphForceSettings(
 	};
 }
 
+export function getFlowLayout(
+	state: WorkspaceState,
+): import('@/core/types').FlowLayoutKind {
+	return state.mode === 'flow' &&
+		state.charts.find((chart) => chart.id === state.activeChartId)?.layout
+			.flowLayout === 'elk-interactive'
+		? 'elk-interactive'
+		: 'elk';
+}
+
+export function getNetworkLayout(
+	state: WorkspaceState,
+): import('@/core/types').NetworkLayoutKind {
+	return state.mode === 'graph' &&
+		state.charts.find((chart) => chart.id === state.activeChartId)?.layout
+			.networkLayout === 'multilevel-stress'
+		? 'multilevel-stress'
+		: 'force-atlas';
+}
+
 export function isStableNetworkEnabled(state: WorkspaceState): boolean {
 	return (
 		state.mode === 'graph' &&

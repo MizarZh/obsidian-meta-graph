@@ -84,7 +84,24 @@ Click **Export** in the chart toolbar and choose **PNG**, **SVG**, **JSON**, **C
 
 ## Metadata
 
-### Stable Network layout (experimental)
+### Network layout algorithms
+
+Choose **Graph settings -> Layout -> Algorithm**:
+
+- **ForceAtlas2** remains the default, with the existing optional **Stable** switch.
+- **Multilevel stress** is experimental: deterministic coarse placement followed by
+  full-graph stress refinement. Both Sigma and G6 use the same layout. Refreshes
+  and topology rebuilds recompute from current IDs and links, discarding temporary
+  dragging. Only the algorithm choice is saved; no baseline coordinates are saved.
+
+Multilevel stress treats links as undirected, collapses parallel relationships for
+layout, and retains the plugin's Group compaction. Link distance controls initial
+scale; force controls still affect temporary D3 interaction. Coarsening can change
+when links change, so cluster stability is not guaranteed. Its all-pairs solver
+uses quadratic memory and cubic factorization time; large graphs take longer,
+with calculation yielding periodically to keep the interface responsive.
+
+### Stable ForceAtlas2 initialization (experimental)
 
 Enable **Graph settings -> Layout -> Stable** to keep ForceAtlas2's full-graph
 layout while using fixed initial conditions. Node IDs determine seed coordinates;
@@ -97,6 +114,23 @@ This mode works with Sigma and G6 and defaults to off. Graph rebuilds recompute
 from the same seeds. Adding nodes does not reseed existing nodes, but ForceAtlas2
 can still move clusters as the graph changes. Stable currently uses a synchronous
 solve, including in large-vault mode; large graphs may briefly pause the UI.
+
+### Flow layout algorithms
+
+Choose **Graph settings -> Layout -> Algorithm -> ELK fully interactive** to
+try the experimental Flow alternative. **ELK** remains the default.
+
+The interactive option starts with model-order ELK, then uses the last automatic
+layout from the current session to guide cycle breaking, layering, crossing
+minimization and node placement. Node/link edits (including undo) run interactive
+layout even when **Relayout Flow after connecting nodes** is off. The default
+ELK option retains the existing setting and position-preservation behavior.
+
+Only the algorithm choice is saved. Dragged positions are not used as the
+interactive reference; reopening the workspace starts without automatic history.
+Refresh restores the session's automatic result exactly when layout inputs are unchanged; changed inputs run interactive ELK. Sigma and G6 share the same
+layout and logical routes. Cycles and component merges can still cause substantial
+movement. This option does not enable the separate shared-port experiment.
 
 ### Sigma Network parallel edges
 
@@ -318,8 +352,8 @@ settings to report them in the developer console.
     **Reset forces** restores the recommended defaults. Dragging stays active
     while the pointer is held, and release cools smoothly. Neighbors move through
     springs; no direct neighbor shifts or extra return pull are applied.
-    Both Sigma and G6 use the original ForceAtlas2 placement and D3 simulation.
-    The Network view
+    Both Sigma and G6 use the selected Network layout and D3 simulation.
+    With the default ForceAtlas2 algorithm and Stable disabled, the Network view
     runs ForceAtlas placement on first layout and when **Refresh and relayout**
     is explicitly requested. That action refreshes data and recalculates positions
     using current settings. Ordinary data refreshes, force setting changes, added
@@ -697,7 +731,6 @@ Right-click a node and choose **Trace upstream**, **Trace downstream**, or **Fin
 Choose **All relationship fields** or **Selected fields** to trace metadata relationships. All fields share a direction; selected fields each use **Follow arrows**, **Against arrows**, or **Both**. Undirected fields always traverse both ways. Ordinary metadata values and body links are not relationship-field choices. Reachability offers a shared 1–10 layer limit or **All**; path mode finds one shortest path without that range limit.
 
 Tracing uses the current visible graph and does not expand filters. Nodes and links within the trace retain their original colors and styles; only elements outside the trace fade temporarily. While a trace result is active, Local hover and pinned-neighborhood focus cannot change that range. Individual nodes and links remain selectable; clearing Trace restores Local focus. Layout positions and saved styles remain intact. Clear the start node or press **Esc** outside graph picking to restore the normal appearance. Switching charts, refreshing the projection, or previewing the timeline clears the trace.
-
 
 ### Overlay layout
 

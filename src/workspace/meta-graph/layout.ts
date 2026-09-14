@@ -39,6 +39,14 @@ export function normalizeLayout(
 	const spacing = readFiniteNumber(record.spacing, fallback.spacing);
 	return {
 		engine: readLayoutEngine(type),
+		...(type === 'flow' &&
+		(record.flowLayout ?? fallback.flowLayout) === 'elk-interactive'
+			? { flowLayout: 'elk-interactive' as const }
+			: {}),
+		...(type === 'graph' &&
+		(record.networkLayout ?? fallback.networkLayout) === 'multilevel-stress'
+			? { networkLayout: 'multilevel-stress' as const }
+			: {}),
 		...(type === 'graph' &&
 		(record.stableLayout ?? fallback.stableLayout) === true
 			? { stableLayout: true }

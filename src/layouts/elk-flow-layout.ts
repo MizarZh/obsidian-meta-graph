@@ -1,3 +1,9 @@
+import {
+	captureFlowGeometry,
+	flowLayoutInputKey,
+	prepareInteractiveFlowGraph,
+	type FlowInteractiveHistory,
+} from '@/layouts/elk-flow-interactive';
 import { createBendNode } from '@/layouts/bend-node';
 import ELK, {
 	type ElkExtendedEdge,
@@ -57,6 +63,7 @@ export class ElkFlowLayout implements LayoutEngine {
 	private conflictCount = 0;
 	private groupGeometries: FlowGroupGeometry[] = [];
 	private edgeRoutes = new Map<string, PlanarEdgeRoute>();
+	private interactiveHistory?: FlowInteractiveHistory;
 
 	constructor(
 		private readonly edgeStyle: FlowEdgeStyle = 'orthogonal',
@@ -75,6 +82,11 @@ export class ElkFlowLayout implements LayoutEngine {
 			string,
 			number
 		> = new Map(),
+		private readonly interaction: {
+			interactive?: boolean;
+			previous?: FlowInteractiveHistory;
+			isStale?: () => boolean;
+		} = {},
 	) {}
 
 	async apply(graph: RuntimeGraph): Promise<void> {
@@ -105,7 +117,38 @@ export class ElkFlowLayout implements LayoutEngine {
 			edges: plan.edges,
 		};
 
-		let result = await this.elk.layout(elkGraph);
+		const historyKey = JSON.stringify([
+			this.direction,
+			this.groups.map((group) => group.id),
+			[...this.groupByNode].sort(([a], [b]) =>
+				a < b ? -1 : a > b ? 1 : 0,
+			),
+			this.relationRules,
+		]);
+		const inputKey = JSON.stringify([
+			historyKey,
+			this.edgeStyle,
+			this.cornerRadius,
+			flowLayoutInputKey(elkGraph),
+		]);
+		const reused =
+			this.interaction.interactive &&
+			this.interaction.previous?.inputKey === inputKey
+				? this.interaction.previous
+				: undefined;
+		if (this.interaction.interactive) {
+			prepareInteractiveFlowGraph(
+				elkGraph,
+				this.interaction.previous?.key === historyKey
+					? this.interaction.previous.geometry
+					: undefined,
+			);
+		}
+		if (this.interaction.isStale?.()) return;
+		let result = reused
+			? captureFlowGeometry(reused.geometry)
+			: await this.elk.layout(elkGraph);
+		if (this.interaction.isStale?.()) return;
 		// A circular overlay must not grow outside the box ELK assigned to it.
 		const circularIds = new Set(
 			this.groups
@@ -113,7 +156,7 @@ export class ElkFlowLayout implements LayoutEngine {
 				.map((group) => hierarchy.groupElkIdByGroupId.get(group.id)),
 		);
 		let squareChanged = false;
-		for (const child of result.children ?? []) {
+		for (const child of reused ? [] : (result.children ?? [])) {
 			if (!circularIds.has(child.id) || child.width === child.height)
 				continue;
 			const diameter = Math.max(child.width ?? 0, child.height ?? 0);
@@ -124,6 +167,14 @@ export class ElkFlowLayout implements LayoutEngine {
 			squareChanged = true;
 		}
 		if (squareChanged) result = await this.elk.layout(result);
+		if (this.interaction.isStale?.()) return;
+		this.interactiveHistory = this.interaction.interactive
+			? {
+					key: historyKey,
+					inputKey,
+					geometry: captureFlowGeometry(result),
+				}
+			: undefined;
 		const boundsById = collectElkNodeBounds(result);
 		for (const nodeId of graph.nodes()) {
 			const bounds = boundsById.get(nodeId);
@@ -171,6 +222,10 @@ export class ElkFlowLayout implements LayoutEngine {
 			this.orthogonalRoutes = new Map();
 			this.edgeRoutes = new Map();
 		}
+	}
+
+	getInteractiveHistory(): FlowInteractiveHistory | undefined {
+		return this.interactiveHistory;
 	}
 
 	getOrthogonalRoutes(): OrthogonalRouteMap {

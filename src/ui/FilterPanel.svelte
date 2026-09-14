@@ -45,6 +45,10 @@
 			onParallelEdgeStyle={actions.graph.setParallelEdgeStyle}
 			cubeSize={view.graph.cubeSize}
 			cubeFreeCamera={view.graph.cubeFreeCamera}
+			flowLayout={view.graph.flowLayout}
+			onFlowLayout={actions.graph.setFlowLayout}
+			networkLayout={view.graph.networkLayout}
+			onNetworkLayout={actions.graph.setNetworkLayout}
 			stableLayout={view.graph.stableLayout}
 			onStableLayout={actions.graph.setStableLayout}
 			enableForceLayout={view.graph.enableForceLayout}

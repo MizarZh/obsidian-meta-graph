@@ -509,6 +509,15 @@ function chartExtensionsToV2(
 	const namespace = isRecord(extensions[META_GRAPH_EXTENSION_KEY])
 		? cloneSerializable(extensions[META_GRAPH_EXTENSION_KEY])
 		: {};
+	delete namespace.flowLayout;
+	if (chart.type === 'flow' && chart.layout.flowLayout === 'elk-interactive')
+		namespace.flowLayout = 'elk-interactive';
+	delete namespace.networkLayout;
+	if (
+		chart.type === 'graph' &&
+		chart.layout.networkLayout === 'multilevel-stress'
+	)
+		namespace.networkLayout = 'multilevel-stress';
 	delete namespace.stableLayout;
 	if (chart.type === 'graph' && chart.layout.stableLayout)
 		namespace.stableLayout = true;
@@ -1208,6 +1217,12 @@ function v2ChartToLegacyRecord(
 		},
 		layout: {
 			engine: layoutEngineForType(type),
+			flowLayout:
+				type === 'flow' ? readFlowLayout(value.extensions) : undefined,
+			networkLayout:
+				type === 'graph'
+					? readNetworkLayout(value.extensions)
+					: undefined,
 			stableLayout:
 				type === 'graph' && readStableLayout(value.extensions),
 			spacing: layout.spacing,
@@ -1296,6 +1311,27 @@ function readChartParallelEdgeStyle(extensions: unknown): 'straight' | 'curve' {
 	return isRecord(namespace) && namespace.parallelEdgeStyle === 'curve'
 		? 'curve'
 		: 'straight';
+}
+
+function readFlowLayout(
+	extensions: unknown,
+): import('@/core/types').FlowLayoutKind {
+	if (!isRecord(extensions)) return 'elk';
+	const namespace = extensions[META_GRAPH_EXTENSION_KEY];
+	return isRecord(namespace) && namespace.flowLayout === 'elk-interactive'
+		? 'elk-interactive'
+		: 'elk';
+}
+
+function readNetworkLayout(
+	extensions: unknown,
+): import('@/core/types').NetworkLayoutKind {
+	if (!isRecord(extensions)) return 'force-atlas';
+	const namespace = extensions[META_GRAPH_EXTENSION_KEY];
+	return isRecord(namespace) &&
+		namespace.networkLayout === 'multilevel-stress'
+		? 'multilevel-stress'
+		: 'force-atlas';
 }
 
 function readStableLayout(extensions: unknown): boolean {

@@ -22,6 +22,76 @@ import {
 } from '@/workspace/workspace-session';
 
 describe('Meta Graph v2 persistence', () => {
+	it('persists the Flow choice only in extensions and defaults unknown algorithms', () => {
+		const document = createDefaultMetaGraphDocument(200, 1.5);
+		document.charts[0]!.type = 'flow';
+		document.charts[0]!.layout.flowLayout = 'elk-interactive';
+		const saved = serializeWorkspaceStateV2(
+			createWorkspaceState(200, 1.5, document),
+			createPersistenceContextFromV1(document),
+		);
+		expect(saved.charts[0]!.extensions?.['meta-graph']).toMatchObject({
+			flowLayout: 'elk-interactive',
+		});
+		const parsed = parsePersistedMetaGraphDocumentV2(saved, 200, 1.5);
+		expect(parsed.document.charts[0]!.layout.flowLayout).toBe(
+			'elk-interactive',
+		);
+		expect(parsed.document.charts[0]!.layout.manual?.nodes ?? {}).toEqual(
+			{},
+		);
+		saved.charts[0]!.extensions = {
+			'meta-graph': { flowLayout: 'unknown' },
+		};
+		expect(
+			parsePersistedMetaGraphDocumentV2(saved, 200, 1.5).document
+				.charts[0]!.layout.flowLayout ?? 'elk',
+		).toBe('elk');
+		parsed.document.charts[0]!.layout.flowLayout = 'elk';
+		const reset = serializeWorkspaceStateV2(
+			createWorkspaceState(200, 1.5, parsed.document),
+			parsed.persistence,
+		);
+		expect(reset.charts[0]!.extensions?.['meta-graph']).toBeUndefined();
+	});
+	it('round-trips the Network algorithm through extensions with a safe default', () => {
+		for (const algorithm of ['multilevel-stress', 'force-atlas'] as const) {
+			const document = createDefaultMetaGraphDocument(200, 1.5);
+			document.charts[0]!.layout.networkLayout = algorithm;
+			const saved = serializeWorkspaceStateV2(
+				createWorkspaceState(200, 1.5, document),
+				createPersistenceContextFromV1(document),
+			);
+			const parsed = parsePersistedMetaGraphDocumentV2(saved, 200, 1.5);
+			expect(
+				parsed.document.charts[0]!.layout.networkLayout ??
+					'force-atlas',
+			).toBe(algorithm);
+			expect(
+				parsed.document.charts[0]!.layout.manual?.nodes ?? {},
+			).toEqual({});
+			if (algorithm === 'multilevel-stress') {
+				expect(
+					saved.charts[0]!.extensions?.['meta-graph'],
+				).toMatchObject({ networkLayout: 'multilevel-stress' });
+				saved.charts[0]!.extensions = {
+					'meta-graph': { networkLayout: 'unknown' },
+				};
+				const unknown = parsePersistedMetaGraphDocumentV2(
+					saved,
+					200,
+					1.5,
+				);
+				expect(
+					unknown.document.charts[0]!.layout.networkLayout ??
+						'force-atlas',
+				).toBe('force-atlas');
+			} else
+				expect(
+					saved.charts[0]!.extensions?.['meta-graph'],
+				).toBeUndefined();
+		}
+	});
 	it('round-trips Stable through the extension without saving coordinates', () => {
 		for (const enabled of [true, false]) {
 			const document = createDefaultMetaGraphDocument(200, 1.5);
