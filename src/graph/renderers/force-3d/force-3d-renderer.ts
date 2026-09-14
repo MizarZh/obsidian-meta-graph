@@ -1079,17 +1079,10 @@ export class Force3DRenderer {
 	}
 
 	private getNodeColor(node: Force3DNode): string {
-		const activeHoverNodeId = this.getActiveHoverNodeId();
 		if (node.id === this.selectedNodeId) {
 			return this.palette.selected;
 		}
-		if (
-			!this.graph.getAttribute('traceActive') &&
-			activeHoverNodeId &&
-			!this.hoveredNeighborhood.has(node.id)
-		) {
-			return withAlpha(node.color, 0.18);
-		}
+		// Three.Color has no alpha; getNodeOpacity applies hover fading.
 		return node.color;
 	}
 

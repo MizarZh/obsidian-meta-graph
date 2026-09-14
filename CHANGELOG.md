@@ -4,6 +4,10 @@ All notable changes to Meta Graph are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- Removed Three.js color warnings when hovering nodes in 3D network views while preserving neighborhood fading.
+
 ### Added
 
 - Developer bundle and CPU baseline commands, with dependency contribution reports, deterministic graph fixtures, environment metadata, and an Obsidian runtime measurement protocol.
