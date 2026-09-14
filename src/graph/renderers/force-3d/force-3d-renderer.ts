@@ -2,6 +2,7 @@ import {
 	projectSpriteBadge,
 	onSceneBadgeFrame,
 } from '@/graph/renderers/renderer-node-badge';
+import { applyForce3DLinkPattern } from '@/graph/renderers/force-3d/force-3d-link-material';
 import type { ForceGraph3DInstance } from '3d-force-graph';
 import type * as Three from 'three';
 import type { Object3D } from 'three';
@@ -38,6 +39,7 @@ import { createCubeNodeSprite } from '@/graph/renderers/cube-3d/cube-sprites';
 interface ThreeRuntime {
 	CanvasTexture: typeof Three.CanvasTexture;
 	Color: typeof Three.Color;
+	MeshLambertMaterial: typeof Three.MeshLambertMaterial;
 	SpriteMaterial: typeof Three.SpriteMaterial;
 	Sprite: typeof Three.Sprite;
 	Group: typeof Three.Group;
@@ -109,6 +111,10 @@ export class Force3DRenderer {
 	private readonly forceLinkCache = new Map<string, Force3DLink>();
 	private readonly nodeLabelSprites = new Map<string, Three.Sprite>();
 	private readonly nodeShapeSprites = new Map<string, Three.Sprite>();
+	private readonly linkMaterials = new Map<
+		string,
+		{ key: string; material: Three.MeshLambertMaterial }
+	>();
 	private readonly linkLabelSprites = new Map<string, Three.Sprite>();
 	private readonly blockDoubleClick = (event: MouseEvent): void => {
 		event.preventDefault();
@@ -197,6 +203,7 @@ export class Force3DRenderer {
 			})
 			.linkLabel((link) => link.label || '')
 			.linkColor((link) => this.getLinkColor(link))
+			.linkMaterial((link) => this.getLinkMaterial(link))
 			.linkWidth((link) => Math.max(0.4, link.size))
 			.linkCurvature((link) => link.curvature ?? 0)
 			.linkCurveRotation((link) => link.curveRotation ?? 0)
@@ -272,6 +279,12 @@ export class Force3DRenderer {
 
 	setGraph(graph: RuntimeGraph): void {
 		this.graph = graph;
+		for (const [id, entry] of this.linkMaterials) {
+			if (!graph.hasEdge(id)) {
+				entry.material.dispose();
+				this.linkMaterials.delete(id);
+			}
+		}
 		if (this.pinnedNodeId && !graph.hasNode(this.pinnedNodeId)) {
 			this.pinnedNodeId = undefined;
 		}
@@ -642,6 +655,9 @@ export class Force3DRenderer {
 		}
 		this.instance.pauseAnimation();
 		this.instance._destructor();
+		for (const entry of this.linkMaterials.values())
+			entry.material.dispose();
+		this.linkMaterials.clear();
 		this.container.replaceChildren();
 	}
 
@@ -762,6 +778,7 @@ export class Force3DRenderer {
 		this.instance
 			.nodeColor((node: Force3DNode) => this.getNodeColor(node))
 			.linkColor((link: Force3DLink) => this.getLinkColor(link))
+			.linkMaterial((link: Force3DLink) => this.getLinkMaterial(link))
 			.linkDirectionalArrowColor((link: Force3DLink) =>
 				this.getLinkColor(link),
 			);
@@ -776,6 +793,7 @@ export class Force3DRenderer {
 			.nodeVal((node: Force3DNode) => node.size)
 			.nodeColor((node: Force3DNode) => this.getNodeColor(node))
 			.linkColor((link: Force3DLink) => this.getLinkColor(link))
+			.linkMaterial((link: Force3DLink) => this.getLinkMaterial(link))
 			.linkWidth((link: Force3DLink) => Math.max(0.4, link.size))
 			.linkDirectionalArrowLength((link: Force3DLink) =>
 				link.directed
@@ -1002,6 +1020,13 @@ export class Force3DRenderer {
 						temporary.dispose();
 						continue;
 					}
+					if (object === link.__lineObj) {
+						applyForce3DLinkPattern(
+							temporary,
+							link.lineStyle ?? 'solid',
+							Math.max(0.4, link.size),
+						);
+					}
 					temporary.color.set(link.color);
 					temporary.opacity = Math.min(
 						1,
@@ -1099,7 +1124,30 @@ export class Force3DRenderer {
 		return styleOpacity * 0.96;
 	}
 
+	private getLinkMaterial(link: Force3DLink): Three.MeshLambertMaterial {
+		const style = link.lineStyle ?? 'solid';
+		const key = `${style}-${link.size}`;
+		let entry = this.linkMaterials.get(link.id);
+		if (!entry || entry.key !== key) {
+			entry?.material.dispose();
+			const material = new this.three.MeshLambertMaterial();
+			applyForce3DLinkPattern(material, style, Math.max(0.4, link.size));
+			entry = { key, material };
+			this.linkMaterials.set(link.id, entry);
+		}
+		entry.material.color.set(link.color);
+		entry.material.opacity =
+			this.instance.linkOpacity() * this.getLinkOpacity(link);
+		entry.material.transparent = entry.material.opacity < 1;
+		entry.material.depthWrite = entry.material.opacity >= 1;
+		return entry.material;
+	}
+
 	private getLinkColor(link: Force3DLink): string {
+		return withAlpha(link.color, this.getLinkOpacity(link));
+	}
+
+	private getLinkOpacity(link: Force3DLink): number {
 		const opacity = Math.max(0, Math.min(1, link.opacity ?? 1));
 		const activeHoverNodeId = this.getActiveHoverNodeId();
 		if (
@@ -1108,9 +1156,9 @@ export class Force3DRenderer {
 			(!this.hoveredNeighborhood.has(getLinkEndpointId(link.source)) ||
 				!this.hoveredNeighborhood.has(getLinkEndpointId(link.target)))
 		) {
-			return withAlpha(link.color, opacity * 0.12);
+			return opacity * 0.12;
 		}
-		return withAlpha(link.color, opacity);
+		return opacity;
 	}
 
 	private formatNodeLabel(node: Force3DNode): string {

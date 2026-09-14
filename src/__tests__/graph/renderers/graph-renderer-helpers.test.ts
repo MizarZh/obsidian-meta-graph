@@ -187,6 +187,31 @@ describe('graph renderer helpers', () => {
 		});
 	});
 
+	it.each(['dashed', 'dotted', 'dash-dot', 'solid'] as const)(
+		'preserves and updates Force 3D %s patterns without replacing physics data',
+		(lineStyle) => {
+			const graph = createRuntimeGraph();
+			graph.setEdgeAttribute('A-to-B', 'lineStyle', lineStyle);
+			const data = toForce3DData(graph);
+			const link = data.links[0]!;
+			expect(link.lineStyle ?? 'solid').toBe(lineStyle);
+			link.source = data.nodes[0]!;
+			link.target = data.nodes[1]!;
+			const next = lineStyle === 'solid' ? 'dashed' : 'solid';
+			graph.setEdgeAttribute('A-to-B', 'lineStyle', next);
+			const result = syncForce3DDataStyles(graph, data);
+			expect(result.linkStyleChanged).toBe(true);
+			expect(result.linkVisibilityChanged).toBe(false);
+			expect(data.links[0]).toBe(link);
+			expect(link.source).toBe(data.nodes[0]);
+			expect(link.target).toBe(data.nodes[1]);
+			expect(link.lineStyle ?? 'solid').toBe(next);
+			expect(syncForce3DDataStyles(graph, data).linkStyleChanged).toBe(
+				false,
+			);
+		},
+	);
+
 	it('tracks Force 3D node shape updates', () => {
 		const graph = createRuntimeGraph();
 		const data = toForce3DData(graph);

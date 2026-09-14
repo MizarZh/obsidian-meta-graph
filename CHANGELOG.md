@@ -6,6 +6,8 @@ All notable changes to Meta Graph are documented here.
 
 ### Fixed
 
+- Fixed 3D network link patterns: dashed, dotted, and dash-dot styles now render on straight and curved links and update without restarting layout.
+
 - Removed Three.js color warnings when hovering nodes in 3D network views while preserving neighborhood fading.
 
 ### Added

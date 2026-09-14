@@ -1,6 +1,6 @@
 import { setsEqual } from '@/core/sets';
 import type { LinkObject, NodeObject } from '3d-force-graph';
-import type { LinkArrowStyle, NodeShape } from '@/core/types';
+import type { LinkArrowStyle, LinkLineStyle, NodeShape } from '@/core/types';
 import type {
 	RuntimeEdgeAttributes,
 	RuntimeGraph,
@@ -23,6 +23,7 @@ export interface Force3DNode extends NodeObject {
 }
 
 export interface Force3DLink extends LinkObject<Force3DNode> {
+	lineStyle?: LinkLineStyle;
 	id: string;
 	source: string | number | Force3DNode;
 	target: string | number | Force3DNode;
@@ -175,6 +176,7 @@ export function syncForce3DDataStyles(
 		if (
 			link.color !== attributes.color ||
 			link.size !== attributes.size ||
+			(link.lineStyle ?? 'solid') !== (attributes.lineStyle ?? 'solid') ||
 			(link.opacity ?? 1) !== (attributes.opacity ?? 1) ||
 			(link.arrowSize ?? 1) !== (attributes.arrowSize ?? 1) ||
 			link.directed !== attributes.type.includes('arrow') ||
@@ -190,6 +192,11 @@ export function syncForce3DDataStyles(
 		}
 		link.color = attributes.color;
 		link.size = attributes.size;
+		if (attributes.lineStyle && attributes.lineStyle !== 'solid') {
+			link.lineStyle = attributes.lineStyle;
+		} else {
+			delete link.lineStyle;
+		}
 		if ((attributes.opacity ?? 1) === 1) {
 			delete link.opacity;
 		} else {
@@ -286,6 +293,11 @@ function toForce3DLink(
 	link.target = attributes.logicalTarget ?? target;
 	link.color = attributes.color;
 	link.size = attributes.size;
+	if (attributes.lineStyle && attributes.lineStyle !== 'solid') {
+		link.lineStyle = attributes.lineStyle;
+	} else {
+		delete link.lineStyle;
+	}
 	if ((attributes.opacity ?? 1) === 1) {
 		delete link.opacity;
 	} else {
